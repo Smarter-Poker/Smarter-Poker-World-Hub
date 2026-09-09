@@ -8,11 +8,12 @@
       "ci-marker/**": false,
       "backup/**": false,
       "build/**": false,
-      "agent/**": false
+      "agent/**": false,
+      "patch/**": false
     }
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
-  "buildCommand": "bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
+  "buildCommand": "node scripts/copy-reader-assets.mjs && bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && npm run test:training:phase6-authority && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
   "headers": [
     {
       "source": "/(.*)",
@@ -309,6 +310,24 @@
       ]
     },
     {
+      "source": "/pdfjs/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/tesseract/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/_next/static/(.*)",
       "headers": [
         {
@@ -377,7 +396,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
         }
       ]
     },
@@ -636,7 +655,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400"
+          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=60, stale-if-error=86400"
         },
         {
           "key": "Pragma",
@@ -649,7 +668,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400, stale-if-error=86400"
+          "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=60, stale-if-error=86400"
         },
         {
           "key": "Pragma",

@@ -81,14 +81,17 @@ test('timer-off and login fallback remain wired exactly', () => {
   assert.doesNotMatch(selector, /pathname:\s*'\/login'/);
 });
 
-test('offline Training saves do not persist bearer credentials', () => {
+test('retained practice saves cannot reach authoritative Training stores or durable rewards', () => {
   const queue = read('src/engine/OfflineSyncQueue.js');
   const save = read('src/components/training/utils/saveSession.js');
+  const progression = read('src/hooks/useProgression.ts');
 
   assert.match(queue, /const \{ authedFetch \} = await import\('\.\.\/lib\/authUtils'\)/);
   assert.match(queue, /await authedFetch\(item\.endpoint/);
-  assert.doesNotMatch(save, /enqueueMutation\([^\n]+\n[^\n]*Authorization/);
-  assert.doesNotMatch(save, /Bearer \$\{accessToken\}/);
+  assert.match(save, /savePracticeSession/);
+  assert.match(save, /training_tool_records/);
+  assert.doesNotMatch(save, /api\/training\/(?:save-session|save-progress)|diamondsEarned\(/);
+  assert.doesNotMatch(progression, /fetch\(['"]\/api\/training\/save-progress/);
 });
 
 test('Training secondary surfaces retain keyboard activation and local font wiring', () => {

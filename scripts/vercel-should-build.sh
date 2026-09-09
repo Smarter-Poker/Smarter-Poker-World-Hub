@@ -34,13 +34,46 @@
 #
 # Production (`VERCEL_ENV=production`, i.e. main) is NEVER skipped here; it
 # falls through to the file-diff gate that has always governed it.
+# ===========================================================================
+#  INVERTED 2026-09-08 - A PREVIEW IS NOW OPT-IN, NOT OPT-OUT
+# ===========================================================================
+#
+# The list below used to be a deny-list naming `agent/*`, and GATE 1's
+# reasoning was sound for exactly the branches it named. It was also true of
+# every other branch in this repo, and nobody noticed until the shape was
+# measured.
+#
+# Measured 2026-09-08: of the last 20 hub-vanguard deployments (a 51.9 minute
+# window, one deployment every 2.6 minutes), EIGHT were CANCELED - seven of them
+# previews. 8 of the last 11 pull-request branches were named `chore/ feat/
+# refactor/ perf/ fix/`, none of which the deny-list matched, so each one built
+# a preview nobody opened, in the same concurrency pool production waits in.
+# The audit of this pipeline then did it again on its own branch: `patch/...`
+# triggered a full preview build while the audit describing the problem was
+# open for review.
+#
+# The deny-list could not win. It has to name every prefix anyone will ever
+# invent, forever, and it is wrong the first time somebody types a new one.
+# The allow-list is right by default and wrong only when somebody deliberately
+# wants a preview - at which point they say so.
+#
+# GATE 1's own argument, verbatim from below, applies to all of them:
+#   "NOBODY OPENS ITS PREVIEW URL. And nothing depends on one: the required
+#    checks on this repo are GitHub Actions ... no Vercel deployment is a
+#    required status, so skipping these cannot block a merge."
+#
+# HOW TO GET A PREVIEW ON PURPOSE: name the branch `preview/<whatever>`. That
+# is the entire opt-in - `git push origin HEAD:preview/my-thing` on an existing
+# branch works too, and the deployment appears as it always did.
+#
+# Production (`VERCEL_ENV=production`, i.e. main) never reaches this gate.
 if [ "$VERCEL_ENV" = "preview" ]; then
   case "$VERCEL_GIT_COMMIT_REF" in
-    agent/*)
-      echo "[should-build] Preview for agent branch '$VERCEL_GIT_COMMIT_REF' — SKIPPED."
-      echo "[should-build] Agent branches are squash-merged, never browsed; their"
-      echo "[should-build] previews only queue ahead of production deploys."
-      exit 0
+    preview/*)
+      echo "[should-build] '$VERCEL_GIT_COMMIT_REF' is on the preview allow-list - building."
+      # Falls through to the file-diff gate below, which may still skip a
+      # docs-only change. Opting in asks for a preview, not for a guaranteed
+      # rebuild of an unchanged app.
       ;;
     ci-marker/*|backup/*|build/*)
       # ── AN ORPHAN BRANCH IS NOT AN APPLICATION (2026-09-03) ──────────────
@@ -64,7 +97,14 @@ if [ "$VERCEL_ENV" = "preview" ]; then
       # orphan's first commit has no HEAD~1, returns empty, and the "cannot
       # determine diff, build to be safe" fallback then builds the very thing
       # that has nothing to build.
-      echo "[should-build] '$VERCEL_GIT_COMMIT_REF' is a marker/backup ref, not an app — SKIPPED."
+      echo "[should-build] '$VERCEL_GIT_COMMIT_REF' is a marker/backup ref, not an app - SKIPPED."
+      exit 0
+      ;;
+    *)
+      echo "[should-build] Preview for '$VERCEL_GIT_COMMIT_REF' - SKIPPED (not on the allow-list)."
+      echo "[should-build] Branches here are squash-merged and never browsed; their"
+      echo "[should-build] previews only queue ahead of production deploys. To get one"
+      echo "[should-build] on purpose, name the branch 'preview/<something>'."
       exit 0
       ;;
   esac

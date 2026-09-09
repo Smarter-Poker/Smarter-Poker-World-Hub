@@ -23,10 +23,12 @@ export default async function handler(req, res) {
     const { user } = await getServerUserWithFallback(req, supabase);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { original_post_id, commentary } = req.body;
-    if (!original_post_id) return res.status(400).json({ error: 'original_post_id required' });
-
     try {
+        // Destructure inside the try: an unparseable body makes req.body
+        // undefined, and destructuring it out here threw an opaque 500 instead
+        // of the 400 below.
+        const { original_post_id, commentary } = req.body || {};
+        if (!original_post_id) return res.status(400).json({ error: 'original_post_id required' });
         // 1. Fetch the original post
         const { data: original, error: fetchErr } = await supabase
             .from('social_posts')
@@ -116,9 +118,14 @@ export default async function handler(req, res) {
         // 6. Notify the original author (if different from sharer)
         if (original.author_id !== user.id) {
             try {
+                // `title` is NOT NULL with no default and no trigger fills it -
+                // without it this insert failed 23502 every time and the warn
+                // below was the only trace. pages/api/notifications/follow.js
+                // shows the intended contract.
                 const { error: err_notifications_kdynx } = await supabase.from('notifications').insert({
                     user_id: original.author_id,
                     type: 'share',
+                    title: 'Post shared',
                     message: 'shared your post',
                     data: { actor_id: user.id, reference_id: original_post_id },
                 });

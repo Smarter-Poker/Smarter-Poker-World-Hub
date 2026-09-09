@@ -1413,7 +1413,16 @@ function PostCard({
           fontSize: 13,
         }}
       >
-        <span>
+        <span
+          style={{
+            // likeAnimating was set true and cleared 300ms later, and read
+            // nowhere - the bounce it exists for never happened. Same shape
+            // ReelsFeedCarousel already uses for its like counter.
+            display: 'inline-block',
+            transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transform: likeAnimating ? 'scale(1.35)' : 'scale(1)',
+          }}
+        >
           {likeCount > 0 &&
             `${currentReaction ? { like: '👍', love: '❤️', haha: '😂', wow: '😮', sad: '😢', angry: '😡' }[currentReaction] || '👍' : '👍'} ${likeCount}`}
         </span>
@@ -1888,7 +1897,6 @@ export default function UserProfilePage() {
   // Stats and content
   const [stats, setStats] = useState({ friends: 0, following: 0, followers: 0, posts: 0 });
   const [friends, setFriends] = useState([]);
-  const [currentUserFriends, setCurrentUserFriends] = useState([]);
   const [posts, setPosts] = useState([]);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -1938,7 +1946,6 @@ export default function UserProfilePage() {
     followers: 0,
     posts: 0,
   });
-  const [statsAnimated, setStatsAnimated] = useState(false);
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const pullStartY = useRef(null);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
@@ -2020,7 +2027,11 @@ export default function UserProfilePage() {
                 id: key,
                 name: fav.venue_name || 'Venue',
                 avatar_url: avatarUrl,
-                href: `/hub/poker-near-me/${fav.venue_id}`,
+                // /hub/venues/<id> is the venue detail page. /hub/poker-near-me/<id>
+                // hits [pnmTab].js, which only recognises tab slugs and silently
+                // renders the lobby for a UUID. This file already uses the right
+                // route for club venue shortcuts further down.
+                href: `/hub/venues/${fav.venue_id}`,
                 isArena: false,
                 page: null,
               });
@@ -2191,7 +2202,6 @@ export default function UserProfilePage() {
     } catch (_) {
       console.warn('[App] Handled exception:', _?.message || _);
     }
-    setStatsAnimated(false);
     router.replace(router.asPath).finally(() => setPullRefreshing(false));
   }, [pullRefreshing, username]);
 
@@ -2377,7 +2387,6 @@ export default function UserProfilePage() {
     setCoverLoaded(false);
     setShareCopied(false);
     setBioExpanded(false);
-    setStatsAnimated(false);
     setAnimatedStats({ friends: 0, following: 0, followers: 0, posts: 0 });
     socialIdRef.current = null; // Reset horse social identity for new profile
 
@@ -2649,7 +2658,6 @@ export default function UserProfilePage() {
           (mySentFriendsRes.data || []).forEach((r) => myFriendSet.add(r.friend_id));
           (myReceivedFriendsRes.data || []).forEach((r) => myFriendSet.add(r.user_id));
           myFriendIds = [...myFriendSet];
-          setCurrentUserFriends(myFriendIds);
 
           // Set follow status
           if (followRes?.data) {

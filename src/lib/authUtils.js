@@ -23,6 +23,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { resolveAnonKey, anonKeyWarning, SUPABASE_URL_FALLBACK } from './supabaseKeys';
+import {
+    boundedTrainingFetch,
+    isBoundedTrainingApiUrl,
+    trainingDeadlineIsActive,
+    TRAINING_REQUEST_TIMEOUT_MS,
+} from './training/boundedTrainingFetch';
 
 // Supabase credentials — use env vars with hardcoded fallback for production stability
 // Dan-fix/authutils-exports (B-AUTH-EXPORTS-1): these were declared without
@@ -397,7 +403,7 @@ export function getAccessToken() {
  *       body: JSON.stringify({ gameId: 'foo', ... })
  *   });
  */
-export async function authedFetch(url, options = {}) {
+async function performAuthedFetch(url, options = {}) {
     const token = getAccessToken();
     const headers = {
         ...(options.headers || {}),
@@ -436,6 +442,19 @@ export async function authedFetch(url, options = {}) {
     }
 
     return response;
+}
+
+export async function authedFetch(url, options = {}) {
+    if (!isBoundedTrainingApiUrl(url) || trainingDeadlineIsActive(options.signal)) {
+        return performAuthedFetch(url, options);
+    }
+
+    return boundedTrainingFetch(
+        url,
+        options,
+        TRAINING_REQUEST_TIMEOUT_MS,
+        (_input, boundedOptions) => performAuthedFetch(url, boundedOptions),
+    );
 }
 
 /**

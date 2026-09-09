@@ -1,51 +1,72 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
- * RECEIPT SCANNER API
- * OCR for tournament receipts + travel expenses  
- * Uses Grok Vision to extract structured data
+ * RECEIPT READER API
+ *
+ * Reads TEXT, not an image, and reads it with our own rules.
+ *
+ * WHAT CHANGED AND WHY
+ * This route used to send a photograph of a player's receipt (a W-2G, often
+ * enough) to a vision model and trust the JSON that came back. That was wrong
+ * four ways: the same receipt could be read differently twice, the whole
+ * feature died the day a model id was retired (it did, twice, in one week),
+ * every scan cost money, and a tax form left the building.
+ *
+ * The engine now runs on the player's own device (src/lib/docscan/ocr.mjs,
+ * Tesseract compiled to WebAssembly and served from our origin). The picture
+ * never leaves the phone. What arrives here is a few hundred bytes of text.
+ *
+ * SO WHY IS THERE STILL A ROUTE
+ * Two reasons, and they are the reasons it was kept rather than deleted:
+ *   1. The bankroll_pro entitlement is checked HERE. Reading in the browser
+ *      and skipping the server would hand the paid feature away.
+ *   2. The player's saved venues live here. Matching "BELLAG10 P0KER ROOM"
+ *      against the Bellagio they have played fifty times is the one thing
+ *      this reader does that no general model could, and it needs the
+ *      database to do it.
+ *
+ * The parser itself is pure and shared: src/lib/bankroll/receiptParser.mjs,
+ * the same module the tests exercise without a camera or a network.
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
-
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
-
-// Expense categories for classification
-const EXPENSE_CATEGORIES = [
-    'buy_in',      // Tournament/cash game buy-ins
-    'hotel',       // Lodging
-    'flights',     // Air travel
-    'rental_car',  // Vehicle rentals
-    'gas',         // Fuel
-    'meals',       // Food & drink
-    'transport',   // Uber, taxi, parking
-    'tips',        // Dealer tips, valet
-    'tournament',  // Tournament-specific fees
-    'other'        // Miscellaneous
-];
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
+import { parseReceiptText } from '../../../src/lib/bankroll/receiptParser.mjs';
 
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '10mb',
+            // Text off a receipt is a few hundred bytes. The old 10mb limit
+            // was for base64 images, which are no longer sent.
+            sizeLimit: '256kb',
         },
     },
 };
 
+/** Longest OCR text accepted. A receipt is under 2 KB; this is generous. */
+const MAX_TEXT = 20000;
+
+/**
+ * The reader's own limit, not the one written for a paid AI call.
+ *
+ * LIMITS.ai is 5 a minute, and it was right when every scan was a billed
+ * request to a vision model. This route now runs a pure text parse (measured
+ * at 8 ms on a real receipt, 23 ms on 20 KB of adversarial input) and one
+ * small read of the player's saved venues. Nothing here costs money.
+ *
+ * What the old limit cost instead: a player emptying a pocket after a session
+ * scans eight receipts, and numbers six, seven and eight are refused. They
+ * fall through to the manual choice looking like receipts that could not be
+ * read - while "File All Suggested" on the dashboard actively encourages
+ * exactly that burst.
+ */
+const READER_LIMIT = { max: 30, windowMs: 60_000, scope: ':bankroll-reader' };
+
 export default async function handler(req, res) {
   try {
-      if (!applyRateLimit(req, res, LIMITS.ai)) return;
+      if (!applyRateLimit(req, res, READER_LIMIT)) return;
 
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -56,37 +77,65 @@ export default async function handler(req, res) {
           return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 
-      const token = authHeader.replace('Bearer ', '');
       const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-      const user = authData?.user;
+      const user = authUser;
       if (authErr || !user) {
           return res.status(401).json({ success: false, error: 'Invalid token' });
       }
 
-      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
-      const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+      // SERVER-SIDE GUARD: Verify user has Bankroll Pro access.
+      //
+      // Through the server gate, not checkFeatureAccess. That one is a browser
+      // gate: it reads localStorage, queries with the anon client whose RLS
+      // then refuses `profiles`, and recovers by fetching a RELATIVE url that
+      // Node cannot resolve. Every path failed here, so this route answered
+      // 403 to everyone, including a VIP account with 494,455 diamonds.
+      const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
       if (!access.hasAccess) {
-          return res.status(403).json({ success: false, error: 'Premium feature access required' });
+          return res.status(403).json({
+              success: false,
+              error: 'Premium feature access required',
+              reason: access.reason,
+          });
       }
 
       try {
-          const { image } = req.body;
+          const body = req.body && typeof req.body === 'object' ? req.body : {};
 
-          if (!image) {
-              return res.status(400).json({ success: false, error: 'No image provided' });
+          // A tab left open across the deploy still holds the old client,
+          // which posts an image. Say so plainly instead of failing oddly.
+          if (body.image && !body.text) {
+              return res.status(400).json({
+                  success: false,
+                  error: 'This page is out of date. Reload and scan again.',
+                  code: 'stale_client',
+              });
           }
 
-          // Call Grok Vision API for OCR
-          const extractedData = await analyzeReceipt(image);
+          const text = typeof body.text === 'string' ? body.text.slice(0, MAX_TEXT) : '';
+          if (!text.trim()) {
+              return res.status(400).json({ success: false, error: 'No text provided' });
+          }
 
-          return res.status(200).json({
-              success: true,
-              data: extractedData
-          });
+          const knownVenues = await loadVenues(user.id);
+          const data = parseReceiptText(text, { knownVenues });
+
+          // How legible the photograph was, as the engine on the device
+          // measured it. It is a different question from how sure the parser
+          // is about what the document is, and the sheet shows both.
+          const ocrConfidence = Number(body.ocrConfidence);
+          if (Number.isFinite(ocrConfidence)) {
+              data.ocr_confidence = Math.max(0, Math.min(100, Math.round(ocrConfidence)));
+          }
+
+          return res.status(200).json({ success: true, data });
       } catch (error) {
-          console.warn('Receipt scan error:', error);
-          return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
+          console.warn('Receipt read error:', error);
+          return res.status(500).json({
+              success: false,
+              error: 'Failed to read receipt',
+              detail: String((error && error.message) || error).slice(0, 300),
+          });
       }
 
   } catch (err) {
@@ -96,81 +145,21 @@ export default async function handler(req, res) {
   }
 }
 
-async function analyzeReceipt(imageBase64) {
-    const GROK_API_KEY = (process.env.XAI_API_KEY || process.env.GROK_API_KEY || '').trim();
-
-    if (!GROK_API_KEY) {
-        throw new Error('Receipt scanning is not configured. Missing API key.');
+/**
+ * The player's saved venues, which is what lets the reader recognise a room
+ * from a bad print. A failure here is not fatal: the reader falls back to the
+ * name printed on the receipt.
+ */
+async function loadVenues(userId) {
+    try {
+        const { data, error } = await getSupabase()
+            .from('bankroll_locations')
+            .select('id, name')
+            .eq('user_id', userId)
+            .limit(200);
+        if (error || !Array.isArray(data)) return [];
+        return data.filter((v) => v && v.name);
+    } catch (_err) {
+        return [];
     }
-
-    const prompt = `Analyze this receipt image and extract the following information in JSON format:
-
-{
-  "category": "one of: buy_in, hotel, flights, rental_car, gas, meals, transport, tips, tournament, other",
-  "amount": <number - total amount paid>,
-  "currency": "USD or EUR",
-  "vendor": "<business name>",
-  "location": "<city, state if visible>",
-  "date": "<YYYY-MM-DD format if visible>",
-  "description": "<brief description of what was purchased>",
-  "tax_deductible": <boolean - true if likely poker-related business expense>,
-  "itemized": [
-    {"item": "<item name>", "amount": <number>}
-  ],
-  "confidence": <0-100 confidence score>
-}
-
-If any field is not visible, use null. For poker buy-ins, look for "buy-in", "entry fee", "tournament", "cash", "chips". For hotels look for room rates, nights stayed. For meals look for food items, tips, total.`;
-
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${GROK_API_KEY}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model: 'grok-2-vision-latest',
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: imageBase64.startsWith('data:')
-                                    ? imageBase64
-                                    : `data:image/jpeg;base64,${imageBase64}`,
-                            },
-                        },
-                        {
-                            type: 'text',
-                            text: prompt,
-                        },
-                    ],
-                },
-            ],
-            temperature: 0.1,
-        }),
-    });
-
-    if (!response.ok) {
-        throw new Error(`OCR API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
-
-    // Parse JSON from response
-    const jsonMatch = content?.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-        try {
-            return JSON.parse(jsonMatch[0]);
-        } catch (e) {
-            try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-            console.warn('OCR Receipt JSON Parse Error:', e);
-            throw new Error('Failed to parse structured data from AI response.');
-        }
-    }
-
-    throw new Error('Could not extract receipt data from image');
 }

@@ -207,7 +207,9 @@ function StoryAvatar({ story, onClick, isOwn, hasStory, onCreateStory, isLive })
 }
 
 // Stories Bar - horizontal scroll of stories at top of feed
-export function StoriesBar({ userId, userAvatar, onCreateStory, onOpenLive }) {
+// onCreateStory was declared here and never used: StoryAvatar is given this
+// component's own setShowCreate handler below, so the prop was unreachable.
+export function StoriesBar({ userId, userAvatar, onOpenLive }) {
     const [stories, setStories] = useState([]);
     const [liveUsers, setLiveUsers] = useState(new Set()); // Track who is live
     const [liveStreamMap, setLiveStreamMap] = useState({}); // author_id → stream object
@@ -1318,58 +1320,3 @@ function CreateStoryModal({ userId, onClose, onCreated }) {
         </div>
     );
 }
-
-// Share to Story prompt
-export function ShareToStoryPrompt({ mediaUrl, mediaType, userId, onClose, onShared }) {
-    const [sharing, setSharing] = useState(false);
-
-    const handleShare = async () => {
-        setSharing(true);
-        try {
-            const { error: createStoryErr } = await supabase.rpc('fn_create_story', {
-                p_user_id: userId,
-                p_content: null,
-                p_media_url: mediaUrl,
-                p_media_type: mediaType || 'image',
-                p_background_color: null,
-                p_link_url: null, // BUG FIX: fn_create_story requires all declared params;
-                // omitting p_link_url caused a silent RPC error on some Postgres versions.
-            });
-            if (createStoryErr) throw createStoryErr;
-            onShared?.();
-        } catch (e) {
-            console.warn('Share to story error:', e);
-        }
-        setSharing(false);
-    };
-
-    return (
-        <div style={{
-            padding: 16,
-            background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-            borderRadius: 12,
-            marginBottom: 16,
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                    <div style={{ color: 'white', fontWeight: 600, fontSize: 15 }}>Add To Your Story?</div>
-                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>Share This With Your Followers</div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={onClose} style={{
-                        background: 'rgba(255,255,255,0.2)',
-                        border: 'none', borderRadius: 20, padding: '8px 16px',
-                        color: 'white', fontWeight: 500, cursor: 'pointer',
-                    }}>Not Now</button>
-                    <button onClick={handleShare} disabled={sharing} style={{
-                        background: 'white',
-                        border: 'none', borderRadius: 20, padding: '8px 20px',
-                        color: '#833AB4', fontWeight: 600, cursor: 'pointer',
-                    }}>{sharing ? '...' : 'Share'}</button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-export default StoriesBar;

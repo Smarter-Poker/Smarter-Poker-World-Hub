@@ -8,18 +8,17 @@
  * that did not exist. Both buttons 404'd, so every entry in the list was a
  * dead end.
  *
- * The backend was already complete and simply unused:
+ * Read-only tournament details remain available while entry, lifecycle, and
+ * scoring move to one attempt-bound server transaction in Phase 9:
  *   GET  /api/training/tournaments?tournamentId=X
  *        -> { tournament, entries, userEntry, leaderboard }
- *   POST /api/training/tournaments { tournamentId, action: 'start' }
- *        -> { gameId, questionsCount, timeLimit }
- * This page is the missing frontend for it.
+ * Mutation controls stay visibly unavailable rather than calling the retired
+ * browser-authored score path or implying a registration succeeded.
  */
 
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
 import useSWR from 'swr';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
@@ -49,10 +48,8 @@ export default function TrainingTournamentDetail() {
   const router = useRouter();
   const { id } = router.query;
   const userId = getAuthUserId();
-  const [starting, setStarting] = useState(false);
-  const [startError, setStartError] = useState(null);
 
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading } = useSWR(
     id ? `/api/training/tournaments?tournamentId=${encodeURIComponent(id)}` : null,
     fetcher,
     { refreshInterval: 15000 }
@@ -62,34 +59,6 @@ export default function TrainingTournamentDetail() {
   const entries = data?.entries || [];
   const userEntry = data?.userEntry || null;
   const game = tournament ? getGameById(tournament.game_id) : null;
-
-  async function handleStart() {
-    if (!id || starting) return;
-    setStarting(true);
-    setStartError(null);
-    try {
-      const res = await authedFetch('/api/training/tournaments', {
-        method: 'POST',
-        body: JSON.stringify({ tournamentId: id, action: 'start' }),
-      });
-      const json = await res.json();
-      if (!json?.success) {
-        setStartError(json?.error || 'Could not start the tournament');
-        setStarting(false);
-        return;
-      }
-      const gameId = json.gameId || tournament?.game_id;
-      await mutate();
-      if (gameId) {
-        router.push(`/hub/games/${encodeURIComponent(gameId)}?tournament=${encodeURIComponent(id)}`);
-        return;
-      }
-      setStarting(false);
-    } catch (e) {
-      setStartError(e?.message || 'Could not start the tournament');
-      setStarting(false);
-    }
-  }
 
   const status = tournament?.status || '';
   const isLive = status === 'live';
@@ -227,8 +196,8 @@ export default function TrainingTournamentDetail() {
             {canStart && (
               <button
                 type="button"
-                onClick={handleStart}
-                disabled={starting}
+                disabled
+                title="Tournament Runs Reopen After Attempt-Bound Settlement Is Certified"
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -236,33 +205,32 @@ export default function TrainingTournamentDetail() {
                   border: 'none',
                   fontWeight: 800,
                   fontSize: 15,
-                  cursor: starting ? 'default' : 'pointer',
+                  cursor: 'not-allowed',
                   background: 'linear-gradient(135deg,#ffd700,#f0a500)',
                   color: '#1a1a1a',
                   marginBottom: 8,
+                  opacity: 0.62,
                 }}
               >
-                {starting ? 'Starting...' : 'Start my run'}
+                Tournament Runs Temporarily Paused
               </button>
             )}
 
             {isPlaying && !canStart && (
-              <Link
-                href={`/hub/games/${encodeURIComponent(tournament.game_id || '')}?tournament=${encodeURIComponent(String(id))}`}
+              <div
                 style={{
                   display: 'block',
                   textAlign: 'center',
                   padding: '12px 16px',
                   borderRadius: 10,
                   fontWeight: 800,
-                  textDecoration: 'none',
-                  background: 'rgba(34,197,94,0.16)',
-                  color: '#22c55e',
+                  background: 'rgba(234,179,8,0.10)',
+                  color: '#eab308',
                   marginBottom: 8,
                 }}
               >
-                Resume My Run
-              </Link>
+                Resume Is Paused Until This Entry Is Bound To A Verified Attempt
+              </div>
             )}
 
             {isLive && !userEntry && (
@@ -273,10 +241,6 @@ export default function TrainingTournamentDetail() {
                 </Link>
                 .
               </p>
-            )}
-
-            {startError && (
-              <p style={{ color: '#ef4444', fontSize: 13 }}>{startError}</p>
             )}
 
             <section style={{ marginTop: 22 }}>

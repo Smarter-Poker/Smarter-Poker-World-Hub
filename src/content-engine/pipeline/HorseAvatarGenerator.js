@@ -224,13 +224,25 @@ class HorseAvatarGenerator {
      * Upload generated avatar to Supabase storage
      */
     async uploadAvatar(horse, imagePath) {
-        const fileName = `horse_avatar_${horse.profile_id}_${Date.now()}.png`;
-        const storagePath = `avatars/${fileName}`;
+        /* WHERE A HUMAN'S AVATAR LIVES, AND NOWHERE ELSE (Dan 2026-09-02:
+           "NOBODY SHOULD EVER EVER EVER BE ABLE TO LOOK AT OUR CODE OR USE A
+           DEVELOPER TOOL AND FIND THIS OUT"). This used to write
+           `social-media/avatars/horse_avatar_<id>_<ts>.png` - the word
+           "horse" in the <img src> of every seat and post the profile
+           appears on, and no human avatar ever carried it. Human uploads go
+           to bucket `avatars` at `<profile uuid>/avatar.<ext>`; so does this.
+           No timestamp in the name: upsert replaces in place and the URL
+           stays stable, exactly as a human's does. */
+        if (!horse.profile_id) {
+            console.warn(`No profile_id for ${horse.name}; not uploading an avatar nobody is attached to`);
+            return null;
+        }
+        const storagePath = `${horse.profile_id}/avatar.png`;
 
         const fileBuffer = fs.readFileSync(imagePath);
 
         const { error: uploadError } = await this.supabase.storage
-            .from('social-media')
+            .from('avatars')
             .upload(storagePath, fileBuffer, {
                 contentType: 'image/png',
                 upsert: true
@@ -242,7 +254,7 @@ class HorseAvatarGenerator {
         }
 
         const { data: urlData } = this.supabase.storage
-            .from('social-media')
+            .from('avatars')
             .getPublicUrl(storagePath);
 
         const publicUrl = urlData.publicUrl;

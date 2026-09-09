@@ -14,10 +14,13 @@ generator and both machines run that identical `add_line` file.
 
 ## The standard
 - Scale **x100**: `pot 550` (5.5bb), `eff_stack 9750` (97.5bb) for SRP spots.
-- `set_rake 0 0 0 0` (clean chip-EV GTO baseline).
+- `set_rake 0 0` (PioSOLVER 3 fraction + integer cap; clean chip-EV baseline).
 - `set_isomorphism 1 0`.
 - Bet sizes expressed as % of the pot AT EACH NODE (not fixed amounts). The
   generator emits cumulative-per-player invested chips per `add_line`.
+- Every Pio `bNNN` NodeID is a cumulative postflop contribution target,
+  including after a turn or river card; the harvester derives the current
+  street increment from the node chronology and never treats `NNN` as a delta.
 - Solve to 0.5% of pot.
 - ONE shared generator emits the `add_line` list; BOTH machines run that exact
   file. Machines never run their own independently-generated geometry.
@@ -32,7 +35,7 @@ of 3434 (river).
 pot 0 0 550
 eff_stack 9750
 set_board Qh7s2c
-set_rake 0 0 0 0
+set_rake 0 0
 set_isomorphism 1 0
 clear_lines
 add_line 0 0 0 0 0 0

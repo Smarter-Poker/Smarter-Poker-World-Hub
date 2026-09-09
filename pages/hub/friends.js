@@ -436,7 +436,6 @@ function FriendsPage() {
     const [pendingIds, setPendingIds] = useState(new Set());
     const [followingIds, setFollowingIds] = useState(new Set());
     const [followerIds, setFollowerIds] = useState(new Set());
-    const [myFriendIds, setMyFriendIds] = useState([]); // For mutual friends calculation
 
     // Hamburger Menu State
     const [menuOpen, setMenuOpen] = useState(false);
@@ -495,7 +494,6 @@ function FriendsPage() {
                     if (mounted.current) {
                         setFriends(d.friends || []);
                         setFriendIds(new Set(d.friendIds || []));
-                        setMyFriendIds(d.friendIds || []);
                         setFriendRequests(d.friendRequests || []);
                         setPendingIds(new Set((d.pendingOutgoing || []).map(r => r.friend_id)));
                         setFollowing(d.following || []);
@@ -528,7 +526,6 @@ function FriendsPage() {
                 // Friends
                 setFriends(d.friends || []);
                 setFriendIds(new Set(d.friendIds || []));
-                setMyFriendIds(d.friendIds || []);
 
                 // Friend requests
                 setFriendRequests(d.friendRequests || []);

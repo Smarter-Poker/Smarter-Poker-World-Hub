@@ -6,21 +6,10 @@
  * extract structured hand history data.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
-// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!key) throw new Error('[ai-hand-reader] No Supabase key');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
 
 export const config = {
     api: {
@@ -28,8 +17,7 @@ export const config = {
     },
 };
 
-const GROK_API_KEY = (process.env.GROK_API_KEY || process.env.XAI_API_KEY || '').trim();
-const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+import { getGrokClient } from '../../../src/lib/grokClient';
 
 const EXTRACTION_PROMPT = `You are a poker hand history reader. Analyze this screenshot of a poker hand and extract the following data in JSON format:
 
@@ -83,7 +71,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Image required (imageBase64 or imageUrl)' });
     }
 
-    if (!GROK_API_KEY) {
+    // The shared client reads XAI_API_KEY; without it every call would 401.
+    if (!(process.env.XAI_API_KEY || '').trim()) {
         return res.status(503).json({ error: 'AI service not configured' });
     }
 
@@ -113,14 +102,14 @@ export default async function handler(req, res) {
             ? { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
             : { type: 'image_url', image_url: { url: imageUrl } };
 
-        const grokResponse = await fetch(GROK_API_URL, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${GROK_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'grok-2-vision-latest',
+        // Through the shared Grok client, never a raw fetch with a model name
+        // found in a file. This route posted `grok-2-vision-latest` directly;
+        // on 2026-09-08 that name answered "Model not found", so every hand
+        // scan came back 502 "AI analysis failed" for every VIP.
+        let grokData;
+        try {
+            grokData = await getGrokClient().chat.completions.create({
+                model: 'grok-3',
                 messages: [
                     {
                         role: 'system',
@@ -136,17 +125,13 @@ export default async function handler(req, res) {
                 ],
                 max_tokens: 2000,
                 temperature: 0.1,
-            }),
-        });
-
-        if (!grokResponse.ok) {
-            const errText = await grokResponse.text().catch(() => 'Unknown error');
-            console.warn('[AI-Hand-Reader] Grok API error:', grokResponse.status, errText);
+            });
+        } catch (grokErr) {
+            console.warn('[AI-Hand-Reader] Grok API error:', grokErr?.status || '', grokErr?.message || grokErr);
             return res.status(502).json({ error: 'AI analysis failed' });
         }
 
-        const grokData = await grokResponse.json();
-        const rawContent = grokData.choices?.[0]?.message?.content || '';
+        const rawContent = grokData?.choices?.[0]?.message?.content || '';
 
         // Parse JSON from response
         let handData;
@@ -165,7 +150,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             handData,
-            source: 'grok-2-vision',
+            source: 'grok-3',
         });
     } catch (err) {
         try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }

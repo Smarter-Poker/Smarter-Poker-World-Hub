@@ -34,28 +34,13 @@ class AchievementService {
     /**
      * Check and unlock achievements based on game result
      */
-    async checkAndUnlock(userId, gameData) {
+    async checkAndUnlock(userId) {
         if (!userId) return [];
 
-        try {
-            // Achievement eligibility and rewards are authoritative server
-            // work. The legacy browser RPC used a stale parameter name and
-            // attempted a SECURITY DEFINER mutation directly from the client.
-            const response = await authedFetch('/api/training/achievements', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stats: gameData || {} }),
-            });
-            const payload = await response.json().catch(() => null);
-            if (!response.ok || !payload?.success) {
-                throw new Error(payload?.error || 'Unable to check achievements');
-            }
-
-            return (payload.newlyUnlocked || []).map((achievement) => achievement.id);
-        } catch (error) {
-            console.warn('[AchievementService] Error checking achievements:', error);
-            return [];
-        }
+        // Unlock eligibility is settled from persisted, server-graded attempts.
+        // This legacy service has no receipt to prove one, so it must not infer
+        // or publish an unlock from browser-owned game data.
+        return [];
     }
 
     /**

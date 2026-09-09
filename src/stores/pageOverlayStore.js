@@ -177,7 +177,3 @@ export const usePageOverlayStore = create((set) => ({
 export function openPageOverlay(page, options) {
   usePageOverlayStore.getState().openOverlay(page, options);
 }
-
-export function closePageOverlay() {
-  usePageOverlayStore.getState().closeOverlay();
-}

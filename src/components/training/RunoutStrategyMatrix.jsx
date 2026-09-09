@@ -1,12 +1,12 @@
 /**
- * RunoutStrategyMatrix — GTO Wizard-Style Turn/River Strategy Shift Viewer
+ * RunoutStrategyMatrix — Illustrative Turn/River Strategy Shift Viewer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Shows how the GTO strategy changes for EVERY possible next card.
+ * Shows how a local heuristic changes for every possible next card.
  * 4 rows (suits) × 13 cols (ranks), each cell colored by the dominant
  * action on that runout. Click any card to see full strategy breakdown.
  *
  * This goes beyond equity shifts (RunoutHeatmap) — it shows the actual
- * bet/check/size decision changes per card, matching GTO Wizard's
+ * bet/check/size practice weights change per card.
  * "Runouts" analysis tab.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
@@ -545,10 +545,10 @@ export default function RunoutStrategyMatrix({
                     fontSize: 13, fontWeight: 800, color: '#e2e8f0',
                     fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>
-                    {street === 'turn' ? 'TURN' : 'RIVER'} RUNOUT STRATEGY
+                    {street === 'turn' ? 'TURN' : 'RIVER'} ILLUSTRATIVE RUNOUT MODEL
                 </div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>
-                    How Does The Optimal Action Change Per Card?
+                    How Does The Local Preference Change Per Card?
                 </div>
             </div>
 
@@ -633,8 +633,8 @@ export default function RunoutStrategyMatrix({
                 fontSize: 8, color: '#475569', textAlign: 'center',
                 padding: '4px 8px',
             }}>
-                Cell Color = Dominant Action On That Runout. Bet% Shown In Each Cell.
-                Click Any Card For Full Strategy + Sizing Breakdown.
+                Illustrative Local Weights Only - Not A Solved Node Or Exact EV.
+                Cell Color = Local Preferred Action. Click Any Card For The Practice Breakdown.
             </div>
         </div>
     );

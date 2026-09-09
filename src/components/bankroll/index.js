@@ -28,6 +28,7 @@ export { default as TripROICalculator } from './TripROICalculator';
 
 // Phase 5 Components
 export { default as ReceiptScanner } from './ReceiptScanner';
+export { default as DocumentScanner } from './DocumentScanner';
 export { default as TaxReportPanel } from './TaxReportPanel';
 export { default as StakingTracker } from './StakingTracker';
 export { default as SeriesTracker } from './SeriesTracker';

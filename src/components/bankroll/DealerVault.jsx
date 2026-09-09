@@ -9,6 +9,12 @@
 import { memo,  useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
+import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
+import { readPdf, isPdf, PdfUnreadableError } from '../../lib/docscan/pdfText.mjs';
+import { downscaleForOcr } from '../../lib/docscan/imageSource';
+import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
 import DocumentCropper from './DocumentCropper';
@@ -102,6 +108,9 @@ function DealerVault({ userId, completedGigs = [] }) {
     const [rawImage, setRawImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    // 0-100 while the on-device engine reads. The first scan also downloads
+    // the engine, which is worth showing rather than a still screen.
+    const [ocrProgress, setOcrProgress] = useState(null);
 
     // Load docs from DB
     const loadDocs = useCallback(async () => {
@@ -124,6 +133,10 @@ function DealerVault({ userId, completedGigs = [] }) {
     }, [userId]);
 
     useEffect(() => { loadDocs(); }, [loadDocs]);
+
+    // The OCR engine holds a WebAssembly heap of tens of megabytes. It is let
+    // go when the vault closes, not left running behind the rest of the app.
+    useEffect(() => () => { releaseOcr(); }, []);
 
     // Filter docs for current tab
     const tabDocs = docs.filter(d => d.category === activeTab);
@@ -182,8 +195,12 @@ function DealerVault({ userId, completedGigs = [] }) {
             };
             reader.readAsDataURL(file);
         } else {
+            // A PDF used to stop here: uploaded, stored, and never read, so
+            // every field on it was typed in by hand. Casinos email W-2Gs as
+            // PDFs, which is the most common way a player receives one.
             setPendingFile(file);
             setShowUploadForm(true);
+            if (isPdf(file)) analyzeDocument(file);
         }
     }, []);
 
@@ -231,11 +248,41 @@ function DealerVault({ userId, completedGigs = [] }) {
         analyzeDocument(capturedBase64);
     }, []);
 
-    const analyzeDocument = async (imageBase64) => {
+    /**
+     * Read the document.
+     *
+     * THE PICTURE NEVER LEAVES THE DEVICE. Tesseract, compiled to WebAssembly
+     * and served from our own origin, reads a dealer's gaming card or W-2 on
+     * their own phone. What crosses the network is the text it produced. The
+     * route is still called because it holds the Bankroll Pro gate and runs
+     * the shared parser, which is the same pure module the tests exercise.
+     */
+    const analyzeDocument = async (input) => {
         setIsAnalyzing(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-            const token = session?.access_token;
+            // A token read straight out of localStorage is whatever was there
+            // when the tab opened. This one refreshes it if it is about to
+            // expire, which is the difference between a scan and a 401.
+            const token = await getFreshAccessToken();
+            if (!token) throw new Error('not-signed-in');
+
+            // The full-resolution photograph went straight to the engine
+            // here while ReceiptScanner had shrunk its copy since day one.
+            // A modern phone camera is 4000px on the long side; the engine
+            // reads a document just as well at 1600 and several times faster.
+            // A PDF is read by pdf.js: page one's TEXT LAYER when it has one,
+            // which is exact and needs no recognition at all, and only a
+            // rasterised page through the same engine when it does not.
+            let read;
+            if (isPdf(input)) {
+                read = await readPdf(input, { onProgress: (pct) => setOcrProgress(pct) });
+            } else {
+                const full = await fetch(input).then((r) => r.blob());
+                const forOcr = await downscaleForOcr(full, 1600, 0.85);
+                read = await readText(forOcr, { onProgress: (pct) => setOcrProgress(pct) });
+            }
+            setOcrProgress(null);
+            if (!read.text.trim()) throw new Error('no-text-found');
 
             const res = await fetch('/api/bankroll/scan-dealer-document', {
                 method: 'POST',
@@ -243,7 +290,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ image: imageBase64 })
+                body: JSON.stringify({ text: read.text, ocrConfidence: read.confidence })
             });
 
             if (!res.ok) throw new Error('OCR failed');
@@ -271,8 +318,15 @@ function DealerVault({ userId, completedGigs = [] }) {
             }
         } catch (err) {
             console.warn('OCR Error:', err);
+            // An engine that cannot start means the DEPLOY is broken, not the
+            // photograph. That one pages somebody; a hard-to-read licence
+            // does not.
+            if (err instanceof OcrUnavailableError || err instanceof PdfUnreadableError) {
+                reportReaderFailure(err, READER_SECTIONS.DEALER_VAULT, userId);
+            }
             toast.error('Could not auto-extract data. Please enter manually.');
         } finally {
+            setOcrProgress(null);
             setIsAnalyzing(false);
         }
     };
@@ -285,17 +339,11 @@ function DealerVault({ userId, completedGigs = [] }) {
         }
         setIsUploading(true);
         try {
-            const ext = pendingFile.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-            const storagePath = `dealer-docs/${userId}/${activeTab}/${fileName}`;
-
-            const { error: storageError } = await supabase.storage
-                .from('images')
-                .upload(storagePath, pendingFile, { upsert: false });
-            if (storageError) throw storageError;
-
-            const { data: urlData } = supabase.storage.from('images').getPublicUrl(storagePath);
-            const fileUrl = urlData?.publicUrl;
+            // The upload goes through the one module that knows the bucket.
+            // `images` has no INSERT policy, so writing there was refused 403
+            // for every dealer document. Existing objects stay where they are;
+            // reads and deletes below still point at them.
+            const fileUrl = await uploadBankrollFile(supabase, userId, pendingFile);
 
             const insertPayload = {
                 user_id: userId,
@@ -336,12 +384,9 @@ function DealerVault({ userId, completedGigs = [] }) {
     const handleDelete = async (doc) => {
         if (!confirm(`Delete "${doc.label || doc.file_name}"?`)) return;
         try {
-            // Extract path from URL
-            const url = new URL(doc.file_url);
-            const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/images\/(.+)/);
-            if (pathMatch) {
-                await supabase.storage.from('images').remove([pathMatch[1]]);
-            }
+            // Old objects live in `images`, new ones in the bankroll bucket;
+            // the remover reads the bucket from the URL.
+            await removeBankrollObject(supabase, doc.file_url);
             const { error: err_dealer_documents_akm0s } = await supabase.from('dealer_documents').delete().eq('id', doc.id);
             if (err_dealer_documents_akm0s) console.warn('[Supabase] Silent mutation failed in dealer_documents:', err_dealer_documents_akm0s.message);
             toast.success('Document deleted');
@@ -466,7 +511,11 @@ function DealerVault({ userId, completedGigs = [] }) {
                             {isAnalyzing && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(74,144,217,0.1)', border: `1px solid ${METAL.primary}`, borderRadius: 8, marginBottom: 16, color: METAL.primary }}>
                                     <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>Extracting Document Data With Vision OCR...</span>
+                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>
+                                        {ocrProgress === null
+                                            ? 'Reading This Document On Your Device...'
+                                            : `Reading This Document On Your Device... ${ocrProgress}%`}
+                                    </span>
                                 </div>
                             )}
                             <div style={s.uploadFormTitle}>📄 {pendingFile?.name}</div>

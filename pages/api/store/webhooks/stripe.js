@@ -407,6 +407,21 @@ async function handleCheckoutCompleted(session) {
                     p_payment_intent_id: paymentIntentId,
                 }
             );
+            if (!settlementError && settlement?.error === 'settlement_refused') {
+                /* A REFUSAL, not a failure (2026-09-08, Diamond Accounting Standard rulings
+                   17 and 20). The database read the purchase row against its package, or
+                   read a cs_test_ session, and a flipped rule in ca_diamond_rule_modes
+                   said no. It recorded the refusal on the purchase row
+                   (metadata.settlement_refused_by) and moved no diamonds. Retrying will
+                   return the same answer, so this acknowledges the event: a 500 here
+                   would make Stripe replay a decision for three days. The row is the
+                   record a human reads; the DR8 / DR20 incident is already filed. */
+                console.error(
+                    `[stripe webhook] diamond settlement refused for purchase ${metadata.purchase_id} `
+                    + `(${settlement.refused_by}); no diamonds moved, row records it`
+                );
+                return;
+            }
             if (settlementError || !settlement?.success) {
                 throw settlementError || new Error(
                     `Diamond card settlement refused: ${settlement?.error || 'unknown_error'}`

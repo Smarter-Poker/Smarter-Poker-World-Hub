@@ -14,7 +14,13 @@ import {
   sourceClassificationForQuestion,
 } from './cacheTruthContract.mjs';
 
-const WAREHOUSE_SOURCES = new Set(['DETERMINISTIC_SOLVER', 'PIO_DATABASE', 'PIO']);
+const WAREHOUSE_SOURCES = new Set([
+  'DETERMINISTIC_SOLVER',
+  'PIO_DATABASE',
+  'PIO',
+  'LOCAL_SOLVER_RANGES',
+  'LEGACY_STRATEGY_ARCHIVE',
+]);
 
 const GOOD_CLASSIFICATIONS = new Set(['best', 'correct']);
 
@@ -111,7 +117,7 @@ const SOLVER_CLAIM_RE = /\b(?:according to gto|gto mixes|gto solver|solver picks
  */
 export function enforceSolverClaimHonesty(question) {
   if (!question || typeof question !== 'object' || isVerifiedSolverQuestion(question)) return question;
-  const source = String(question.source || '');
+  const source = String(question.source || '').toUpperCase();
   const legacyWarehouse = WAREHOUSE_SOURCES.has(source)
     || String(question.dataQuality || '').toUpperCase() === 'LEGACY_UNVERIFIED'
     || String(question?.solverProvenance?.source || '').includes('solved_spots_gold_legacy');
@@ -207,9 +213,10 @@ export function gradeSolverDecision(question, selectedAnswer) {
   const measuredEVLoss = selectedEV !== null && optimalEV !== null
     ? Math.max(0, optimalEV - selectedEV)
     : null;
+  const solverVerified = isVerifiedSolverQuestion(question);
 
   return {
-    solverVerified: isVerifiedSolverQuestion(question),
+    solverVerified,
     solverSource: verifiedSolverSource(question),
     classification: frequencyGrade.classification,
     isCorrect: GOOD_CLASSIFICATIONS.has(frequencyGrade.classification),
@@ -218,6 +225,16 @@ export function gradeSolverDecision(question, selectedAnswer) {
     evLoss: measuredEVLoss === null ? null : +measuredEVLoss.toFixed(3),
     evLossMeasured: measuredEVLoss !== null,
     optimalAction: frequencyGrade.optimalAction,
+    // Grouped answers use ids such as grouped_medium which deliberately do
+    // not occur in the raw canonical policy. Their grade therefore follows
+    // the aggregated served distribution above, but their lineage still comes
+    // from that same structurally valid immutable policy. Preserve it so the
+    // database can independently verify the answer instead of seeing a false
+    // lineage gap only in grouped/RNG modes.
+    ...(solverVerified ? {
+      policyVersion: question?.solverPolicy?.policyVersion || null,
+      sourceChecksum: question?.solverPolicy?.sourceArtifact?.sourceArtifactChecksum || null,
+    } : {}),
   };
 }
 

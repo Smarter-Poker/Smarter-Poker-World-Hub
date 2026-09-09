@@ -415,6 +415,14 @@ export async function getLevelStats(
         if (!supabase) return null;
 
         const { data, error } = await supabase
+            /* THE CALLER WAS RIGHT AND THE FUNCTION WAS A STUB (2026-09-08).
+               This call was reported as a mismatch because the live
+               get_user_level_stats took only p_user_id - but that one-argument
+               version returned a hard-coded {xp:0, level:1, xp_to_next:0,
+               progress_pct:0} and had nothing to do with level statistics. The
+               contract below is the real one, so the DATABASE was fixed rather
+               than this call: a (p_user_id, p_level_id) overload computed from
+               training_answers. See the migration of the same date. */
             .rpc('get_user_level_stats', {
                 p_user_id: userId,
                 p_level_id: levelId

@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           // Step 1: Check if profile exists by user_id
           const { data: existingProfile, error: checkError } = await getSupabase()
               .from('profiles')
-              .select('id, username, full_name, email, created_at, last_active, is_online')
+              .select('id, username, full_name, email, created_at, last_active, is_online, diamonds')
               .eq('id', user_id)
               .maybeSingle();
 
@@ -137,6 +137,44 @@ export default async function handler(req, res) {
                       })
                       .eq('id', user_id);
                   if (err_profiles_rzlwk) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_rzlwk.message);
+              }
+
+              // ── The welcome grant is restartable from its own record (2026-09-08, Diamond
+              // Accounting Standard ruling 17; CLAUDE.md 10.12: no back-pay job). handle_new_user
+              // asks the Mint for the 500 under signup:<id> at birth. If the Mint refused (the
+              // diamond_issuance freeze was open), the profile sits at 0 with no signup: or
+              // seed: register row. A later login asks again for the SAME op id, so the grant
+              // is issued once the freeze lifts and never twice: an existing player carries a
+              // register row and is skipped before the Mint is asked. Gated on a zero balance,
+              // so the register is read on the rare account this can apply to, not on every
+              // presence ping.
+              if (Number(existingProfile.diamonds ?? 0) === 0) {
+                  try {
+                      const ownEmail = typeof authUser?.email === 'string' ? authUser.email.trim() : '';
+                      if (!isDisposableEmail(ownEmail)) {
+                          const { data: registerRows, error: registerErr } = await getSupabase()
+                              .from('ca_mint_ledger')
+                              .select('op_id')
+                              .in('op_id', [`signup:${user_id}`, `seed:${user_id}`])
+                              .limit(1);
+                          if (!registerErr && (registerRows?.length ?? 0) === 0) {
+                              const { data: minted, error: mintErr } = await getSupabase().rpc('fn_ca_mint', {
+                                  p_asset: 'diamonds',
+                                  p_destination: 'player',
+                                  p_target_id: user_id,
+                                  p_amount: 500,
+                                  p_reason: 'Signup welcome grant issued by ensure-profile on a later login',
+                                  p_op_id: `signup:${user_id}`,
+                                  p_class: 'promotional',
+                              });
+                              if (mintErr || !(minted?.ok || minted?.replayed)) {
+                                  console.warn('[ensure-profile] The Mint did not issue the welcome grant on login:', mintErr?.message || minted?.reason);
+                              }
+                          }
+                      }
+                  } catch (grantErr) {
+                      console.warn('[ensure-profile] welcome grant check failed:', grantErr?.message || grantErr);
+                  }
               }
 
               // ── ANTIGRAVITY FIX: Detect if profile was JUST created by the DB trigger ──

@@ -249,7 +249,10 @@ export default function ArticleCard({
         }
 
         if (onClick) {
-            onClick(url);
+            // Hand over the title THIS card resolved. The feed used to fall back
+            // to the outer post's link_title, which is the wrong heading for any
+            // card that is not the post's primary link.
+            onClick(url, displayTitle);
         } else if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
         }

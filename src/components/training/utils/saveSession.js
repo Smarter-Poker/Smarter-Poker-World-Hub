@@ -1,15 +1,14 @@
 /**
- * SAVE SESSION UTILITY
- * Handles auto-saving training session data to the backend
+ * LEGACY PRACTICE SESSION UTILITY
+ *
+ * Retained specialty trainers compute results in the browser. Those results
+ * are useful as personal practice notes, but they are not authoritative
+ * Training attempts and may not affect progress, rewards, or leaderboards.
  */
 
-import { enqueueMutation } from '../../../engine/OfflineSyncQueue';
 import { busEmit } from '../../../engine/EventBus';
-import {
-  heroPositionOf,
-  compactHandHistoryEntry,
-} from '../../../lib/training/handHistoryEntry';
-import { authedFetch, getAuthUser } from '../../../lib/authUtils';
+import { getAuthUser } from '../../../lib/authUtils';
+import { savePracticeSession } from '../../../lib/training/practiceSession';
 
 /**
  * Save training session data to backend
@@ -29,118 +28,26 @@ import { authedFetch, getAuthUser } from '../../../lib/authUtils';
  * @param {number} sessionData.avgEVLossPerMistake - Average EV loss per mistake
  * @param {number} sessionData.avgFrequencyDiff - Average frequency difference
  * @param {Object} sessionData.trainerConfig - Trainer configuration object
- * @param {number} sessionData.speedBonusDiamonds - Speed bonus diamonds earned
  * @returns {Promise<void>}
  */
 export async function saveSession(sessionData) {
-  const {
-    gameId,
-    gameName,
-    gtowScore,
-    totalEVLoss,
-    totalQuestions,
-    sessionMistakes,
-    correctCount,
-    bestStreak,
-    levelPassed,
-    currentLevel,
-    handHistory,
-    avgEVLossPerHand,
-    avgEVLossPerMistake,
-    avgFrequencyDiff,
-    trainerConfig,
-    speedBonusDiamonds,
-  } = sessionData;
-
-  // Get auth user + access token
-  // BUG FIX (2026-05-08, MAX-RIGOR audit): getAuthUser() returns the User object
-  // (no `.session.access_token`), so the previous check `user?.session?.access_token`
-  // was ALWAYS undefined and this whole function silent-returned on every session
-  // completion. Use getSessionToken() — the canonical token getter that reads
-  // `localStorage.getItem('smarter-poker-auth').access_token`.
   const user = getAuthUser();
   if (!user?.id) return;
-
-  // Build position stats from hand history
-  const posStats = {};
-  const classCounts = {};
-  handHistory.forEach((h) => {
-    // `h.handData` does not exist -- recordMove spreads handData FLAT onto the
-    // entry. Every session ever saved therefore wrote a single `UNK` bucket
-    // into training_sessions.position_stats, and /api/training/gto-reports and
-    // /api/training/coaching-summary both derive "strongest position",
-    // "weakest position" and the recommended drill from that column.
-    const pos = heroPositionOf(h);
-    if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
-    posStats[pos].total++;
-    if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
-    posStats[pos].evLoss += h.evLoss || 0;
-    if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
+  const gameId = String(sessionData?.gameId || sessionData?.game_id || 'legacy-training-practice');
+  await savePracticeSession(gameId, {
+    ...sessionData,
+    handsPlayed: sessionData?.handsPlayed ?? sessionData?.totalQuestions,
+    correctAnswers: sessionData?.correctAnswers ?? sessionData?.correctCount,
+    accuracy: sessionData?.accuracy ?? (
+      Number(sessionData?.totalQuestions) > 0
+        ? Math.round((Number(sessionData?.correctCount) / Number(sessionData?.totalQuestions)) * 100)
+        : null
+    ),
   });
-
-  // ●●● 2026-07-19 AUDIT FIX (E2E defect D1 — CRITICAL) ●●●
-  // Each handHistory entry carried the FULL question object including
-  // rawFrequencies (a per-action x 169-hand solver matrix) and
-  // evData.handEVs (another 169-hand map). 100 such entries blew past the
-  // 1MB Next.js body limit, so POST /api/training/save-session returned
-  // 413 on EVERY level completion — sessions were never saved and the
-  // level-progression system was dead in production. Strip the bulk
-  // matrices; keep everything the review/replay/report consumers read.
-  //
-  // ●●● 2026-08-15: that fix was a NO-OP for its entire life. ●●●
-  // It stripped the matrices off `h.handData`, a key that does not exist --
-  // recordMove spreads handData FLAT. So `hd` was always null, the map
-  // returned `{...h, handData: null}`, and both matrices stayed on the entry
-  // at full size. The server-side twin had the identical bug and returned
-  // early on the same null. The payload has been full-size the whole time and
-  // the 2MB in-handler guard is reachable on long or multi-street sessions --
-  // which fails the save silently. Compaction now runs against whichever
-  // shape the entry actually has.
-  const compactHandHistory = (handHistory || []).slice(0, 100).map(compactHandHistoryEntry);
-
-  const payload = {
-    gameId,
-    gameName,
-    gtowScore,
-    totalEVLoss,
-    handsPlayed: totalQuestions,
-    mistakeCount: sessionMistakes,
-    avgEVLossPerHand,
-    avgEVLossPerMistake,
-    avgFrequencyDiff,
-    accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-    correctCount,
-    bestStreak,
-    levelPassed,
-    level: currentLevel,
-    handHistory: compactHandHistory,
-    positionStats: posStats,
-    classificationCounts: classCounts,
-    trainerConfig,
-    speedBonusDiamonds,
-  };
-
   try {
-    const res = await authedFetch('/api/training/save-session', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-    console.debug('[saveSession] Session saved directly to database');
-
-    // H7: Hardened busEmit — bus failures must never crash the save flow
-    try {
-      busEmit.sessionEnd('Training Arena');
-      busEmit.dataMutated('training_sessions');
-      if (speedBonusDiamonds > 0) {
-        busEmit.diamondsEarned(speedBonusDiamonds, 'Training Speed Bonus');
-      }
-    } catch (busErr) {
-      console.warn('[saveSession] busEmit failed (non-critical):', busErr.message);
-    }
-  } catch (e) {
-    console.warn('[saveSession] Network save failed, queueing to OfflineSyncQueue:', e.message);
-    await enqueueMutation('/api/training/save-session', payload);
+    busEmit.sessionEnd('Training Practice');
+    busEmit.dataMutated('training_tool_records');
+  } catch (busErr) {
+    console.warn('[saveSession] Practice record bus event failed:', busErr?.message || busErr);
   }
 }

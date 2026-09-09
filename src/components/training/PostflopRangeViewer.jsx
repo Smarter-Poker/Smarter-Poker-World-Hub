@@ -1,18 +1,18 @@
 /**
- * PostflopRangeViewer — GTO Wizard-Style Postflop Range Visualization
+ * PostflopRangeViewer — Illustrative Local Postflop Range Visualization
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Shows a 13×13 hand matrix colored by postflop action frequencies.
+ * Shows a 13×13 hand matrix colored by illustrative postflop action weights.
  * Unlike the preflop RangeGrid (which takes pre-computed gridData),
- * this component computes frequencies on-the-fly from the solver data
+ * this component computes illustrative weights from local heuristic tables
  * matrices for any given board × position × street × spot type.
  *
  * Features:
  *   - Board texture auto-detection
  *   - Hand class mapping for all 169 hands
- *   - Multi-size frequency display (Bet 33%, Bet 75%, etc.)
+ *   - Multi-size local-weight display (Bet 33%, Bet 75%, etc.)
  *   - Action filter buttons (isolate bet sizes, check, fold)
  *   - Combo counter and range percentage
- *   - Click-to-inspect with full frequency breakdown
+ *   - Click-to-inspect with a full local-weight breakdown
  *   - Street/spot-type selector (c-bet, check-raise, turn barrel, etc.)
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
@@ -433,7 +433,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                                         position: 'absolute', left: 6, top: 3,
                                         fontSize: 8, fontWeight: 700, color: '#4ade80',
                                     }}>
-                                        BEST
+                                        LOCAL PICK
                                     </span>
                                 )}
                             </div>
@@ -447,7 +447,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 paddingTop: 6,
             }}>
-                Solver Strategy • Click Another Hand To Compare
+                Illustrative Local Model • Click Another Hand To Compare
             </div>
         </motion.div>
     );
@@ -912,8 +912,8 @@ export default function PostflopRangeViewer({
                 background: 'rgba(255,255,255,0.02)',
                 fontSize: 9, color: '#475569', lineHeight: 1.6, textAlign: 'center',
             }}>
-                <strong style={{ color: '#94a3b8' }}>Postflop Range Viewer</strong> - Frequencies From PioSolver-Calibrated Strategy Matrices.
-                Cell Color = Dominant Action. Click Any Cell For Full Breakdown. Filter By Action With The Buttons Above.
+                <strong style={{ color: '#94a3b8' }}>Illustrative Postflop Range Viewer</strong> - Local Heuristic Weights, Not PioSOLVER Output Or Exact EV.
+                Cell Color = Locally Preferred Action. Click Any Cell For The Practice Breakdown. Filter By Action With The Buttons Above.
             </div>
         </div>
     );

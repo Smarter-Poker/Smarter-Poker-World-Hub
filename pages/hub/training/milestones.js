@@ -1,7 +1,8 @@
 /**
  * TRAINING MILESTONES — Achievement Timeline
  * ═══════════════════════════════════════════════════════════════════════════
- * Visual timeline of career milestones auto-detected from session history.
+ * Visual timeline of career thresholds inferred from verified session history.
+ * This page does not settle or verify rewards.
  *
  * Route: /hub/training/milestones
  * ═══════════════════════════════════════════════════════════════════════════
@@ -21,17 +22,17 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 const TIERS = {
-  Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)', reward: '+50 Diamonds' },
-  Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)', reward: '+150 Diamonds' },
-  Gold: { color: 'var(--sp-accent-amber)', bg: 'rgba(251,191,36,0.1)', reward: '+500 Diamonds' },
-  Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)', reward: 'Profile Badge' },
-  Master: { color: 'var(--sp-accent-purple)', bg: 'rgba(168,85,247,0.1)', reward: 'Master Title' },
+  Bronze: { color: '#cd7f32', bg: 'rgba(205,127,50,0.1)' },
+  Silver: { color: 'var(--sp-fg)', bg: 'rgba(203,213,225,0.1)' },
+  Gold: { color: 'var(--sp-accent-amber)', bg: 'rgba(251,191,36,0.1)' },
+  Diamond: { color: 'var(--sp-accent-cyan)', bg: 'rgba(0,212,255,0.1)' },
+  Master: { color: 'var(--sp-accent-purple)', bg: 'rgba(168,85,247,0.1)' },
 };
 
 
 // BUG FIX (TRAIN-MILESTONES-A11Y-1): SVG icon components replacing the 25
-// emoji icons in MILESTONE_DEFS, plus emoji (reward) and ✓ (rewarded
-// indicator) in the render path. Each milestone definition gains an
+// emoji icons in MILESTONE_DEFS, plus the reached-threshold indicator in the
+// render path. Each milestone definition gains an
 // `iconKind` field consumed by MilestoneIcon. Legacy `icon` emoji string
 // preserved for any external consumer reading the data shape. Same surface-
 // specific a11y pattern as PR #320/#322/#324/#327/#328/#329/#330.
@@ -71,7 +72,6 @@ function StarShineIcon({ size=24 })    { return <_SvgRoot size={size}><polygon p
 function BrainIcon({ size=24 })        { return <_SvgRoot size={size}><path d="M9 4a4 4 0 0 0-4 4c0 1-1 2-1 4s1 3 1 4a4 4 0 0 0 4 4"/><path d="M15 4a4 4 0 0 1 4 4c0 1 1 2 1 4s-1 3-1 4a4 4 0 0 1-4 4"/><line x1="12" y1="4" x2="12" y2="20"/></_SvgRoot>; }
 function EyeIcon({ size=24 })          { return <_SvgRoot size={size}><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></_SvgRoot>; }
 function CrownIcon({ size=24 })        { return <_SvgRoot size={size}><path d="M2 7l5 5 5-9 5 9 5-5-2 12H4L2 7z"/><path d="M4 19h16"/></_SvgRoot>; }
-function GiftIcon({ size=24 })         { return <_SvgRoot size={size}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></_SvgRoot>; }
 function CheckIcon({ size=24 })        { return <_SvgRoot size={size}><polyline points="20 6 9 17 4 12"/></_SvgRoot>; }
 function MilestoneIcon({ kind, size=20 }) {
   switch (kind) {
@@ -420,12 +420,14 @@ export default function MilestonesPage() {
       const res = await authedFetch(`/api/training/get-sessions?limit=500`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success && data.sessions) setStats(computeStats(data.sessions));
-      else setStats(computeStats([]));
+      if (!data.success || !Array.isArray(data.sessions)) {
+        throw new Error(data.error || 'Verified session history was not returned');
+      }
+      setStats(computeStats(data.sessions));
     } catch (e) {
       console.warn('[Milestones] Error:', e);
       setFetchError('Failed to load milestones. Please try again.');
-      setStats(computeStats([]));
+      setStats(null);
     }
     setLoading(false);
   }, []);
@@ -444,15 +446,23 @@ export default function MilestonesPage() {
     return MILESTONE_DEFS.map((m) => {
       const p = m.getProgress(stats);
       const percent = Math.min(100, Math.max(0, (p.c / p.t) * 100));
-      return { ...m, current: p.c, target: p.t, percent, earned: percent >= 100 };
+      return {
+        ...m,
+        current: p.c,
+        target: p.t,
+        percent,
+        thresholdReached: percent >= 100,
+      };
     });
   }, [stats]);
 
-  const earned = processed.filter((m) => m.earned);
-  const locked = processed.filter((m) => !m.earned).sort((a, b) => b.percent - a.percent);
+  const reached = processed.filter((m) => m.thresholdReached);
+  const inProgress = processed
+    .filter((m) => !m.thresholdReached)
+    .sort((a, b) => b.percent - a.percent);
 
-  // Spotlight: The unearned milestone with the highest completion %
-  const nextMilestone = locked[0];
+  // Spotlight: the unreached threshold with the highest completion percentage.
+  const nextMilestone = inProgress[0];
 
   return (
     <>
@@ -504,7 +514,7 @@ export default function MilestonesPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Milestones</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Tiered Achievements</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Verified Session Thresholds</div>
           </div>
           <div
             style={{
@@ -515,8 +525,8 @@ export default function MilestonesPage() {
               border: '1px solid rgba(251,191,36,0.2)',
             }}
           >
-            {/* TRAIN-MILESTONES-A11Y-1: status role for the earned counter */}
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }} role="status" aria-label={`${earned.length} of ${MILESTONE_DEFS.length} milestones earned`}>{earned.length}</span>
+            {/* TRAIN-MILESTONES-A11Y-1: status role for the reached counter */}
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }} role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>{reached.length}</span>
             <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
           </div>
         </div>
@@ -525,6 +535,22 @@ export default function MilestonesPage() {
           {loading ? (
             <div style={{ padding: '20px 0' }} role="status" aria-label="Loading milestones">
               <SkeletonLoader variant="card" count={3} />
+            </div>
+          ) : !stats ? (
+            <div
+              role="status"
+              style={{
+                padding: '20px',
+                borderRadius: 12,
+                border: '1px solid rgba(248,113,113,0.24)',
+                background: 'rgba(127,29,29,0.12)',
+                color: 'var(--sp-fg-muted)',
+                fontSize: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              Verified Milestone Progress Is Currently Unavailable. No Threshold Or Reward
+              Status Has Been Inferred From Missing Data.
             </div>
           ) : (
             <>
@@ -650,30 +676,25 @@ export default function MilestonesPage() {
                       />
                     </div>
                   </div>
-                  {/* Reward */}
+                  {/* Settlement disclosure — this page has no reward ledger source. */}
                   <div
                     style={{
                       marginTop: 12,
                       fontSize: 11,
-                      color: 'var(--sp-accent-green)',
+                      color: 'var(--sp-fg-muted)',
                       fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
+                      lineHeight: 1.5,
                     }}
+                    role="note"
                   >
-                    {/* TRAIN-MILESTONES-A11Y-1: SVG gift replaces */}
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ display: 'inline-flex', color: 'var(--sp-accent-green)' }} aria-hidden><GiftIcon size={14} /></span>
-                      Reward:
-                    </span>{' '}
-                    <span style={{ color: 'var(--sp-fg)' }}>{TIERS[nextMilestone.tier].reward}</span>
+                    <strong style={{ color: 'var(--sp-fg)' }}>Reward Status: Unverified.</strong>{' '}
+                    This Progress-Only Page Cannot Confirm Or Issue Diamonds.
                   </div>
                 </motion.div>
               )}
 
-              {/* Earned Milestones */}
-              {earned.length > 0 && (
+              {/* Reached Thresholds */}
+              {reached.length > 0 && (
                 <div style={{ marginBottom: 24 }}>
                   <div
                     style={{
@@ -685,9 +706,9 @@ export default function MilestonesPage() {
                       marginBottom: 10,
                     }}
                   >
-                    Earned
+                    Thresholds Reached
                   </div>
-                  {earned.map((m, i) => (
+                  {reached.map((m, i) => (
                     <motion.div
                       key={m.id}
                       initial={{ opacity: 0, x: -10 }}
@@ -747,7 +768,12 @@ export default function MilestonesPage() {
                         <div
                           style={{ fontSize: 9, color: 'var(--sp-accent-green)', marginTop: 4, fontWeight: 700 }}
                         >
-                          REWARDED
+                          Threshold Reached
+                        </div>
+                        <div
+                          style={{ fontSize: 8, color: 'var(--sp-fg-dim)', marginTop: 2 }}
+                        >
+                          Reward Unverified
                         </div>
                       </div>
                     </motion.div>
@@ -756,7 +782,7 @@ export default function MilestonesPage() {
               )}
 
               {/* Locked In Progress */}
-              {locked.length > (nextMilestone ? 1 : 0) && (
+              {inProgress.length > (nextMilestone ? 1 : 0) && (
                 <div>
                   <div
                     style={{
@@ -770,7 +796,7 @@ export default function MilestonesPage() {
                   >
                     IN PROGRESS
                   </div>
-                  {locked
+                  {inProgress
                     .filter((m) => m.id !== nextMilestone?.id)
                     .map((m, i) => (
                       <div

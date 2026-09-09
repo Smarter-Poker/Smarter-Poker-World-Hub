@@ -72,6 +72,7 @@ const PSYCHOLOGY_GAMES = [
 export default function GameUIRouter({
     gameId,
     gameName,
+    trainingSessionId = null,
     streak,
     question,
     level,
@@ -84,10 +85,12 @@ export default function GameUIRouter({
     structuredExplanation = null,
     // GTOW scoring props (new)
     moveClassification = null,
-    evLoss = 0,
+    evLoss = null,
+    evLossMeasured = false,
     gtoFrequencies = null,
     gtowScore = 100,
-    totalSessionEVLoss = 0,
+    totalSessionEVLoss = null,
+    measuredEVDecisions = 0,
     sessionMistakes = 0,
     // Phase 37: Enhanced session metrics
     classificationCounts = null,
@@ -176,13 +179,16 @@ export default function GameUIRouter({
             structuredExplanation={structuredExplanation}
             gameType={gameType}
             gameTitle={gameName}
+            trainingSessionId={trainingSessionId}
             streak={streak || 0}
             // GTOW scoring props
             moveClassification={moveClassification}
             evLoss={evLoss}
+            evLossMeasured={evLossMeasured}
             gtoFrequencies={gtoFrequencies}
             gtowScore={gtowScore}
             totalSessionEVLoss={totalSessionEVLoss}
+            measuredEVDecisions={measuredEVDecisions}
             sessionMistakes={sessionMistakes}
             // Phase 37: Enhanced session metrics
             classificationCounts={classificationCounts}

@@ -3,10 +3,12 @@
  *  POST /api/live/gift
  *  Send a diamond gift to a live broadcaster.
  *
- * Flow: atomic deduct from sender → atomic credit to receiver → record gift → broadcast to viewers → notify
+ * Flow: one call to send_stream_gift (both legs, the gift row and both journal
+ * rows in a single database transaction) → broadcast to viewers.
  *
- * Uses deduct_diamonds (now with FOR UPDATE row lock) and add_diamonds_to_balance RPCs
- * for fully atomic balance operations.
+ * The route used to debit, credit and keep a compensating refund; ruling 4 and
+ * CLAUDE.md 10.12 replaced that with the one atomic door. See the block at the
+ * call site.
  *
  * ANTI-FARMING SAFEGUARDS (live gifts):
  *  - Age-tiered allowance for EARNED diamonds (never zero — see
@@ -485,175 +487,83 @@ export default async function handler(req, res) {
     typeof req.body?.idempotency_key === 'string' ? req.body.idempotency_key.toLowerCase() : null;
   const giftId = clientKey && UUID_RE.test(clientKey) ? clientKey : randomUUID();
 
-  // Initialized to null; assigned after the deduct commits so the catch block
-  // can safely call it if something throws between deduct and credit.
-  let refundSender = null;
-  let creditSuccess = false;
+  // ── ONE TRANSACTION, NOT TWO WRITES AND A REFUND (2026-09-08) ───────────────
+  // docs/DIAMOND-RULINGS.md ruling 4; CLAUDE.md 10.12 (no compensating writes).
+  //
+  // This route used to debit the sender, credit the broadcaster, and keep a
+  // refundSender() closure to undo the debit if the credit failed - three writes
+  // and a compensating one, which is precisely the shape that leaves a player
+  // short when the process dies between them. send_stream_gift does both legs,
+  // the live_gifts row and both journal rows in a single database transaction:
+  // it either all happened or none of it did, and there is nothing to undo.
+  //
+  // It is called AS THE PLAYER (their bearer token), not as service_role, so
+  // auth.uid() inside the function is the sender, the anti-farming ladder sees
+  // the real account, and the privileged-column guard authorises the one door
+  // it is allowed through.
+  const senderName =
+    senderProfile?.display_name || senderProfile?.full_name || senderProfile?.username || 'A fan';
+  let gift = null;
+  let senderNewBalance = 0;
 
   try {
-    // senderProfile already fetched above for age gate — reuse it
-    // Prefer display_name (user-chosen proper-case alias) over the lowercase username slug.
-    const senderName = senderProfile?.display_name || senderProfile?.full_name || senderProfile?.username || 'A fan';
+    const bearer = typeof req.headers.authorization === 'string' ? req.headers.authorization : '';
+    const asPlayer = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { global: { headers: { Authorization: bearer } }, auth: { persistSession: false } }
+    );
 
-    // ATOMIC deduct from sender (uses FOR UPDATE row lock to prevent overdraft)
-    const { data: deductResult, error: deductErr } = await supabase.rpc('deduct_diamonds', {
-      p_user_id: user.id,
+    const { data: giftResult, error: giftErr } = await asPlayer.rpc('send_stream_gift', {
+      p_stream_id: stream_id,
       p_amount: parsedAmount,
-      p_description: `Live gift to broadcaster`,
-      p_transaction_type: 'live_gift_sent',
-      p_metadata: { recipient_id: receiver_id },
-      p_reference_id: `live_gift_deduct_${giftId}`,
-      p_cooldown_seconds: 1,
+      p_message: message || null,
+      p_reference_id: giftId,
     });
 
-    // deduct_diamonds returns jsonb with success field
-    if (deductErr) {
-      console.warn('[live/gift] Deduction failed caught:', deductErr);
-      const errCode = deductErr.code;
-      const errDetails = deductErr.details;
-      const errMessage = deductErr.message || 'Gift failed due to a network error. Please try again.';
-
-      if ((errCode === 'P0001' || errCode === '23514') && errDetails) {
-        try {
-          const popup = JSON.parse(errDetails);
-          if (popup && popup.code) {
-            await refundSender?.('cap_blocked');
-
-            // Map database-level codes to beautiful user-friendly alerts
-            let displayTitle = popup.title || 'Gift Restricted';
-            let displayExplanation = popup.popup_explanation || popup.reason || errMessage;
-            let displayMessage = popup.popup_message || popup.reason || 'You cannot complete this gift right now';
-
-            if (popup.code === 'pair_24h_cap') {
-              displayTitle = 'Recipient Limit Reached';
-              displayExplanation = 'To protect against farming and abuse, we limit the amount of diamonds you can send to a single broadcaster to 5,000 💎 every 24 hours.';
-              displayMessage = 'You Have Reached Your 24-Hour Sending Limit For This Recipient';
-            } else if (popup.code === 'user_24h_cap') {
-              displayTitle = 'Daily Sending Limit Reached';
-              displayExplanation = 'To protect the platform economy, accounts have a daily total outbound transfer cap of 50,000 💎 every 24 hours.';
-              displayMessage = 'You Have Reached Your 24-Hour Overall Sending Limit';
-            } else if (popup.code === 'burst_cap') {
-              displayTitle = 'Sending Too Fast';
-              displayExplanation = 'Please slow down. You can send a maximum of 2,000 💎 every 60 seconds.';
-              displayMessage = 'Velocity Check Triggered';
-            }
-
-            return res.status(429).json({
-              error: popup.reason || errMessage,
-              gateType: popup.code,
-              title: displayTitle,
-              popup_message: displayMessage,
-              popup_explanation: displayExplanation,
-              next_send_message: popup.next_send_message || 'Please try again later',
-              limits_lift_at: popup.limits_lift_at,
-              limits_lift_message: popup.limits_lift_message,
-              amount_sent_24h: popup.amount_sent_24h,
-              amount_cap_24h: popup.amount_cap_24h,
-            });
-          }
-        } catch (_) { /* fall through to legacy */ }
-      }
-
-      // Extract clear error message if the trigger raised an exception without JSON
-      let cleanMessage = errMessage;
-      if (cleanMessage.includes('Anti-farming:')) {
-        cleanMessage = cleanMessage.replace('Anti-farming:', '').trim();
-      }
-
-      return res.status(500).json({ error: cleanMessage });
-    }
-    if (deductResult && !deductResult.success) {
-      return res.status(400).json({
-        error: deductResult.error || 'Insufficient diamonds',
-        balance: deductResult.balance,
-      });
+    if (giftErr) {
+      console.warn('[live/gift] send_stream_gift failed:', giftErr?.message || giftErr);
+      return res.status(500).json({ error: 'Gift failed - please try again. No diamonds moved.' });
     }
 
-    const senderNewBalance = deductResult?.balance ?? 0;
+    // A replay of the same idempotency key is a success the caller has already had.
+    if (giftResult && giftResult.duplicate === true) {
+      console.info(`[live/gift] idempotent retry for ${giftId} - nothing moved a second time`);
+      return res.status(200).json({ success: true, duplicate: true, giftId });
+    }
 
-    // Compensating refund helper
-    refundSender = async (reason) => {
-      try {
-        const { error: refundErr } = await supabase.rpc('add_diamonds_to_balance', {
-          p_user_id: user.id,
-          p_amount: parsedAmount,
-          p_type: 'live_gift_refund',
-          p_description: `Live gift refund - ${reason}`,
-          p_reference_id: `live_gift_refund_${giftId}`,
+    if (!(giftResult && giftResult.success === true)) {
+      const code = giftResult?.code || null;
+      const capped = giftResult?.cap_check || null;
+      if (capped) {
+        return res.status(429).json({
+          error: giftResult?.error || 'Gift restricted',
+          gateType: code,
+          title: capped.title || 'Gift Restricted',
+          popup_message: capped.popup_message || capped.reason || 'You Cannot Complete This Gift Right Now',
+          popup_explanation: capped.popup_explanation || capped.reason || '',
+          next_send_message: capped.next_send_message || 'Please Try Again Later',
+          limits_lift_message: capped.limits_lift_message,
+          amount_sent_24h: capped.amount_sent_24h,
+          amount_cap_24h: capped.amount_cap_24h,
         });
-        if (refundErr) {
-          console.error(
-            '[live/gift] CRITICAL: Failed to refund sender after credit failure:',
-            refundErr
-          );
-        } else {
-          console.info(`[live/gift] Compensating refund applied for ${user.id}`);
-        }
-      } catch (err) {
-        console.error('[live/gift] CRITICAL: Network error during refund:', err);
       }
-    };
-    // ATOMIC credit to receiver. Use the per-gift UUID as reference_id so
-    // multiple gifts to the same stream don't collide on dedup.
-    const { data: creditResult, error: creditErr } = await supabase.rpc('add_diamonds_to_balance', {
-      p_user_id: receiver_id,
-      p_amount: parsedAmount,
-      p_type: 'live_gift_received',
-      p_description: `${senderName} sent ${parsedAmount} diamonds during your live`,
-      p_reference_id: `live_gift_${giftId}`,
-    });
-
-    if (creditErr) {
-      await refundSender('credit RPC failed');
-      console.warn(
-        '[live/gift] Credit RPC failed (refunded sender):',
-        creditErr?.message || creditErr
-      );
-      return res
-        .status(500)
-        .json({ error: 'Gift failed - your diamonds have been refunded. Please try again.' });
-    }
-    // 2026-08-15 audit: require an explicit success/duplicate — a null/undefined
-    // creditResult (PostgREST schema-cache race) was previously treated as
-    // success, charging the sender while crediting nobody.
-    if (!(creditResult && (creditResult.success === true || creditResult.duplicate === true))) {
-      await refundSender(`credit returned ${creditResult?.error || 'null/unknown'}`);
-      console.warn('[live/gift] Credit did not confirm success (refunded sender):', creditResult);
-      return res
-        .status(500)
-        .json({ error: 'Gift failed - your diamonds have been refunded. Please try again.' });
+      if (code === 'purchased_diamonds_not_giftable') {
+        return res.status(400).json({
+          error: giftResult.error,
+          gateType: code,
+          title: 'Purchased Diamonds Cannot Be Gifted',
+          popup_message: 'Only Diamonds You Have Earned Can Be Sent As A Gift',
+          popup_explanation:
+            'Diamonds bought with money stay in your wallet so a refund or chargeback can be settled against them.',
+          giftable: giftResult.giftable,
+        });
+      }
+      return res.status(400).json({ error: giftResult?.error || 'Gift failed' });
     }
 
-    creditSuccess = true;
-
-    if (creditResult && creditResult.duplicate) {
-      console.info(`[live/gift] Idempotent retry detected for gift ${giftId} - skipping refund`);
-    }
-
-    // STREAM-POLISH-R3 GIFT-2: upsert the gift row so client retries
-    // (with the same idempotency_key → same giftId) don't fail on a
-    // duplicate primary-key violation. The deduct/credit are already
-    // idempotent via p_reference_id; this closes the last write that
-    // wasn't.
-    const { data: gift, error: giftRowErr } = await supabase
-      .from('live_gifts')
-      .upsert(
-        {
-          id: giftId,
-          stream_id,
-          sender_id: user.id,
-          receiver_id,
-          amount: parsedAmount,
-          message: message || null,
-        },
-        { onConflict: 'id', ignoreDuplicates: false }
-      )
-      .select()
-      .maybeSingle();
-    // 2026-08-15 audit: the transfer already succeeded; a failed gift-row write
-    // means the gift won't appear in top-gifters/analytics. Log loudly and flag
-    // it in the response rather than silently claiming full success.
-    if (giftRowErr) console.error('[live/gift] gift row write failed after transfer:', giftRowErr.message);
+    senderNewBalance = giftResult.sender_balance ?? 0;
+    gift = { id: giftResult.gift_id };
 
     // Record the IP cluster action — clientIp was parsed once at top of handler
     const { error: err_anti_farming_ips_gr9d2 } = await supabase.from('anti_farming_ips').insert({
@@ -706,16 +616,10 @@ export default async function handler(req, res) {
       newBalance: senderNewBalance,
     });
   } catch (err) {
-    // If we are here and the deduction already committed but the credit
-    // RPC network-threw before returning, attempt a compensating refund.
-    // refundSender is only defined after the deduct succeeds so check first.
+    // There is nothing to undo: send_stream_gift is one transaction, so a throw
+    // anywhere here means either the whole gift committed (and only the broadcast
+    // or a side record failed, which is logged above) or none of it did.
     console.warn('[live/gift] unhandled error:', err.message);
-    if (typeof refundSender === 'function' && !creditSuccess) {
-      await refundSender(`uncaught handler error: ${err.message}`);
-      return res
-        .status(500)
-        .json({ error: 'Gift failed - your diamonds have been refunded. Please try again.' });
-    }
     return res.status(500).json({ error: 'Gift failed - please try again.' });
   }
 }

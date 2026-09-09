@@ -9,10 +9,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { authedFetch } from '../../lib/authUtils';
 
-export default function ChallengesWidget({ userId, onChallengeClaimed }) {
+export default function ChallengesWidget({ userId }) {
     const [challenges, setChallenges] = useState({ weekly: [], monthly: [] });
     const [loading, setLoading] = useState(true);
-    const [claiming, setClaiming] = useState(null);
 
     useEffect(() => {
         if (userId) {
@@ -34,32 +33,6 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
             console.warn('[ChallengesWidget] Error:', e);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const claimReward = async (challenge) => {
-        if (!userId) return;
-        setClaiming(challenge.id);
-
-        try {
-            const res = await authedFetch('/api/training/challenges', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    challengeId: challenge.id,
-                    periodKey: challenge.periodKey
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                onChallengeClaimed?.(data.claimed);
-                fetchChallenges(); // Refresh
-            }
-        } catch (e) {
-            console.warn('[ChallengesWidget] Claim error:', e);
-        } finally {
-            setClaiming(null);
         }
     };
 
@@ -125,13 +98,12 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
                         </div>
                         <div style={styles.challengeReward}>
                             {challenge.completed && !challenge.claimed ? (
-                                <button
-                                    onClick={() => claimReward(challenge)}
-                                    disabled={claiming === challenge.id}
-                                    style={styles.claimButton}
+                                <span
+                                    style={{ ...styles.diamondReward, color: '#FFD700' }}
+                                    title="Claims Reopen After Verified Challenge Settlement Is Certified"
                                 >
-                                    {claiming === challenge.id ? '...' : 'Claim'}
-                                </button>
+                                    Verified Claim Pending
+                                </span>
                             ) : (
                                 <span style={styles.diamondReward}>
                                     ◆ {challenge.diamond_reward}

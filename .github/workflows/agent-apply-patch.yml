@@ -18,6 +18,36 @@ on:
 
 permissions:
   contents: write
+  # NO `workflows:` KEY EXISTS HERE (2026-09-08, corrected same day).
+  #
+  # I added `workflows: write` to this block earlier today and it is not a
+  # valid permission. The set is actions, attestations, checks, contents,
+  # deployments, discussions, id-token, issues, models, packages, pages,
+  # pull-requests, repository-projects, security-events, statuses - and
+  # nothing else. An unknown key here is not ignored: the workflow fails to
+  # PARSE, so no job is created, the run lasts 0 seconds with jobs: 0, and it
+  # shows up named after the FILE rather than the workflow. This one and
+  # e2e-tests.yml were both dead on main for about thirty minutes because of
+  # two separate mistakes of mine.
+  #
+  # The `workflows` scope is real, but it belongs to a PAT or a GitHub App,
+  # not to GITHUB_TOKEN - which is exactly why GITHUB_TOKEN cannot push a
+  # workflow file no matter what this block says. The original diagnosis was
+  # right and the remedy was not:
+  # .github/workflows/** applies perfectly and then cannot be pushed:
+  #
+  #   applied (unidiff-zero)
+  #   [patch/... 60dd205861] agent-patch: apply pipeline-wave-1.patch
+  #    5 files changed, 123 insertions(+), 191 deletions(-)
+  #   ! [remote rejected] ... (refusing to allow a GitHub App to create
+  #     or update workflow `.github/workflows/e2e-tests.yml` without
+  #     `workflows` permission)
+  #
+  # The job then exits 1 with the patch still queued. It is not a
+  # required check, so autopilot squash-merges the branch anyway and
+  # main takes the .patch FILE and none of its changes - which is
+  # exactly what happened to PR #1621. Every earlier patch through this
+  # bridge touched only scripts/ and src/, so nothing had exercised it.
 
 jobs:
   apply:
@@ -41,6 +71,31 @@ jobs:
             echo "No queued patches — nothing to do."
             exit 0
           fi
+          # REFUSE A WORKFLOW PATCH UP FRONT (2026-09-08). GITHUB_TOKEN cannot
+          # create or update a file under .github/workflows/ - that needs the
+          # `workflows` scope, which belongs to a PAT or a GitHub App and has
+          # no equivalent in this job's `permissions:` block. Before today the
+          # patch applied perfectly and then died at `git push`:
+          #
+          #   ! [remote rejected] (refusing to allow a GitHub App to create or
+          #     update workflow `.github/workflows/e2e-tests.yml` without
+          #     `workflows` permission)
+          #
+          # The job exits 1 with the patch still queued. It is not a required
+          # check, so autopilot squash-merges the branch anyway and main takes
+          # the .patch FILE and none of its changes. Failing here instead makes
+          # the reason visible in the first ten seconds.
+          for p in "${patches[@]}"; do
+            if grep -qE '^(\+\+\+|---) [ab]/\.github/workflows/' "$p"; then
+              echo "::error::$p touches .github/workflows/. GITHUB_TOKEN cannot push"
+              echo "::error::workflow files, so this bridge cannot deliver it - it would"
+              echo "::error::apply cleanly and then be rejected at the push."
+              echo "::error::Commit workflow changes directly from a worktree instead"
+              echo "::error::(AGENT-PLAYBOOK.md), or split them out of this patch."
+              exit 1
+            fi
+          done
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           echo "Base commit: $(git log --oneline -1)"

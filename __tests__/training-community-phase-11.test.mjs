@@ -24,13 +24,20 @@ test('all eight Phase 11 routes adopt the shared command-deck surface', () => {
   }
 });
 
-test('challenge API rows are normalized before rendering progress and rewards', () => {
+test('challenge definitions render only historical progress while live settlement is paused', () => {
   const source = read('pages/hub/training/challenges.js');
+  const api = read('pages/api/training/challenges.js');
 
   assert.match(source, /title:\s*challenge\.title\s*\|\|\s*challenge\.name/);
   assert.match(source, /challenge\.goal\s*\?\?\s*challenge\.target_value/);
-  assert.match(source, /challenge\.diamonds\s*\?\?\s*challenge\.diamond_reward/);
   assert.match(source, /Math\.max\(1,\s*challenge\.goal\)/);
+  assert.match(source, /Tracking Paused/);
+  assert.match(source, /Historical Snapshot/);
+  assert.doesNotMatch(source, /challenge\.diamonds\s*\?\?\s*challenge\.diamond_reward/);
+  assert.match(api, /paused_pending_verified_settlement/);
+  assert.match(api, /rewardAvailable:\s*false/);
+  assert.match(api, /progress:\s*0/);
+  assert.doesNotMatch(api, /award_diamonds_v2|diamondsEarned/);
 });
 
 test('PvP reports unavailable live services honestly and routes to verified practice', () => {

@@ -1,3 +1,4 @@
+import './auth-network-deadline.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@
  *
  * No single deletion can hide a regression.
  */
+import './club-arena-shell-cache.test.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -74,10 +76,9 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 // with the `workflow` permission, which the automation PAT does not have.
 // node:test registers every case declared during module evaluation.
 //
-// THREE ARE DELIBERATELY NOT IMPORTED, and the meta-guard below allowlists
-// them by name with the reason. Two run their own harness and call
-// process.exit() on import, which would truncate this whole run; one asserts
-// that no Phase 2 training item is deferred, which is a roadmap state.
+// TWO ARE DELIBERATELY NOT IMPORTED, and the meta-guard below allowlists
+// them by name with the reason. Both run their own harness and call
+// process.exit() on import, which would truncate this whole run.
 import './api-routes-exist.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
@@ -148,6 +149,10 @@ import './no-slide-to-see.law.test.mjs';
 import './overlays-leave-room-to-close.law.test.mjs';
 import './page-tutorials.test.mjs';
 import './pa-closeout-hardening.test.mjs';
+// Mobile phase 4 (Personal Assistant): pins the wrapping anchors, the restored
+// Decision Loop label and session date, the wrapping trend row and coaching
+// views, 100dvh, overflow-x clip, the 12px floor and the eight-step tutorial.
+import './pa-mobile-upgrades.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
 // Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,
@@ -156,7 +161,17 @@ import './pnm-mobile-upgrades.test.mjs';
 import './poker-near-me-sitemap-parity.test.mjs';
 import './poker-tours-hydration.test.mjs';
 import './pre-push-typescript-baseline-safety.test.mjs';
+// 21 of 26 advertised rewards had never paid a diamond. This pins the triggers
+// that fix it, the shared reference-id that stops a trigger and an endpoint
+// both paying, and every anti-farming guard.
+import './an-advertised-reward-is-actually-payable.law.test.mjs';
 import './safe-profile-columns-are-granted.test.mjs';
+// Registered 2026-09-08. It had lived only as the npm script
+// "test:social-poker-cards", so nothing ran it, and it had been RED on main
+// since #1601 removed the copied PostCard from ClubPagesView and
+// PublicGameBoard - the exact shape section 10.8 names: a check nobody can see
+// is not a check. Fixed and wired in here so it runs in CHECK 8.
+import './social-poker-card-picker.test.mjs';
 import './store-commerce-hardening.test.mjs';
 // 2026-09-05, the diamond wallet audit. Caught by this file's own meta-guard
 // before it could become another guard nobody runs: the law was written, passed
@@ -177,6 +192,8 @@ import './solver-policy-service.test.mjs';
 import './horse-phase3-training-cache-truth.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
+import './training-history-outage-honesty.test.mjs';
+import './training-hub-outage-honesty.test.mjs';
 import './training-hub-media-audit.test.mjs';
 import './training-immersive-gameplay.test.mjs';
 import './training-phase-3-closeout.test.mjs';
@@ -184,6 +201,8 @@ import './training-phase6-release-harness.test.mjs';
 import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
+import './training-request-deadline.test.mjs';
+import './training-surface-inventory.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
 import './trivia-ui-foundation.test.mjs';
@@ -219,6 +238,10 @@ import './the-hub-notices-a-revoked-session.law.test.mjs';
 // 2026-09-04: a probe that cannot run says so where probes speak (recovery-probe
 // had been silent for a day: unconfigured, and exiting before its heartbeat).
 import './a-probe-that-cannot-run-says-so.law.test.mjs';
+// 2026-09-07. A horse's avatar is uploaded where a human's is (bucket
+// avatars, <profile uuid>/avatar.png), never under a name that says horse:
+// the storage path is in the <img src> of every seat and post.
+import './a-horse-avatar-is-uploaded-where-a-human-one-is.law.test.mjs';
 // 2026-09-04: the 3am pager. Alertmanager posts page=sms alerts to the Hub
 // route added in this commit; this suite pins the auth gate, Twilio call,
 // retry semantics, and house rules (only the six named alerts wake anyone).
@@ -371,12 +394,6 @@ const CI_UNREACHABLE_ON_PURPOSE = {
     // them. They pass standalone; they are simply not importable suites.
     'messenger-utils.test.mjs': 'self-executing harness, process.exit() on import',
     'server-auth-asymmetric.test.mjs': 'self-executing harness, process.exit() on import',
-    // Asserts counts.functionPhaseReview === 0, i.e. that no Phase 2 training
-    // item is deferred. Six are, each dispositioned with a followUpPhase. That
-    // is a roadmap state, not a defect, and wiring it in would block every pull
-    // request on unfinished product work. Its CRASH is fixed (it fed a .json
-    // file to @babel/parser); re-enable when Phase 2 closes.
-    'training-surface-inventory.test.mjs': 'asserts zero deferred Phase 2 items - roadmap state, see #1312',
 };
 
 test('every guard in __tests__ is reachable by CI', () => {

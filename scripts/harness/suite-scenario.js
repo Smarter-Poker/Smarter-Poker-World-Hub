@@ -5,6 +5,11 @@ const { check, section, ROOT } = require('../engine-correctness-harness');
 
 const G = require(path.join(ROOT, 'src/engines/PostflopScenarioGenerator.js'));
 const { DeterministicGTOEngine } = require(path.join(ROOT, 'src/engines/DeterministicGTOEngine.js'));
+const { pickWeightedHandFromScenario } = require(path.join(ROOT, 'src/games/SolverScenarioGenerator.js'));
+const SCENARIO_DB = require(path.join(ROOT, 'src/games/ScenarioDatabase.js'));
+const EV = require(path.join(ROOT, 'src/engines/EVCalculator.js'));
+const { scoreAction } = require(path.join(ROOT, 'src/engines/ActionTreeEngine.js'));
+const { analyzeHand } = require(path.join(ROOT, 'src/engines/HandAnalyzer.js'));
 
 const LEVELS = { 8: G.generateLevel8(), 9: G.generateLevel9(), 10: G.generateLevel10() };
 
@@ -60,20 +65,108 @@ check('chips are conserved: pot + 2 stacks <= 2 x starting stack', () => {
     return bad.length === 0 || bad.length + ' violations, e.g. ' + bad[0];
 });
 
-section('DeterministicGTOEngine passes the geometry through');
+section('Illustrative local bridge preserves geometry and authority');
 const engine = new DeterministicGTOEngine();
 for (const lvl of [8, 9, 10]) {
-    check('L' + lvl + ' question pot matches scenario pot (not the 6bb default)', () => {
+    check('L' + lvl + ' local-practice question preserves pot and rejects solver authority', () => {
         const s = LEVELS[lvl][0];
         const q = engine.generateFromPostflopEngine({}, lvl, [], s);
         if (!q) return 'no question produced';
-        return (q.scenario.pot === s.potSize && q.scenario.heroStack === s.effectiveStack)
-            || 'pot ' + q.scenario.pot + ' vs ' + s.potSize + ', stack ' + q.scenario.heroStack + ' vs ' + s.effectiveStack;
+        return (
+            q.scenario.pot === s.potSize
+            && q.scenario.heroStack === s.effectiveStack
+            && q.type === 'PRACTICE'
+            && q.source === 'LOCAL_POSTFLOP_HEURISTIC'
+            && q.practiceOnly === true
+            && q.solverVerified === false
+            && q.evData === null
+            && !Object.prototype.hasOwnProperty.call(q, 'gtoFrequencies')
+        ) || 'bridge exposed authoritative or malformed output';
+    });
+}
+check('local bridge fails closed when provenance is absent', () => {
+    const unmarked = { ...LEVELS[8][0] };
+    delete unmarked.authority;
+    delete unmarked.practiceOnly;
+    delete unmarked.solverVerified;
+    delete unmarked.authoritative;
+    return engine.generateFromPostflopEngine({}, 8, [], unmarked) === null
+        || 'unmarked scenario was accepted';
+});
+check('preflop matrix hand picker rejects postflop local practice', () => (
+    pickWeightedHandFromScenario(LEVELS[8][0]) === null
+    || 'postflop scenario was converted into a fabricated preflop answer'
+));
+check('local EV comparisons declare that they are neither solved nor measured', () => {
+    const result = EV.calculateActionEVs({
+        holeCards: ['Ah', 'Kd'],
+        board: ['Qs', '7h', '2c'],
+        potSize: 10,
+        effectiveStack: 100,
+        street: 'flop',
+        position: 'IP',
+        isPFR: true,
+        currentBet: 0,
+    });
+    return (
+        result.authority === 'illustrative_local_estimate'
+        && result.solverVerified === false
+        && result.exactEVAvailable === false
+        && result.evLossMeasured === false
+        && result.practiceOnly === true
+    ) || 'local EV estimator omitted its authority boundary';
+});
+check('ActionTree refuses to grade the local postflop heuristic', () => {
+    const result = scoreAction({ action: 'check' }, LEVELS[8][0].strategy, 10);
+    return (
+        result.score === null
+        && result.evLoss === null
+        && result.classification === 'practice_only'
+        && result.solverVerified === false
+    ) || 'local heuristic received an authoritative-looking score';
+});
+check('hand-history compatibility analysis leaves local postflop decisions unpriced', () => {
+    const analyzed = analyzeHand({
+        id: 'local-authority-boundary',
+        hero: { id: 'hero', name: 'Hero', position: 'BTN', holeCards: ['Ah', 'Kd'] },
+        players: [
+            { id: 'hero', name: 'Hero', position: 'BTN', stack: 100 },
+            { id: 'villain', name: 'Villain', position: 'BB', stack: 100 },
+        ],
+        streets: {
+            preflop: { actions: [] },
+            flop: {
+                board: ['Qs', '7h', '2c'],
+                actions: [{ player: 'Hero', position: 'BTN', isHero: true, action: 'check', amount: 0 }],
+            },
+            turn: null,
+            river: null,
+        },
+    });
+    const decision = analyzed.decisions?.[0];
+    return (
+        decision?.classification === 'unpriced'
+        && decision.gtoAction == null
+        && decision.solverVerified === false
+        && decision.evLossMeasured === false
+        && analyzed.summary?.accuracy === null
+    ) || 'local hand-history estimate leaked into an authoritative grade';
+});
+for (const lvl of [8, 9, 10]) {
+    check('L' + lvl + ' compatibility export preserves its real postflop catalog', () => {
+        const exported = SCENARIO_DB[`LEVEL_${lvl}_SCENARIOS`];
+        const selected = SCENARIO_DB.getScenariosByLevel(lvl);
+        return (
+            exported.length > 0
+            && exported.length === selected.length
+            && exported[0].id === selected[0].id
+            && exported[0].practiceOnly === true
+        ) || 'compatibility export aliased or stripped local provenance';
     });
 }
 
-section('3-bet pots use 3-bet-pot solver frequencies');
-check('3-bet pot c-bet frequency comes from the 3-bet table', () => {
+section('3-bet pots use their dedicated local teaching weights');
+check('3-bet pot c-bet weight comes from the 3-bet heuristic table', () => {
     const { getEnhancedCbetStrategy } = require(path.join(ROOT, 'src/engines/PostflopStrategyEngine.js'));
     const cands = LEVELS[8].filter(x => x.potType === '3BET' && x.isPFR);
     for (const s of cands) {
@@ -90,6 +183,32 @@ check('3-bet pot c-bet frequency comes from the 3-bet table', () => {
 
 section('Options are internally consistent');
 for (const lvl of [8, 9, 10]) {
+    check('L' + lvl + ' every scenario carries non-authoritative provenance', () => {
+        const bad = LEVELS[lvl].filter(s => !(
+            s.authority === 'illustrative_local_heuristic'
+            && s.authoritative === false
+            && s.solverVerified === false
+            && s.practiceOnly === true
+            && s.exactEVAvailable === false
+            && s.solverGenerated === false
+        ));
+        return bad.length === 0 || bad.length + ' scenarios, e.g. ' + bad[0].id;
+    });
+    check('L' + lvl + ' options contain no invented exact EV deltas', () => {
+        const bad = LEVELS[lvl].filter(s => (s.options || []).some(o => Object.prototype.hasOwnProperty.call(o, 'evDelta')));
+        return bad.length === 0 || bad.length + ' scenarios, e.g. ' + bad[0].id;
+    });
+    check('L' + lvl + ' every option labels feedback as illustrative local output', () => {
+        const bad = LEVELS[lvl].filter(s => (s.options || []).some(o => !String(o.feedback || '').startsWith('Illustrative local model:')));
+        return bad.length === 0 || bad.length + ' scenarios, e.g. ' + bad[0].id;
+    });
+    check('L' + lvl + ' every local practice scenario has exactly four distinct choices', () => {
+        const bad = LEVELS[lvl].filter(s => {
+            const options = s.options || [];
+            return options.length !== 4 || new Set(options.map(o => String(o.label).trim().toLowerCase())).size !== 4;
+        });
+        return bad.length === 0 || bad.length + ' scenarios, e.g. ' + bad[0].id;
+    });
     check('L' + lvl + ' exactly one option is flagged correct', () => {
         const bad = LEVELS[lvl].filter(s => (s.options || []).filter(o => o.isCorrect).length !== 1);
         return bad.length === 0 || bad.length + ' scenarios, e.g. ' + bad[0].id;

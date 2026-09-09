@@ -404,9 +404,13 @@ export const MENU_CONFIGS = {
     'messenger': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Conversations'),
-            createMenuItem.navigation('All Messages', '/hub/messenger?filter=all'),
+            // ITEM 13 (2026-09-08): these were ?filter=all / unread / archived.
+            // messenger.js reads no `filter` param and the word "archived"
+            // appears nowhere in it, so all three landed on the same default
+            // inbox. `unread` is now a real handler there; `all` is just the
+            // inbox; `archived` described a feature that does not exist.
+            createMenuItem.navigation('All Messages', '/hub/messenger'),
             createMenuItem.navigation('Unread', '/hub/messenger?filter=unread', null, state.unreadCount || null),
-            createMenuItem.navigation('Archived', '/hub/messenger?filter=archived'),
             createMenuItem.navigation('Message Requests', '/hub/messenger/requests', null, state.requestCount || null),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),

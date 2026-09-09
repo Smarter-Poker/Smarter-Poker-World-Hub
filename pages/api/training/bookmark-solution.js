@@ -12,7 +12,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { withTiming } from '../../../src/utils/trainingApiUtils';
+import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -56,6 +56,7 @@ export default async function handler(req, res) {
         // ●●● GET: Retrieve user's bookmarks ●●●●●●●●●●●●●●●●●●●●●●●●●●
         if (req.method === 'GET') {
             res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
+            res.setHeader('Vary', 'Authorization');
             const { data: bookmarks, error } = await getSupabase()
                 .from('solution_bookmarks')
                 .select('id, spot_id, scenario_hash, notes, created_at')
@@ -64,9 +65,13 @@ export default async function handler(req, res) {
                 .limit(200);
 
             if (error) {
-                // Table might not exist yet — return empty
-                console.warn('[BookmarkSolution] Query error (table may not exist):', error.message);
-                return res.status(200).json({ success: true, bookmarks: [] });
+                console.warn('[BookmarkSolution] Query error:', error.message);
+                return res.status(503).json({
+                    success: false,
+                    error: 'Bookmarks are temporarily unavailable. Please retry.',
+                    code: 'TRAINING_BOOKMARK_PERSISTENCE_UNAVAILABLE',
+                    retryable: true,
+                });
             }
 
             return res.status(200).json({ success: true, bookmarks: bookmarks || [] });
@@ -80,7 +85,10 @@ export default async function handler(req, res) {
                 return res.status(413).json({ success: false, error: 'Request body too large' });
             }
 
-            const { spotId, scenarioHash, action, notes } = req.body;
+            const action = sanitizeParam(req.body?.action, 16);
+            const scenarioHash = sanitizeParam(req.body?.scenarioHash, 256);
+            const spotId = req.body?.spotId == null ? null : sanitizeParam(req.body.spotId, 180);
+            const notes = req.body?.notes == null ? req.body?.notes : sanitizeParam(req.body.notes, 2000);
 
             if (!action || !scenarioHash) {
                 return res.status(400).json({ success: false, error: 'action and scenarioHash are required' });
@@ -88,7 +96,7 @@ export default async function handler(req, res) {
 
             if (action === 'save') {
                 // Upsert — don't create duplicates
-                const { data: existing } = await getSupabase()
+                const { data: existing, error: existingError } = await getSupabase()
                     .from('solution_bookmarks')
                     .select('id')
                     .eq('user_id', userId)
@@ -96,50 +104,86 @@ export default async function handler(req, res) {
                     .limit(1)
                     .maybeSingle();
 
+                if (existingError) {
+                    console.warn('[BookmarkSolution] Existing bookmark lookup failed:', existingError.message);
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Bookmark could not be verified. Please retry.',
+                        code: 'TRAINING_BOOKMARK_PERSISTENCE_UNAVAILABLE',
+                        retryable: true,
+                    });
+                }
+
                 if (existing) {
                     // Update notes if provided
                     if (notes !== undefined) {
-                        const { error: err_solution_bookmarks_zjaeg } = await getSupabase()
+                        const { data: updated, error: updateError } = await getSupabase()
                           .from('solution_bookmarks')
                           .update({ notes })
-                            .eq('id', existing.id);
-                        if (err_solution_bookmarks_zjaeg) console.warn('[Supabase] Silent mutation failed in solution_bookmarks:', err_solution_bookmarks_zjaeg.message);
+                          .eq('user_id', userId)
+                          .eq('id', existing.id)
+                          .select('id')
+                          .maybeSingle();
+                        if (updateError || !updated?.id) {
+                            console.warn('[BookmarkSolution] Bookmark update failed:', updateError?.message || 'updated row missing');
+                            return res.status(503).json({
+                                success: false,
+                                error: 'Bookmark update failed. Please retry.',
+                                code: 'TRAINING_BOOKMARK_PERSISTENCE_UNAVAILABLE',
+                                retryable: true,
+                            });
+                        }
                     }
                     return res.status(200).json({ success: true, action: 'updated', bookmarkId: existing.id });
                 }
 
                 const { data: newBookmark, error: insertErr } = await getSupabase()
                     .from('solution_bookmarks')
-                    .insert({
+                    .upsert({
                         user_id: userId,
                         spot_id: spotId || null,
                         scenario_hash: scenarioHash,
-                        notes: notes || null,
-                    })
+                        notes: notes ?? null,
+                    }, { onConflict: 'user_id,scenario_hash' })
                     .select('id')
                     .maybeSingle();
 
-                if (insertErr) {
+                if (insertErr || !newBookmark?.id) {
                     console.warn('[BookmarkSolution] Insert error:', insertErr);
-                    // If table doesn't exist, fail gracefully
-                    return res.status(200).json({ success: false, error: 'Bookmark save failed - table may not exist yet', fallback: true });
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Bookmark save failed. Please retry.',
+                        code: 'TRAINING_BOOKMARK_PERSISTENCE_UNAVAILABLE',
+                        retryable: true,
+                    });
                 }
 
                 return res.status(200).json({ success: true, action: 'saved', bookmarkId: newBookmark?.id });
             }
 
             if (action === 'delete') {
-                const { error: deleteErr } = await getSupabase()
+                const { data: deleted, error: deleteErr } = await getSupabase()
                     .from('solution_bookmarks')
                     .delete()
                     .eq('user_id', userId)
-                    .eq('scenario_hash', scenarioHash);
+                    .eq('scenario_hash', scenarioHash)
+                    .select('id');
 
                 if (deleteErr) {
                     console.warn('[BookmarkSolution] Delete error:', deleteErr);
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Bookmark removal failed. Please retry.',
+                        code: 'TRAINING_BOOKMARK_PERSISTENCE_UNAVAILABLE',
+                        retryable: true,
+                    });
                 }
 
-                return res.status(200).json({ success: true, action: 'deleted' });
+                return res.status(200).json({
+                    success: true,
+                    action: 'deleted',
+                    deletedCount: Array.isArray(deleted) ? deleted.length : 0,
+                });
             }
 
             return res.status(400).json({ success: false, error: 'Invalid action' });

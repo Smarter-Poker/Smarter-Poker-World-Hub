@@ -1,10 +1,14 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * SOLVER PREFLOP RANGES — Comprehensive GTO Data
+ * AUTHORED PREFLOP REFERENCE RANGES — 6-Max Cash, 100BB
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Solver-derived preflop ranges for 6-max cash (100BB default).
+ * Authored teaching-reference ranges for 6-max cash at exactly 100BB.
  * Each hand has MIXED-STRATEGY frequencies: { raise: 0.85, call: 0.10, fold: 0.05 }
+ *
+ * Authority boundary: this module is not a provenance-sealed solver export.
+ * It has no solver binary checksum, tree identity, source artifact checksum,
+ * or audited solve lineage, so consumers must not label it solver-exact GTO.
  *
  * Coverage:
  *   - RFI (Raise First In) from all positions

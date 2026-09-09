@@ -22,7 +22,28 @@ permissions:
 
 concurrency:
   group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  # FALSE ON main, true anywhere else (2026-09-08).
+  #
+  # This workflow triggers on `push: [main]` and `workflow_dispatch` only - the
+  # pull_request trigger was removed on 2026-09-04 (see the note above). So in
+  # practice every scheduled-by-a-push run of this job IS on refs/heads/main,
+  # and `cancel-in-progress: true` was cancelling all of them.
+  #
+  # `.agent/audits/2026-08-21-publish-deadlock-and-palette-clobber.md:55-59`
+  # states the rule: "cancel-in-progress: true is correct when pushes are slower
+  # than the build. It inverts into a deadlock the moment they are faster."
+  #
+  # Measured 2026-09-08 over the last 120 commits on main: median gap between
+  # commits 7.3 minutes, 53% of gaps under 8 - against a job whose own comment
+  # below budgets ~7 minutes to install and build before the first test runs.
+  # It was being killed more often than it could finish, so the "18 of the last
+  # 22 main runs failed" note above was reading a suite that mostly never got
+  # to a verdict at all.
+  #
+  # Expression rather than a bare `false` so that if the pull_request trigger
+  # comes back - the note above says it should, in the commit that turns this
+  # suite green - PR runs get the correct behaviour without a second edit.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   e2e:
@@ -44,7 +65,30 @@ jobs:
           node-version: '24.12.0'
           cache: 'npm'
 
+
+      # THE COLD INSTALL, EVERY RUN (2026-09-08). `cache: npm` above keeps only
+      # the tarballs; extracting 1,324 packages still happened on every run of
+      # this job. The pattern below is the one already proven in this repo at
+      # build-safety-gate.yml's type-check job on 2026-09-04: 424s -> ~15s.
+      #
+      # The key is SHARED with the other --ignore-scripts jobs in this repo on
+      # purpose. Club Arena kept two deliberately separate node_modules caches
+      # for two jobs installing the identical tree, so neither ever warmed the
+      # other; there is no reason to repeat that here. --ignore-scripts means
+      # no native binaries are built, so the tree is portable between the
+      # self-hosted estate runners and hosted ubuntu.
+      #
+      # The install is SKIPPED on a hit, because `npm ci` deletes node_modules
+      # before installing and would throw the restored tree away.
+      - name: Restore node_modules
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: |
           npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
 
@@ -59,9 +103,41 @@ jobs:
             echo "✅ package-lock.json is in sync with package.json"
           fi
 
+
+      # Playwright browsers were downloaded from scratch on every run - no job
+      # in this repo cached ~/.cache/ms-playwright (verified 2026-09-08: no
+      # match for ms-playwright or PLAYWRIGHT_BROWSERS_PATH in any of the 38
+      # workflow files). The install step still RUNS below rather than being
+      # skipped on a hit: Playwright no-ops when the browser is already on
+      # disk, and that keeps the OS-dependency half of --with-deps honest
+      # instead of trusting a cache to have provided it.
+      - name: Restore Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            pw-wh-${{ runner.os }}-
+
       - name: Install Playwright browsers
         run: |
           if [ "${{ runner.environment }}" = "self-hosted" ]; then npx playwright install chromium webkit; else npx playwright install --with-deps chromium webkit; fi
+
+
+      # .next/cache across runs. This job runs a full `npm run build`, and
+      # webpack's cache is what makes the second one cheap - the same cache
+      # git-safe-push.sh was deleting locally before every push until
+      # 2026-09-08 (2.4 GB of .next, 2.0 GB of it this cache). Keyed on the
+      # lockfile plus the sha so every run writes a fresh entry, with a prefix
+      # restore-key so it starts from the most recent one.
+      - name: Restore .next/cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            next-wh-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            next-wh-${{ runner.os }}-
 
       - name: Build Next.js
         # `npm run build`, NOT a bare `npx next build`.

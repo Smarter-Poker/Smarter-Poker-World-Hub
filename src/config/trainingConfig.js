@@ -55,22 +55,4 @@ export function getRequiredCorrect(level, totalQuestions = TRAINING_CONFIG.quest
     return Math.ceil((threshold / 100) * total);
 }
 
-/**
- * Check if user passed the level (against the actual question count served)
- */
-export function checkLevelPassed(level, correctAnswers, totalQuestions = TRAINING_CONFIG.questionsPerLevel) {
-    return correctAnswers >= getRequiredCorrect(level, totalQuestions);
-}
-
-/**
- * Get diamond reward for completing a level
- */
-export function getDiamondReward(level, correctAnswers, streakBonus = 0, totalQuestions = TRAINING_CONFIG.questionsPerLevel) {
-    const multiplier = TRAINING_CONFIG.diamondMultipliers[level] || 1.0;
-    const accuracy = correctAnswers / totalQuestions;
-    const baseDiamonds = 5;
-    const accuracyBonus = accuracy >= 1.0 ? 10 : accuracy >= 0.9 ? 5 : accuracy >= 0.85 ? 3 : 0;
-    return Math.round((baseDiamonds + accuracyBonus + streakBonus) * multiplier);
-}
-
 export default TRAINING_CONFIG;

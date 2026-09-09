@@ -15,7 +15,9 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
-import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { normalizeTrainingSessionConfig } from '../../../src/lib/training/sessionConfigContract.mjs';
+import { savePracticeSession } from '../../../src/lib/training/practiceSession';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 
 // Dynamic import to avoid SSR issues with the Arena
@@ -29,11 +31,6 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
 // ═══════════════════════════════════════════════════════════════════════════
 // GAME PRESETS FOR MULTI-TABLE
 // ═══════════════════════════════════════════════════════════════════════════
-
-// The timebank vocabulary, mirrored from SessionSetupModal's TIMER_OPTIONS and
-// GodModeArena's TIMER_DURATIONS. Kept here as a whitelist so a stray or stale
-// `?timer=` in a bookmarked URL cannot reach the arena as an unknown key.
-const TIMER_MODES = { relaxed: 1, standard: 1, quick: 1, blitz: 1 };
 
 const MULTI_TABLE_GAMES = [
   { id: 'cash-002', name: '3-Bet Pots' },
@@ -65,6 +62,7 @@ export default function MultiTablePage() {
     totalHands: 0,
     totalCorrect: 0,
     totalEVLoss: 0,
+    measuredEVDecisions: 0,
     tablesCompleted: 0,
   });
   const [completedTables, setCompletedTables] = useState(new Set());
@@ -150,7 +148,7 @@ export default function MultiTablePage() {
   // #10: passed to every arena so none of them shows its own splash screen
   // asking for difficulty and timer a second time. Four tables meant four
   // splashes, each of which had to be dismissed before that table would deal.
-  const arenaInitialConfig = useMemo(() => ({
+  const arenaInitialConfig = useMemo(() => normalizeTrainingSessionConfig({
     // #10 residual, shared prefs: N arenas share the 'gma_difficulty'
     // localStorage key, and useGTOTrainer re-reads it at question-serve time,
     // so one table's mid-game difficulty change used to bleed into every other
@@ -185,22 +183,22 @@ export default function MultiTablePage() {
     //      gameId on the emission; without the filter every mounted table
     //      still toasts table A's adaptive level change.
     prefsScope: 'table',
-    difficulty: typeof router.query.difficulty === 'string' ? router.query.difficulty : 'standard',
+    difficulty: router.query.difficulty,
     // GTOW parity #4: 'off' is a value from the AUTO-ADVANCE vocabulary, not
     // the timebank one, which runs 'relaxed' | 'standard' | 'quick' | 'blitz'.
     // Handing it to the arena missed every entry in TIMER_DURATIONS and landed
     // on a 60-second fallback -- four times GTOW's longest timebank, and the
     // exact tier #4 removed. Measured live on the multi-table screen. Anything
     // unrecognised now means no timer, which is what 'off' was reaching for.
-    timer: Object.prototype.hasOwnProperty.call(TIMER_MODES, router.query.timer)
-      ? router.query.timer
-      : 'relaxed',
+    timer: router.query.timer,
     mode: 'standard',
+    scope: router.query.scope,
+    targetStreet: router.query.targetStreet,
     autoAdvance: false,
     // GTOW parity #7: the hand-selection filter has to survive the hop through
     // the query string too, otherwise picking "Close only" and then 2 tables
     // silently reverted to the unfiltered set.
-    handSelection: typeof router.query.handSelection === 'string' ? router.query.handSelection : 'all',
+    handSelection: router.query.handSelection,
     // GTOW parity #9 and #6: the game-speed and feedback-rule choices were the
     // last two setup-modal settings that did not survive the hop to this route.
     // The single-table path forwards both; this one forwarded neither, so
@@ -215,7 +213,19 @@ export default function MultiTablePage() {
     // Deliberately NOT `tables` — each arena here is a single table. The
     // wrapper's own multi-table branch was removed in this same change because
     // it rendered N identical copies of one drill.
-  }), [router.query.difficulty, router.query.timer, router.query.handSelection]);
+  }, {
+    difficulty: 'standard',
+    timer: 'relaxed',
+    mode: 'standard',
+    scope: 'full',
+    handSelection: 'all',
+  }), [
+    router.query.difficulty,
+    router.query.timer,
+    router.query.scope,
+    router.query.targetStreet,
+    router.query.handSelection,
+  ]);
 
   // The tables actually on screen, and which one currently owns the keyboard
   // and the confetti canvas. `focusedGameId` starts null so that it does not
@@ -265,7 +275,12 @@ export default function MultiTablePage() {
         detail?.totalHands ?? detail?.questionsAnswered ?? detail?.totalQuestions ?? detail?.handsPlayed ?? 0,
       );
       const correct = Number(detail?.questionsCorrect ?? detail?.correctCount ?? 0);
-      const evLoss = Number(detail?.totalEVLoss ?? detail?.evLoss ?? 0);
+      const measuredEVDecisions = Number(detail?.measuredEVDecisions);
+      const reportedEVLoss = detail?.totalEVLoss ?? detail?.evLoss;
+      const hasMeasuredEV = Number.isInteger(measuredEVDecisions)
+        && measuredEVDecisions > 0
+        && Number.isFinite(Number(reportedEVLoss));
+      const evLoss = hasMeasuredEV ? Number(reportedEVLoss) : 0;
 
       // A table that has already reported must not be counted twice.
       // GodModeArena emits SESSION_END once, but `onExit` ALSO marks a table
@@ -283,7 +298,8 @@ export default function MultiTablePage() {
       setCombinedStats((s) => ({
         totalHands: s.totalHands + (Number.isFinite(hands) ? hands : 0),
         totalCorrect: s.totalCorrect + (Number.isFinite(correct) ? correct : 0),
-        totalEVLoss: s.totalEVLoss + (Number.isFinite(evLoss) ? evLoss : 0),
+        totalEVLoss: s.totalEVLoss + evLoss,
+        measuredEVDecisions: s.measuredEVDecisions + (hasMeasuredEV ? measuredEVDecisions : 0),
         tablesCompleted: s.tablesCompleted + 1,
       }));
     });
@@ -299,27 +315,18 @@ export default function MultiTablePage() {
       setSaveStatus('saving');
       const saveMultiSession = async () => {
         try {
-          const user = getAuthUser();
-          if (!user?.session?.access_token) {
-            setSaveStatus('error');
-            return;
-          }
-
           const accuracy =
             combinedStats.totalHands > 0
               ? Math.round((combinedStats.totalCorrect / combinedStats.totalHands) * 100)
               : 0;
 
-          await authedFetch('/api/training/save-session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+          await savePracticeSession('multi-table', {
               gameId: 'multi-table',
               gameName: `Multi-Table (${tableCount} tables)`,
               gtowScore: accuracy,
-              totalEVLoss: combinedStats.totalEVLoss,
+              totalEVLoss: combinedStats.measuredEVDecisions > 0
+                ? combinedStats.totalEVLoss
+                : null,
               handsPlayed: combinedStats.totalHands,
               mistakeCount: combinedStats.totalHands - combinedStats.totalCorrect,
               accuracy,
@@ -327,8 +334,10 @@ export default function MultiTablePage() {
               bestStreak: 0,
               levelPassed: accuracy >= 60,
               level: tableCount,
-              handHistory: [],
-            }),
+              context: {
+                tableCount,
+                measuredEVDecisions: combinedStats.measuredEVDecisions,
+              },
           });
           setSaveStatus('saved');
 
@@ -472,9 +481,15 @@ export default function MultiTablePage() {
                       {[
                         { label: 'Accuracy', value: `${accuracy}%`, color: gradeColor },
                         {
-                          label: 'EV Loss',
-                          value: `${(Number.isFinite(combinedStats.totalEVLoss) ? combinedStats.totalEVLoss : 0).toFixed(1)}bb`,
-                          color: (combinedStats.totalEVLoss || 0) < 5 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
+                          label: 'Measured EV Loss',
+                          value: combinedStats.measuredEVDecisions > 0
+                            ? `${combinedStats.totalEVLoss.toFixed(1)}bb`
+                            : '-',
+                          color: combinedStats.measuredEVDecisions < 1
+                            ? 'var(--sp-fg-muted)'
+                            : combinedStats.totalEVLoss < 5
+                            ? 'var(--sp-accent-green)'
+                            : 'var(--sp-accent-red)',
                         },
                         {
                           label: 'Correct',
@@ -543,6 +558,7 @@ export default function MultiTablePage() {
                             totalHands: 0,
                             totalCorrect: 0,
                             totalEVLoss: 0,
+                            measuredEVDecisions: 0,
                             tablesCompleted: 0,
                           });
                           hasSavedRef.current = false;
@@ -575,6 +591,7 @@ export default function MultiTablePage() {
                             totalHands: 0,
                             totalCorrect: 0,
                             totalEVLoss: 0,
+                            measuredEVDecisions: 0,
                             tablesCompleted: 0,
                           });
                           hasSavedRef.current = false;
@@ -784,6 +801,7 @@ export default function MultiTablePage() {
                     totalHands: 0,
                     totalCorrect: 0,
                     totalEVLoss: 0,
+                    measuredEVDecisions: 0,
                     tablesCompleted: 0,
                   });
                 }}
@@ -814,12 +832,10 @@ export default function MultiTablePage() {
                 <span style={{ color: 'var(--sp-accent-green)' }}>Hands: {combinedStats.totalHands}</span>
                 <span style={{ color: 'var(--sp-accent-amber)' }}>Correct: {combinedStats.totalCorrect}</span>
                 <span style={{ color: 'var(--sp-accent-red)' }}>
-                  EV Loss:{' '}
-                  {(Number.isFinite(combinedStats.totalEVLoss)
-                    ? combinedStats.totalEVLoss
-                    : 0
-                  ).toFixed(1)}
-                  BB
+                  Measured EV Loss:{' '}
+                  {combinedStats.measuredEVDecisions > 0
+                    ? `${combinedStats.totalEVLoss.toFixed(1)} BB`
+                    : '-'}
                 </span>
                 <span style={{ color: 'var(--sp-accent-purple)' }}>
                   Done: {completedTables.size}/{tableCount}

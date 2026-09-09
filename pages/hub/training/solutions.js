@@ -1,53 +1,33 @@
 /**
- * SOLUTIONS BROWSER — GTO Wizard-Style Solver Strategy Browser
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Browse pre-solved GTO solutions from the PIO solver database.
- * Phase 15 Features:
- *   - Game Tree Explorer with Node Breadcrumbs
- *   - Card Selector Modal for Turn/River navigation
- *   - Hand Classification Sidebar (Made Hands / Draws / Air)
- *   - Runout Heatmap (Hot/Cold turn card analysis)
- *   - Range vs Range Equity Matchup bar
- *   - Action/Classification color mode toggle
- * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+ * SOLUTIONS BROWSER — Audited PioSOLVER Strategy Artifacts
+ *
+ * This page intentionally renders only fields returned by the provenance-
+ * complete v2 browse contract: action frequencies, hand-class EVs, local hand
+ * classifications, bookmarks, decision-node metadata, and solver provenance.
+ * It must never infer unavailable solver outputs or fall back to legacy rows.
  */
 
 // TRAIN-CSS-TOKENS-BATCH4-1 — hex sweep batch 4: literals routed to --sp-* tokens
 // TRAIN-CSS-TOKENS-BATCH5-54 — hex sweep batch 5: literals routed to --sp-* tokens
 // TRAIN-CSS-GRADIENT-ADOPT-47 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
-import CardSelectorModal from '../../../src/components/training/CardSelectorModal';
-import RunoutHeatmap from '../../../src/components/training/RunoutHeatmap';
-import EquityMatchup from '../../../src/components/training/EquityMatchup';
-import RangeReport from '../../../src/components/training/RangeReport';
-import SolverLineSummary from '../../../src/components/training/SolverLineSummary';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
+import { createBoundedTrainingFetch } from '../../../src/lib/training/boundedTrainingFetch';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import Card from '../../../src/components/training/Card';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
-// ●● Phase 1 Engines: Board texture + hand strength for solution browsing
 import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
-import { classifyMadeHand, classifyDraws } from '../../../src/engines/HandStrengthEngine';
 
-// Dynamic imports for new Phase 34 components (avoid SSR issues)
-const BlockerScorePanel = dynamic(
-  () => import('../../../src/components/training/BlockerScorePanel'),
-  { ssr: false }
-);
-const SolverTreeViewer = dynamic(
-  () => import('../../../src/components/training/SolverTreeViewer'),
-  { ssr: false }
-);
+const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // CONFIG
@@ -56,20 +36,28 @@ const SolverTreeViewer = dynamic(
 const GAME_TYPES = [
   { value: 'hu_cash', label: 'Cash HU', icon: '●', description: 'Heads-Up Cash Game' },
   { value: 'postflop_complete', label: 'Cash 6-Max', icon: '◇', description: '6-Max Postflop' },
-  { value: 'mtt_6max_icm', label: 'MTT ICM', icon: '★', description: 'MTT 6-Max ICM' },
   { value: 'mtt_6max_chipev', label: 'MTT ChipEV', icon: '■', description: 'MTT ChipEV' },
-  { value: 'turn_spin', label: 'Spins', icon: '◆', description: 'Spin & Go' },
 ];
 
 const STACK_DEPTHS = {
-  hu_cash: [20, 40, 60, 80, 100, 200],
+  hu_cash: [40, 100, 200],
   postflop_complete: [100],
-  mtt_6max_icm: [10, 20, 40, 60, 80, 100],
-  mtt_6max_chipev: [10, 20, 40, 80, 100],
-  turn_spin: [10, 20, 40, 60],
+  mtt_6max_chipev: [10, 20, 40, 100],
 };
 
+const BROWSE_AUTHORITY = 'provenance_complete_piosolver_v2_only';
+const BROWSE_STREET = 'flop';
+
 const POSITIONS = ['BTN', 'SB', 'BB', 'CO', 'HJ', 'MP', 'UTG'];
+const BOARD_TEXTURES = ['All', 'Monotone', 'Two-Tone', 'Rainbow', 'Paired', 'Connected'];
+const TEXTURE_FILTER_COLORS = {
+  All: 'var(--sp-accent-cyan)',
+  Monotone: 'var(--sp-accent-purple)',
+  'Two-Tone': 'var(--sp-accent-blue)',
+  Rainbow: 'var(--sp-accent-green)',
+  Paired: 'var(--sp-accent-amber)',
+  Connected: 'var(--sp-accent-red)',
+};
 
 const ACTION_COLORS = {
   r: 'var(--sp-accent-red)',
@@ -268,65 +256,203 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
   );
 }
 
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// NODE BREADCRUMB
-// ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
+function isPlainRecord(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
 
-function NodeBreadcrumb({ treePath, onNavigateBack }) {
-  if (!treePath || treePath.length === 0) return null;
+function isAuditedListResponse(data, expected) {
+  return Boolean(
+    data?.success === true
+    && data.authority === BROWSE_AUTHORITY
+    && Array.isArray(data.spots)
+    && data.spots.every((spot) => (
+      spot?.source === 'PioSOLVER'
+      && spot.street === BROWSE_STREET
+      && spot.gameType === expected.gameType
+      && Number(spot.stackDepth) === expected.stackDepth
+      && Array.isArray(spot.board)
+      && spot.board.length === 3
+      && Boolean(spot.scenarioHash)
+      && Boolean(spot.auditedAt)
+    ))
+    && data.page === expected.page
+    && data.limit === 30
+    && Number.isSafeInteger(data.returnedCount)
+    && data.returnedCount === data.spots.length
+    && typeof data.hasMore === 'boolean'
+    && data.total === null
+    && data.totalIsExact === false
+  );
+}
 
+function isAuditedSpot(spot) {
+  const provenance = spot?.provenance;
+  const handEVs = isPlainRecord(spot?.handEVs) ? Object.values(spot.handEVs) : [];
+  const gridRows = isPlainRecord(spot?.gridData) ? Object.values(spot.gridData).filter(Boolean) : [];
+  const decisionNode = spot?.decisionNode;
+  return Boolean(
+    spot
+    && Boolean(spot.id)
+    && Boolean(spot.scenarioHash)
+    && spot.source === 'PioSOLVER'
+    && spot.street === BROWSE_STREET
+    && Array.isArray(spot.board)
+    && spot.board.length === 3
+    && new Set(spot.board).size === 3
+    && spot.board.every((card) => /^[2-9TJQKA][cdhs]$/.test(String(card)))
+    && Array.isArray(spot.actions)
+    && spot.actions.length >= 2
+    && new Set(spot.actions).size === spot.actions.length
+    && spot.actions.every((action) => typeof action === 'string' && action.length > 0)
+    && isPlainRecord(spot.gridData)
+    && gridRows.length > 0
+    && Number.isSafeInteger(spot.handCount)
+    && spot.handCount === gridRows.length
+    && handEVs.length > 0
+    && handEVs.every(Number.isFinite)
+    && isPlainRecord(decisionNode)
+    && decisionNode.node === spot.node
+    && decisionNode.actorRole === spot.actorRole
+    && Number.isFinite(decisionNode.potBb)
+    && decisionNode.potBb > 0
+    && Number.isFinite(decisionNode.effectiveStackBb)
+    && decisionNode.effectiveStackBb > 0
+    && provenance?.verified === true
+    && provenance.source === 'PioSOLVER'
+    && provenance.qualityStatus === 'validated'
+    && Boolean(provenance.solverVersion)
+    && ['M1', 'M2'].includes(String(provenance.machineId || ''))
+    && /^[0-9a-f]{40}$/i.test(String(provenance.pipelineCommit || ''))
+    && Boolean(provenance.manifestVersion)
+    && Boolean(provenance.auditedAt)
+    && provenance.auditedAt === spot.auditedAt
+  );
+}
+
+function formatAuditedAt(value) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'Verified Timestamp Unavailable' : parsed.toLocaleString();
+}
+
+function AuditedProvenanceSeal({ spot = null }) {
+  const provenance = spot?.provenance;
   return (
     <div
+      data-testid={spot ? 'solver-provenance-seal' : 'solver-catalog-authority-seal'}
+      role="status"
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '8px 12px',
-        background: 'rgba(255,255,255,0.03)',
+        gap: 10,
+        padding: '9px 12px',
+        marginTop: spot ? 0 : 12,
+        marginBottom: spot ? 12 : 0,
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.10), rgba(34,197,94,0.06))',
+        border: '1px solid rgba(0,212,255,0.28)',
         borderRadius: 8,
-        marginBottom: 12,
-        overflowX: 'auto',
-        border: '1px solid rgba(255,255,255,0.06)',
+        color: 'var(--sp-fg-muted)',
+        flexWrap: 'wrap',
       }}
     >
-      <span
-        style={{
-          fontSize: 9,
-          fontWeight: 700,
-          color: 'var(--sp-fg-dim)',
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-          whiteSpace: 'nowrap',
-          fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-        }}
-      >
-        TREE
-      </span>
-      {treePath.map((node, i) => (
-        <React.Fragment key={i}>
-          <span style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>›</span>
-          <button
-            onClick={() => onNavigateBack(i)}
-            style={{
-              background:
-                i === treePath.length - 1 ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
-              border:
-                i === treePath.length - 1
-                  ? '1px solid rgba(0,212,255,0.3)'
-                  : '1px solid rgba(255,255,255,0.06)',
-              borderRadius: 6,
-              padding: '3px 8px',
-              color: i === treePath.length - 1 ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
-              cursor: 'pointer',
-              fontSize: 10,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {node.label}
-          </button>
-        </React.Fragment>
-      ))}
+      <span aria-hidden="true" style={{ color: 'var(--sp-accent-green)', fontSize: 18 }}>◆</span>
+      <div style={{ flex: '1 1 220px' }}>
+        <div style={{ color: 'var(--sp-fg)', fontSize: 11, fontWeight: 800, letterSpacing: 0.7 }}>
+          Audited PioSOLVER • Provenance-Complete V2 Only
+        </div>
+        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, marginTop: 2 }}>
+          {spot
+            ? `Validated On ${formatAuditedAt(provenance?.auditedAt)}`
+            : 'Legacy, Partial, And Unverified Solver Rows Are Never Displayed.'}
+        </div>
+      </div>
+      {spot && (
+        <div style={{ fontSize: 9, color: 'var(--sp-accent-cyan)', textAlign: 'right' }}>
+          <div>Solver {provenance.solverVersion} • Machine {provenance.machineId}</div>
+          <div>Manifest {provenance.manifestVersion} • Pipeline {provenance.pipelineCommit.slice(0, 8)}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AuditedStrategyReport({ spot, classificationGroups }) {
+  const evSummary = useMemo(() => {
+    const values = Object.values(spot?.handEVs || {}).filter(Number.isFinite);
+    if (values.length === 0) return null;
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return {
+      count: values.length,
+      mean: total / values.length,
+      minimum: Math.min(...values),
+      maximum: Math.max(...values),
+    };
+  }, [spot]);
+
+  const decisionNode = spot?.decisionNode || {};
+  return (
+    <div
+      data-testid="audited-strategy-report"
+      style={{
+        width: '100%',
+        padding: 18,
+        background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+        border: '1px solid rgba(0,212,255,0.18)',
+        borderRadius: 10,
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 4 }}>
+        Audited Strategy Report
+      </div>
+      <p style={{ margin: '0 0 14px', fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+        Action Frequencies And Hand EVs Come From This Verified V2 Artifact. Hand Labels Are Derived Locally From The Displayed Flop.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 14 }}>
+        {[
+          ['Decision Node', decisionNode.node || spot.node || 'Unavailable'],
+          ['Acting Seat', decisionNode.actorRole || spot.actorRole || 'Unavailable'],
+          ['Pot', Number.isFinite(decisionNode.potBb) ? `${decisionNode.potBb.toFixed(2)} BB` : 'Unavailable'],
+          ['Effective Stack', Number.isFinite(decisionNode.effectiveStackBb) ? `${decisionNode.effectiveStackBb.toFixed(2)} BB` : 'Unavailable'],
+          ['Strategy Hand Classes', String(spot.handCount)],
+          ['Hand EV Coverage', evSummary ? `${evSummary.count} Classes` : 'Unavailable'],
+        ].map(([label, value]) => (
+          <div key={label} style={{ padding: 9, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6 }}>
+            <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', textTransform: 'uppercase', letterSpacing: 0.7 }}>{label}</div>
+            <div style={{ marginTop: 3, fontSize: 11, color: 'var(--sp-fg)', fontWeight: 700, overflowWrap: 'anywhere' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {evSummary && (
+        <div style={{ marginBottom: 14, padding: 10, background: 'rgba(34,197,94,0.045)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 6 }}>
+          <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>Returned Hand-Class EV Values (BB)</div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 11, fontWeight: 700 }}>
+            <span>Mean {evSummary.mean.toFixed(2)}</span>
+            <span>Low {evSummary.minimum.toFixed(2)}</span>
+            <span>High {evSummary.maximum.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        Locally Derived Hand Classifications
+      </div>
+      {classificationGroups.length > 0 ? classificationGroups.map((group) => (
+        <div key={group.classification} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <span style={{ width: 110, color: group.color, fontSize: 10, fontWeight: 700 }}>{group.label}</span>
+          <span style={{ color: 'var(--sp-fg-muted)', fontSize: 9 }}>{group.handCount} Hand Classes</span>
+          <span style={{ marginLeft: 'auto', color: 'var(--sp-fg-dim)', fontSize: 9 }}>
+            {Object.entries(group.actionSummary || {})
+              .filter(([, percent]) => percent > 0)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 2)
+              .map(([action, percent]) => `${action.toUpperCase()} ${Number(percent).toFixed(0)}%`)
+              .join(' • ') || 'No Action Frequency'}
+          </span>
+        </div>
+      )) : (
+        <p style={{ color: 'var(--sp-fg-dim)', fontSize: 10 }}>No Local Classification Could Be Derived For This Audited Flop.</p>
+      )}
     </div>
   );
 }
@@ -349,10 +475,10 @@ export default function SolutionsBrowser() {
     );
   }
 
-  return <SolutionsBrowserInner setError={setRenderError} />;
+  return <SolutionsBrowserInner />;
 }
 
-function SolutionsBrowserInner({ setError }) {
+function SolutionsBrowserInner() {
   useTrainingBus('solutions-browser');
   const router = useRouter();
 
@@ -361,12 +487,23 @@ function SolutionsBrowserInner({ setError }) {
     stackDepth: 100,
     position: '',
     colorMode: 'action',
+    rxTexture: 'All',
   });
 
-  const gameType = filters.gameType;
-  const stackDepth = Number(filters.stackDepth);
-  const position = filters.position;
-  const colorMode = filters.colorMode;
+  const requestedGameType = filters.gameType;
+  const gameType = Object.prototype.hasOwnProperty.call(STACK_DEPTHS, requestedGameType)
+    ? requestedGameType
+    : 'hu_cash';
+  const validStacks = STACK_DEPTHS[gameType];
+  const requestedStackDepth = Number(filters.stackDepth);
+  const stackDepth = validStacks.includes(requestedStackDepth)
+    ? requestedStackDepth
+    : (validStacks.includes(100) ? 100 : validStacks[0]);
+  const position = POSITIONS.includes(filters.position) ? filters.position : '';
+  const colorMode = ['action', 'classification'].includes(filters.colorMode)
+    ? filters.colorMode
+    : 'action';
+  const boardTexture = BOARD_TEXTURES.includes(filters.rxTexture) ? filters.rxTexture : 'All';
 
   const setGameType = (v) => setFilter('gameType', v);
   const setStackDepth = (v) => setFilter('stackDepth', v);
@@ -377,8 +514,8 @@ function SolutionsBrowserInner({ setError }) {
 
   // Data
   const [spots, setSpots] = useState([]);
-  const [totalSpots, setTotalSpots] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [returnedCount, setReturnedCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
 
@@ -386,39 +523,51 @@ function SolutionsBrowserInner({ setError }) {
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [spotDetail, setSpotDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState(null);
 
   // Phase 15: Color mode & classification
   const [classificationData, setClassificationData] = useState(null);
   const [classificationGroups, setClassificationGroups] = useState([]);
 
-  // Phase 15: Game Tree Explorer
-  const [treePath, setTreePath] = useState([]);
-  const [showCardSelector, setShowCardSelector] = useState(false);
-
-  // Phase 15: Runout Heatmap
-  const [activeTab, setActiveTab] = useState('grid'); // 'grid' | 'runout'
-  const [runoutData, setRunoutData] = useState({});
-  const [loadingRunout, setLoadingRunout] = useState(false);
-  const [showEVOverlay, setShowEVOverlay] = useState(false);
+  const [activeTab, setActiveTab] = useState('grid');
+  const listRequestId = useRef(0);
+  const detailRequestId = useRef(0);
 
   // Available stack depths for current game type
   const availableStacks = useMemo(() => STACK_DEPTHS[gameType] || [100], [gameType]);
 
-  // Reset stack depth when game type changes
+  // Normalize any obsolete values left in persisted filters without issuing an
+  // invalid catalog request first.
   useEffect(() => {
-    const stacks = STACK_DEPTHS[gameType] || [100];
-    if (!stacks.includes(stackDepth)) {
-      setFilter('stackDepth', stacks[stacks.length - 1]);
-    }
+    if (requestedGameType !== gameType) setFilter('gameType', gameType);
+    if (Number(filters.stackDepth) !== stackDepth) setFilter('stackDepth', stackDepth);
+    if (filters.position && !position) setFilter('position', '');
+    if (filters.colorMode !== colorMode) setFilter('colorMode', colorMode);
+    if (filters.rxTexture !== boardTexture) setFilter('rxTexture', boardTexture);
+  }, [boardTexture, colorMode, filters.colorMode, filters.position, filters.rxTexture, filters.stackDepth, gameType, position, requestedGameType, setFilter, stackDepth]);
+
+  useEffect(() => {
+    detailRequestId.current += 1;
     setPage(1);
     setSelectedSpot(null);
     setSpotDetail(null);
-    setTreePath([]);
+    setLoadingDetail(false);
+    setDetailError(null);
     setClassificationData(null);
     setClassificationGroups([]);
-    setRunoutData({});
     setActiveTab('grid');
-  }, [gameType, setFilter, stackDepth]);
+  }, [gameType, stackDepth]);
+
+  useEffect(() => {
+    detailRequestId.current += 1;
+    setSelectedSpot(null);
+    setSpotDetail(null);
+    setLoadingDetail(false);
+    setDetailError(null);
+    setClassificationData(null);
+    setClassificationGroups([]);
+    setActiveTab('grid');
+  }, [page, position]);
 
   // Phase 16: Range Locking
   const [lockedClassifications, setLockedClassifications] = useState([]);
@@ -426,18 +575,7 @@ function SolutionsBrowserInner({ setError }) {
   // Phase 16: Bookmarks
   const [bookmarkedHashes, setBookmarkedHashes] = useState(new Set());
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
-
-  // Phase 17: Board Texture Filter
-  const [boardTexture, setBoardTexture] = useState(filters.rxTexture || 'All');
-  const BOARD_TEXTURES = ['All', 'Monotone', 'Two-Tone', 'Rainbow', 'Paired', 'Connected'];
-  const TEXTURE_FILTER_COLORS = {
-    All: 'var(--sp-accent-cyan)',
-    Monotone: 'var(--sp-accent-purple)',
-    'Two-Tone': 'var(--sp-accent-blue)',
-    Rainbow: 'var(--sp-accent-green)',
-    Paired: 'var(--sp-accent-amber)',
-    Connected: 'var(--sp-accent-red)',
-  };
+  const [bookmarkError, setBookmarkError] = useState(null);
 
   // Board texture classifier — uses Phase 1 BoardTextureEngine for rich analysis
   function classifyBoardTexture(boardCards) {
@@ -462,7 +600,10 @@ function SolutionsBrowserInner({ setError }) {
         if (engineResult.highCard) tags.push(engineResult.highCard >= 12 ? 'High' : 'Low');
         return tags;
       }
-    } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
+    } catch (error) {
+      const message = error?.message || String(error);
+      console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);
+    }
 
     // Inline fallback
     const suits = boardCards.slice(0, 3).map((c) => (typeof c === 'string' ? c[c.length - 1] : ''));
@@ -487,14 +628,16 @@ function SolutionsBrowserInner({ setError }) {
   useEffect(() => {
     async function loadBookmarks() {
       try {
-        const res = await authedFetch('/api/training/bookmark-solution');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const res = await trainingFetch('/api/training/bookmark-solution');
         const data = await res.json();
-        if (data.success && data.bookmarks) {
-          setBookmarkedHashes(new Set(data.bookmarks.map((b) => b.scenario_hash)));
+        if (!res.ok || data?.success !== true || !Array.isArray(data.bookmarks)) {
+          throw new Error(data?.error || `HTTP error! status: ${res.status}`);
         }
+        setBookmarkedHashes(new Set(data.bookmarks.map((b) => b.scenario_hash)));
+        setBookmarkError(null);
       } catch (e) {
         console.warn('[Solutions] Bookmarks fetch failed:', e);
+        setBookmarkError('Bookmarks Could Not Be Loaded. Retry When Your Connection Is Available.');
       }
     }
     loadBookmarks();
@@ -512,12 +655,20 @@ function SolutionsBrowserInner({ setError }) {
       const isBookmarked = bookmarkedHashes.has(hash);
       const action = isBookmarked ? 'delete' : 'save';
       try {
-        const res = await authedFetch('/api/training/bookmark-solution', {
+        setBookmarkError(null);
+        const res = await trainingFetch('/api/training/bookmark-solution', {
           method: 'POST',
           
           body: JSON.stringify({ scenarioHash: hash, spotId: spot.id, action }),
         });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const body = await res.json().catch(() => null);
+        const validSave = action !== 'save' || Boolean(body?.bookmarkId);
+        const validAction = isBookmarked
+          ? body?.action === 'deleted'
+          : body?.action === 'saved' || body?.action === 'updated';
+        if (!res.ok || body?.success !== true || !validAction || !validSave) {
+          throw new Error(body?.error || `HTTP error! status: ${res.status}`);
+        }
         setBookmarkedHashes((prev) => {
           const next = new Set(prev);
           if (isBookmarked) next.delete(hash);
@@ -528,6 +679,7 @@ function SolutionsBrowserInner({ setError }) {
         eventBus?.emit?.('pa-data-updated', {}, 'SolutionsBrowser');
       } catch (e) {
         console.warn('[Solutions] Bookmark toggle failed:', e);
+        setBookmarkError('Bookmark Change Was Not Saved. Your Display Has Not Been Changed.');
       }
     },
     [bookmarkedHashes]
@@ -570,39 +722,41 @@ function SolutionsBrowserInner({ setError }) {
 
   // Fetch spots list
   const fetchSpots = useCallback(async () => {
+    const requestId = ++listRequestId.current;
     setLoading(true);
     setFetchError(null);
     try {
       const params = new URLSearchParams({
         gameType,
         stackDepth: stackDepth.toString(),
+        street: BROWSE_STREET,
         page: page.toString(),
         limit: '30',
       });
       if (position) params.set('position', position);
 
-      const res = await authedFetch(`/api/training/browse-solutions?${params}`);
+      const res = await trainingFetch(`/api/training/browse-solutions?${params}`);
       if (res.status === 401) {
         await router.replace('/auth/login?redirect=/hub/training/solutions');
         return;
       }
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-
-      if (data.success) {
-        setSpots(data.spots || []);
-        setTotalSpots(data.total || 0);
-        setTotalPages(data.totalPages || 0);
-      } else {
-        setSpots([]);
-        setTotalSpots(0);
-        setTotalPages(0);
+      const data = await res.json().catch(() => null);
+      if (requestId !== listRequestId.current) return;
+      if (!res.ok || !isAuditedListResponse(data, { gameType, stackDepth, page })) {
+        throw new Error(data?.error || 'Audited solver catalog response did not pass validation');
       }
+      setSpots(data.spots);
+      setReturnedCount(data.returnedCount);
+      setHasMore(data.hasMore);
     } catch (err) {
+      if (requestId !== listRequestId.current) return;
       console.warn('[Solutions] Fetch error:', err);
-      setFetchError('Failed to load solutions. Please try again.');
+      setSpots([]);
+      setReturnedCount(0);
+      setHasMore(false);
+      setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');
     } finally {
-      setLoading(false);
+      if (requestId === listRequestId.current) setLoading(false);
     }
   }, [gameType, stackDepth, position, page, router]);
 
@@ -612,119 +766,44 @@ function SolutionsBrowserInner({ setError }) {
 
   // Fetch full spot detail (with 13×13 grid)
   const loadSpotDetail = useCallback(async (spotId) => {
+    const requestId = ++detailRequestId.current;
     setLoadingDetail(true);
     setSelectedSpot(spotId);
+    setSpotDetail(null);
+    setDetailError(null);
     setActiveTab('grid');
-    setRunoutData({});
     try {
-      const res = await authedFetch(`/api/training/browse-solutions?spotId=${spotId}`);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      if (data.success && data.spot) {
-        setSpotDetail(data.spot);
-        // Initialize tree path with root node
-        setTreePath([
-          {
-            label: `${data.spot.heroPosition} • ${data.spot.board?.join(' ')}`,
-            spotDetail: data.spot,
-            spotId,
-          },
-        ]);
+      const res = await trainingFetch(`/api/training/browse-solutions?spotId=${spotId}`);
+      if (res.status === 401) {
+        await router.replace('/auth/login?redirect=/hub/training/solutions');
+        return;
       }
+      const data = await res.json().catch(() => null);
+      if (requestId !== detailRequestId.current) return;
+      if (!res.ok || data?.success !== true || !isAuditedSpot(data.spot)) {
+        throw new Error(data?.error || 'Solver artifact did not pass provenance validation');
+      }
+      setSpotDetail(data.spot);
     } catch (err) {
+      if (requestId !== detailRequestId.current) return;
       console.warn('[Solutions] Detail fetch error:', err);
+      setDetailError('This Artifact Could Not Be Verified. No Legacy Or Partial Strategy Will Be Displayed.');
     } finally {
-      setLoadingDetail(false);
+      if (requestId === detailRequestId.current) setLoadingDetail(false);
     }
-  }, []);
+  }, [router]);
 
-  // Phase 15: Navigate to child node (tree hopping)
-  const navigateToChild = useCallback(
-    async (nextCard) => {
-      if (!spotDetail?.scenarioHash) return;
-      setLoadingDetail(true);
-      setShowCardSelector(false);
-
-      try {
-        const params = new URLSearchParams({
-          scenarioHash: spotDetail.scenarioHash,
-          nextCard,
-        });
-        const res = await authedFetch(`/api/training/tree-navigate?${params}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-
-        if (data.success && data.childSpot) {
-          setSpotDetail(data.childSpot);
-          setTreePath((prev) => [
-            ...prev,
-            {
-              label: `${nextCard.toUpperCase()} → ${data.childSpot.heroPosition}`,
-              spotDetail: data.childSpot,
-              scenarioHash: data.childSpot.scenarioHash,
-            },
-          ]);
-          setActiveTab('grid');
-          setRunoutData({});
-        } else {
-          console.warn('[Solutions] No child node found for', nextCard);
-        }
-      } catch (err) {
-        console.warn('[Solutions] Tree navigate error:', err);
-      } finally {
-        setLoadingDetail(false);
-      }
-    },
-    [spotDetail]
-  );
-
-  // Navigate back in tree
-  const navigateBack = useCallback(
-    (index) => {
-      if (index < treePath.length - 1) {
-        const node = treePath[index];
-        setTreePath((prev) => prev.slice(0, index + 1));
-        if (node.spotDetail) {
-          setSpotDetail(node.spotDetail);
-          setActiveTab('grid');
-          setRunoutData({});
-        }
-      }
-    },
-    [treePath]
-  );
-
-  // Phase 15: Fetch runout data
-  const fetchRunoutData = useCallback(async () => {
-    if (!spotDetail?.scenarioHash) return;
-    setLoadingRunout(true);
-    try {
-      const res = await authedFetch(
-        `/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`
-      );
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      if (data.success) {
-        setRunoutData(data.runouts || {});
-      }
-    } catch (err) {
-      console.warn('[Solutions] Runout fetch error:', err);
-    } finally {
-      setLoadingRunout(false);
-    }
-  }, [spotDetail?.scenarioHash]);
-
-  // Auto-fetch runout when switching to runout tab
-  useEffect(() => {
-    if (activeTab === 'runout' && Object.keys(runoutData || {}).length === 0 && spotDetail) {
-      fetchRunoutData();
-    }
-  }, [activeTab, runoutData, spotDetail, fetchRunoutData]);
-
-  // Dead cards for card selector
-  const deadCards = useMemo(() => {
-    return spotDetail?.board || [];
-  }, [spotDetail]);
+  const visibleSpots = spots
+    .filter((spot) => {
+      if (!showBookmarksOnly) return true;
+      const hash = spot.scenarioHash || spot.scenario_hash;
+      return hash && bookmarkedHashes.has(hash);
+    })
+    .filter((spot) => {
+      if (boardTexture === 'All') return true;
+      const boardCards = spot.board || [];
+      return classifyBoardTexture(boardCards).includes(boardTexture);
+    });
 
   return (
     <>
@@ -732,7 +811,7 @@ function SolutionsBrowserInner({ setError }) {
         <title>GTO Solutions Browser | Smarter.Poker Training</title>
         <meta
           name="description"
-          content="Browse pre-solved GTO strategies for every poker spot. View optimal action frequencies for all 1326 hand combos."
+          content="Browse provenance-complete PioSOLVER v2 flop artifacts with audited action frequencies and hand-class EVs."
         />
       </Head>
 
@@ -790,12 +869,14 @@ function SolutionsBrowserInner({ setError }) {
                 fontWeight: 600,
               }}
             >
-              {totalSpots.toLocaleString()} Spots
+              Flop • Page {page} • {returnedCount} Returned
             </span>
           </div>
 
+          <AuditedProvenanceSeal />
+
           {/* Filters Row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
             {GAME_TYPES.map((gt) => (
               <button
                 key={gt.value}
@@ -933,12 +1014,11 @@ function SolutionsBrowserInner({ setError }) {
             {/* Phase 17: Board Texture Filter */}
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Texture:</span>
+              <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>This Page Texture:</span>
               {BOARD_TEXTURES.map((tex) => (
                 <button
                   key={tex}
                   onClick={() => {
-                    setBoardTexture(tex);
                     setFilter('rxTexture', tex);
                     setPage(1);
                   }}
@@ -1002,10 +1082,14 @@ function SolutionsBrowserInner({ setError }) {
             ) : spots.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center' }}>
                 <p style={{ color: 'var(--sp-fg-dim)', fontSize: 13 }}>
-                  No Spots Found For This Configuration
+                  {fetchError
+                    ? 'The Audited Solver Catalog Is Unavailable'
+                    : 'No Provenance-Complete Flop Artifacts Found'}
                 </p>
                 <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11, marginTop: 4 }}>
-                  Try A Different Game Type Or Stack Depth
+                  {fetchError
+                    ? 'No Legacy Or Partially Audited Row Has Been Substituted.'
+                    : 'Try A Different Verified Family, Stack Depth, Or Position.'}
                 </p>
               </div>
             ) : (
@@ -1065,20 +1149,16 @@ function SolutionsBrowserInner({ setError }) {
                     ★ BOOKMARKS
                   </button>
                 </div>
-                {spots
-                  .filter((s) => {
-                    if (!showBookmarksOnly) return true;
-                    const h = s.scenarioHash || s.scenario_hash;
-                    return h && bookmarkedHashes.has(h);
-                  })
-                  .filter((s) => {
-                    if (boardTexture === 'All') return true;
-                    const boardCards = s.board || s.boardCards || [];
-                    if (boardCards.length < 3) return true; // can't classify without flop
-                    const tags = classifyBoardTexture(boardCards);
-                    return tags.includes(boardTexture);
-                  })
-                  .map((spot) => (
+                {visibleSpots.length === 0 ? (
+                  <div role="status" style={{ padding: '28px 12px', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, margin: 0 }}>
+                      No Returned Spots Match This Page Filter
+                    </p>
+                    <p style={{ color: 'var(--sp-fg-faint)', fontSize: 10, marginTop: 5 }}>
+                      Clear The Bookmark Or Texture Filter. Use Next To Inspect Another Audited Page When Available.
+                    </p>
+                  </div>
+                ) : visibleSpots.map((spot) => (
                     <SpotCard
                       key={spot.id}
                       spot={spot}
@@ -1090,7 +1170,7 @@ function SolutionsBrowserInner({ setError }) {
                   ))}
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {(page > 1 || hasMore) && (
                   <div
                     style={{
                       display: 'flex',
@@ -1124,11 +1204,11 @@ function SolutionsBrowserInner({ setError }) {
                         fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                       }}
                     >
-                      {page} / {totalPages}
+                      Page {page} • {returnedCount} Returned
                     </span>
                     <button
-                      disabled={page >= totalPages}
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={!hasMore}
+                      onClick={() => setPage((currentPage) => currentPage + 1)}
                       style={{
                         padding: '6px 12px',
                         borderRadius: 6,
@@ -1136,8 +1216,8 @@ function SolutionsBrowserInner({ setError }) {
                         background: 'rgba(255,255,255,0.06)',
                         color: 'var(--sp-fg-muted)',
                         border: 'none',
-                        cursor: page < totalPages ? 'pointer' : 'not-allowed',
-                        opacity: page >= totalPages ? 0.4 : 1,
+                        cursor: hasMore ? 'pointer' : 'not-allowed',
+                        opacity: hasMore ? 1 : 0.4,
                       }}
                     >
                       Next →
@@ -1161,7 +1241,33 @@ function SolutionsBrowserInner({ setError }) {
               maxWidth: '100%',
             }}
           >
-            {!spotDetail && !loadingDetail ? (
+            {detailError && !loadingDetail ? (
+              <div role="alert" style={{ padding: 32, textAlign: 'center', maxWidth: 440 }}>
+                <p style={{ color: 'var(--sp-accent-red)', fontSize: 13, fontWeight: 700, margin: 0 }}>
+                  Artifact Verification Failed
+                </p>
+                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
+                  {detailError}
+                </p>
+                {selectedSpot && (
+                  <button
+                    onClick={() => loadSpotDetail(selectedSpot)}
+                    style={{
+                      marginTop: 8,
+                      padding: '7px 14px',
+                      border: '1px solid rgba(0,212,255,0.3)',
+                      borderRadius: 7,
+                      background: 'rgba(0,212,255,0.08)',
+                      color: 'var(--sp-accent-cyan)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Retry Audited Lookup
+                  </button>
+                )}
+              </div>
+            ) : !spotDetail && !loadingDetail ? (
               <div
                 style={{
                   display: 'flex',
@@ -1185,9 +1291,9 @@ function SolutionsBrowserInner({ setError }) {
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="9" y1="21" x2="9" y2="9" />
                 </svg>
-                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 14 }}>Select A Spot To View The Strategy</p>
+                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 14 }}>Select An Audited Flop Artifact</p>
                 <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11 }}>
-                  Click Any Board In The List To See The Full 13×13 Range Grid
+                  Inspect Its 13×13 Strategy Grid, Actual Hand EVs, And Verified Provenance.
                 </p>
               </div>
             ) : loadingDetail ? (
@@ -1210,7 +1316,7 @@ function SolutionsBrowserInner({ setError }) {
                     animation: 'spin 1s linear infinite',
                   }}
                 />
-                <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13 }}>Loading Strategy Matrix...</p>
+                <p style={{ color: 'var(--sp-fg-muted)', fontSize: 13 }}>Verifying PioSOLVER V2 Artifact...</p>
                 <style>{`
                   @keyframes spin {
                     to {
@@ -1226,9 +1332,6 @@ function SolutionsBrowserInner({ setError }) {
                 animate={{ opacity: 1, y: 0 }}
                 style={{ width: '100%', maxWidth: 900 }}
               >
-                {/* Node Breadcrumb */}
-                <NodeBreadcrumb treePath={treePath} onNavigateBack={navigateBack} />
-
                 {/* Spot Header */}
                 <div
                   style={{
@@ -1266,8 +1369,7 @@ function SolutionsBrowserInner({ setError }) {
                       {spotDetail.heroPosition}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
-                      {spotDetail.stackDepth}BB {spotDetail.gameType} • {spotDetail.handCount} Hands
-                      In Range
+                      {spotDetail.stackDepth}BB {spotDetail.gameType} • {spotDetail.handCount} Hand Classes With Strategy
                     </div>
                   </div>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1290,17 +1392,7 @@ function SolutionsBrowserInner({ setError }) {
                   </div>
                 </div>
 
-                {/* Range Equity Matchup */}
-                {spotDetail.rangeEquity && (
-                  <div style={{ marginBottom: 12 }}>
-                    <EquityMatchup
-                      heroEquity={spotDetail.rangeEquity.hero}
-                      villainEquity={spotDetail.rangeEquity.villain}
-                      heroPosition={spotDetail.heroPosition || 'Hero'}
-                      villainPosition="Villain"
-                    />
-                  </div>
-                )}
+                <AuditedProvenanceSeal spot={spotDetail} />
 
                 {/* Tab Switcher + Color Mode Toggle */}
                 <div
@@ -1317,13 +1409,8 @@ function SolutionsBrowserInner({ setError }) {
                   <div style={{ display: 'flex', gap: 4 }}>
                     {[
                       { key: 'grid', label: '13×13 Grid' },
-                      { key: 'ev', label: 'EV View' },
-                      { key: 'equity', label: 'Equity' },
-                      { key: 'eqr', label: 'EQR' },
-                      { key: 'runout', label: 'Runout' },
-                      { key: 'blockers', label: 'Blockers' },
-                      { key: 'tree', label: 'Tree' },
-                      { key: 'report', label: 'Report' },
+                      { key: 'ev', label: 'Hand EV' },
+                      { key: 'report', label: 'Audited Report' },
                     ].map((tab) => (
                       <button
                         key={tab.key}
@@ -1350,7 +1437,7 @@ function SolutionsBrowserInner({ setError }) {
                     ))}
                   </div>
 
-                  {/* Color Mode Toggle + Tree Navigate */}
+                  {/* Color Mode Toggle */}
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {activeTab === 'grid' && (
                       <div
@@ -1386,104 +1473,42 @@ function SolutionsBrowserInner({ setError }) {
                             {mode.label}
                           </button>
                         ))}
-                        <div
-                          style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '4px 0' }}
-                        />
-                        <button
-                          onClick={() => setShowEVOverlay(!showEVOverlay)}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: 10,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            border: 'none',
-                            background: showEVOverlay ? 'rgba(74, 222, 128, 0.2)' : 'transparent',
-                            color: showEVOverlay ? 'var(--sp-accent-green)' : 'var(--sp-fg-dim)',
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          +EV Views
-                        </button>
                       </div>
-                    )}
-
-                    {/* Navigate to Next Street */}
-                    {spotDetail.board && spotDetail.board.length < 5 && (
-                      <button
-                        onClick={() => setShowCardSelector(true)}
-                        style={{
-                          padding: '5px 12px',
-                          borderRadius: 8,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          border: '1px solid rgba(0,212,255,0.3)',
-                          background:
-                            'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.05))',
-                          color: 'var(--sp-accent-cyan)',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {spotDetail.board.length === 3 ? '→ Turn' : '→ River'}
-                      </button>
                     )}
                   </div>
                 </div>
 
                 {/* Main Content Area */}
                 {activeTab === 'grid' ? (
-                  <>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 16,
-                        alignItems: 'flex-start',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap',
-                        width: '100%',
-                      }}
-                    >
-                      {/* Range Grid */}
-                      <RangeGrid
-                        gridData={spotDetail.gridData}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 16,
+                      alignItems: 'flex-start',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap',
+                      width: '100%',
+                    }}
+                  >
+                    <RangeGrid
+                      gridData={spotDetail.gridData}
+                      actions={spotDetail.actions}
+                      cellSize={34}
+                      classificationData={classificationData}
+                      colorMode={colorMode}
+                      handEVs={spotDetail.handEVs}
+                      lockedClassifications={lockedClassifications}
+                    />
+
+                    {classificationGroups.length > 0 && (
+                      <ClassificationSidebar
+                        groups={classificationGroups}
                         actions={spotDetail.actions}
-                        cellSize={34}
-                        classificationData={classificationData}
-                        colorMode={colorMode}
-                        handEVs={spotDetail.handEVs || null}
                         lockedClassifications={lockedClassifications}
-                        showEVOverlay={showEVOverlay && activeTab === 'grid'}
+                        onToggleLock={toggleClassificationLock}
                       />
-
-                      {/* Classification Sidebar (when in classification mode) */}
-                      {classificationGroups.length > 0 && (
-                        <ClassificationSidebar
-                          groups={classificationGroups}
-                          actions={spotDetail.actions}
-                          lockedClassifications={lockedClassifications}
-                          onToggleLock={toggleClassificationLock}
-                        />
-                      )}
-                    </div>
-
-                    {/* Solver Line Summary — below grid */}
-                    <div style={{ width: '100%', maxWidth: 900, marginTop: 14 }}>
-                      <SolverLineSummary
-                        gridData={spotDetail.gridData}
-                        classificationGroups={classificationGroups}
-                        board={spotDetail.board || []}
-                        actions={spotDetail.actions || []}
-                        heroPosition={spotDetail.heroPosition || 'Hero'}
-                      />
-                    </div>
-                  </>
-                ) : activeTab === 'runout' ? (
-                  <RunoutHeatmap
-                    runoutData={runoutData}
-                    deadCards={deadCards}
-                    loading={loadingRunout}
-                    onCardClick={(card) => navigateToChild(card)}
-                  />
+                    )}
+                  </div>
                 ) : activeTab === 'ev' ? (
                   <div style={{ width: '100%' }}>
                     <div
@@ -1497,14 +1522,15 @@ function SolutionsBrowserInner({ setError }) {
                         letterSpacing: 1,
                       }}
                     >
-                      EV By Action (BB)
+                      Audited Hand-Class EV (BB)
                     </div>
                     <RangeGrid
                       gridData={spotDetail.gridData}
                       actions={spotDetail.actions}
                       cellSize={34}
-                      colorMode="ev"
-                      handEVs={spotDetail.handEVs || null}
+                      colorMode="action"
+                      handEVs={spotDetail.handEVs}
+                      showEVOverlay
                     />
                     <div
                       style={{
@@ -1516,221 +1542,23 @@ function SolutionsBrowserInner({ setError }) {
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
-                      Green = Positive EV, Red = Negative. Values In Big-Blinds.
+                      Each Number Is The Mean Hand-Class EV Exported In This Verified V2 Artifact. Empty Cells Stay Empty; No Missing Metric Is Inferred.
                     </div>
-                  </div>
-                ) : activeTab === 'equity' ? (
-                  <div style={{ width: '100%' }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--sp-accent-green)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        marginBottom: 12,
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                      }}
-                    >
-                      Raw Equity %
-                    </div>
-                    <RangeGrid
-                      gridData={spotDetail.gridData}
-                      actions={spotDetail.actions}
-                      cellSize={34}
-                      colorMode="equity"
-                      handEVs={spotDetail.handEVs || null}
-                    />
-                    <div
-                      style={{
-                        marginTop: 10,
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        background: 'rgba(255,255,255,0.02)',
-                        fontSize: 10,
-                        color: 'var(--sp-fg-dim)',
-                      }}
-                    >
-                      Shows Raw Pot Equity Per Hand Combo Against Villain's Range.
-                    </div>
-                  </div>
-                ) : activeTab === 'eqr' ? (
-                  <div style={{ width: '100%' }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--sp-accent-purple)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        marginBottom: 12,
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                      }}
-                    >
-                      Equity Realization Ratio
-                    </div>
-                    <RangeGrid
-                      gridData={spotDetail.gridData}
-                      actions={spotDetail.actions}
-                      cellSize={34}
-                      colorMode="eqr"
-                      handEVs={spotDetail.handEVs || null}
-                    />
-                    <div
-                      style={{
-                        marginTop: 10,
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        background: 'rgba(255,255,255,0.02)',
-                        fontSize: 10,
-                        color: 'var(--sp-fg-dim)',
-                      }}
-                    >
-                      EQR = EV / Equity. Values &gt;1.0 Overperform, &lt;1.0 Underperform.
-                    </div>
-                  </div>
-                ) : activeTab === 'blockers' ? (
-                  <div style={{ width: '100%' }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--sp-accent-red)',
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                        marginBottom: 12,
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                      }}
-                    >
-                      Card Removal Heatmap
-                    </div>
-                    <RangeGrid
-                      gridData={spotDetail.gridData}
-                      actions={spotDetail.actions}
-                      cellSize={34}
-                      colorMode="blocker"
-                      heldCardsForBlockers={
-                        spotDetail.heroCards
-                          ? spotDetail.heroCards
-                          : spotDetail.board
-                            ? spotDetail.board.slice(0, 2)
-                            : []
-                      }
-                    />
-                    <div
-                      style={{
-                        marginTop: 10,
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        background: 'rgba(255,255,255,0.02)',
-                        fontSize: 10,
-                        color: 'var(--sp-fg-dim)',
-                        marginBottom: 16,
-                      }}
-                    >
-                      Displays The Percentage Of Combos In Villain's Range Blocked By Hero's Cards.
-                      Red = Heavily Blocked.
-                    </div>
-                    <BlockerScorePanel
-                      board={spotDetail.board}
-                      gridData={spotDetail.gridData}
-                      actions={spotDetail.actions}
-                      heldCards={
-                        spotDetail.heroCards
-                          ? spotDetail.heroCards
-                          : spotDetail.board
-                            ? spotDetail.board.slice(0, 2)
-                            : []
-                      }
-                    />
-                  </div>
-                ) : activeTab === 'tree' ? (
-                  <div style={{ width: '100%' }}>
-                    <SolverTreeViewer
-                      spotDetail={spotDetail}
-                      width={Math.min(
-                        800,
-                        typeof window !== 'undefined' ? window.innerWidth - 100 : 600
-                      )}
-                      height={400}
-                    />
                   </div>
                 ) : activeTab === 'report' ? (
-                  <RangeReport
+                  <AuditedStrategyReport
+                    spot={spotDetail}
                     classificationGroups={classificationGroups}
-                    gridData={spotDetail.gridData || {}}
-                    board={spotDetail.board || []}
-                    handEVs={spotDetail.handEVs || {}}
                   />
                 ) : null}
-
-                {/* Action Buttons (for tree navigation) */}
-                {activeTab === 'grid' && spotDetail.actions && spotDetail.actions.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      padding: '12px 16px',
-                      background: 'rgba(255,255,255,0.02)',
-                      borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: 'var(--sp-fg-dim)',
-                        textTransform: 'uppercase',
-                        letterSpacing: 1,
-                        marginBottom: 8,
-                        fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                      }}
-                    >
-                      Navigate Action →
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {spotDetail.actions.map((action) => (
-                        <button
-                          key={action}
-                          onClick={() => {
-                            if (spotDetail.board && spotDetail.board.length < 5) {
-                              setShowCardSelector(true);
-                            }
-                          }}
-                          style={{
-                            padding: '6px 16px',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: `1px solid ${(ACTION_COLORS[action] || '#888') + '55'}`,
-                            background: `${ACTION_COLORS[action] || '#888'}15`,
-                            color: ACTION_COLORS[action] || '#888',
-                            transition: 'all 0.15s',
-                            fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
-                          }}
-                        >
-                          {action}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </motion.div>
             ) : null}
           </div>
         </div>
       </div>
 
-      {/* Card Selector Modal */}
-      <CardSelectorModal
-        isOpen={showCardSelector}
-        onClose={() => setShowCardSelector(false)}
-        onSelectCard={navigateToChild}
-        deadCards={deadCards}
-        title={spotDetail?.board?.length === 3 ? 'Select Turn Card' : 'Select River Card'}
-      />
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSpots(); }} />}
+      {bookmarkError && <ErrorBanner message={bookmarkError} onRetry={() => setBookmarkError(null)} />}
       <ConnectionToast />
     </>
   );
