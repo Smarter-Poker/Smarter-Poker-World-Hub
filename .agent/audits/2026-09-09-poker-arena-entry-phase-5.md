@@ -22,5 +22,32 @@ Focused checks: initial run 40 passed, four old route-count contracts failed;
 all 18 assertions in the affected suites passed after the retirement updates.
 The new shared-entry/404 test runs in the normal prebuild gate.
 
-Publication and authenticated live acceptance remain pending. This change does
-not enable funded Diamond games or modify production accounting.
+## Publication And Live Evidence
+
+Implementation PR #1701 merged as `606a789e16944b8a7bdc63789a46072a01bd4dc2`.
+At September 9 23:29:29 UTC, production /api/health reported that exact commit,
+status ok, deployment `dpl_Fwf91tWqAFGSAE6PSJwe16DRQAgW`. The authenticated
+World Hub menu contained one Poker Arena link to /hub/club-arena, no standalone
+Diamond link, and that link opened the published shared Poker Arena selector.
+The new /cards/poker-arena.png returned 200 image/png and was visually inspected.
+
+At 23:31:28 UTC all six retired Diamond URLs returned HTTP 404: the root,
+history, leaderboard, schedule, stats and table-settings. Root/history were
+also checked in the authenticated browser and displayed the 404 surface,
+with no legacy iframe or simulated page.
+
+The build safety gate passed all 1,613 tests and TypeScript after exact
+retirement counts and generated source inventory were updated. The original
+footer browser run passed 14 cases and failed two solely because its probe
+still looked for the old Club Arena accessible name. PR #1702 changes that
+expectation to Poker Arena; it does not relax assertions or retry limits.
+Follow that run's final result rather than counting the old failure as passed.
+
+The managed browser has WebGL disabled. Its World Hub 3D canvas cannot render;
+that same capability error was observed before and after this release. The
+registry, deployed artwork and working menu entry are verified; a rendered 3D
+carousel visual check is not claimed.
+
+The shared in-tab footer repair and the final phase gate are recorded in Club
+Arena PR #4054 and docs/changelog/2026-09-09-poker-arena-shell-phase-5.md.
+No funded Diamond games or production accounting changes are enabled here.
