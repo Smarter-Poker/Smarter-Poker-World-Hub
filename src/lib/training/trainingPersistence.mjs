@@ -20,13 +20,28 @@ export function isTrainingPersistenceUnavailable(error) {
 
 async function runBoundedQuery(queryFactory, timeoutMs) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(`Training persistence query timed out after ${timeoutMs}ms`);
+      error.name = 'AbortError';
+      error.code = 'ABORT_ERR';
+      // Abort the real PostgREST fetch, but do not depend on the transport
+      // observing that signal: a wedged client must not keep question delivery
+      // open forever.
+      controller.abort(error);
+      reject(error);
+    }, timeoutMs);
+  });
   try {
     const query = queryFactory();
     if (!query || typeof query.abortSignal !== 'function') {
       throw new TypeError('Training persistence query must support abortSignal');
     }
-    return await query.abortSignal(controller.signal);
+    return await Promise.race([
+      query.abortSignal(controller.signal),
+      deadline,
+    ]);
   } finally {
     clearTimeout(timer);
   }

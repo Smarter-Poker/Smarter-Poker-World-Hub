@@ -1,9 +1,10 @@
 /**
  * DETERMINISTIC POST-LEVEL COACHING (Operation Grok-Sweep — 2026-05)
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Generates personalized post-level coaching feedback using REAL session
- * metrics the client already computed (accuracy, EV loss, classification
- * breakdown, position stats, weak spots, cross-session context). NO LLM.
+ * Generates personalized post-level coaching feedback from one sealed,
+ * server-owned Training session. The browser supplies only the session id;
+ * every score, count, classification and measured-EV value is re-read from
+ * the completed attempt projection. NO LLM.
  *
  * Prior implementation called grok-3 with `temperature: 0.7` to "synthesize"
  * coaching prose from the metrics — turning hard numbers into vague advice.
@@ -19,6 +20,11 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import {
+    deriveTrainingSessionAccuracy,
+    projectTrainingSessionEvidence,
+} from '../../../src/lib/training/sessionEvidence.mjs';
 
 let _supabaseAdmin = null;
 function getSupabaseAdmin() {
@@ -34,7 +40,7 @@ function getSupabaseAdmin() {
 // ●● Quotes (rotated deterministically by accuracy bucket) ●●●●●●●●●●●●●●●●●●●●
 const QUOTES_HIGH = [
     '"The best players are always learning." - Daniel Negreanu',
-    '"Discipline is rememberings what you want." - common poker adage',
+    '"Discipline is remembering what you want." - common poker adage',
     '"Patience is the secret to winning poker." - Doyle Brunson',
     '"GTO is the foundation; reads are the building." - Phil Galfond',
 ];
@@ -74,10 +80,10 @@ function buildHeadline({ accuracy, classificationCounts, gtowScore, streak }) {
     const bestCount = Number(cc.best) || 0;
     const score = Number(gtowScore);
 
-    if (acc === 100) return 'Flawless run - every decision solver-aligned.';
+    if (acc === 100) return 'Flawless Run - Every Recorded Decision Was Correct.';
     if (acc >= 90 && blunders === 0) return 'Excellent session - zero blunders, near-pure accuracy.';
     if (acc >= 90) return 'Strong run with one slip - ready for harder levels.';
-    if (acc >= 80 && Number.isFinite(score) && score >= 75) return 'Solid GTOW score - your edges are sharpening.';
+    if (acc >= 80 && Number.isFinite(score) && score >= 75) return 'Solid Training Score - Your Decision Quality Is Sharpening.';
     if (acc >= 80) return 'Above the pass line - focus on the mixed-strategy spots.';
     if (acc >= 70) return 'Passing grade - the patterns below close the gap fastest.';
     if (acc >= 60 && bestCount > blunders) return 'You found more best plays than blunders - momentum is yours to keep.';
@@ -93,15 +99,15 @@ function buildStrengths({ accuracy, classificationCounts, positionStats, streak,
     const acc = Number(accuracy) || 0;
     const score = Number(gtowScore);
 
-    if (acc >= 95) out.push('Near-perfect execution under pressure');
-    else if (acc >= 80) out.push('Strong overall accuracy - fundamentals are dialed in');
+    if (acc >= 95) out.push('Near-perfect accuracy across the recorded decisions');
+    else if (acc >= 80) out.push('Strong overall accuracy across the recorded decisions');
 
     const best = Number(cc.best) || 0;
-    if (best >= 5) out.push(`Found the best line ${best} times - pattern-recognition is working`);
+    if (best >= 5) out.push(`Recorded ${best} BEST-classified decisions`);
 
-    if (Number(streak) >= 5) out.push(`Maintained a ${streak}-question streak - focus stayed locked`);
+    if (Number(streak) >= 5) out.push(`Recorded a ${streak}-question correct-answer streak`);
 
-    if (Number.isFinite(score) && score >= 80) out.push('GTOW score above 80 - solver-aligned across the board');
+    if (Number.isFinite(score) && score >= 80) out.push('Training Score Above 80 - Strong Results Across The Recorded Session');
 
     // Best position
     if (positionStats && Object.keys(positionStats).length > 0) {
@@ -119,7 +125,7 @@ function buildStrengths({ accuracy, classificationCounts, positionStats, streak,
     }
 
     if (out.length === 0) {
-        out.push('You completed the level - every rep builds the foundation');
+        out.push('Completed the level with a fully recorded decision history');
     }
     return out.slice(0, 2);
 }
@@ -132,9 +138,9 @@ function buildAreasToImprove({ accuracy, classificationCounts, weakSpots, positi
     const wrong = Number(cc.wrong) || 0;
     const inacc = Number(cc.inaccuracy) || 0;
 
-    if (blunders >= 2) out.push(`${blunders} blunders this session - these are 0%-frequency mistakes; drill the spot type until they\'re gone`);
-    else if (wrong >= 3) out.push(`${wrong} clearly-wrong actions - likely a range-construction leak in a specific spot type`);
-    else if (inacc >= 3) out.push(`${inacc} inaccuracies - boundary-hand frequencies are your next study target`);
+    if (blunders >= 2) out.push(`${blunders} highest-severity mistakes this session - review their recorded answer evidence and spot labels`);
+    else if (wrong >= 3) out.push(`${wrong} WRONG-classified actions - review the recorded explanations before choosing the next drill`);
+    else if (inacc >= 3) out.push(`${inacc} INACCURACY-classified actions - review the recorded explanations before choosing the next drill`);
 
     // Top weak spot
     if (Array.isArray(weakSpots) && weakSpots.length > 0) {
@@ -162,7 +168,7 @@ function buildAreasToImprove({ accuracy, classificationCounts, weakSpots, positi
 
     // EV loss callout
     if (typeof totalEVLoss === 'number' && totalEVLoss > 5) {
-        out.push(`Total EV given up: ${totalEVLoss.toFixed(1)}bb - a single session's worth of leak; closing it doubles study ROI`);
+        out.push(`Measured EV loss: ${totalEVLoss.toFixed(1)}bb - review the solver-measured decisions contributing to this total`);
     }
 
     if (out.length === 0) {
@@ -187,7 +193,7 @@ function buildDetailedFeedback({
     const evLossStr = typeof totalEVLoss === 'number' ? ` and gave up ${totalEVLoss.toFixed(2)}bb in EV` : '';
     sentences.push(
         Number.isFinite(score)
-            ? `You finished Level ${level} at ${Math.round(acc)}% accuracy with a GTOW score of ${Math.round(score)}/100${evLossStr}.`
+            ? `You Finished Level ${level} At ${Math.round(acc)}% Accuracy With A Training Score Of ${Math.round(score)}/100${evLossStr}.`
             : `You finished Level ${level} at ${Math.round(acc)}% accuracy${evLossStr}.`
     );
 
@@ -214,7 +220,7 @@ function buildDetailedFeedback({
         const pos = m?.question?.scenario?.heroPosition || '?';
         const street = m?.question?.scenario?.street || '?';
         sentences.push(
-            `Most-recent miss: ${pos} on the ${street} - review the solver line and re-drill the spot type.`
+            `Most-Recent Miss: ${pos} On The ${street} - Review The Verified Answer And Re-Drill The Spot Type.`
         );
     }
 
@@ -222,10 +228,10 @@ function buildDetailedFeedback({
     if (crossSessionContext?.milestones) {
         const m = crossSessionContext.milestones;
         if (m.trending === 'up') {
-            sentences.push(`Cross-session trend: trending up over your last 5 sessions${m.trendDelta ? ` (+${m.trendDelta}pts)` : ''}.`);
+            sentences.push(`Cross-session trend: trending up over your last 5 scored sessions${m.trendDelta ? ` (+${m.trendDelta}pts)` : ''}.`);
         } else if (m.trending === 'down') {
-            sentences.push(`Cross-session trend: down over your last 5 sessions${m.trendDelta ? ` (${m.trendDelta}pts)` : ''} - likely a focus or rest issue more than a knowledge gap.`);
-        } else if (m.last5Avg) {
+            sentences.push(`Cross-session trend: down over your last 5 scored sessions${m.trendDelta ? ` (${m.trendDelta}pts)` : ''}. Review the recorded decisions before assigning a cause.`);
+        } else if (m.last5Avg !== null && m.last5Avg !== undefined) {
             sentences.push(`Rolling 5-session average: ${m.last5Avg}%.`);
         }
     }
@@ -250,8 +256,8 @@ function buildRecommendedDrill({ weakSpots, positionStats, accuracy, level }) {
             .sort((a, b) => a.acc - b.acc)[0];
         if (worst && worst.acc < 0.7) {
             return {
-                name: `${worst.pos} opening-range drill`,
-                reason: `Your ${worst.pos} accuracy is ${Math.round(worst.acc * 100)}% - concentrated reps will lift it fastest.`,
+                name: `${worst.pos} decision review`,
+                reason: `Your recorded ${worst.pos} accuracy is ${Math.round(worst.acc * 100)}%. Review those explanations before selecting a matching drill.`,
             };
         }
     }
@@ -322,50 +328,110 @@ export default async function handler(req, res) {
             return res.status(413).json({ success: false, error: 'Request body too large' });
         }
 
-        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+        res.setHeader('Vary', 'Authorization');
 
         // Auth
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-        const { data: authData, error: authErr } = await getSupabaseAdmin().auth.getUser(token);
-        const user = authData?.user;
+        const { user, error: authErr } = await getServerUserWithFallback(req, getSupabaseAdmin());
         if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const {
-            gameId, gameName, level, questionsAnswered, questionsCorrect,
-            accuracy, streak, timeSpentSeconds, mistakes,
-            gtowScore, totalEVLoss, classificationCounts,
-            positionStats, weakSpots, crossSessionContext,
-        } = req.body || {};
-
-        if (!gameId || level === undefined || questionsAnswered === undefined) {
-            return res.status(400).json({ success: false, error: 'Missing required fields' });
+        const sessionId = String(req.body?.sessionId || '').trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'A valid verified Training session id is required.',
+                code: 'TRAINING_COACHING_SESSION_REQUIRED',
+            });
         }
 
         try {
+            const sessionResult = await getSupabaseAdmin()
+                .from('training_sessions')
+                .select('id, user_id, game_id, game_name, level, hands_played, correct_count, accuracy, best_streak, gtow_score, score_scale, total_ev_loss, classification_counts, position_stats, hand_history, attempt_id')
+                .eq('id', sessionId)
+                .eq('user_id', user.id)
+                .maybeSingle();
+            if (sessionResult.error) throw sessionResult.error;
+            const session = sessionResult.data;
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'The verified Training session was not found.',
+                    code: 'TRAINING_COACHING_SESSION_NOT_FOUND',
+                });
+            }
+
+            if (!session.attempt_id) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Coaching is available only for a sealed Training attempt.',
+                    code: 'TRAINING_COACHING_VERIFIED_ATTEMPT_REQUIRED',
+                });
+            }
+            const attemptResult = await getSupabaseAdmin()
+                .from('training_attempts')
+                .select('id, user_id, status, practice_only')
+                .eq('id', session.attempt_id)
+                .eq('user_id', user.id)
+                .eq('status', 'completed')
+                .eq('practice_only', false)
+                .maybeSingle();
+            if (attemptResult.error) throw attemptResult.error;
+            if (!attemptResult.data) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'This session is not a completed, progress-bearing Training attempt.',
+                    code: 'TRAINING_COACHING_VERIFIED_ATTEMPT_REQUIRED',
+                });
+            }
+
+            const recordedHands = Array.isArray(session.hand_history) ? session.hand_history : [];
+            const evidence = projectTrainingSessionEvidence(session);
+            const verifiedAccuracy = deriveTrainingSessionAccuracy(session);
+            if (verifiedAccuracy === null) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'This sealed Training session does not contain a complete scored-decision record.',
+                    code: 'TRAINING_COACHING_SCORE_UNAVAILABLE',
+                });
+            }
+            const mistakes = recordedHands.filter((hand) => (
+                hand?.isCorrect === false || hand?.is_correct === false
+            ));
+            const questionsAnswered = Number(session.hands_played) || 0;
+            const questionsCorrect = Number(session.correct_count) || 0;
             const coaching = buildCoaching({
-                gameId, gameName, level, questionsAnswered, questionsCorrect,
-                accuracy, streak, timeSpentSeconds, mistakes,
-                gtowScore, totalEVLoss, classificationCounts,
-                positionStats, weakSpots, crossSessionContext,
+                gameId: session.game_id,
+                gameName: session.game_name,
+                level: Number(session.level) || 1,
+                questionsAnswered,
+                questionsCorrect,
+                accuracy: verifiedAccuracy,
+                streak: Number(session.best_streak) || 0,
+                mistakes,
+                gtowScore: evidence.gtow_score_signed,
+                totalEVLoss: evidence.total_ev_loss,
+                classificationCounts: session.classification_counts || {},
+                positionStats: evidence.position_stats,
+                weakSpots: [],
+                crossSessionContext: null,
             });
 
             return res.status(200).json({
                 success: true,
                 coaching,
-                generatedBy: 'deterministic-templates',
+                generatedBy: 'sealed-training-attempt',
+                sessionId: session.id,
+                attemptId: session.attempt_id,
             });
         } catch (error) {
             console.warn('[Coaching] Error building coaching:', error?.message || error);
-            return res.status(200).json({
-                success: true,
-                coaching: buildCoaching({
-                    accuracy: accuracy || 0,
-                    questionsCorrect: questionsCorrect || 0,
-                    questionsAnswered: questionsAnswered || 0,
-                    level: level || 1,
-                }),
-                generatedBy: 'deterministic-fallback',
+            return res.status(503).json({
+                success: false,
+                error: 'Verified coaching is temporarily unavailable. No estimated result was generated.',
+                code: 'TRAINING_COACHING_UNAVAILABLE',
             });
         }
     } catch (err) {

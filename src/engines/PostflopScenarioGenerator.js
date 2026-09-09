@@ -3,20 +3,20 @@
  * POSTFLOP SCENARIO GENERATOR — Builds L8-L10 Training Scenarios
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
- * Generates postflop training scenarios with GTO-correct solutions:
+ * Generates illustrative local postflop practice scenarios:
  *   Level 8:  Flop decisions (c-bet, check-raise, float)
  *   Level 9:  Turn decisions (barrel, give up, raise)
  *   Level 10: River decisions (value bet, bluff, hero call)
  *
  * Each scenario includes:
  *   - Realistic board, hero cards, and positional context
- *   - Multiple decision options with GTO frequencies
+ *   - Multiple decision options with heuristic teaching weights
  *   - Board texture analysis
  *   - Hand strength classification
- *   - Correct action + EV reasoning
+ *   - A locally preferred action with qualitative reasoning
  *
- * Integrates with the existing SolverScenarioGenerator pipeline
- * so L8-10 work identically to L1-7 in the training UI.
+ * These scenarios are not solved nodes, verified GTO answers, or exact EV
+ * evidence. Their explicit provenance must remain attached in every consumer.
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
@@ -37,6 +37,7 @@ import {
     getEnhancedFacingBetStrategy,
     classifyHandClass,
     classifyBoardTexture,
+    POSTFLOP_HEURISTIC_PROVENANCE,
     BET_SIZES,
     ACTIONS,
 } from './PostflopStrategyEngine';
@@ -73,7 +74,7 @@ const HERO_HANDS = [
  * is a property of the matchup, not of hero's seat. Hard-coding it is how
  * BB vs SB ended up tagged OOP — postflop the SB acts first and the BB acts
  * last, so the BB is IP in a blind-vs-blind pot, and the wrong tag sent every
- * solver lookup for that matchup to the wrong frequency table.
+ * local lookup for that matchup to the wrong teaching table.
  */
 const POSITION_MATCHUPS = [
     // PFR in position (most common and most important)
@@ -112,9 +113,10 @@ const POSITION_MATCHUPS = [
 // fell back to a hard-coded 6bb pot against a 100bb stack for the flop, the
 // turn AND the river, in single-raised and 3-bet pots alike. A river node was
 // therefore drawn as "pot 6bb, stacks 100bb" — SPR 16.7 on the river, which
-// cannot happen — and the EV-loss panel divided by that 6 to print a "% of
-// pot" figure that was roughly four times too large. Pot and stack are a
-// function of the pot type and the street, so compute them.
+// cannot happen. A legacy consumer also converted those guesses into an
+// exact-looking EV-loss claim; that field is intentionally no longer emitted.
+// Pot and stack are still useful for realistic illustrative practice, so derive
+// them from the narrated line without claiming solver authority.
 
 const OPEN_SIZE_BB = 2.5;        // standard 100bb open
 const THREE_BET_SIZE_BB = 10;    // standard 3-bet facing a 2.5x open
@@ -231,13 +233,13 @@ export function generateLevel8() {
             // Enrich with hand class for granular training
             const handClass = classifyHandClass(heroCards, board);
 
-            // Get GTO strategy — use ENHANCED solver-data lookup
+            // Get the granular local heuristic for this illustrative spot.
             let strategy;
             if (matchup.isPFR) {
                 strategy = getEnhancedCbetStrategy(board, matchup.posContext, heroCards, { is3BetPot: matchup.is3BetPot });
             } else {
-                // As defender, use the calibrated check-raise matrix so options
-                // and correctAction come from the same solver source
+                // As defender, use one local matrix so options and the locally
+                // preferred action are internally consistent.
                 const textureKey = classifyBoardTexture(boardAnalysis);
                 const xr = lookupCheckRaiseStrategy(textureKey, handClass);
                 strategy = {
@@ -248,7 +250,8 @@ export function generateLevel8() {
                     raiseSizing: xr.raiseSizing,
                     boardTexture: textureKey,
                     reason: `${handClass} on ${textureKey} - XR ${Math.round(xr.raise * 100)}% / call ${Math.round(xr.call * 100)}% / fold ${Math.round(xr.fold * 100)}%`,
-                    isEnhanced: true,
+                    usesGranularHeuristics: true,
+                    ...POSTFLOP_HEURISTIC_PROVENANCE,
                 };
             }
 
@@ -302,9 +305,11 @@ export function generateLevel8() {
                 correctAction,
                 strategy,
                 sizeDistribution: strategy.sizeDistribution || null,
-                solverGenerated: true,
+                ...POSTFLOP_HEURISTIC_PROVENANCE,
+                solverGenerated: false,
                 hasMixedFrequencies: true,
-                isEnhanced: strategy.isEnhanced || false,
+                usesGranularHeuristics: strategy.usesGranularHeuristics || false,
+                resultLabel: 'Illustrative Local Heuristic',
             });
 
             id++;
@@ -319,8 +324,8 @@ export function generateLevel8() {
 
 /**
  * Build MULTI-SIZING decision options for a flop scenario.
- * GTO Wizard-style: "Check / Bet 33% / Bet 75%" with separate frequencies per size.
- * Uses the sizeDistribution from enhanced solver data when available.
+ * Local practice choices such as "Check / Bet 33% / Bet 75%" with separate
+ * illustrative weights per size.
  */
 function ensureFourBetCheckOptions(options, strategy, street) {
     const completed = [...(options || [])];
@@ -339,12 +344,15 @@ function ensureFourBetCheckOptions(options, strategy, street) {
             ...candidate,
             isCorrect: false,
             frequency: 0,
-            feedback: `${candidate.label} is legal, but it is not the solver-preferred ${street} size in this spot. ${strategy?.reason || ''}`.trim(),
-            evDelta: -0.35,
+            feedback: localFeedback(`${candidate.label} is legal, but it is not the preferred ${street} size in this illustrative spot. ${strategy?.reason || ''}`.trim()),
         });
         labels.add(candidate.label.toLowerCase());
     }
     return completed;
+}
+
+function localFeedback(detail) {
+    return `Illustrative local model: ${detail}`;
 }
 
 function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) {
@@ -353,11 +361,11 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
         const checkFreq = Math.round((1 - betFreq) * 100);
         const betFreqPct = Math.round(betFreq * 100);
 
-        // Check if we have multi-size distribution from solver data
+        // Check if the local model provides a multi-size weight distribution.
         const sizeDist = strategy.sizeDistribution;
 
         if (sizeDist && Object.keys(sizeDist || {}).length > 1) {
-            // ●●● MULTI-SIZING MODE (GTO Wizard-style) ●●●
+            // ●●● MULTI-SIZING LOCAL PRACTICE MODE ●●●
             // Split the total bet frequency across multiple sizing options
             const sizeLabels = {
                 s33: { label: 'Bet 33% Pot', fraction: 0.33 },
@@ -373,10 +381,9 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                     action: 'check',
                     isCorrect: betFreq <= 0.50,
                     frequency: checkFreq,
-                    feedback: betFreq <= 0.50
+                    feedback: localFeedback(betFreq <= 0.50
                         ? `Good check. ${strategy.reason}`
-                        : `Checking is too passive. ${strategy.reason}`,
-                    evDelta: betFreq <= 0.50 ? 0 : -0.5,
+                        : `Checking is too passive. ${strategy.reason}`),
                 },
             ];
 
@@ -412,12 +419,11 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                     sizing: sizeInfo.fraction,
                     isCorrect: strategy.shouldBet && isBestSize,
                     frequency: sizeFreqPct,
-                    feedback: strategy.shouldBet
+                    feedback: localFeedback(strategy.shouldBet
                         ? (isBestSize
                             ? `Correct sizing! ${sizeInfo.label} is the preferred size here. ${strategy.reason}`
                             : `Betting is right, but ${sizeLabels[bestSizeKey]?.label || 'a different size'} is preferred. ${strategy.reason}`)
-                        : `Betting is too aggressive here. ${strategy.reason}`,
-                    evDelta: strategy.shouldBet ? (isBestSize ? 0 : -0.15) : -0.5,
+                        : `Betting is too aggressive here. ${strategy.reason}`),
                 });
             }
 
@@ -439,10 +445,9 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                 action: 'check',
                 isCorrect: !strategy.shouldBet,
                 frequency: checkFreq,
-                feedback: strategy.shouldBet
+                feedback: localFeedback(strategy.shouldBet
                     ? `Checking is too passive. ${strategy.reason}`
-                    : `Good check. ${strategy.reason}`,
-                evDelta: strategy.shouldBet ? -0.5 : 0,
+                    : `Good check. ${strategy.reason}`),
             },
             {
                 label: `Bet ${betSize.label}`,
@@ -450,15 +455,14 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                 sizing: betSize.fraction,
                 isCorrect: strategy.shouldBet,
                 frequency: betFreqPct,
-                feedback: strategy.shouldBet
+                feedback: localFeedback(strategy.shouldBet
                     ? `Correct! ${strategy.reason}`
-                    : `Overbet/bluff. ${strategy.reason}`,
-                evDelta: strategy.shouldBet ? 0 : -0.3,
+                    : `Overbet/bluff. ${strategy.reason}`),
             },
         ], strategy, 'flop');
     } else {
         // Defender options: Check-Raise, Call, Fold
-        // Use enhanced XR data if available from solver tables
+        // Use the granular local check-raise table when available.
         const crInfo = strategy.checkRaiseInfo || strategy;
         const raiseFreq = crInfo.raiseFreq || crInfo.frequency || 0;
         const callFreq = crInfo.callFreq || Math.max(0, 1 - raiseFreq - (madeHand.strength < 0.15 && draws.outs < 4 ? 0.30 : 0.10));
@@ -468,7 +472,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
         const callFreqPct = Math.round(callFreq * 100);
         const foldFreqPct = Math.max(0, 100 - raiseFreqPct - callFreqPct);
 
-        // Determine correct action based on highest frequency
+        // Pick the local model's preferred action from its illustrative weights.
         const maxFreq = Math.max(raiseFreqPct, callFreqPct, foldFreqPct);
         const correctAction = raiseFreqPct === maxFreq ? 'raise' : (callFreqPct === maxFreq ? 'call' : 'fold');
 
@@ -478,38 +482,34 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                 action: 'fold',
                 isCorrect: correctAction === 'fold',
                 frequency: foldFreqPct,
-                feedback: correctAction === 'fold'
+                feedback: localFeedback(correctAction === 'fold'
                     ? `Correct fold. ${madeHand.description} with insufficient equity.`
-                    : `Too tight! You have ${madeHand.description}${draws.outs > 0 ? ` + ${draws.description}` : ''}.`,
-                evDelta: correctAction === 'fold' ? 0 : -1.0,
+                    : `Too tight! You have ${madeHand.description}${draws.outs > 0 ? ` + ${draws.description}` : ''}.`),
             },
             {
                 label: 'Call',
                 action: 'call',
                 isCorrect: correctAction === 'call',
                 frequency: callFreqPct,
-                feedback: correctAction === 'call'
+                feedback: localFeedback(correctAction === 'call'
                     ? `Good call. ${madeHand.description}${draws.outs > 0 ? ` with ${draws.description}` : ''}.`
-                    : (correctAction === 'raise' ? `Calling is OK but raising is better here.` : `Too loose. ${madeHand.description}.`),
-                evDelta: correctAction === 'call' ? 0 : -0.3,
+                    : (correctAction === 'raise' ? `Calling is OK but raising is preferred here.` : `Too loose. ${madeHand.description}.`)),
             },
             {
                 label: 'Raise To 3x',
                 action: 'raise',
                 isCorrect: correctAction === 'raise',
                 frequency: raiseFreqPct,
-                feedback: correctAction === 'raise'
+                feedback: localFeedback(correctAction === 'raise'
                     ? `Great check-raise! ${crInfo.reason || strategy.reason || ''}`
-                    : `Check-raise is too aggressive here. ${crInfo.reason || strategy.reason || ''}`,
-                evDelta: correctAction === 'raise' ? 0.5 : -1.5,
+                    : `Check-raise is too aggressive here. ${crInfo.reason || strategy.reason || ''}`),
             },
             {
                 label: 'Raise All-In',
                 action: 'allin',
                 isCorrect: false,
                 frequency: 0,
-                feedback: `An all-in raise is unnecessary at this stack depth. Use the solver's standard raise size when raising.`,
-                evDelta: -2.0,
+                feedback: localFeedback('An all-in raise is unnecessary at this stack depth. Prefer the standard local raise size when raising.'),
             },
         ];
     }
@@ -546,7 +546,7 @@ export function generateLevel9() {
             const draws = classifyDraws(heroCards, board);
 
             // Assume hero c-bet flop (most common turn barrel scenario)
-            // Use ENHANCED solver-data lookup for turn barrel
+            // Use the granular local turn heuristic.
             const strategy = getEnhancedTurnStrategy(heroCards, board, 'bet', matchup.posContext);
             const handClass = classifyHandClass(heroCards, board);
 
@@ -584,9 +584,11 @@ export function generateLevel9() {
                 strategy,
                 sizeDistribution: strategy.sizeDistribution || null,
                 flopAction: 'bet',
-                solverGenerated: true,
+                ...POSTFLOP_HEURISTIC_PROVENANCE,
+                solverGenerated: false,
                 hasMixedFrequencies: true,
-                isEnhanced: strategy.isEnhanced || false,
+                usesGranularHeuristics: strategy.usesGranularHeuristics || false,
+                resultLabel: 'Illustrative Local Heuristic',
             });
 
             id++;
@@ -630,7 +632,7 @@ export function generateLevel10() {
             // Callers (non-PFR) never barreled, so their line is always check/call.
             const prevAction = matchup.isPFR ? (id % 3 === 0 ? 'check' : 'bet') : 'check';
 
-            // Use ENHANCED solver-data lookup for river
+            // Use the granular local river heuristic.
             const strategy = getEnhancedRiverStrategy(heroCards, board, matchup.posContext, prevAction);
             const handClass = classifyHandClass(heroCards, board);
 
@@ -688,9 +690,11 @@ export function generateLevel10() {
                 strategy,
                 sizeDistribution: strategy.sizeDistribution || null,
                 prevAction,
-                solverGenerated: true,
+                ...POSTFLOP_HEURISTIC_PROVENANCE,
+                solverGenerated: false,
                 hasMixedFrequencies: true,
-                isEnhanced: strategy.isEnhanced || false,
+                usesGranularHeuristics: strategy.usesGranularHeuristics || false,
+                resultLabel: 'Illustrative Local Heuristic',
             });
 
             id++;
@@ -704,7 +708,7 @@ export function generateLevel10() {
 
 /**
  * Build multi-sizing options for turn/river bet-or-check scenarios.
- * Uses sizeDistribution from enhanced solver data when available.
+ * Uses the local model's size-weight distribution when available.
  */
 function buildMultiSizeOptions(strategy, street) {
     const betFreq = strategy.frequency || 0;
@@ -726,10 +730,9 @@ function buildMultiSizeOptions(strategy, street) {
             action: 'check',
             isCorrect: !isBet,
             frequency: checkFreq,
-            feedback: !isBet
+            feedback: localFeedback(!isBet
                 ? `Good pot control. ${strategy.reason}`
-                : `Too passive - missed value or bluff. ${strategy.reason}`,
-            evDelta: !isBet ? 0 : -0.5,
+                : `Too passive - missed value or bluff. ${strategy.reason}`),
         },
     ];
 
@@ -755,10 +758,9 @@ function buildMultiSizeOptions(strategy, street) {
                 sizing: si.fraction,
                 isCorrect: isBet && isBest,
                 frequency: freqPct,
-                feedback: isBet
+                feedback: localFeedback(isBet
                     ? (isBest ? `Correct ${street} barrel! ${strategy.reason}` : `Betting is right but ${sizeLabels[bestSizeKey]?.label} is preferred.`)
-                    : `This ${street} barrel is too thin. ${strategy.reason}`,
-                evDelta: isBet ? (isBest ? 0 : -0.15) : -0.8,
+                    : `This ${street} barrel is too thin. ${strategy.reason}`),
             });
         }
     } else {
@@ -770,8 +772,7 @@ function buildMultiSizeOptions(strategy, street) {
             sizing: sizing.fraction,
             isCorrect: isBet,
             frequency: betFreqPct,
-            feedback: isBet ? `Correct ${street} barrel! ${strategy.reason}` : `This barrel is too thin. ${strategy.reason}`,
-            evDelta: isBet ? 0 : -0.8,
+            feedback: localFeedback(isBet ? `Correct ${street} barrel! ${strategy.reason}` : `This barrel is too thin. ${strategy.reason}`),
         });
     }
 
@@ -804,36 +805,32 @@ function buildRiverOptions(strategy, madeHand, prevAction) {
                 action: 'call',
                 isCorrect: madeHand.strength >= 0.25,
                 frequency: callFreq,
-                feedback: madeHand.strength >= 0.25
+                feedback: localFeedback(madeHand.strength >= 0.25
                     ? `Good call - ${madeHand.description} is strong enough to bluff-catch.`
-                    : `Loose call - ${madeHand.description} is too weak here.`,
-                evDelta: madeHand.strength >= 0.25 ? 0.2 : -0.8,
+                    : `Loose call - ${madeHand.description} is too weak here.`),
             },
             {
                 label: 'Fold',
                 action: 'fold',
                 isCorrect: madeHand.strength < 0.25,
                 frequency: foldFreq,
-                feedback: madeHand.strength < 0.25
+                feedback: localFeedback(madeHand.strength < 0.25
                     ? `Correct fold. ${madeHand.description} can't beat many value hands.`
-                    : `Too tight! ${madeHand.description} is good enough to call.`,
-                evDelta: madeHand.strength < 0.25 ? 0 : -0.5,
+                    : `Too tight! ${madeHand.description} is good enough to call.`),
             },
             {
                 label: 'Raise To 2.5x',
                 action: 'raise',
                 isCorrect: false,
                 frequency: 0,
-                feedback: 'This bluff-catcher is not strong enough to raise for value and does not make a sound bluff candidate.',
-                evDelta: -1.2,
+                feedback: localFeedback('This bluff-catcher is not strong enough to raise for value and does not make a sound bluff candidate.'),
             },
             {
                 label: 'Raise All-In',
                 action: 'allin',
                 isCorrect: false,
                 frequency: 0,
-                feedback: 'Turning this bluff-catcher into an all-in raise overplays the hand and folds out the bluffs you beat.',
-                evDelta: -2.0,
+                feedback: localFeedback('Turning this bluff-catcher into an all-in raise overplays the hand and folds out the bluffs you beat.'),
             },
         ];
     }
@@ -893,18 +890,18 @@ export function getRandomPostflopScenario(level) {
 
 /**
  * Get a postflop scenario filtered by criteria.
- * GTO Wizard-style spot filtering: position, street, action type, board texture, hand class.
+ * Local-practice filtering: position, street, action type, board texture, hand class.
  *
  * @param {number} level - 8, 9, or 10
  * @param {Object} [filter] - Optional filters
  * @param {string} [filter.position] - Hero position (BTN, CO, BB, etc.)
  * @param {string} [filter.vsPosition] - Villain position
  * @param {string} [filter.spotType] - 'cbet', 'check_raise', 'turn_barrel', etc.
- * @param {string} [filter.boardTextureKey] - Solver texture key (e.g., 'dry_rainbow_high')
- * @param {string} [filter.handClass] - Solver hand class (e.g., 'overpair', 'flush_draw')
+ * @param {string} [filter.boardTextureKey] - Local texture key (e.g., 'dry_rainbow_high')
+ * @param {string} [filter.handClass] - Local hand class (e.g., 'overpair', 'flush_draw')
  * @param {boolean} [filter.isPFR] - Was hero the PFR?
  * @param {string} [filter.posContext] - 'IP' or 'OOP'
- * @param {string} [filter.correctAction] - Filter by GTO correct action
+ * @param {string} [filter.correctAction] - Filter by locally preferred action
  * @param {string[]} [filter.excludeIds] - Scenario IDs to exclude (already seen)
  * @returns {Object|null} A matching scenario
  */

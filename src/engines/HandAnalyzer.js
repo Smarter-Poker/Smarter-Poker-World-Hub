@@ -1,13 +1,11 @@
 /**
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * HAND ANALYZER — Map Played Hands to GTO Solutions
+ * HAND ANALYZER — Parse Played Hands And Request Auditable Pricing
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  *
- * Analyzes parsed hand histories against GTO strategy:
- *   - Map each decision point to closest solver solution
- *   - Calculate EV loss per decision
- *   - Classify mistakes (blunder/mistake/inaccuracy/correct)
- *   - Generate overall GTO Report for a session
+ * This synchronous compatibility analyzer can classify cards and actions, but
+ * it cannot certify GTO actions or EV without a server-matched solved node.
+ * Unmatched decisions stay explicitly unpriced.
  *
  * Works with HandHistoryParser for input and PostflopStrategyEngine
  * for GTO reference at each node.
@@ -18,7 +16,7 @@ import { getHeroDecisionPoints, getBoardAtStreet } from './HandHistoryParser';
 import { classifyMadeHand, classifyDraws, evaluateHand } from './HandStrengthEngine';
 import { analyzeBoard } from './BoardTextureEngine';
 import { getPostflopStrategy } from './PostflopStrategyEngine';
-import { calculateEVLoss, calculateActionEVs } from './EVCalculator';
+import { calculateEVLoss } from './EVCalculator';
 import { classifyMove, MOVE_CLASSIFICATIONS } from './GTOScoreEngine';
 import { postflopActionIndex } from './positionOrder';
 
@@ -97,7 +95,9 @@ function analyzeDecision(point, hand) {
     const madeHand = board.length >= 3 ? classifyMadeHand(holeCards, board) : null;
     const draws = board.length >= 3 && board.length < 5 ? classifyDraws(holeCards, board) : null;
 
-    // Get GTO strategy for this node
+    // Authoritative grading requires a solved node. This synchronous analyzer
+    // has no sealed solver lookup, so its legacy local heuristic may describe a
+    // practice concept but may not produce a GTO action, EV loss, or grade.
     let gtoStrategy = null;
     let evLossResult = null;
 
@@ -110,7 +110,7 @@ function analyzeDecision(point, hand) {
         gtoStrategy = { action: null, reason: 'Requires server solver-range match' };
         evLossResult = { evLoss: 0, actionUnavailable: true };
     } else if (board.length >= 3) {
-        // Postflop: use PostflopStrategyEngine
+        // Postflop: classify locally, then fail closed for solver grading.
         const potSize = _estimatePotSize(hand, street);
 
         gtoStrategy = getPostflopStrategy({
@@ -124,21 +124,39 @@ function analyzeDecision(point, hand) {
             potSize,
         });
 
-        // Calculate EV loss
-        // EVCalculator decides which actions exist from currentBet > 0, so the
-        // key mapping has to read facingBet off the SAME value or the two
-        // disagree about which branch of the tree we are in.
-        const currentBet = _getCurrentBet(hand, street);
-        evLossResult = calculateEVLoss({
-            holeCards,
-            board,
-            potSize,
-            effectiveStack: _getEffectiveStack(hand),
-            street,
-            position: posContext,
-            isPFR,
-            currentBet,
-        }, _mapActionToEVKey(action, amount, potSize, currentBet > 0));
+        if (
+            gtoStrategy?.authority === 'illustrative_local_heuristic'
+            || gtoStrategy?.solverVerified === false
+            || gtoStrategy?.practiceOnly === true
+        ) {
+            gtoStrategy = {
+                action: null,
+                reason: 'Verified postflop solver evidence is required before this decision can be graded.',
+                authority: 'unverified',
+                solverVerified: false,
+            };
+            evLossResult = {
+                evLoss: 0,
+                actionUnavailable: true,
+                evLossMeasured: false,
+                solverVerified: false,
+            };
+        } else {
+            // Defensive future path: only a source that does not identify itself
+            // as local practice can reach the estimator. Server-side review is
+            // still the canonical place for measured solver EV.
+            const currentBet = _getCurrentBet(hand, street);
+            evLossResult = calculateEVLoss({
+                holeCards,
+                board,
+                potSize,
+                effectiveStack: _getEffectiveStack(hand),
+                street,
+                position: posContext,
+                isPFR,
+                currentBet,
+            }, _mapActionToEVKey(action, amount, potSize, currentBet > 0));
+        }
     }
 
     const evLoss = evLossResult?.evLoss || 0;
@@ -159,6 +177,8 @@ function analyzeDecision(point, hand) {
         amount,
         gtoAction: gtoStrategy?.action || gtoStrategy?.type,
         gtoReason: gtoStrategy?.reason || '',
+        solverVerified: evLossResult?.solverVerified === true,
+        evLossMeasured: evLossResult?.evLossMeasured === true,
         evLoss: Math.round(evLoss * 100) / 100,
         classification: classification.key,
         classificationColor: classification.color,

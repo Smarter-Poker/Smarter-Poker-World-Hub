@@ -52,7 +52,8 @@ test('matrix focus keeps undo, redo, and action-number shortcuts wired', () => {
 test('empty filter results use branded status and never charge or block with an alert', () => {
     assert.match(PAGE, /setGameNotice\(\{[\s\S]*No scenarios match this level/);
     assert.doesNotMatch(PAGE, /alert\('No scenarios available/);
-    assert.match(PAGE, /if \(!scenario\) \{[\s\S]*setGameNotice[\s\S]*return;[\s\S]*DiamondEngine\.getBalance\(\)/);
+    assert.match(PAGE, /if \(!scenario\) \{[\s\S]*setGameNotice[\s\S]*return;/);
+    assert.doesNotMatch(PAGE, /checkAndDeductDiamonds|DiamondEngine\.deduct\s*\(/);
 });
 
 test('VIP checkout sends the server-owned plan key and is idempotent', () => {

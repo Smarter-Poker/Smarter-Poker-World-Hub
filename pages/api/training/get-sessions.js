@@ -12,6 +12,11 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, clampPagination, withTiming } from '../../../src/utils/trainingApiUtils';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { runTrainingPersistenceQuery } from '../../../src/lib/training/trainingPersistence.mjs';
+import {
+    projectTrainingLevelHistory,
+    projectTrainingSessionEvidence,
+} from '../../../src/lib/training/sessionEvidence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 let _supabase = null;
@@ -25,17 +30,16 @@ function getSupabase() {
     return _supabase;
 }
 
-// score_scale 2 = signed -100..+100 GTOW score (current writer); scale 1 or
-// null = legacy unsigned 0..100. Normalize on read: signed = value * 2 - 100.
-function signedGtowScore(gtowScore, scoreScale) {
-    if (gtowScore === null || gtowScore === undefined) return null;
-    const v = Number(gtowScore) || 0;
-    return scoreScale === 2 ? v : v * 2 - 100;
-}
+// A training_sessions row is eligible for product-facing history only when it
+// was projected from a sealed, non-practice server attempt. The legacy table
+// has no practice_only column, so the attempt relation is the authority.
+const VERIFIED_ATTEMPT_SELECT = 'training_attempts!training_sessions_attempt_fk!inner(id, user_id, status, practice_only)';
 
 export default async function handler(req, res) {
   try {
       withTiming(res);
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('Vary', 'Authorization');
       if (!applyRateLimit(req, res, LIMITS.read)) return;
 
       const token = req.headers.authorization?.replace('Bearer ', '');
@@ -49,8 +53,6 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
-
       const { gameId: rawGameId, limit: rawLimit = '50', sessionId: rawSessionId } = req.query;
       const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
       const sessionId = rawSessionId ? sanitizeParam(rawSessionId, 100) : null;
@@ -59,16 +61,28 @@ export default async function handler(req, res) {
       try {
           // ●●● PHASE 15: Session detail mode — return full hand_history for replay ●●●
           if (sessionId) {
-              const { data: session, error: detailErr } = await getSupabase()
-                  .from('training_sessions')
-                  .select('id, game_id, game_name, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_ev_loss_per_mistake, avg_frequency_diff, trainer_config, created_at')
-                  .eq('user_id', user.id)
-                  .eq('id', sessionId)
-                  .maybeSingle();
+              const { data: session, error: detailErr } = await runTrainingPersistenceQuery(
+                  () => getSupabase()
+                      .from('training_sessions')
+                      .select(`id, game_id, game_name, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_ev_loss_per_mistake, avg_frequency_diff, trainer_config, attempt_id, created_at, ${VERIFIED_ATTEMPT_SELECT}`)
+                      .eq('user_id', user.id)
+                      .eq('training_attempts.user_id', user.id)
+                      .eq('training_attempts.status', 'completed')
+                      .eq('id', sessionId)
+                      .not('attempt_id', 'is', null)
+                      .eq('training_attempts.practice_only', false)
+                      .maybeSingle(),
+                  { label: 'TrainingSessions.detail' },
+              );
 
               if (detailErr) {
                   console.warn('[GetSessions] Detail query failed:', detailErr.message);
-                  return res.status(404).json({ success: false, error: 'Session not found' });
+                  return res.status(503).json({
+                      success: false,
+                      unavailable: true,
+                      code: 'TRAINING_SESSION_HISTORY_UNAVAILABLE',
+                      error: 'Training session history is temporarily unavailable',
+                  });
               }
 
               if (!session) {
@@ -77,72 +91,79 @@ export default async function handler(req, res) {
 
               return res.status(200).json({
                   success: true,
-                  session: { ...session, gtow_score_signed: signedGtowScore(session.gtow_score, session.score_scale) },
+                  session: projectTrainingSessionEvidence(session),
               });
           }
 
           // Try training_sessions first (rich data — select only frontend-consumed columns)
-          let query = getSupabase()
-              .from('training_sessions')
-              .select('id, game_id, game_name, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, created_at')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(boundedLimit);
+          const buildSessionQuery = () => {
+              let query = getSupabase()
+                  .from('training_sessions')
+                  .select(`id, game_id, game_name, gtow_score, score_scale, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, attempt_id, created_at, ${VERIFIED_ATTEMPT_SELECT}`)
+                  .eq('user_id', user.id)
+                  .eq('training_attempts.user_id', user.id)
+                  .eq('training_attempts.status', 'completed')
+                  .not('attempt_id', 'is', null)
+                  .eq('training_attempts.practice_only', false)
+                  .order('created_at', { ascending: false })
+                  .limit(boundedLimit);
+              if (gameId) query = query.eq('game_id', gameId);
+              return query;
+          };
 
-          // Only filter by game_id if provided
-          if (gameId) {
-              query = query.eq('game_id', gameId);
+          const { data: sessions, error: sessErr } = await runTrainingPersistenceQuery(
+              buildSessionQuery,
+              { label: 'TrainingSessions.list' },
+          );
+
+          if (sessErr) {
+              console.warn('[GetSessions] Canonical session query failed:', sessErr.message);
+              return res.status(503).json({
+                  success: false,
+                  unavailable: true,
+                  code: 'TRAINING_SESSION_HISTORY_UNAVAILABLE',
+                  error: 'Training session history is temporarily unavailable',
+              });
           }
 
-          const { data: sessions, error: sessErr } = await query;
-
           if (!sessErr && sessions && sessions.length > 0) {
-              const withSigned = sessions.map(s => ({
-                  ...s,
-                  gtow_score_signed: signedGtowScore(s.gtow_score, s.score_scale),
-              }));
-              return res.status(200).json({ success: true, sessions: withSigned });
+              return res.status(200).json({
+                  success: true,
+                  sessions: sessions.map(projectTrainingSessionEvidence),
+              });
           }
 
           // Fallback to training_level_history
-          let histQuery = getSupabase()
-              .from('training_level_history')
-              // 2026-08-15 CHECK 13 fix: created_at is not a column on
-              // training_level_history (real: completed_at) — the fallback query
-              // 42703'd and returned nothing. Aliased to keep the response shape.
-              .select('id, game_id, accuracy_percentage, questions_answered, questions_correct, best_streak, passed, level, created_at:completed_at')
-              .eq('user_id', user.id)
-              .order('completed_at', { ascending: false })
-              .limit(boundedLimit);
+          const buildHistoryQuery = () => {
+              let query = getSupabase()
+                  .from('training_level_history')
+                  // completed_at is aliased to keep the public response shape.
+                  .select('id, game_id, accuracy_percentage, questions_answered, questions_correct, best_streak, passed, level, created_at:completed_at')
+                  .eq('user_id', user.id)
+                  .not('attempt_id', 'is', null)
+                  .eq('practice_only', false)
+                  .order('completed_at', { ascending: false })
+                  .limit(boundedLimit);
+              if (gameId) query = query.eq('game_id', gameId);
+              return query;
+          };
 
-          if (gameId) {
-              histQuery = histQuery.eq('game_id', gameId);
-          }
-
-          const { data: history, error: histErr } = await histQuery;
+          const { data: history, error: histErr } = await runTrainingPersistenceQuery(
+              buildHistoryQuery,
+              { label: 'TrainingSessions.levelHistory' },
+          );
 
           if (histErr) {
               console.warn('[GetSessions] History query failed:', histErr.message);
-              return res.status(200).json({ success: true, sessions: [] });
+              return res.status(503).json({
+                  success: false,
+                  unavailable: true,
+                  code: 'TRAINING_SESSION_HISTORY_UNAVAILABLE',
+                  error: 'Training session history is temporarily unavailable',
+              });
           }
 
-          // Normalize history format
-          const normalized = (history || []).map(h => ({
-              id: h.id,
-              game_id: h.game_id,
-              gtow_score: h.accuracy_percentage,
-              score_scale: 1,
-              gtow_score_signed: signedGtowScore(h.accuracy_percentage, 1),
-              hands_played: h.questions_answered,
-              total_ev_loss: 0,
-              mistake_count: 0,
-              accuracy: h.accuracy_percentage,
-              correct_count: h.questions_correct,
-              best_streak: h.best_streak || 0,
-              level_passed: h.passed,
-              level: h.level,
-              created_at: h.created_at,
-          }));
+          const normalized = (history || []).map(projectTrainingLevelHistory);
 
           return res.status(200).json({ success: true, sessions: normalized });
 

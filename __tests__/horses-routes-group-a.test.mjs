@@ -1611,6 +1611,16 @@ test('analytics: days and type are validated before anything is loaded', async (
   await assert.rejects(call({ type: 'made-up' }), (e) => e.status === 400 && /Invalid Type/.test(e.message));
   assert.equal(analyticsSpec.permission, 'console.read');
 
+  // A repeated query param arrives as an array. Validate the selected first
+  // value without coupling this unit test to the live analytics service.
+  await assert.rejects(
+    call({ type: ['made-up', 'summary'], days: ['7'] }),
+    (e) => e.status === 400 && /Invalid Type/.test(e.message)
+  );
+  await assert.rejects(
+    call({ type: ['summary', 'errors'], days: ['0', '7'] }),
+    (e) => e.status === 400 && /Days Must Be Between/.test(e.message)
+  );
   // A repeated query param arrives as an array. It used to 400 where the
   // original coerced and defaulted.
   const quiet = console.error;

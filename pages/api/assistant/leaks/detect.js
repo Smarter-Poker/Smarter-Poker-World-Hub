@@ -725,12 +725,17 @@ async function fetchPagedRows(buildQuery, { pageSize = 1000, maxRows = 10000 } =
 
 async function getSolverTrainingEvidence(db, userId) {
   const evidenceSnapshot = new Date().toISOString();
-  const modernColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured, evidence_metadata';
-  const legacyColumns = 'game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at';
+  const attemptAuthority = 'training_attempts!training_answers_attempt_fk!inner(id, user_id, status, practice_only)';
+  const modernColumns = `game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, solver_verified, solver_source, selected_frequency, optimal_frequency, ev_loss_measured, evidence_metadata, attempt_id, ${attemptAuthority}`;
+  const legacyColumns = `game_id, question_id, answer_id, hero_position, villain_position, street, classification, ev_loss, spot_type, answered_at, attempt_id, ${attemptAuthority}`;
   const readTraining = columns => fetchPagedRows((from, to) => db
       .from('training_answers')
       .select(columns)
       .eq('user_id', userId)
+      .eq('training_attempts.user_id', userId)
+      .eq('training_attempts.status', 'completed')
+      .eq('training_attempts.practice_only', false)
+      .not('attempt_id', 'is', null)
       .lte('answered_at', evidenceSnapshot)
       .order('answered_at', { ascending: false })
       .order('id', { ascending: false })

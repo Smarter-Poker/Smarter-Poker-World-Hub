@@ -2,7 +2,7 @@
  * DETERMINISTIC GTO ENGINE
  * ═══════════════════════════════════════════════════════════════════════════
  * Pure solver-driven question generation — NO Grok AI, NO randomness in data.
- * Uses solved_spots_gold (187k+ records) and memory_charts_gold for real PIO data.
+ * Uses the active solver artifact catalog and memory_charts_gold for audited policy data.
  *
  * This engine replaces the Grok-AI-dependent question generation pipeline with
  * a deterministic, mathematically accurate GTO training system.
@@ -101,6 +101,60 @@ const VILLAIN_MAP = {
 const POT_BY_STREET = {
     'preflop': 2.5, 'flop': 6, 'turn': 14, 'river': 30
 };
+
+/**
+ * Select the one solver source token that represents the certified 75%-pot
+ * continuation branch. Pio's postflop bNNN amounts are cumulative contribution
+ * targets, not increments at the current node. A Turn token such as b1442 can
+ * therefore mean adding 10.30 BB after the actor already invested 4.12 BB.
+ *
+ * Keep the raw token as lineage identity. It is translated to the canonical
+ * policy action id only after the answer is durably recorded; exposing the
+ * continuing semantic action before grading would hint the answer.
+ */
+export function selectExactContinuationBetSourceAction(strategyMatrix, validActions) {
+    const solverPotChips = Number(strategyMatrix?.pot);
+    const actorContributionChips = strategyMatrix?.actor_contribution_chips === null
+        || strategyMatrix?.actor_contribution_chips === undefined
+        ? NaN
+        : Number(strategyMatrix.actor_contribution_chips);
+    const facingBetBb = strategyMatrix?.facing_bet_bb === null
+        || strategyMatrix?.facing_bet_bb === undefined
+        ? NaN
+        : Number(strategyMatrix.facing_bet_bb);
+    const effectiveStackChips = Number(strategyMatrix?.eff_stack_bb) * 100;
+    if (
+        strategyMatrix?.node_state_exact !== true
+        || String(strategyMatrix?.hero || '').toUpperCase() !== 'IP'
+        || Number(strategyMatrix?.node_actor) !== 1
+        || !Number.isFinite(solverPotChips) || solverPotChips <= 0
+        || !Number.isFinite(actorContributionChips) || actorContributionChips < 0
+        || !Number.isFinite(facingBetBb) || facingBetBb !== 0
+        || !Number.isFinite(effectiveStackChips) || effectiveStackChips <= 0
+        || !Array.isArray(validActions)
+    ) return null;
+
+    const candidates = validActions
+        .map((action) => {
+            const match = String(action || '').match(/^b([1-9]\d*)$/);
+            if (!match) return null;
+            const cumulativeTargetChips = Number(match[1]);
+            if (!Number.isSafeInteger(cumulativeTargetChips)
+                || cumulativeTargetChips > effectiveStackChips) return null;
+            const incrementChips = cumulativeTargetChips - actorContributionChips;
+            if (!Number.isFinite(incrementChips) || incrementChips <= 0) return null;
+            return {
+                action: String(action),
+                distance: Math.abs((incrementChips / solverPotChips) - 0.75),
+            };
+        })
+        .filter((candidate) => candidate && candidate.distance <= 0.03)
+        .sort((left, right) => left.distance - right.distance);
+    // A lineage token must identify one exact branch. Two nearby tree sizes
+    // straddling 75% are not interchangeable, and choosing whichever happened
+    // to be exported first makes the next street depend on JSON key order.
+    return candidates.length === 1 ? candidates[0].action : null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD UTILITIES
@@ -405,7 +459,7 @@ export class DeterministicGTOEngine {
     /**
      * Override the Supabase client used for queries.
      * Call this from API routes to inject the service-role client,
-     * which bypasses RLS and ensures full access to solved_spots_gold.
+     * which can invoke the service-role-only active-catalog RPC.
      */
     setSupabaseClient(client) {
         this._supabaseClient = client;
@@ -468,11 +522,6 @@ export class DeterministicGTOEngine {
             return this.generateFromLocalSolverRanges(gameConfig, level);
         }
 
-        // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
-        if (level >= 8 && source !== 'ICMIZER') {
-            return this.generateFromPostflopEngine(gameConfig, level, seenIds);
-        }
-
         if (source === 'PioSOLVER') {
             // Preflop games returned above, so this is a postflop game and the
             // old `!question && pioStreet === 'preflop'` fallback here could
@@ -493,12 +542,13 @@ export class DeterministicGTOEngine {
      */
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // POSTFLOP ENGINE (L8-L10) — Routes to PostflopScenarioGenerator
+    // LOCAL POSTFLOP PRACTICE (L8-L10) — Never authoritative Training data
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * Generate a postflop training question from the PostflopScenarioGenerator.
-     * Converts engine scenario format → standard training question format.
+     * Format one explicitly illustrative local-practice question from the
+     * PostflopScenarioGenerator. Authoritative Training paths never call this
+     * method; PioSOLVER games read sealed warehouse evidence instead.
      */
     generateFromPostflopEngine(gameConfig, level, seenIds = [], presetScenario = null) {
         try {
@@ -529,25 +579,37 @@ export class DeterministicGTOEngine {
                 }
             }
 
+            // This bridge is local-practice only. Missing or contradictory
+            // provenance must fail closed so a legacy object cannot be
+            // laundered into a solver-backed Training question.
+            if (
+                scenario.authority !== 'illustrative_local_heuristic'
+                || scenario.practiceOnly !== true
+                || scenario.solverVerified !== false
+                || scenario.authoritative !== false
+            ) {
+                console.warn(`[DeterministicEngine] Refusing postflop scenario with unverified authority for L${level}`);
+                return null;
+            }
+
             // Map scenario options to standard question format
             const options = scenario.options.map((opt, idx) => ({
                 id: String.fromCharCode(97 + idx), // a, b, c, d
                 text: opt.label || opt.action,
                 action: opt.action,
-                frequency: opt.frequency || 0,
+                illustrativeWeight: opt.frequency || 0,
                 ...(opt.feedback !== undefined ? { feedback: opt.feedback } : {}),
             }));
 
-            // Prefer the generator's flagged correct option; fall back to highest frequency
+            // Local grading is permitted only when the generator explicitly
+            // flags one preferred teaching action. Never infer authority from
+            // a numerical weight.
             const flaggedIdx = (scenario.options || []).findIndex(o => o.isCorrect);
-            const correctOption = (flaggedIdx >= 0 && options[flaggedIdx])
-                ? options[flaggedIdx]
-                : options.reduce((best, opt) =>
-                    opt.frequency > best.frequency ? opt : best, options[0]);
+            if (flaggedIdx < 0 || !options[flaggedIdx]) return null;
+            const correctOption = options[flaggedIdx];
 
-            // Build GTO frequencies map { "a": 45, "b": 30, "c": 25 }
-            const gtoFrequencies = {};
-            options.forEach(opt => { gtoFrequencies[opt.id] = opt.frequency; });
+            const illustrativeWeights = {};
+            options.forEach(opt => { illustrativeWeights[opt.id] = opt.illustrativeWeight; });
 
             // Build the street label
             const streetLabels = { flop: 'Flop', turn: 'Turn', river: 'River' };
@@ -571,9 +633,15 @@ export class DeterministicGTOEngine {
 
             const question = {
                 id: scenarioId,
-                type: 'PIO',
-                source: 'POSTFLOP_ENGINE',
-                question: `${scenario.description || `${streetLabel} decision.`} ${scenario.lastAction ? `${scenario.lastAction}. ` : ''}You are in ${scenario.position} with ${heroStr}. What is your best action?`,
+                type: 'PRACTICE',
+                source: 'LOCAL_POSTFLOP_HEURISTIC',
+                dataQuality: 'ILLUSTRATIVE_HEURISTIC',
+                authority: 'illustrative_local_heuristic',
+                authoritative: false,
+                solverVerified: false,
+                practiceOnly: true,
+                exactEVAvailable: false,
+                question: `${scenario.description || `${streetLabel} decision.`} ${scenario.lastAction ? `${scenario.lastAction}. ` : ''}You are in ${scenario.position} with ${heroStr}. Which action does the illustrative local model prefer?`,
                 scenario: {
                     title: `${streetLabel} Play`,
                     context: contextParts.join(' | '),
@@ -583,7 +651,7 @@ export class DeterministicGTOEngine {
                     // scenario.potSize / effectiveStack are the street-correct
                     // numbers from PostflopScenarioGenerator.potGeometry. A
                     // missing pot now rejects the scenario above; substituting
-                    // a generic pot would change the exact decision and SPR.
+                    // a generic pot would change the illustrated context and SPR.
                     pot: postflopPot,
                     heroStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
                     villainStack: scenario.effectiveStack ?? scenario.stackDepth ?? scenario.stackSize ?? 100,
@@ -603,11 +671,11 @@ export class DeterministicGTOEngine {
                 options,
                 correctAnswer: correctOption.id,
                 correctAnswerText: correctOption.text,
-                explanation: scenario.tip || scenario.strategy?.reason || scenario.explanation || `GTO ${correctOption.text} at ${correctOption.frequency}% frequency on this ${scenario.boardTexture?.description || ''} board.`,
-                gtoFrequencies,
+                explanation: scenario.tip || scenario.strategy?.reason || scenario.explanation || `The illustrative local model prefers ${correctOption.text} for this practice spot.`,
+                resultLabel: 'Illustrative Local Heuristic',
+                illustrativeWeights,
                 level,
-                // EV data from EVCalculator if available
-                evData: scenario.evData || null,
+                evData: null,
             };
 
             return question;
@@ -651,7 +719,7 @@ export class DeterministicGTOEngine {
             questions.push(q);
         }
 
-        console.debug(`[DeterministicEngine] ✓ Generated ${questions.length} postflop questions for L${level}`);
+        console.debug(`[DeterministicEngine] Generated ${questions.length} illustrative local postflop practice questions for L${level}`);
         return questions;
     }
 
@@ -1184,11 +1252,6 @@ export class DeterministicGTOEngine {
             return preflopQuestions;
         }
 
-        // ═══ POSTFLOP L8+: Route to PostflopScenarioGenerator (non-ICM sources) ═══
-        if (level >= 8 && gameConfig.sourceOfTruth !== 'ICMIZER') {
-            return this.generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty, gameConfig);
-        }
-
         // ═══ ICMIZER: Push/fold chart questions — the solver pool has no ICM spots ═══
         if (gameConfig.sourceOfTruth === 'ICMIZER') {
             const chartQuestions = [];
@@ -1595,6 +1658,14 @@ export class DeterministicGTOEngine {
 
         if (!optimalAction || validActions.length === 0) return null;
 
+        // Raw Pio NodeID actions use `bNNN` for both bets and raises. Keep a
+        // second fail-closed boundary here even though the V2 bridge validates
+        // the same grammar: a legacy or directly-constructed postflop matrix
+        // must never revive the retired `rNNN` interpretation downstream.
+        if (scenario.street !== 'preflop' && validActions.some((action) => (
+            action !== 'c' && action !== 'f' && !/^b[1-9]\d*$/.test(String(action))
+        ))) return null;
+
         // ═══ EXTRACT BOARD & POSITION DATA (needed for node type detection) ═══
         const heroPosition = strategyMatrix.position || extractPositionFromHash(scenario.scenario_hash);
         const villainPosition = heroPosition === strategyMatrix.oop_player
@@ -1623,7 +1694,11 @@ export class DeterministicGTOEngine {
         // GTO Wizard NEVER shows Fold when hero is not facing a bet.
         // GTO Wizard NEVER shows Check/Bet when hero IS facing a bet.
         // This is fundamental poker logic that must be enforced regardless of solver data.
-        const nodeType = this.detectNodeType(validActions, scenario.street);
+        const exactFacingBetBb = Number(strategyMatrix.facing_bet_bb);
+        if (!Number.isFinite(exactFacingBetBb) || exactFacingBetBb < 0) return null;
+        const nodeType = scenario.street === 'preflop'
+            ? this.detectNodeType(validActions, scenario.street)
+            : exactFacingBetBb > 0 ? 'hero_faces_bet' : 'hero_bets_or_checks';
 
         if (scenario.street !== 'preflop') {
             const preFilterCount = validActions.length;
@@ -1634,9 +1709,7 @@ export class DeterministicGTOEngine {
                     const al = a.toLowerCase();
                     if (al === 'f') return false;                    // Fold — invalid
                     if (al === 'call') return false;                  // Call — invalid
-                    if (al.startsWith('r') && al !== 'r') return false; // Raise sizes — invalid
-                    if (al === 'r') return false;                     // Generic raise — invalid
-                    return true; // Keep: check (c/x), bet sizes (b33, b66, etc.), allin
+                    return true; // Exact state owns Bet/Raise semantics for every bNNN target.
                 });
             } else if (nodeType === 'hero_faces_bet') {
                 // Hero faces a bet: only Fold, Call, Raise are valid
@@ -1650,8 +1723,7 @@ export class DeterministicGTOEngine {
                 }).filter(a => {
                     const al = a.toLowerCase();
                     if (al === 'x') return false;                     // Check — invalid when facing bet
-                    if (al.startsWith('b')) return false;              // Bet sizes — invalid when facing a bet
-                    return true; // Keep: fold (f), call, raise sizes (r50, r100, etc.), allin
+                    return true; // Pio bNNN targets are raises at a facing node.
                 });
 
                 // Also remap handActions keys so frequencies carry over
@@ -1781,16 +1853,10 @@ export class DeterministicGTOEngine {
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
         // The "correct" answer is the highest-frequency action, but partial credit applies
         const isMixedStrategy = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
-        const continuationBet = heroSeat === 'IP' && Number(strategyMatrix.facing_bet_bb || 0) === 0
-            ? validActions
-                .filter(action => /^b\d+$/.test(String(action)))
-                .map(action => ({
-                    action,
-                    distance: Math.abs((Number(String(action).slice(1)) / solverPotChips) - 0.75),
-                }))
-                .filter(candidate => candidate.distance <= 0.03)
-                .sort((a, b) => a.distance - b.distance)[0]?.action || null
-            : null;
+        const continuationBet = selectExactContinuationBetSourceAction(
+            strategyMatrix,
+            validActions,
+        );
 
         return {
             id: `pio_${scenario.id}_${heroHand}_${questionIndex}`,
@@ -1808,7 +1874,13 @@ export class DeterministicGTOEngine {
                 pot: displayPotBb,
                 villainPosition,
                 villainStack: scenario.stack_depth || 100,
-                action: this.buildActionDescription(validActions, scenario.street, heroPosition, villainPosition),
+                action: this.buildActionDescription(
+                    validActions,
+                    scenario.street,
+                    heroPosition,
+                    villainPosition,
+                    nodeType,
+                ),
                 // roadmap #14 -- the chip badge in front of a seat is driven by
                 // potMath.committedFor, which reads a NUMBER off the recorded
                 // action. `action` above is prose and carries none of them
@@ -1822,6 +1894,11 @@ export class DeterministicGTOEngine {
                 villainBet: nodeType === 'hero_faces_bet'
                     ? this._villainBetBB(scenario, displayPotBb)
                     : 0,
+                // Felt chip stacks consume TOTALS-TO, while villainBet remains
+                // the increment hero must call for pot-odds/hand-state logic.
+                villainCommittedTotal: nodeType === 'hero_faces_bet'
+                    ? this._villainCommittedTotalBB(scenario, displayPotBb)
+                    : 0,
                 solverNode: strategyMatrix.node,
                 solverActionUnits: 'chips',
                 nextStreetContinuationAction: continuationBet,
@@ -1832,22 +1909,28 @@ export class DeterministicGTOEngine {
             heroCards: parseHandToCards(heroHand, board),
             // SYS-002 FIX: Populate boardCards array for PNG card rendering
             boardCards: board.length > 0 ? board : [],
-            question: this.buildQuestionText(heroHand, board, scenario.street, heroPosition, villainPosition, validActions, displayPotBb, scenario.scenario_hash, scenario.stack_depth),
+            question: this.buildQuestionText(
+                heroHand,
+                board,
+                scenario.street,
+                heroPosition,
+                villainPosition,
+                validActions,
+                displayPotBb,
+                scenario.scenario_hash,
+                scenario.stack_depth,
+                nodeType,
+            ),
             options,
             correctAnswer: optimalAction,
             correctAnswerText: this.getActionLabelGTOW(optimalAction, solverPotChips, true),
             // ═══ REAL SOLVER DATA ═══
-            // Phase 22: Ensure rawFrequencies keys match remapped action IDs
-            // (e.g., if 'c' was remapped to 'call' in facing-bet context)
+            // The engine boundary preserves source tokens. The canonical
+            // policy patch remaps these range-matrix keys to stable policy ids
+            // after it has proved the sourceCode -> action.id relationship.
             frequencies: handActions,         // Raw 0.0-1.0 per action (remapped)
             gtoFrequencies,                   // Percentage 0-100 per action for UI
-            rawFrequencies: (() => {
-                // If 'c' was remapped to 'call', add 'call' key to raw frequencies too
-                if (nodeType === 'hero_faces_bet' && frequencies['c'] && !frequencies['call']) {
-                    return { ...frequencies, call: frequencies['c'] };
-                }
-                return frequencies;
-            })(),       // Full per-hand matrix
+            rawFrequencies: frequencies,       // Full source-token per-hand matrix
             evData: {
                 heroHandEV,
                 handEVs,
@@ -1891,6 +1974,17 @@ export class DeterministicGTOEngine {
                     }),
                     'get-question',
                 );
+                const chartSource = q.solverPolicy?.sourceArtifact || {};
+                q.scenario = {
+                    ...(q.scenario || {}),
+                    // Bind the question to the identity minted by the policy
+                    // service. Its chart-id fallback and scenario hash are the
+                    // canonical contract; duplicating that formula here would
+                    // permit the UI/cache identity to drift from the grader.
+                    chartArtifactId: chartSource.artifactId || null,
+                    chartScenarioHash: chartSource.scenarioHash || null,
+                    chartSourceNode: q.solverPolicy?.node?.sourceNode || null,
+                };
                 if (!safeSeen.includes(q.id)) return q;
             }
             return lastQuestion;
@@ -1926,9 +2020,18 @@ export class DeterministicGTOEngine {
         // an unusable row. Refusing beats fabricating an answer.
         if (!Number.isFinite(yesFreq)) return null;
 
-        const yesId = isCallNode ? 'call' : 'push';
+        // The canonical chart policy normalizes an open shove to `all_in`.
+        // Use that same action id in the question envelope so persistence can
+        // prove a one-to-one option/policy action set. "Push" remains the
+        // player-facing label and the chart artifact's source code.
+        const yesId = isCallNode ? 'call' : 'all_in';
         const yesText = isCallNode ? 'Call All-In' : 'Push All-In';
-        const correctAction = yesFreq > 0.5 ? yesId : 'fold';
+        // The canonical policy keeps source order when two actions share the
+        // maximum frequency. Chart policies order the affirmative action
+        // before Fold, so use the same deterministic tie-break here. Both
+        // actions still grade as `best`; this key only keeps the authored DTO
+        // internally consistent before the server strips private answers.
+        const correctAction = yesFreq >= 0.5 ? yesId : 'fold';
 
         const VILLAIN_ACTION_TEXT = {
             fold_to_hero: 'Action folds to you',
@@ -1949,13 +2052,15 @@ export class DeterministicGTOEngine {
             // not mislabel it as a PioSOLVER warehouse artifact.
             source: 'CHART',
             scenario: {
+                street: 'preflop',
+                board: '',
+                boardCards: [],
                 stackDepth: chart.stack_depth,
                 heroPosition: chart.hero_position || chart.position || 'BTN',
                 heroStack: chart.stack_depth || 15,
                 villainPosition: isCallNode ? 'SB' : 'BB',
                 villainStack: chart.stack_depth || 15,
                 pot: 1.5,
-                board: '',
                 action: villainActionText,
                 heroHand,
                 isMixedStrategy: yesFreq > 0.1 && yesFreq < 0.9,
@@ -2164,8 +2269,8 @@ export class DeterministicGTOEngine {
         return actsFirstPostflop(heroPosition, villainPosition);
     }
 
-    buildActionDescription(solverActions, street, heroPosition, villainPosition) {
-        const nodeType = this.detectNodeType(solverActions, street);
+    buildActionDescription(solverActions, street, heroPosition, villainPosition, exactNodeType = null) {
+        const nodeType = exactNodeType || this.detectNodeType(solverActions, street);
 
         if (street === 'preflop') {
             if (nodeType === 'preflop_open') return 'Folded to you';
@@ -2188,7 +2293,10 @@ export class DeterministicGTOEngine {
                     : `${villainPosition} checks to ${heroPosition}`;
             case 'hero_faces_bet': {
                 // Infer villain's bet type from what the solver offers as responses
-                const raiseActions = solverActions.filter(a => a.toLowerCase().startsWith('r'));
+                // Pio encodes both opening bets and raises as bNNN cumulative
+                // contribution targets. Exact replay state determines whether
+                // the aggressive target is a Bet or a Raise.
+                const raiseActions = solverActions.filter(a => /^b[1-9]\d*$/.test(String(a)));
                 const hasAllin = solverActions.some(a => a.toLowerCase() === 'allin');
                 const hasFold = solverActions.some(a => a.toLowerCase() === 'f');
 
@@ -2213,8 +2321,8 @@ export class DeterministicGTOEngine {
      * Full spot description: game format, stack depth, positions, preflop action,
      * board texture, street action, hand strength.
      */
-    buildQuestionText(heroHand, board, street, heroPosition, villainPosition, solverActions, pot, scenarioHash, stackDepth) {
-        const nodeType = this.detectNodeType(solverActions, street);
+    buildQuestionText(heroHand, board, street, heroPosition, villainPosition, solverActions, pot, scenarioHash, stackDepth, exactNodeType = null) {
+        const nodeType = exactNodeType || this.detectNodeType(solverActions, street);
         const boardStr = board.length > 0 ? board.join(' ') : '';
         const context = extractScenarioContext(scenarioHash, street, heroPosition, villainPosition);
         const stackStr = stackDepth ? `${stackDepth}bb` : '';
@@ -2433,6 +2541,19 @@ export class DeterministicGTOEngine {
         const pct = parseInt(pctMatch[1], 10);
         if (!isFinite(pct) || pct <= 0) return 0;
         return Math.round(((pct / 100) * pot) * 10) / 10;
+    }
+
+    /**
+     * Current-street contribution already pushed by the villain, in BB.
+     * Unlike `_villainBetBB`, this is a total-to amount for the felt's chip
+     * stack and must include chips the villain contributed before re-raising.
+     */
+    _villainCommittedTotalBB(scenario, pot) {
+        if (!scenario || !pot || pot <= 0) return 0;
+        const sm = selectTrustedSolverMatrix(scenario) || {};
+        const exactTotal = Number(sm.opponent_street_contribution_bb);
+        if (Number.isFinite(exactTotal) && exactTotal > 0) return exactTotal;
+        return this._villainBetBB(scenario, pot);
     }
 
     _inferVillainBetSize(scenarioHash, solverActions, pot) {
@@ -2775,10 +2896,10 @@ export class DeterministicGTOEngine {
 
         // Extract bet sizing percentage
         const sizeMatch = a.match(/^b(\d+)$/);
-        // Pio b/r tokens are chip amounts, not percentages. Only a bet can be
-        // converted to a truthful pot percentage from the exact node pot. A
-        // raise token is a raise-to amount and needs the prior wager to derive
-        // a percentage, so suppress percentage-based coaching for raises.
+        // Pio bNNN tokens are cumulative chip targets, not percentages. Only an
+        // opening wager can be converted to a truthful pot percentage from the
+        // exact node pot; a raise needs the prior wager state, so suppress that
+        // percentage-based coaching path for raises.
         const sizePct = a === 'allin'
             ? 999
             : (sizeMatch && hasExactSolverPot
@@ -4857,47 +4978,31 @@ export class DeterministicGTOEngine {
         const pct = (yesFreq * 100).toFixed(0);
         const pos = chart.hero_position || chart.position || 'BTN';
         const stack = chart.stack_depth || 15;
+        const chartLabel = String(chart.game_type || '').toLowerCase().includes('tournament')
+            ? 'Audited tournament chart'
+            : 'Audited cash-game chart';
+        const isEvenMix = Math.abs(yesFreq - 0.5) <= 1e-9;
 
-        // Hand type reasoning
-        const r1 = heroHand[0], r2 = heroHand[1];
-        const isPair = r1 === r2;
-        const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
-        const isHighCard = ['A', 'K', 'Q'].includes(r1);
-
-        // ── Call node (BB defending vs an SB shove) — no fold equity exists,
-        // so the shove-flavoured reasons below would be nonsense here.
+        // These artifacts contain action frequencies, not per-action EV or a
+        // complete tournament payout model. Explain exactly what the chart
+        // records without inventing ICM, profitability, or equity rationale.
         if (isCallNode) {
-            if (correctAction === 'call') {
-                let reason = '';
-                if (isPair) reason = 'Pocket pairs realise their full equity all-in - no reverse implied odds.';
-                else if (isHighCard) reason = 'High-card hands dominate enough of the shoving range to call profitably.';
-                else if (isSuited) reason = 'The pot odds an all-in lays make this suited hand a profitable call.';
-                else reason = 'Against a wide shoving range, the price makes this call profitable.';
-                return `ICM: ${heroHand} is a ${pct}% call from ${pos} at ${stack}BB facing the shove. ${reason}`;
+            if (isEvenMix) {
+                return `${chartLabel}: ${heroHand} has Call and Fold equally represented at 50% from ${pos} at ${stack}BB facing the shove. Both tied actions are chart-best decisions; the deterministic answer key uses Call. No per-action EV or payout model is included in this artifact.`;
             }
-            return `ICM: ${heroHand} is only a ${pct}% call from ${pos} at ${stack}BB facing the shove. `
-                + `You have no fold equity when calling - the hand must win at showdown often enough, and this one doesn't.`;
+            if (correctAction === 'call') {
+                return `${chartLabel}: ${heroHand} is called ${pct}% of the time from ${pos} at ${stack}BB facing the shove, so Call is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
+            }
+            return `${chartLabel}: ${heroHand} is called only ${pct}% of the time from ${pos} at ${stack}BB facing the shove, so Fold is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
         }
 
-        if (correctAction === 'push') {
-            let reason = '';
-            if (isPair) reason = 'Pocket pairs have strong all-in equity against calling ranges.';
-            else if (isHighCard && isSuited) reason = 'Suited broadway hands combine card removal, equity, and playability.';
-            else if (isHighCard) reason = 'High card strength plus fold equity makes this a profitable shove.';
-            else if (isSuited) reason = 'Suitedness adds ~3% equity, pushing this hand into shoving range.';
-            else reason = 'Fold equity at this stack depth compensates for marginal hand strength.';
-
-            if (stack <= 8) reason += ` At ${stack}BB, push-or-fold is optimal - no room for post-flop play.`;
-            else if (stack <= 12) reason += ` At ${stack}BB, shoving preserves fold equity before the blinds eat further into your stack.`;
-
-            return `ICM: ${heroHand} is a ${pct}% push from ${pos} at ${stack}BB. ${reason}`;
+        if (isEvenMix) {
+            return `${chartLabel}: ${heroHand} has Push All-In and Fold equally represented at 50% from ${pos} at ${stack}BB. Both tied actions are chart-best decisions; the deterministic answer key uses Push All-In. No per-action EV or payout model is included in this artifact.`;
         }
-
-        let foldReason = '';
-        if (stack > 15) foldReason = `At ${stack}BB you have enough chips to wait for a better spot.`;
-        else foldReason = `Even at ${stack}BB, this hand doesn't have enough equity against calling ranges to justify the risk.`;
-
-        return `ICM: ${heroHand} is only a ${pct}% push from ${pos} at ${stack}BB. ${foldReason}`;
+        if (correctAction === 'all_in') {
+            return `${chartLabel}: ${heroHand} is pushed all-in ${pct}% of the time from ${pos} at ${stack}BB, so Push All-In is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
+        }
+        return `${chartLabel}: ${heroHand} is pushed all-in only ${pct}% of the time from ${pos} at ${stack}BB, so Fold is the chart's primary action. No per-action EV or payout model is included in this artifact.`;
     }
 
     /**
@@ -7702,8 +7807,6 @@ export class DeterministicGTOEngine {
         if (nodeType !== 'hero_faces_bet' || !estimatedPot) return '';
         const a = (optimalAction || '').toLowerCase();
 
-        // Estimate bet size from the solver action
-        const betMatch = a.match(/^[br](\d+)$/);
         const isCall = a === 'call';
         const isFold = a === 'f';
 
@@ -9431,13 +9534,15 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * True when the action is a bet ('b33'), raise ('r50'), or all-in.
-     * Solver action ids use both 'b' and 'r' prefixes for aggressive actions.
+     * True when an application-level action is a bet ('b33'), raise ('r50'),
+     * or all-in. Raw Pio NodeID actions are validated earlier and use bNNN for
+     * both Bet and Raise; authored/preflop application ids may still use rNNN.
      */
     _isAggressiveAction(a) { a = (a || '').toLowerCase(); return a.startsWith('b') || a.startsWith('r') || a === 'allin'; }
 
     /**
-     * Extract the bet/raise size (% of pot) from a 'b<n>' or 'r<n>' action id.
+     * Extract a percentage from an application-level b<n>/r<n> action id.
+     * This helper never validates or interprets raw Pio NodeID actions.
      */
     _actionSizePct(a) { const m = (a || '').toLowerCase().match(/^[br](\d+)$/); return m ? parseInt(m[1], 10) : null; }
 
@@ -13251,13 +13356,21 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     getSessionComparison(previousSessionData = null) {
+        // A comparison is only meaningful when the caller supplies an actual
+        // prior session. The former default invented an "Average Player"
+        // session (60% / 25 hands / 8.5 BB) and surfaced it in the live review
+        // drawer as if it were measured history. Fail closed until an
+        // authenticated previous-session record is wired into this callback.
+        if (!previousSessionData || previousSessionData.authority !== 'verified_training_session') {
+            return null;
+        }
         const current = {
             accuracy: this._sessionStats?.total > 0 ? Math.round((this._sessionStats.correct / this._sessionStats.total) * 100) : 0,
             total: this._sessionStats?.total || 0, correct: this._sessionStats?.correct || 0,
             streak: this._sessionBests?.streak || 0, evLoss: 0,
         };
         if (this._sessionStats?.history) { current.evLoss = Math.round(this._sessionStats.history.reduce((sum, h) => sum + (h.evLoss || 0), 0) * 100) / 100; }
-        const baseline = previousSessionData || { accuracy: 60, total: 25, correct: 15, streak: 3, evLoss: 8.5, label: 'Average Player' };
+        const baseline = previousSessionData;
         const improvements = [], regressions = [];
         if (current.accuracy > baseline.accuracy) improvements.push({ metric: 'Accuracy', current: current.accuracy + '%', baseline: baseline.accuracy + '%', delta: '+' + (current.accuracy - baseline.accuracy) + '%' });
         else if (current.accuracy < baseline.accuracy) regressions.push({ metric: 'Accuracy', current: current.accuracy + '%', baseline: baseline.accuracy + '%', delta: (current.accuracy - baseline.accuracy) + '%' });
@@ -13509,35 +13622,18 @@ export class DeterministicGTOEngine {
         const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
         const tips = [];
         const parts = [];
-        // Overall assessment
-        if (accuracy >= 80) parts.push(`Excellent session - ${accuracy}% accuracy shows strong GTO understanding.`);
-        else if (accuracy >= 65) parts.push(`Solid session at ${accuracy}% accuracy. A few key spots to review.`);
-        else if (accuracy >= 50) parts.push(`Average session at ${accuracy}% accuracy. Multiple areas need work.`);
-        else parts.push(`Tough session at ${accuracy}% accuracy. Focus on fundamentals.`);
-        // Leak analysis
-        try {
-            const leaks = this.generateLeakReport();
-            if (leaks?.leaks?.length > 0) {
-                const topLeak = leaks.leaks[0];
-                parts.push(`Biggest leak: ${topLeak.title} (${topLeak.severity}).`);
-                tips.push(topLeak.fix);
-            }
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
+        // This is an answer-history summary, not an independent solver or AI
+        // assessment. Keep every conclusion bounded to the graded rows we have.
+        if (accuracy >= 80) parts.push(`Excellent session - ${accuracy}% graded-answer accuracy.`);
+        else if (accuracy >= 65) parts.push(`Solid session at ${accuracy}% graded-answer accuracy. A few questions are worth reviewing.`);
+        else if (accuracy >= 50) parts.push(`This session reached ${accuracy}% graded-answer accuracy. Review the missed questions before the next attempt.`);
+        else parts.push(`This session reached ${accuracy}% graded-answer accuracy. Start with the missed-question review.`);
         // Position insight
         try {
             const posLB = this.getPositionLeaderboard();
             if (posLB?.worstPosition && posLB.worstPosition.accuracy < 50) {
-                parts.push(`Weakest position: ${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%.`);
-                tips.push(`Focus on ${posLB.worstPosition.position} strategy - study solver ranges for this seat.`);
-            }
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        // Bluff ratio
-        try {
-            const bvr = this.getBluffToValueRatio();
-            if (bvr && bvr.assessment !== 'balanced') {
-                parts.push(bvr.message);
-                if (bvr.assessment === 'over_bluffing') tips.push('Cut marginal bluffs - focus on hands with good blockers.');
-                else tips.push('Add more semi-bluffs with draws and backdoor equity.');
+                parts.push(`Lowest answer accuracy by position: ${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%.`);
+                tips.push(`Review the graded Training questions from ${posLB.worstPosition.position}.`);
             }
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         // Improvement velocity

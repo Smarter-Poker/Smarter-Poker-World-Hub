@@ -17,11 +17,9 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
-import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
-import { toast } from '../../../src/stores/toastStore';
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-TOURNAMENTS-A11Y-1): SVG icon components replacing the
@@ -138,8 +136,7 @@ function TargetIcon({ size = 16 }) {
 export default function TournamentsPage() {
   useTrainingBus('tournaments');
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('live'); // 'live', 'upcoming', 'completed'
-  const [registering, setRegistering] = useState(null);
+  const [activeTab, setActiveTab] = useState('live'); // 'live', 'scheduled', 'completed'
 
   // Load auth user once
   useEffect(() => {
@@ -155,12 +152,16 @@ export default function TournamentsPage() {
   const {
     data: swrData,
     isLoading: loading,
+    error: tournamentsError,
     mutate: refreshTournaments,
-  } = useSWR(swrKey, (url) =>
-    authedFetch(url)
-      .then((r) => r.json())
-      .then((d) => (d.success ? d.tournaments || [] : []))
-  );
+  } = useSWR(swrKey, async (url) => {
+    const response = await authedFetch(url);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || payload?.success !== true || !Array.isArray(payload.tournaments)) {
+      throw new Error(payload?.error || 'Tournament Data Could Not Be Loaded');
+    }
+    return payload.tournaments;
+  });
   const tournaments = swrData || [];
 
   // Realtime subscription — live updates
@@ -171,9 +172,20 @@ export default function TournamentsPage() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
-          table: 'commander_tournament_entries',
+          table: 'training_tournaments',
+        },
+        () => {
+          refreshTournaments();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'training_tournament_entries',
           filter: `user_id=eq.${user?.id}`,
         },
         () => {
@@ -185,44 +197,6 @@ export default function TournamentsPage() {
       supabase.removeChannel(_ch);
     };
   }, [user?.id, refreshTournaments]);
-
-  const registerForTournament = async (tournamentId) => {
-    if (!user) {
-      toast.warning('Please Sign In To Register.');
-      return;
-    }
-
-    setRegistering(tournamentId);
-    try {
-      const res = await authedFetch('/api/training/tournaments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          tournamentId,
-          action: 'register',
-        }),
-      });
-
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Tournament Registration Confirmed!');
-        refreshTournaments(); // Refresh
-        // Emit bus event if tournament had an entry fee
-        if (data.entryFee > 0) {
-          busEmit.diamondsSpent(data.entryFee, 'Training Tournament Entry');
-        }
-      } else {
-        toast.error(data.error || 'Tournament Registration Failed.');
-      }
-    } catch (error) {
-      console.warn('Register error:', error);
-      toast.error('Tournament Registration Failed. Please Try Again.');
-    } finally {
-      setRegistering(null);
-    }
-  };
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
@@ -284,7 +258,7 @@ export default function TournamentsPage() {
 
           {/* Tab Navigation */}
           <div style={styles.tabs}>
-            {['live', 'upcoming', 'completed'].map((tab) => (
+            {['live', 'scheduled', 'completed'].map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -298,7 +272,7 @@ export default function TournamentsPage() {
               >
                 {tab === 'live' ? (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LiveDotIcon size={8} /> Live</span>
-                ) : tab === 'upcoming' ? (
+                ) : tab === 'scheduled' ? (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ClockIcon size={12} /> Upcoming</span>
                 ) : (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckIcon size={12} /> Past</span>
@@ -310,6 +284,13 @@ export default function TournamentsPage() {
           {/* Tournament List */}
           {loading ? (
             <SkeletonLoader variant="card" count={3} style={{ padding: '16px' }} />
+          ) : tournamentsError ? (
+            <TrainerEmptyState
+              variant="retry"
+              title="Tournament Data Unavailable"
+              message="The Tournament Lobby Could Not Be Loaded. No Empty Results Were Assumed."
+              cta={{ label: 'Try Again', onClick: () => refreshTournaments() }}
+            />
           ) : tournaments.length === 0 ? (
             <TrainerEmptyState
               variant="no-data"
@@ -377,12 +358,12 @@ export default function TournamentsPage() {
                     {tournament.status === 'scheduled' && (
                       <button
                         type="button"
-                        aria-label={`Register for tournament: ${tournament.name}`}
-                        onClick={() => registerForTournament(tournament.id)}
-                        disabled={registering === tournament.id}
-                        style={styles.registerBtn}
+                        aria-label={`Verified registration is not available for tournament: ${tournament.name}`}
+                        disabled
+                        title="Registration Reopens After Server-Authoritative Settlement Is Certified"
+                        style={{ ...styles.registerBtn, cursor: 'not-allowed', opacity: 0.62 }}
                       >
-                        {registering === tournament.id ? 'Registering...' : 'Register Now'}
+                        Registration Temporarily Paused
                       </button>
                     )}
 
@@ -391,7 +372,7 @@ export default function TournamentsPage() {
                         href={`/hub/training/tournament/${tournament.id}`}
                         style={styles.playBtn}
                       >
-                        Play Now →
+                        View Live Standings →
                       </Link>
                     )}
 

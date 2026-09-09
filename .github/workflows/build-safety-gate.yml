@@ -53,7 +53,7 @@ jobs:
     # the same tree. Club Arena made the same call on 2026-08-23.
     if: github.event_name == 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +67,101 @@ jobs:
       - name: Record Start Time
         id: timer
         run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
+
+      # CHECK 24: Training server authority is a release invariant. These
+      # contracts must run inside this required ruleset context; package/Vercel
+      # build coverage alone cannot block a PR because the broad PR E2E job is
+      # intentionally disabled. Several authority tests parse and transform
+      # source through Babel, so a clean checkout must restore the lockfile-
+      # exact dependency tree before this check runs.
+      - name: Setup Node.js For Training Authority
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.12.0'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+
+      - name: Restore node_modules For Training Authority
+        id: training-authority-nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-wh-training-authority-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Dependencies For Training Authority
+        if: steps.training-authority-nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+
+      - name: "CHECK 24: Training server-authority contracts"
+        run: npm run test:training:phase6-authority
+
+      # The behavioral migration verifiers exercise disposable PostgreSQL 17
+      # clusters. Ubuntu 24.04 ships PostgreSQL 16, which cannot model the PG17
+      # MAINTAIN privilege enforced in production. Both GitHub-hosted and the
+      # estate-linux self-hosted runners therefore install the exact official
+      # PGDG package. apt is idempotent, and the next step independently rejects
+      # a missing/wrong major or production-incompatible locale.
+      - name: Install PostgreSQL 17 For Training Authority On Linux Runners
+        if: runner.os == 'Linux'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --show-error --silent \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends postgresql-17 locales
+          sudo locale-gen en_US.UTF-8
+
+      - name: Resolve Exact PostgreSQL 17 Training Test Binaries
+        shell: bash
+        run: |
+          postgres_bin=''
+          candidates=(
+            "${PHASE6_POSTGRES_BIN:-}"
+            /usr/lib/postgresql/17/bin
+            /opt/homebrew/opt/postgresql@17/bin
+            /usr/local/opt/postgresql@17/bin
+            /usr/local/pgsql/bin
+          )
+          if command -v pg_config >/dev/null 2>&1; then
+            candidates+=("$(pg_config --bindir)")
+          fi
+          for candidate in "${candidates[@]}"; do
+            [ -n "$candidate" ] || continue
+            [ -x "$candidate/postgres" ] || continue
+            [ -x "$candidate/initdb" ] || continue
+            [ -x "$candidate/pg_ctl" ] || continue
+            [ -x "$candidate/psql" ] || continue
+            version="$($candidate/postgres --version)"
+            [[ "$version" == *" 17."* ]] || continue
+            postgres_bin="$candidate"
+            break
+          done
+          if [ -z "$postgres_bin" ]; then
+            echo "::error::CHECK 24C requires exact PostgreSQL 17 server binaries. Provision the self-hosted runner or repair the hosted PGDG install."
+            exit 1
+          fi
+          if ! locale -a | grep -Eiq '^en_US\.(UTF-8|utf8)$'; then
+            echo "::error::CHECK 24C requires en_US.UTF-8 so disposable PG17 clusters match production collation. Provision this locale on the runner."
+            exit 1
+          fi
+          echo "PHASE6_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
+          echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
+          "$postgres_bin/postgres" --version
+
+      - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
+        run: npm run audit:training:phase6-db
+
+      - name: "CHECK 24B: Lint inventory deletion contract"
+        run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 15: Commit author identity (Vercel BLOCKED-deploy guard)
@@ -243,13 +338,14 @@ jobs:
       # freeze shipped would inherit the exemption silently and move chips
       # during the announced break. New routes must consult
       # fn_platform_frozen or carry a visible freeze-exempt marker; existing
-      # routes are grandfathered in a baseline that only shrinks. Pure node,
-      # no deps, so it runs before install like CHECK 7.
+      # routes are grandfathered in a baseline that only shrinks. The check
+      # itself uses only Node built-ins and remains dependency-independent.
       - name: "CHECK 18: New money routes are freeze-aware"
         run: node scripts/check-frozen-aware-money-routes.mjs
 
-      # CHECK 7: Storage bucket file_size_limit guard (RUNS FIRST)
-      # Positioned before npm install so it runs even if install fails.
+      # CHECK 7: Storage bucket file_size_limit guard
+      # This check remains dependency-free; CHECK 24 now restores the locked
+      # dependency tree before the legacy safety checks run.
       # The social-media bucket file_size_limit was silently set to NULL on
       # 2026-04-22 with a wrong comment claiming it meant "unlimited". NULL
       # falls back to the project-level cap (50MB by default), and every
@@ -366,6 +462,20 @@ jobs:
           # gate stays green.
           node scripts/ci/check-migrations-applied.mjs
 
+      - name: "CHECK 25: The code is checked against the live database and the live model list"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Three defects shipped green on 2026-09-08 because every gate here
+          # compares source to source: a category the ledger CHECK refuses
+          # ('session'), a column w2g_forms does not have (amount), and model
+          # ids api.x.ai answers "Model not found" (grok-2-vision-latest).
+          # This asks the database (values via fn_ci_check_constraints,
+          # columns via OpenAPI) and the model API (no credential needed: a
+          # missing model is refused before authentication).
+          node scripts/ci/check-live-contracts.mjs
+
       - name: "CHECK 13: No phantom Supabase COLUMNS"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -422,7 +532,7 @@ jobs:
           #      parsing, the supabase client, authUtils). Importing the vendor
           #      path directly instead of the local override silently runs the
           #      UNFIXED code. (mock-supabase-client, forgeable-vendor-auth)
-          # Pure static analysis; no DB access, no npm install.
+          # Pure static analysis; no DB access.
           node scripts/check-vendor-drift.mjs
 
       - name: "CHECK 9: Reward catalog matches diamondRewards.js"
@@ -437,7 +547,7 @@ jobs:
           # excess discarded (while the store page promised the opposite),
           # a once-ever 15 diamond bonus was repayable daily, and a 500 diamond
           # referral action had no periodic limit at all. This check is that
-          # comparison. Dependency-free on purpose — this job does not npm install.
+          # comparison. The comparison itself remains dependency-free.
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — reward catalog drift is NOT enforced."
             exit 0
@@ -778,18 +888,12 @@ jobs:
 
       # check-title-case parses JSX with the TypeScript compiler, because the
       # careful part of it is the AST walk and its `{n}s` / `x{count}` suffix
-      # guards. This job deliberately does not `npm ci` (see the notes above:
-      # it is static analysis that must run even when install fails), so the
-      # one package it needs is fetched on its own. `--no-save` keeps
-      # package-lock.json untouched, and the guard below keeps a registry
-      # blip from turning a copy gate into a red build for an unrelated
-      # reason - the check still runs, it just cannot be skipped silently.
-      # The parser CHECK 20 installs ad hoc took 55s a run (measured
-      # 2026-09-04). Cached on its own: only node_modules/typescript, keyed on
-      # the pinned major, so this job still carries no other dependency and
-      # every other check here still sees the tree it always saw. The
-      # `require.resolve` guard below finds the restored copy and skips the
-      # install.
+      # guards. CHECK 20 normally consumes TypeScript from the lockfile-exact
+      # dependency tree restored above for CHECK 24. Its dedicated parser cache
+      # and guarded `--no-save` fallback remain as availability defenses; a
+      # failed fallback is blocking, so the check cannot be skipped silently.
+      # The ad hoc parser install took 55s a run when first measured on
+      # 2026-09-04, which is why the focused TypeScript cache remains.
       - name: Restore the TypeScript parser CHECK 20 needs
         uses: actions/cache@v4
         with:
@@ -842,7 +946,7 @@ jobs:
             npm install --no-save --no-audit --no-fund --ignore-scripts sharp@0.34 \
               || echo "::warning::could not install sharp; the avatar guard will say so and fail"
           fi
-          node --test \
+          node --experimental-vm-modules --test \
             __tests__/_test-guards-exist.test.mjs \
             __tests__/auth-routes-exist.test.mjs \
             __tests__/signup-hardening.test.mjs \
@@ -861,6 +965,9 @@ jobs:
             __tests__/vercel-build-queue.test.mjs \
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
+            __tests__/horse-solver-v31-ingress.test.mjs \
+            __tests__/horse-solver-v31-pipeline.test.mjs \
+            __tests__/git-safe-push-credential-safety.test.mjs \
             __tests__/an-rpc-call-names-a-real-signature.law.test.mjs \
             __tests__/phase6-content-dispatch.test.mjs \
             __tests__/native-push-fcm.test.mjs \

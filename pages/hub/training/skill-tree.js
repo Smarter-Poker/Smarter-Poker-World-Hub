@@ -91,29 +91,26 @@ const SKILL_BRANCHES = [
     color: 'var(--sp-accent-blue)',
     icon: '',
     nodes: [
-      { id: 'open-raise', name: 'Open Raise', threshold: 60, xp: 100, gameId: 'cash-preflop' },
+      { id: 'open-raise', name: 'Open Raise', threshold: 60, gameId: 'cash-001' },
       {
         id: 'bb-defense',
         name: 'BB Defense',
         threshold: 65,
-        xp: 150,
-        gameId: 'cash-bb-defense',
+        gameId: 'cash-003',
         requires: 'open-raise',
       },
       {
         id: '3bet-ranges',
         name: '3-Bet Ranges',
         threshold: 70,
-        xp: 200,
-        gameId: 'cash-threeBet-spots',
+        gameId: 'cash-007',
         requires: 'bb-defense',
       },
       {
         id: 'squeeze-play',
         name: 'Squeeze Play',
         threshold: 75,
-        xp: 250,
-        gameId: 'cash-squeeze',
+        gameId: 'cash-008',
         requires: '3bet-ranges',
       },
     ],
@@ -124,29 +121,26 @@ const SKILL_BRANCHES = [
     color: 'var(--sp-accent-green)',
     icon: '',
     nodes: [
-      { id: 'cbet-basics', name: 'C-Bet Basics', threshold: 60, xp: 100, gameId: 'cash-cbet' },
+      { id: 'cbet-basics', name: 'C-Bet Basics', threshold: 60, gameId: 'cash-002' },
       {
         id: 'turn-barrels',
         name: 'Turn Barrels',
         threshold: 65,
-        xp: 150,
-        gameId: 'cash-turn-play',
+        gameId: 'cash-024',
         requires: 'cbet-basics',
       },
       {
         id: 'river-decisions',
         name: 'River Decisions',
         threshold: 70,
-        xp: 200,
-        gameId: 'cash-river-bluffs',
+        gameId: 'cash-012',
         requires: 'turn-barrels',
       },
       {
         id: 'multistreet',
         name: 'Multi-Street Plans',
         threshold: 75,
-        xp: 250,
-        gameId: 'cash-multistreet',
+        gameId: 'cash-025',
         requires: 'river-decisions',
       },
     ],
@@ -161,31 +155,27 @@ const SKILL_BRANCHES = [
         id: 'pot-geometry',
         name: 'Pot Geometry',
         threshold: 65,
-        xp: 200,
-        gameId: 'adv-pot-geometry',
+        gameId: 'adv-011',
       },
       {
         id: 'range-advantage',
         name: 'Range Advantage',
         threshold: 70,
-        xp: 250,
-        gameId: 'adv-range-advantage',
+        gameId: 'adv-008',
         requires: 'pot-geometry',
       },
       {
         id: 'nodelock',
         name: 'Nodelocking',
         threshold: 75,
-        xp: 300,
-        gameId: 'adv-nodelock',
+        gameId: 'adv-003',
         requires: 'range-advantage',
       },
       {
         id: 'mixed-strategies',
         name: 'Mixed Strategies',
         threshold: 80,
-        xp: 400,
-        gameId: 'adv-mixed',
+        gameId: 'cash-021',
         requires: 'nodelock',
       },
     ],
@@ -196,29 +186,26 @@ const SKILL_BRANCHES = [
     color: 'var(--sp-accent-amber)',
     icon: '',
     nodes: [
-      { id: 'icm-mastery', name: 'ICM Mastery', threshold: 70, xp: 300, gameId: 'mtt-icm' },
+      { id: 'icm-mastery', name: 'ICM Mastery', threshold: 70, gameId: 'mtt-002' },
       {
         id: 'multiway-pots',
         name: 'Multiway Pots',
         threshold: 75,
-        xp: 350,
-        gameId: 'cash-multiway',
+        gameId: 'cash-016',
         requires: 'icm-mastery',
       },
       {
         id: 'exploitative',
         name: 'Exploitative Play',
         threshold: 80,
-        xp: 400,
-        gameId: 'adv-exploitative',
+        gameId: 'adv-016',
         requires: 'multiway-pots',
       },
       {
         id: 'gto-master',
         name: 'GTO Master',
         threshold: 85,
-        xp: 500,
-        gameId: 'adv-gto-master',
+        gameId: 'adv-020',
         requires: 'exploitative',
       },
     ],
@@ -244,18 +231,11 @@ function getNodeStatus(node, stats, unlockedNodes) {
   if (node.requires && !unlockedNodes.has(node.requires)) {
     return { status: 'locked', accuracy: null, progress: 0 };
   }
-  // Find matching stats
-  let totalHands = 0,
-    totalCorrect = 0;
-  Object.entries(stats || {}).forEach(([gid, data]) => {
-    if (
-      gid.includes(node.gameId?.split('-').pop() || '') ||
-      node.gameId?.includes(gid.split('-')[1] || '')
-    ) {
-      totalHands += data.hands;
-      totalCorrect += data.correct;
-    }
-  });
+  // A node is bound to one canonical game. Substring matching previously let
+  // unrelated IDs unlock each other (for example every `*-001` session).
+  const nodeStats = stats?.[node.gameId] || { hands: 0, correct: 0 };
+  const totalHands = nodeStats.hands;
+  const totalCorrect = nodeStats.correct;
   const accuracy = totalHands > 0 ? Math.round((totalCorrect / totalHands) * 100) : 0;
   const progress =
     totalHands > 0 ? Math.min(100, Math.round((accuracy / node.threshold) * 100)) : 0;
@@ -273,7 +253,7 @@ function getNodeStatus(node, stats, unlockedNodes) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SkillNode({ node, nodeStatus, branchColor, onTap }) {
-  const { status, accuracy, progress } = nodeStatus;
+  const { status, accuracy, hands = 0 } = nodeStatus;
   const isLocked = status === 'locked';
   const isMastered = status === 'mastered';
 
@@ -376,7 +356,9 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
             >
               {accuracy !== null ? `${accuracy}%` : '-'}
             </div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>{node.xp} XP</div>
+            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
+              {hands} Verified {hands === 1 ? 'Hand' : 'Hands'}
+            </div>
           </>
         )}
       </div>
@@ -392,14 +374,16 @@ export default function SkillTreePage() {
   const router = useRouter();
   useTrainingBus('skill-tree');
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({});
-  const [totalXP, setTotalXP] = useState(0);
+  const [stats, setStats] = useState(null);
   const [fetchError, setFetchError] = useState(null);
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
     setFetchError(null);
+    setStats(null);
     const user = getAuthUser();
     if (!user?.id) {
+      setFetchError('Sign in to load verified skill progress.');
       setLoading(false);
       return;
     }
@@ -407,14 +391,17 @@ export default function SkillTreePage() {
       const res = await authedFetch(`/api/training/get-sessions?limit=500`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success && data.sessions) {
-        setStats(computeSkillData(data.sessions));
+      if (!data.success || !Array.isArray(data.sessions)) {
+        throw new Error('Verified session history was not returned');
       }
+      setStats(computeSkillData(data.sessions));
     } catch (e) {
       console.warn('[SkillTree] Fetch error:', e);
-      setFetchError('Unable to load skill tree data. Please try again.');
+      setStats(null);
+      setFetchError('Unable to load verified skill progress. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -427,24 +414,23 @@ export default function SkillTreePage() {
     return unsub;
   }, [fetchData]);
 
-  // Compute unlocked nodes and total XP
+  // Mastery is a projection of verified session history only. Missing history
+  // never becomes zero progress or an inferred unlock.
   const unlockedNodes = new Set();
-  let xp = 0;
-  SKILL_BRANCHES.forEach((branch) => {
-    branch.nodes.forEach((node) => {
-      const ns = getNodeStatus(node, stats, unlockedNodes);
-      if (ns.status === 'mastered') {
-        unlockedNodes.add(node.id);
-        xp += node.xp;
-      }
+  if (stats) {
+    SKILL_BRANCHES.forEach((branch) => {
+      branch.nodes.forEach((node) => {
+        const ns = getNodeStatus(node, stats, unlockedNodes);
+        if (ns.status === 'mastered') unlockedNodes.add(node.id);
+      });
     });
-  });
+  }
 
   const totalNodes = SKILL_BRANCHES.reduce((s, b) => s + b.nodes.length, 0);
   const masteredCount = unlockedNodes.size;
 
   const handleNodeTap = (node) => {
-    router.push(`/hub/training/arena/spot-trainer?gameId=${node.gameId || 'cash-preflop'}`);
+    router.push(`/hub/training/arena/${node.gameId}?level=1&source=skill-tree`);
   };
 
   return (
@@ -511,12 +497,18 @@ export default function SkillTreePage() {
           <div style={{ flex: 1 }}>
             {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Master Your GTO Progression</div>
+            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+              Mastery From Sealed Training Sessions
+            </div>
           </div>
           {/* TRAIN-SKILL-TREE-A11Y-1: status role + readable aria-label */}
           <div
             role="status"
-            aria-label={`${xp} experience points earned`}
+            aria-label={
+              stats
+                ? `${masteredCount} of ${totalNodes} skill nodes mastered from verified sessions`
+                : 'Verified skill mastery unavailable'
+            }
             style={{
               padding: '6px 12px',
               borderRadius: 8,
@@ -524,15 +516,19 @@ export default function SkillTreePage() {
               border: '1px solid rgba(251,191,36,0.2)',
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)', fontVariantNumeric: 'tabular-nums' }}>{xp}</span>
-            <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>XP</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)', fontVariantNumeric: 'tabular-nums' }}>
+              {stats ? `${masteredCount}/${totalNodes}` : '\u2014'}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>
+              Verified Mastery
+            </span>
           </div>
         </div>
 
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
           <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); setLoading(true); fetchData(); }} />
           {/* Progress Overview */}
-          <motion.div
+          {!loading && stats && <motion.div
             className="sp-journey-spotlight"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -587,7 +583,7 @@ export default function SkillTreePage() {
                 }}
               />
             </div>
-          </motion.div>
+          </motion.div>}
 
           {/* Loading */}
           {loading && (
@@ -596,8 +592,25 @@ export default function SkillTreePage() {
             </div>
           )}
 
+          {!loading && !stats && (
+            <div
+              role="status"
+              style={{
+                padding: '18px 16px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.03)',
+                color: 'var(--sp-fg-muted)',
+                fontSize: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              Verified Skill Progress Is Currently Unavailable. No Mastery Status Has Been
+              Inferred From Missing Session Data.
+            </div>
+          )}
+
           {/* Skill Branches */}
-          {!loading &&
+          {!loading && stats &&
             SKILL_BRANCHES.map((branch, bIdx) => (
               <motion.div
                 key={branch.id}

@@ -46,11 +46,11 @@ test('stats and leak refreshes cancel superseded network work', () => {
   }
 });
 
-test('God Mode provenance survives the page adapter and cannot score quizzes', () => {
+test('retired Sandbox cannot expose God Mode output or score quizzes', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
-  assert.match(sandbox, /forcedMode: mock\.forcedMode === true/);
-  assert.match(sandbox, /if \(displayed\?\.forcedMode\)/);
-  assert.match(sandbox, /Forced result · drill score not recorded/);
+  assert.match(sandbox, /data-training-authority="verified-evidence-required"/);
+  assert.match(sandbox, /Approximate Analysis Retired/);
+  assert.doesNotMatch(sandbox, /forcedMode|GodModePanel|gradeAction|optimalAction/);
 });
 
 test('assistant data waits for the canonical auth identity before loading', () => {
@@ -64,30 +64,27 @@ test('assistant data waits for the canonical auth identity before loading', () =
   assert.match(hub, /ready: !authInitializing/);
   assert.match(leaks, /useAvatar\(\)/);
   assert.match(leaks, /useLeaks\(null, \{ userId, ready: !authInitializing \}\)/);
-  assert.match(sandbox, /useStudyDeck\(20, assistantAuth\)/);
+  assert.doesNotMatch(sandbox, /useStudyDeck|useAvatar|assistantAuth/);
+  assert.match(sandbox, /verified-evidence-required/);
 });
 
-test('sandbox analysis is latest-request-wins and stale solves have no side effects', () => {
-  const hooks = read('src/hooks/useAssistant.js');
+test('sandbox analysis is retired before client requests can create side effects', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
+  const api = read('pages/api/assistant/sandbox/analyze.js');
 
-  assert.match(hooks, /activeAbortRef\.current\?\.abort\(\)/);
-  assert.match(hooks, /requestId !== requestIdRef\.current/);
-  assert.match(hooks, /superseded: true/);
-  assert.match(hooks, /skipCoachGrade: options\.skipCoachGrade === true/);
-  assert.match(sandbox, /if \(data\?\.superseded\) return/);
-  assert.match(sandbox, /if \(results\.skipCoachGrade\) return/);
-  assert.doesNotMatch(sandbox, /suppressCoachEffectRef/);
+  assert.match(api, /status\(410\)/);
+  assert.match(api, /SANDBOX_ANALYSIS_REQUIRES_VERIFIED_EVIDENCE/);
+  assert.doesNotMatch(api, /\.from\s*\(|createClient|getGrokClient/);
+  assert.doesNotMatch(sandbox, /useSandboxAnalysis|skipCoachGrade|gradeAction|session-complete/);
 });
 
-test('sandbox history failures render a retryable error instead of an empty state', () => {
+test('retired sandbox does not load or fabricate saved analysis history', () => {
   const hooks = read('src/hooks/useAssistant.js');
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
 
   assert.match(hooks, /return \{ bookmarks, isLoading, error, refetch: fetchBookmarks \}/);
-  assert.match(sandbox, /const loadError = tab === 'sessions' \? sessionsError : bookmarksError/);
-  assert.match(sandbox, /filter\(session => session\?\.type === 'sandbox'\)/);
-  assert.match(sandbox, /<ErrorState title=\{`Could not load \$\{tab\}`\}/);
+  assert.match(sandbox, /Recorded Here[\s\S]*Nothing/);
+  assert.doesNotMatch(sandbox, /useRecentSessions|useBookmarks|sandbox_sessions|sandbox_results/);
 });
 
 test('study replay does not depend on a missing PostgREST relationship', () => {
@@ -117,8 +114,8 @@ test('every Personal Assistant destination owns a canonical page title', () => {
 test('sandbox inline CSS cannot hydrate as escaped raw style text', () => {
   const sandbox = read('pages/hub/personal-assistant/sandbox.js');
   assert.doesNotMatch(sandbox, /<style>\{`[\s\S]*@import url\(/);
-  assert.match(sandbox, /<style dangerouslySetInnerHTML=\{\{ __html: `/);
-  assert.match(sandbox, /\.sandbox-workspace > \*/);
+  assert.match(sandbox, /<style jsx>\{`/);
+  assert.match(sandbox, /\.sandbox-workspace\s*\{/);
 });
 
 test('secondary surfaces share the Smarter.Poker command-deck visual system', () => {
@@ -143,8 +140,12 @@ test('secondary charts and desktop workspaces own responsive layouts', () => {
 
   assert.match(sandbox, /className="sandbox-workspace"/);
   assert.match(sandbox, /className="sandbox-command-bar"/);
-  assert.match(sandbox, /grid-template-columns: 400px minmax\(0, 1fr\)/);
-  assert.match(sandbox, /\.sandbox-table-wrap \{[\s\S]*position: sticky/);
+  assert.match(sandbox, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  // PIN MOVED, NOT LOOSENED (mobile phase 4, 2026-09-09). What this guards is
+  // that the evidence panel and the destination bar collapse to one column on
+  // a phone. That still happens; the breakpoint that does it moved from 640 to
+  // the sanctioned 768 (docs/mobile-standard: 900 / 768 / 600 and no fourth).
+  assert.match(sandbox, /@media \(max-width: 768px\)[\s\S]*grid-template-columns: 1fr/);
   assert.match(leaks, /className="leak-insights-grid"/);
   assert.match(leaks, /className="leak-list-grid"/);
   assert.match(leaks, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);

@@ -13,8 +13,9 @@
  *   node scripts/reseed-deterministic-cache.js --verify --game=cash-001 # Verify a game in DB
  *
  * Coverage:
- *   84 PioSOLVER + 2 CHART games → DETERMINISTIC_SOLVER questions
- *   21 SCENARIO games + 2 local-range preflop games → SKIPPED
+ *   PioSOLVER question construction → RETIRED (canonical live policy only)
+ *   2 CHART games → read-only validation; mutation remains retired
+ *   SCENARIO and local-range games → SKIPPED
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -40,13 +41,8 @@ if (IS_LIVE) {
 // ─── ENVIRONMENT SETUP ─────────────────────────────────────────────────────
 require('dotenv').config({ path: '.env' });
 require('dotenv').config({ path: '.env.local' });
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 
 let enforceTrainingQuestionContract;
-let enforceSolverClaimHonesty;
-let selectTrustedLegacySolverMatrix;
-let selectTrustedSolverMatrix;
 
 if (!IS_DRY_RUN && !IS_VERIFY) {
     console.error('Usage: node reseed-deterministic-cache.js [--dry-run|--verify] [--game=cash-001]');
@@ -101,47 +97,6 @@ async function supabaseCount(table, filter = '') {
 }
 
 // ─── CARD / HAND UTILITIES ────────────────────────────────────────────────
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
-const SUITS = ['s', 'h', 'd', 'c'];
-const RANK_VAL = Object.fromEntries(RANKS.map((r, i) => [r, i]));
-
-const ACTION_LABELS = {
-    'c': 'Check', 'x': 'Check', 'f': 'Fold',
-    'b16': 'Bet 16%', 'b20': 'Bet 20%', 'b25': 'Bet 25%',
-    'b33': 'Bet 33%', 'b40': 'Bet 40%', 'b45': 'Bet 45%',
-    'b50': 'Bet 50%', 'b55': 'Bet 55%', 'b60': 'Bet 60%',
-    'b66': 'Bet 67%', 'b75': 'Bet 75%', 'b80': 'Bet 80%',
-    'b100': 'Bet Pot', 'b125': 'Bet 125%', 'b150': 'Overbet 150%',
-    'b200': 'Overbet 200%', 'b300': 'Overbet 300%',
-    'allin': 'All-In', 'r': 'Raise',
-    'push': 'Push All-In', 'fold': 'Fold',
-};
-
-const VILLAIN_MAP = {
-    'BTN': 'BB', 'SB': 'BB', 'BB': 'BTN', 'UTG': 'BB',
-    'MP': 'BB', 'CO': 'BTN', 'HJ': 'CO', 'UTG+1': 'BB', 'MP+1': 'BB',
-};
-
-function getActionLabel(code, pot = 6, solverChipUnits = false) {
-    const bm = code.match(/^b(\d+)$/);
-    if (bm) {
-        const amount = Number(bm[1]);
-        const pct = solverChipUnits ? Math.round((amount / pot) * 100) : amount;
-        if (pct === 100) return 'Bet Pot';
-        return pct > 100 ? `Overbet ${pct}%` : `Bet ${pct}%`;
-    }
-    const rm = code.match(/^r(\d+)$/);
-    if (rm) {
-        const amount = Number(rm[1]);
-        if (solverChipUnits) {
-            const bb = amount / 100;
-            return `Raise To ${Number.isInteger(bb) ? bb : bb.toFixed(1)} BB`;
-        }
-        return `Raise ${amount}%`;
-    }
-    if (ACTION_LABELS[code]) return ACTION_LABELS[code];
-    return code.toUpperCase();
-}
 
 function parseHandToCards(hand) {
     if (!hand || hand.length < 2) return ['As', 'Ks'];
@@ -152,29 +107,7 @@ function parseHandToCards(hand) {
     return [`${r1}s`, `${r2}h`];
 }
 
-function parseBoardFromHash(hash) {
-    if (!hash) return [];
-    const parts = hash.split('_');
-    const boardStr = parts[parts.length - 1];
-    if (!boardStr || boardStr.length < 4) return [];
-    const cards = [];
-    for (let i = 0; i < boardStr.length; i += 2) {
-        if (i + 1 < boardStr.length) {
-            const card = boardStr.substring(i, i + 2);
-            if (/^[2-9TJQKA][shdc]$/i.test(card)) cards.push(card);
-        }
-    }
-    return cards;
-}
 
-function extractPositionFromHash(hash) {
-    if (!hash) return 'BTN';
-    const POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ'];
-    for (const part of hash.split('_')) {
-        if (POSITIONS.includes(part.toUpperCase())) return part.toUpperCase();
-    }
-    return 'BTN';
-}
 
 function hashSeed(str) {
     let hash = 0;
@@ -185,20 +118,6 @@ function hashSeed(str) {
     return Math.abs(hash);
 }
 
-function matchesHandClass(hand, handClass) {
-    if (!handClass || handClass === 'all') return true;
-    if (!hand || hand.length < 2) return false;
-    const r1 = hand[0], r2 = hand[1];
-    const isSuited = hand.length >= 3 && hand[2] === 's';
-    const v1 = RANK_VAL[r1] ?? 0, v2 = RANK_VAL[r2] ?? 0;
-    switch (handClass) {
-        case 'pocket_pairs': return r1 === r2;
-        case 'suited_connectors': return isSuited && Math.abs(v1 - v2) === 1;
-        case 'broadways': return v1 >= 8 && v2 >= 8 && r1 !== r2;
-        case 'suited_aces': return isSuited && (r1 === 'A' || r2 === 'A') && r1 !== r2;
-        default: return true;
-    }
-}
 
 // ─── GAME CONFIG (from PIOQueryService) ──────────────────────────────────
 const GAME_CONFIGS = {
@@ -323,320 +242,25 @@ function getEngineType(gameId, config) {
 }
 
 /**
- * Fail-closed copy of the live runtime's legacy sanitizer. A hand survives
- * only when all observed values are in range and form either a normalized or
- * genuinely pure distribution. The fetched database object is cloned before
- * mutation so repeated question generation is deterministic.
+ * Retired Pio question-construction entry point retained only so the audit can
+ * prove that no historical duplicate policy formatter remains executable.
  */
-function sanitizeLegacyMatrix(matrix) {
-    matrix = selectTrustedLegacySolverMatrix(matrix);
-    if (!matrix) return null;
-    const actions = Array.isArray(matrix.actions) ? matrix.actions : [];
-    const frequencies = matrix.frequencies;
-    if (actions.length < 2 || !frequencies || typeof frequencies !== 'object') return null;
-    const hands = new Set();
-    actions.forEach(action => {
-        const values = frequencies[action];
-        if (values && typeof values === 'object' && !Array.isArray(values)) {
-            Object.keys(values).forEach(hand => hands.add(hand));
-        }
-    });
-    hands.forEach(hand => {
-        const values = {};
-        let sum = 0;
-        let corrupted = false;
-        actions.forEach(action => {
-            const value = frequencies[action]?.[hand];
-            if (typeof value === 'number' && value >= 0) {
-                if (value <= 1.02) {
-                    values[action] = Math.min(1, value);
-                    sum += values[action];
-                } else {
-                    corrupted = true;
-                }
-            }
-        });
-        const kept = Object.values(values);
-        const maximum = kept.length ? Math.max(...kept) : 0;
-        const normalized = !corrupted && kept.length > 0 && Math.abs(sum - 1) <= 0.05;
-        const pure = !corrupted && maximum >= 0.98 && (sum - maximum) <= 0.02;
-        actions.forEach(action => {
-            if (normalized || pure) {
-                if (values[action] !== undefined) frequencies[action][hand] = values[action] / sum;
-                else if (frequencies[action]?.[hand] !== undefined) delete frequencies[action][hand];
-            } else if (frequencies[action]?.[hand] !== undefined) {
-                delete frequencies[action][hand];
-            }
-        });
-    });
-    return matrix;
-}
-
-function toTrainingMatrix(scenario) {
-    // Never fall back to v1 when an authoritative v2 export exists but fails
-    // validation. That would conceal a damaged rebuilt solve during reseeding.
-    const selected = selectTrustedSolverMatrix(scenario);
-    if (!selected) return null;
-    if (scenario?.strategy_matrix_v2) return selected;
-    return sanitizeLegacyMatrix(structuredClone(selected));
+function buildQuestionFromScenario() {
+    // Pio cache question construction is permanently retired. The historical
+    // builder predated canonical policy receipts and interpreted cumulative
+    // later-street targets as current-node percentages. Keeping a second
+    // policy formatter here would let audit mode disagree with live Training.
+    return null;
 }
 
 /**
- * Build a training question from a solved_spots_gold row.
- * This is the core deterministic logic — mirrors DeterministicGTOEngine.buildQuestionFromScenario
+ * Refuse Pio generation; live Training owns the sole canonical policy path.
  */
-function buildQuestionFromScenario(scenario, config, level, questionIndex) {
-    // The Windows farm writes the accuracy-gated v2 payload. Legacy rows are
-    // still readable, but never prefer them over a verified v2 export.
-    const sm = toTrainingMatrix(scenario) || {};
-    const actions = sm.actions || [];
-    const frequencies = sm.frequencies || {};
-    const handEVs = sm.hand_evs || {};
-
-    if (actions.length === 0) return null;
-    // Keep cache generation identical to the live engine: frequency-only
-    // legacy rows are incomplete solver artifacts and must not receive
-    // fabricated zero EVs.
-    if (!handEVs || typeof handEVs !== 'object' || Object.keys(handEVs).length === 0) return null;
-    const solverPotChips = Number(sm.pot);
-    const displayPotBb = Number(sm.pot_bb);
-    const heroSeat = String(sm.hero || '').toUpperCase();
-    if (heroSeat !== 'OOP' && heroSeat !== 'IP') return null;
-    const expectedActor = heroSeat === 'OOP' ? 0 : 1;
-    if (
-        sm.node_state_exact !== true
-        || sm.node_actor !== expectedActor
-        || !Number.isFinite(solverPotChips) || solverPotChips <= 0
-        || !Number.isFinite(displayPotBb) || displayPotBb <= 0
-    ) return null;
-
-    // Pick a hero hand from the frequency matrix that has at least one non-zero frequency
-    const sampleAction = actions.find(a => frequencies[a]) || actions[0];
-    const handFreqs = frequencies[sampleAction] || {};
-    // CRITICAL: Only use hands that have at least one non-zero frequency in any action
-    // Some hands are not in the solver's range for a specific spot (e.g., Q8o on 3h7c7s)
-    // and will have 0% frequency for ALL actions — skip those hands entirely
-    let allHands = Object.keys(handFreqs).filter(h => {
-        if (!h || h.length < 2) return false;
-        if (!Number.isFinite(handEVs[h])) return false;
-        // Check that this hand has a non-zero frequency in at least one action
-        const hasNonZero = actions.some(a => {
-            const freq = frequencies[a]?.[h];
-            return typeof freq === 'number' && freq > 0;
-        });
-        return hasNonZero;
-    });
-    if (allHands.length === 0) return null;
-
-    // Deterministic hand selection via hash
-    const seed = hashSeed(`${scenario.scenario_hash || scenario.id}_${questionIndex}`);
-    const heroHand = allHands[seed % allHands.length];
-
-    // Compute per-action frequencies for this hand
-    const handActions = {};
-    const validActions = [];
-    let optimalAction = null;
-    let maxFreq = -1;
-
-    actions.forEach(action => {
-        const freq = frequencies[action]?.[heroHand];
-        if (freq !== undefined && freq >= 0 && freq <= 1) {
-            handActions[action] = freq;
-            validActions.push(action);
-            if (freq > maxFreq) { maxFreq = freq; optimalAction = action; }
-        }
-    });
-
-    if (!optimalAction || validActions.length === 0) return null;
-
-    // Build GTO frequencies (0-100 scale)
-    const gtoFrequencies = {};
-    validActions.forEach(a => {
-        gtoFrequencies[a] = Math.round((handActions[a] || 0) * 100);
-    });
-
-    // Normalize to 100
-    const total = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
-    if (total > 0 && total !== 100) {
-        const keys = Object.keys(gtoFrequencies);
-        keys.forEach(k => { gtoFrequencies[k] = Math.round(gtoFrequencies[k] * 100 / total); });
-        // Fix rounding drift
-        const newTotal = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
-        if (newTotal !== 100) gtoFrequencies[optimalAction] = (gtoFrequencies[optimalAction] || 0) + (100 - newTotal);
-    }
-
-    // EV data
-    const heroHandEV = handEVs[heroHand];
-    // Board and position
-    const board = parseBoardFromHash(scenario.scenario_hash);
-    const heroPosition = sm.position || extractPositionFromHash(scenario.scenario_hash);
-    const villainPosition = heroPosition === sm.oop_player
-        ? sm.ip_player
-        : heroPosition === sm.ip_player ? sm.oop_player : VILLAIN_MAP[heroPosition] || 'BB';
-
-    // Build up to 4 options from valid actions
-    const options = validActions.slice(0, 4).map(action => ({
-        id: action,
-        text: getActionLabel(action, solverPotChips, true),
-        frequency: gtoFrequencies[action],
-    }));
-
-    // Ensure at least 2 options
-    if (options.length < 2) {
-        const fillers = ['f', 'c', 'b33', 'allin'].filter(a => !validActions.includes(a));
-        while (options.length < 2 && fillers.length > 0) {
-            const filler = fillers.shift();
-            options.push({ id: filler, text: ACTION_LABELS[filler] || filler, frequency: 0 });
-            gtoFrequencies[filler] = 0;
-        }
-    }
-
-    const isMixedStrategy = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
-    const continuationBet = heroSeat === 'IP' && Number(sm.facing_bet_bb || 0) === 0
-        ? validActions
-            .filter(action => /^b\d+$/.test(String(action)))
-            .map(action => ({
-                action,
-                distance: Math.abs((Number(String(action).slice(1)) / solverPotChips) - 0.75),
-            }))
-            .filter(candidate => candidate.distance <= 0.03)
-            .sort((a, b) => a.distance - b.distance)[0]?.action || null
-        : null;
-
-    // Build explanation (deterministic, no AI)
-    const freqPct = (maxFreq * 100).toFixed(0);
-    let explanation;
-    if (maxFreq >= 0.95) {
-        explanation = `GTO solver: Pure ${getActionLabel(optimalAction, solverPotChips, true)} (${freqPct}%). ${heroHand} has a clear optimal line on ${scenario.street}.`;
-    } else {
-        const mixedParts = validActions
-            .filter(a => handActions[a] > 0.01)
-            .sort((a, b) => handActions[b] - handActions[a])
-            .map(a => `${getActionLabel(a, solverPotChips, true)} ${(handActions[a] * 100).toFixed(0)}%`)
-            .join(', ');
-        explanation = `GTO solver mixes: ${mixedParts}. Primary line is ${getActionLabel(optimalAction, solverPotChips, true)} at ${freqPct}%.${maxFreq < 0.6 ? ' This is a close GTO spot.' : ''}`;
-    }
-
-    const provenanceVerified = Boolean(
-        scenario.strategy_matrix_v2
-        && scenario.quality_status === 'validated'
-        && scenario.solver_version
-        && /^[0-9a-f]{64}$/i.test(String(scenario.solver_binary_checksum || ''))
-        && ['M1', 'M2'].includes(String(scenario.machine_id || ''))
-        && /^[0-9a-f]{40}$/i.test(String(scenario.pipeline_commit || ''))
-        && scenario.manifest_version
-        && /^[0-9a-f]{64}$/i.test(String(scenario.manifest_checksum || ''))
-        && /^[0-9a-f]{64}$/i.test(String(scenario.source_artifact_checksum || ''))
-        && scenario.audited_at
-    );
-
+async function generatePIOBatch() {
     return {
-        id: `pio_${scenario.id}_${heroHand}_${questionIndex}`,
-        type: 'PIO',
-        source: 'DETERMINISTIC_SOLVER',
-        dataQuality: provenanceVerified ? 'SOLVER_EXACT' : 'LEGACY_UNVERIFIED',
-        solverProvenance: {
-            verified: provenanceVerified,
-            source: provenanceVerified ? 'PioSOLVER' : 'solved_spots_gold_legacy',
-            scenarioHash: scenario.scenario_hash || null,
-            solverVersion: scenario.solver_version || null,
-            solverBinaryChecksum: scenario.solver_binary_checksum || null,
-            machineId: scenario.machine_id || null,
-            pipelineCommit: scenario.pipeline_commit || null,
-            manifestVersion: scenario.manifest_version || null,
-            manifestChecksum: scenario.manifest_checksum || null,
-            sourceArtifactChecksum: scenario.source_artifact_checksum || null,
-            qualityStatus: scenario.quality_status || null,
-            auditedAt: scenario.audited_at || null,
-        },
-        scenario: {
-            board: board.join(' '),
-            street: scenario.street,
-            stackDepth: scenario.stack_depth,
-            gameType: scenario.game_type,
-            scenarioHash: scenario.scenario_hash,
-            heroHand,
-            heroPosition,
-            heroStack: scenario.stack_depth || 100,
-            pot: displayPotBb,
-            villainPosition,
-            villainStack: scenario.stack_depth || 100,
-            action: Number(sm.facing_bet_bb) > 0
-                ? `${villainPosition} bets ${Number(sm.facing_bet_bb)} BB`
-                : sm.node_actor === 0 ? 'You are first to act' : `${villainPosition} checks to you`,
-            solverNode: sm.node,
-            solverActionUnits: 'chips',
-            nextStreetContinuationAction: continuationBet,
-            isMixedStrategy,
-        },
-        heroCards: parseHandToCards(heroHand),
-        boardCards: board,
-        question: `You hold ${heroHand} on the ${scenario.street}. Board: ${board.join(' ')}. What is the GTO play?`,
-        options,
-        correctAnswer: optimalAction,
-        correctAnswerText: getActionLabel(optimalAction, solverPotChips, true),
-        frequencies: handActions,
-        gtoFrequencies,
-        rawFrequencies: frequencies,
-        evData: {
-            heroHandEV,
-            handEVs,
-            heroHand,
-            quality: 'SOLVER_NODE_HAND_EV_ONLY',
-        },
-        explanation,
-        difficulty: level,
-        heroHand,
+        questions: [],
+        error: 'Pio cache question construction is permanently retired; use the canonical live Training policy pipeline.',
     };
-}
-
-/**
- * Generate questions from solved_spots_gold for a PIO game at a given level
- */
-async function generatePIOBatch(gameId, config, level, count = 25) {
-    const street = config.pioStreet || getStreetForLevel(level);
-
-    // Fetch a pool of scenarios
-    const poolSize = Math.min(count * 4, 100);
-    let scenarios;
-    try {
-        const base = `?game_type=eq.${config.pioGameType}&stack_depth=eq.${config.pioStackDepth}&street=eq.${street}`;
-        try {
-            scenarios = await supabaseQuery('solved_spots_gold',
-                `${base}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2,solver_version,solver_binary_checksum,machine_id,pipeline_commit,manifest_version,manifest_checksum,source_artifact_checksum,quality_status,audited_at&limit=${poolSize}`
-            );
-        } catch (provenanceError) {
-            if (!/column|schema cache|PGRST204|42703/i.test(provenanceError.message || '')) throw provenanceError;
-            // Additive migration has not landed yet: rows may be inspected as
-            // legacy/unverified, never promoted to solver-exact.
-            scenarios = await supabaseQuery('solved_spots_gold',
-                `${base}&select=id,scenario_hash,street,stack_depth,game_type,strategy_matrix,strategy_matrix_v2&limit=${poolSize}`
-            );
-        }
-    } catch (error) {
-        return { questions: [], error: error.message };
-    }
-
-    if (!scenarios || scenarios.length === 0) {
-        return { questions: [], error: `No scenarios for ${config.pioGameType} ${street} ${config.pioStackDepth}bb` };
-    }
-
-    const questions = [];
-    const usedIds = new Set();
-
-    for (let i = 0; i < count && i < scenarios.length * 6; i++) {
-        const scenario = scenarios[i % scenarios.length];
-        const q = enforceSolverClaimHonesty(buildQuestionFromScenario(scenario, config, level, i));
-        // Unsealed legacy rows remain available through the live sanitizer,
-        // but caching them would let a later request bypass that validation.
-        // Only provenance-sealed warehouse output is eligible for reseeding.
-        if (q && q.dataQuality !== 'LEGACY_UNVERIFIED' && !usedIds.has(q.id)) {
-            questions.push(q);
-            usedIds.add(q.id);
-        }
-    }
-
-    return { questions, error: null };
 }
 
 /**
@@ -910,15 +534,8 @@ async function verifyGame(gameId) {
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────
 
 async function main() {
-    ({
-        selectTrustedLegacySolverMatrix,
-        selectTrustedSolverMatrix,
-    } = await import(pathToFileURL(
-        path.join(__dirname, '../src/lib/training/solverMatrixTrust.js'),
-    ).href));
     const startTime = Date.now();
     ({ enforceTrainingQuestionContract } = await import('../src/lib/training/questionContract.mjs'));
-    ({ enforceSolverClaimHonesty } = await import('../src/lib/training/solverDecisionEvidence.js'));
 
     console.log('\n═══════════════════════════════════════════════════════════════');
     console.log(`🎯 DETERMINISTIC CACHE RE-SEEDER`);

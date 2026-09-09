@@ -102,6 +102,15 @@ Work: `.tabs` wraps into a 2-col grid; labels return; trend points become
 a wrapping row of 44px chips (keeps the tap target the carousel was
 protecting).
 
+**Shipped 2026-09-09** (`docs/changelog/2026-09-09-mobile-phase4-personal-assistant.md`):
+the five section anchors are a wrapping grid, the Decision Loop keeps its
+label and every session keeps its date, the leaks trend row and the Coaching
+workspace's six views both wrap, the double bottom pad is gone (the page had
+its own on top of BottomNavSpacer), 100dvh and overflow-x clip everywhere, 30
+sub-12px declarations re-laid, four breakpoints down to three, the full
+phase 0a set, and an eight-step tutorial registered for the whole prefix so
+the hub, leaks and the evidence gate all offer it. Budget row converted.
+
 ## Phase 5: Training Games (LARGE by file count)
 
 Files: `pages/hub/training.js` (1,745), `pages/hub/training/**` (~100 files),

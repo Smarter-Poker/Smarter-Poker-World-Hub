@@ -14,7 +14,22 @@ name: push-velocity-watchdog
 
 on:
   schedule:
-    - cron: '0 */1 * * *' # every hour on the hour
+    # A SCHEDULE IS RIGHT HERE, unlike the publish watchdog: this detects the
+    # ABSENCE of pushes, so a push trigger would fire only when there is
+    # nothing to report.
+    #
+    # But the cadence is a wish. Measured on 2026-09-09 over the last 30
+    # scheduled runs of this workflow:
+    #
+    #   claimed:  every hour
+    #   actual:   219 minutes median, 380 minutes worst
+    #
+    # GitHub drops and defers scheduled runs on a busy account. The threshold
+    # this checks is a 4-hour stall, and a 6.3-hour gap between runs means a
+    # real stall is reported LATE rather than missed: the check compares the
+    # last commit against now, so a later run still sees it. Late is the cost,
+    # and it is worth knowing rather than assuming an hour.
+    - cron: '0 */1 * * *'
   workflow_dispatch: {}
 
 permissions:

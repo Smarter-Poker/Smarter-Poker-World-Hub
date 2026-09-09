@@ -1,8 +1,8 @@
 /**
- * QRE POPULATION TENDENCIES — Quantal Response Equilibrium Explorer
+ * QRE TOY MODEL — Quantal Response Learning Explorer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Models how real humans play vs GTO. Shows population-adjusted frequencies
- * with QRE noise parameter (λ). Lower λ = more random, higher λ = GTO-like.
+ * Demonstrates how a softmax responds to authored utility weights. It does not
+ * contain solver output, Nash frequencies, measured pool data, or strategy advice.
  *
  * Route: /hub/training/qre-explorer
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -10,7 +10,7 @@
 
 // TRAIN-CSS-TOKENS-BATCH5-41 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -22,56 +22,53 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 const MOTION = { fast: 0.12, standard: 0.2, slow: 0.32, glacial: 0.52 };
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
-// QRE ENGINE — Quantal Response Equilibrium Adjustment
+// QRE TEACHING MODEL — Softmax Adjustment Over Authored Inputs
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 /**
- * Quantal Response Equilibrium (QRE) models bounded rationality.
- * Players make mistakes proportional to the EV difference between options.
- * λ (lambda) controls the "rationality" parameter:
- *   λ = 0:  Equal probability for all actions (random play)
- *   λ → ∞: Perfect GTO (Nash Equilibrium)
- *   λ = 1-5: Typical population play
+ * This deliberately simplified teaching model applies a softmax to arbitrary,
+ * dimensionless utility weights. Lambda changes concentration only. Neither the
+ * weights nor the reference frequencies are solver-derived or population samples.
  */
 
-const GTO_ACTIONS = {
+const AUTHORED_ACTIONS = {
   'UTG-preflop': [
-    { action: 'Open Raise', gtoFreq: 15, ev: 1.2 },
-    { action: 'Fold', gtoFreq: 85, ev: 0 },
+    { action: 'Open Raise', referenceFreq: 15, utility: 1.2 },
+    { action: 'Fold', referenceFreq: 85, utility: 0 },
   ],
   'CO-preflop': [
-    { action: 'Open Raise', gtoFreq: 27, ev: 1.8 },
-    { action: 'Fold', gtoFreq: 73, ev: 0 },
+    { action: 'Open Raise', referenceFreq: 27, utility: 1.8 },
+    { action: 'Fold', referenceFreq: 73, utility: 0 },
   ],
   'BTN-preflop': [
-    { action: 'Open Raise', gtoFreq: 48, ev: 2.2 },
-    { action: 'Limp', gtoFreq: 5, ev: 0.4 },
-    { action: 'Fold', gtoFreq: 47, ev: 0 },
+    { action: 'Open Raise', referenceFreq: 48, utility: 2.2 },
+    { action: 'Limp', referenceFreq: 5, utility: 0.4 },
+    { action: 'Fold', referenceFreq: 47, utility: 0 },
   ],
   'SB-preflop': [
-    { action: 'Open Raise', gtoFreq: 36, ev: 1.5 },
-    { action: 'Limp', gtoFreq: 8, ev: 0.3 },
-    { action: 'Fold', gtoFreq: 56, ev: 0 },
+    { action: 'Open Raise', referenceFreq: 36, utility: 1.5 },
+    { action: 'Limp', referenceFreq: 8, utility: 0.3 },
+    { action: 'Fold', referenceFreq: 56, utility: 0 },
   ],
   'BB-vs3bet': [
-    { action: '4-Bet', gtoFreq: 8, ev: 3.5 },
-    { action: 'Call', gtoFreq: 25, ev: 1.2 },
-    { action: 'Fold', gtoFreq: 67, ev: 0 },
+    { action: '4-Bet', referenceFreq: 8, utility: 3.5 },
+    { action: 'Call', referenceFreq: 25, utility: 1.2 },
+    { action: 'Fold', referenceFreq: 67, utility: 0 },
   ],
   'IP-cbet-flop': [
-    { action: 'C-Bet 33%', gtoFreq: 55, ev: 1.8 },
-    { action: 'C-Bet 75%', gtoFreq: 15, ev: 1.2 },
-    { action: 'Check', gtoFreq: 30, ev: 0.8 },
+    { action: 'C-Bet 33%', referenceFreq: 55, utility: 1.8 },
+    { action: 'C-Bet 75%', referenceFreq: 15, utility: 1.2 },
+    { action: 'Check', referenceFreq: 30, utility: 0.8 },
   ],
   'OOP-check-raise': [
-    { action: 'Check-Raise', gtoFreq: 12, ev: 2.8 },
-    { action: 'Check-Call', gtoFreq: 38, ev: 0.9 },
-    { action: 'Check-Fold', gtoFreq: 50, ev: 0 },
+    { action: 'Check-Raise', referenceFreq: 12, utility: 2.8 },
+    { action: 'Check-Call', referenceFreq: 38, utility: 0.9 },
+    { action: 'Check-Fold', referenceFreq: 50, utility: 0 },
   ],
   'river-bluff': [
-    { action: 'Value Bet', gtoFreq: 30, ev: 4.5 },
-    { action: 'Bluff', gtoFreq: 15, ev: 2.1 },
-    { action: 'Check', gtoFreq: 55, ev: 0.5 },
+    { action: 'Value Bet', referenceFreq: 30, utility: 4.5 },
+    { action: 'Bluff', referenceFreq: 15, utility: 2.1 },
+    { action: 'Check', referenceFreq: 55, utility: 0.5 },
   ],
 };
 
@@ -86,28 +83,23 @@ const SPOT_LABELS = {
   'river-bluff': { label: 'River Bluff', street: 'River', icon: '◇' },
 };
 
-const POOL_PRESETS = [
-  { id: '2nl', label: '2NL Online', lambda: 0.8, desc: 'Very loose, passive, high error rate' },
-  { id: '25nl', label: '25NL Online', lambda: 2.5, desc: 'Basic understanding, moderate errors' },
-  { id: '200nl', label: '200NL Online', lambda: 5.0, desc: 'Competent, near-optimal play' },
-  {
-    id: 'live-1-2',
-    label: 'Live $1/$2',
-    lambda: 1.2,
-    desc: 'Loose-passive, calling station tendencies',
-  },
-  { id: 'live-5-10', label: 'Live $5/$10', lambda: 3.5, desc: 'Mixed pool, some strong regulars' },
-  { id: 'highroller', label: 'High Roller', lambda: 8.0, desc: 'Elite players, nearly GTO' },
+const MODEL_PRESETS = [
+  { id: 'diffuse', label: 'Diffuse', lambda: 0.8, desc: 'Actions remain broadly distributed' },
+  { id: 'soft', label: 'Soft', lambda: 1.5, desc: 'Utility differences have a modest effect' },
+  { id: 'balanced', label: 'Medium', lambda: 2.5, desc: 'A middle teaching setting' },
+  { id: 'focused', label: 'Focused', lambda: 4.0, desc: 'Higher-utility actions concentrate' },
+  { id: 'sharp', label: 'Sharp', lambda: 6.0, desc: 'A strongly concentrated illustration' },
+  { id: 'very-sharp', label: 'Very Sharp', lambda: 8.0, desc: 'An extreme sensitivity illustration' },
 ];
 
 function computeQRE(actions, lambda) {
-  // Softmax / logit QRE model
-  const maxEv = Math.max(...actions.map((a) => a.ev));
-  const scaled = actions.map((a) => Math.exp(lambda * (a.ev - maxEv)));
+  // Softmax teaching model over dimensionless authored utilities.
+  const maxUtility = Math.max(...actions.map((a) => a.utility));
+  const scaled = actions.map((a) => Math.exp(lambda * (a.utility - maxUtility)));
   const total = scaled.reduce((s, v) => s + v, 0);
   return actions.map((a, i) => ({
     ...a,
-    qreFreq: Math.round((scaled[i] / total) * 100),
+    modelFreq: Math.round((scaled[i] / total) * 100),
   }));
 }
 
@@ -125,7 +117,7 @@ export default function QREExplorerPage() {
 
   const qreResults = useMemo(() => {
     const result = {};
-    Object.entries(GTO_ACTIONS || {}).forEach(([spot, actions]) => {
+    Object.entries(AUTHORED_ACTIONS || {}).forEach(([spot, actions]) => {
       result[spot] = computeQRE(actions, lambda);
     });
     return result;
@@ -182,9 +174,9 @@ export default function QREExplorerPage() {
             ←
           </button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Explorer</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Toy Model</div>
             <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
-              Population Tendencies - Quantal Response Equilibrium
+              Authored Illustration • No Solver Or Population Data
             </div>
           </div>
         </div>
@@ -218,10 +210,10 @@ export default function QREExplorerPage() {
                     letterSpacing: 1,
                   }}
                 >
-                  Rationality Parameter (λ)
+                  Concentration Parameter (λ)
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
-                  0 = Random Play → ∞ = Perfect GTO
+                  Lower = More Even → Higher = More Concentrated
                 </div>
               </div>
               <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>
@@ -229,7 +221,7 @@ export default function QREExplorerPage() {
               </div>
             </div>
             <input
-              aria-label="Rationality Lambda"
+              aria-label="Model Concentration Lambda"
               type="range"
               min="0.1"
               max="10"
@@ -250,11 +242,11 @@ export default function QREExplorerPage() {
                 marginTop: 4,
               }}
             >
-              <span>Random</span>
-              <span>Fish</span>
-              <span>Reg</span>
-              <span>Crusher</span>
-              <span>GTO Bot</span>
+              <span>Diffuse</span>
+              <span>Soft</span>
+              <span>Medium</span>
+              <span>Focused</span>
+              <span>Sharp</span>
             </div>
           </div>
 
@@ -269,7 +261,7 @@ export default function QREExplorerPage() {
               marginBottom: 12,
             }}
           >
-            Population Presets
+            Illustration Presets
           </div>
           <div
             style={{
@@ -279,7 +271,7 @@ export default function QREExplorerPage() {
               marginBottom: 24,
             }}
           >
-            {POOL_PRESETS.map((p) => (
+            {MODEL_PRESETS.map((p) => (
               <motion.button
                 key={p.id}
                 whileTap={{ scale: 0.97 }}
@@ -344,7 +336,7 @@ export default function QREExplorerPage() {
             ))}
           </div>
 
-          {/* GTO vs QRE Comparison */}
+          {/* Authored reference versus teaching-model comparison */}
           <div
             style={{
               background: 'rgba(0,0,0,0.2)',
@@ -389,10 +381,10 @@ export default function QREExplorerPage() {
             >
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>ACTION</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-green)', textAlign: 'center' }}>
-                GTO
+                AUTHORED
               </div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-purple)', textAlign: 'center' }}>
-                QRE
+                MODEL
               </div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-amber)', textAlign: 'center' }}>
                 DELTA
@@ -400,7 +392,7 @@ export default function QREExplorerPage() {
             </div>
 
             {currentActions.map((a) => {
-              const delta = a.qreFreq - a.gtoFreq;
+              const delta = a.modelFreq - a.referenceFreq;
               return (
                 <motion.div
                   key={a.action}
@@ -419,16 +411,18 @@ export default function QREExplorerPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       {a.action}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>EV: {a.ev}</div>
+                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+                      Model Utility: {a.utility}
+                    </div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
-                      {a.gtoFreq}%
+                      {a.referenceFreq}%
                     </div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
-                      {a.qreFreq}%
+                      {a.modelFreq}%
                     </div>
                   </div>
                   <div style={{ textAlign: 'center' }}>
@@ -478,7 +472,7 @@ export default function QREExplorerPage() {
                       }}
                     >
                       <motion.div
-                        animate={{ width: `${a.gtoFreq}%` }}
+                        animate={{ width: `${a.referenceFreq}%` }}
                         transition={{ duration: MOTION.slow }}
                         style={{ height: '100%', background: 'var(--sp-accent-green)', borderRadius: 3 }}
                       />
@@ -492,7 +486,7 @@ export default function QREExplorerPage() {
                       }}
                     >
                       <motion.div
-                        animate={{ width: `${a.qreFreq}%` }}
+                        animate={{ width: `${a.modelFreq}%` }}
                         transition={{ duration: MOTION.slow }}
                         style={{ height: '100%', background: 'var(--sp-accent-purple)', borderRadius: 3 }}
                       />
@@ -510,12 +504,12 @@ export default function QREExplorerPage() {
                 marginTop: 8,
               }}
             >
-              <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>GTO (Nash)</span>
-              <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700 }}>QRE (Population)</span>
+              <span style={{ color: 'var(--sp-accent-green)', fontWeight: 700 }}>Authored Reference</span>
+              <span style={{ color: 'var(--sp-accent-purple)', fontWeight: 700 }}>Toy Model</span>
             </div>
           </div>
 
-          {/* Exploit Suggestion */}
+          {/* Model interpretation */}
           <div
             style={{
               padding: 20,
@@ -533,16 +527,18 @@ export default function QREExplorerPage() {
                 marginBottom: 8,
               }}
             >
-              Exploit Recommendation
+              Model Observation
             </div>
             <div style={{ fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
               {lambda < 1.5
-                ? 'This population plays nearly randomly. Exploit by value-betting thinner, bluffing less (they call too much), and sizing up for value.'
+                ? 'At this setting, the toy model keeps the authored actions relatively diffuse.'
                 : lambda < 3
-                  ? 'Typical recreational pool. They over-fold to aggression preflop and under-bluff postflop. Increase 3-bet frequency and barrel bluffs on scary runouts.'
+                  ? 'At this setting, authored utility differences create moderate concentration.'
                   : lambda < 6
-                    ? 'Competent pool approaching GTO. Exploit marginal edges by adjusting bet sizing and targeting small frequency leaks in specific spots.'
-                    : 'Near-GTO population. Standard balanced strategy is optimal. Focus on mixed strategy precision and maximizing BB/100 through positional awareness.'}
+                    ? 'At this setting, the toy model places much more weight on the highest authored utility.'
+                    : 'At this setting, the toy model is extremely sensitive to the highest authored utility.'}{' '}
+              This Is A Mathematical Illustration Only. It Does Not Describe A Real Player Pool,
+              Establish Action Quality, Or Recommend Poker Strategy.
             </div>
           </div>
         </div>

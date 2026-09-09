@@ -117,6 +117,34 @@ export function deriveEVSummary(handHistory) {
 }
 
 /**
+ * Solver EV is a narrower evidence class than a graded decision. Historical
+ * rows (and many legitimate authored drills) carry a compatibility `0` in
+ * `evLoss` even though no action-EV pair was measured. Treating that sentinel
+ * as real evidence makes an unavailable solve look like a perfect decision.
+ *
+ * This projection therefore includes only entries explicitly sealed with
+ * `evLossMeasured === true` and a finite numeric value. A measured zero stays
+ * zero; an unmeasured zero disappears. The count travels with the total so UI
+ * consumers can distinguish those two states without guessing from the value.
+ */
+export function deriveMeasuredEVSummary(handHistory) {
+    let totalEVLoss = 0;
+    let measuredEVDecisions = 0;
+    (handHistory || []).forEach((h) => {
+        if (!h || h.evLossMeasured !== true || !Number.isFinite(h.evLoss)) return;
+        totalEVLoss = Math.round((totalEVLoss + h.evLoss) * 100) / 100;
+        measuredEVDecisions += 1;
+    });
+    return {
+        totalEVLoss,
+        measuredEVDecisions,
+        avgEVLossPerMeasuredDecision: measuredEVDecisions > 0
+            ? Math.round((totalEVLoss / measuredEVDecisions) * 100) / 100
+            : null,
+    };
+}
+
+/**
  * The most costly spots of the session: every graded mistake that surrendered
  * EV, sorted by how much it surrendered, largest first. Ties keep session
  * order (earlier hand first) so the ordering is deterministic.

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "readOnly": true,
+  "sampledAt": "2026-09-08T00:46:04.838Z",
+  "purpose": "Revalidate the existing solved_spots_gold inventory before authorizing any new Training river solves.",
+  "sources": [
+    {
+      "path": ".agent/audits/2026-08-31-training-solved-spots-flop-evidence.json",
+      "sha256": "dd2f6e91df497b33c32e9b4c8350398f0622275835fa25006b500627c39d4ab4"
+    },
+    {
+      "path": ".agent/audits/2026-08-31-training-solved-spots-turn-evidence.json",
+      "sha256": "7ce4ff2ade9467b424f57befb59aec88871d8aebd5288807ec1e3c6043ec58ba"
+    },
+    {
+      "path": ".agent/audits/2026-08-31-training-solved-spots-river-evidence.json",
+      "sha256": "aae02466e7b99388f3ef27a629efc73da249f1cce1e621cef22fcbab38d103ed"
+    },
+    {
+      "path": ".agent/audits/2026-08-31-training-solver-replacement-manifest.json",
+      "sha256": "3bd169f76eaa5b5dbb1e9b87a01e2e3050c837dbf43cc92d8ffeda518e1bb3db"
+    }
+  ],
+  "currentWarehouse": {
+    "estimatedRows": 8895168,
+    "totalSize": "80 GB",
+    "heapSize": "3501 MB",
+    "toastTotalSize": "75 GB",
+    "lastAnalyze": "2026-09-02T23:38:59.504Z",
+    "estimatedDeadRows": 28634,
+    "sequentialScans": 33,
+    "indexScans": 7815178
+  },
+  "freshSystemSample": {
+    "ratePercent": 0.05,
+    "allStreetSample": [
+      {
+        "street": "flop",
+        "sampledRows": 14,
+        "legacyRows": 14,
+        "v2Rows": 11,
+        "strictV2ShapeRows": 11,
+        "provenanceCompleteRows": 0
+      },
+      {
+        "street": "river",
+        "sampledRows": 2737,
+        "legacyRows": 2737,
+        "v2Rows": 0,
+        "strictV2ShapeRows": 0,
+        "provenanceCompleteRows": 0
+      },
+      {
+        "street": "turn",
+        "sampledRows": 1473,
+        "legacyRows": 1473,
+        "v2Rows": 943,
+        "strictV2ShapeRows": 943,
+        "provenanceCompleteRows": 0
+      }
+    ],
+    "independentRiverSample": {
+      "sampledRows": 3053,
+      "legacyRows": 3053,
+      "v2Rows": 0,
+      "legacyObjectRows": 3053,
+      "actionsArrayRows": 3053,
+      "frequenciesObjectRows": 3053,
+      "handEvsObjectRows": 2687,
+      "boardArrayRows": 1986,
+      "nodeRows": 0,
+      "positionRows": 0,
+      "heroPositionRows": 3053
+    }
+  },
+  "exhaustiveFixedCutoffEvidence": {
+    "cutoff": "2026-08-31T17:17:18.402Z",
+    "warehouseRows": 8924796,
+    "warehouseRiverRows": 5668373,
+    "trainingContractRiverRowsAudited": 189679,
+    "trainingUsableLegacyRows": 169401,
+    "replacementRequiredRiverRows": 20278,
+    "strictProvenanceReadyRiverRows": 0,
+    "invalidRiverBoards": 0,
+    "riverCellsMissingCanonicalRows": [
+      "mtt_9max_chipev|100|river",
+      "spin_3max_chipev|20|river",
+      "spin_hu_chipev|10|river",
+      "spin_hu_chipev|20|river"
+    ],
+    "riverCellsWithKnownDefectiveRows": [
+      {
+        "cell": "hu_cash|40|river",
+        "rows": 11354,
+        "trainingUsableLegacyRows": 514,
+        "replacementRequiredRows": 10840
+      },
+      {
+        "cell": "postflop_complete|100|river",
+        "rows": 9438,
+        "trainingUsableLegacyRows": 0,
+        "replacementRequiredRows": 9438
+      }
+    ]
+  },
+  "decision": {
+    "requestBlanketRiverResolve": false,
+    "serveLegacyRowsAsSolverExact": false,
+    "preserveExistingRiverRows": true,
+    "quarantineAndReviewSalvageableLegacyRows": true,
+    "authorizeWorkersNow": false,
+    "reason": "The existing river inventory is real and mostly matrix-and-board usable for legacy derived Training, but it lacks exact node/combo-vector identity and independently sealed provenance. Only the 20,278 proven-defective rows plus four missing river contract cells are solve candidates, and even those require canonical inputs and an attested ingestion path before either worker is retargeted."
+  }
+}

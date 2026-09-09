@@ -96,7 +96,7 @@ export default function JarvisDashboard() {
   useEffect(() => {
     const _c = new AbortController();
 
-    loadInsights();
+    loadInsights(_c.signal);
     return () => _c.abort();
   }, []);
 
@@ -116,7 +116,7 @@ export default function JarvisDashboard() {
       setUser(authUser);
 
       if (authUser) {
-        const response = await authedFetch(`/api/jarvis/user-insights`);
+        const response = await authedFetch(`/api/jarvis/user-insights`, { signal });
         if (!response.ok) throw new Error(`Request failed (${response.status})`);
         const data = await response.json();
 
@@ -126,17 +126,34 @@ export default function JarvisDashboard() {
       }
       setLoading(false);
     } catch (error) {
+      if (error?.name === 'AbortError') return;
       console.warn('Error loading insights:', error);
       setFetchError('Unable to load Jarvis insights. Please try again.');
       setLoading(false);
     }
   };
 
+  const rawAccuracy = insights?.overview?.overallAccuracy;
+  const measuredAccuracy = rawAccuracy === null || rawAccuracy === undefined
+    ? null
+    : Number(rawAccuracy);
+  const accuracyLabel = measuredAccuracy !== null && Number.isFinite(measuredAccuracy)
+    ? `${measuredAccuracy}%`
+    : 'Not Available';
+  const rawWeeklySeconds = insights?.weeklyProgress?.timeSpentSeconds
+    ?? insights?.weeklyProgress?.timeSpent;
+  const measuredWeeklySeconds = rawWeeklySeconds === null || rawWeeklySeconds === undefined
+    ? null
+    : Number(rawWeeklySeconds);
+  const weeklyTimeLabel = measuredWeeklySeconds !== null && Number.isFinite(measuredWeeklySeconds)
+    ? `${Math.round(measuredWeeklySeconds / 60)}m`
+    : 'Not Available';
+
   return (
     <PageTransition>
       <SEOHead
-        title="Jarvis AI Coach - GTO Analysis"
-        description="Get Personalized GTO Coaching From Jarvis, Your AI Poker Intelligence. Solver-grade Analysis For Every Hand."
+        title="Jarvis Training Insights"
+        description="Review Personalized Insights Derived From Your Verified Smarter.Poker Training Sessions."
         canonical="/hub/training/jarvis"
       />
 
@@ -192,7 +209,7 @@ export default function JarvisDashboard() {
                   />
                   <StatCard
                     label="Accuracy"
-                    value={`${insights?.overview?.overallAccuracy || 0}%`}
+                    value={accuracyLabel}
                     icon="◆"
                     iconKind="target"
                   />
@@ -240,7 +257,7 @@ export default function JarvisDashboard() {
                   <div style={styles.leaksList}>
                     {insights.topLeaks.map((leak, i) => (
                       <div key={i} style={styles.leakCard}>
-                        <span style={styles.leakName}>{leak.name}</span>
+                        <span style={styles.leakName}>{leak.leak || leak.name || leak.position || 'Training Area'}</span>
                         <span style={styles.leakCount}>{leak.count} Occurrences</span>
                       </div>
                     ))}
@@ -261,7 +278,7 @@ export default function JarvisDashboard() {
                   <div style={styles.gamesGrid}>
                     {insights.gamePerformance.slice(0, 6).map((game, i) => (
                       <div key={i} style={styles.gameCard}>
-                        <div style={styles.gameName}>{game.name}</div>
+                        <div style={styles.gameName}>{game.gameName || game.name || 'Training'}</div>
                         <div style={styles.gameAccuracy}>{game.accuracy}%</div>
                         <div style={styles.gameLabel}>Accuracy</div>
                       </div>
@@ -382,7 +399,7 @@ export default function JarvisDashboard() {
                   </div>
                   <div style={styles.weeklyStat}>
                     <span style={styles.weeklyValue}>
-                      {insights?.weeklyProgress?.timeSpent || 0}m
+                      {weeklyTimeLabel}
                     </span>
                     <span style={styles.weeklyLabel}>Time Spent</span>
                   </div>

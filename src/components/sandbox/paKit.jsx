@@ -126,7 +126,7 @@ export function PAStyles() {
             .pa-sheet-telemetry {
                 display: flex; align-items: center; justify-content: space-between; gap: 12px;
                 padding: 2px 16px 8px; color: ${T.accent};
-                font: 600 9px 'IBM Plex Mono', monospace; letter-spacing: .16em;
+                font: 600 12px/1.3 'IBM Plex Mono', monospace; letter-spacing: .1em;
                 text-transform: uppercase; white-space: nowrap;
             }
             .pa-sheet-telemetry span:last-child { color: ${T.textDim}; letter-spacing: .1em; }

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import { unappliedObjects } from '../scripts/ci/check-migrations-applied.mjs';
+
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const PAGE = read('../pages/hub/video-library.js');
 const HISTORY = read('../src/services/videoWatchHistory.js');
@@ -65,7 +67,15 @@ test('navigation, touch scrolling, and focused HUD controls cannot regress', () 
 });
 
 test('migration verification fails when a declared RPC is absent', () => {
-  assert.match(GATE, /if \(!fns\.has\(fn\.name\)\)/);
-  assert.match(GATE, /failures\.push\(\[file, 'function', `\$\{fn\.name\}/);
+  const failures = unappliedObjects(
+    {
+      tables: [],
+      columns: [],
+      fns: [{ name: 'missing_video_rpc', args: ['p_video_id'] }],
+    },
+    { tables: new Map(), fns: new Set(), rpcArgs: new Map() }
+  );
+
+  assert.deepEqual(failures, [['function', 'missing_video_rpc(p_video_id)']]);
   assert.doesNotMatch(GATE, /warnings\.push\(\[file, 'function'/);
 });

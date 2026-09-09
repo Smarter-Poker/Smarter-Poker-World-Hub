@@ -10,7 +10,6 @@ const routes = [
   'gto-reports',
   'gto-scorecard',
   'session-dashboard',
-  'aggregate',
   'leaderboard',
   'community-leaderboard',
   'player-profiles',
@@ -18,9 +17,20 @@ const routes = [
 
 test('the complete reporting family adopts one intelligence-rail shell', () => {
   for (const route of routes) {
-    const source = read(`pages/hub/training/${route}.js`);
+    const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
     assert.match(source, /sp-training-intelligence/, `${route} is missing the intelligence shell`);
   }
+  assert.match(read('pages/hub/training/gto-reports.js'), /export \{ default \} from '\.\/reports'/);
+});
+
+test('aggregate reports expose an honest solver-integrity boundary', () => {
+  const source = read('pages/hub/training/aggregate.js');
+  assert.match(source, /aggregate-boundary/);
+  assert.match(source, /Aggregate Reports Are Paused/);
+  assert.match(source, /Canonical Row Identity/);
+  assert.match(source, /Complete Solver Lineage/);
+  assert.match(source, /Documented Weighting/);
+  assert.doesNotMatch(source, /api\/training\/aggregate-report|strategy_matrix\b/);
 });
 
 test('report, scorecard, dashboard, and profile pages expose responsive stages', () => {
@@ -32,7 +42,7 @@ test('report, scorecard, dashboard, and profile pages expose responsive stages',
     'community-leaderboard',
     'player-profiles',
   ]) {
-    const source = read(`pages/hub/training/${route}.js`);
+    const source = read(`pages/hub/training/${route === 'gto-reports' ? 'reports' : route}.js`);
     assert.match(source, /sp-intelligence-header/, `${route} is missing the command header`);
     assert.match(source, /sp-intelligence-main/, `${route} is missing the responsive stage`);
   }

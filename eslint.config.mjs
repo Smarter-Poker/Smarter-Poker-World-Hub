@@ -47,6 +47,37 @@ export default defineConfig([
       '@next/next/no-assign-module-variable': 'off',
     },
   },
+  {
+    // A CATCH THAT ONLY LOGS IS AN ERROR IN THE MODULES THAT DECIDE THINGS.
+    //
+    // The rule is a warning repo-wide because 55 catch blocks in bankroll
+    // code alone predate it, and turning those red would either block every
+    // push or invite 55 unrelated edits in one pull request.
+    //
+    // It is an ERROR here because these files are already clean and because
+    // this is exactly where a swallowed failure costs money: on 2026-09-08 a
+    // silent catch was how a receipt could be uploaded, fail to be listed,
+    // and be reported as kept. New code in the receipt pipeline, the
+    // entitlement gates and the CI checks cannot add another one.
+    files: [
+      'src/lib/bankroll/receipt*',
+      'src/lib/gates/**',
+      'scripts/ci/**',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "AwaitExpression[argument.callee.name='getAuthUser']",
+          message: 'getAuthUser() is synchronous. Use direct assignment: const user = getAuthUser();',
+        },
+        {
+          selector: "CatchClause[body.body.length=1][body.body.0.type='ExpressionStatement'][body.body.0.expression.callee.object.name='console']",
+          message: 'Single-statement catch blocks that only log may be hiding errors. Handle the failure explicitly.',
+        },
+      ],
+    },
+  },
   globalIgnores([
     '.next/**',
     'coverage/**',

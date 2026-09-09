@@ -457,6 +457,52 @@ describe('training performance eggs', () => {
         const firstTry = [{ ...pass(daysAgo(2)), level: 6, accuracy: 100 }];
         assert.equal(await EGG_VERIFIERS.dead_reckoning(ctxOf({ trainingSessions: firstTry })), true);
     });
+
+    test('legacy browser-authored sessions cannot prove a Diamond egg', async () => {
+        const calls = [];
+        const makeDatabase = (rows) => ({
+            from(table) {
+                assert.equal(table, 'training_sessions');
+                let visible = rows;
+                const chain = {
+                    select(columns) { calls.push(['select', columns]); return chain; },
+                    eq(column, value) { calls.push(['eq', column, value]); return chain; },
+                    not(column, operator, value) {
+                        calls.push(['not', column, operator, value]);
+                        if (column === 'attempt_id' && operator === 'is' && value === null) {
+                            visible = visible.filter((row) => row.attempt_id != null);
+                        }
+                        return chain;
+                    },
+                    order() { return chain; },
+                    async limit() { return { data: visible }; },
+                };
+                return chain;
+            },
+        });
+        const legacy = Array.from({ length: 5 }, (_, index) => ({
+            ...pass(daysAgo(index)),
+            id: `legacy-${index}`,
+            attempt_id: null,
+        }));
+        const sealed = Array.from({ length: 5 }, (_, index) => ({
+            ...pass(daysAgo(index)),
+            id: `sealed-${index}`,
+            attempt_id: `attempt-${index}`,
+        }));
+
+        const legacyContext = createEggContext(makeDatabase(legacy), 'u1');
+        assert.equal(await EGG_VERIFIERS.perfectionist(legacyContext), false);
+
+        const sealedContext = createEggContext(makeDatabase(sealed), 'u1');
+        assert.equal(await EGG_VERIFIERS.perfectionist(sealedContext), true);
+        assert.ok(calls.some((call) => (
+            call[0] === 'not'
+            && call[1] === 'attempt_id'
+            && call[2] === 'is'
+            && call[3] === null
+        )));
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

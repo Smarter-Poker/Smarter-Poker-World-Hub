@@ -174,6 +174,23 @@ function pct(v) {
   return v === null || v === undefined || !Number.isFinite(n) ? '-' : `${(n * 100).toFixed(1)}%`;
 }
 
+function shortHash(value) {
+  const text = String(value || '');
+  return text.length >= 16 ? `${text.slice(0, 12)}...${text.slice(-4)}` : text || '-';
+}
+
+function utcStamp(value) {
+  if (!value) return 'Never';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toISOString().replace('.000Z', 'Z');
+}
+
+function secondsOld(value) {
+  if (!value) return null;
+  const then = new Date(value).getTime();
+  return Number.isFinite(then) ? Math.max(0, Math.round((Date.now() - then) / 1000)) : null;
+}
+
 const TOURNAMENT_COLUMNS = [
   ['tournament_type', 'Type'],
   ['variant', 'Variant'],
@@ -200,8 +217,30 @@ const AGREEMENT_COLUMNS = [
   ['run_date', 'Run'],
   ['reference', 'Reference'],
   ['spots', 'Spots'],
+  ['eligible_spots', 'Eligible'],
+  ['reconciled_spots', 'Reconciled'],
   ['agreement', 'Agreement'],
   ['pure_misses', 'Pure Misses'],
+  ['action_regret_bb', 'Mean Action Regret BB'],
+  ['regret_eligible_spots', 'Regret Eligible'],
+  ['decision_checksum', 'Decision Checksum'],
+];
+const AGREEMENT_DECISION_COLUMNS = [
+  ['run_date', 'Run'],
+  ['state_key', 'State Key'],
+  ['decision_state', 'Exact State Receipt'],
+  ['kind', 'Kind'],
+  ['game_type', 'Game Type'],
+  ['hero_position', 'Position'],
+  ['stack_bb', 'Stack BB'],
+  ['hand', 'Hand'],
+  ['final_action', 'Horse Action'],
+  ['reference_distribution', 'Reference Distribution'],
+  ['chosen_probability', 'Chosen Probability'],
+  ['action_regret_bb', 'Action Regret BB'],
+  ['regret_eligible', 'Regret Eligible'],
+  ['pure_miss', 'Pure Miss'],
+  ['source_seal', 'Source Seal'],
 ];
 const FLEET_COLUMNS = [
   ['alias', 'Horse'],
@@ -390,6 +429,11 @@ export default function HorseHandReviews() {
   const [agree, setAgree] = useState([]);
   const [agreeError, setAgreeError] = useState(null);
   const [agreeOpen, setAgreeOpen] = useState(false);
+  const [agreeDecisions, setAgreeDecisions] = useState([]);
+  const [agreeDecisionsError, setAgreeDecisionsError] = useState(null);
+  const [certification, setCertification] = useState(null);
+  const [certificationError, setCertificationError] = useState(null);
+  const [certificationOpen, setCertificationOpen] = useState(false);
   const [trendsOpen, setTrendsOpen] = useState(false);
 
   // The fleet table used to render horses.slice(0, 40) with nothing to say a
@@ -535,6 +579,32 @@ export default function HorseHandReviews() {
       setAgreeError(null);
       setAgree(agData || []);
     }
+    const { data: adData, error: adErr } = await supabase.rpc(
+      'ca_horse_solver_agreement_decisions',
+      { p_day: null, p_reference: 'gto_charts', p_limit: 100 }
+    );
+    if (adErr) {
+      setAgreeDecisionsError(adErr.message);
+      setAgreeDecisions([]);
+    } else {
+      setAgreeDecisionsError(null);
+      setAgreeDecisions(adData || []);
+    }
+    // This one contract joins certification, both independently attributed
+    // solver workers, the compactor and the latest agreement receipt. Empty
+    // and failed are different states: an empty corpus is a real critical
+    // condition, while a failed read proves nothing about the corpus.
+    const { data: certData, error: certErr } = await supabase.rpc(
+      'ca_gto_v31_certification_status',
+      { p_dataset_id: null }
+    );
+    if (certErr) {
+      setCertificationError(certErr.message);
+      setCertification(null);
+    } else {
+      setCertificationError(null);
+      setCertification(certData || null);
+    }
   }, []);
 
   const loadRows = useCallback(async () => {
@@ -595,6 +665,12 @@ export default function HorseHandReviews() {
   const FLEET_PREVIEW = 40;
   const fleetTruncated = horses.length > FLEET_PREVIEW;
   const visibleHorses = showAllHorses ? horses : horses.slice(0, FLEET_PREVIEW);
+  const certDatasets = Array.isArray(certification?.datasets) ? certification.datasets : [];
+  const activeDataset = certification?.active_dataset || null;
+  const latestDataset = certDatasets[0] || null;
+  const solverWorkers = Array.isArray(certification?.workers) ? certification.workers : [];
+  const workerById = new Map(solverWorkers.map((worker) => [worker.machine_id, worker]));
+  const compactor = certification?.compactor || null;
   const setFilter = (k, v) => {
     setPage(0);
     setFilters((f) => ({ ...f, [k]: v }));
@@ -1011,6 +1087,146 @@ export default function HorseHandReviews() {
             )}
           </div>
 
+          {/* CERTIFIED V31 CORPUS. This is release evidence, not a progress
+              decoration. No active dataset means the runtime is using its
+              labelled fallback path, even if source rows or a candidate
+              exist. M1, M2 and the compactor remain separately visible. */}
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <button
+              type="button"
+              className="hr-row-btn"
+              aria-expanded={certificationOpen}
+              aria-controls="v31-certification-panel"
+              onClick={() => setCertificationOpen(!certificationOpen)}
+              style={{ cursor: 'pointer', display: 'flex', gap: '1rem', alignItems: 'center', width: '100%', minHeight: 44, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', font: 'inherit', padding: 0 }}
+            >
+              <span style={{ fontWeight: 700 }}>Certified NLH Solver Corpus And Pipeline</span>
+              <span style={{ color: T.muted, fontSize: '0.8rem' }}>
+                Exact V31 Release State, Heldout Gates, M1 And M2 Liveness, And Compact Build Lag.
+              </span>
+              <span style={{ marginLeft: 'auto', color: certificationError || !activeDataset ? T.danger : T.positive, fontSize: '0.8rem', fontWeight: 700 }}>
+                {certificationError
+                  ? 'Read Failed'
+                  : activeDataset
+                    ? `Active: ${activeDataset.dataset_key}`
+                    : 'No Active Dataset'}
+              </span>
+            </button>
+            {certificationOpen && (
+              <div id="v31-certification-panel" style={{ marginTop: 8, display: 'grid', gap: 10 }}>
+                {certificationError ? (
+                  <div role="alert" style={{ border: `1px solid ${T.danger}`, background: T.dangerSoft, color: T.danger, borderRadius: 6, padding: '0.75rem' }}>
+                    {`The Certification Read FAILED (${certificationError}). No Corpus Or Worker Conclusion Can Be Drawn Until This Read Works.`}
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      role={!activeDataset ? 'alert' : undefined}
+                      style={{ border: `1px solid ${activeDataset ? T.accentLine : T.danger}`, background: activeDataset ? T.accentSoft : T.dangerSoft, color: activeDataset ? T.text : T.danger, borderRadius: 6, padding: '0.75rem' }}
+                    >
+                      <strong>{activeDataset ? 'Certified Dataset Active.' : 'No Active Certified Dataset.'}</strong>{' '}
+                      {activeDataset
+                        ? 'Only This Sealed Checksum Can Feed The Live V31 Store.'
+                        : 'The Horse Runtime Must Fall Back. No Existing Training Or Legacy Row Is Being Described As Solver Exact.'}
+                    </div>
+
+                    <div style={{ background: T.inset, border: `1px solid ${T.line}`, borderRadius: 6, padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <strong>Latest Dataset</strong>
+                        <span style={{ color: latestDataset?.state === 'active' ? T.positive : T.warn, fontWeight: 700 }}>
+                          {latestDataset ? `${latestDataset.state} / ${latestDataset.quality_status}` : 'Not Registered'}
+                        </span>
+                      </div>
+                      {latestDataset ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, fontSize: '0.78rem' }}>
+                          <div><span style={{ color: T.muted }}>Dataset:</span> {latestDataset.dataset_key}</div>
+                          <div><span style={{ color: T.muted }}>Dataset Seal:</span> <code title={latestDataset.dataset_checksum || ''}>{shortHash(latestDataset.dataset_checksum)}</code></div>
+                          <div><span style={{ color: T.muted }}>Source Seal:</span> <code title={latestDataset.source_artifact_checksum || ''}>{shortHash(latestDataset.source_artifact_checksum)}</code></div>
+                          <div><span style={{ color: T.muted }}>Pipeline Commit:</span> <code title={latestDataset.pipeline_commit || ''}>{shortHash(latestDataset.pipeline_commit)}</code></div>
+                          <div><span style={{ color: T.muted }}>Pipeline Bundle:</span> <code title={latestDataset.pipeline_bundle_checksum || ''}>{shortHash(latestDataset.pipeline_bundle_checksum)}</code></div>
+                          <div><span style={{ color: T.muted }}>Input Approval:</span> {latestDataset.input_approval_status || '-'}</div>
+                          <div><span style={{ color: T.muted }}>Sources:</span> {latestDataset.source_rows ?? 0} ({latestDataset.train_source_rows ?? 0} Train / {latestDataset.holdout_source_rows ?? 0} Holdout)</div>
+                          <div><span style={{ color: T.muted }}>Invalid Rows:</span> <span style={{ color: Number(latestDataset.invalid_rows) > 0 ? T.danger : T.positive }}>{latestDataset.invalid_rows ?? 0}</span></div>
+                          <div><span style={{ color: T.muted }}>Cells:</span> {latestDataset.coverage?.cells ?? 0}</div>
+                          <div><span style={{ color: T.muted }}>Frequency MAE:</span> {latestDataset.heldout_metrics?.frequency_mae ?? '-'}</div>
+                          <div><span style={{ color: T.muted }}>Sizing MAE:</span> {latestDataset.heldout_metrics?.sizing_mae ?? '-'}</div>
+                          <div><span style={{ color: T.muted }}>Policy EV MAE:</span> {latestDataset.heldout_metrics?.policy_ev_mae_bb ?? '-'}</div>
+                          <div><span style={{ color: T.muted }}>Mean Regret:</span> {latestDataset.heldout_metrics?.mean_action_regret_bb ?? '-'}</div>
+                          <div><span style={{ color: T.muted }}>Release Gates:</span> {Array.isArray(latestDataset.evaluations) ? `${latestDataset.evaluations.filter((e) => ['pass', 'win', 'tie'].includes(e.verdict)).length} / 9 Passing` : '0 / 9 Passing'}</div>
+                          <div><span style={{ color: T.muted }}>Promoted:</span> {utcStamp(latestDataset.promoted_at)}</div>
+                        </div>
+                      ) : (
+                        <div style={{ color: T.muted, fontSize: '0.8rem' }}>
+                          No Approved Input Bundle Has Produced A Registered V31 Dataset.
+                        </div>
+                      )}
+                      {latestDataset && (
+                        <details style={{ marginTop: 10 }}>
+                          <summary style={{ cursor: 'pointer', color: T.accent }}>Coverage, Heldout And Release Receipts</summary>
+                          <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', color: T.muted, fontSize: '0.72rem', marginBottom: 0 }}>
+                            {JSON.stringify({ coverage: latestDataset.coverage, heldout: latestDataset.heldout_metrics, evaluations: latestDataset.evaluations }, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 10 }}>
+                      {['M1', 'M2'].map((machineId) => {
+                        const worker = workerById.get(machineId);
+                        const age = secondsOld(worker?.received_at);
+                        const unhealthy = !worker || age === null || age > 900 || worker.worker_state === 'failed' || Number(worker.invalid_rows) > 0;
+                        return (
+                          <div key={machineId} style={{ background: T.inset, border: `1px solid ${unhealthy ? T.danger : T.line}`, borderRadius: 6, padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <strong>Solver Host {machineId}</strong>
+                              <span style={{ color: unhealthy ? T.danger : T.positive, fontWeight: 700 }}>{worker?.worker_state || 'Missing'}</span>
+                            </div>
+                            <div style={{ color: T.muted, fontSize: '0.76rem', lineHeight: 1.6 }}>
+                              Last Receipt: {utcStamp(worker?.received_at)}{age !== null ? ` (${age}s Ago)` : ''}<br />
+                              Phase: {worker?.phase_id || '-'}<br />
+                              Progress: {worker?.rows_done ?? 0} / {worker?.rows_planned ?? 0}; Written {worker?.rows_written ?? 0}; Invalid {worker?.invalid_rows ?? 0}<br />
+                              Rate: {worker?.rows_per_hour ?? 0} Rows/Hour; ETA {utcStamp(worker?.eta_at)}<br />
+                              Manifest: <code title={worker?.manifest_checksum || ''}>{shortHash(worker?.manifest_checksum)}</code><br />
+                              Pipeline Bundle: <code title={worker?.pipeline_bundle_checksum || ''}>{shortHash(worker?.pipeline_bundle_checksum)}</code><br />
+                              Binary: <code title={worker?.solver_binary_checksum || ''}>{shortHash(worker?.solver_binary_checksum)}</code><br />
+                              Last Artifact: <code title={worker?.last_artifact_checksum || ''}>{shortHash(worker?.last_artifact_checksum)}</code>
+                              {worker?.error_detail ? <><br /><span style={{ color: T.danger }}>{worker.error_detail}</span></> : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {(() => {
+                        const age = secondsOld(compactor?.received_at);
+                        const unhealthy = !compactor || age === null || age > 1200 || compactor.compact_state === 'failed' || Number(compactor.invalid_rows) > 0 || Number(compactor.compact_lag_seconds) > 21600;
+                        return (
+                          <div style={{ background: T.inset, border: `1px solid ${unhealthy ? T.danger : T.line}`, borderRadius: 6, padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <strong>Certified Compactor</strong>
+                              <span style={{ color: unhealthy ? T.danger : T.positive, fontWeight: 700 }}>{compactor?.compact_state || 'Missing'}</span>
+                            </div>
+                            <div style={{ color: T.muted, fontSize: '0.76rem', lineHeight: 1.6 }}>
+                              Last Receipt: {utcStamp(compactor?.received_at)}{age !== null ? ` (${age}s Ago)` : ''}<br />
+                              Dataset: {compactor?.dataset_key || '-'}<br />
+                              Sources: {compactor?.source_rows ?? 0}; Receipts: {compactor?.receipt_rows ?? 0}; Cells: {compactor?.cells ?? 0}<br />
+                              Invalid: {compactor?.invalid_rows ?? 0}; Lag: {compactor?.compact_lag_seconds ?? '-'} Seconds<br />
+                              Through: {utcStamp(compactor?.compacted_through)}<br />
+                              Pipeline Bundle: <code title={compactor?.pipeline_bundle_checksum || ''}>{shortHash(compactor?.pipeline_bundle_checksum)}</code><br />
+                              Dataset Seal: <code title={compactor?.dataset_checksum || ''}>{shortHash(compactor?.dataset_checksum)}</code>
+                              {compactor?.error_detail ? <><br /><span style={{ color: T.danger }}>{compactor.error_detail}</span></> : null}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <div style={{ color: T.muted, fontSize: '0.72rem' }}>
+                      Status Generated {utcStamp(certification?.generated_at)}. A Fresh Heartbeat With Frozen Counters Is Still A Stall And The Daily Audit Treats It As Critical.
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* SOLVER AGREEMENT. The league card above measures one config
               against another and can never say whether either plays well.
               This is the absolute score: the mean solver frequency of the
@@ -1034,8 +1250,9 @@ export default function HorseHandReviews() {
               </span>
             </button>
             {agreeOpen && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                 <ExportCsvButton rows={agree} columns={AGREEMENT_COLUMNS} filePrefix="horse-solver-agreement" />
+                <ExportCsvButton rows={agreeDecisions} columns={AGREEMENT_DECISION_COLUMNS} filePrefix="horse-solver-agreement-decisions" label={`Export Decisions (${agreeDecisions.length})`} />
               </div>
             )}
             {agreeOpen && (
@@ -1046,9 +1263,12 @@ export default function HorseHandReviews() {
                       <th style={{ padding: '0.3rem' }}>Run</th>
                       <th style={{ padding: '0.3rem' }}>Reference</th>
                       <th style={{ padding: '0.3rem' }}>Spots</th>
+                      <th style={{ padding: '0.3rem' }}>Reconciled</th>
                       <th style={{ padding: '0.3rem' }}>Agreement</th>
                       <th style={{ padding: '0.3rem' }}>Change</th>
                       <th style={{ padding: '0.3rem' }}>Pure Misses</th>
+                      <th style={{ padding: '0.3rem' }}>Mean Regret</th>
+                      <th style={{ padding: '0.3rem' }}>Decision Seal</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1067,17 +1287,22 @@ export default function HorseHandReviews() {
                           <td style={{ padding: '0.3rem', whiteSpace: 'nowrap' }}>{r.run_date}</td>
                           <td style={{ padding: '0.3rem', fontFamily: 'monospace', color: T.muted }}>{r.reference}</td>
                           <td style={{ padding: '0.3rem', color: Number(r.spots) < 50 ? T.warn : T.muted }}>{r.spots}</td>
+                          <td style={{ padding: '0.3rem', color: Number(r.eligible_spots) === Number(r.reconciled_spots) ? T.positive : T.danger }}>
+                            {r.reconciled_spots ?? 0} / {r.eligible_spots ?? 0}
+                          </td>
                           <td style={{ padding: '0.3rem', fontWeight: 600 }}>{r.agreement}</td>
                           <td style={{ padding: '0.3rem', color: dropped ? T.danger : delta === null ? T.muted : T.positive }}>
                             {delta === null ? '-' : `${delta >= 0 ? '+' : ''}${delta.toFixed(3)}`}
                           </td>
                           <td style={{ padding: '0.3rem', color: T.muted }}>{r.pure_misses}</td>
+                          <td style={{ padding: '0.3rem', color: T.muted }}>{r.action_regret_bb ?? 'Unavailable'}</td>
+                          <td style={{ padding: '0.3rem', color: T.muted, fontFamily: 'monospace' }} title={r.decision_checksum || ''}>{shortHash(r.decision_checksum)}</td>
                         </tr>
                       );
                     })}
                     {agree.length === 0 && (
                       <tr>
-                        <td colSpan={6} style={{ padding: '0.4rem', color: T.muted }}>
+                        <td colSpan={9} style={{ padding: '0.4rem', color: T.muted }}>
                           {agreeError
                             ? `The Agreement Read FAILED (${agreeError}). Fix The Read Before Drawing Conclusions.`
                             : 'No Probe Has Run Yet. It Runs With The Nightly League.'}
@@ -1086,6 +1311,49 @@ export default function HorseHandReviews() {
                     )}
                   </tbody>
                 </table>
+                <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.line}` }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Latest Reconciled Decisions</div>
+                  <div style={{ color: T.muted, fontSize: '0.75rem', marginBottom: 6 }}>
+                    Exact State, Final Horse Action, Reference Mix, Chosen Probability, Regret Availability And Source Seal. Null Regret Means The Reference Has No Per-Action EV; It Never Means Zero Regret.
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
+                    <thead>
+                      <tr style={{ color: T.muted, textAlign: 'left' }}>
+                        <th style={{ padding: '0.3rem' }}>State</th>
+                        <th style={{ padding: '0.3rem' }}>Exact State Receipt</th>
+                        <th style={{ padding: '0.3rem' }}>Hand</th>
+                        <th style={{ padding: '0.3rem' }}>Action</th>
+                        <th style={{ padding: '0.3rem' }}>Reference Mix</th>
+                        <th style={{ padding: '0.3rem' }}>Chosen</th>
+                        <th style={{ padding: '0.3rem' }}>Regret BB</th>
+                        <th style={{ padding: '0.3rem' }}>Source Seal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {agreeDecisions.map((decision) => (
+                        <tr key={`${decision.run_date}-${decision.state_key}`} style={{ borderTop: `1px solid ${T.line}`, background: decision.pure_miss ? T.dangerSoft : 'transparent' }}>
+                          <td style={{ padding: '0.3rem', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{decision.state_key}</td>
+                          <td style={{ padding: '0.3rem', minWidth: 220, fontFamily: 'monospace', overflowWrap: 'anywhere' }}>{JSON.stringify(decision.decision_state)}</td>
+                          <td style={{ padding: '0.3rem' }}>{decision.hand}</td>
+                          <td style={{ padding: '0.3rem', color: decision.pure_miss ? T.danger : T.text, fontWeight: 700 }}>{decision.final_action}</td>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{JSON.stringify(decision.reference_distribution)}</td>
+                          <td style={{ padding: '0.3rem' }}>{pct(decision.chosen_probability)}</td>
+                          <td style={{ padding: '0.3rem' }}>{decision.regret_eligible ? decision.action_regret_bb : 'Unavailable'}</td>
+                          <td style={{ padding: '0.3rem', fontFamily: 'monospace' }} title={decision.source_seal?.policy_checksum || ''}>{shortHash(decision.source_seal?.policy_checksum)}</td>
+                        </tr>
+                      ))}
+                      {agreeDecisions.length === 0 && (
+                        <tr>
+                          <td colSpan={8} style={{ padding: '0.4rem', color: T.muted }}>
+                            {agreeDecisionsError
+                              ? `The Decision Receipt Read FAILED (${agreeDecisionsError}). The Summary Is Not Auditable Until This Read Works.`
+                              : 'No Decision Receipts Have Flowed Yet. A Summary-Only Row Is Not Release Evidence.'}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

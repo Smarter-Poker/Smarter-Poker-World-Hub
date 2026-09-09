@@ -24,6 +24,21 @@ const RANK_COLORS = {
 
 function LeaderboardEntry({ entry, rank, isCurrentUser }) {
     const rankColor = RANK_COLORS[rank] || '#64748b';
+    const sessionsCompleted = Number.isFinite(Number(entry.sessionsCompleted))
+        ? Math.max(0, Number(entry.sessionsCompleted))
+        : 0;
+    const questionsCorrect = Number.isFinite(Number(entry.questionsCorrect))
+        ? Math.max(0, Number(entry.questionsCorrect))
+        : 0;
+    const accuracy = Number.isFinite(Number(entry.accuracy))
+        ? Math.max(0, Math.min(100, Number(entry.accuracy)))
+        : 0;
+    const gtowScoreAvg = Number.isFinite(Number(entry.gtowScoreAvg))
+        ? Number(entry.gtowScoreAvg)
+        : 0;
+    const bestStreak = Number.isFinite(Number(entry.bestStreak))
+        ? Math.max(0, Number(entry.bestStreak))
+        : 0;
 
     return (
         <motion.div
@@ -61,11 +76,11 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                     color: isCurrentUser ? '#00d4ff' : '#e2e8f0',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
-                    {entry.display_name || entry.username || `Player ${rank}`}
-                    {isCurrentUser && <span style={{ fontSize: 9, color: '#00d4ff', marginLeft: 4, fontWeight: 600 }}>YOU</span>}
+                    {entry.username || `Player ${rank}`}
+                    {isCurrentUser && <span style={{ fontSize: 9, color: '#00d4ff', marginLeft: 4, fontWeight: 600 }}>You</span>}
                 </div>
                 <div style={{ fontSize: 9, color: '#475569' }}>
-                    {entry.sessions_completed || 0} session{(entry.sessions_completed || 0) !== 1 ? 's' : ''} • {entry.questions_answered || 0} Hands
+                    {sessionsCompleted} Session{sessionsCompleted !== 1 ? 's' : ''} • {questionsCorrect} Correct • {bestStreak} Best Streak
                 </div>
             </div>
 
@@ -73,13 +88,13 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
             <div style={{ textAlign: 'right' }}>
                 <div style={{
                     fontSize: 14, fontWeight: 800,
-                    color: (entry.accuracy || 0) >= 80 ? '#22c55e' : (entry.accuracy || 0) >= 60 ? '#fbbf24' : '#ef4444',
+                    color: accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444',
                     fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>
-                    {entry.accuracy || 0}%
+                    {accuracy}%
                 </div>
                 <div style={{ fontSize: 8, color: '#475569', fontWeight: 600 }}>
-                    ◆ {entry.total_diamonds || 0}
+                    GTOW {gtowScoreAvg.toFixed(1)}
                 </div>
             </div>
         </motion.div>
@@ -102,8 +117,8 @@ export default function LeaderboardPanel({ userId, gameId }) {
             const res = await authedFetch(`/api/training/leaderboard?${params}`);
             const data = await res.json();
 
-            if (data.success) {
-                setEntries(data.leaderboard || []);
+            if (res.ok && data.success) {
+                setEntries(Array.isArray(data.leaderboard) ? data.leaderboard : []);
             } else {
                 setError(data.error || 'Failed to load');
             }
@@ -167,10 +182,10 @@ export default function LeaderboardPanel({ userId, gameId }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                     {entries.map((entry, i) => (
                         <LeaderboardEntry
-                            key={entry.user_id || i}
+                            key={entry.userId || `${entry.rank}:${i}`}
                             entry={entry}
-                            rank={i + 1}
-                            isCurrentUser={userId && entry.user_id === userId}
+                            rank={entry.rank}
+                            isCurrentUser={Boolean(userId && entry.userId === userId)}
                         />
                     ))}
                 </div>

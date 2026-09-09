@@ -14,10 +14,8 @@ import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness, recordHandResult } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
-import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch (e) { console.warn('[App] Handled exception:', e); } }
-import achievementService from '../services/AchievementService';
 
 export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
     const [gameState, setGameState] = useState('ready');
@@ -123,7 +121,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         setGameState('success');
         SoundEngine.play('levelUp');
         const diamondReward = Math.floor(score / 50) + 10;
-        if (DiamondEngine) {
+        if (!userId && DiamondEngine) {
             void DiamondEngine.award(diamondReward).then(newBalance => {
                 if (Number.isFinite(newBalance)) onScoreUpdate?.(newBalance);
             });
@@ -133,17 +131,6 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         savePersonalBest('pressure-cooker', score, grade);
         if (grade === 'S' || grade === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
         recordSessionWeakness('pressure-cooker', mistakesRef.current, handsCompleted);
-        if (userId) {
-            gameSessionService.recordSession(userId, {
-                gameMode: 'pressure_cooker', level, scenarioId: currentHand?.scenario?.title,
-                score, accuracy, timeTaken: Math.round((INITIAL_TIME - timeRemaining) / 1000),
-                diamondsSpent: 0, diamondsEarned: 0, completed: true
-            }).catch(e => console.warn('[PressureCooker] Session failed:', e));
-            achievementService.checkAndUnlock(userId, {
-                gamesPlayed: 1, accuracy, level, gameMode: 'pressure_cooker',
-                currentStreak: streak, modesPlayed: ['pressure_cooker']
-            }).catch(e => console.warn('[PressureCooker] Achievement check failed:', e));
-        }
     }, [gameState, handsCompleted, handsRequired, nextHand, score, DiamondEngine, onScoreUpdate, correctCount, userId, level, currentHand, timeRemaining, streak]);
 
     // Save personal best on failed too
@@ -361,16 +348,18 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             );
                         })()}
 
-                        {/* Diamond Reward */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
-                            border: '1px solid rgba(0,255,136,0.3)',
-                            borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
-                        }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
-                                +{diamondReward} Diamonds Earned!
+                        {/* Guest practice uses an explicitly local Diamond balance. */}
+                        {!userId && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                                border: '1px solid rgba(0,255,136,0.3)',
+                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                    +{diamondReward} Local Practice Diamonds
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: 12 }}>
@@ -436,7 +425,6 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                 const accuracy = handsCompleted > 0 ? Math.round((correctCount / handsCompleted) * 100) : 0;
                 const grade = accuracy >= 90 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
                 const gradeColor = { A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
-                const diamondReward = Math.floor(score / 100);
                 return (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 20 }}>
                         {/* Performance Card */}
@@ -489,19 +477,6 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                 </div>
                             );
                         })()}
-
-                        {/* Diamond Reward (if any) */}
-                        {diamondReward > 0 && (
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
-                                border: '1px solid rgba(0,255,136,0.3)',
-                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
-                            }}>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
-                                    +{diamondReward} Diamonds Earned!
-                                </div>
-                            </div>
-                        )}
 
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: 12 }}>

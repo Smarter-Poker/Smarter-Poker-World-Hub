@@ -5,20 +5,11 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * POST /api/poker/player-notes 
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { LIMITS, applyRateLimit, rateLimit } from '../../../src/lib/apiRateLimit';
-import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_COLOR = '#B0B3B8';
@@ -67,7 +58,7 @@ export default async function handler(req, res) {
 
     // VIP/Pro gate check (Infrastructure ready)
     // We enforce read/write access via premiumFeatureGate
-    const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+    const access = await checkServerFeatureAccess(getSupabase(), user.id, 'bankroll_pro');
     if (!access.hasAccess) {
         return res.status(403).json({ error: 'Bankroll Pro or VIP required to use Player Notes' });
     }

@@ -164,7 +164,7 @@ test('all 14 requested worlds use exact approved artwork and unique six-destinat
   );
 });
 
-test('all 204 applicable physical routes resolve to one exact-artwork family', () => {
+test('all 203 applicable physical routes resolve to one exact-artwork family', () => {
   const pageRoutes = walk(path.join(ROOT, 'pages'))
     .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file) && !file.includes(`${path.sep}api${path.sep}`))
     .map((file) => {
@@ -182,14 +182,14 @@ test('all 204 applicable physical routes resolve to one exact-artwork family', (
     return owners.length ? [{ route, owners }] : [];
   });
 
-  assert.equal(applicable.length, 204);
+  assert.equal(applicable.length, 203);
   for (const { route, owners } of applicable) {
     assert.equal(owners.length, 1, `${route} resolves to ${owners.map((owner) => owner.id).join(', ')}`);
     assert.ok(owners[0].artwork, `${route} resolved to a legacy footer`);
   }
 
   const matrix = fs.readFileSync(path.join(ROOT, 'docs/world-hub-footer-route-matrix.md'), 'utf8');
-  assert.match(matrix, /\*\*Total applicable physical routes: 204\.\*\*/);
+  assert.match(matrix, /\*\*Total applicable physical routes: 203\.\*\*/);
   for (const { route } of applicable) {
     assert.ok(matrix.includes(`| \`${route}\` |`), `${route} is missing from the route matrix`);
   }
