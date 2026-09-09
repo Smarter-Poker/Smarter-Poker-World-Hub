@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { WORLD_MENU_VISUAL_CASES } from './fixtures/world-menu-cases';
+import { WORLD_MENU_VISUAL_CASES, expectStillInWorld } from './fixtures/world-menu-cases';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 test.describe.configure({ mode: 'serial', timeout: 60_000 });
@@ -115,6 +115,7 @@ for (const world of WORLD_MENU_VISUAL_CASES) {
       await page.addInitScript(() => window.sessionStorage.setItem('news-intro-seen', 'true'));
     }
     await page.goto(world.path, { waitUntil: 'domcontentloaded' });
+    await expectStillInWorld(page, world);
     const trigger = await expectTriggerPainted(page);
     await expect(trigger).toHaveAttribute('data-menu-symbol', 'hamburger');
     const drawer = page.locator(`[data-world-command-menu="${world.id}"]:visible`);
