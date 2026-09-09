@@ -42,6 +42,7 @@ import {
 import { warmOcr } from '../../src/lib/docscan/ocr.mjs';
 import { duplicateOf } from '../../src/lib/bankroll/receiptHash.mjs';
 import toast from '../../src/stores/toastStore';
+import { removeBankrollObject } from '../../src/lib/bankroll/receiptStorage';
 import { capture, FunnelEvents } from '../../src/lib/analytics';
 
 /** Colour of the tag on each Receipt Saved choice, by receiptActions() tone. */
@@ -481,6 +482,7 @@ export default function BankrollManagerPage() {
   // What the reader did on the scan currently held, so Retry Listing writes
   // the same outcome the first attempt would have.
   const scannerReadOutcomeRef = useRef({ outcome: null, ocrConfidence: null });
+  const [discardingReceiptId, setDiscardingReceiptId] = useState(null);
   const [ruleViolations, setRuleViolations] = useState([]);
   const [isVip, setIsVip] = useState(false);
 
@@ -1002,6 +1004,61 @@ export default function BankrollManagerPage() {
     scannerReadOutcomeRef.current = { outcome: null, ocrConfidence: null };
   }, []);
 
+  /**
+   * "That is not a receipt."
+   *
+   * Dan's rule was that a scan can never be ABANDONED. What got built was a
+   * table with select, insert and update and no delete anywhere, which is a
+   * different thing: a scan could never be REMOVED. Photograph your thumb by
+   * accident and it sat in Receipts Waiting permanently, and because the list
+   * is limited to twenty, a handful of junk scans quietly pushed real ones out
+   * of sight.
+   *
+   * So this is deliberate and narrow. It asks first, it only ever touches a
+   * receipt that is still UNASSIGNED (an assigned one is attached to a ledger
+   * entry or a W-2G, and deleting it would leave that pointing at nothing),
+   * and closing the sheet still never deletes anything - which is the law
+   * a-scanned-receipt-is-never-abandoned holds.
+   *
+   * The row goes first, then the image. That order matters: an orphaned
+   * storage object is invisible and harmless, while a row pointing at a
+   * deleted image is a broken thumbnail in the list forever.
+   */
+  const discardReceipt = useCallback(async (receipt) => {
+    if (!receipt || !receipt.id || !userId) return;
+    if (receipt.status && receipt.status !== 'unassigned') {
+      toast.error('This Receipt Is Already Filed');
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      const what = receipt.summary || 'this scan';
+      if (!window.confirm(`Delete ${what}? The image is deleted too and this cannot be undone.`)) return;
+    }
+
+    setDiscardingReceiptId(receipt.id);
+    try {
+      const { error } = await supabase
+        .from('bankroll_receipts')
+        .delete()
+        .eq('id', receipt.id)
+        .eq('user_id', userId)
+        .eq('status', 'unassigned');
+      if (error) throw error;
+
+      // Best effort, and never fatal: removeBankrollObject does not throw.
+      if (receipt.image_url) await removeBankrollObject(supabase, receipt.image_url);
+
+      if (scannerReceiptId === receipt.id) closeScannerAfterChoice();
+      toast.success('Scan Deleted');
+      loadPendingReceipts();
+    } catch (err) {
+      console.warn('[bankroll] discard failed:', err?.message || err);
+      toast.error('Could Not Delete That Scan');
+    } finally {
+      setDiscardingReceiptId(null);
+    }
+  }, [userId, scannerReceiptId, closeScannerAfterChoice, loadPendingReceipts]);
+
   /** Open LogEntryModal for this receipt; its save marks the receipt assigned. */
   const openEntryForReceipt = useCallback((category) => {
     receiptAwaitingEntryRef.current = scannerReceiptId;
@@ -1459,23 +1516,44 @@ export default function BankrollManagerPage() {
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {pendingReceipts.slice(0, 5).map((receipt) => (
-                          <button
-                            key={receipt.id}
-                            type="button"
-                            onClick={() => resumeReceipt(receipt)}
-                            style={styles.receiptsWaitingRow}
-                          >
-                            <img src={receipt.image_url} alt="" loading="lazy" style={styles.receiptsWaitingThumb} />
-                            <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-                              <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {receipt.summary || 'Receipt'}
+                          // A row, not a button. The discard control has to sit
+                          // inside it, and a button inside a button is invalid
+                          // HTML that browsers resolve by dropping one of them.
+                          <div key={receipt.id} style={styles.receiptsWaitingRow}>
+                            <button
+                              type="button"
+                              onClick={() => resumeReceipt(receipt)}
+                              style={styles.receiptsWaitingOpen}
+                            >
+                              <img src={receipt.image_url} alt="" loading="lazy" style={styles.receiptsWaitingThumb} />
+                              <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+                                <div style={{ color: '#fff', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {receipt.summary || 'Receipt'}
+                                </div>
+                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>
+                                  {(receipt.route && receipt.route.label) || 'Choose Where This Goes'}
+                                </div>
                               </div>
-                              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>
-                                {(receipt.route && receipt.route.label) || 'Choose Where This Goes'}
-                              </div>
-                            </div>
-                            <span style={{ color: '#60a5fa', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>FILE</span>
-                          </button>
+                              <span style={{ color: '#60a5fa', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>FILE</span>
+                            </button>
+                            {/* The way out for a photograph of somebody's thumb.
+                                Without it the list only ever grows, and at
+                                twenty rows the junk pushes the real scans off
+                                the end. */}
+                            <button
+                              type="button"
+                              onClick={() => discardReceipt(receipt)}
+                              disabled={discardingReceiptId === receipt.id}
+                              aria-label={`Delete ${receipt.summary || 'this scan'}`}
+                              title="Not A Receipt"
+                              style={{
+                                ...styles.receiptsWaitingDiscard,
+                                opacity: discardingReceiptId === receipt.id ? 0.4 : 1,
+                              }}
+                            >
+                              {discardingReceiptId === receipt.id ? '...' : 'Delete'}
+                            </button>
+                          </div>
                         ))}
                         {pendingReceipts.length > 5 && (
                           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textAlign: 'center' }}>
@@ -3388,13 +3466,44 @@ const styles = {
   receiptsWaitingRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     width: '100%',
     minHeight: 56,
     padding: '8px 10px',
     borderRadius: 10,
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.1)',
+    touchAction: 'manipulation',
+  },
+  // The row opens the receipt; the button inside it is what is pressed.
+  receiptsWaitingOpen: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    padding: 0,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    touchAction: 'manipulation',
+  },
+  // Quiet by design. Deleting a scan is rare and irreversible, so it should
+  // not compete with FILE for a thumb on a phone, and it keeps the 44px
+  // target every other control on this page has.
+  receiptsWaitingDiscard: {
+    flexShrink: 0,
+    minWidth: 60,
+    minHeight: 44,
+    padding: '0 10px',
+    borderRadius: 8,
+    background: 'transparent',
+    border: '1px solid rgba(255,255,255,0.14)',
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.04em',
     cursor: 'pointer',
     touchAction: 'manipulation',
   },

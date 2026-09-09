@@ -31,7 +31,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 import { parseReceiptText } from '../../../src/lib/bankroll/receiptParser.mjs';
 
@@ -48,9 +48,25 @@ export const config = {
 /** Longest OCR text accepted. A receipt is under 2 KB; this is generous. */
 const MAX_TEXT = 20000;
 
+/**
+ * The reader's own limit, not the one written for a paid AI call.
+ *
+ * LIMITS.ai is 5 a minute, and it was right when every scan was a billed
+ * request to a vision model. This route now runs a pure text parse (measured
+ * at 8 ms on a real receipt, 23 ms on 20 KB of adversarial input) and one
+ * small read of the player's saved venues. Nothing here costs money.
+ *
+ * What the old limit cost instead: a player emptying a pocket after a session
+ * scans eight receipts, and numbers six, seven and eight are refused. They
+ * fall through to the manual choice looking like receipts that could not be
+ * read - while "File All Suggested" on the dashboard actively encourages
+ * exactly that burst.
+ */
+const READER_LIMIT = { max: 30, windowMs: 60_000, scope: ':bankroll-reader' };
+
 export default async function handler(req, res) {
   try {
-      if (!applyRateLimit(req, res, LIMITS.ai)) return;
+      if (!applyRateLimit(req, res, READER_LIMIT)) return;
 
       if (req.method !== 'POST') {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
