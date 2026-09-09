@@ -48,6 +48,9 @@ The input bundle approved through `ca_gto_v31_approve_input_bundle` must include
 file receipts for the range bundle, combo-order file, ICM model, and the exact
 scenario manifest. The dataset registration is rejected unless the approved
 scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
+Identity fields and file receipts must remain real JSON strings; numeric
+coercion, empty path components, dot components, and parent traversal all fail
+closed on both the preparer and PostgreSQL sides.
 
 The bundle identity uses contract
 `smarter-poker.horse-solver-v31-input-bundle.v2`. It hashes the immutable

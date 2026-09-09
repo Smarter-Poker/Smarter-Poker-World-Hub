@@ -556,6 +556,29 @@ class ManifestAndGatewayTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "canonical relative path"):
             input_bundle_checksum(ambiguous_path)
 
+        for field, invalid in (
+            ("bundle_key", 123),
+            ("bundle_version", 2),
+            ("range_bundle_checksum", int("1" * 64)),
+        ):
+            non_string = json.loads(json.dumps(bundle))
+            non_string[field] = invalid
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ContractError, "JSON string"
+            ):
+                input_bundle_checksum(non_string)
+        for field, invalid in (
+            ("kind", 7),
+            ("path", 12),
+            ("checksum", int("1" * 64)),
+        ):
+            non_string_file = json.loads(json.dumps(bundle))
+            non_string_file["files"][3][field] = invalid
+            with self.subTest(file_field=field), self.assertRaisesRegex(
+                ContractError, "JSON string"
+            ):
+                input_bundle_checksum(non_string_file)
+
     def test_compactor_never_bypasses_pinned_input_verification(self):
         sentinel = object()
         args = types.SimpleNamespace(manifest="manifest.json", input_root="inputs")
@@ -806,6 +829,19 @@ class ManifestAndGatewayTests(unittest.TestCase):
                         verify_inputs=False,
                         verify_pipeline=False,
                     )
+            non_string_manifest = json.loads(json.dumps(manifest))
+            non_string_manifest["dataset_key"] = 123
+            non_string_bytes = canonical_json(non_string_manifest)
+            manifest_path.write_bytes(non_string_bytes)
+            with self.assertRaisesRegex(ContractError, "JSON string"):
+                load_manifest(
+                    manifest_path,
+                    expected_checksum=digest(non_string_bytes),
+                    input_root=input_root,
+                    pipeline_root=pipeline_root,
+                    verify_inputs=False,
+                    verify_pipeline=False,
+                )
             manifest_path.write_bytes(manifest_bytes)
             (input_root / "ranges" / "oop.txt").write_text("0 " * 1326, encoding="utf-8")
             with self.assertRaises(ContractError):

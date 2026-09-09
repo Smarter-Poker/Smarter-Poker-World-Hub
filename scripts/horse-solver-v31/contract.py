@@ -149,8 +149,14 @@ def _exact_keys(value: Any, expected: set[str], label: str) -> dict[str, Any]:
     return value
 
 
+def _json_string(value: Any, label: str) -> str:
+    if not isinstance(value, str):
+        raise ContractError(f"{label} must be a JSON string")
+    return value
+
+
 def _nonzero_hex(value: Any, length: int, label: str) -> str:
-    text = str(value or "")
+    text = _json_string(value, label)
     pattern = HEX40 if length == 40 else HEX64
     if not pattern.fullmatch(text) or text == "0" * length:
         raise ContractError(f"{label} must be a nonzero lowercase SHA-{length * 4}")
@@ -170,7 +176,7 @@ def _canonical_identity_text(value: Any, max_length: int, label: str) -> str:
 
 
 def _safe_relative_path(value: Any, label: str) -> str:
-    text = str(value or "")
+    text = _json_string(value, label)
     if (
         not SAFE_PATH.fullmatch(text)
         or text.startswith("/")
@@ -270,10 +276,12 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
         },
         "input approval bundle",
     )
-    bundle_key = str(bundle["bundle_key"] or "")
+    bundle_key = _json_string(bundle["bundle_key"], "input approval bundle_key")
     if not DATASET_KEY.fullmatch(bundle_key):
         raise ContractError("input approval bundle_key is invalid")
-    bundle_version = str(bundle["bundle_version"] or "")
+    bundle_version = _json_string(
+        bundle["bundle_version"], "input approval bundle_version"
+    )
     if not BUNDLE_VERSION.fullmatch(bundle_version):
         raise ContractError("input approval bundle_version is invalid")
     range_checksum = _nonzero_hex(
@@ -305,7 +313,7 @@ def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
     normalized: list[dict[str, str]] = []
     for index, raw in enumerate(receipts):
         item = _exact_keys(raw, {"kind", "path", "checksum"}, f"input approval files[{index}]")
-        kind = str(item["kind"] or "")
+        kind = _json_string(item["kind"], f"input approval files[{index}].kind")
         if kind not in allowed_kinds:
             raise ContractError(f"input approval files[{index}].kind is invalid")
         path = _safe_relative_path(item["path"], f"input approval files[{index}].path")
@@ -365,7 +373,7 @@ def input_bundle_id(p_bundle_checksum: str) -> str:
 
 
 def _cards(board: Any, minimum: int, maximum: int, label: str) -> list[str]:
-    text = str(board or "")
+    text = _json_string(board, label)
     cards = [text[index : index + 2] for index in range(0, len(text), 2)]
     if (
         len(text) % 2
@@ -486,7 +494,9 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
     models: dict[str, dict[str, Any]] = {}
     for model_index, raw_model in enumerate(root["models"]):
         model = _exact_keys(raw_model, ICM_MODEL_KEYS, f"ICM models[{model_index}]")
-        model_id = str(model["model_id"] or "")
+        model_id = _json_string(
+            model["model_id"], f"ICM models[{model_index}].model_id"
+        )
         if not SAFE_ID.fullmatch(model_id) or model_id in models:
             raise ContractError(f"ICM models[{model_index}].model_id is invalid or duplicate")
         oop_stack = _positive_integer(
@@ -602,11 +612,13 @@ def _validate_quality_gates(value: Any) -> None:
 
 def _validate_target(raw: Any, scenario: dict[str, Any], index: int) -> dict[str, Any]:
     target = _exact_keys(raw, TARGET_KEYS, f"target[{index}]")
-    if not SAFE_ID.fullmatch(str(target["target_id"] or "")):
+    if not SAFE_ID.fullmatch(
+        _json_string(target["target_id"], f"target[{index}].target_id")
+    ):
         raise ContractError(f"target[{index}].target_id is invalid")
     if target["machine_id"] not in ("M1", "M2"):
         raise ContractError(f"target[{index}].machine_id must be M1 or M2")
-    node = str(target["node"] or "")
+    node = _json_string(target["node"], f"target[{index}].node")
     if not NODE.fullmatch(node) or ":f" in node:
         raise ContractError(f"target[{index}].node is not a decision-node path")
     root_cards = _cards(scenario["flop_board"], 3, 3, "scenario.flop_board")
@@ -638,7 +650,10 @@ def _validate_target(raw: Any, scenario: dict[str, Any], index: int) -> dict[str
         not isinstance(children, list)
         or len(children) < 2
         or len(children) != len(set(children))
-        or any(not ACTION.fullmatch(str(action)) for action in children)
+        or any(
+            not isinstance(action, str) or not ACTION.fullmatch(action)
+            for action in children
+        )
     ):
         raise ContractError(f"target[{index}].expected_children is invalid")
     return target
@@ -653,7 +668,9 @@ def _validate_scenario(
     verify_inputs: bool,
 ) -> dict[str, Any]:
     scenario = _exact_keys(raw, SCENARIO_KEYS, f"scenarios[{index}]")
-    scenario_id = str(scenario["scenario_id"] or "")
+    scenario_id = _json_string(
+        scenario["scenario_id"], f"scenarios[{index}].scenario_id"
+    )
     if not SAFE_ID.fullmatch(scenario_id):
         raise ContractError(f"scenarios[{index}].scenario_id is invalid")
     family = scenario["game_family"]
@@ -704,10 +721,12 @@ def _validate_scenario(
     if objective == "icm":
         if rake is not None:
             raise ContractError(f"scenarios[{index}] ICM and rake are mutually exclusive")
-        if not SAFE_ID.fullmatch(str(icm_model_id or "")):
+        if not SAFE_ID.fullmatch(
+            _json_string(icm_model_id, f"scenarios[{index}].icm_model_id")
+        ):
             raise ContractError(f"scenarios[{index}] requires one approved ICM model id")
         if verify_inputs:
-            model = icm_models.get(str(icm_model_id))
+            model = icm_models.get(icm_model_id)
             if model is None:
                 raise ContractError(f"scenarios[{index}] names an absent ICM model")
             if min(model["oop_stack_chips"], model["ip_stack_chips"]) != scenario[
@@ -829,7 +848,7 @@ def load_manifest(
         if require_enabled:
             raise ContractError("manifest release gate is disabled")
         return ApprovedManifest(manifest_path, Path(input_root).resolve(), manifest, checksum)
-    if not DATASET_KEY.fullmatch(str(manifest["dataset_key"] or "")):
+    if not DATASET_KEY.fullmatch(_json_string(manifest["dataset_key"], "dataset_key")):
         raise ContractError("dataset_key is invalid")
     _canonical_identity_text(manifest["manifest_version"], 160, "manifest_version")
     _nonzero_hex(manifest["pipeline_commit"], 40, "pipeline_commit")
@@ -841,9 +860,12 @@ def load_manifest(
     input_checksum = _nonzero_hex(
         manifest["input_bundle_checksum"], 64, "input_bundle_checksum"
     )
-    if not UUID.fullmatch(str(manifest["input_bundle_id"] or "").lower()):
+    input_bundle_id_text = _json_string(
+        manifest["input_bundle_id"], "input_bundle_id"
+    )
+    if not UUID.fullmatch(input_bundle_id_text.lower()):
         raise ContractError("input_bundle_id is invalid")
-    if str(manifest["input_bundle_id"]).lower() != input_bundle_id(input_checksum):
+    if input_bundle_id_text.lower() != input_bundle_id(input_checksum):
         raise ContractError("input_bundle_id does not derive from input_bundle_checksum")
     _canonical_identity_text(manifest["solver_version"], 120, "solver_version")
     _validate_quality_gates(manifest["quality_gates"])
@@ -886,14 +908,14 @@ def load_manifest(
         raise ContractError("self_test scenario or solver player is invalid")
     if scenario_by_id[self_test["scenario_id"]]["objective"] == "icm":
         raise ContractError("self_test must use chip/cash EV so exploitability has chip units")
-    if not NODE.fullmatch(str(self_test["node"] or "")):
+    if not NODE.fullmatch(_json_string(self_test["node"], "self_test node")):
         raise ContractError("self_test node is invalid")
     children = self_test["expected_children"]
     if (
         not isinstance(children, list)
         or len(children) < 2
         or len(children) != len(set(children))
-        or any(not ACTION.fullmatch(str(x)) for x in children)
+        or any(not isinstance(x, str) or not ACTION.fullmatch(x) for x in children)
     ):
         raise ContractError("self_test expected_children is invalid")
     self_scenario = scenario_by_id[self_test["scenario_id"]]
