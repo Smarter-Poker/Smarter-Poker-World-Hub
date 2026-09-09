@@ -173,6 +173,20 @@ A green CI pipeline and a merged PR only prove your code does not crash. It **DO
 - **NO SURFACE-LEVEL PATCHES:** You must track the bug to its absolute root cause. Fixing a symptom without checking for structural contagion (e.g., stale cache, inherited state, nested URL parameters) is a failure of your duty.
 - **HOSTILE ENVIRONMENT TESTING:** You must assume the user's browser is a hostile environment: old `localStorage` data, expired tokens, stale bookmarks, and mid-flight network drops. If your fix relies on a pristine, freshly-cleared browser state to work, your fix is invalid.
 - **BURDEN OF PROOF:** You may not tell the user "I fixed it." You must explicitly explain exactly _how_ you proved their exact edge case is eradicated.
+- **A WRITE IS VERIFIED WHEN THE ROW EXISTS.** Not when the form rendered, not
+  when the button was enabled, not when the request returned 200. Added
+  2026-09-08: the receipt scanner shipped with evidence that stopped at a
+  filled-in form. Pressing Save was refused every time by
+  `bankroll_ledger_category_check`, because the sheet opened the form with a
+  category the ledger has never had. Every scanned buy-in failed for weeks with
+  "Failed To Log Entry" and the pull request said verified. The same shape hid
+  a W-2G upload refused by storage RLS, a tax report reading a column that does
+  not exist, and two routes posting a model id the API answers "Model not
+  found" to. **So finish the write and read it back**: the ledger row, the
+  vault row, the storage object, the record the feature exists to create. Then
+  delete what you created. `scripts/ci/check-live-contracts.mjs` (CHECK 25)
+  catches the schema half of this on every pull request; it cannot press Save
+  for you.
 
 ## APPENDIX A — CI PIPELINE & REVERT GUARDS
 

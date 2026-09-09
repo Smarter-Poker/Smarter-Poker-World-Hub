@@ -52,6 +52,17 @@ test('the scheduler ban is stated once and not contradicted', () => {
     assert.match(read('CLAUDE.md'), /^## 10\.9 NEVER SCHEDULE ANYTHING ON THE CLAUDE SCHEDULER/m);
 });
 
+test('RULE 8 says a write is verified when the row exists', () => {
+    // The evidence for the receipt scanner stopped at a filled-in form, and
+    // the save was refused every time. The rule now names that failure.
+    const rules = read(RULES);
+    const rule8 = rules.slice(rules.indexOf('## RULE 8'), rules.indexOf('## APPENDIX A'));
+    assert.match(rule8, /A WRITE IS VERIFIED WHEN THE ROW EXISTS/);
+    assert.match(rule8, /bankroll_ledger_category_check/, 'with the case that produced it');
+    assert.match(rule8, /read it back/);
+    assert.match(rule8, /check-live-contracts\.mjs/, 'and what does catch part of it automatically');
+});
+
 test('a catch that only logs is an ERROR where the money decisions live', () => {
     const config = read('eslint.config.mjs');
     const at = config.indexOf("'src/lib/bankroll/receipt*'");
