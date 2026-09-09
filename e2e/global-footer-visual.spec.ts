@@ -649,14 +649,14 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     }
   });
 
-  test('Club Arena lobby stays footerless and its probe route stays complete', async ({ page }) => {
+  test('Poker Arena lobby stays footerless and its probe route stays complete', async ({ page }) => {
     await visit(page, '/hub/club-arena');
     await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
-    await expect(page.getByRole('navigation', { name: 'Club Arena' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: 'Poker Arena' })).toHaveCount(0);
 
     const probePage = await page.context().newPage();
     await probePage.goto('/hub/club-arena/dev/footer', { waitUntil: 'domcontentloaded' });
-    const clubNav = probePage.getByRole('navigation', { name: 'Club Arena' });
+    const clubNav = probePage.getByRole('navigation', { name: 'Poker Arena' });
     await expect(clubNav).toHaveCount(1);
     await expect(clubNav).toHaveCSS('position', 'fixed');
     await expect(clubNav.locator('[data-footer-control]')).toHaveCount(6);
