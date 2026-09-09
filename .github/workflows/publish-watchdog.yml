@@ -13,13 +13,34 @@
 name: Publish Watchdog
 
 on:
+  # THE PUSH IS THE EVENT. A stalled publisher is exactly "main moved and
+  # production did not", so the commit that moved main is the moment to look.
+  # This runs within a minute of every merge, which is the latency this
+  # workflow has always claimed and has never had.
+  push:
+    branches: [main]
+
   schedule:
-    # Every 15 minutes. A Vercel build is 3-5 minutes and the budget is 20, so
-    # this notices roughly half an hour after a deploy silently stops happening
-    # — against the hours it currently takes for somebody to notice by hand.
-    # Halved from */15 on 2026-08-23 for cost. The real trigger is the
-    # publisher finishing; this schedule only catches a deploy that never
-    # started, and 30 minutes is well inside the window where that matters.
+    # A BACKSTOP, NOT THE MECHANISM, and the cron below is a wish rather than
+    # a promise. Measured on 2026-09-09 over the last 40 scheduled runs of
+    # this workflow:
+    #
+    #   claimed:  every 30 minutes
+    #   actual:   202 minutes median, 368 minutes worst
+    #   39 of 39 gaps were longer than an hour. Not one landed near 30.
+    #
+    # GitHub drops and defers scheduled runs on a busy account, and the more
+    # often a schedule asks, the more it is ignored. The comment that used to
+    # sit here claimed this workflow spotted a stalled publisher within about
+    # half an hour, and contrasted that with the hours a person would take. It
+    # was three and a half hours, median: no better than the person. On
+    # 2026-09-09 it slept through three production deploys that errored on a
+    # vercel.json schema rule, and those were found by curling by hand, which
+    # is the exact thing this file was written to replace.
+    #
+    # It stays, because it is the only thing that catches a deploy that never
+    # STARTED (no push, nothing to trigger on). Its honest value is "some
+    # hours", and the push trigger above is what makes this workflow fast.
     - cron: '*/30 * * * *'
   workflow_dispatch:
 
@@ -30,6 +51,10 @@ permissions:
   # a proposed branch from a stranded one. Without it `gh pr list` is refused,
   # and the sweep reported every branch with a pull request as having none.
   pull-requests: read
+  # actions: read (2026-09-09) is what lets the watchdog measure ITSELF:
+  # check-watchdog-latency.mjs asks the API how often each scheduled workflow
+  # has really run, because the cron is a wish and this one was out by 6.7x.
+  actions: read
 
 concurrency:
   group: publish-watchdog
@@ -66,6 +91,22 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: bash .github/scripts/publish-watchdog.sh
+
+      # THE WATCHDOG CHECKS ITSELF.
+      #
+      # On 2026-09-09 this workflow claimed a 30-minute response and delivered
+      # 202 minutes median, 368 worst, across 39 consecutive gaps of which not
+      # one was under an hour. It slept through three production deploys that
+      # errored on a vercel.json schema rule; the outage was found by curling
+      # by hand, which is what this file exists to replace.
+      #
+      # The cure was the `push` trigger above, not a tighter cron. This step
+      # keeps the numbers honest and fails if any sub-hourly watchdog is ever
+      # left with nothing but a schedule to wake it.
+      - name: A watchdog has something real to wake it
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/check-watchdog-latency.mjs
 
       # Dan 2026-09-01: "no work ever gets lost, orphaned or not published...
       # EVER." The step above asks whether MERGED work reached production;
