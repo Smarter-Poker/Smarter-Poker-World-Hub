@@ -225,8 +225,12 @@ test('the page files a buy-in as a session and an expense as an expense', () => 
     const page = code('pages/hub/bankroll-manager.js');
     const session = page.slice(page.indexOf('actionId === RECEIPT_ACTIONS.LOG_SESSION'), page.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
     assert.match(session, /openEntryForReceipt\(ledgerCategoryFor\(scannerRoute\)\)/, 'a buy-in or cash out opens a REAL ledger category');
-    assert.doesNotMatch(session, /'session'/, "'session' is not a bankroll_ledger category; the insert refused it with 23514");
-    assert.doesNotMatch(session, /'expense'/, 'and never an expense');
+    // The CATEGORY, not the word: 'session' appears legitimately as an
+    // analytics property in the same block, and a test that greps the word
+    // fails for a reason that has nothing to do with the rule.
+    assert.doesNotMatch(session, /openEntryForReceipt\('session'\)/, "'session' is not a bankroll_ledger category; the insert refused it with 23514");
+    assert.doesNotMatch(session, /setDefaultReceiptCategory\('session'\)/);
+    assert.doesNotMatch(session, /openEntryForReceipt\('expense'\)/, 'and never an expense');
     assert.match(page, /actionId === RECEIPT_ACTIONS\.NEW_EXPENSE\) \{ openEntryForReceipt\('expense'\)/, 'an expense is an expense');
     assert.match(page, /\.\.\.\(scannerRoute \? scannerRoute\.prefill : \{\}\)/, 'and the routed fields are applied');
 });
