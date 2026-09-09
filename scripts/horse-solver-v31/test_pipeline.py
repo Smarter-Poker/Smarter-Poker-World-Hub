@@ -42,7 +42,14 @@ from pio_upi import (  # noqa: E402
     texture_class,
     validate_pipeline_imports,
 )
-from worker import owned_targets, source_receipt_is_valid  # noqa: E402
+from worker import (  # noqa: E402
+    artifact_id,
+    artifact_matches,
+    load_checkpoint,
+    owned_targets,
+    scenario_hash,
+    source_receipt_is_valid,
+)
 import compactor  # noqa: E402
 
 
@@ -438,6 +445,49 @@ class ManifestAndGatewayTests(unittest.TestCase):
         self.assertFalse(source_receipt_is_valid(artifact["id"], "0" * 64, artifact))
         self.assertFalse(source_receipt_is_valid(artifact["id"], "A" * 64, artifact))
         self.assertFalse(source_receipt_is_valid(artifact["id"], "g" * 64, artifact))
+
+    def test_checkpoint_parser_rejects_duplicate_keys_and_malformed_nodes_cleanly(self):
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / "artifact.json"
+            checkpoint.write_text('{"id":"one","id":"two"}', encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "repeats JSON key"):
+                load_checkpoint(checkpoint)
+            checkpoint.write_text('{"value":NaN}', encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "non-JSON number"):
+                load_checkpoint(checkpoint)
+            checkpoint.write_text('{"value":1e400}', encoding="utf-8")
+            with self.assertRaisesRegex(ContractError, "non-finite JSON number"):
+                load_checkpoint(checkpoint)
+            checkpoint.write_bytes(b"\xff")
+            with self.assertRaisesRegex(ContractError, "unreadable"):
+                load_checkpoint(checkpoint)
+
+        scenario = base_scenario()
+        target = scenario["targets"][0]
+        manifest = types.SimpleNamespace(
+            checksum="a" * 64,
+            raw={
+                "dataset_key": "horse.v31.test",
+                "source_combo_order_checksum": "b" * 64,
+                "range_bundle_checksum": "c" * 64,
+            },
+        )
+        malformed = {
+            "id": artifact_id(manifest, "M1", target["target_id"]),
+            "scenario_hash": scenario_hash(
+                manifest, scenario["scenario_id"], target["target_id"]
+            ),
+            "game_family": "cash",
+            "stack_depth": 10,
+            "street": "flop",
+            "solved_at": "2026-09-08T00:00:00.000Z",
+            "strategy_matrix_v2": {
+                "schema": "smarter-poker.pio-artifact.v31.1",
+                "combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
+                "nodes": [None],
+            },
+        }
+        self.assertFalse(artifact_matches(malformed, manifest, "M1", scenario, target))
 
     def test_manifest_binds_pipeline_ranges_combo_order_and_icm_model(self):
         with tempfile.TemporaryDirectory() as temporary:

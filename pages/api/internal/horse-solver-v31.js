@@ -3,6 +3,7 @@ import { TextDecoder } from 'node:util';
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import {
   decodeV31IngressSecret,
+  parseV31IngressJson,
   V31_INGRESS_MAX_BODY_BYTES,
   v31IngressEnvelopeIsValid,
   verifyV31IngressRequest,
@@ -340,7 +341,7 @@ export default async function handler(req, res) {
 
     let envelope;
     try {
-      envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(rawBody));
+      envelope = parseV31IngressJson(new TextDecoder('utf-8', { fatal: true }).decode(rawBody));
     } catch {
       throw new GatewayError('Request body must be canonical UTF-8 JSON');
     }
