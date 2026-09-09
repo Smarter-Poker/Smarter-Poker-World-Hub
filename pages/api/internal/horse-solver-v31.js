@@ -5,6 +5,7 @@ import {
   decodeV31IngressSecret,
   parseV31IngressJson,
   V31_INGRESS_MAX_BODY_BYTES,
+  v31IngressDatabaseFailureStatus,
   v31IngressEnvelopeIsValid,
   verifyV31IngressRequest,
 } from '../../../src/lib/horses/solverV31IngressAuth.mjs';
@@ -75,7 +76,7 @@ function exactKeys(value, keys) {
 }
 
 function validDatasetId(value) {
-  return typeof value === 'string' && UUID.test(value.toLowerCase());
+  return typeof value === 'string' && UUID.test(value);
 }
 
 async function bounded(query, timeoutMs = DB_TIMEOUT_MS) {
@@ -92,8 +93,23 @@ async function bounded(query, timeoutMs = DB_TIMEOUT_MS) {
 }
 
 async function rpc(supabase, name, args, timeoutMs = DB_TIMEOUT_MS) {
-  const { data, error } = await bounded(supabase.rpc(name, args), timeoutMs);
-  if (error) throw error;
+  let response;
+  try {
+    response = await bounded(supabase.rpc(name, args), timeoutMs);
+  } catch (error) {
+    const timedOut = error?.name === 'AbortError' || error?.code === 'ABORT_ERR';
+    throw new GatewayError(
+      timedOut ? 'V31 database request timed out' : 'V31 database request failed',
+      timedOut ? 504 : 503,
+    );
+  }
+  const { data, error, status } = response;
+  if (error) {
+    throw new GatewayError(
+      String(error.message || 'V31 database operation failed'),
+      v31IngressDatabaseFailureStatus(error, status),
+    );
+  }
   return data;
 }
 
@@ -112,7 +128,11 @@ function contractMatches(contract, provenance) {
     'icm_model_checksum',
     'input_bundle_checksum',
   ];
-  return fields.every((field) => String(contract[field]) === String(provenance[field]))
+  return fields.every((field) => (
+    typeof contract[field] === 'string'
+      && typeof provenance[field] === 'string'
+      && contract[field] === provenance[field]
+  ))
     && contract.input_approval_status === 'approved';
 }
 
@@ -341,7 +361,9 @@ export default async function handler(req, res) {
 
     let envelope;
     try {
-      envelope = parseV31IngressJson(new TextDecoder('utf-8', { fatal: true }).decode(rawBody));
+      envelope = parseV31IngressJson(
+        new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(rawBody),
+      );
     } catch {
       throw new GatewayError('Request body must be canonical UTF-8 JSON');
     }

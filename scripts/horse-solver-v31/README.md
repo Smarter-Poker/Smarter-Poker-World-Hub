@@ -8,6 +8,9 @@ and it has no OpenClaw dependency.
 
 - M1 and M2 receive different 32-byte HMAC keys. They never receive a
   Supabase service-role key.
+- Signed ingress rejects duplicate keys, non-finite numbers, and integers that
+  JavaScript cannot preserve exactly. Contract-side JSON failures, excessive
+  nesting, and numeric overflow stop as controlled validation errors.
 - The compactor receives a third key. It can register, build, and seal a
   dataset, but it cannot mark a candidate or promote one.
 - PostgreSQL validates each raw Pio node, derives compact cells, computes all

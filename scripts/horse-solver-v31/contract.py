@@ -8,6 +8,7 @@ import math
 import re
 import uuid as uuidlib
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -26,9 +27,12 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{1,159}$")
 DATASET_KEY = re.compile(r"^[a-z0-9][a-z0-9._:-]{2,127}$")
 SAFE_PATH = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{1,255}$")
 CARD = re.compile(r"^[2-9TJQKA][cdhs]$")
-NODE = re.compile(r"^r:0(?::(?:c|f|b[1-9][0-9]*|[2-9TJQKA][cdhs]))*$")
-ACTION = re.compile(r"^(?:c|f|b[1-9][0-9]*)$")
+NODE = re.compile(r"^r:0(?::(?:c|f|b[1-9][0-9]{0,78}|[2-9TJQKA][cdhs]))*$")
+ACTION = re.compile(r"^(?:c|f|b[1-9][0-9]{0,78})$")
 BUNDLE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$")
+JSON_NUMBER = re.compile(
+    r"^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+)
 REQUIRED_PIPELINE_FILES = frozenset(
     {
         "scripts/horse-solver-v31/contract.py",
@@ -127,6 +131,9 @@ class ContractError(ValueError):
     """The approved manifest or one of its pinned files is not trustworthy."""
 
 
+JSON_MAX_SAFE_INTEGER = (1 << 53) - 1
+
+
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -136,11 +143,76 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _reject_nonfinite_json_constant(value: str) -> None:
+    raise ContractError(f"non-finite JSON number is forbidden: {value}")
+
+
+def _parse_exact_json_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise ContractError("JSON integer is outside the exact ingress range") from error
+    if abs(parsed) > JSON_MAX_SAFE_INTEGER:
+        raise ContractError(f"JSON integer is outside the exact ingress range: {value}")
+    return parsed
+
+
+def _parse_finite_json_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except (OverflowError, ValueError) as error:
+        raise ContractError("JSON number is outside the finite ingress range") from error
+    if not math.isfinite(parsed):
+        raise ContractError(f"JSON number is outside the finite ingress range: {value}")
+    # The JavaScript gateway rejects any numeric token that becomes an unsafe
+    # integral Number, including exponent or decimal spellings. Match that
+    # contract before a manifest or pinned input can be approved locally.
+    try:
+        exact = Decimal(value)
+    except InvalidOperation as error:
+        raise ContractError("JSON number is outside the finite ingress range") from error
+    exact_is_integer = exact == exact.to_integral_value()
+    if (exact_is_integer and abs(exact) > JSON_MAX_SAFE_INTEGER) or (
+        not exact_is_integer and parsed.is_integer()
+    ):
+        raise ContractError(f"JSON integer is outside the exact ingress range: {value}")
+    return parsed
+
+
 def _json_bytes(payload: bytes, label: str) -> Any:
     try:
-        return json.loads(payload.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        decoded = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonfinite_json_constant,
+            parse_int=_parse_exact_json_integer,
+            parse_float=_parse_finite_json_float,
+        )
+    except ContractError:
+        raise
+    except RecursionError as error:
+        raise ContractError(f"{label} JSON nesting exceeds the contract limit") from error
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
         raise ContractError(f"{label} is not strict UTF-8 JSON") from error
+    pending = [(decoded, 0)]
+    while pending:
+        value, depth = pending.pop()
+        if depth > 128:
+            raise ContractError(f"{label} JSON nesting exceeds the contract limit")
+        if isinstance(value, dict):
+            if any(
+                any(0xD800 <= ord(character) <= 0xDFFF for character in key)
+                for key in value
+            ):
+                raise ContractError(f"{label} contains an unpaired Unicode surrogate")
+            pending.extend((child, depth + 1) for child in value.values())
+        elif isinstance(value, list):
+            pending.extend((child, depth + 1) for child in value)
+        elif isinstance(value, str) and any(
+            0xD800 <= ord(character) <= 0xDFFF for character in value
+        ):
+            raise ContractError(f"{label} contains an unpaired Unicode surrogate")
+    return decoded
 
 
 def _exact_keys(value: Any, expected: set[str], label: str) -> dict[str, Any]:
@@ -251,7 +323,7 @@ def _canonical_json_bytes(value: Any) -> bytes:
             separators=(",", ":"),
             sort_keys=True,
         ).encode("utf-8")
-    except (TypeError, ValueError, OverflowError) as error:
+    except (TypeError, ValueError, OverflowError, UnicodeEncodeError) as error:
         raise ContractError("V31 input identity is not canonical JSON") from error
 
 
@@ -388,23 +460,36 @@ def _cards(board: Any, minimum: int, maximum: int, label: str) -> list[str]:
 def _finite_number(value: Any, label: str, minimum: float | None = None) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ContractError(f"{label} must be numeric")
-    result = float(value)
+    try:
+        result = float(value)
+    except (OverflowError, ValueError) as error:
+        raise ContractError(f"{label} is outside its allowed range") from error
     if not math.isfinite(result) or (minimum is not None and result < minimum):
         raise ContractError(f"{label} is outside its allowed range")
     return result
 
 
 def load_range_vector(path: Path) -> list[float]:
-    payload = path.read_text(encoding="utf-8").strip()
     try:
-        decoded = json.loads(payload)
-        values = decoded if isinstance(decoded, list) else None
-    except json.JSONDecodeError:
-        values = None
-    if values is None:
-        values = payload.split()
+        payload = path.read_bytes().decode("utf-8").strip()
+    except (OSError, UnicodeDecodeError) as error:
+        raise ContractError(f"range is not readable strict UTF-8: {path}") from error
     try:
-        result = [float(value) for value in values]
+        if payload.startswith("["):
+            values = _json_bytes(payload.encode("utf-8"), f"range vector {path}")
+            if not isinstance(values, list):
+                raise ContractError(f"range must be a JSON array: {path}")
+            result = [
+                _finite_number(value, f"range weight {index}")
+                for index, value in enumerate(values)
+            ]
+        else:
+            tokens = payload.split()
+            if any(not JSON_NUMBER.fullmatch(token) for token in tokens):
+                raise ContractError(f"range contains a nonnumeric value: {path}")
+            result = [_parse_finite_json_float(token) for token in tokens]
+    except ContractError:
+        raise
     except (TypeError, ValueError) as error:
         raise ContractError(f"range contains a nonnumeric value: {path}") from error
     if (
@@ -863,9 +948,9 @@ def load_manifest(
     input_bundle_id_text = _json_string(
         manifest["input_bundle_id"], "input_bundle_id"
     )
-    if not UUID.fullmatch(input_bundle_id_text.lower()):
+    if not UUID.fullmatch(input_bundle_id_text):
         raise ContractError("input_bundle_id is invalid")
-    if input_bundle_id_text.lower() != input_bundle_id(input_checksum):
+    if input_bundle_id_text != input_bundle_id(input_checksum):
         raise ContractError("input_bundle_id does not derive from input_bundle_checksum")
     _canonical_identity_text(manifest["solver_version"], 120, "solver_version")
     _validate_quality_gates(manifest["quality_gates"])
@@ -879,7 +964,13 @@ def load_manifest(
             manifest["source_combo_order_checksum"], 64, "source_combo_order_checksum"
         )
         combo_file = _verify_file(root, combo_path, combo_checksum)
-        source_combo_order = parse_source_combo_order(combo_file.read_text(encoding="utf-8"))
+        try:
+            combo_payload = combo_file.read_bytes().decode("utf-8")
+        except (OSError, UnicodeDecodeError) as error:
+            raise ContractError(
+                f"source combo-order file is not readable strict UTF-8: {combo_file}"
+            ) from error
+        source_combo_order = parse_source_combo_order(combo_payload)
         icm_models = _icm_models(root, manifest)
     scenarios = manifest["scenarios"]
     if not isinstance(scenarios, list) or not scenarios:

@@ -132,6 +132,23 @@ export function verifyV31IngressRequest({
   return safeHexEqual(signature, expected);
 }
 
+/** Map PostgREST/database failures without turning transient outages into 409s. */
+export function v31IngressDatabaseFailureStatus(error, responseStatus) {
+  const status = Number(responseStatus);
+  const code = typeof error?.code === 'string' ? error.code : '';
+  if (code === '57014' || code === 'PGRST003') return 504;
+  if (status === 429) return 429;
+  if (status >= 500 && status <= 599) return status;
+  if (
+    !Number.isFinite(status)
+    || status <= 0
+    || /^08/u.test(code)
+    || /^53/u.test(code)
+    || ['PGRST000', 'PGRST001', 'PGRST002', 'PGRST202'].includes(code)
+  ) return 503;
+  return 409;
+}
+
 /**
  * Parse an authenticated ingress envelope without JSON's duplicate-key
  * ambiguity. JSON.parse silently keeps the last value, so bytes containing
@@ -147,11 +164,62 @@ export function parseV31IngressJson(source) {
   }
   let index = 0;
   const numberToken = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
+  const exactIntegerStatus = (token) => {
+    const unsigned = token.startsWith('-') ? token.slice(1) : token;
+    const [mantissa, exponentPart = '0'] = unsigned.toLowerCase().split('e');
+    const [whole, fraction = ''] = mantissa.split('.');
+    const significant = `${whole}${fraction}`.replace(/^0+/u, '');
+    if (!significant) return { integer: true, unsafe: false };
+
+    const exponentNegative = exponentPart.startsWith('-');
+    const exponentDigits = exponentPart.replace(/^[+-]/u, '').replace(/^0+/u, '') || '0';
+    // No real ingress value needs a six-digit decimal exponent. Avoid
+    // constructing enormous powers merely to reject pathological signed input.
+    if (exponentDigits.length > 6) {
+      return exponentNegative
+        ? { integer: false, unsafe: false }
+        : { integer: true, unsafe: true };
+    }
+    const exponent = Number(exponentPart);
+    const scale = exponent - fraction.length;
+    let integerDigits;
+    if (scale >= 0) {
+      const totalDigits = significant.length + scale;
+      if (totalDigits > 16) return { integer: true, unsafe: true };
+      integerDigits = `${significant}${'0'.repeat(scale)}`;
+    } else {
+      const divisorZeros = -scale;
+      const trailingZeros = significant.length - significant.replace(/0+$/u, '').length;
+      if (trailingZeros < divisorZeros) return { integer: false, unsafe: false };
+      integerDigits = significant.slice(0, significant.length - divisorZeros) || '0';
+    }
+    integerDigits = integerDigits.replace(/^0+/u, '') || '0';
+    const maxSafe = String(Number.MAX_SAFE_INTEGER);
+    return {
+      integer: true,
+      unsafe:
+        integerDigits.length > maxSafe.length
+        || (integerDigits.length === maxSafe.length && integerDigits > maxSafe),
+    };
+  };
   const fail = (message) => {
     throw new SyntaxError(`${message} at offset ${index}`);
   };
   const whitespace = () => {
     while (index < source.length && /[\u0009\u000a\u000d\u0020]/u.test(source[index])) index++;
+  };
+  const containsUnpairedSurrogate = (text) => {
+    for (let cursor = 0; cursor < text.length; cursor++) {
+      const code = text.charCodeAt(cursor);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        const next = text.charCodeAt(cursor + 1);
+        if (cursor + 1 >= text.length || next < 0xdc00 || next > 0xdfff) return true;
+        cursor++;
+      } else if (code >= 0xdc00 && code <= 0xdfff) {
+        return true;
+      }
+    }
+    return false;
   };
   const stringToken = () => {
     if (source[index] !== '"') fail('expected JSON string');
@@ -164,7 +232,9 @@ export function parseV31IngressJson(source) {
       } else if (character === '\\') {
         escaped = true;
       } else if (character === '"') {
-        return JSON.parse(source.slice(start, index));
+        const decoded = JSON.parse(source.slice(start, index));
+        if (containsUnpairedSurrogate(decoded)) fail('JSON string contains an unpaired Unicode surrogate');
+        return decoded;
       }
     }
     fail('unterminated JSON string');
@@ -223,7 +293,14 @@ export function parseV31IngressJson(source) {
     numberToken.lastIndex = index;
     const number = numberToken.exec(source)?.[0];
     if (!number) fail('expected JSON value');
-    if (!Number.isFinite(Number(number))) fail('JSON number exceeds the finite ingress range');
+    const parsedNumber = Number(number);
+    if (!Number.isFinite(parsedNumber)) fail('JSON number exceeds the finite ingress range');
+    const exactStatus = exactIntegerStatus(number);
+    if (exactStatus.unsafe
+        || (!exactStatus.integer && Number.isInteger(parsedNumber))
+        || (exactStatus.integer && !Number.isSafeInteger(parsedNumber))) {
+      fail('JSON integer exceeds the exact ingress range');
+    }
     index = numberToken.lastIndex;
   };
 

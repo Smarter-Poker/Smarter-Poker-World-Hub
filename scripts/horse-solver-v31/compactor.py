@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import time
 import uuid
 from pathlib import Path
 from typing import Any
 
-from contract import ApprovedManifest, ContractError, load_manifest
+from contract import HEX64, JSON_MAX_SAFE_INTEGER, UUID, ApprovedManifest, ContractError, load_manifest
 from gateway import GatewayClient, GatewayError, canonical_json
 from pio_upi import PioError, target_context, validate_pipeline_imports
 
@@ -67,14 +68,120 @@ def declared_coverage(manifest: ApprovedManifest) -> list[dict[str, Any]]:
     return [unique[key] for key in sorted(unique)]
 
 
-def dataset_item(status: Any, dataset_id: str) -> dict[str, Any]:
+def dataset_item(
+    status: Any, dataset_id: str, expected_runtime_cells: int
+) -> dict[str, Any]:
+    if (
+        isinstance(expected_runtime_cells, bool)
+        or not isinstance(expected_runtime_cells, int)
+        or expected_runtime_cells <= 0
+    ):
+        raise GatewayError("declared compact coverage must be nonempty")
     datasets = status.get("datasets") if isinstance(status, dict) else None
     if not isinstance(datasets, list):
         raise GatewayError("certification status omitted datasets")
     for item in datasets:
         if isinstance(item, dict) and item.get("dataset_id") == dataset_id:
+            for key in (
+                "ingested_source_artifacts",
+                "source_receipt_rows",
+                "runtime_cells",
+            ):
+                status_count(item, key)
+            state = item.get("state")
+            if state not in {
+                "building",
+                "evaluating",
+                "candidate",
+                "active",
+                "rejected",
+                "retired",
+            }:
+                raise GatewayError("certification status returned an invalid dataset state")
+            source_max = item.get("source_max_at")
+            checksum = item.get("dataset_checksum")
+            if source_max is not None and (
+                not isinstance(source_max, str) or not source_max or len(source_max) > 80
+            ):
+                raise GatewayError("certification status returned an invalid source watermark")
+            if checksum is not None and (
+                not isinstance(checksum, str)
+                or not HEX64.fullmatch(checksum)
+                or checksum == "0" * 64
+            ):
+                raise GatewayError("certification status returned an invalid dataset checksum")
+            if state in {"evaluating", "candidate", "active"} and (
+                checksum is None or item["runtime_cells"] != expected_runtime_cells
+            ):
+                raise GatewayError(
+                    "terminal certification status is unsealed or does not match declared coverage"
+                )
             return item
     raise GatewayError("certification status omitted the registered dataset")
+
+
+def status_count(item: dict[str, Any], key: str) -> int:
+    value = item.get(key)
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= JSON_MAX_SAFE_INTEGER:
+        raise GatewayError(f"certification status returned an invalid {key}")
+    return value
+
+
+def registration_receipt_is_valid(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == {"dataset_id", "state", "idempotent"}
+        and isinstance(value.get("dataset_id"), str)
+        and UUID.fullmatch(value["dataset_id"]) is not None
+        and value.get("state")
+        in {"building", "evaluating", "candidate", "active", "rejected", "retired"}
+        and isinstance(value.get("idempotent"), bool)
+    )
+
+
+def build_cell_receipt_is_valid(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == {"cell_key_checksum"}
+        and isinstance(value.get("cell_key_checksum"), str)
+        and HEX64.fullmatch(value["cell_key_checksum"]) is not None
+        and value["cell_key_checksum"] != "0" * 64
+    )
+
+
+def seal_receipt_is_valid(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == {"dataset_checksum", "idempotent"}
+        and isinstance(value.get("dataset_checksum"), str)
+        and HEX64.fullmatch(value["dataset_checksum"]) is not None
+        and value["dataset_checksum"] != "0" * 64
+        and isinstance(value.get("idempotent"), bool)
+    )
+
+
+def compact_heartbeat_receipt_is_valid(value: Any, run_id: str, sequence: int) -> bool:
+    if (
+        not isinstance(value, dict)
+        or value.get("accepted") is not True
+        or value.get("run_id") != run_id
+        or isinstance(value.get("sequence"), bool)
+        or value.get("sequence") != sequence
+        or not isinstance(value.get("idempotent"), bool)
+    ):
+        return False
+    base = {"accepted", "idempotent", "run_id", "sequence"}
+    if value["idempotent"]:
+        return set(value) == base
+    if set(value) != base | {"compact_lag_seconds"}:
+        return False
+    lag = value["compact_lag_seconds"]
+    return lag is None or (
+        not isinstance(lag, bool)
+        and isinstance(lag, (int, float))
+        and math.isfinite(float(lag))
+        and lag >= 0
+    )
 
 
 class CompactHeartbeat:
@@ -92,9 +199,9 @@ class CompactHeartbeat:
         invalid_rows: int = 0,
         error_detail: str | None = None,
     ) -> Any:
-        source_rows = int((item or {}).get("ingested_source_artifacts") or 0)
-        receipts = int((item or {}).get("source_receipt_rows") or 0)
-        cells = int((item or {}).get("runtime_cells") or 0)
+        source_rows = 0 if item is None else status_count(item, "ingested_source_artifacts")
+        receipts = 0 if item is None else status_count(item, "source_receipt_rows")
+        cells = 0 if item is None else status_count(item, "runtime_cells")
         source_max = (item or {}).get("source_max_at")
         dataset_checksum = (item or {}).get("dataset_checksum")
         compacted_through = source_max if dataset_checksum else None
@@ -114,6 +221,8 @@ class CompactHeartbeat:
                 "error_detail": error_detail[:2000] if error_detail else None,
             },
         )
+        if not compact_heartbeat_receipt_is_valid(result, self.run_id, self.sequence):
+            raise GatewayError("database returned an invalid compact-heartbeat receipt")
         self.sequence += 1
         return result
 
@@ -141,15 +250,15 @@ def compact_once(args: argparse.Namespace) -> int:
             "quality_gates": manifest.raw["quality_gates"],
         },
     )
-    dataset_id = str(registration.get("dataset_id") or "")
-    if not dataset_id:
-        raise GatewayError("dataset registration returned no id")
+    if not registration_receipt_is_valid(registration):
+        raise GatewayError("dataset registration returned an invalid receipt")
+    dataset_id = registration["dataset_id"]
     heartbeat = CompactHeartbeat(client, manifest.raw["dataset_key"])
     item: dict[str, Any] | None = None
     heartbeat.pulse("starting", item)
     try:
         status = client.call("certification_status", {"dataset_id": dataset_id})
-        item = dataset_item(status, dataset_id)
+        item = dataset_item(status, dataset_id, len(coverage))
         state = item.get("state")
         if state in {"evaluating", "candidate", "active"}:
             pulse_state = "active" if state == "active" else "candidate" if state == "candidate" else "completed"
@@ -166,15 +275,17 @@ def compact_once(args: argparse.Namespace) -> int:
         built = 0
         for context in coverage:
             try:
-                client.call(
+                built_receipt = client.call(
                     "build_cell",
                     {"dataset_id": dataset_id, "context": context},
                     timeout_seconds=280,
                 )
+                if not build_cell_receipt_is_valid(built_receipt):
+                    raise GatewayError("database returned an invalid compact-cell receipt")
             except GatewayError as error:
                 if error.status == 409 and "needs M1 and M2" in str(error):
                     status = client.call("certification_status", {"dataset_id": dataset_id})
-                    item = dataset_item(status, dataset_id)
+                    item = dataset_item(status, dataset_id, len(coverage))
                     heartbeat.pulse("paused", item)
                     print(
                         "[v31-compactor] source corpus is not complete on both hosts; "
@@ -184,7 +295,7 @@ def compact_once(args: argparse.Namespace) -> int:
                 raise
             built += 1
             status = client.call("certification_status", {"dataset_id": dataset_id})
-            item = dataset_item(status, dataset_id)
+            item = dataset_item(status, dataset_id, len(coverage))
             heartbeat.pulse("building", item)
             print(f"[v31-compactor] built {built}/{len(coverage)} declared cells")
 
@@ -192,8 +303,10 @@ def compact_once(args: argparse.Namespace) -> int:
         sealed = client.call(
             "seal_dataset", {"dataset_id": dataset_id}, timeout_seconds=280
         )
+        if not seal_receipt_is_valid(sealed):
+            raise GatewayError("database returned an invalid dataset-seal receipt")
         status = client.call("certification_status", {"dataset_id": dataset_id})
-        item = dataset_item(status, dataset_id)
+        item = dataset_item(status, dataset_id, len(coverage))
         if item.get("state") != "evaluating" or sealed.get("dataset_checksum") != item.get(
             "dataset_checksum"
         ):
