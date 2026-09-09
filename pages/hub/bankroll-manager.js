@@ -41,6 +41,7 @@ import {
 } from '../../src/lib/bankroll/receiptInbox.mjs';
 import { duplicateOf } from '../../src/lib/bankroll/receiptHash.mjs';
 import toast from '../../src/stores/toastStore';
+import { capture, FunnelEvents } from '../../src/lib/analytics';
 
 /** Colour of the tag on each Receipt Saved choice, by receiptActions() tone. */
 const RECEIPT_TONE_COLORS = {
@@ -699,6 +700,10 @@ export default function BankrollManagerPage() {
   }, [userId]);
 
   const handleLogSubmit = async () => {
+    // The step nothing measured: an account that had never written a bankroll
+    // entry just wrote one. `entries` is this user's ledger as it was BEFORE
+    // the save, so an empty one means this is the first.
+    if (entries.length === 0) capture(FunnelEvents.BANKROLL_FIRST_ENTRY, { source: 'log_entry_modal' });
     setShowLogModal(false);
     setEditEntry(null);
     clearLogSessionView();
@@ -1029,6 +1034,7 @@ export default function BankrollManagerPage() {
     }
     setBulkFiling(false);
     if (filed > 0) {
+      capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { bulk: true, count: filed });
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bankroll-updated'));
       setRefreshTrigger(prev => prev + 1);
       await loadData();
@@ -1108,6 +1114,7 @@ export default function BankrollManagerPage() {
         const saved = await updateLedgerEntry(userId, open.id, updates);
         await markReceiptAssigned(scannerReceiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bankroll-updated'));
+        capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { destination: 'session', bulk: false, closed_open_session: true });
         toast.success(`Session Closed: Cashed Out $${cashOut.toLocaleString()}`);
         closeScannerAfterChoice();
         await loadData();
@@ -1134,6 +1141,7 @@ export default function BankrollManagerPage() {
         await markReceiptAssigned(scannerReceiptId, RECEIPT_TARGETS.W2G_FORM, data.id);
         // TaxReportPanel refreshes its vault list on this event.
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bankroll-updated'));
+        capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { destination: 'tax', bulk: false });
         toast.success(`W-2G Added To The ${data.tax_year} Vault In Tax Reports`);
         closeScannerAfterChoice();
         setRefreshTrigger(prev => prev + 1);
@@ -2454,6 +2462,11 @@ export default function BankrollManagerPage() {
                       setScannerRoute(route ? { ...route, documentType } : null);
                       setScannerReceiptId(null);
                       scannerImageHashRef.current = imageHash || null;
+                      capture(FunnelEvents.BANKROLL_RECEIPT_SCANNED, {
+                        document_type: documentType || 'unknown',
+                        destination: (route && route.destination) || 'manual',
+                        auto_file: Boolean(route && route.autoFile),
+                      });
                       // Shown, never acted on: the player decides whether this
                       // is the same piece of paper.
                       setScannerDuplicate(duplicateOf(imageHash, recentHashes));
@@ -2650,7 +2663,10 @@ export default function BankrollManagerPage() {
               onSubmit={(entry, saved) => {
                 const receiptId = receiptAwaitingEntryRef.current;
                 receiptAwaitingEntryRef.current = null;
-                if (receiptId && saved && saved.id) markReceiptAssigned(receiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
+                if (receiptId && saved && saved.id) {
+                  markReceiptAssigned(receiptId, RECEIPT_TARGETS.LEDGER_ENTRY, saved.id);
+                  capture(FunnelEvents.BANKROLL_RECEIPT_FILED, { destination: entry && entry.category === 'expense' ? 'expense' : 'session', bulk: false });
+                }
                 handleLogSubmit(); setDefaultReceiptCategory(null); setDefaultReceiptMedia(null); setDefaultReceiptData(null);
               }}
             />

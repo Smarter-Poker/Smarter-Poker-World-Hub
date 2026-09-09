@@ -204,6 +204,14 @@ export const FunnelEvents = Object.freeze({
     FIRST_TABLE_SEAT: 'first_table_seat',
     FIRST_HAND_PLAYED: 'first_hand_played',
     FIRST_SESSION_30MIN: 'first_session_of_30min',
+    // Bankroll Manager. Added 2026-09-08 after counting the database: 1,029
+    // accounts carry is_vip and ONE has ever written a bankroll entry. Six of
+    // its premium routes answered 403 to everyone until that day and every
+    // scanned buy-in failed to save, so the first question is whether fixing
+    // those changes anything. Nothing measured it either way.
+    BANKROLL_FIRST_ENTRY: 'bankroll_first_entry',
+    BANKROLL_RECEIPT_SCANNED: 'bankroll_receipt_scanned',
+    BANKROLL_RECEIPT_FILED: 'bankroll_receipt_filed',
 });
 
 export default { capture, identify, reset, register, FunnelEvents };
