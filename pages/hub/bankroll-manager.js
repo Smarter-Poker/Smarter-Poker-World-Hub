@@ -39,6 +39,7 @@ import {
   ledgerEntryFromReceipt, partitionForBulkFiling,
   RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
+import { warmOcr } from '../../src/lib/docscan/ocr.mjs';
 import { duplicateOf } from '../../src/lib/bankroll/receiptHash.mjs';
 import toast from '../../src/stores/toastStore';
 import { removeBankrollObject } from '../../src/lib/bankroll/receiptStorage';
@@ -910,6 +911,15 @@ export default function BankrollManagerPage() {
   }, [userId]);
 
   useEffect(() => { loadPendingReceipts(); }, [loadPendingReceipts, refreshTrigger]);
+
+  // Fetch the OCR engine while the page is idle, so the first scan of a
+  // session is as fast as the second. Roughly 6.8 MB, once, then cached: paid
+  // for during the seconds somebody spends reading their own numbers instead
+  // of while they watch a progress bar that has not moved yet.
+  useEffect(() => {
+    if (!userId) return;
+    warmOcr();
+  }, [userId]);
 
   /** Rule 4: the row that makes a completed scan un-losable. */
   const saveReceiptRow = useCallback(async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
