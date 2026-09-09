@@ -83,6 +83,18 @@ const report = {
     receipts_scanned: await count('bankroll_receipts'),
     receipts_waiting: await count('bankroll_receipts', '&status=eq.unassigned'),
     receipts_filed: await count('bankroll_receipts', '&status=eq.assigned'),
+    // WHAT THE ON-DEVICE READER ACTUALLY DID.
+    //
+    // PostHog is dark in production, so this table is the only channel that
+    // answers it. `read_engine_failed` above zero means the DEPLOY is broken
+    // and nobody has noticed, which is exactly how the reader shipped on
+    // 2026-09-09 with every asset 404ing. `read_no_text` above a trickle
+    // points at the photograph or its preprocessing instead.
+    read_ok: await count('bankroll_receipts', '&read_outcome=eq.read'),
+    read_no_text: await count('bankroll_receipts', '&read_outcome=eq.no_text'),
+    read_engine_failed: await count('bankroll_receipts', '&read_outcome=eq.engine_failed'),
+    read_route_refused: await count('bankroll_receipts', '&read_outcome=eq.route_refused'),
+    read_not_recorded: await count('bankroll_receipts', '&read_outcome=is.null'),
     w2g_forms: await count('w2g_forms'),
     dealer_documents: await count('dealer_documents'),
     player_notes: await count('player_notes'),
@@ -108,6 +120,19 @@ if (process.argv.includes('--json')) {
     row('receipts scanned', report.receipts_scanned);
     row('waiting to be filed', report.receipts_waiting);
     row('filed', report.receipts_filed);
+    console.log('');
+    console.log('  WHAT THE ON-DEVICE READER DID');
+    row('read', report.read_ok);
+    row('no legible text', report.read_no_text);
+    row('ENGINE FAILED', report.read_engine_failed);
+    row('server refused', report.read_route_refused);
+    row('scanned before this', report.read_not_recorded);
+    if (report.read_engine_failed > 0) {
+        console.log('');
+        console.log('  The engine failed to start for a real person. That is a broken');
+        console.log('  deploy, not a bad photograph. Check that public/tesseract is');
+        console.log('  served: curl -sI https://smarter.poker/tesseract/worker.min.js');
+    }
     row('W-2G forms', report.w2g_forms);
     row('dealer documents', report.dealer_documents);
     row('player notes', report.player_notes);

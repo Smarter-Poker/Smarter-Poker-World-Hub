@@ -125,22 +125,24 @@ const { biggest, symlinks } = walked;
  */
 let generatedBytes = 0;
 let generatedFiles = 0;
-let generatedNote = '';
-if (!existsSync(join('public', 'tesseract'))) {
+const generatedNotes = [];
+for (const [dir, script] of [['tesseract', '../copy-tesseract-assets.mjs'], ['pdfjs', '../copy-pdfjs-assets.mjs']]) {
+  if (existsSync(join('public', dir))) continue;
   try {
-    const { generatedBytes: measure } = await import('../copy-tesseract-assets.mjs');
+    const { generatedBytes: measure } = await import(script);
     const measured = measure();
     if (measured) {
-      generatedBytes = measured.bytes;
-      generatedFiles = measured.files;
-      generatedNote = ` (+ ${mb(generatedBytes)} generated into public/tesseract at build time)`;
+      generatedBytes += measured.bytes;
+      generatedFiles += measured.files;
+      generatedNotes.push(`${mb(measured.bytes)} into public/${dir}`);
     } else {
-      generatedNote = ' (public/tesseract could not be measured; run npm ci)';
+      generatedNotes.push(`public/${dir} could not be measured; run npm ci`);
     }
   } catch (err) {
-    generatedNote = ` (public/tesseract could not be measured: ${err.message})`;
+    generatedNotes.push(`public/${dir} could not be measured: ${err.message}`);
   }
 }
+const generatedNote = generatedNotes.length ? ` (+ ${generatedNotes.join('; ')} at build time)` : '';
 
 const bytes = walked.bytes + generatedBytes;
 const files = walked.files + generatedFiles;

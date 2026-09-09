@@ -25,8 +25,28 @@
  * one costs about a second and players scan receipts in batches.
  */
 
+/**
+ * The engine version, IN THE URL, and why that matters more than it looks.
+ *
+ * Without it every upgrade would mean a different file behind the same
+ * /tesseract/worker.min.js, so the assets could only be cached with
+ * revalidation. A browser in a poker room cannot revalidate. Measured on
+ * 2026-09-09 against production, with a warmed cache taken offline: the read
+ * failed in 5 ms on importScripts, and "works offline" was a claim in a
+ * commit message rather than a fact.
+ *
+ * With the version in the path a URL's bytes never change, so vercel.json
+ * serves it `immutable` and a warmed cache is usable with no network at all.
+ *
+ * scripts/copy-tesseract-assets.mjs reads the SAME number out of
+ * package.json, and __tests__/the-engine-works-with-no-signal.law.test.mjs
+ * fails the build if the two ever drift. A mismatch is not cosmetic: it is a
+ * 404 for every asset, which is how the reader shipped broken once already.
+ */
+export const TESSERACT_VERSION = '7.0.0';
+
 /** Where the copy script puts the engine. Same origin, always. */
-export const TESSERACT_BASE = '/tesseract';
+export const TESSERACT_BASE = `/tesseract/${TESSERACT_VERSION}`;
 
 export const TESSERACT_ASSETS = {
     workerPath: `${TESSERACT_BASE}/worker.min.js`,
@@ -107,6 +127,28 @@ export async function releaseOcr() {
 /** Has the engine been started in this tab? */
 export function isOcrLoaded() {
     return workerPromise !== null;
+}
+
+/**
+ * Start fetching the engine before anybody presses anything.
+ *
+ * The first scan of a session otherwise pays for the whole download while the
+ * user watches a progress bar that has not moved. Called when the bankroll
+ * page settles, the 6.8 MB arrives during the seconds somebody spends looking
+ * at their own numbers, and the first scan is as fast as the second.
+ *
+ * Deliberately quiet: it never throws and never blocks. A device that cannot
+ * start the engine here will fail the same way on the real scan, where the
+ * failure is recorded and reported.
+ */
+export function warmOcr() {
+    if (typeof window === 'undefined' || workerPromise) return;
+    const start = () => { getWorker().catch(() => { /* the real scan reports it */ }); };
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(start, { timeout: 8000 });
+    } else {
+        window.setTimeout(start, 2500);
+    }
 }
 
 export class OcrUnavailableError extends Error {

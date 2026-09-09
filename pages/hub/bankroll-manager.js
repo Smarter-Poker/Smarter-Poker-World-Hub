@@ -39,6 +39,7 @@ import {
   ledgerEntryFromReceipt, partitionForBulkFiling,
   RECEIPT_ACTIONS, RECEIPT_TARGETS,
 } from '../../src/lib/bankroll/receiptInbox.mjs';
+import { warmOcr } from '../../src/lib/docscan/ocr.mjs';
 import { duplicateOf } from '../../src/lib/bankroll/receiptHash.mjs';
 import toast from '../../src/stores/toastStore';
 import { capture, FunnelEvents } from '../../src/lib/analytics';
@@ -477,6 +478,9 @@ export default function BankrollManagerPage() {
   const receiptAwaitingEntryRef = useRef(null);
   // The hash of the scan currently on screen, so Retry Listing stores it too.
   const scannerImageHashRef = useRef(null);
+  // What the reader did on the scan currently held, so Retry Listing writes
+  // the same outcome the first attempt would have.
+  const scannerReadOutcomeRef = useRef({ outcome: null, ocrConfidence: null });
   const [ruleViolations, setRuleViolations] = useState([]);
   const [isVip, setIsVip] = useState(false);
 
@@ -872,6 +876,7 @@ export default function BankrollManagerPage() {
     setReceiptSaving(false);
     setScannerDuplicate(null);
     scannerImageHashRef.current = null;
+    scannerReadOutcomeRef.current = { outcome: null, ocrConfidence: null };
   }, [scannerHasUnsaved, scannerStep, scannerReceiptId, scannerImageUrl]);
 
   /** Unassigned scans, newest first. Shown on the dashboard until filed. */
@@ -880,7 +885,7 @@ export default function BankrollManagerPage() {
     try {
       const { data, error } = await supabase
         .from('bankroll_receipts')
-        .select('id, image_url, document_type, destination, summary, route, extracted, image_hash, confidence, auto_file, created_at')
+        .select('id, image_url, document_type, destination, summary, route, extracted, image_hash, confidence, auto_file, read_outcome, ocr_confidence, created_at')
         .eq('user_id', userId)
         .eq('status', 'unassigned')
         .order('created_at', { ascending: false })
@@ -905,13 +910,22 @@ export default function BankrollManagerPage() {
 
   useEffect(() => { loadPendingReceipts(); }, [loadPendingReceipts, refreshTrigger]);
 
+  // Fetch the OCR engine while the page is idle, so the first scan of a
+  // session is as fast as the second. Roughly 6.8 MB, once, then cached: paid
+  // for during the seconds somebody spends reading their own numbers instead
+  // of while they watch a progress bar that has not moved yet.
+  useEffect(() => {
+    if (!userId) return;
+    warmOcr();
+  }, [userId]);
+
   /** Rule 4: the row that makes a completed scan un-losable. */
-  const saveReceiptRow = useCallback(async ({ imageUrl, extractedData, route, documentType, imageHash }) => {
+  const saveReceiptRow = useCallback(async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
     if (!userId || !imageUrl) return null;
     try {
       const { data, error } = await supabase
         .from('bankroll_receipts')
-        .insert(receiptRowFromScan(userId, { imageUrl, extracted: extractedData, route, documentType, imageHash }))
+        .insert(receiptRowFromScan(userId, { imageUrl, extracted: extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }))
         .select('id')
         .maybeSingle();
       if (error) throw error;
@@ -945,6 +959,7 @@ export default function BankrollManagerPage() {
     setReceiptSaving(false);
     setScannerDuplicate(null);
     scannerImageHashRef.current = receipt.image_hash || null;
+    scannerReadOutcomeRef.current = { outcome: receipt.read_outcome || null, ocrConfidence: receipt.ocr_confidence ?? null };
     setScannerReceiptId(receipt.id);
     setScannerImageUrl(receipt.image_url);
     setScannerExtractedData(receipt.extracted || null);
@@ -964,6 +979,10 @@ export default function BankrollManagerPage() {
       route: scannerRoute,
       documentType: scannerRoute && scannerRoute.documentType,
       imageHash: scannerImageHashRef.current,
+      // The retry writes the same row, so it carries the same read outcome.
+      // Dropping it here would make a retried scan look like one nobody read.
+      readOutcome: scannerReadOutcomeRef.current.outcome,
+      ocrConfidence: scannerReadOutcomeRef.current.ocrConfidence,
     });
     setScannerReceiptId(id);
     setReceiptSaving(false);
@@ -980,6 +999,7 @@ export default function BankrollManagerPage() {
     setReceiptSaving(false);
     setScannerDuplicate(null);
     scannerImageHashRef.current = null;
+    scannerReadOutcomeRef.current = { outcome: null, ocrConfidence: null };
   }, []);
 
   /** Open LogEntryModal for this receipt; its save marks the receipt assigned. */
@@ -2455,7 +2475,7 @@ export default function BankrollManagerPage() {
                   <ReceiptScanner
                     userId={userId}
                     onPendingChange={setScannerHasUnsaved}
-                    onScanComplete={async ({ imageUrl, extractedData, route, documentType, imageHash }) => {
+                    onScanComplete={async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
                       setScannerHasUnsaved(false);
                       setScannerImageUrl(imageUrl);
                       setScannerExtractedData(extractedData);
@@ -2475,7 +2495,8 @@ export default function BankrollManagerPage() {
                       // Rule 4: the row exists BEFORE a choice can be made. The
                       // choices stay disabled until it does, and a failed
                       // insert shows Retry Listing instead of a silent gap.
-                      const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType, imageHash });
+                      scannerReadOutcomeRef.current = { outcome: readOutcome || null, ocrConfidence: ocrConfidence ?? null };
+                      const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence });
                       setScannerReceiptId(id);
                       setReceiptSaving(false);
                       if (id) loadPendingReceipts();

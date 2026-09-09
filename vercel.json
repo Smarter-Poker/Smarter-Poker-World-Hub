@@ -13,7 +13,7 @@
     }
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
-  "buildCommand": "node scripts/copy-tesseract-assets.mjs && bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && npm run test:training:phase6-authority && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
+  "buildCommand": "node scripts/copy-tesseract-assets.mjs && node scripts/copy-pdfjs-assets.mjs && bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && npm run test:training:phase6-authority && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
   "headers": [
     {
       "source": "/(.*)",
@@ -307,6 +307,24 @@
         { "key": "Cache-Control", "value": "public, s-maxage=30, stale-while-revalidate=60" },
         { "key": "Pragma", "value": "" },
         { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/pdfjs/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/tesseract/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {

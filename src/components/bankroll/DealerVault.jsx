@@ -10,7 +10,10 @@ import { memo,  useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
-import { readText, releaseOcr } from '../../lib/docscan/ocr.mjs';
+import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
+import { readPdf, isPdf, PdfUnreadableError } from '../../lib/docscan/pdfText.mjs';
+import { downscaleForOcr } from '../../lib/docscan/imageSource';
+import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
@@ -192,8 +195,12 @@ function DealerVault({ userId, completedGigs = [] }) {
             };
             reader.readAsDataURL(file);
         } else {
+            // A PDF used to stop here: uploaded, stored, and never read, so
+            // every field on it was typed in by hand. Casinos email W-2Gs as
+            // PDFs, which is the most common way a player receives one.
             setPendingFile(file);
             setShowUploadForm(true);
+            if (isPdf(file)) analyzeDocument(file);
         }
     }, []);
 
@@ -250,7 +257,7 @@ function DealerVault({ userId, completedGigs = [] }) {
      * route is still called because it holds the Bankroll Pro gate and runs
      * the shared parser, which is the same pure module the tests exercise.
      */
-    const analyzeDocument = async (imageBase64) => {
+    const analyzeDocument = async (input) => {
         setIsAnalyzing(true);
         try {
             // A token read straight out of localStorage is whatever was there
@@ -259,9 +266,21 @@ function DealerVault({ userId, completedGigs = [] }) {
             const token = await getFreshAccessToken();
             if (!token) throw new Error('not-signed-in');
 
-            const read = await readText(imageBase64, {
-                onProgress: (pct) => setOcrProgress(pct),
-            });
+            // The full-resolution photograph went straight to the engine
+            // here while ReceiptScanner had shrunk its copy since day one.
+            // A modern phone camera is 4000px on the long side; the engine
+            // reads a document just as well at 1600 and several times faster.
+            // A PDF is read by pdf.js: page one's TEXT LAYER when it has one,
+            // which is exact and needs no recognition at all, and only a
+            // rasterised page through the same engine when it does not.
+            let read;
+            if (isPdf(input)) {
+                read = await readPdf(input, { onProgress: (pct) => setOcrProgress(pct) });
+            } else {
+                const full = await fetch(input).then((r) => r.blob());
+                const forOcr = await downscaleForOcr(full, 1600, 0.85);
+                read = await readText(forOcr, { onProgress: (pct) => setOcrProgress(pct) });
+            }
             setOcrProgress(null);
             if (!read.text.trim()) throw new Error('no-text-found');
 
@@ -299,6 +318,12 @@ function DealerVault({ userId, completedGigs = [] }) {
             }
         } catch (err) {
             console.warn('OCR Error:', err);
+            // An engine that cannot start means the DEPLOY is broken, not the
+            // photograph. That one pages somebody; a hard-to-read licence
+            // does not.
+            if (err instanceof OcrUnavailableError || err instanceof PdfUnreadableError) {
+                reportReaderFailure(err, READER_SECTIONS.DEALER_VAULT, userId);
+            }
             toast.error('Could not auto-extract data. Please enter manually.');
         } finally {
             setOcrProgress(null);
