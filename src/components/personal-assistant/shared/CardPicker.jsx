@@ -99,7 +99,7 @@ export default function CardPicker({ value, onChange, label, usedCards = [] }) {
                         disabled={used}
                       >
                         <span style={{ color: suit.color, fontWeight: 700 }}>{rank}</span>
-                        <span style={{ color: suit.color, fontSize: 10 }}>{getSuitSymbol(suit.symbol)}</span>
+                        <span style={{ color: suit.color, fontSize: 12 }}>{getSuitSymbol(suit.symbol)}</span>
                       </button>
                     );
                   })}
@@ -133,7 +133,7 @@ const styles = {
     gap: 4,
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
   },
