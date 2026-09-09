@@ -88,6 +88,7 @@ import {
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
+import DiamondInPlayBalance from './DiamondInPlayBalance';
 // One definition of what each wallet tab means, shared with the API that counts
 // and queries them. See the file header for why it is not a list of type names.
 import { matchesFilter } from '../../lib/diamonds/ledgerFilters';
@@ -1757,6 +1758,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER : Image-Backed Layout
                 ═══════════════════════════════════════════════ */}
+          <DiamondInPlayBalance refreshKey={balance} />
           <div className={styles.art}>
             <img
               className={styles.artImage}
@@ -1768,7 +1770,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             {/* Diamond Balance Overlay - measured to the plate bay */}
             <div className={`${styles.artReadout} ${styles.artReadoutBalance}`}>
               <div className={styles.artFigure}>{(animatedBalance ?? 0).toLocaleString()}</div>
-              <div className={styles.artLabel}>Diamonds</div>
+              <div className={styles.artLabel}>Available Diamonds</div>
             </div>
 
             {/* VIP Expiration Overlay - measured to the plate bay */}
