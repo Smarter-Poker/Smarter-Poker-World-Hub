@@ -496,6 +496,23 @@ export default function TaxReportPanel({ userId }) {
                                             ${parseFloat(form.gross_amount).toLocaleString()}
                                         </span>
                                     )}
+                                    {/* THE TWO FIGURES A RETURN ASKS FOR, APART.
+                                        Migration 20260908232953 split federal
+                                        from state on w2g_forms for exactly this
+                                        reason, the reader has been filling both
+                                        in since, and nothing on any screen has
+                                        ever shown them. A player filing a
+                                        return had the combined number and no
+                                        way to get back to the two the form
+                                        prints. */}
+                                    {(form.federal_withheld !== null && form.federal_withheld !== undefined)
+                                        || (form.state_withheld !== null && form.state_withheld !== undefined) ? (
+                                            <span style={styles.formWithholdingSplit}>
+                                                {`Fed $${parseFloat(form.federal_withheld || 0).toLocaleString()}`}
+                                                {' \u00b7 '}
+                                                {`State $${parseFloat(form.state_withheld || 0).toLocaleString()}`}
+                                            </span>
+                                        ) : null}
                                     <div style={{ display: 'flex', gap: 6 }}>
                                         <button
                                             onClick={() => window.open(form.file_url, '_blank')}
@@ -642,9 +659,19 @@ export default function TaxReportPanel({ userId }) {
                                             {form.source_description || form.file_name}
                                         </span>
                                     </div>
-                                    <span style={styles.w2gAmount}>
-                                        {form.gross_amount ? `$${parseFloat(form.gross_amount).toLocaleString()}` : '-'}
-                                    </span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span style={styles.w2gAmount}>
+                                            {form.gross_amount ? `$${parseFloat(form.gross_amount).toLocaleString()}` : '-'}
+                                        </span>
+                                        {(form.federal_withheld !== null && form.federal_withheld !== undefined)
+                                            || (form.state_withheld !== null && form.state_withheld !== undefined) ? (
+                                                <div style={styles.w2gWithholdingSplit}>
+                                                    {`Fed $${parseFloat(form.federal_withheld || 0).toLocaleString()}`}
+                                                    {' \u00b7 '}
+                                                    {`State $${parseFloat(form.state_withheld || 0).toLocaleString()}`}
+                                                </div>
+                                            ) : null}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -929,6 +956,15 @@ const styles = {
         fontWeight: 700,
         color: METAL.primary,
     },
+    // Quieter than the gross on purpose. The gross is what the form is about;
+    // the split is what somebody copies onto a return once a year.
+    formWithholdingSplit: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 600,
+        color: METAL.textSecondary,
+        whiteSpace: 'nowrap',
+    },
     formActionBtn: {
         display: 'flex',
         alignItems: 'center',
@@ -1111,6 +1147,14 @@ const styles = {
         fontSize: 18,
         fontWeight: 700,
         color: METAL.primary,
+    },
+    w2gWithholdingSplit: {
+        fontFamily: "'Rajdhani', sans-serif",
+        fontSize: 12,
+        fontWeight: 600,
+        color: METAL.textSecondary,
+        whiteSpace: 'nowrap',
+        marginTop: 2,
     },
 
     downloadBtn: {
