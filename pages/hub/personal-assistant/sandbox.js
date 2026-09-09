@@ -7,12 +7,14 @@
  * unless the exact decision is backed by the signed Training pipeline.
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
+import { useHaptics } from '../../../src/hooks/useHaptics';
+import { useModalHistory } from '../../../src/hooks/useModalHistory';
 import PersonalAssistantCopyPolicy from '../../../src/components/personal-assistant/PersonalAssistantCopyPolicy';
 
 const DESTINATIONS = [
@@ -40,6 +42,14 @@ export default function VerifiedEvidenceSandboxBoundary() {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const menuConfig = getMenuConfig('hub-home', null, {}, {});
+  const haptic = useHaptics();
+  const closeMenu = useCallback(() => setShowMenu(false), []);
+  useModalHistory(showMenu, closeMenu);
+
+  const go = (href) => {
+    haptic('light');
+    router.push(href);
+  };
 
   return (
     <div className="sandbox-boundary-page">
@@ -53,7 +63,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
       <UniversalHeader pageDepth={2} onMenuClick={() => setShowMenu(true)} />
       <HamburgerMenu
         isOpen={showMenu}
-        onClose={() => setShowMenu(false)}
+        onClose={closeMenu}
         direction="left"
         theme="pa"
         user={null}
@@ -81,7 +91,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
             Display It As Exact Strategy, Or Record It As Training Progress.
           </p>
 
-          <div className="evidence-panel" role="note" aria-label="Analysis Authority">
+          <div className="evidence-panel" role="note" aria-label="Analysis Authority" data-tutorial="evidence-gate">
             <div>
               <span className="panel-label">Current Status</span>
               <strong>Approximate Analysis Retired</strong>
@@ -101,13 +111,13 @@ export default function VerifiedEvidenceSandboxBoundary() {
             On This Page. Choose An Evidence-Backed Destination To Continue.
           </p>
 
-          <div className="sandbox-command-bar" aria-label="Verified Training Destinations">
+          <div className="sandbox-command-bar" aria-label="Verified Training Destinations" data-tutorial="sandbox-destinations">
             {DESTINATIONS.map((destination) => (
               <button
                 key={destination.href}
                 type="button"
                 className={destination.primary ? 'destination primary' : 'destination'}
-                onClick={() => router.push(destination.href)}
+                onClick={() => go(destination.href)}
               >
                 <span>{destination.title}</span>
                 <small>{destination.description}</small>
@@ -118,7 +128,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
           <button
             type="button"
             className="back-link"
-            onClick={() => router.push('/hub/personal-assistant')}
+            onClick={() => go('/hub/personal-assistant')}
           >
             Back To Personal Assistant
           </button>
@@ -126,11 +136,15 @@ export default function VerifiedEvidenceSandboxBoundary() {
       </main>
 
       <style jsx>{`
+        /* MOBILE PHASE 4. 100dvh, never 100vh: on iOS Safari 100vh is the
+           TALLEST the viewport ever gets, so the last rows sit under the URL
+           bar. And overflow-x: clip, never hidden: a bare hidden makes this a
+           scroll container and re-parents every fixed descendant to it. */
         .sandbox-boundary-page {
-          min-height: 100vh;
+          min-height: 100dvh;
           width: 100%;
           max-width: 100vw;
-          overflow-x: hidden;
+          overflow-x: clip;
           color: #eaf8ff;
           background:
             radial-gradient(circle at 50% -5%, rgba(44, 189, 255, 0.2), transparent 38%),
@@ -140,7 +154,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
         .sandbox-workspace {
           width: min(100% - 28px, 980px);
           margin: 0 auto;
-          padding: clamp(34px, 7vw, 76px) 0 90px;
+          padding: clamp(34px, 7vw, 76px) 0 24px;
         }
 
         .boundary-console {
@@ -176,9 +190,9 @@ export default function VerifiedEvidenceSandboxBoundary() {
           border: 1px solid rgba(255, 200, 80, 0.45);
           color: #ffe08a;
           background: rgba(75, 48, 5, 0.3);
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 900;
-          letter-spacing: 0.09em;
+          letter-spacing: 0.07em;
         }
 
         .status-light {
@@ -194,9 +208,9 @@ export default function VerifiedEvidenceSandboxBoundary() {
           z-index: 1;
           margin: 30px 0 8px;
           color: #7edfff;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 800;
-          letter-spacing: 0.16em;
+          letter-spacing: 0.13em;
         }
 
         h1 {
@@ -243,14 +257,16 @@ export default function VerifiedEvidenceSandboxBoundary() {
           display: block;
           margin-bottom: 6px;
           color: #75939f;
-          font-size: 9px;
+          font-size: 12px;
           font-weight: 800;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.08em;
+          line-height: 1.35;
         }
 
         .evidence-panel strong {
           color: #ddf7ff;
-          font-size: 12px;
+          font-size: 13px;
+          line-height: 1.35;
         }
 
         .assurance-copy {
@@ -261,7 +277,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
           border-left: 3px solid #5bdcff;
           color: #c8e6ef;
           background: rgba(0, 174, 255, 0.08);
-          font-size: 12px;
+          font-size: 13px;
           line-height: 1.65;
         }
 
@@ -303,7 +319,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
         .destination small {
           margin-top: 6px;
           color: #b5cbd4;
-          font-size: 11px;
+          font-size: 12px;
           line-height: 1.5;
         }
 
@@ -321,7 +337,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
           text-underline-offset: 4px;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .sandbox-workspace {
             width: min(100% - 20px, 980px);
             padding-top: 22px;
