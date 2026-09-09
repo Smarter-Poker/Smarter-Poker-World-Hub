@@ -140,8 +140,8 @@ function TextureMeter({ label, value, max = 100 }) {
   return (
     <div style={{ marginBottom: 6 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-        <span style={{ color: '#94a3b8', fontSize: 9 }}>{label}</span>
-        <span style={{ color: getTextureColor(value), fontSize: 9, fontWeight: 700 }}>{value}%</span>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>{label}</span>
+        <span style={{ color: getTextureColor(value), fontSize: 12, fontWeight: 700 }}>{value}%</span>
       </div>
       <div style={{ height: 6, background: 'rgba(0,0,0,0.3)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{ width: `${(value / max) * 100}%`, height: '100%', borderRadius: 3, background: getTextureColor(value), transition: 'width 0.3s' }} />
@@ -165,7 +165,7 @@ function RangeHitChart({ hits }) {
           width: `${hits[c.key]}%`, background: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
           opacity: 0.7, transition: 'width 0.3s', minWidth: hits[c.key] > 8 ? 'auto' : 0,
         }}>
-          {hits[c.key] > 10 && <span style={{ color: '#fff', fontSize: 7, fontWeight: 700 }}>{c.label} {hits[c.key]}%</span>}
+          {hits[c.key] > 10 && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{c.label} {hits[c.key]}%</span>}
         </div>
       ))}
     </div>
@@ -177,7 +177,7 @@ function CbetComparison({ texture }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       <div>
-        <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>IP C-Bet Strategy</div>
+        <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>IP C-Bet Strategy</div>
         <div style={{ color: '#22c55e', fontSize: 22, fontWeight: 800 }}>{texture.ipCbet}%</div>
         <div style={{ display: 'flex', gap: 2, height: 16, borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
           <div style={{ width: `${texture.ipFreq.bet33}%`, background: '#3b82f6', opacity: 0.6 }} />
@@ -185,13 +185,13 @@ function CbetComparison({ texture }) {
           <div style={{ width: `${texture.ipFreq.check}%`, background: '#64748b', opacity: 0.4 }} />
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <span style={{ color: '#3b82f6', fontSize: 8 }}>33%: {texture.ipFreq.bet33}%</span>
-          <span style={{ color: '#ef4444', fontSize: 8 }}>67%: {texture.ipFreq.bet67}%</span>
-          <span style={{ color: '#64748b', fontSize: 8 }}>Check: {texture.ipFreq.check}%</span>
+          <span style={{ color: '#3b82f6', fontSize: 12 }}>33%: {texture.ipFreq.bet33}%</span>
+          <span style={{ color: '#ef4444', fontSize: 12 }}>67%: {texture.ipFreq.bet67}%</span>
+          <span style={{ color: '#64748b', fontSize: 12 }}>Check: {texture.ipFreq.check}%</span>
         </div>
       </div>
       <div>
-        <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>OOP C-Bet Strategy</div>
+        <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>OOP C-Bet Strategy</div>
         <div style={{ color: '#f59e0b', fontSize: 22, fontWeight: 800 }}>{texture.oopCbet}%</div>
         <div style={{ display: 'flex', gap: 2, height: 16, borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
           <div style={{ width: `${texture.oopFreq.bet33}%`, background: '#3b82f6', opacity: 0.6 }} />
@@ -199,9 +199,9 @@ function CbetComparison({ texture }) {
           <div style={{ width: `${texture.oopFreq.check}%`, background: '#64748b', opacity: 0.4 }} />
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <span style={{ color: '#3b82f6', fontSize: 8 }}>33%: {texture.oopFreq.bet33}%</span>
-          <span style={{ color: '#ef4444', fontSize: 8 }}>67%: {texture.oopFreq.bet67}%</span>
-          <span style={{ color: '#64748b', fontSize: 8 }}>Check: {texture.oopFreq.check}%</span>
+          <span style={{ color: '#3b82f6', fontSize: 12 }}>33%: {texture.oopFreq.bet33}%</span>
+          <span style={{ color: '#ef4444', fontSize: 12 }}>67%: {texture.oopFreq.bet67}%</span>
+          <span style={{ color: '#64748b', fontSize: 12 }}>Check: {texture.oopFreq.check}%</span>
         </div>
       </div>
     </div>
@@ -222,14 +222,14 @@ export default function FlopTextureAnalyzer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Flop Texture Analyzer</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Understand How Board Texture Affects Strategy</div>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Understand How Board Texture Affects Strategy</div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['detail', 'compare'].map(m => (
               <button key={m} onClick={() => setViewMode(m)} style={{
                 padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: viewMode === m ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
-                color: viewMode === m ? '#3b82f6' : '#64748b', fontSize: 10, fontWeight: 600,
+                color: viewMode === m ? '#3b82f6' : '#64748b', fontSize: 12, fontWeight: 600,
               }}>{m === 'detail' ? 'Detail View' : 'Compare All'}</button>
             ))}
           </div>
@@ -242,10 +242,10 @@ export default function FlopTextureAnalyzer() {
               padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
               background: selectedTexture.id === t.id ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.15)',
               border: selectedTexture.id === t.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-              color: selectedTexture.id === t.id ? '#f1f5f9' : '#94a3b8', fontSize: 10, fontWeight: 600,
+              color: selectedTexture.id === t.id ? '#f1f5f9' : '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               <div>{t.name}</div>
-              <div style={{ color: '#64748b', fontSize: 8, marginTop: 1 }}>{t.example}</div>
+              <div style={{ color: '#64748b', fontSize: 12, marginTop: 1 }}>{t.example}</div>
             </button>
           ))}
         </div>
@@ -269,7 +269,7 @@ export default function FlopTextureAnalyzer() {
                   <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800 }}>{selectedTexture.name}</div>
                   <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
                     {selectedTexture.traits.map((t, i) => (
-                      <span key={i} style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 8, fontWeight: 600 }}>{t}</span>
+                      <span key={i} style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 12, fontWeight: 600 }}>{t}</span>
                     ))}
                   </div>
                 </div>
@@ -285,19 +285,19 @@ export default function FlopTextureAnalyzer() {
 
             {/* C-Bet comparison */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>C-Bet Frequencies</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>C-Bet Frequencies</div>
               <CbetComparison texture={selectedTexture} />
             </div>
 
             {/* Range hits */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution On This Board</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Range Distribution On This Board</div>
               <RangeHitChart hits={selectedTexture.rangeHits} />
               <div style={{ display: 'flex', gap: 10, marginTop: 6, justifyContent: 'center' }}>
                 {[{ label: 'Top Pair+', color: '#22c55e' }, { label: 'Overpair', color: '#3b82f6' }, { label: 'Draws', color: '#f59e0b' }, { label: 'Air', color: '#64748b' }].map(c => (
                   <span key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color }} />
-                    <span style={{ color: '#94a3b8', fontSize: 8 }}>{c.label}</span>
+                    <span style={{ color: '#94a3b8', fontSize: 12 }}>{c.label}</span>
                   </span>
                 ))}
               </div>
@@ -305,26 +305,26 @@ export default function FlopTextureAnalyzer() {
 
             {/* Equity shift */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Equity Dynamics</div>
-              <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.5 }}>{selectedTexture.equityShift}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Equity Dynamics</div>
+              <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.5 }}>{selectedTexture.equityShift}</div>
             </div>
 
             {/* Strategy */}
             <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 12, border: '1px solid rgba(59,130,246,0.15)' }}>
-              <div style={{ color: '#3b82f6', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Recommended Strategy</div>
-              <div style={{ color: '#cbd5e1', fontSize: 11, lineHeight: 1.6 }}>{selectedTexture.strategy}</div>
+              <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Recommended Strategy</div>
+              <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.6 }}>{selectedTexture.strategy}</div>
             </div>
           </>
         ) : (
           /* Compare All View */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 60px 60px 60px 60px 1fr', gap: 4, padding: '4px 8px' }}>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>TEXTURE</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'center' }}>IP C-BET</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'center' }}>OOP C-BET</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'center' }}>CONNECT</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'center' }}>FLUSH DR</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>RANGE HITS</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>TEXTURE</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>IP C-BET</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>OOP C-BET</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>CONNECT</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>FLUSH DR</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>RANGE HITS</span>
             </div>
             {sortedByIpCbet.map(t => (
               <div key={t.id} role="button" tabIndex={0} aria-label={`Inspect ${t.name || t.id} texture`} onClick={() => { setSelectedTexture(t); setViewMode('detail'); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTexture(t); setViewMode('detail'); } }} style={{
@@ -333,8 +333,8 @@ export default function FlopTextureAnalyzer() {
                 background: 'rgba(0,0,0,0.1)', border: '1px solid transparent',
               }}>
                 <div>
-                  <div style={{ color: '#f1f5f9', fontSize: 11, fontWeight: 700 }}>{t.name}</div>
-                  <div style={{ color: '#64748b', fontSize: 9 }}>{t.example}</div>
+                  <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700 }}>{t.name}</div>
+                  <div style={{ color: '#64748b', fontSize: 12 }}>{t.example}</div>
                 </div>
                 <div style={{ color: '#22c55e', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.ipCbet}%</div>
                 <div style={{ color: '#f59e0b', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>{t.oopCbet}%</div>

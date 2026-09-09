@@ -95,7 +95,7 @@ export default function RiskAnalyzerPage() {
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-risk"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: '#0B0D11',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -130,7 +130,7 @@ export default function RiskAnalyzerPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Risk Analyzer</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Monte Carlo Bankroll Simulator</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Monte Carlo Bankroll Simulator</div>
           </div>
         </div>
 
@@ -192,7 +192,7 @@ export default function RiskAnalyzerPage() {
                 onChange={(e) => setStdDev(e.target.value)}
                 style={{ width: '100%', accentColor: 'var(--sp-accent-amber)' }}
               />
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                 Live Full Ring ~ 60 | Online 6-Max ~ 90 | PLO ~ 140
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function RiskAnalyzerPage() {
                 onChange={(e) => setBankroll(e.target.value)}
                 style={{ width: '100%', accentColor: 'var(--sp-accent-cyan)' }}
               />
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                 E.G. 25 Buy-Ins At 100BB = 2500 BBs
               </div>
             </div>
@@ -370,7 +370,7 @@ export default function RiskAnalyzerPage() {
                         position: 'absolute',
                         bottom: -20,
                         right: 0,
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
@@ -381,7 +381,7 @@ export default function RiskAnalyzerPage() {
                         position: 'absolute',
                         top: -20,
                         left: 0,
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
@@ -389,7 +389,7 @@ export default function RiskAnalyzerPage() {
                     </div>
                   </div>
                   <div
-                    style={{ fontSize: 11, color: 'var(--sp-fg-dim)', textAlign: 'center', marginTop: 32 }}
+                    style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textAlign: 'center', marginTop: 32 }}
                   >
                     Sample Subset Of 20 Careers Plotted Out Of 1,000 Simulated.
                   </div>

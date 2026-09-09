@@ -27,14 +27,14 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                 marginBottom: 8,
             }}>
                 <span style={{
-                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                    fontSize: 12, fontWeight: 700, color: '#64748b',
                     textTransform: 'uppercase', letterSpacing: 1,
                     fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>
                     Range Equity
                 </span>
                 <span style={{
-                    fontSize: 10, fontWeight: 700,
+                    fontSize: 12, fontWeight: 700,
                     color: hasAdvantage === 'hero' ? '#00d4ff' : hasAdvantage === 'villain' ? '#ef4444' : '#94a3b8',
                     background: hasAdvantage === 'hero'
                         ? 'rgba(0,212,255,0.1)'
@@ -58,12 +58,12 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                     }}>
                         {heroPercent}%
                     </span>
-                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
                         {heroPosition}
                     </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
                         {villainPosition}
                     </span>
                     <span style={{
@@ -95,7 +95,7 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                 >
                     {heroPercent > 15 && (
                         <span style={{
-                            fontSize: 10, fontWeight: 700, color: '#fff',
+                            fontSize: 12, fontWeight: 700, color: '#fff',
                             textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                         }}>
                             {heroPosition}
@@ -115,7 +115,7 @@ export default function EquityMatchup({ heroEquity = 50, villainEquity = 50, her
                 >
                     {villainPercent > 15 && (
                         <span style={{
-                            fontSize: 10, fontWeight: 700, color: '#fff',
+                            fontSize: 12, fontWeight: 700, color: '#fff',
                             textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                         }}>
                             {villainPosition}

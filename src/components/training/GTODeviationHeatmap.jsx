@@ -46,11 +46,11 @@ export default function GTODeviationHeatmap({ label, actualPct = 0, gtoPct = 0, 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
                 <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', letterSpacing: 0.5 }}>{label}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{description}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{description}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 11, color: '#94a3b8' }}>GTO: <strong style={{ color: '#00d4ff' }}>{safeGto.toFixed(1)}%</strong></span>
+                        <span style={{ fontSize: 12, color: '#94a3b8' }}>GTO: <strong style={{ color: '#00d4ff' }}>{safeGto.toFixed(1)}%</strong></span>
                         <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>{safeActual.toFixed(1)}%</span>
                     </div>
                 </div>
@@ -114,7 +114,7 @@ export default function GTODeviationHeatmap({ label, actualPct = 0, gtoPct = 0, 
                 display: 'flex',
                 justifyContent: 'space-between',
                 marginTop: 8,
-                fontSize: 10,
+                fontSize: 12,
                 color: '#64748b',
                 textTransform: 'uppercase',
                 fontWeight: 700

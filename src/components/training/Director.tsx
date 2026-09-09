@@ -481,7 +481,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                     {/* Failed Assets Warning (subtle) */}
                     {assets.failedAssets.length > 0 && assets.isReady && (
                         <div style={{
-                            fontSize: '11px',
+                            fontSize: '12px',
                             color: '#f59e0b',
                             marginTop: '12px',
                             opacity: 0.7
@@ -507,7 +507,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             transition={{ duration: 0.5 }}
             style={{
                 width: '100%',
-                height: '100vh',
+                height: '100dvh',
                 background: '#0a1628',
                 position: 'relative',
                 overflow: 'hidden'
@@ -719,7 +719,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                             {currentLeak.message}
                         </div>
                         <div style={{
-                            fontSize: '11px',
+                            fontSize: '12px',
                             marginTop: '8px',
                             opacity: 0.8
                         }}>
@@ -772,7 +772,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                                 </div>
                             )}
                             {player.hasFolded && (
-                                <div style={{ color: '#ff4444', fontSize: '11px' }}>FOLDED</div>
+                                <div style={{ color: '#ff4444', fontSize: '12px' }}>FOLDED</div>
                             )}
                         </motion.div>
                     );
@@ -988,7 +988,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
                 position: 'absolute',
                 top: '70px',
                 right: '10px',
-                fontSize: '11px',
+                fontSize: '12px',
                 color: '#444',
                 fontFamily: 'monospace',
                 textAlign: 'right'

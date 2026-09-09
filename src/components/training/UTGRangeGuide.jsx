@@ -46,7 +46,7 @@ export default function UTGRangeGuide() {
             style={{ padding: '10px 8px', borderRadius: 8, border: formatIdx === i ? `2px solid ${f.color}` : '1px solid rgba(255,255,255,0.06)',
               background: formatIdx === i ? `${f.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: formatIdx === i ? f.color : '#64748b' }}>{f.name}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>Open: {f.open}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>Open: {f.open}</div>
           </button>
         ))}
       </div>

@@ -81,8 +81,8 @@ export default function SessionCoachingEngine() {
             style={{ flex: 1, padding: '8px 6px', borderRadius: 10, border: mode === m.id ? `2px solid ${m.color}` : '1px solid rgba(255,255,255,0.06)',
               background: mode === m.id ? `${m.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{m.icon}</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: mode === m.id ? m.color : '#64748b' }}>{m.label}</div>
-            <div style={{ fontSize: 8, color: '#64748b' }}>{m.desc}</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: mode === m.id ? m.color : '#64748b' }}>{m.label}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{m.desc}</div>
           </button>
         ))}
       </div>
@@ -97,7 +97,7 @@ export default function SessionCoachingEngine() {
         ].map((s, i) => (
           <div key={i} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: s.color, fontFamily: 'monospace' }}>{s.value}</div>
-            <div style={{ fontSize: 8, color: '#64748b' }}>{s.label}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -109,13 +109,13 @@ export default function SessionCoachingEngine() {
           {COACHING_FOCUS.map((f, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${f.color}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: f.color }}>{f.area}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: f.color }}>{f.area}</span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <span style={{ fontSize: 10, color: '#ef4444' }}>You: {f.your}</span>
-                  <span style={{ fontSize: 10, color: '#22c55e' }}>GTO: {f.gto}</span>
+                  <span style={{ fontSize: 12, color: '#ef4444' }}>You: {f.your}</span>
+                  <span style={{ fontSize: 12, color: '#22c55e' }}>GTO: {f.gto}</span>
                 </div>
               </div>
-              <div style={{ fontSize: 10, color: '#94a3b8' }}>{f.tip}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>{f.tip}</div>
             </div>
           ))}
         </div>
@@ -130,11 +130,11 @@ export default function SessionCoachingEngine() {
               borderLeft: `3px solid ${tip.type === 'mistake' ? '#ef4444' : tip.type === 'good' ? '#22c55e' : tip.type === 'warning' ? '#f59e0b' : '#3b82f6'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={{ fontSize: 12, fontWeight: 700 }}>{tip.icon} {tip.hand} - {tip.street}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'monospace',
+              <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
                 color: tip.evImpact.startsWith('-') ? '#ef4444' : tip.evImpact === '0' ? '#64748b' : '#22c55e' }}>{tip.evImpact}</span>
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{tip.message}</div>
-            <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}> {tip.advice}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>{tip.message}</div>
+            <div style={{ fontSize: 12, color: '#22c55e', fontWeight: 600 }}> {tip.advice}</div>
           </motion.div>
         ))}
       </div>
@@ -142,7 +142,7 @@ export default function SessionCoachingEngine() {
       {!showAllTips && RECENT_TIPS.length > 3 && (
         <button onClick={() => setShowAllTips(true)}
           style={{ width: '100%', padding: '8px', marginTop: 8, borderRadius: 8, border: '1px solid rgba(59,130,246,0.2)',
-            background: 'rgba(59,130,246,0.05)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>
+            background: 'rgba(59,130,246,0.05)', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>
           Show All {RECENT_TIPS.length} Tips
         </button>
       )}

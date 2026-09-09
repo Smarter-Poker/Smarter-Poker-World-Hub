@@ -44,7 +44,7 @@ export default function OnlineVsLiveGuide() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.topic}
           </button>
         ))}
@@ -55,15 +55,15 @@ export default function OnlineVsLiveGuide() {
         <div style={{ fontSize: 16, fontWeight: 800, color: d.color, marginBottom: 12 }}>{d.icon} {d.topic}</div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>ONLINE</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>ONLINE</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.online}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>LIVE</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>LIVE</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.live}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>ADJUSTMENT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>ADJUSTMENT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.adjust}</div>
           </div>
         </div>

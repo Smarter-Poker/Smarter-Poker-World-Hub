@@ -185,7 +185,7 @@ const styles = {
         color: '#fff',
     },
     statLabel: {
-        fontSize: 9,
+        fontSize: 12,
         textTransform: 'uppercase',
         letterSpacing: 1,
         color: 'rgba(255,255,255,0.5)',
@@ -194,11 +194,10 @@ const styles = {
     gridContainer: {
         display: 'flex',
         gap: 4,
-        overflowX: 'auto',
+        // MOBILE PHASE 5: the streak map wraps. It was a hidden-scrollbar
+        // strip, so the earliest weeks were off the left edge unannounced.
+        flexWrap: 'wrap',
         paddingBottom: 8,
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none', // Firefox
-        msOverflowStyle: 'none',  // IE and Edge
     },
     weekColumn: {
         display: 'flex',
@@ -220,7 +219,7 @@ const styles = {
         opacity: 0.8,
     },
     legendText: {
-        fontSize: 10,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.4)',
         margin: '0 4px',
     },

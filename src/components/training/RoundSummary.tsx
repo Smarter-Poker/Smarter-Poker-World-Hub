@@ -105,6 +105,10 @@ const Confetti: React.FC<{ count: number }> = ({ count }) => {
                     key={piece.id}
                     initial={{ y: -20, x: `${piece.x}vw`, opacity: 1, rotate: 0 }}
                     animate={{
+                        // Stays 100vh on purpose: this is a translate target, not a
+                        // box size. Confetti has to clear the TALLEST the viewport
+                        // ever gets, so a URL bar that retracts mid-fall cannot leave
+                        // a piece parked on screen. 100dvh would under-travel here.
                         y: '100vh',
                         rotate: piece.rotation + 720,
                         opacity: [1, 1, 0],
@@ -513,11 +517,11 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                         {aiCoaching.strengths?.length > 0 && (
                                             <div style={{ flex: 1, minWidth: 140 }}>
-                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', marginBottom: 4 }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 4 }}>
                                                     ✓ STRENGTHS
                                                 </div>
                                                 {aiCoaching.strengths.slice(0, 2).map((s, i) => (
-                                                    <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
+                                                    <p key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
                                                         • {s}
                                                     </p>
                                                 ))}
@@ -525,11 +529,11 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                         )}
                                         {aiCoaching.areasToImprove?.length > 0 && (
                                             <div style={{ flex: 1, minWidth: 140 }}>
-                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
                                                      FOCUS AREAS
                                                 </div>
                                                 {aiCoaching.areasToImprove.slice(0, 2).map((a, i) => (
-                                                    <p key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
+                                                    <p key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: '2px 0' }}>
                                                         • {a}
                                                     </p>
                                                 ))}
@@ -545,13 +549,13 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                             borderRadius: 8,
                                             border: '1px solid rgba(255, 215, 0, 0.3)'
                                         }}>
-                                            <div style={{ fontSize: 10, fontWeight: 700, color: '#ffd700', marginBottom: 4 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#ffd700', marginBottom: 4 }}>
                                                  RECOMMENDED NEXT
                                             </div>
                                             <p style={{ fontSize: 12, color: '#fff', margin: 0, fontWeight: 500 }}>
                                                 {aiCoaching.recommendedDrill.name}
                                             </p>
-                                            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', margin: '4px 0 0 0' }}>
+                                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: '4px 0 0 0' }}>
                                                 {aiCoaching.recommendedDrill.reason}
                                             </p>
                                         </div>
@@ -560,7 +564,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     {/* Motivational Quote */}
                                     {aiCoaching.motivationalQuote && (
                                         <p style={{
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             fontStyle: 'italic',
                                             color: 'rgba(255,255,255,0.5)',
                                             margin: '4px 0 0 0',
@@ -749,7 +753,7 @@ const styles: Record<string, React.CSSProperties> = {
         color: '#fff',
     },
     scoreLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.6)',
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -787,7 +791,7 @@ const styles: Record<string, React.CSSProperties> = {
         color: '#00d4ff',
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.5)',
         textTransform: 'uppercase',
     },
@@ -833,7 +837,7 @@ const styles: Record<string, React.CSSProperties> = {
         color: 'rgba(255, 255, 255, 0.8)',
     },
     blunderDamage: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#ff4444',
         marginTop: 2,
     },
@@ -980,7 +984,7 @@ export const RoundSummarySkeleton: React.FC = () => {
                     .skeleton-pulse {
                         animation: skeleton-pulse 2s ease-in-out infinite;
                     }
-                    @media (max-width: 640px) {
+                    @media (max-width: 768px) {
                         .round-summary-card {
                             padding: 20px !important;
                             width: 95% !important;

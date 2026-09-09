@@ -414,7 +414,7 @@ export function AnimatedChip({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '10px',
+                fontSize: '12px',
                 fontWeight: 700,
                 color: '#fff'
             }}

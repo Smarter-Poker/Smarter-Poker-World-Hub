@@ -72,7 +72,7 @@ function SessionReviewChecklist() {
           <h3 style={{ margin: 0, fontSize: 18, color: '#14b8a6' }}>Session Review</h3>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444' }}>{score}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{positives} Yes / {negatives} No</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{positives} Yes / {negatives} No</div>
           </div>
         </div>
 
@@ -95,7 +95,7 @@ function SessionReviewChecklist() {
                     }}>
                       {state === 1 ? '✓': state === -1 ? '✕': ''}
                     </div>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', flex: 1 }}>{item.text}</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', flex: 1 }}>{item.text}</span>
                   </div>
                 );
               })}
@@ -104,15 +104,15 @@ function SessionReviewChecklist() {
         ))}
 
         <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Session Notes:</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Session Notes:</div>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Key hands, observations, areas to study..." style={{
             width: '100%', height: 60, padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 11, resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+            background: 'rgba(255,255,255,0.04)', color: '#fff', fontSize: 12, resize: 'vertical', outline: 'none', boxSizing: 'border-box',
           }} />
         </div>
 
         <div style={{ marginTop: 10, padding: 8, background: 'rgba(20,184,166,0.06)', borderRadius: 6, border: '1px solid rgba(20,184,166,0.12)' }}>
-          <div style={{ fontSize: 10, color: '#14b8a6', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: '#14b8a6', fontWeight: 600 }}>
             {score >= 80 ? 'Excellent session discipline. Keep it up!' :
              score >= 60 ? 'Good session overall. A few areas to improve.' :
              score >= 40 ? 'Mixed session. Focus on the red areas next time.' :

@@ -351,7 +351,7 @@ export function FeedbackCard({
                                 padding: '6px 12px',
                                 background: COLORS.critical,
                                 borderRadius: '20px',
-                                fontSize: '10px',
+                                fontSize: '12px',
                                 fontWeight: 700,
                                 color: '#fff',
                                 textTransform: 'uppercase',
@@ -369,7 +369,7 @@ export function FeedbackCard({
                             padding: '4px 10px',
                             background: 'rgba(255,255,255,0.1)',
                             borderRadius: '12px',
-                            fontSize: '10px',
+                            fontSize: '12px',
                             color: COLORS.textSecondary
                         }}>
                             Leak: {result.leakCategory}
@@ -452,7 +452,7 @@ export function FeedbackCard({
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                             {engineExplanation.deepDive.rangeConsiderations && (
                                                 <div>
-                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
                                                          Range Analysis
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
@@ -462,7 +462,7 @@ export function FeedbackCard({
                                             )}
                                             {engineExplanation.deepDive.equityAnalysis && (
                                                 <div>
-                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
                                                          Equity Vs Range
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
@@ -472,7 +472,7 @@ export function FeedbackCard({
                                             )}
                                             {engineExplanation.deepDive.boardTexture && (
                                                 <div>
-                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#00d4ff', marginBottom: '4px', textTransform: 'uppercase' }}>
                                                          Board Texture
                                                     </div>
                                                     <p style={{ fontSize: '13px', color: COLORS.textPrimary, margin: 0, lineHeight: 1.5 }}>
@@ -492,7 +492,7 @@ export function FeedbackCard({
                                             borderRadius: '8px',
                                             border: '1px solid rgba(255, 215, 0, 0.3)'
                                         }}>
-                                            <div style={{ fontSize: '10px', fontWeight: 700, color: COLORS.gtoGold, marginBottom: '6px', textTransform: 'uppercase' }}>
+                                            <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.gtoGold, marginBottom: '6px', textTransform: 'uppercase' }}>
                                                  Key Takeaway
                                             </div>
                                             <p style={{ fontSize: '14px', color: COLORS.textPrimary, margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
@@ -532,7 +532,7 @@ export function FeedbackCard({
                     }}
                 >
                     <div style={{
-                        fontSize: '10px',
+                        fontSize: '12px',
                         fontWeight: 700,
                         color: COLORS.gtoGold,
                         textTransform: 'uppercase',
@@ -691,7 +691,7 @@ export function FeedbackCard({
                         transform: translateY(0);
                     }
                 }
-                @media (max-width: 640px) {
+                @media (max-width: 768px) {
                     .feedback-card-root {
                         max-width: 95vw !important;
                         padding: 20px !important;
@@ -857,7 +857,7 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
                                 padding: '2px 6px',
                                 background: 'rgba(255,255,255,0.15)',
                                 borderRadius: '6px',
-                                fontSize: '9px',
+                                fontSize: '12px',
                                 fontWeight: 700,
                                 color: COLORS.textSecondary
                             }}>
@@ -866,7 +866,7 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
                         )}
                     </div>
                     {line.frequency !== undefined && (
-                        <div style={{ fontSize: '11px', color: COLORS.textSecondary }}>
+                        <div style={{ fontSize: '12px', color: COLORS.textSecondary }}>
                             Frequency: {line.frequency.toFixed(0)}%
                         </div>
                     )}
@@ -889,7 +889,7 @@ function ActionLineRow({ line, isGTO, isUserAction, evDiffFromGTO }: ActionLineR
                 </motion.div>
                 {evDiffFromGTO !== undefined && (
                     <div style={{
-                        fontSize: '11px',
+                        fontSize: '12px',
                         color: COLORS.critical
                     }}>
                         {evDiffFromGTO.toFixed(2)} BB Worse

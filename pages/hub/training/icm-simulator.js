@@ -67,7 +67,7 @@ export default function IcmSimulatorPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: '#0a0a1a',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -99,7 +99,7 @@ export default function IcmSimulatorPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>ICM Simulator</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Final Table Math & Deal Calculator</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Final Table Math & Deal Calculator</div>
           </div>
         </div>
 
@@ -219,7 +219,7 @@ export default function IcmSimulatorPage() {
                 >
                   Player Stacks
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
                   Total: {totalChips.toLocaleString()}
                 </div>
               </div>
@@ -373,7 +373,7 @@ export default function IcmSimulatorPage() {
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: 24, fontSize: 11, color: 'var(--sp-fg-muted)' }}>
+                          <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--sp-fg-muted)' }}>
                             <div>
                               <span style={{ fontWeight: 700, color: 'var(--sp-fg)' }}>Chips:</span>{' '}
                               {(Number.isFinite(Number(chipPct)) ? Number(chipPct) : 0).toFixed(1)}% ({Number(p.stack).toLocaleString()})

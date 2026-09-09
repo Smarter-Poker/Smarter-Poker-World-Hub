@@ -310,11 +310,11 @@ const PostflopCell = memo(({ hand, freqs, isSelected, onClick, actionFilter, han
                     pointerEvents: 'none',
                     whiteSpace: 'nowrap',
                 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#00d4ff', marginBottom: 2, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#00d4ff', marginBottom: 2, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {hand}
                     </div>
                     {handClass && (
-                        <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase' }}>
                             {handClass.replace(/_/g, ' ')}
                         </div>
                     )}
@@ -324,7 +324,7 @@ const PostflopCell = memo(({ hand, freqs, isSelected, onClick, actionFilter, han
                             .sort((a, b) => b[1] - a[1])
                             .slice(0, 4)
                             .map(([action, freq]) => (
-                                <div key={action} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, gap: 8 }}>
+                                <div key={action} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, gap: 8 }}>
                                     <span style={{ color: SIZE_COLORS[action] || '#888', fontWeight: 700 }}>
                                         {SIZE_LABELS[action] || action}
                                     </span>
@@ -374,7 +374,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                     </span>
                     {isMixed && (
                         <span style={{
-                            fontSize: 10, color: '#fbbf24',
+                            fontSize: 12, color: '#fbbf24',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -393,7 +393,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
             {/* Hand Class Badge */}
             {handClass && (
                 <div style={{
-                    fontSize: 10, fontWeight: 700, color: '#94a3b8',
+                    fontSize: 12, fontWeight: 700, color: '#94a3b8',
                     textTransform: 'uppercase', letterSpacing: 0.5,
                     marginBottom: 10, padding: '4px 8px',
                     background: 'rgba(255,255,255,0.03)', borderRadius: 6,
@@ -409,7 +409,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                     const label = SIZE_LABELS[action] || action;
                     return (
                         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ width: 55, fontSize: 10, fontWeight: 700, color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", textAlign: 'right' }}>
+                            <div style={{ width: 55, fontSize: 12, fontWeight: 700, color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", textAlign: 'right' }}>
                                 {label.length > 8 ? label.slice(0, 7) : label}
                             </div>
                             <div style={{
@@ -424,14 +424,14 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
                                 />
                                 <span style={{
                                     position: 'absolute', right: 6, top: 2,
-                                    fontSize: 11, fontWeight: 600, color: '#fff',
+                                    fontSize: 12, fontWeight: 600, color: '#fff',
                                 }}>
                                     {freq}%
                                 </span>
                                 {i === 0 && sorted.length > 1 && (
                                     <span style={{
                                         position: 'absolute', left: 6, top: 3,
-                                        fontSize: 8, fontWeight: 700, color: '#4ade80',
+                                        fontSize: 12, fontWeight: 700, color: '#4ade80',
                                     }}>
                                         LOCAL PICK
                                     </span>
@@ -443,7 +443,7 @@ function PostflopHandDetail({ hand, freqs, handClass, onClose }) {
             </div>
 
             <div style={{
-                marginTop: 10, fontSize: 9, color: '#475569',
+                marginTop: 10, fontSize: 12, color: '#475569',
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 paddingTop: 6,
             }}>
@@ -505,14 +505,14 @@ function BoardSelector({ board, onChange }) {
                     }}
                 />
                 <button onClick={handleSubmit} style={{
-                    padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                    padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                     background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)',
                     color: '#00d4ff', cursor: 'pointer',
                 }}>
                     Set
                 </button>
                 <button onClick={() => setEditing(false)} style={{
-                    padding: '4px 8px', borderRadius: 6, fontSize: 10,
+                    padding: '4px 8px', borderRadius: 6, fontSize: 12,
                     background: 'none', border: 'none', color: '#64748b', cursor: 'pointer',
                 }}>
                     Cancel
@@ -535,7 +535,7 @@ function BoardSelector({ board, onChange }) {
                 border: '1px solid rgba(255,255,255,0.08)',
             }}
         >
-            <span style={{ fontSize: 9, color: '#64748b', marginRight: 4 }}>Board:</span>
+            <span style={{ fontSize: 12, color: '#64748b', marginRight: 4 }}>Board:</span>
             {board && board.length > 0 ? board.map((card, i) => {
                 const suit = card[1];
                 const suitInfo = CARD_DISPLAY[suit] || CARD_DISPLAY.s;
@@ -550,7 +550,7 @@ function BoardSelector({ board, onChange }) {
                     </span>
                 );
             }) : (
-                <span style={{ fontSize: 10, color: '#475569' }}>Click To Set Board</span>
+                <span style={{ fontSize: 12, color: '#475569' }}>Click To Set Board</span>
             )}
         </div>
     );
@@ -722,7 +722,7 @@ export default function PostflopRangeViewer({
                             key={s.key}
                             onClick={() => setSpotType(s.key)}
                             style={{
-                                padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                                padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                                 cursor: 'pointer', border: 'none',
                                 background: spotType === s.key ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
                                 color: spotType === s.key ? '#00d4ff' : '#94a3b8',
@@ -741,7 +741,7 @@ export default function PostflopRangeViewer({
                             key={pos}
                             onClick={() => setPosition(pos)}
                             style={{
-                                padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                                padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                                 cursor: 'pointer', border: 'none',
                                 background: position === pos ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
                                 color: position === pos ? '#00d4ff' : '#64748b',
@@ -756,10 +756,10 @@ export default function PostflopRangeViewer({
             {/* Conditional: Turn runout / River state / Facing bet size */}
             {spotType === 'turn_barrel' && (
                 <div style={{ display: 'flex', gap: 4, padding: '0 4px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 9, color: '#64748b', alignSelf: 'center' }}>Runout:</span>
+                    <span style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>Runout:</span>
                     {['brick', 'overcard', 'flush_completing', 'straight_completing', 'pairing', 'draw_improving'].map(r => (
                         <button key={r} onClick={() => setTurnRunout(r)} style={{
-                            padding: '3px 8px', borderRadius: 5, fontSize: 9, fontWeight: 600,
+                            padding: '3px 8px', borderRadius: 5, fontSize: 12, fontWeight: 600,
                             border: 'none', cursor: 'pointer',
                             background: turnRunout === r ? 'rgba(0,212,255,0.12)' : 'transparent',
                             color: turnRunout === r ? '#00d4ff' : '#64748b',
@@ -772,10 +772,10 @@ export default function PostflopRangeViewer({
 
             {spotType === 'river' && (
                 <div style={{ display: 'flex', gap: 4, padding: '0 4px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 9, color: '#64748b', alignSelf: 'center' }}>Board:</span>
+                    <span style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>Board:</span>
                     {['dry_runout', 'wet_completed', 'paired_board', 'monotone_board', 'dynamic_board'].map(r => (
                         <button key={r} onClick={() => setRiverBoardState(r)} style={{
-                            padding: '3px 8px', borderRadius: 5, fontSize: 9, fontWeight: 600,
+                            padding: '3px 8px', borderRadius: 5, fontSize: 12, fontWeight: 600,
                             border: 'none', cursor: 'pointer',
                             background: riverBoardState === r ? 'rgba(0,212,255,0.12)' : 'transparent',
                             color: riverBoardState === r ? '#00d4ff' : '#64748b',
@@ -788,10 +788,10 @@ export default function PostflopRangeViewer({
 
             {spotType === 'facing_bet' && (
                 <div style={{ display: 'flex', gap: 4, padding: '0 4px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 9, color: '#64748b', alignSelf: 'center' }}>Bet Size:</span>
+                    <span style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>Bet Size:</span>
                     {['small', 'medium', 'large', 'pot', 'overbet'].map(r => (
                         <button key={r} onClick={() => setFacingBetSize(r)} style={{
-                            padding: '3px 8px', borderRadius: 5, fontSize: 9, fontWeight: 600,
+                            padding: '3px 8px', borderRadius: 5, fontSize: 12, fontWeight: 600,
                             border: 'none', cursor: 'pointer',
                             background: facingBetSize === r ? 'rgba(0,212,255,0.12)' : 'transparent',
                             color: facingBetSize === r ? '#00d4ff' : '#64748b',
@@ -807,15 +807,15 @@ export default function PostflopRangeViewer({
                 display: 'flex', justifyContent: 'center', gap: 16, alignItems: 'center',
                 padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 8,
             }}>
-                <div style={{ fontSize: 9, color: '#94a3b8' }}>
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>
                     <span style={{ color: '#fbbf24', fontWeight: 700 }}>
                         {boardTexture.replace(/_/g, ' ')}
                     </span>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     Betting: {rangeStats.bettingPct.toFixed(1)}%
                 </div>
-                <div style={{ fontSize: 9, color: '#64748b' }}>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
                     ({Math.round(rangeStats.bettingCombos)}/{Math.round(rangeStats.totalCombos)} Combos)
                 </div>
             </div>
@@ -832,7 +832,7 @@ export default function PostflopRangeViewer({
                             background: !actionFilter ? 'rgba(0,212,255,0.1)' : 'transparent',
                         }}
                     >
-                        <span style={{ fontSize: 10, color: !actionFilter ? '#00d4ff' : '#94a3b8', fontWeight: 600 }}>All</span>
+                        <span style={{ fontSize: 12, color: !actionFilter ? '#00d4ff' : '#94a3b8', fontWeight: 600 }}>All</span>
                     </button>
                     {sortedActions.map(action => {
                         const isActive = actionFilter === action;
@@ -852,7 +852,7 @@ export default function PostflopRangeViewer({
                                 }}
                             >
                                 <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color, opacity: 0.85 }} />
-                                <span style={{ fontSize: 9, color: isActive ? color : '#94a3b8', fontWeight: 600 }}>
+                                <span style={{ fontSize: 12, color: isActive ? color : '#94a3b8', fontWeight: 600 }}>
                                     {SIZE_LABELS[action] || action} {pct}%
                                 </span>
                             </button>
@@ -867,7 +867,7 @@ export default function PostflopRangeViewer({
                 flexWrap: 'wrap', width: '100%',
             }}>
                 {/* 13×13 Grid */}
-                <div style={{
+                <div data-allow-small="true" style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(13, 1fr)',
                     gap: 1,
@@ -910,7 +910,7 @@ export default function PostflopRangeViewer({
             <div style={{
                 padding: '6px 12px', borderRadius: 8,
                 background: 'rgba(255,255,255,0.02)',
-                fontSize: 9, color: '#475569', lineHeight: 1.6, textAlign: 'center',
+                fontSize: 12, color: '#475569', lineHeight: 1.6, textAlign: 'center',
             }}>
                 <strong style={{ color: '#94a3b8' }}>Illustrative Postflop Range Viewer</strong> - Local Heuristic Weights, Not PioSOLVER Output Or Exact EV.
                 Cell Color = Locally Preferred Action. Click Any Cell For The Practice Breakdown. Filter By Action With The Buttons Above.
