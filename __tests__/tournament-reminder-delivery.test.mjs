@@ -105,16 +105,54 @@ test('old cron uses the same reminder sender and never digests separate deadline
     assert.match(src,/if \(!row.event \|\| isTournamentReminder\(row\)\) continue/);
     assert.match(src,/await deliverTournamentReminder\(supabase, row\)/);
 });
-test('endpoint requires auth and GET readiness performs no claim or send',async()=>{
-    let dispatches=0;
-    const route=load('../pages/api/internal/tournament-reminders.js',{
-        '../../../src/lib/supabaseServerClient':{createClient:()=>({})},
-        '../../../src/utils/cron-auth':{validateCronAuth:req=>req.headers.authorization==='fixture-only'},
-        '../../../src/lib/push/tournament-reminder-delivery':{dispatchTournamentReminders:async()=>{dispatches++;return {ok:true};}},
+function endpointFixture() {
+    const clients = [], dispatched = [];
+    const createClient = (url, key, options) => {
+        const client = { key, rpc(name, args) {
+            assert.equal(name, 'get_tournament_reminder_delivery');
+            assert.deepEqual(args, { p_outbox_ids: [] });
+            return { abortSignal(signal) {
+                assert.ok(signal instanceof AbortSignal);
+                if (key === 'database-service-fixture') return Promise.resolve({ data: [], error: null, status: 200 });
+                if (key === 'database-unavailable') return Promise.resolve({ data: null, error: { code: 'PGRST002' }, status: 503 });
+                return Promise.resolve({ data: null, error: { code: '42501' }, status: 403 });
+            }};
+        }};
+        clients.push({ url, key, options, client }); return client;
+    };
+    const route = load('../pages/api/internal/tournament-reminders.js', {
+        '../../../src/lib/supabaseServerClient': { createClient },
+        '../../../src/lib/push/tournament-reminder-delivery': { dispatchTournamentReminders: async client => {
+            dispatched.push(client); return { ok: true, reminderProtocol: 1 };
+        }},
     });
-    const response=()=>({code:0,body:null,status(n){this.code=n;return this;},json(body){this.body=body;return this;}});
-    let res=response();await route.default({method:'POST',headers:{}},res);assert.equal(res.code,401);
-    res=response();await route.default({method:'GET',headers:{authorization:'fixture-only'}},res);
-    assert.equal(res.body.reminderProtocol,1);assert.equal(dispatches,0);
-    res=response();await route.default({method:'POST',headers:{authorization:'fixture-only'}},res);assert.equal(dispatches,1);
+    const call = async (method, token) => {
+        const res = { code: 0, body: null, status(n) { this.code = n; return this; },
+            json(body) { this.body = body; return this; }, setHeader() {} };
+        await route.default({ method, headers: token ? { authorization: `Bearer ${token}` } : {} }, res);
+        return res;
+    };
+    return { clients, dispatched, call };
+}
+test('worker service authority reaches readiness and the sender with its own database client', async () => {
+    const f = endpointFixture();
+    const ready = await f.call('GET', 'database-service-fixture');
+    assert.equal(ready.code, 200); assert.equal(ready.body.reminderProtocol, 1);
+    assert.equal(ready.body.reminderAuth, 'database_service_role'); assert.equal(f.dispatched.length, 0);
+    assert.equal(f.clients[0].key, 'database-service-fixture');
+    const result = await f.call('POST', 'database-service-fixture');
+    assert.equal(result.code, 200); assert.equal(f.dispatched.length, 1);
+    assert.equal(f.dispatched[0], f.clients.at(-1).client);
+});
+test('absent, player, anonymous, revoked and unrelated cron credentials cannot dispatch', async () => {
+    const f = endpointFixture();
+    for (const token of [null, 'player-fixture', 'anonymous-fixture', 'revoked-service-fixture', 'old-hub-cron']) {
+        assert.equal((await f.call('POST', token)).code, 401);
+    }
+    assert.equal(f.dispatched.length, 0);
+});
+test('unknown database authority is unavailable and never grants dispatch', async () => {
+    const f = endpointFixture();
+    assert.equal((await f.call('POST', 'database-unavailable')).code, 503);
+    assert.equal(f.dispatched.length, 0);
 });
