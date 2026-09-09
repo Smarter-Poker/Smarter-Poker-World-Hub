@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+import uuid as uuidlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -14,6 +15,7 @@ from typing import Any, Iterable
 MANIFEST_CONTRACT = "smarter-poker.horse-solver-v31-manifest.v1"
 RANGE_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-range-bundle.v1"
 ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v1"
+INPUT_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-input-bundle.v2"
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -26,6 +28,17 @@ SAFE_PATH = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{1,255}$")
 CARD = re.compile(r"^[2-9TJQKA][cdhs]$")
 NODE = re.compile(r"^r:0(?::(?:c|f|b[1-9][0-9]*|[2-9TJQKA][cdhs]))*$")
 ACTION = re.compile(r"^(?:c|f|b[1-9][0-9]*)$")
+BUNDLE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$")
+REQUIRED_PIPELINE_FILES = frozenset(
+    {
+        "scripts/horse-solver-v31/contract.py",
+        "scripts/horse-solver-v31/gateway.py",
+        "scripts/horse-solver-v31/pio_upi.py",
+        "scripts/horse-solver-v31/prepare_bundle.py",
+        "scripts/horse-solver-v31/worker.py",
+        "scripts/horse-solver-v31/compactor.py",
+    }
+)
 
 ROOT_KEYS = {
     "contract",
@@ -137,7 +150,7 @@ def _exact_keys(value: Any, expected: set[str], label: str) -> dict[str, Any]:
 
 
 def _nonzero_hex(value: Any, length: int, label: str) -> str:
-    text = str(value or "").lower()
+    text = str(value or "")
     pattern = HEX40 if length == 40 else HEX64
     if not pattern.fullmatch(text) or text == "0" * length:
         raise ContractError(f"{label} must be a nonzero lowercase SHA-{length * 4}")
@@ -162,6 +175,7 @@ def _safe_relative_path(value: Any, label: str) -> str:
         not SAFE_PATH.fullmatch(text)
         or text.startswith("/")
         or "\\" in text
+        or ".." in text
         or any(part in ("", ".", "..") for part in text.split("/"))
     ):
         raise ContractError(f"{label} must be a canonical relative path")
@@ -209,11 +223,145 @@ def pipeline_bundle_checksum(root: Path, receipts: Iterable[dict[str, str]]) -> 
         normalized.append((relative, checksum))
     if not normalized:
         raise ContractError("pipeline_files cannot be empty")
+    if seen != REQUIRED_PIPELINE_FILES:
+        missing = ",".join(sorted(REQUIRED_PIPELINE_FILES - seen)) or "none"
+        extra = ",".join(sorted(seen - REQUIRED_PIPELINE_FILES)) or "none"
+        raise ContractError(
+            f"pipeline_files must be the complete V31 executable set; missing={missing}; extra={extra}"
+        )
     for relative, checksum in sorted(normalized):
         path = _verify_file(root, relative, checksum)
         payload = path.read_bytes()
         digest.update(relative.encode("utf-8") + b"\0" + payload + b"\0")
     return digest.hexdigest()
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ContractError("V31 input identity is not canonical JSON") from error
+
+
+def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
+    """Return the manifest-independent identity approved by PostgreSQL.
+
+    The final scenario manifest must carry this identity's checksum and UUID,
+    so its own receipt cannot participate in the identity hash. PostgreSQL
+    separately requires that exact manifest receipt during dataset registration.
+    """
+
+    bundle = _exact_keys(
+        p_bundle,
+        {
+            "bundle_key",
+            "bundle_version",
+            "range_bundle_checksum",
+            "source_combo_order_checksum",
+            "icm_model_checksum",
+            "files",
+            "approval_note",
+        },
+        "input approval bundle",
+    )
+    bundle_key = str(bundle["bundle_key"] or "")
+    if not DATASET_KEY.fullmatch(bundle_key):
+        raise ContractError("input approval bundle_key is invalid")
+    bundle_version = str(bundle["bundle_version"] or "")
+    if not BUNDLE_VERSION.fullmatch(bundle_version):
+        raise ContractError("input approval bundle_version is invalid")
+    range_checksum = _nonzero_hex(
+        bundle["range_bundle_checksum"], 64, "input approval range_bundle_checksum"
+    )
+    combo_checksum = _nonzero_hex(
+        bundle["source_combo_order_checksum"],
+        64,
+        "input approval source_combo_order_checksum",
+    )
+    icm_checksum = _nonzero_hex(
+        bundle["icm_model_checksum"], 64, "input approval icm_model_checksum"
+    )
+    note = bundle["approval_note"]
+    if not isinstance(note, str) or not note.strip() or len(note) > 2000:
+        raise ContractError("input approval note is invalid")
+    receipts = bundle["files"]
+    if not isinstance(receipts, list) or not receipts:
+        raise ContractError("input approval files cannot be empty")
+
+    allowed_kinds = {
+        "range",
+        "combo_order",
+        "icm_model",
+        "payout_model",
+        "scenario_manifest",
+    }
+    seen_paths: set[str] = set()
+    normalized: list[dict[str, str]] = []
+    for index, raw in enumerate(receipts):
+        item = _exact_keys(raw, {"kind", "path", "checksum"}, f"input approval files[{index}]")
+        kind = str(item["kind"] or "")
+        if kind not in allowed_kinds:
+            raise ContractError(f"input approval files[{index}].kind is invalid")
+        path = _safe_relative_path(item["path"], f"input approval files[{index}].path")
+        checksum = _nonzero_hex(
+            item["checksum"], 64, f"input approval files[{index}].checksum"
+        )
+        if path in seen_paths:
+            raise ContractError(f"input approval repeats file path: {path}")
+        seen_paths.add(path)
+        normalized.append({"kind": kind, "path": path, "checksum": checksum})
+
+    expected = {
+        "range": range_checksum,
+        "combo_order": combo_checksum,
+        "icm_model": icm_checksum,
+    }
+    for kind, checksum in expected.items():
+        if sum(item["kind"] == kind for item in normalized) != 1:
+            raise ContractError(f"input approval must bind exactly one {kind} receipt")
+        matches = [
+            item
+            for item in normalized
+            if item["kind"] == kind and item["checksum"] == checksum
+        ]
+        if len(matches) != 1:
+            raise ContractError(f"input approval does not bind exactly one {kind} receipt")
+    if sum(item["kind"] == "scenario_manifest" for item in normalized) != 1:
+        raise ContractError("input approval must bind exactly one scenario_manifest receipt")
+
+    identity_files = sorted(
+        (item for item in normalized if item["kind"] != "scenario_manifest"),
+        key=lambda item: (item["kind"], item["path"], item["checksum"]),
+    )
+    if not identity_files:
+        raise ContractError("input approval has no immutable input receipts")
+    return {
+        "contract": INPUT_BUNDLE_CONTRACT,
+        "bundle_key": bundle_key,
+        "bundle_version": bundle_version,
+        "range_bundle_checksum": range_checksum,
+        "source_combo_order_checksum": combo_checksum,
+        "icm_model_checksum": icm_checksum,
+        "files": identity_files,
+    }
+
+
+def input_bundle_checksum(p_bundle: Any) -> str:
+    return hashlib.sha256(_canonical_json_bytes(input_bundle_identity(p_bundle))).hexdigest()
+
+
+def input_bundle_id(p_bundle_checksum: str) -> str:
+    checksum = _nonzero_hex(p_bundle_checksum, 64, "input bundle checksum")
+    value = list(checksum[:32])
+    value[12] = "5"
+    value[16] = "8"
+    return str(uuidlib.UUID(hex="".join(value)))
 
 
 def _cards(board: Any, minimum: int, maximum: int, label: str) -> list[str]:
@@ -690,9 +838,13 @@ def load_manifest(
     _nonzero_hex(manifest["range_bundle_checksum"], 64, "range_bundle_checksum")
     _nonzero_hex(manifest["source_combo_order_checksum"], 64, "source_combo_order_checksum")
     _nonzero_hex(manifest["icm_model_checksum"], 64, "icm_model_checksum")
-    _nonzero_hex(manifest["input_bundle_checksum"], 64, "input_bundle_checksum")
+    input_checksum = _nonzero_hex(
+        manifest["input_bundle_checksum"], 64, "input_bundle_checksum"
+    )
     if not UUID.fullmatch(str(manifest["input_bundle_id"] or "").lower()):
         raise ContractError("input_bundle_id is invalid")
+    if str(manifest["input_bundle_id"]).lower() != input_bundle_id(input_checksum):
+        raise ContractError("input_bundle_id does not derive from input_bundle_checksum")
     _canonical_identity_text(manifest["solver_version"], 120, "solver_version")
     _validate_quality_gates(manifest["quality_gates"])
     root = Path(input_root).resolve()

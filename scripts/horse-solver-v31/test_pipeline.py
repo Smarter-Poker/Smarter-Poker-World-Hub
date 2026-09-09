@@ -21,11 +21,15 @@ if str(HERE) not in sys.path:
 
 from contract import (  # noqa: E402
     ICM_MODEL_CONTRACT,
+    INPUT_BUNDLE_CONTRACT,
     MANIFEST_CONTRACT,
     RANGE_BUNDLE_CONTRACT,
+    REQUIRED_PIPELINE_FILES,
     ApprovedManifest,
     ContractError,
     canonical_hand_order_tokens,
+    input_bundle_checksum,
+    input_bundle_id,
     load_manifest,
     pipeline_bundle_checksum,
 )
@@ -51,6 +55,8 @@ from worker import (  # noqa: E402
     source_receipt_is_valid,
 )
 import compactor  # noqa: E402
+import prepare_bundle  # noqa: E402
+import worker  # noqa: E402
 
 
 def digest(payload: bytes) -> str:
@@ -382,6 +388,174 @@ class PioTransportTests(unittest.TestCase):
 
 
 class ManifestAndGatewayTests(unittest.TestCase):
+    def test_worker_local_preflight_never_loads_a_gateway_secret(self):
+        scenario = base_scenario()
+        manifest = ApprovedManifest(
+            Path("manifest.json"),
+            Path("inputs"),
+            {
+                "solver_version": "PioSOLVER-test",
+                "self_test": {
+                    "scenario_id": scenario["scenario_id"],
+                },
+                "scenarios": [scenario],
+            },
+            "a" * 64,
+            source_combo_order=canonical_hand_order_tokens(),
+        )
+        args = types.SimpleNamespace(
+            machine="M1",
+            manifest="manifest.json",
+            input_root="inputs",
+            work_directory=None,
+            preflight_only=True,
+        )
+        executable = mock.MagicMock()
+        executable.exists.return_value = True
+        executable.is_file.return_value = True
+        process = mock.MagicMock()
+        process.__enter__.return_value.command = object()
+        receipt = {"weighted_policy_ev_bb": 1.0, "exploitability_pct": 0.01}
+        with mock.patch.dict(worker.os.environ, {"PIO_EXE": "pio"}, clear=False), mock.patch.object(
+            worker, "load_manifest", return_value=manifest
+        ), mock.patch.object(worker, "validate_pipeline_imports"), mock.patch.object(
+            worker, "Path", return_value=executable
+        ), mock.patch.object(worker.os, "access", return_value=True), mock.patch.object(
+            worker, "verify_environment"
+        ), mock.patch.object(worker, "PioProcess", return_value=process), mock.patch.object(
+            worker, "solver_self_test", return_value=(scenario, receipt)
+        ), mock.patch.object(
+            worker.GatewayClient,
+            "from_environment",
+            side_effect=AssertionError("preflight tried to load a gateway secret"),
+        ):
+            worker.run(args)
+
+    def test_preparer_writes_one_unapproved_manifest_and_exact_approval_payload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            inputs = root / "inputs"
+            inputs.mkdir()
+            draft = {
+                "contract": MANIFEST_CONTRACT,
+                "enabled": True,
+                "dataset_key": "phase4.prepare.test",
+                "manifest_version": "v31.test",
+                "pipeline_commit": "1" * 40,
+                "pipeline_bundle_checksum": "2" * 64,
+                "pipeline_files": [
+                    {"path": path, "checksum": "3" * 64}
+                    for path in sorted(REQUIRED_PIPELINE_FILES)
+                ],
+                "solver_version": "PioSOLVER-test",
+                "solver_binary_checksum": "4" * 64,
+                "range_bundle_path": "ranges/bundle.json",
+                "range_bundle_checksum": "e" * 64,
+                "source_combo_order_path": "inputs/combo-order.txt",
+                "source_combo_order_checksum": "d" * 64,
+                "icm_model_path": "inputs/icm-model.json",
+                "icm_model_checksum": "f" * 64,
+                "input_bundle_id": prepare_bundle.PLACEHOLDER_BUNDLE_ID,
+                "input_bundle_checksum": prepare_bundle.ZERO_CHECKSUM,
+                "quality_gates": {},
+                "self_test": {},
+                "scenarios": [],
+            }
+            draft_path = root / "draft.json"
+            draft_path.write_bytes(canonical_json(draft))
+            args = types.SimpleNamespace(
+                manifest_draft=str(draft_path),
+                input_root=str(inputs),
+                manifest_output="manifests/v31.json",
+                approval_output="approvals/v31.json",
+                bundle_key="phase4.bootstrap.inputs",
+                bundle_version="2",
+                approval_note="reviewed fixture inputs",
+            )
+
+            def accept_manifest(path, **_kwargs):
+                return types.SimpleNamespace(raw=json.loads(Path(path).read_text(encoding="utf-8")))
+
+            with mock.patch.object(prepare_bundle, "verify_published_pipeline"), mock.patch.object(
+                prepare_bundle, "load_manifest", side_effect=accept_manifest
+            ):
+                result = prepare_bundle.prepare(args)
+                repeated = prepare_bundle.prepare(args)
+            self.assertEqual(result, repeated)
+            self.assertFalse(result["approved"])
+            manifest_bytes = (inputs / "manifests" / "v31.json").read_bytes()
+            approval = json.loads((inputs / "approvals" / "v31.json").read_text(encoding="utf-8"))
+            manifest = json.loads(manifest_bytes)
+            self.assertEqual(manifest["input_bundle_id"], result["input_bundle_id"])
+            self.assertEqual(manifest["input_bundle_checksum"], result["input_bundle_checksum"])
+            self.assertEqual(digest(manifest_bytes), result["manifest_checksum"])
+            self.assertEqual(approval["files"][-1]["checksum"], result["manifest_checksum"])
+            self.assertEqual(input_bundle_checksum(approval), result["input_bundle_checksum"])
+
+            conflicting_args = types.SimpleNamespace(**vars(args))
+            conflicting_args.manifest_output = "manifests/conflict.json"
+            conflicting_args.approval_output = "approvals/conflict.json"
+            (inputs / "approvals" / "conflict.json").write_text(
+                "conflict", encoding="utf-8"
+            )
+            with mock.patch.object(
+                prepare_bundle, "verify_published_pipeline"
+            ), mock.patch.object(
+                prepare_bundle, "load_manifest", side_effect=accept_manifest
+            ), self.assertRaisesRegex(
+                ContractError, "refusing to replace"
+            ):
+                prepare_bundle.prepare(conflicting_args)
+            self.assertFalse((inputs / "manifests" / "conflict.json").exists())
+
+    def test_input_bundle_identity_exists_before_the_manifest_receipt(self):
+        bundle = {
+            "bundle_key": "phase4.bootstrap.inputs",
+            "bundle_version": "2",
+            "range_bundle_checksum": "e" * 64,
+            "source_combo_order_checksum": "d" * 64,
+            "icm_model_checksum": "f" * 64,
+            "approval_note": "bootstrap behavior probe only",
+            "files": [
+                {"kind": "range", "path": "ranges/test.txt", "checksum": "e" * 64},
+                {
+                    "kind": "combo_order",
+                    "path": "combo/order.txt",
+                    "checksum": "d" * 64,
+                },
+                {
+                    "kind": "icm_model",
+                    "path": "icm/model.json",
+                    "checksum": "f" * 64,
+                },
+                {
+                    "kind": "scenario_manifest",
+                    "path": "manifests/phase4.json",
+                    "checksum": "a" * 64,
+                },
+            ],
+        }
+        expected = "91b7ae079daa5100ac80001c50fcca145e5ced8048adf455b4f5e84a5e5aaf51"
+        self.assertEqual(INPUT_BUNDLE_CONTRACT, "smarter-poker.horse-solver-v31-input-bundle.v2")
+        self.assertEqual(input_bundle_checksum(bundle), expected)
+        self.assertEqual(input_bundle_id(expected), "91b7ae07-9daa-5100-8c80-001c50fcca14")
+        changed_manifest = json.loads(json.dumps(bundle))
+        changed_manifest["files"][-1]["checksum"] = "b" * 64
+        self.assertEqual(input_bundle_checksum(changed_manifest), expected)
+        changed_input = json.loads(json.dumps(bundle))
+        changed_input["files"][0]["checksum"] = "c" * 64
+        with self.assertRaisesRegex(ContractError, "exactly one range receipt"):
+            input_bundle_checksum(changed_input)
+        uppercase_input = json.loads(json.dumps(bundle))
+        uppercase_input["range_bundle_checksum"] = "E" * 64
+        uppercase_input["files"][0]["checksum"] = "E" * 64
+        with self.assertRaisesRegex(ContractError, "lowercase"):
+            input_bundle_checksum(uppercase_input)
+        ambiguous_path = json.loads(json.dumps(bundle))
+        ambiguous_path["files"][0]["path"] = "ranges/v1..txt"
+        with self.assertRaisesRegex(ContractError, "canonical relative path"):
+            input_bundle_checksum(ambiguous_path)
+
     def test_compactor_never_bypasses_pinned_input_verification(self):
         sentinel = object()
         args = types.SimpleNamespace(manifest="manifest.json", input_root="inputs")
@@ -494,14 +668,16 @@ class ManifestAndGatewayTests(unittest.TestCase):
             root = Path(temporary)
             pipeline_root = root / "repo"
             input_root = root / "inputs"
-            (pipeline_root / "scripts").mkdir(parents=True)
             (input_root / "ranges").mkdir(parents=True)
             (input_root / "models").mkdir(parents=True)
-            pipeline_file = pipeline_root / "scripts" / "worker.py"
-            pipeline_file.write_text("print('pinned')\n", encoding="utf-8")
-            pipeline_receipts = [
-                {"path": "scripts/worker.py", "checksum": digest(pipeline_file.read_bytes())}
-            ]
+            pipeline_receipts = []
+            for index, relative in enumerate(sorted(REQUIRED_PIPELINE_FILES)):
+                pipeline_file = pipeline_root / relative
+                pipeline_file.parent.mkdir(parents=True, exist_ok=True)
+                pipeline_file.write_text(f"# pinned pipeline file {index}\n", encoding="utf-8")
+                pipeline_receipts.append(
+                    {"path": relative, "checksum": digest(pipeline_file.read_bytes())}
+                )
             range_payload = ("1 " + "0 " * 1325).strip().encode()
             range_files = []
             for name in ("oop.txt", "ip.txt"):
@@ -570,7 +746,7 @@ class ManifestAndGatewayTests(unittest.TestCase):
                 "source_combo_order_checksum": digest(combo_bytes),
                 "icm_model_path": "models/icm.json",
                 "icm_model_checksum": digest(icm_bytes),
-                "input_bundle_id": "11111111-1111-4111-8111-111111111111",
+                "input_bundle_id": input_bundle_id("3" * 64),
                 "input_bundle_checksum": "3" * 64,
                 "quality_gates": {
                     "max_frequency_mae": 0.1,
@@ -602,6 +778,17 @@ class ManifestAndGatewayTests(unittest.TestCase):
             self.assertEqual(loaded.provenance["manifest_checksum"], digest(manifest_bytes))
             self.assertEqual(loaded.source_combo_order, canonical_hand_order_tokens())
             self.assertEqual(loaded.icm_models["satellite.1000"]["ip_stack_chips"], 1400)
+            incomplete_manifest = json.loads(json.dumps(manifest))
+            incomplete_manifest["pipeline_files"] = incomplete_manifest["pipeline_files"][:-1]
+            incomplete_bytes = canonical_json(incomplete_manifest)
+            manifest_path.write_bytes(incomplete_bytes)
+            with self.assertRaisesRegex(ContractError, "complete V31 executable set"):
+                load_manifest(
+                    manifest_path,
+                    expected_checksum=digest(incomplete_bytes),
+                    input_root=input_root,
+                    pipeline_root=pipeline_root,
+                )
             for field, invalid in (
                 ("solver_version", " PioSOLVER-test"),
                 ("manifest_version", "1\nforged"),
