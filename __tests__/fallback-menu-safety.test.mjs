@@ -52,7 +52,6 @@ const MENU_KEY_BY_WORLD = {
   news: 'news',
   trivia: 'trivia',
   'social-media': 'social',
-  'diamond-arena': 'diamond-arena',
   'my-clubs': 'my-clubs',
   'video-library': 'video-library',
   'odds-calculator': 'odds-calculator',
@@ -63,8 +62,8 @@ const MENU_KEY_BY_WORLD = {
   marketplace: 'marketplace',
 };
 
-test('all 14 automatic world configs remove handler-dependent secondary controls', () => {
-  assert.equal(registry.worlds.length, 14);
+test('all 13 automatic world configs remove handler-dependent secondary controls', () => {
+  assert.equal(registry.worlds.length, 13);
 
   for (const world of registry.worlds) {
     const menuKey = MENU_KEY_BY_WORLD[world.id];

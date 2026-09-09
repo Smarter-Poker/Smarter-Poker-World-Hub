@@ -65,7 +65,6 @@ const staticPages = [
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/club-arena', priority: '0.8', changefreq: 'weekly' },
-  { path: '/hub/diamond-arena', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/promotions', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/reels', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/lives', priority: '0.6', changefreq: 'daily' },

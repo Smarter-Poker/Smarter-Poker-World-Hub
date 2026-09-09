@@ -74,7 +74,6 @@ export const MASTER_REGISTRY = {
         orbs: [
             'social-media',
             'club-arena',
-            'diamond-arena',
             'training',
             'preflop-charts',
             'personal-assistant',
@@ -142,7 +141,6 @@ export const CARD_ASSETS = [
     'bankroll-manager.jpg',
     'club-arena.jpg',
 
-    'diamond-arena.jpg',
     'memory-games.jpg',
     'personal-assistant.jpg',
     'poker-near-me.jpg',

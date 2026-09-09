@@ -20,7 +20,7 @@ const STATIC_SUGGESTIONS = [
     { trigger: 'how do i', text: 'How Do I Start A Tournament?' },
 
     // What is
-    { trigger: 'what is', text: 'What Is Club Arena?' },
+    { trigger: 'what is', text: 'What Is Poker Arena?' },
     { trigger: 'what is', text: 'What Is Diamond Arena?' },
     { trigger: 'what is', text: 'What Is GTO Training?' },
     { trigger: 'what is', text: 'What Is The Ghost Fleet?' },

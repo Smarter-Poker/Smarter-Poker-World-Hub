@@ -95,22 +95,6 @@
       ]
     },
     {
-      "id": "diamond-arena",
-      "label": "Diamond Arena",
-      "theme": "dark",
-      "accent": "#ffe34d",
-      "artwork": { "src": "/images/footers/world-hub/footer-diamond-arena-v2.png", "width": 2172, "height": 724, "sha256": "85b11e3997b775ed710603fe415296458ec9cdcbf8f38a6250c271d05454fd3f", "cropToContentBounds": true, "contentBounds": { "x": 41, "y": 194, "width": 2089, "height": 304 } },
-      "routePrefixes": ["/hub/diamond-arena"],
-      "items": [
-        { "href": "/hub/diamond-arena", "label": "Arena", "title": "Diamond Arena", "icon": "gem" },
-        { "href": "/hub/diamond-arena/schedule", "label": "Schedule", "title": "Tournament Schedule", "icon": "calendar" },
-        { "href": "/hub/diamond-arena/leaderboard", "label": "Ranks", "title": "Arena Leaderboard", "icon": "trophy" },
-        { "href": "/hub/diamond-arena/stats", "label": "Stats", "title": "My Arena Statistics", "icon": "chart" },
-        { "href": "/hub/diamond-arena/history", "label": "History", "title": "Arena Hand History", "icon": "history" },
-        { "href": "/hub/diamond-store", "label": "Store", "title": "Buy Diamonds", "icon": "shopping" }
-      ]
-    },
-    {
       "id": "my-clubs",
       "label": "My Clubs",
       "theme": "dark",
@@ -119,7 +103,7 @@
       "routePrefixes": ["/hub/my-venues"],
       "items": [
         { "href": "/hub/my-clubs", "label": "Clubs", "title": "My Clubs", "icon": "club" },
-        { "href": "/hub/club-arena", "label": "Arena", "title": "Club Arena Lobby", "icon": "spade" },
+        { "href": "/hub/club-arena", "label": "Arena", "title": "Poker Arena Lobby", "icon": "spade" },
         { "href": "/hub/social-pages", "label": "Pages", "title": "Club Social Pages", "icon": "layout" },
         { "href": "/hub/my-venues", "label": "Venues", "title": "My Venues", "icon": "map" },
         { "href": "/hub/home-games", "label": "Games", "title": "Home Games", "icon": "cards" },

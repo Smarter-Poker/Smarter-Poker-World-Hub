@@ -35,9 +35,9 @@ const commands = registry.worlds.flatMap((world) =>
   world.items.map((item) => ({ ...item, worldId: world.id }))
 );
 
-test('all 84 canonical commands resolve to a physical Pages Router destination', () => {
-  assert.equal(registry.worlds.length, 14);
-  assert.equal(commands.length, 84);
+test('all 78 canonical commands resolve to a physical Pages Router destination', () => {
+  assert.equal(registry.worlds.length, 13);
+  assert.equal(commands.length, 78);
 
   for (const command of commands) {
     const pathname = new URL(command.href, 'https://smarter.poker').pathname;
@@ -97,14 +97,8 @@ test('query commands preserve authorization gates and meaningful empty states', 
   assert.match(taxModal, /aria-label="Close Tax Summary"/);
 });
 
-test('Diamond Arena reserves shared chrome and fails closed when the remote room is unavailable', () => {
-  const source = readFileSync(join(ROOT, 'pages/hub/diamond-arena.js'), 'utf8');
-  assert.match(source, /export async function getServerSideProps/);
-  assert.match(source, /response\.status >= 200 && response\.status < 400/);
-  assert.match(source, /setArenaAvailable\(false\)/);
-  assert.match(source, /Diamond Arena Is Temporarily Unavailable/);
-  assert.match(source, /bottom: 'var\(--active-world-footer-height, 70px\)'/);
-  assert.match(source, /flex: '1 1 auto'/);
-  assert.match(source, /title="Diamond Arena Live Poker Room"/);
-  assert.doesNotMatch(source, /title="Diamond Arena [\u2013\u2014]/u);
+test('the retired Diamond iframe cannot be reached through a standalone world menu', () => {
+  const menu = readFileSync(join(ROOT, 'src/config/hamburgerMenus.js'), 'utf8');
+  assert.doesNotMatch(menu, /href: '\/hub\/diamond-arena'/);
+  assert.match(menu, /label: 'Poker Arena'/);
 });
