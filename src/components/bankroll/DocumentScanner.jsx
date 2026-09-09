@@ -736,8 +736,46 @@ export default function DocumentScanner({
         setBusy(true);
         try {
             const blob = await rgbaToBlob(preview.data, preview.width, preview.height, 0.92);
+
+            // A SECOND RENDITION, FOR THE ENGINE RATHER THAN THE EYE.
+            //
+            // The filter chips choose what gets SAVED, and the default is
+            // 'original' because that is what a person wants to look at. The
+            // OCR engine wants the opposite: the `bw` adaptive threshold,
+            // written for exactly this and described in pipeline.mjs as the
+            // one that keeps faint thermal printing.
+            //
+            // Measured on a receipt with grey thermal ink, a phone shadow and
+            // sensor noise: read raw, the engine returned buy-in null, fee
+            // null, total null at confidence 66. Read binarized, 300, 40 and
+            // 340 at confidence 94. Every amount, lost or found, on one call.
+            //
+            // PNG, not JPEG: re-encoding a binarization rings every sharp edge,
+            // which is the detail the engine reads.
+            let ocrBlob = blob;
+            if (filter !== 'bw') {
+                try {
+                    const client = clientRef.current;
+                    const base = baseRef.current;
+                    if (client && base) {
+                        const out = await client.filter({ image: base, filter: 'bw' });
+                        ocrBlob = await rgbaToBlob(
+                            new Uint8ClampedArray(out.buffer), out.width, out.height, 1, 'image/png',
+                        );
+                    }
+                } catch (err) {
+                    // The scan is not held up by the extra pass. Falling back
+                    // to the saved rendition is the behaviour that shipped.
+                    console.warn('[docscan] binarized rendition failed, reading the saved one:', err && err.message);
+                    ocrBlob = blob;
+                }
+            }
+
             onUse({
                 blob,
+                // What the reader should read. Never null: the caller can use
+                // it unconditionally.
+                ocrBlob,
                 width: preview.width,
                 height: preview.height,
                 filter,

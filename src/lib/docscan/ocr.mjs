@@ -129,6 +129,28 @@ export function isOcrLoaded() {
     return workerPromise !== null;
 }
 
+/**
+ * Start fetching the engine before anybody presses anything.
+ *
+ * The first scan of a session otherwise pays for the whole download while the
+ * user watches a progress bar that has not moved. Called when the bankroll
+ * page settles, the 6.8 MB arrives during the seconds somebody spends looking
+ * at their own numbers, and the first scan is as fast as the second.
+ *
+ * Deliberately quiet: it never throws and never blocks. A device that cannot
+ * start the engine here will fail the same way on the real scan, where the
+ * failure is recorded and reported.
+ */
+export function warmOcr() {
+    if (typeof window === 'undefined' || workerPromise) return;
+    const start = () => { getWorker().catch(() => { /* the real scan reports it */ }); };
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(start, { timeout: 8000 });
+    } else {
+        window.setTimeout(start, 2500);
+    }
+}
+
 export class OcrUnavailableError extends Error {
     constructor(cause) {
         super('ocr-unavailable');

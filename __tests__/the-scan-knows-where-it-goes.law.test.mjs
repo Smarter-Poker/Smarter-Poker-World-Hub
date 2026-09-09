@@ -148,7 +148,10 @@ test('the photograph never leaves the device', () => {
     assert.doesNotMatch(scanner, /readAsDataURL\(forOcr\)/, 'and none is encoded for posting');
 
     const vault = code('src/components/bankroll/DealerVault.jsx');
-    assert.match(vault, /await readText\(imageBase64, \{/, 'the vault reads on the device too');
+    // The vault shrinks its copy first now, like the scanner always has, so
+    // the call names the downscaled blob rather than the raw data URL.
+    assert.match(vault, /await readText\(forOcr/, 'the vault reads on the device too');
+    assert.match(vault, /downscaleForOcr\(full, 1600, 0\.85\)/, 'and reads a sensible size');
     assert.match(vault, /body: JSON\.stringify\(\{ text: read\.text, ocrConfidence: read\.confidence \}\)/);
     assert.doesNotMatch(vault, /JSON\.stringify\(\{ image: imageBase64 \}\)/);
 });

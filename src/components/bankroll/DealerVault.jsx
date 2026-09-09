@@ -10,7 +10,9 @@ import { memo,  useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
-import { readText, releaseOcr } from '../../lib/docscan/ocr.mjs';
+import { readText, releaseOcr, OcrUnavailableError } from '../../lib/docscan/ocr.mjs';
+import { downscaleForOcr } from '../../lib/docscan/imageSource';
+import { reportReaderFailure, READER_SECTIONS } from '../../lib/bankroll/reportReaderFailure';
 import { getFreshAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
@@ -259,7 +261,13 @@ function DealerVault({ userId, completedGigs = [] }) {
             const token = await getFreshAccessToken();
             if (!token) throw new Error('not-signed-in');
 
-            const read = await readText(imageBase64, {
+            // The full-resolution photograph went straight to the engine
+            // here while ReceiptScanner had shrunk its copy since day one.
+            // A modern phone camera is 4000px on the long side; the engine
+            // reads a document just as well at 1600 and several times faster.
+            const full = await fetch(imageBase64).then((r) => r.blob());
+            const forOcr = await downscaleForOcr(full, 1600, 0.85);
+            const read = await readText(forOcr, {
                 onProgress: (pct) => setOcrProgress(pct),
             });
             setOcrProgress(null);
@@ -299,6 +307,10 @@ function DealerVault({ userId, completedGigs = [] }) {
             }
         } catch (err) {
             console.warn('OCR Error:', err);
+            // An engine that cannot start means the DEPLOY is broken, not the
+            // photograph. That one pages somebody; a hard-to-read licence
+            // does not.
+            if (err instanceof OcrUnavailableError) reportReaderFailure(err, READER_SECTIONS.DEALER_VAULT, userId);
             toast.error('Could not auto-extract data. Please enter manually.');
         } finally {
             setOcrProgress(null);
