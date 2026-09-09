@@ -1108,6 +1108,18 @@ const nextConfig = {
           destination:
             'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/ad-creatives/:path*',
         },
+        /* THE AD CLICK REDIRECT (2026-09-09). A sponsor's advert points at
+           /c/<code> - a rooted, same-origin path, so every same-origin check
+           on ad destinations still sees what it has always seen. The handler
+           takes the opaque code, asks the database for the address approved
+           against it, records the click server-side and 302s. It accepts no
+           URL, which is what makes an open redirect structurally impossible.
+           Short path rather than /api/c/ because it is what a player's browser
+           shows for a moment on the way out. */
+        {
+          source: '/c/:code',
+          destination: '/api/c/:code',
+        },
       ],
       fallback: [],
     };

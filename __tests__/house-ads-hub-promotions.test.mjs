@@ -541,3 +541,54 @@ test('uploaded creatives resolve on this origin: /ad-creatives/* is rewritten to
     assert.ok(after.includes('/ad-creatives/:path*'), 'the ad-creatives rewrite is not in afterFiles');
     assert.equal(existsSync(join(ROOT, 'public/ad-creatives')), false, 'public/ad-creatives would shadow the bucket');
 });
+
+test('the ad click redirect accepts a code and never a url (2026-09-09)', () => {
+    /* A sponsor sends traffic to their own site. The address is stored on the
+       campaign and reached through an opaque code, so every same-origin check
+       on ad destinations still sees a rooted path - and this route, which is
+       the one place an outside address is emitted, cannot be turned into an
+       open redirect because it accepts no address to begin with. */
+    const route = read('pages/api/c/[code].js');
+    /* Comments are stripped before the forbidding assertions below. The route's
+       own docblock NAMES `?url=` and `?next=` in order to say it does not
+       accept them, and a test that forbade explaining the rule would be a test
+       against writing the reason down. */
+    const code = route.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+    // No URL enters this route. If any of these appear, it has become the
+    // exact thing OWASP names: a redirector that obeys its caller.
+    assert.doesNotMatch(code, /req\.query\.(url|next|return_to|redirect|dest|to)\b/);
+    assert.doesNotMatch(code, /\?url=|\?next=|\?return_to=/);
+
+    // The destination comes from the database, by code.
+    assert.match(route, /rpc\('fn_ad_click_redirect'/);
+    assert.match(route, /p_click_code: code/);
+
+    // The code shape is checked before anything reaches the query.
+    assert.match(route, /\/\^\[A-Za-z0-9_-\]\{6,40\}\$\//);
+
+    // Belt and braces over the column's own CHECK: only https ever leaves.
+    assert.match(route, /\^https:\\\/\\\/\[A-Za-z0-9\]/);
+
+    // A cached redirect is a click that silently stops being counted.
+    assert.match(route, /no-store/);
+
+    // Only two Location values are possible: the approved address, or a path
+    // on this site. There is no third branch.
+    const locations = route.match(/setHeader\('Location', ([^)]+)\)/g) || [];
+    assert.equal(locations.length, 2, 'exactly two Location values may exist');
+    assert.ok(locations.some((l) => l.includes('FALLBACK')));
+    assert.ok(locations.some((l) => l.includes('result.url')));
+    assert.match(route, /const FALLBACK = '\/hub\/club-arena';/);
+
+    // service_role only, and it says why rather than falling back to a role
+    // the database will refuse anyway.
+    assert.match(route, /SUPABASE_SERVICE_ROLE_KEY/);
+    assert.doesNotMatch(route, /NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+
+    // The short path resolves, in afterFiles beside the creatives rewrite.
+    const config = read('next.config.js');
+    assert.match(config, /source: '\/c\/:code',\s*destination: '\/api\/c\/:code',/);
+    const after = config.slice(config.indexOf('afterFiles:'), config.indexOf('fallback:'));
+    assert.ok(after.includes("'/c/:code'"), 'the click rewrite is not in afterFiles');
+});
