@@ -89,11 +89,6 @@ const SEO_CONFIG = {
         desc: 'Create and join private online poker clubs. Real-time gameplay, tournaments, hand histories, player stats, and club management.',
         canonical: '/hub/club-arena',
     },
-    'hub/diamond-arena.js': {
-        title: 'Diamond Arena — Competitive Poker Games',
-        desc: 'Compete in high-stakes Diamond Arena poker games. Earn diamonds, climb rankings, and prove your skills.',
-        canonical: '/hub/diamond-arena',
-    },
     'hub/promotions.js': {
         title: 'Promotions — Current Offers & Rewards',
         desc: 'Discover current promotions, bonuses, and reward opportunities on Smarter.Poker. VIP offers and special events.',

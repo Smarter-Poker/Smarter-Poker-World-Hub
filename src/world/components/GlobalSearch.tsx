@@ -117,7 +117,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             // Simulate search
             const mockResults = [
                 'Social Media',
-                'Club Arena',
+                'Poker Arena',
                 'Training Games',
                 'Trivia',
                 'Bankroll Manager',

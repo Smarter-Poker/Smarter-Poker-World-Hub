@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 203.**
+**Total applicable physical routes: 197.**
 
 ## Coverage summary
 
@@ -14,7 +14,6 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | Poker News | 3 | `footer-poker-news-v2.png` | PASS | PASS |
 | Poker Trivia | 17 | `footer-poker-trivia-v2.png` | PASS | PASS |
 | Social Media | 18 | `footer-social-media-v2.png` | PASS | PASS |
-| Diamond Arena | 6 | `footer-diamond-arena-v2.png` | PASS | PASS |
 | My Clubs | 1 | `footer-my-clubs-v2.png` | PASS | PASS |
 | Video Library | 1 | `footer-video-library-v2.png` | PASS | PASS |
 | Odds Calculator | 1 | `footer-odds-calculator-v2.png` | PASS | PASS |
@@ -167,12 +166,6 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/social-pages/create` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/hub/user/[username]` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
 | `/u/[username]` | Social Media | App-shell legacy/generic footer | `footer-social-media-v2.png` | PASS | PASS |
-| `/hub/diamond-arena` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
-| `/hub/diamond-arena/history` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
-| `/hub/diamond-arena/leaderboard` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
-| `/hub/diamond-arena/schedule` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
-| `/hub/diamond-arena/stats` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
-| `/hub/diamond-arena/table-settings` | Diamond Arena | App-shell legacy/generic footer | `footer-diamond-arena-v2.png` | PASS | PASS |
 | `/hub/my-venues` | My Clubs | App-shell legacy/generic footer | `footer-my-clubs-v2.png` | PASS | PASS |
 | `/hub/video-library` | Video Library | App-shell legacy/generic footer | `footer-video-library-v2.png` | PASS | PASS |
 | `/hub/poker-tools` | Odds Calculator | App-shell legacy/generic footer | `footer-odds-calculator-v2.png` | PASS | PASS |
@@ -235,8 +228,8 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 ## Intentional exclusions
 
 - `/hub` is the World Hub landing page and is intentionally footerless.
-- `/hub/club-arena` is the Club Arena lobby and is intentionally footerless.
+- `/hub/club-arena` is the Poker Arena lobby and is intentionally footerless.
 - `/hub/club-arena/**` is an embedded application boundary; its internal footer remains owned and tested by Club Arena.
 - `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.
-- Routes outside the 14 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.
+- Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.
 

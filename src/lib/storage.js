@@ -136,7 +136,6 @@ export function checkQuota() {
 export const STORAGE_KEYS = {
   // ── Zustand Store Persistence ──────────────────────────────────────────
   CLUB_ARENA_PREFS:      'sp-club-arena-prefs',
-  DIAMOND_ARENA_PREFS:   'sp-diamond-arena-prefs',
   FRIENDS_PREFS:         'sp-friends-prefs',
   SETTINGS_PREFS:        'sp-settings-prefs',
   SOCIAL_PREFS:          'sp-social-prefs',

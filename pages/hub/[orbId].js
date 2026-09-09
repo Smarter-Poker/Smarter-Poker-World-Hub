@@ -23,13 +23,6 @@ const ORB_METADATA = {
     features: ['Friend Feed', 'Hand Sharing', 'Player Connections', 'Notifications', 'Messages'],
   },
   // club-arena: REMOVED — Club Arena is now served natively via pages/hub/club-arena/index.js
-  'diamond-arena': {
-    title: 'Diamond Arena',
-    description: 'High-stakes Competitive Play with Diamond Entry Fees and Massive Prize Pools',
-    emoji: 'Diamonds',
-    color: '#ffee00',
-    features: ['Diamond Tournaments', 'Prize Pools', 'Leaderboards', 'Buy-ins', 'Payouts'],
-  },
   training: {
     title: 'GTO Training',
     description: 'Master Game Theory Optimal Play with AI-powered Drills and Scenarios',
@@ -117,6 +110,14 @@ const ORB_METADATA = {
     ],
   },
 };
+
+// Unknown or retired worlds must not become simulated screens through this catch-all.
+export async function getServerSideProps({ params }) {
+  const key = String(params?.orbId || '').toLowerCase();
+  const aliases = ['venues', 'poker', 'tours'];
+  return ORB_METADATA[key] || getOrbById(key) || aliases.includes(key)
+    ? { props: {} } : { notFound: true };
+}
 
 export default function OrbPage() {
   const router = useRouter();

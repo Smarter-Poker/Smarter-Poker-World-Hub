@@ -23,7 +23,6 @@ const pagesToUpdate = [
     'reels.js',
     'article.js',
     'club-arena.js',
-    'diamond-arena.js',
     'diamond-store.js',
     '[orbId].js',
     'memory-games.js',

@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Games — Hub Routes Load', () => {
   const gameRoutes = [
-    { path: '/hub/diamond-arena', name: 'Diamond Arena' },
+    { path: '/hub/club-arena', name: 'Poker Arena' },
     { path: '/hub/diamond-store', name: 'Diamond Store' },
     { path: '/hub/preflop-charts', name: 'Preflop Charts' },
     { path: '/hub/trivia', name: 'Trivia' },

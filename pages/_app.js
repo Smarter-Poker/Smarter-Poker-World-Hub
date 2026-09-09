@@ -16,7 +16,6 @@ import '../src/styles/worlds/club-arena.css';
 // so this is what lets any of the six table implementations opt in by adding
 // `ca-table` classes rather than inventing a seventh look.
 import '../src/styles/club-arena-table.css';
-import '../src/styles/worlds/diamond-arena.css';
 import '../src/styles/worlds/social-hub.css';
 import '../src/styles/worlds/training.css';
 import '../src/styles/worlds/marketplace.css';

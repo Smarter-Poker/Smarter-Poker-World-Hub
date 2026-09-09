@@ -32,7 +32,6 @@ const WORLD_ROUTES = [
   { id: 'news', route: '/hub/news', childRoute: '/hub/news/sources' },
   { id: 'trivia', route: '/hub/trivia', childRoute: '/hub/trivia/stats' },
   { id: 'social-media', route: '/hub/social-media', childRoute: '/hub/reels' },
-  { id: 'diamond-arena', route: '/hub/diamond-arena', childRoute: '/hub/diamond-arena/stats' },
   { id: 'my-clubs', route: '/hub/my-venues', childRoute: '/hub/my-venues?view=saved' },
   {
     id: 'video-library',

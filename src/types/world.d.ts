@@ -15,7 +15,6 @@ export interface OrbConfig {
 export type OrbId =
     | 'social'
     | 'club-arena'
-    | 'diamond-arena'
     | 'training'
     | 'preflop-charts'
     | 'assistant'

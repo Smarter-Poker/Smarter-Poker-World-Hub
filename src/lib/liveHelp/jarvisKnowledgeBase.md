@@ -26,8 +26,7 @@ The World Hub uses a 3D carousel navigation system with 13 interactive orbs:
 | Orb # | Name | Color | Route | Status |
 | -------| ------| -------| -------| --------|
 | #1 | Social Media | Red | `/hub/social-media` | ✅ AUTOPILOT |
-| #2 | Club Arena | Orange | `https://club.smarter.poker` | ✅ PROXIED |
-| #3 | Diamond Arena | Gold | `/hub/diamond-arena` | ✅ STABLE |
+| #2 | Poker Arena | Orange | `/hub/club-arena` | ✅ PROXIED |
 | #4 | Training | Green | `/hub/training` | ✅ STABLE |
 | #5 | News | Orange | `/hub/news` | ✅ STABLE |
 | #6 | Preflop Charts | Aqua | `/hub/preflop-charts` | ✅ STABLE |
@@ -167,7 +166,7 @@ Club Arena is a PokerBros - style private poker club management system featuring
                 - Requests cashouts from agent
 
 ### How to Create a Club
-1. Navigate to Club Arena(Orb #2 or`https://club.smarter.poker`)
+1. Navigate to Club Arena(Orb #2 or`/hub/club-arena`)
 2. Click "Create Club" button
 3. Fill in club details:
 - Club Name
@@ -315,29 +314,12 @@ Available bundles(prices may vary):
                 - Stripe receipt integration
 
 ## ═══════════════════════════════════════════════════════════════════════════
-## 6. DIAMOND ARENA(Orb #3)
-## ═══════════════════════════════════════════════════════════════════════════
+## 6. DIAMOND ARENA INSIDE POKER ARENA
 
-### Overview
-Diamond Arena is the competitive multiplayer poker layer featuring:
-- ** High - Stakes Cash Games **: Real - money equivalent gameplay
-    - ** Tournaments **: Multi - table tournament structures
-        - ** Diamond Economy **: Earn and spend diamonds
-            - ** Leaderboards **: Compete for top rankings
-
-### Features
-    - ** Multiplayer Poker **: Real - time gameplay with other users
-        - ** Tournament Structures **: Sit - n - gos, MTTs, satellites
-            - ** Lobby & Registration **: Browse and join games
-                - ** Game Dealer Service **: Automated dealing and pot management
-                    - ** Poker Engine **: Professional - grade hand evaluation
-
-### How to Play
-1. Navigate to Diamond Arena(Orb #3)
-2. Browse lobby for available games
-3. Click table to join
-4. Buy -in with diamonds
-5. Play poker!
+Diamond Arena is a selection inside Poker Arena at `/hub/club-arena`.
+All authenticated players have automatic membership. The shared Diamond wallet
+shows available and in-play balances. Funded Diamond games are not open for play yet.
+There is no separate World Hub Diamond card, iframe, schedule, leaderboard, or simulated history screen.
 
 ## ═══════════════════════════════════════════════════════════════════════════
 ## 7. GAMIFICATION SYSTEM
@@ -607,7 +589,7 @@ A: Try password reset, clear cache, use incognito mode, or check browser compati
                     - `/hub/user/[username]` - User profile pages
 
 ### Club Arena
-    - `https://club.smarter.poker` - Club Arena home
+    - `/hub/club-arena` - Club Arena home
         - `/clubs/:id` - Individual club dashboard
             - `/clubs/:id/cashier` - Chip management
                 - `/lobby` - Game lobby
@@ -620,7 +602,7 @@ A: Try password reset, clear cache, use incognito mode, or check browser compati
 ### Other
     - `/hub/poker-near-me-lobby` - Find live poker games
         - `/hub/news` - Poker news
-            - `/hub/diamond-arena` - Competitive poker
+            - `/hub/club-arena/clubs/002c2d27-9584-4e52-835a-bb2be148fc81` - Competitive poker
                 - `/hub/help` - Help center
                     - `/clear-cache` - Emergency cache clear
 

@@ -78,11 +78,16 @@ test('my-clubs really is a redirect, and its own route really is gated', () => {
     assert.match(read('pages/hub/my-venues.js'), /router\.push\('\/login\?redirect=\/hub\/my-venues'\)/);
 });
 
-test('retiring a world does not move a pinned count', () => {
-    // Two suites assert registry.worlds.length === 14. This change removes a
-    // world from the E2E list, not from the registry, and must stay that way.
-    assert.equal(readRegistry().worlds.length, 14);
-    assert.equal(reachableWorlds().length, 13);
+test('the shared Arena retirement preserves the remaining world coverage', () => {
+    const worlds = readRegistry().worlds;
+    assert.equal(worlds.length, 13);
+    assert.equal(reachableWorlds().length, 12);
+    assert.ok(worlds.some((world) => world.id === 'my-clubs'));
+    assert.ok(!worlds.some((world) => world.id === 'diamond-arena'));
+    assert.deepEqual(
+        worlds.filter((world) => !reachableWorlds().some((entry) => entry.id === world.id)).map((world) => world.id),
+        ['my-clubs'],
+    );
 });
 
 test('the specs say what went wrong instead of timing out', () => {

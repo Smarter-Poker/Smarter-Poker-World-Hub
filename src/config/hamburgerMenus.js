@@ -289,12 +289,7 @@ export const MENU_CONFIGS = {
                     icon: MenuIcons.training
                 },
                 {
-                    label: 'Diamond Arena',
-                    href: '/hub/diamond-arena',
-                    icon: MenuIcons.trophy
-                },
-                {
-                    label: 'Club Arena',
+                    label: 'Poker Arena',
                     href: '/hub/club-arena',
                     hardNav: true,
                     icon: (
@@ -586,7 +581,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('My Venues', '/hub/my-venues', MenuIcons.mapPin),
             createMenuItem.navigation('Home Games', '/hub/home-games', MenuIcons.spade),
             createMenuItem.navigation('Club Social Pages', '/hub/social-pages', MenuIcons.grid),
-            createMenuItem.navigation('Club Arena', '/hub/club-arena', MenuIcons.trophy, null, null, { hardNav: true }),
+            createMenuItem.navigation('Poker Arena', '/hub/club-arena', MenuIcons.trophy, null, null, { hardNav: true }),
         ],
         bottomLinks: [
             { label: 'Help And Support', href: '/hub/help', icon: MenuIcons.help },
@@ -734,35 +729,6 @@ export const MENU_CONFIGS = {
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }
-        ]
-    }),
-
-    'diamond-arena': (user, state, handlers) => ({
-        menuItems: [
-            createMenuItem.section('Game Modes'),
-            createMenuItem.navigation('Cash Games', '/hub/diamond-arena?mode=cash'),
-            createMenuItem.navigation('Tournaments', '/hub/diamond-arena?mode=tournament'),
-            createMenuItem.navigation('Sit & Go', '/hub/diamond-arena?mode=sng'),
-            createMenuItem.divider(),
-            createMenuItem.section('My Arena'),
-            createMenuItem.navigation('Active Tables', '/hub/diamond-arena?filter=active'),
-            createMenuItem.navigation('Tournament Schedule', '/hub/diamond-arena/schedule'),
-            createMenuItem.navigation('Leaderboard', '/hub/diamond-arena/leaderboard'),
-            createMenuItem.navigation('My Stats', '/hub/diamond-arena/stats'),
-            createMenuItem.navigation('Hand History', '/hub/diamond-arena/history'),
-            createMenuItem.divider(),
-            createMenuItem.section('Diamond Store'),
-            createMenuItem.navigation('Buy Diamonds', '/hub/diamond-store'),
-            createMenuItem.navigation('VIP Benefits', '/hub/vip-membership'),
-            createMenuItem.divider(),
-            createMenuItem.section('Settings'),
-            createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
-            createMenuItem.toggle('Animations', state.animations !== false, handlers.setAnimations),
-            createMenuItem.toggle('Auto-Rebuy', state.autoRebuy || false, handlers.setAutoRebuy),
-            createMenuItem.navigation('Table Preferences', '/hub/settings?section=gameplay')
-        ],
-        bottomLinks: [
-            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help }
         ]
     }),
 

@@ -41579,7 +41579,7 @@
       "functions": [
         {
           "name": "applyWorldMenuDeck",
-          "line": 1441,
+          "line": 1407,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -41587,7 +41587,7 @@
         },
         {
           "name": "getMenuConfig",
-          "line": 1476,
+          "line": 1442,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -41595,7 +41595,7 @@
         },
         {
           "name": "getMenuConfigForPath",
-          "line": 1514,
+          "line": 1480,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41619,7 +41619,7 @@
         },
         {
           "name": "hasItemWithId",
-          "line": 1389,
+          "line": 1355,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41627,7 +41627,7 @@
         },
         {
           "name": "worldPrimaryDeck",
-          "line": 1391,
+          "line": 1357,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41635,7 +41635,7 @@
         },
         {
           "name": "removePrimaryDuplicates",
-          "line": 1420,
+          "line": 1386,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41649,7 +41649,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 341,
+          "line": 336,
           "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -42052,7 +42052,7 @@
       "functions": [
         {
           "name": "getWorldMenuStyleVariables",
-          "line": 155,
+          "line": 146,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42060,7 +42060,7 @@
         },
         {
           "name": "cleanPath",
-          "line": 175,
+          "line": 166,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -42068,7 +42068,7 @@
         },
         {
           "name": "getWorldMenuById",
-          "line": 201,
+          "line": 192,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42076,7 +42076,7 @@
         },
         {
           "name": "getWorldMenuByKey",
-          "line": 202,
+          "line": 193,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42084,7 +42084,7 @@
         },
         {
           "name": "resolveWorldMenu",
-          "line": 204,
+          "line": 195,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42092,7 +42092,7 @@
         },
         {
           "name": "getWorldMenuInventory",
-          "line": 240,
+          "line": 231,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42118,7 +42118,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 51,
+          "line": 49,
           "excerpt": "* artwork. Keeping the materials here gives the drawer, fallback trigger, and",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -84432,7 +84432,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 341,
+        "line": 336,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84489,7 +84489,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "kind": "FALLBACK",
-        "line": 51,
+        "line": 49,
         "excerpt": "* artwork. Keeping the materials here gives the drawer, fallback trigger, and",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -88402,12 +88402,6 @@
           "pages/hub/avatars.js",
           "pages/hub/bankroll-manager.js",
           "pages/hub/bankroll-manager/export.js",
-          "pages/hub/diamond-arena.js",
-          "pages/hub/diamond-arena/history.js",
-          "pages/hub/diamond-arena/leaderboard.js",
-          "pages/hub/diamond-arena/schedule.js",
-          "pages/hub/diamond-arena/stats.js",
-          "pages/hub/diamond-arena/table-settings.js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
           "pages/hub/diamond-store/orders.js",
@@ -88586,7 +88580,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1514,
+        "line": 1480,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88853,7 +88847,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuStyleVariables",
-        "line": 155,
+        "line": 146,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88870,7 +88864,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuById",
-        "line": 201,
+        "line": 192,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88883,7 +88877,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuByKey",
-        "line": 202,
+        "line": 193,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88898,7 +88892,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "resolveWorldMenu",
-        "line": 204,
+        "line": 195,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88916,7 +88910,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuInventory",
-        "line": 240,
+        "line": 231,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92964,7 +92958,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 341,
+        "line": 336,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -93021,7 +93015,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "kind": "FALLBACK",
-        "line": 51,
+        "line": 49,
         "excerpt": "* artwork. Keeping the materials here gives the drawer, fallback trigger, and",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -96934,12 +96928,6 @@
           "pages/hub/avatars.js",
           "pages/hub/bankroll-manager.js",
           "pages/hub/bankroll-manager/export.js",
-          "pages/hub/diamond-arena.js",
-          "pages/hub/diamond-arena/history.js",
-          "pages/hub/diamond-arena/leaderboard.js",
-          "pages/hub/diamond-arena/schedule.js",
-          "pages/hub/diamond-arena/stats.js",
-          "pages/hub/diamond-arena/table-settings.js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
           "pages/hub/diamond-store/orders.js",
@@ -97118,7 +97106,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1514,
+        "line": 1480,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97385,7 +97373,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuStyleVariables",
-        "line": 155,
+        "line": 146,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97402,7 +97390,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuById",
-        "line": 201,
+        "line": 192,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97415,7 +97403,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuByKey",
-        "line": 202,
+        "line": 193,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97430,7 +97418,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "resolveWorldMenu",
-        "line": 204,
+        "line": 195,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97448,7 +97436,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuInventory",
-        "line": 240,
+        "line": 231,
         "references": 1,
         "exported": true,
         "defaultExport": false,
