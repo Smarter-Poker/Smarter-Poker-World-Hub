@@ -66,9 +66,52 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 6
     steps:
+      # FULL HISTORY, BECAUSE BOTH SCRIPTS IN THIS JOB READ IT.
+      #
+      # This checked out at the default depth of 1 until 2026-09-09: exactly
+      # one commit, no ancestry. Both scripts this job runs assume otherwise,
+      # and orphan-work-watchdog.sh says so in as many words - "the workflow
+      # checks main out with full history, so every question here is
+      # answerable by git". In THIS repo it was not. Club Arena's copy of the
+      # same workflow has set fetch-depth: 0 since 2026-09-02, with a comment
+      # naming this exact failure. The fix was never carried across.
+      #
+      # What a depth of 1 actually cost, measured on 2026-09-09:
+      #
+      #  - publish-watchdog.sh recovers a filed alarm when production serves
+      #    an ANCESTOR of main inside the lag budget. It tests that with
+      #    `git cat-file -e` and `git merge-base --is-ancestor`. On a depth-1
+      #    clone the served commit is not a valid object name at all, so that
+      #    branch could never be taken and a filed alarm never closed itself
+      #    on ordinary deploy lag. That auto-close exists because of
+      #    club-arena #2566, where an alarm outlived its anomaly for hours
+      #    and taught everyone the alarm means nothing.
+      #
+      #  - orphan-work-watchdog.sh reads `git log -200 origin/main` to
+      #    recognise content that already shipped. At depth 1 that list holds
+      #    ONE tree instead of 200.
+      #
+      #  - The stranded-branch sweep named 293 branches. With real history it
+      #    names 272. The 21 in between - chore/remove-react-is-v2,
+      #    commander-audit-1, fix/preflop-charts-bugs and 18 more - are FULLY
+      #    MERGED; the compare API puts main behind_by=0 on every one. They
+      #    were reported as "N commits ahead of main with no pull request.
+      #    Nothing will ever merge it." That is issue #1247, updated 47 times.
+      #
+      # The push trigger added earlier today made this worse, not better: a
+      # run fired seconds after a merge lands in the in-flight branch, which
+      # is precisely where the dead ancestry check lives.
+      #
+      # `filter: blob:none` is why this is free. Measured against this repo:
+      # depth-1 clone 23s / 338MB / 1 commit; blobless full history 21s /
+      # 366MB / 15,275 commits; plain fetch-depth: 0 (what Club Arena does)
+      # 103s. Full commit history at shallow-clone speed - the blobs of old
+      # revisions are the expensive part, and nothing here reads them.
       - uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Mint a GitHub App installation token
         id: app-token
