@@ -286,6 +286,25 @@ def owned_targets(scenario: dict[str, Any], machine: str) -> list[dict[str, Any]
     return [target for target in scenario["targets"] if target["machine_id"] == machine]
 
 
+def solver_self_test(pio: Any, manifest: ApprovedManifest) -> tuple[dict[str, Any], dict[str, float]]:
+    scenarios = ordered_scenarios(manifest)
+    self_test = manifest.raw["self_test"]
+    self_scenario = next(
+        scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
+    )
+    convergence = solve_scenario(pio, self_scenario, manifest)
+    receipt = run_self_test(pio, self_scenario, self_test, convergence=convergence)
+    return self_scenario, receipt
+
+
+def print_self_test(receipt: dict[str, float]) -> None:
+    print(
+        "[v31-worker] self-test passed: "
+        f"EV={receipt['weighted_policy_ev_bb']:.6f} bb, "
+        f"exploitability={receipt['exploitability_pct']:.6f}"
+    )
+
+
 def run(args: argparse.Namespace) -> None:
     script_root = Path(__file__).resolve().parents[2]
     expected_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "")
@@ -303,6 +322,27 @@ def run(args: argparse.Namespace) -> None:
     if not executable.exists() or not executable.is_file() or not os.access(executable, os.X_OK):
         raise ContractError("PIO_EXE is absent, not a regular file, or not executable")
     verify_environment(manifest, executable)
+    planned = sum(
+        len(owned_targets(scenario, args.machine))
+        for scenario in manifest.raw["scenarios"]
+    )
+    if planned <= 0:
+        raise ContractError(f"manifest assigns no targets to {args.machine}")
+
+    if args.preflight_only:
+        with PioProcess(
+            executable,
+            expected_solver_version=manifest.raw["solver_version"],
+            expected_hand_order=manifest.source_combo_order,
+        ) as process:
+            _, receipt = solver_self_test(process.command, manifest)
+        print_self_test(receipt)
+        print(
+            f"[v31-worker] {args.machine} local preflight passed for {planned} assigned targets; "
+            "no gateway was contacted and no source row was written"
+        )
+        return
+
     client = GatewayClient.from_environment(args.machine, manifest.provenance)
     contract = client.call("dataset_contract", {})
     if contract.get("state") != "building":
@@ -312,12 +352,6 @@ def run(args: argparse.Namespace) -> None:
         )
         return
     dataset_id = contract.get("dataset_id")
-    planned = sum(
-        len(owned_targets(scenario, args.machine))
-        for scenario in manifest.raw["scenarios"]
-    )
-    if planned <= 0:
-        raise ContractError(f"manifest assigns no targets to {args.machine}")
     heartbeat = WorkerHeartbeat(client, manifest, args.machine, planned)
     heartbeat.pulse("starting", "startup")
     work_directory = Path(args.work_directory).resolve()
@@ -332,21 +366,15 @@ def run(args: argparse.Namespace) -> None:
         ) as process:
             pio = process.command
             scenarios = ordered_scenarios(manifest)
-            self_test = manifest.raw["self_test"]
             self_scenario = next(
-                scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
+                scenario
+                for scenario in scenarios
+                if scenario["scenario_id"] == manifest.raw["self_test"]["scenario_id"]
             )
             with heartbeat.keepalive("self_test", f"self_test:{self_scenario['scenario_id']}"):
-                convergence = solve_scenario(pio, self_scenario, manifest)
-                receipt = run_self_test(
-                    pio, self_scenario, self_test, convergence=convergence
-                )
+                _, receipt = solver_self_test(pio, manifest)
             loaded_scenario = self_scenario["scenario_id"]
-            print(
-                "[v31-worker] self-test passed: "
-                f"EV={receipt['weighted_policy_ev_bb']:.6f} bb, "
-                f"exploitability={receipt['exploitability_pct']:.6f}"
-            )
+            print_self_test(receipt)
 
             for scenario in scenarios:
                 targets = owned_targets(scenario, args.machine)
@@ -434,8 +462,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("machine", choices=("M1", "M2"))
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--input-root", required=True)
-    parser.add_argument("--work-directory", required=True)
-    return parser.parse_args()
+    parser.add_argument("--work-directory")
+    parser.add_argument("--preflight-only", action="store_true")
+    args = parser.parse_args()
+    if not args.preflight_only and not args.work_directory:
+        parser.error("--work-directory is required unless --preflight-only is used")
+    return args
 
 
 if __name__ == "__main__":

@@ -49,15 +49,52 @@ file receipts for the range bundle, combo-order file, ICM model, and the exact
 scenario manifest. The dataset registration is rejected unless the approved
 scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
 
+The bundle identity uses contract
+`smarter-poker.horse-solver-v31-input-bundle.v2`. It hashes the immutable
+range/combo-order/ICM receipts but deliberately not the final scenario-manifest
+receipt or human approval note. Its UUID is deterministically derived from
+that checksum. This is required because the manifest carries the bundle UUID
+and checksum; including the manifest receipt in the same checksum would create
+an impossible hash cycle. PostgreSQL separately binds the exact final manifest
+receipt at dataset registration, so no provenance is omitted.
+
+`pipeline_files` must name exactly the six executable Python files in this
+directory: `contract.py`, `gateway.py`, `pio_upi.py`, `prepare_bundle.py`,
+`worker.py`, and `compactor.py`. Omitting a file or adding an unreviewed file
+fails closed.
+
 ## Deployment order
 
-1. Deploy the World Hub gateway and configure three distinct secrets:
+1. From a clean checkout whose exact commit is already on `origin/main`, fill
+   an enabled copy of `manifest.disabled.example.json`. Keep only
+   `input_bundle_id` and `input_bundle_checksum` at their documented zero
+   placeholders, then prepare the immutable final files:
+
+   ```bash
+   python scripts/horse-solver-v31/prepare_bundle.py \
+     --manifest-draft /approved/v31-manifest.draft.json \
+     --input-root /approved/inputs \
+     --manifest-output manifests/v31-manifest.json \
+     --approval-output approvals/v31-input-approval.json \
+     --bundle-key horse.v31.phase4.20260909 \
+     --bundle-version v31.1 \
+     --approval-note "Reviewed immutable Phase 4 NLH inputs"
+   ```
+
+   The command verifies every input, the complete executable bundle, a clean
+   Git checkout, and that the pinned commit is present on `origin/main`. It
+   writes files once, prints only non-secret checksums, and reports
+   `"approved": false`.
+2. A horse administrator reviews the exact bytes and submits the generated
+   approval JSON unchanged to `ca_gto_v31_approve_input_bundle`. The returned
+   UUID and stored checksum must equal the values printed by the preparer.
+   Approval is a human gate; generating files does not approve them.
+3. Deploy the World Hub gateway and configure three distinct secrets:
    `HORSE_SOLVER_V31_M1_HMAC_SECRET`,
    `HORSE_SOLVER_V31_M2_HMAC_SECRET`, and
    `HORSE_SOLVER_V31_COMPACTOR_HMAC_SECRET`.
-2. Approve the real input bundle in the admin flow. Do not approve generated
-   sample ranges or placeholder payout assumptions.
-3. On the compactor host, set `HORSE_SOLVER_V31_HMAC_SECRET` to the compactor
+   Never reuse one principal's key for another principal.
+4. On the compactor host, set `HORSE_SOLVER_V31_HMAC_SECRET` to the compactor
    secret and register the dataset:
 
    ```bash
@@ -68,8 +105,22 @@ scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
 
    An exit code of 2 means registration succeeded but both worker copies have
    not arrived yet. It does not seal or activate anything.
-4. On each Windows solver host, configure the same manifest and inputs plus
+5. On each Windows solver host, configure the same manifest and inputs plus
    that host's unique secret, licensed console executable, and exact pins:
+
+   Before installing or reading any gateway secret, prove that the local
+   licensed binary, hand order, full input bundle, pipeline bytes, and solver
+   self-test agree:
+
+   ```powershell
+   python scripts/horse-solver-v31/worker.py M1 `
+     --manifest C:/approved/v31-manifest.json `
+     --input-root C:/approved/inputs `
+     --preflight-only
+   ```
+
+   This mode contacts no gateway and writes no database or artifact row. Run it
+   independently on M1 and M2, changing only the machine argument.
 
    ```powershell
    python scripts/horse-solver-v31/worker.py M1 `
@@ -81,10 +132,10 @@ scenario-manifest checksum equals `APPROVED_MANIFEST_CHECKSUM`.
    Required environment variables are `HORSE_SOLVER_V31_GATEWAY_URL`,
    `HORSE_SOLVER_V31_HMAC_SECRET`, `APPROVED_MANIFEST_CHECKSUM`, `PIO_EXE`,
    `APPROVED_PIO_BINARY_CHECKSUM`, and `PIPELINE_COMMIT`.
-5. Run the compactor again. It builds only declared cells and seals only when
+6. Run the compactor again. It builds only declared cells and seals only when
    M1 training evidence, M2 holdout evidence, full coverage, source receipts,
    error thresholds, and all provenance checks pass.
-6. On Club Arena, run:
+7. On Club Arena, run:
 
    ```bash
    cd server
