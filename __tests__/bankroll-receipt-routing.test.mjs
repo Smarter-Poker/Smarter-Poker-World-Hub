@@ -244,17 +244,20 @@ test('the entry form applies the routed session fields last, so they win', () =>
     assert.ok(spreadIdx > grossIdx, 'the routed values must override the generic amount mapping');
 });
 
-test('the OCR route asks for a document type and uses a model that exists', () => {
-    const route = read('pages/api/bankroll/scan-receipt.js');
-    assert.match(route, /"document_type"/, 'the prompt must ask what kind of paper this is');
-    assert.match(route, /tournament_buyin/, 'and name the poker-specific kinds');
-    assert.match(route, /A buy-in receipt is NOT an expense/, 'and say which way that call goes');
-    // Two model ids were tried and both were rejected by the API. The route
-    // now goes through the shared client, which is where a model name is
-    // resolved for every route at once.
-    assert.match(route, /getGrokClient\(\)/, 'must use the shared client, not a raw fetch');
-    assert.doesNotMatch(code('pages/api/bankroll/scan-receipt.js'), /api\.x\.ai/, 'no hand-rolled endpoint');
-    for (const dead of ['grok-2-vision-latest', 'grok-2-vision-1212']) {
-        assert.ok(!code('pages/api/bankroll/scan-receipt.js').includes(dead), `${dead} was rejected by the API`);
-    }
+test('the OCR route reads text with our own parser and names no model at all', () => {
+    // This route used to send a photograph of a player's W-2G to a vision
+    // model and trust the JSON it answered with. Two model ids were tried and
+    // both were rejected by the API, taking the whole feature down twice in a
+    // week. There is no model in the path now: the engine runs on the device
+    // and this route runs a pure parser over the text it produced.
+    const route = code('pages/api/bankroll/scan-receipt.js');
+    assert.match(route, /parseReceiptText\(text, \{ knownVenues \}\)/, 'the shared pure parser does the reading');
+    assert.doesNotMatch(route, /getGrokClient|api\.x\.ai|grok-/i, 'no model, no AI endpoint');
+    assert.doesNotMatch(route, /document_type.*one of the above/s, 'no prompt survives');
+    // The gate is the reason the route still exists. Losing it would hand a
+    // paid feature away to everybody.
+    assert.match(route, /checkServerFeatureAccess\(getSupabase\(\), user\.id, 'bankroll_pro'\)/);
+    // And the venues are the reason the reading happens here rather than
+    // entirely in the browser.
+    assert.match(route, /from\('bankroll_locations'\)/, "the player's own venues are what the reader knows");
 });

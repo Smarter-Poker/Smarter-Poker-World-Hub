@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { getAuthUser, getFreshAccessToken, ensureAuthReady } from '../../lib/authUtils';
 import { uploadBankrollImage, isRetryableUploadError } from '../../lib/bankroll/receiptStorage';
 import { downscaleForOcr } from '../../lib/docscan/imageSource';
+import { readText, releaseOcr } from '../../lib/docscan/ocr.mjs';
 import { perceptualHash } from '../../lib/bankroll/receiptHash.mjs';
 import {
     normaliseScan, routeScan, DOC_TYPE_LABELS, DOC_TYPES,
@@ -75,6 +76,10 @@ export default function ReceiptScanner({
     const [scanKind, setScanKind] = useState(null);
     const [typeOverridden, setTypeOverridden] = useState(false);
     const [confidenceScore, setConfidenceScore] = useState(null);
+    // 0-100 while the on-device engine reads. The first scan of a session
+    // also downloads the engine, which is worth showing rather than leaving
+    // the user looking at a still screen.
+    const [ocrProgress, setOcrProgress] = useState(null);
     const [verified, setVerified] = useState(false);
     const [verifying, setVerifying] = useState(false);
 
@@ -90,6 +95,10 @@ export default function ReceiptScanner({
                 URL.revokeObjectURL(previewUrlRef.current);
                 previewUrlRef.current = null;
             }
+            // The OCR worker holds a WebAssembly heap of tens of megabytes.
+            // Leaving it running after the scanner closes is how a phone runs
+            // out of memory three receipts later.
+            releaseOcr();
         };
     }, []);
 
@@ -222,19 +231,38 @@ export default function ReceiptScanner({
 
     const runOcr = useCallback(async (blob, accessToken) => {
         try {
-            // The model reads a receipt as well at 1600px as at full size, at
-            // a quarter of the bytes. Storage keeps the full-resolution copy.
+            // THE PICTURE DOES NOT LEAVE THE DEVICE.
+            //
+            // Tesseract, compiled to WebAssembly and served from our own
+            // origin, reads the receipt here. What crosses the network is the
+            // TEXT it produced: a few hundred bytes instead of a megabyte of
+            // somebody's tax form, and no model anywhere in the path.
+            //
+            // The engine reads a receipt as well at 1600px as at full size
+            // and is several times faster on a phone. Storage keeps the
+            // full-resolution copy.
             const forOcr = await downscaleForOcr(blob, 1600, 0.85);
-            const base64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = () => reject(new Error('read-failed'));
-                reader.readAsDataURL(forOcr);
+            if (mountedRef.current) setOcrProgress(0);
+            const read = await readText(forOcr, {
+                onProgress: (pct) => { if (mountedRef.current) setOcrProgress(pct); },
             });
+            if (mountedRef.current) setOcrProgress(null);
+            if (!mountedRef.current) return;
+
+            if (!read.text.trim()) {
+                // A photograph with no legible text at all. The image still
+                // saves; the sheet asks where it goes.
+                setConfidenceScore(10);
+                return;
+            }
+
+            // The route still runs, and still matters: it holds the Bankroll
+            // Pro gate and the player's saved venues, which is what lets
+            // "BELLAG10 P0KER ROOM" be recognised as the Bellagio.
             const res = await fetch('/api/bankroll/scan-receipt', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                body: JSON.stringify({ image: base64 }),
+                body: JSON.stringify({ text: read.text, ocrConfidence: read.confidence }),
             });
             if (!res.ok) {
                 const detail = await res.json().catch(() => null);
@@ -256,8 +284,12 @@ export default function ReceiptScanner({
                 setConfidenceScore(10);
             }
         } catch (_err) {
-            // Reading the receipt is optional. The image still saves.
-            if (mountedRef.current) setConfidenceScore(10);
+            // Reading the receipt is optional. The image still saves, the
+            // scan is still recorded, and the sheet asks where it goes.
+            if (mountedRef.current) {
+                setOcrProgress(null);
+                setConfidenceScore(10);
+            }
         }
     }, [computeConfidence]);
 
@@ -465,6 +497,20 @@ export default function ReceiptScanner({
                             <button onClick={resetScanner} style={styles.confirmBtn} type="button">CLOSE</button>
                         )}
                     </div>
+                </div>
+            )}
+
+            {ocrProgress !== null && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: 8, padding: '8px 16px', margin: '0 auto 16px',
+                    background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+                    borderRadius: 20, width: 'fit-content',
+                }}>
+                    <Loader2 size={14} style={{ color: '#60a5fa', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 13, fontWeight: 800, color: '#60a5fa', letterSpacing: '0.1em' }}>
+                        READING ON THIS DEVICE - {ocrProgress}%
+                    </span>
                 </div>
             )}
 

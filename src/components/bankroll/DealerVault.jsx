@@ -10,6 +10,8 @@ import { memo,  useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { uploadBankrollFile, removeBankrollObject } from '../../lib/bankroll/receiptStorage';
+import { readText, releaseOcr } from '../../lib/docscan/ocr.mjs';
+import { getFreshAccessToken } from '../../lib/authUtils';
 import toast from '../../stores/toastStore';
 import LiveCameraScanner from './LiveCameraScanner';
 import DocumentCropper from './DocumentCropper';
@@ -103,6 +105,9 @@ function DealerVault({ userId, completedGigs = [] }) {
     const [rawImage, setRawImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    // 0-100 while the on-device engine reads. The first scan also downloads
+    // the engine, which is worth showing rather than a still screen.
+    const [ocrProgress, setOcrProgress] = useState(null);
 
     // Load docs from DB
     const loadDocs = useCallback(async () => {
@@ -125,6 +130,10 @@ function DealerVault({ userId, completedGigs = [] }) {
     }, [userId]);
 
     useEffect(() => { loadDocs(); }, [loadDocs]);
+
+    // The OCR engine holds a WebAssembly heap of tens of megabytes. It is let
+    // go when the vault closes, not left running behind the rest of the app.
+    useEffect(() => () => { releaseOcr(); }, []);
 
     // Filter docs for current tab
     const tabDocs = docs.filter(d => d.category === activeTab);
@@ -232,11 +241,29 @@ function DealerVault({ userId, completedGigs = [] }) {
         analyzeDocument(capturedBase64);
     }, []);
 
+    /**
+     * Read the document.
+     *
+     * THE PICTURE NEVER LEAVES THE DEVICE. Tesseract, compiled to WebAssembly
+     * and served from our own origin, reads a dealer's gaming card or W-2 on
+     * their own phone. What crosses the network is the text it produced. The
+     * route is still called because it holds the Bankroll Pro gate and runs
+     * the shared parser, which is the same pure module the tests exercise.
+     */
     const analyzeDocument = async (imageBase64) => {
         setIsAnalyzing(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-            const token = session?.access_token;
+            // A token read straight out of localStorage is whatever was there
+            // when the tab opened. This one refreshes it if it is about to
+            // expire, which is the difference between a scan and a 401.
+            const token = await getFreshAccessToken();
+            if (!token) throw new Error('not-signed-in');
+
+            const read = await readText(imageBase64, {
+                onProgress: (pct) => setOcrProgress(pct),
+            });
+            setOcrProgress(null);
+            if (!read.text.trim()) throw new Error('no-text-found');
 
             const res = await fetch('/api/bankroll/scan-dealer-document', {
                 method: 'POST',
@@ -244,7 +271,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ image: imageBase64 })
+                body: JSON.stringify({ text: read.text, ocrConfidence: read.confidence })
             });
 
             if (!res.ok) throw new Error('OCR failed');
@@ -274,6 +301,7 @@ function DealerVault({ userId, completedGigs = [] }) {
             console.warn('OCR Error:', err);
             toast.error('Could not auto-extract data. Please enter manually.');
         } finally {
+            setOcrProgress(null);
             setIsAnalyzing(false);
         }
     };
@@ -458,7 +486,11 @@ function DealerVault({ userId, completedGigs = [] }) {
                             {isAnalyzing && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'rgba(74,144,217,0.1)', border: `1px solid ${METAL.primary}`, borderRadius: 8, marginBottom: 16, color: METAL.primary }}>
                                     <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>Extracting Document Data With Vision OCR...</span>
+                                    <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 14 }}>
+                                        {ocrProgress === null
+                                            ? 'Reading This Document On Your Device...'
+                                            : `Reading This Document On Your Device... ${ocrProgress}%`}
+                                    </span>
                                 </div>
                             )}
                             <div style={s.uploadFormTitle}>📄 {pendingFile?.name}</div>

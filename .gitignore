@@ -172,3 +172,7 @@ data/tour-logs/*
 /.cache/
 playwright-report/
 test-results/
+
+# The OCR engine is copied out of node_modules by scripts/copy-tesseract-assets.mjs
+# in `prebuild`. 14 MB of build output does not belong in a repository.
+/public/tesseract/

@@ -52,10 +52,21 @@ function walk(dir, out = []) {
 }
 
 const VISION_ROUTES = [
-    'pages/api/bankroll/scan-receipt.js',
-    'pages/api/bankroll/scan-dealer-document.js',
     'pages/api/poker/ai-hand-reader.js',
     'pages/api/geeves/analyze-screenshot.js',
+];
+
+/**
+ * Routes that used to be on the list above and are not any more.
+ *
+ * The two bankroll scanners no longer send an image to anybody. Tesseract
+ * runs on the player's own device and these routes parse the text it
+ * produced, with rules in src/lib/bankroll/. They are pinned here so a future
+ * change cannot quietly put a model back in front of somebody's tax form.
+ */
+const READERS_WITH_NO_MODEL = [
+    'pages/api/bankroll/scan-receipt.js',
+    'pages/api/bankroll/scan-dealer-document.js',
 ];
 
 test('no file under pages, src or lib names a model the API does not have', () => {
@@ -77,6 +88,43 @@ test('every vision route goes through the shared Grok client, not a raw fetch', 
         assert.doesNotMatch(src, /api\.x\.ai/, `${rel} must not hand-roll the endpoint`);
         assert.match(src, /type: 'image_url'/, `${rel} still sends the image`);
     }
+});
+
+test('the bankroll readers send no image and call no model', () => {
+    for (const rel of READERS_WITH_NO_MODEL) {
+        const src = code(rel);
+        assert.doesNotMatch(src, /getGrokClient|api\.x\.ai|image_url|grok-/i, `${rel} must reach no model`);
+        assert.doesNotMatch(src, /\bopenai\b|\banthropic\b/i, `${rel} must reach no model`);
+        assert.match(src, /body\.text/, `${rel} reads text, not an image`);
+    }
+});
+
+test('the parsers those readers use are pure: no network, no model, no import at runtime', () => {
+    for (const rel of ['src/lib/bankroll/receiptParser.mjs', 'src/lib/bankroll/dealerDocParser.mjs']) {
+        const src = code(rel);
+        assert.doesNotMatch(src, /\bfetch\s*\(/, `${rel} must not reach the network`);
+        assert.doesNotMatch(src, /\bimport\s*\(/, `${rel} must not load anything at runtime`);
+        assert.doesNotMatch(src, /grok|openai|anthropic|x\.ai|apiKey|api_key/i, `${rel} must name no model`);
+    }
+});
+
+test('the OCR engine is served from our own origin, never a CDN', () => {
+    const ocr = code('src/lib/docscan/ocr.mjs');
+    // tesseract.js defaults every asset to jsdelivr. Left alone it would put
+    // a player's tax form through somebody else's CDN and break the day that
+    // CDN did.
+    assert.match(ocr, /workerPath: `\$\{TESSERACT_BASE\}\/worker\.min\.js`/);
+    assert.match(ocr, /corePath: `\$\{TESSERACT_BASE\}\/`/);
+    assert.match(ocr, /langPath: `\$\{TESSERACT_BASE\}\/lang`/);
+    assert.match(ocr, /export const TESSERACT_BASE = '\/tesseract'/, 'same origin, always');
+    assert.doesNotMatch(ocr, /jsdelivr|unpkg|cdn\./i, 'no CDN may appear here');
+    // And the assets have to actually be put there, or the scanner spins
+    // forever on a phone in a poker room.
+    const copy = code('scripts/copy-tesseract-assets.mjs');
+    assert.match(copy, /public', 'tesseract'/);
+    assert.match(copy, /process\.exit\(1\)/, 'a missing asset must fail the build');
+    const pkg = JSON.parse(read('package.json'));
+    assert.match(pkg.scripts.prebuild, /copy-tesseract-assets\.mjs/, 'and it must run in prebuild');
 });
 
 test('the tax report reads the columns w2g_forms actually has', () => {

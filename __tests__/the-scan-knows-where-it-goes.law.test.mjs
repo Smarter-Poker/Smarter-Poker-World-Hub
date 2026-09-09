@@ -132,9 +132,32 @@ test('attach candidates are ranked by same day, same venue, then original order'
 test('the OCR call gets a smaller copy and storage keeps the original', () => {
     const scanner = code('src/components/bankroll/ReceiptScanner.jsx');
     assert.match(scanner, /const forOcr = await downscaleForOcr\(blob, 1600, 0\.85\);/);
-    assert.match(scanner, /reader\.readAsDataURL\(forOcr\);/);
+    assert.match(scanner, /await readText\(forOcr, \{/, 'the smaller copy is what the engine reads');
     assert.match(scanner, /uploadBankrollImage\(supabase, uid, scan\.blob/, 'storage still gets the full scan');
     const src = code('src/lib/docscan/imageSource.js');
     assert.match(src, /export async function downscaleForOcr/);
     assert.match(src, /if \(typeof createImageBitmap !== 'function' \|\| typeof document === 'undefined'\) return blob;/, 'a browser without it still scans');
+});
+
+test('the photograph never leaves the device', () => {
+    // The receipt a poker player scans is often a W-2G. It is read where it
+    // was taken, and only the text crosses the network.
+    const scanner = code('src/components/bankroll/ReceiptScanner.jsx');
+    assert.match(scanner, /body: JSON\.stringify\(\{ text: read\.text, ocrConfidence: read\.confidence \}\)/);
+    assert.doesNotMatch(scanner, /JSON\.stringify\(\{ image:/, 'no image is posted anywhere');
+    assert.doesNotMatch(scanner, /readAsDataURL\(forOcr\)/, 'and none is encoded for posting');
+
+    const vault = code('src/components/bankroll/DealerVault.jsx');
+    assert.match(vault, /await readText\(imageBase64, \{/, 'the vault reads on the device too');
+    assert.match(vault, /body: JSON\.stringify\(\{ text: read\.text, ocrConfidence: read\.confidence \}\)/);
+    assert.doesNotMatch(vault, /JSON\.stringify\(\{ image: imageBase64 \}\)/);
+});
+
+test('the engine is let go when the scanner closes', () => {
+    // A WebAssembly heap of tens of megabytes, left running, is how a phone
+    // dies three receipts into a session.
+    for (const rel of ['src/components/bankroll/ReceiptScanner.jsx', 'src/components/bankroll/DealerVault.jsx']) {
+        const src = code(rel);
+        assert.match(src, /releaseOcr\(\)/, `${rel} must release the OCR worker`);
+    }
 });
