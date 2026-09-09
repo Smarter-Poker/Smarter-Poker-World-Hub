@@ -3,10 +3,8 @@
  * Global rankings for Diamond Arena players
  */
 
-import { useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
@@ -24,32 +22,30 @@ export default function DiamondArenaLeaderboard() {
     const setPeriod = (val) => setFilter('period', val);
     const setGameType = (val) => setFilter('gameType', val);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // TIER 3 REALTIME: Diamond Arena Leaderboard Live Updates
-    // ═══════════════════════════════════════════════════════════════════════════
-    useEffect(() => {
-        const leaderboardChannel = supabase
-            .channel(`diamond-arena-leaderboard-${Date.now()}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'diamond_arena_scores'
-            }, () => {
-                // Trigger leaderboard refresh when scores change
-                window.dispatchEvent(new CustomEvent('diamond-arena-refresh'));
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(leaderboardChannel);
-        };
-    }, []);
-
-    const leaderboard = [
-        { rank: 1, username: 'PokerPro2024', diamonds: 147832, games: 1247, winRate: 68 },
-        { rank: 2, username: 'DiamondKing', diamonds: 132451, games: 1089, winRate: 65 },
-        { rank: 3, username: 'SharkMaster', diamonds: 118923, games: 956, winRate: 62 },
-    ];
+    /*
+     * THERE IS NO LEADERBOARD TO SHOW, AND THERE WERE NEVER THESE PLAYERS.
+     *
+     * This page rendered three hard-coded names as a live ranking - PokerPro2024
+     * with 147,832 diamonds, DiamondKing with 132,451, SharkMaster with 118,923,
+     * each with a game count and a win rate. None of them exists. A player
+     * reading that has no way to tell it from a real board, and the numbers are
+     * denominated in a currency they actually own.
+     *
+     * The realtime subscription beside them watched `diamond_arena_scores`,
+     * WHICH IS NOT A TABLE ON THIS DATABASE and never has been - so it could
+     * only ever have refreshed a list of constants that cannot change. It is
+     * removed rather than re-pointed: there is nothing yet for it to watch.
+     *
+     * The Diamond Arena's club row was created on 2026-09-08 and holds no
+     * tables, no tournaments and no diamonds. Nobody has played a hand in it,
+     * so the honest ranking is an empty one.
+     *
+     * TO FINISH THIS: rank real players by their arena results once tables open
+     * (the arena club is `clubs.is_platform`, and its member wallets are
+     * `club_members.chip_balance` denominated in diamonds). Read it server-side
+     * through the same paths the club lobby uses. Do not re-add constants.
+     */
+    const leaderboard = [];
 
     return (
         <>
@@ -123,6 +119,12 @@ export default function DiamondArenaLeaderboard() {
                                     ))}
                                 </tbody>
                             </table>
+                            {leaderboard.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6b7280' }}>
+                                    <p style={{ fontSize: '18px' }}>No Rankings Yet</p>
+                                    <p style={{ fontSize: '14px', marginTop: '8px' }}>The Diamond Arena Has Not Opened</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

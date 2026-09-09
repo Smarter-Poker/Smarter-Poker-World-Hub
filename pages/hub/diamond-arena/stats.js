@@ -13,15 +13,31 @@ export default function DiamondArenaStats() {
     const bus = useTrainingBus('diamond-arena-stats');
     const router = useRouter();
 
+    /*
+     * EVERY NUMBER ON THIS PAGE WAS INVENTED, AND IT READ AS THE VIEWER'S OWN.
+     *
+     * 1,247 games, 847 cash, 400 tournaments, 147,832 diamonds won, a 68 percent
+     * win rate, a 12-game best streak. The same 147,832 also appeared as the top
+     * leaderboard entry, which is how a set of constants gets copied between
+     * pages and starts to look corroborated.
+     *
+     * Nobody has played a hand in the Diamond Arena - its club row was created
+     * on 2026-09-08 and holds no tables, no tournaments and no diamonds - so
+     * every one of these is zero for every account, and zero is what it says.
+     *
+     * TO FINISH THIS: aggregate the viewer's real arena sessions server-side
+     * once tables open, scoped to the platform club (`clubs.is_platform`) and to
+     * the authenticated user. Do not re-add constants.
+     */
     const stats = {
-        totalGames: 1247,
-        cashGames: 847,
-        tournaments: 400,
-        totalWinnings: 147832,
-        winRate: 68,
-        avgSessionLength: '2h 34m',
-        bestStreak: 12,
-        currentStreak: 5
+        totalGames: 0,
+        cashGames: 0,
+        tournaments: 0,
+        totalWinnings: 0,
+        winRate: 0,
+        avgSessionLength: '0h 00m',
+        bestStreak: 0,
+        currentStreak: 0
     };
 
     return (
