@@ -113,3 +113,28 @@ test('every permissions key is one GitHub actually accepts', () => {
       'push a workflow file no matter what this block says.'
   );
 });
+
+test('World Hub workflows cannot mutate the Club Arena engine host', () => {
+  const forbidden = [
+    ['/opt/club-arena', 'the Club Arena host checkout'],
+    ['club-arena-engine', 'the Club Arena engine container or image'],
+    ['engine-up.sh', 'the Club Arena engine launcher'],
+    ['engine-supervisor.sh', 'the Club Arena engine supervisor'],
+  ];
+  const violations = [];
+
+  for (const file of FILES) {
+    const source = readFileSync(join(DIR, file), 'utf8');
+    for (const [marker, authority] of forbidden) {
+      if (source.includes(marker)) violations.push(`${file}: references ${authority}`);
+    }
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    'World Hub has no authority to edit, build, or restart the Club Arena engine. ' +
+      'Route engine changes through the exact-commit deployment workflow in the ' +
+      'Smarter-Poker-Club-Arena repository:\n  ' + violations.join('\n  ')
+  );
+});
