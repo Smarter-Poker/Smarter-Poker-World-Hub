@@ -367,9 +367,31 @@ bound to a handful of calls per player per day; the steady-state refusal path is
 0.7 ms.
 
 I also thought I had found 80 GB of bloat - `solved_spots_gold`, 0 live rows,
-52% of the database - and it was wrong. That table has never been ANALYZEd, so
-`n_live_tup` was uncollected statistics rather than a row count; the planner
-estimate is 9.2M rows and the 80 GB is real data in TOAST. Counting before
-reporting is what caught it. Worth flagging separately: `solved_spots_gold`,
-`data_audit_log` and `daily_challenge_progress_events` have never been
-analyzed, so the planner has no statistics on any of them.
+52% of the database - and it was wrong. The planner estimate is 9.2M rows and
+the 80 GB is real data in TOAST. Counting before reporting is what caught it.
+
+**And the follow-up claim in the paragraph above was ALSO wrong**, corrected
+2026-09-10. I wrote that `solved_spots_gold`, `data_audit_log` and
+`daily_challenge_progress_events` "have never been analyzed, so the planner has
+no statistics on any of them", on the strength of `last_analyze IS NULL` and
+`n_live_tup = 0` in `pg_stat_user_tables`. Those are COUNTERS, and they were
+reset - `pg_stat_database.stats_reset` proves it. The planner's actual
+statistics live in `pg_statistic` and survive a counter reset:
+
+    table                    pg_statistic columns   reltuples
+    solved_spots_gold                          18   9,206,598
+    data_audit_log                              10   1,411,150
+    profiles                                   120       1,202
+    social_likes                                 5      30,175
+    social_posts                                45       3,368
+
+Every one of them is analyzed and `reltuples` is accurate. There is no ANALYZE
+to run and no planner-blindness to fix. The same misreading nearly produced a
+second false finding minutes later, when every social table also showed
+`never_analyzed = true` and `social_likes` claimed 0 live rows against 31,885
+real ones.
+
+**The lesson, twice from the same table view:** `pg_stat_user_tables` reports
+activity counters, not truth about the data. For "does the planner know this
+table", read `pg_statistic` and `pg_class.reltuples`. For "how many rows",
+count them.
