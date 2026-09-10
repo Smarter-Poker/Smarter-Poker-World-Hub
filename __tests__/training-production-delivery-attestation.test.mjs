@@ -1014,6 +1014,7 @@ function machineCoreConfig(publicPath) {
     expectedSupabaseProjectRef: 'a'.repeat(20),
     acknowledgement: ADMIN_ACKNOWLEDGEMENT,
     predecessor: { mode: 'controlled_rehearsal', rehearsalAcknowledged: true },
+    protectionBypassSecret: 'phase6-test-bypass-secret',
   };
 }
 
@@ -2452,6 +2453,7 @@ test('machine collector accepts credentials from private out-of-repository files
     TRAINING_PHASE6_ADMIN_DATABASE_CREDENTIAL_FILE: databaseCredentialPath,
     TRAINING_PHASE6_VERCEL_TOKEN_FILE: vercelCredentialPath,
     TRAINING_PHASE6_VERCEL_PROJECT: 'hub-vanguard',
+    TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET: 'phase6-test-bypass-secret',
     TRAINING_PHASE6_PREDECESSOR_MODE: 'controlled_rehearsal',
     TRAINING_PHASE6_PREDECESSOR_REHEARSAL_ACKNOWLEDGEMENT:
       'I_ACKNOWLEDGE_CONTROLLED_REHEARSAL_IS_NOT_AUTHENTIC_PRODUCTION_PREDECESSOR_EVIDENCE',
@@ -2463,6 +2465,7 @@ test('machine collector accepts credentials from private out-of-repository files
   assert.equal(config.predecessor.mode, 'controlled_rehearsal');
   assert.equal(config.predecessor.rehearsalAcknowledged, true);
   assert.equal(config.vercelProject, 'hub-vanguard');
+  assert.equal(config.protectionBypassSecret, 'phase6-test-bypass-secret');
   assert.throws(
     () =>
       readMachineCollectorConfig({
@@ -2485,6 +2488,10 @@ test('machine collector core orchestrates exact health, parameterized read-only 
   let healthCalls = 0;
   const fetchFn = async (...args) => {
     healthCalls += 1;
+    assert.equal(
+      args[1].headers['x-vercel-protection-bypass'],
+      'phase6-test-bypass-secret'
+    );
     return healthyDeploymentFetch()(...args);
   };
   const collected = await collectMachineAdministratorEvidenceCore(machineCoreConfig(publicPath), {

@@ -581,6 +581,10 @@ export function readMachineCollectorConfig(env = process.env) {
     vercelToken,
     vercelProject,
     vercelScope: String(env.TRAINING_PHASE6_VERCEL_SCOPE || '').trim() || null,
+    protectionBypassSecret:
+      typeof env.TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET === 'string'
+        ? env.TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET
+        : '',
     vercelExecutable: 'vercel',
     predecessor,
     acknowledgement: ADMIN_CLOSEOUT_ACKNOWLEDGEMENT,
@@ -3872,6 +3876,16 @@ function validateMachineCollectorCoreConfig(config, runtime) {
       'machine collector Vercel project is missing'
     );
   }
+  assert.equal(
+    typeof (config.protectionBypassSecret || ''),
+    'string',
+    'machine collector deployment-protection bypass must be a string'
+  );
+  assert.equal(
+    /[\r\n]/.test(config.protectionBypassSecret || ''),
+    false,
+    'machine collector deployment-protection bypass must be a single line'
+  );
   return { ...config, publicEvidencePath };
 }
 
@@ -3892,7 +3906,11 @@ export async function collectMachineAdministratorEvidenceCore(config, runtime = 
   const initialDeployment = await readDeploymentIdentity(
     publicContract.deploymentUrl,
     publicParsed.value.expectedBuild,
-    { fetchFn: runtime.fetchFn, now: runtime.nowMs }
+    {
+      fetchFn: runtime.fetchFn,
+      now: runtime.nowMs,
+      protectionBypassSecret: config.protectionBypassSecret,
+    }
   );
   assert.deepEqual(
     initialDeployment,
@@ -3982,7 +4000,11 @@ export async function collectMachineAdministratorEvidenceCore(config, runtime = 
   const finalDeployment = await readDeploymentIdentity(
     publicContract.deploymentUrl,
     publicParsed.value.expectedBuild,
-    { fetchFn: runtime.fetchFn, now: runtime.nowMs }
+    {
+      fetchFn: runtime.fetchFn,
+      now: runtime.nowMs,
+      protectionBypassSecret: config.protectionBypassSecret,
+    }
   );
   assert.deepEqual(
     finalDeployment,
