@@ -21,6 +21,13 @@ import {
   isExactPioRake,
   v2ArtifactEnvelopeIsExact,
 } from '../src/utils/v2Matrix.js';
+import {
+  buildTrainingAttestationContinuationPrecommit,
+  isTrainingAttestationContinuationPrecommit,
+  selectPublicAttestationContinuationAnswer,
+  TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+} from '../src/lib/training/trainingAttestationContinuationContract.mjs';
+import { applyDifficultyToQuestion } from '../src/lib/training/difficultyQuestionContract.mjs';
 
 const ROOT = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -37,6 +44,35 @@ async function loadAuthorityHelpers({
   executePersistenceQuery = null,
 } = {}) {
   class TrainingGradingReceiptError extends Error {}
+  const continuationDependencies = {
+    '../../engines/deterministicEnginePatches.js': {
+      toHandClass: (cards) => Array.isArray(cards) && cards.length === 2 ? 'AKo' : String(cards || ''),
+    },
+    './questionContract.mjs': {
+      enforceTrainingQuestionContract: (question) => question,
+      isTrainingQuestionValid: () => true,
+    },
+    './cacheTruthContract.mjs': { sourceClassificationForQuestion },
+    './solverPolicyContract.js': { normalizeBoard, normalizeHolding },
+    './difficultyQuestionContract.mjs': { applyDifficultyToQuestion },
+    '../../utils/v2Matrix.js': { isExactPioRake },
+    './trainingAttestationContinuationContract.mjs': {
+      isTrainingAttestationContinuationPrecommit,
+      selectPublicAttestationContinuationAnswer,
+    },
+  };
+  const continuationModule = new SourceTextModule(
+    read('src/lib/training/trainingContinuationEligibility.mjs'),
+    { identifier: 'trainingContinuationEligibility.mjs' },
+  );
+  await continuationModule.link(async (specifier) => {
+    const exports = continuationDependencies[specifier];
+    assert.ok(exports, `unexpected continuation dependency: ${specifier}`);
+    return new SyntheticModule(Object.keys(exports), function setExports() {
+      for (const [name, value] of Object.entries(exports)) this.setExport(name, value);
+    });
+  });
+  await continuationModule.evaluate();
   const dependencies = {
     'node:crypto': { randomUUID: () => '00000000-0000-4000-8000-000000000000' },
     '../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user, error: null }) },
@@ -93,6 +129,9 @@ async function loadAuthorityHelpers({
   };
   const module = new SourceTextModule(API_SOURCE, { identifier: 'next-street.js' });
   await module.link(async (specifier) => {
+    if (specifier === '../../../src/lib/training/trainingContinuationEligibility.mjs') {
+      return continuationModule;
+    }
     const exports = dependencies[specifier];
     assert.ok(exports, `unexpected next-street dependency: ${specifier}`);
     return new SyntheticModule(Object.keys(exports), function setExports() {
@@ -100,7 +139,7 @@ async function loadAuthorityHelpers({
     });
   });
   await module.evaluate();
-  return module.namespace;
+  return { ...module.namespace, ...continuationModule.namespace };
 }
 
 function responseHarness() {
@@ -125,7 +164,7 @@ async function loadEnginePatchHelpers() {
       v2ArtifactEnvelopeIsExact,
       v2ToAppMatrix: bridgeV2Matrix,
     },
-    '../lib/training/solverDecisionEvidence': { enforceSolverClaimHonesty: (question) => question },
+    '../lib/training/solverDecisionEvidence.js': { enforceSolverClaimHonesty: (question) => question },
     '../lib/training/solverRowIdentity.mjs': { isSolverRowIdentityValid: () => true },
     '../services/SolverPolicyService.js': {
       normalizeSolvedPolicyRecord: (row) => ({
@@ -155,7 +194,7 @@ async function loadEnginePatchHelpers() {
   });
   const module = new SourceTextModule(source, { identifier: 'deterministicEnginePatches.js' });
   await module.link(async (specifier) => {
-    if (specifier === '../lib/training/solverMatrixTrust') return solverMatrixTrustModule;
+    if (specifier === '../lib/training/solverMatrixTrust.js') return solverMatrixTrustModule;
     const exports = dependencies[specifier];
     assert.ok(exports, `unexpected engine-patch dependency: ${specifier}`);
     return new SyntheticModule(Object.keys(exports), function setExports() {
@@ -205,6 +244,7 @@ function derivedCanonicalPolicy({
   betSourceCode = 'b412',
   betChips = 412,
   betBigBlinds = 4.12,
+  actions = null,
 } = {}) {
   const key = createSolverPolicyKey({
     variant: 'nlh',
@@ -247,7 +287,7 @@ function derivedCanonicalPolicy({
       potBb,
       facingBetBb: 0,
     },
-    actions: [
+    actions: actions || [
       {
         id: 'check',
         sourceCode: 'c',
@@ -417,6 +457,7 @@ test('next-street accepts only an authenticated signed POST continuation', () =>
 
 test('continuation is gated on the exact persisted predecessor decision', () => {
   const api = read('pages/api/training/next-street.js');
+  const eligibility = read('src/lib/training/trainingContinuationEligibility.mjs');
 
   assert.match(api, /from\('training_answers'\)/);
   for (const binding of [
@@ -430,21 +471,24 @@ test('continuation is gated on the exact persisted predecessor decision', () => 
     assert.ok(api.includes(`.${binding}`), binding);
   }
   assert.match(api, /select\('[^']*answer_id[^']*'\)/);
-  assert.match(api, /validatePersistedContinuationDecision\([\s\S]*precedingResult\.data\.answer_id/);
-  assert.match(api, /TRAINING_CONTINUATION_ACTION_MISMATCH/);
-  assert.match(api, /TRAINING_CONTINUATION_ACTION_INVALID/);
+  assert.match(api, /resolveStrictTrainingContinuation\([\s\S]*precedingResult\.data\.answer_id/);
+  assert.match(eligibility, /validatePersistedContinuationDecisionForDifficulty\(/);
+  assert.match(eligibility, /TRAINING_CONTINUATION_ACTION_MISMATCH/);
+  assert.match(eligibility, /TRAINING_CONTINUATION_ACTION_INVALID/);
   assert.match(api, /TRAINING_CONTINUATION_PRECEDING_ANSWER_REQUIRED/);
   assert.match(api, /nextDecisionOrdinal = Number\(receiptPayload\.decisionOrdinal\) \+ 1/);
   assert.match(api, /countsTowardCompletion: false/);
-  assert.match(api, /code: 'TRAINING_CONTINUATION_SOLVER_MISS'/);
+  assert.match(eligibility, /'TRAINING_CONTINUATION_SOLVER_MISS'/);
 });
 
 test('continuation state and delivery are reconstructed from immutable server data', () => {
   const api = read('pages/api/training/next-street.js');
+  const eligibility = read('src/lib/training/trainingContinuationEligibility.mjs');
 
-  assert.match(api, /authoritativeHandState\(parentSnapshot\.question_data\)/);
-  assert.match(api, /new Set\(normalizedCards\)\.size === normalizedCards\.length/);
-  assert.match(api, /queryNextStreet\(\{/);
+  assert.match(api, /parentQuestion: parentSnapshot\.question_data/);
+  assert.match(eligibility, /authoritativeHandState\(parentQuestion\)/);
+  assert.match(eligibility, /new Set\(normalizedCards\)\.size === normalizedCards\.length/);
+  assert.match(eligibility, /queryNextStreet\(\{/);
   assert.match(api, /buildTrainingQuestionSnapshot\(\{/);
   assert.match(api, /trainingQuestionSnapshotMatchesIdentity\(parentSnapshot/);
   assert.match(api, /trainingQuestionSnapshotMatchesIdentity\(candidateStoredSnapshot/);
@@ -458,7 +502,7 @@ test('continuation state and delivery are reconstructed from immutable server da
 test('next-street retries recover one durable decision-slot winner before solving or counting another serve', () => {
   const api = read('pages/api/training/next-street.js');
   const recoveryAt = api.indexOf('readTrainingAttemptContinuation({');
-  const solverAt = api.indexOf('deterministicEngine.queryNextStreet({');
+  const solverAt = api.indexOf('const continuationResolution = await resolveStrictTrainingContinuation({');
   assert.ok(recoveryAt > 0 && recoveryAt < solverAt);
   assert.match(api, /registerTrainingAttemptContinuation\(\{/);
   assert.match(api, /const storedSnapshot = registeredContinuation\.snapshot/);
@@ -619,6 +663,107 @@ test('persisted predecessor answer must exactly select the canonical non-termina
       label,
     );
   }
+});
+
+test('grouped continuation accepts only the public band containing the one exact branch', async () => {
+  const { validatePersistedContinuationDecisionForDifficulty } = await loadAuthorityHelpers();
+  const parent = derivedParentQuestion();
+  parent.question = 'The Big Blind checks to you on the flop. What is your best action?';
+  const actions = [
+    {
+      id: 'check', sourceCode: 'c', family: 'check', label: 'Check', frequency: 0.1,
+      legal: true, size: { unit: 'none', exact: false },
+    },
+    {
+      id: 'bet_33pct', sourceCode: 'b200', family: 'bet', label: 'Bet 33% Pot', frequency: 0.2,
+      legal: true,
+      size: { unit: 'chips', chips: 200, bigBlinds: 2, potFraction: 0.33, exact: true },
+    },
+    {
+      id: 'bet_75pct', sourceCode: 'b412', family: 'bet', label: 'Bet 75% Pot', frequency: 0.6,
+      legal: true,
+      size: { unit: 'chips', chips: 412, bigBlinds: 4.12, potFraction: 0.75, exact: true },
+    },
+    {
+      id: 'bet_125pct', sourceCode: 'b700', family: 'bet', label: 'Bet 125% Pot', frequency: 0.1,
+      legal: true,
+      size: { unit: 'chips', chips: 700, bigBlinds: 7, potFraction: 1.25, exact: true },
+    },
+  ];
+  parent.options = actions.map(({ id, label }) => ({ id, text: label }));
+  parent.gtoFrequencies = Object.fromEntries(actions.map(({ id, frequency }) => [id, frequency * 100]));
+  parent.solverPolicy = derivedCanonicalPolicy({
+    scenarioHash: parent.scenario.scenarioHash,
+    sourceNode: parent.scenario.solverNode,
+    street: parent.scenario.street,
+    boardCards: parent.boardCards,
+    potBb: parent.scenario.pot,
+    provenance: parent.solverProvenance,
+    actions,
+  });
+
+  const accepted = validatePersistedContinuationDecisionForDifficulty(
+    parent,
+    'grouped_medium',
+    'grouped',
+  );
+  assert.equal(accepted.ok, true, JSON.stringify(accepted));
+  assert.equal(accepted.action, 'b412');
+  assert.equal(accepted.answerId, 'bet_75pct');
+  assert.equal(accepted.publicAnswerId, 'grouped_medium');
+  for (const wrongGroup of ['grouped_small', 'grouped_overbet', 'check']) {
+    assert.equal(
+      validatePersistedContinuationDecisionForDifficulty(parent, wrongGroup, 'grouped').code,
+      'TRAINING_CONTINUATION_ACTION_MISMATCH',
+      wrongGroup,
+    );
+  }
+  assert.equal(
+    validatePersistedContinuationDecisionForDifficulty(parent, 'bet_75pct', 'exact').ok,
+    true,
+    'ordinary exact-mode continuation changed',
+  );
+});
+
+test('a provenance-complete derived parent qualifies only through its exact lineage resolver', async () => {
+  const {
+    resolveStrictTrainingContinuation,
+    selectPublicAttestationContinuationAnswerForStrictParent,
+  } = await loadAuthorityHelpers();
+  const parent = derivedParentQuestion({
+    question: 'The Big Blind checks to you on the flop. What is your best action?',
+  });
+  assert.equal(sourceClassificationForQuestion(parent), 'SOLVER_DERIVED_RESPONSE');
+  const precommit = buildTrainingAttestationContinuationPrecommit({
+    selectionRule: TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+    sessionId: 'derived-continuation-fixture',
+    gameId: 'cash-002',
+    level: 8,
+    targetHands: 20,
+  });
+  const publicAnswer = selectPublicAttestationContinuationAnswerForStrictParent(
+    parent,
+    precommit,
+    'grouped',
+  );
+  assert.equal(publicAnswer, 'bet_75pct');
+  const resolved = await resolveStrictTrainingContinuation({
+    parentQuestion: parent,
+    persistedAnswerId: publicAnswer,
+    difficultyMode: 'grouped',
+    gameConfig: { pioGameType: 'hu_cash', pioStackDepth: 100 },
+    requireProvenanceCompleteParent: true,
+    queryNextStreet: async ({ continuationLineages }) => {
+      const lineage = continuationLineages[0];
+      return derivedChildQuestion(lineage, lineage.boardCards);
+    },
+  });
+  assert.equal(resolved.ok, true, JSON.stringify(resolved));
+  assert.equal(
+    sourceClassificationForQuestion(resolved.canonicalQuestion),
+    'SOLVER_DERIVED_RESPONSE',
+    'the exact row lineage must not be relabeled as a solver-exact decision key',
+  );
 });
 
 test('derived canonical parent permits only its exact row lineage and raw source branch', async () => {

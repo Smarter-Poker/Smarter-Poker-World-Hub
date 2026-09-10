@@ -10,6 +10,12 @@ import {
   normalizeTrainingHandSelection,
   trainingQuestionMatchesSelection,
 } from '../src/lib/training/questionSelectionContract.mjs';
+import {
+  buildTrainingAttestationContinuationPrecommit,
+  selectPublicAttestationContinuationAnswer,
+  TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+  validateTrainingAttestationContinuationPrecommit,
+} from '../src/lib/training/trainingAttestationContinuationContract.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const nodeRequire = createRequire(import.meta.url);
@@ -63,6 +69,9 @@ function createHarness({
   manifestWinner = null,
   seenQuestionIds = [],
   recoveredDelivery = null,
+  generatedQuestions = [],
+  attestationEligibleQuestionId = null,
+  authenticatedUserId = '11111111-1111-4111-8111-111111111111',
 }) {
   const captured = {
     buildAttempts: [],
@@ -70,6 +79,10 @@ function createHarness({
     servedReceipts: [],
     deliveredQuestions: [],
     recoveryCalls: [],
+    cohortCalls: [],
+    cacheReads: 0,
+    generateBatchCalls: [],
+    continuationParentCalls: [],
   };
 
   const db = {
@@ -103,7 +116,7 @@ function createHarness({
           },
           eq() { return query; },
           in() { return query; },
-          limit() { return queryResult(cacheRows); },
+          limit() { captured.cacheReads += 1; return queryResult(cacheRows); },
           upsert(rows) {
             mode = 'write';
             captured.persistedRows = rows;
@@ -134,7 +147,7 @@ function createHarness({
     'node:crypto': { randomUUID: () => '33333333-3333-4333-8333-333333333333' },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({
-        user: { id: '11111111-1111-4111-8111-111111111111' },
+        user: { id: authenticatedUserId },
         error: null,
       }),
     },
@@ -146,7 +159,20 @@ function createHarness({
       reconcileAnswerKey() {},
     },
     '../../../src/engines/DeterministicGTOEngine': {
-      deterministicEngine: { setSupabaseClient() {}, generateBatch: async () => [] },
+      deterministicEngine: {
+        setSupabaseClient() {},
+        generateBatch: async (input) => {
+          captured.generateBatchCalls.push(input);
+          return structuredClone(generatedQuestions);
+        },
+        generateAttestationContinuationParentCandidates: async (input) => {
+          captured.continuationParentCalls.push(input);
+          return structuredClone(generatedQuestions).filter(
+            (question) => input.acceptQuestion(question) === true,
+          );
+        },
+        queryNextStreet: async () => null,
+      },
     },
     '../../../src/engines/deterministicEnginePatches': {
       applyDeterministicEnginePatches: (engine) => engine,
@@ -205,7 +231,9 @@ function createHarness({
         }));
         return { questionCount: delivery.questions.length };
       },
-      prepareTrainingAttemptDelivery: async ({ questions }) => {
+      prepareTrainingAttemptDelivery: async (input) => {
+        captured.delivery = input;
+        const { questions } = input;
         const deliveredQuestions = manifestWinner
           ? [{ ...questions[0], ...manifestWinner }]
           : questions;
@@ -226,6 +254,28 @@ function createHarness({
     },
     '../../../src/lib/training/questionOrderContract.mjs': {
       shuffleBalancedQuestionOrder: (questions) => questions,
+    },
+    '../../../src/lib/training/trainingAttestationContinuationContract.mjs': {
+      validateTrainingAttestationContinuationPrecommit,
+    },
+    '../../../src/lib/training/trainingContinuationEligibility.mjs': {
+      selectPublicAttestationContinuationAnswerForStrictParent: (question) => (
+        question?.id === attestationEligibleQuestionId ? 'raise' : null
+      ),
+      selectTrainingAttestationContinuationCohort: async (input) => {
+        captured.cohortCalls.push(input);
+        const eligiblePair = input.questionPairs.find(
+          (pair) => pair?.row?.question_data?.id === attestationEligibleQuestionId,
+        );
+        if (!eligiblePair) return null;
+        return {
+          questionPairs: [
+            ...input.questionPairs.slice(0, input.targetHands - 1),
+            eligiblePair,
+          ],
+          publicContract: input.precommit,
+        };
+      },
     },
     '../../../src/lib/training/cacheTruthPersistence.mjs': {
       cacheQuestionFromRow: (row) => structuredClone(row.question_data),
@@ -263,10 +313,16 @@ function createHarness({
   return { handler: routeModule.exports.default, captured };
 }
 
-async function invoke(harness, { count = '20', query = {} } = {}) {
+async function invoke(harness, { count = '20', query = {}, auditUserId = null } = {}) {
   const response = createApiResponse();
   const originalRandom = Math.random;
+  const previousAuditUserId = process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID;
   Math.random = () => 0.999999;
+  if (auditUserId === null) {
+    delete process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID;
+  } else {
+    process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID = auditUserId;
+  }
   try {
     await harness.handler({
       method: 'GET',
@@ -281,6 +337,11 @@ async function invoke(harness, { count = '20', query = {} } = {}) {
     }, response);
   } finally {
     Math.random = originalRandom;
+    if (previousAuditUserId === undefined) {
+      delete process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID;
+    } else {
+      process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID = previousAuditUserId;
+    }
   }
   return response;
 }
@@ -413,4 +474,159 @@ test('served audit records the immutable manifest winner, not the pre-manifest c
     questionId: 'manifest-winner',
     policyChecksum: winnerChecksum,
   }]);
+});
+
+function continuationAttestationQuery() {
+  const precommit = buildTrainingAttestationContinuationPrecommit({
+    selectionRule: TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+    sessionId: 'test-training-session',
+    gameId: 'cash-001',
+    level: 1,
+    targetHands: 20,
+  });
+  return {
+    precommit,
+    query: {
+      attestationContinuationRule: precommit.selectionRule,
+      attestationContinuationPrecommit: precommit.commitment,
+    },
+  };
+}
+
+test('public continuation rule selects only visible three-quarter-pot aggression', () => {
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [{ id: 'check' }, { id: 'call' }, { id: 'fold' }],
+  }), null);
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [{ id: 'check' }, { id: 'bet_75pct' }, { id: 'b412' }],
+  }), 'bet_75pct');
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'grouped_small', text: 'Small Bet' },
+      { id: 'grouped_medium', text: 'Medium Bet' },
+      { id: 'grouped_overbet', text: 'Overbet' },
+    ],
+  }), 'grouped_medium');
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [{ id: 'grouped_small' }, { id: 'grouped_overbet' }],
+  }), null);
+});
+
+test('non-designated accounts receive 403 before the audit cohort reads or writes data', async () => {
+  const auditUserId = '99999999-9999-4999-8999-999999999999';
+  const { query } = continuationAttestationQuery();
+  const harness = createHarness({
+    authenticatedUserId: '11111111-1111-4111-8111-111111111111',
+  });
+  const response = await invoke(harness, { query, auditUserId });
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.body.code, 'TRAINING_ATTESTATION_AUDIT_ACCOUNT_REQUIRED');
+  assert.equal(harness.captured.cacheReads, 0);
+  assert.equal(harness.captured.persistedRows.length, 0);
+  assert.equal(harness.captured.deliveredQuestions.length, 0);
+});
+
+test('every pre-cohort attestation shortage uses the exact unavailable contract before writes', async () => {
+  const auditUserId = '99999999-9999-4999-8999-999999999999';
+  const { query } = continuationAttestationQuery();
+  const generatedQuestion = {
+    ...structuredClone(cacheRow(200).question_data),
+    id: 'solver-catalog-parent',
+  };
+  const cases = [
+    createHarness({
+      authenticatedUserId: auditUserId,
+      cacheRows: [],
+      generatedQuestions: [],
+    }),
+    createHarness({
+      authenticatedUserId: auditUserId,
+      cacheRows: Array.from({ length: 19 }, (_, index) => cacheRow(index)),
+      generatedQuestions: [],
+    }),
+    createHarness({
+      authenticatedUserId: auditUserId,
+      cacheRows: Array.from({ length: 20 }, (_, index) => cacheRow(index)),
+      generatedQuestions: [generatedQuestion],
+      attestationEligibleQuestionId: generatedQuestion.id,
+      failedBuilds: 2,
+    }),
+  ];
+
+  for (const harness of cases) {
+    const response = await invoke(harness, { query, auditUserId });
+    assert.equal(response.statusCode, 422);
+    assert.equal(response.body.code, 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE');
+    assert.equal(harness.captured.persistedRows.length, 0);
+    assert.equal(harness.captured.servedReceipts.length, 0);
+    assert.equal(harness.captured.deliveredQuestions.length, 0);
+  }
+});
+
+test('an unavailable attestation cohort returns the exact 422 before every write', async () => {
+  const auditUserId = '99999999-9999-4999-8999-999999999999';
+  const { query } = continuationAttestationQuery();
+  const generatedQuestion = {
+    ...structuredClone(cacheRow(200).question_data),
+    id: 'solver-catalog-parent',
+  };
+  const harness = createHarness({
+    authenticatedUserId: auditUserId,
+    cacheRows: Array.from({ length: 100 }, (_, index) => cacheRow(index)),
+    generatedQuestions: [generatedQuestion],
+  });
+  const response = await invoke(harness, { query, auditUserId });
+
+  assert.equal(response.statusCode, 422);
+  assert.equal(response.body.code, 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE');
+  assert.equal(harness.captured.generateBatchCalls.length, 0);
+  assert.equal(harness.captured.continuationParentCalls.length, 1);
+  assert.equal(harness.captured.continuationParentCalls[0].count, 25);
+  assert.equal(typeof harness.captured.continuationParentCalls[0].acceptQuestion, 'function');
+  assert.equal(harness.captured.cohortCalls.length, 1);
+  assert.equal(harness.captured.persistedRows.length, 0);
+  assert.equal(harness.captured.servedReceipts.length, 0);
+  assert.equal(harness.captured.deliveredQuestions.length, 0);
+});
+
+test('a warm cache cannot starve a bounded solver-catalog parent from the sealed cohort', async () => {
+  const auditUserId = '99999999-9999-4999-8999-999999999999';
+  const { query, precommit } = continuationAttestationQuery();
+  const generatedQuestion = {
+    ...structuredClone(cacheRow(200).question_data),
+    id: 'solver-catalog-parent',
+  };
+  const harness = createHarness({
+    authenticatedUserId: auditUserId,
+    cacheRows: Array.from({ length: 100 }, (_, index) => cacheRow(index)),
+    generatedQuestions: [generatedQuestion],
+    attestationEligibleQuestionId: generatedQuestion.id,
+  });
+  const response = await invoke(harness, { query, auditUserId });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.count, 20);
+  assert.equal(harness.captured.generateBatchCalls.length, 0);
+  assert.equal(harness.captured.continuationParentCalls.length, 1);
+  assert.equal(harness.captured.continuationParentCalls[0].count, 25);
+  assert.ok(
+    response.body.questions.some((question) => question.id === generatedQuestion.id),
+    'the read-only solver-catalog parent was not sealed into the cohort',
+  );
+  assert.deepEqual(response.body.attestationContinuationCohort, precommit);
+  assert.deepEqual(
+    Object.keys(response.body.attestationContinuationCohort).sort(),
+    ['commitment', 'selectionRule', 'version'],
+  );
+  assert.equal(Object.hasOwn(response.body.attestationContinuationCohort, 'handOrdinal'), false);
+  assert.equal(Object.hasOwn(response.body.attestationContinuationCohort, 'answerId'), false);
+  assert.deepEqual(
+    harness.captured.delivery.config.attestationContinuationCohort,
+    precommit,
+    'the precommit was not bound into the immutable attempt config hash input',
+  );
+  assert.equal(harness.captured.persistedRows.length, 20);
+  assert.equal(harness.captured.servedReceipts.length, 20);
 });

@@ -39,7 +39,7 @@
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
  */
 
-import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence';
+import { enforceSolverClaimHonesty } from '../lib/training/solverDecisionEvidence.js';
 import { isSolverRowIdentityValid } from '../lib/training/solverRowIdentity.mjs';
 import { normalizeSolvedPolicyRecord } from '../services/SolverPolicyService.js';
 import { isExactPioRake, v2ArtifactEnvelopeIsExact } from '../utils/v2Matrix.js';
@@ -52,7 +52,7 @@ import {
     inheritSolverMatrixTrust,
     selectTrustedLegacySolverMatrix,
     selectTrustedSolverMatrix,
-} from '../lib/training/solverMatrixTrust';
+} from '../lib/training/solverMatrixTrust.js';
 
 const CONTINUATION_QUERY_CHUNK_SIZE = 12;
 const MAX_CONTINUATION_RUNOUTS = 47;
@@ -634,6 +634,74 @@ export function applyDeterministicEnginePatches(engine) {
         return policy?.kind === 'unavailable'
             ? null
             : this.solverPolicyService.consumerEnvelope(policy, 'get-question');
+    };
+
+    /**
+     * Read a bounded set of provenance-admitted parent candidates directly
+     * from the private serving catalog. This is intentionally separate from
+     * the ordinary randomized batch path: a full mutable cache must not starve
+     * a newly admitted continuation parent during the production attestation.
+     *
+     * `acceptQuestion` is a server-only predicate supplied by the attestation
+     * route. It may inspect the fully constructed canonical parent, but neither
+     * the predicate nor its result is serialized to the browser.
+     */
+    engine.generateAttestationContinuationParentCandidates = async function generateAttestationContinuationParentCandidates({
+        gameConfig,
+        level,
+        count = 25,
+        targetStreet = null,
+        acceptQuestion,
+    }) {
+        if (!gameConfig
+            || gameConfig.sourceOfTruth === 'SCENARIO'
+            || gameConfig.sourceOfTruth === 'ICMIZER'
+            || gameConfig.pioStreet === 'preflop'
+            || typeof acceptQuestion !== 'function') return [];
+        const requestedStreet = targetStreet ? String(targetStreet).toLowerCase() : null;
+        if (requestedStreet && !['flop', 'turn'].includes(requestedStreet)) return [];
+        const stackDepth = Number(gameConfig.pioStackDepth);
+        if (!Number.isSafeInteger(stackDepth) || stackDepth <= 0) return [];
+        const wanted = Math.max(1, Math.min(Number(count) || 1, 25));
+        const acceptedQuestionByArtifactId = new Map();
+        try {
+            const rows = await fetchAdmittedSolverCandidates(this.db, {
+                familyStacks: [{
+                    game_type: gameConfig.pioGameType,
+                    stack_depth: stackDepth,
+                }],
+                street: requestedStreet,
+                limit: wanted,
+                accept: (row) => {
+                    if (!['flop', 'turn'].includes(String(row?.street || '').toLowerCase())
+                        || !prepareSolverScenarioRow(row)) return false;
+                    // A bounded set of deterministic hand indices samples the
+                    // artifact's real range. The downstream shared strict
+                    // resolver remains the authority for action and child truth.
+                    for (let questionIndex = 0; questionIndex < 24; questionIndex += 1) {
+                        const question = this.buildQuestionFromScenario(
+                            row,
+                            gameConfig,
+                            level,
+                            questionIndex,
+                        );
+                        if (question && acceptQuestion(question) === true) {
+                            acceptedQuestionByArtifactId.set(row.id, question);
+                            return true;
+                        }
+                    }
+                    return false;
+                },
+            });
+            if (!Array.isArray(rows)) return [];
+            return rows
+                .map((row) => acceptedQuestionByArtifactId.get(row.id))
+                .filter(Boolean)
+                .slice(0, wanted);
+        } catch (error) {
+            console.warn('[EnginePatches] continuation parent catalog query failed:', error.message);
+            return [];
+        }
     };
 
     // ●● PATCH 1+2: street-null guard + v2 preference + matrix sanitization ●●
