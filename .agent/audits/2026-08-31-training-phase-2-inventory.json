@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 129,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 354,
+    "possibleUnwiredFunctions": 352,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -46463,7 +46463,7 @@
         {
           "name": "UnreadProvider",
           "line": 51,
-          "references": 8,
+          "references": 9,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -46471,15 +46471,7 @@
         {
           "name": "useUnreadCount",
           "line": 358,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "UnreadBadge",
-          "line": 363,
-          "references": 1,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -46533,10 +46525,7 @@
           "namedFunctionExpression": false
         }
       ],
-      "possibleUnwiredFunctions": [
-        "useUnreadCount",
-        "UnreadBadge"
-      ],
+      "possibleUnwiredFunctions": [],
       "markers": [
         {
           "kind": "FALLBACK",
@@ -89434,40 +89423,6 @@
         ]
       },
       {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "useUnreadCount",
-        "line": 358,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/messenger.js",
-          "pages/hub/social-media/index.js",
-          "src/components/social/SmarterPokerLayout.jsx",
-          "src/components/ui/BottomNavBar.jsx",
-          "src/components/ui/UniversalHeader.js"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "UnreadBadge",
-        "line": 363,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/social/SmarterPokerLayout.jsx"
-        ]
-      },
-      {
         "file": "src/lib/apiRateLimit.js",
         "name": "applyDurableRateLimit",
         "line": 128,
@@ -97957,40 +97912,6 @@
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/training/GodModeArena.jsx"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "useUnreadCount",
-        "line": 358,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/messenger.js",
-          "pages/hub/social-media/index.js",
-          "src/components/social/SmarterPokerLayout.jsx",
-          "src/components/ui/BottomNavBar.jsx",
-          "src/components/ui/UniversalHeader.js"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "UnreadBadge",
-        "line": 363,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/social/SmarterPokerLayout.jsx"
         ]
       },
       {
