@@ -240,3 +240,136 @@ These are outside the social surface and were NOT changed here:
   and were not exercised in this pass.
 
 The first three are the real gaps and belong to the training domain.
+
+---
+
+# 2026-09-09/10 — phase two, and two corrections against myself
+
+## It works in production, and the cap bites hard
+
+Measured on live traffic, not probes. Since the triggers went in:
+
+    social_post   4 awards   1 player   40 diamonds
+                  first 2026-09-08 18:00Z, latest 2026-09-09 10:00Z
+
+    day          eligible posts   awards paid   cap
+    2026-09-08              25              2     2
+    2026-09-09              18              2     2
+
+43 eligible posts produced 4 awards, not 43. Without the per-day cap that would
+have been 430 diamonds; it issued 40. Anti-farming is now proved against real
+traffic and not only in a rolled-back probe. reaction / strategy_comment /
+follow have not fired because there has been no like, comment or follow traffic
+since 2026-09-06.
+
+## CORRECTION 1: "the remaining rewards have hooks" was wrong
+
+Yesterday I wrote that hand_of_the_day, email_verified, phone_verified,
+first_purchase and vip_stipend "have hooks and were not exercised". I had
+counted how often the reward KEY appeared in the repo. That is not the same
+question as whether an award is ever CALLED.
+
+Re-checked properly - a key only counts if it sits in a file that also calls
+safeAward, award_diamonds_v2, claimReward or awardDiamondsV2 - FOUR MORE have
+no award path at all:
+
+    hand_of_the_day            10   no award call anywhere
+    first_training_session     15   no award call anywhere
+    training_level_complete     8   no award call anywhere
+    referral_vip_conversion   500   no award call anywhere
+    gto_chart_study             5   a dead constant in DiamondRewardService.ts
+
+## Only one of them was safe to wire, and why the others were not
+
+`first_training_session` is now awarded by an AFTER UPDATE trigger on
+`training_attempts` (20260909001800). It is a one-time welcome bonus on a
+player's FIRST completed session, so it stacks with the per-session reward
+rather than competing with it. No 24h age gate, deliberately, via a sibling
+helper: applying the social gate would deny the welcome to the brand-new player
+it exists for. Five rolled-back probes, all PASS, including that it pays
+exactly the catalog's 15 and that practice, failed, re-saved and second
+sessions pay nothing.
+
+NOT wired, with reasons:
+
+- **hand_of_the_day (10) and training_level_complete (8) duplicate a reward
+  that already works.** `training_reward` is live, has paid, and the catalog
+  describes it as "Per-session training reward for completing a GTO training
+  level or the Hand of the Day". Observed rows pay 17-23 per level and all 14
+  completed attempts carry a `reward_diamonds`. Wiring these two pays a second
+  time for one action. Which price is authoritative is a PRICING decision and
+  RULE 10.6 reserves those to Dan.
+- **gto_chart_study** needs "a server-recorded study session of sufficient
+  dwell time". No dwell tracking exists; `memory_charts_gold` is a chart
+  DEFINITION table, not a per-user event. Unbuilt feature, not a wiring gap.
+- **The whole referral programme is dead at attribution, not payout.** Nothing
+  creates a `referrals` row: the only INSERT in the repo is inside
+  `pages/api/social/__DISABLED_slug.js.bak.14778`, the table holds 0 rows, and
+  `/api/rewards/referral` only ever SELECTs it. `referral_vip_conversion` also
+  requires a Stripe webhook, and there is no Stripe webhook directory in this
+  repo. That is 500 + 100 + 500 advertised and unreachable.
+
+## CORRECTION 2: I claimed CHECK 8 was red on main. It was not.
+
+Shipped in #1709 and reverted in #1712. Recorded here because the shape of the
+mistake matters more than the diff.
+
+I ran `node --test __tests__/_test-guards-exist.test.mjs`, got 7 deterministic
+failures from `training-request-deadline.test.mjs` throwing
+`vm.SourceTextModule is not a constructor`, and concluded main was red. But
+`build-safety-gate.yml` line 949 is:
+
+    node --experimental-vm-modules --test \
+
+CI passes the flag. I invented the failure by typing the wrong command and then
+read my own terminal as the repo's state. On CI's own node 24.12.0 with the
+flag, `origin/main` was **1411/1411 green**.
+
+The fix I shipped removed `import './training-request-deadline.test.mjs'`,
+deleting 8 working tests from CI, and added a law whose central assertion - that
+no test in the chain may need the flag - is FALSE. CHECK 8 went 1420 to 1412.
+**A fix that removes coverage should have made me stop: the number went DOWN by
+eight and I did not ask why.**
+
+Three signals were available and I mishandled the first two:
+
+1. The estate detector for exactly this condition, issue #1457, is running and
+   had been updated minutes before I looked. It lists red workflows in
+   PepNationLab, commander and Club Arena and does NOT list this repo's Build
+   Safety Gate. I saw that and reached for a node-version theory to explain the
+   silence instead of doubting the claim. Testing node 24.12.0 killed the
+   theory but, for a while, not the claim.
+2. #1603 is the only open issue about an invisible required check and it is
+   about CHECK 20 Title Case and a different context. It does not name CHECK 8.
+3. The one failure that WAS real under the correct invocation was my own new
+   file, caught by the repo's existing "every guard in __tests__ is reachable by
+   CI" law. The repo's own guards were right about me twice over.
+
+Main is corrected at 37001debbf: import restored, false law deleted, migration
+and reward law kept. CHECK 8 as CI runs it: 1420/1420.
+
+**The rule I should have followed, written down:** before claiming CI is red,
+read the workflow's exact invocation and reproduce it verbatim - the node
+version, the flags, the working directory. "It fails on my machine" is a
+hypothesis about my machine.
+
+## Production health, measured, and not the triggers
+
+`/api/health` alternates ok at ~1.3s with degraded at the 3s db timeout. Cause:
+a 152 GB database against 4 GB of shared_buffers, so most reads reach disk, and
+a heavy analytics scan (sustained `DataFileRead`, observed at 16s) pushes the
+health probe past its budget. Connections are mostly idle, so it is IO latency
+and not connection starvation.
+
+Not the award triggers, measured: the profiles lookup is 0.2 ms;
+`award_diamonds_v2` costs 40 ms only on the PAYING path, which the per-day caps
+bound to a handful of calls per player per day; the steady-state refusal path is
+0.7 ms.
+
+I also thought I had found 80 GB of bloat - `solved_spots_gold`, 0 live rows,
+52% of the database - and it was wrong. That table has never been ANALYZEd, so
+`n_live_tup` was uncollected statistics rather than a row count; the planner
+estimate is 9.2M rows and the 80 GB is real data in TOAST. Counting before
+reporting is what caught it. Worth flagging separately: `solved_spots_gold`,
+`data_audit_log` and `daily_challenge_progress_events` have never been
+analyzed, so the planner has no statistics on any of them.
