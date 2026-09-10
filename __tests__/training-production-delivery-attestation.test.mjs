@@ -26,6 +26,8 @@ import {
   collectMachineAdministratorEvidenceCore,
   closeAttestationBrowserContext,
   continueRouteWithProtectionBypass,
+  installAttestationProtectionBypassRoute,
+  attachAttestationClientErrorCapture,
   createSlidingWindowRequestPacer,
   createVercelCliRuntimeLogTransport,
   decodeReceiptObservation,
@@ -1302,6 +1304,95 @@ test('attestation browser teardown detaches in-flight routes before closing the 
     ['close'],
   ]);
   await closeAttestationBrowserContext(undefined);
+});
+
+test('protection routing and teardown share one context owner for late route failures', async () => {
+  const secret = 'phase6-test-bypass-secret';
+  const calls = [];
+  const inFlight = new Set();
+  const ignoredErrors = [];
+  let registeredHandler;
+  let rejectFetch;
+  const context = {
+    async route(pattern, handler) {
+      assert.equal(this, context);
+      calls.push(['route', pattern]);
+      registeredHandler = (route) => {
+        const pending = Promise.resolve(handler(route));
+        inFlight.add(pending);
+        return pending;
+      };
+    },
+    async unrouteAll(options) {
+      assert.equal(this, context);
+      calls.push(['unrouteAll', options]);
+      if (options?.behavior === 'ignoreErrors') {
+        for (const pending of inFlight) {
+          pending.catch((error) => {
+            ignoredErrors.push(redactProtectionBypassSecret(error?.message, secret));
+          });
+        }
+      }
+    },
+    async close() {
+      assert.equal(this, context);
+      calls.push(['close']);
+    },
+  };
+
+  assert.equal(
+    await installAttestationProtectionBypassRoute(context, DEPLOYMENT_URL, secret),
+    true
+  );
+  const pendingRoute = registeredHandler({
+    request: () => ({
+      url: () => `${DEPLOYMENT_URL}/hub/training-card.avif`,
+      headers: () => ({ accept: 'image/avif' }),
+    }),
+    fetch: () =>
+      new Promise((resolveFetch, rejectFetchPromise) => {
+        void resolveFetch;
+        rejectFetch = rejectFetchPromise;
+      }),
+    fulfill: async () => assert.fail('a rejected route fetch must not fulfill'),
+  });
+
+  await closeAttestationBrowserContext(context);
+  rejectFetch(new Error(`late route failure ${secret}`));
+  await assert.rejects(pendingRoute, /late route failure/);
+  await new Promise((resolveTick) => setImmediate(resolveTick));
+
+  assert.deepEqual(calls, [
+    ['route', '**/*'],
+    ['unrouteAll', { behavior: 'ignoreErrors' }],
+    ['close'],
+  ]);
+  assert.deepEqual(ignoredErrors, ['late route failure [REDACTED]']);
+  assert.doesNotMatch(JSON.stringify(ignoredErrors), new RegExp(secret));
+  assert.equal(
+    await installAttestationProtectionBypassRoute(context, DEPLOYMENT_URL, ''),
+    false
+  );
+});
+
+test('page and console error capture redact the deployment protection bypass', () => {
+  const secret = 'phase6-test-bypass-secret';
+  const handlers = new Map();
+  const destination = [];
+  const page = {
+    on(event, handler) {
+      handlers.set(event, handler);
+    },
+  };
+  attachAttestationClientErrorCapture(page, destination, secret);
+  handlers.get('pageerror')?.(new Error(`page failed ${secret}`));
+  handlers.get('console')?.({ type: () => 'error', text: () => `console failed ${secret}` });
+  handlers.get('console')?.({ type: () => 'warning', text: () => `warning ${secret}` });
+  assert.deepEqual(destination, [
+    { kind: 'pageerror', message: 'page failed [REDACTED]' },
+    { kind: 'console', message: 'console failed [REDACTED]' },
+  ]);
+  assert.doesNotMatch(JSON.stringify(destination), new RegExp(secret));
 });
 
 test('attestation error redaction removes the exact protection bypass secret', () => {
@@ -2984,7 +3075,11 @@ test('runtime source has a hard write acknowledgement and keeps admin gates sepa
   assert.match(source, /TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET/);
   assert.match(source, /x-vercel-protection-bypass/);
   assert.match(source, /new URL\(request\.url\(\)\)\.origin/);
-  assert.match(source, /await page\.route\(['"]\*\*\/\*['"]/);
+  assert.match(
+    source,
+    /await installAttestationProtectionBypassRoute\(\s*context,/
+  );
+  assert.doesNotMatch(source, /await page\.route\(['"]\*\*\/\*['"]/);
   assert.match(source, /route\.fetch\(\{/);
   assert.match(source, /maxRedirects:\s*0/);
   assert.match(source, /route\.fulfill\(\{ response \}\)/);
