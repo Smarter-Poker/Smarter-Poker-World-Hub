@@ -324,3 +324,33 @@ test('the weekly pipeline report runs from publish-watchdog, not a new schedule'
     'never the Claude scheduler (CLAUDE.md 10.9)'
   );
 });
+
+// -- 6. A preview branch is for LOOKING at ------------------------------------
+
+test('a preview/* branch builds a preview and is not auto-merged into main', () => {
+  // These two halves have to agree or the opt-in is a trap. On 2026-09-09 they
+  // did not: scripts/vercel-should-build.sh had just been taught that
+  // `preview/*` means "build me a preview", and agent-open-pr.yml still opened
+  // a pull request for every non-main branch, which autopilot then squash-
+  // merged. An experiment branch pushed to MEASURE something - with "Not for
+  // merging as-is" in its own commit message - was on main and in production
+  // four minutes later.
+  //
+  // Nothing enforces a commit message. The branch prefix is the only thing
+  // both halves can read, so both halves read it.
+  const gate = read('scripts/vercel-should-build.sh');
+  assert.match(
+    gate,
+    /preview\/\*\)/,
+    'preview/* must still be the opt-in that gets a Vercel preview build'
+  );
+
+  const openPr = read('.github/workflows/agent-open-pr.yml');
+  assert.match(
+    openPr,
+    /!startsWith\(github\.ref_name, 'preview\/'\)/,
+    "agent-open-pr.yml must skip preview/* branches. A branch whose whole " +
+      'purpose is to be looked at must not open a pull request that autopilot ' +
+      'then merges - that is how an experiment reached production on 2026-09-09.'
+  );
+});
