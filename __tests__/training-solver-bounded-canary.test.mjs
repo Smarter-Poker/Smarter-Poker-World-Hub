@@ -12,6 +12,30 @@ const RUNBOOK = fs.readFileSync(
 );
 const WINDOWS_SETUP = fs.readFileSync('scripts/windows-setup.bat', 'utf8');
 const WINDOWS_DEPLOYMENT = fs.readFileSync('scripts/WINDOWS_DEPLOYMENT.txt', 'utf8');
+const VERCEL_IGNORE = fs.readFileSync('.vercelignore', 'utf8');
+
+
+test('Vercel packages the exact bounded-canary runbook without uploading other agent artifacts', () => {
+  const lines = VERCEL_IGNORE.split(/\r?\n/).map((line) => line.trim());
+  const agentIgnore = lines.indexOf('.agent/');
+  const reincludeAgentRoot = lines.indexOf('!/.agent/');
+  const excludeAgentChildren = lines.indexOf('/.agent/*');
+  const reincludeAuditRoot = lines.indexOf('!/.agent/audits/');
+  const excludeAuditChildren = lines.indexOf('/.agent/audits/*');
+  const reincludeRunbook = lines.indexOf(
+    '!/.agent/audits/2026-09-07-training-solver-catalog-admission-runbook.md',
+  );
+
+  assert.ok(agentIgnore >= 0);
+  assert.ok(reincludeAgentRoot > agentIgnore);
+  assert.ok(excludeAgentChildren > reincludeAgentRoot);
+  assert.ok(reincludeAuditRoot > excludeAgentChildren);
+  assert.ok(excludeAuditChildren > reincludeAuditRoot);
+  assert.ok(reincludeRunbook > excludeAuditChildren);
+  assert.ok(fs.statSync(
+    '.agent/audits/2026-09-07-training-solver-catalog-admission-runbook.md',
+  ).isFile());
+});
 
 
 test('bounded solver canary Python contract suite passes', () => {

@@ -39,6 +39,15 @@ data/pokeratlas-logs/
 .bg-shell/
 .vscode/
 
+# The production build runs the bounded-solver authority contract, which reads
+# this exact reviewed runbook. Re-include only that file while keeping every
+# other agent artifact out of the deployment upload.
+!/.agent/
+/.agent/*
+!/.agent/audits/
+/.agent/audits/*
+!/.agent/audits/2026-09-07-training-solver-catalog-admission-runbook.md
+
 # ── Planning and memory (agent-only) ─────────────────────────
 .planning/
 .memory/
