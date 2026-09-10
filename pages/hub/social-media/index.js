@@ -75,7 +75,7 @@ const LiveStreamViewer = dynamic(
 // pulled livekit-client - a 527 KB WebRTC chunk - onto every feed load.
 import * as LiveStreamService from '../../../src/services/liveStreamReads';
 import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
-import ArticleCard from '../../../src/components/social/ArticleCard';
+import ArticleCard, { prewarmLinkPreviews } from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import { SocialProfileGateForCurrentUser } from '../../../src/components/gates/SocialProfileCompletionGate';
@@ -4857,6 +4857,19 @@ function SocialMediaPage() {
         );
         // Persist to IndexedDB (50MB+) and localStorage fallback
         feedCache.setPosts(formattedPosts);
+      }
+
+      // Batch-prefill the ArticleCard link-preview cache for every post that
+      // has a link URL.  A single POST /api/link-preview/batch replaces what
+      // would have been N individual GETs — eliminating Sentry issue #7720346314
+      // (N+1 API Call at /api/link-preview?url=* on /hub/social-media, 2026-09-10).
+      const linkUrls = formattedPosts
+        .map((p) => p.link_url || p.linkUrl)
+        .filter(Boolean);
+      if (linkUrls.length > 0) {
+        prewarmLinkPreviews(linkUrls).catch(() => {
+          // Non-fatal — individual ArticleCards fall back to their own single-URL fetch
+        });
       }
     } catch (e) {
       console.warn('[Social] Feed error:', e);

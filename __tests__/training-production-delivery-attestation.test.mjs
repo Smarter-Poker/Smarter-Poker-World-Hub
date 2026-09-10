@@ -7,13 +7,24 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import {
+  buildTrainingAttestationContinuationPrecommit,
+  TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+} from '../src/lib/training/trainingAttestationContinuationContract.mjs';
+import {
+  buildTrainingQuestionSnapshot,
+  trainingAttemptConfigHash,
+} from '../src/lib/training/trainingAttemptDelivery.mjs';
 
 import {
+  assertNoPreAnswerPrivateSelectionFields,
+  assertRevealedAnswerPayloadContainsOnlyIntendedFields,
   assertExactReplay,
   attestationExitCode,
   buildAnswerRequest,
   compareReissuedManifest,
   collectMachineAdministratorEvidenceCore,
+  closeAttestationBrowserContext,
   continueRouteWithProtectionBypass,
   createSlidingWindowRequestPacer,
   createVercelCliRuntimeLogTransport,
@@ -22,6 +33,7 @@ import {
   acquireEvidenceRunLock,
   originScopedAuthState,
   protectionBypassHeaders,
+  redactProtectionBypassSecret,
   redactReceiptMaterial,
   readDeploymentIdentity,
   readAdministratorCloseoutConfig,
@@ -37,6 +49,15 @@ import {
   validateImmutableDeploymentUrl,
   verifyAuthenticPredecessorArtifact,
 } from '../scripts/training-phase6-production-delivery-attestation.mjs';
+import {
+  NODE_SEMANTICS,
+  POLICY_KIND,
+  QUALITY_SEAL,
+  createSolverPolicyAnswer,
+  createSolverPolicyKey,
+} from '../src/lib/training/solverPolicyContract.js';
+import { validateStrictTrainingContinuationSnapshotPair } from '../src/lib/training/trainingContinuationEligibility.mjs';
+import { pioQueryService } from '../src/services/PIOQueryService.js';
 
 const SHA = 'a'.repeat(64);
 const BUILD = 'a'.repeat(40);
@@ -51,10 +72,237 @@ const STARTED_AT = '2026-09-08T12:00:00.000Z';
 const API_COMPLETED_AT = '2026-09-08T12:03:44.000Z';
 const COMPLETED_AT = '2026-09-08T12:04:00.000Z';
 const VERIFIED_AT = '2026-09-08T12:05:00.000Z';
+const SOLVER_BINARY_CHECKSUM = '1'.repeat(64);
+const PIPELINE_COMMIT = '2'.repeat(40);
+const MANIFEST_CHECKSUM = '3'.repeat(64);
+
+function exactSnapshotProvenance(scenarioHash, sourceArtifactChecksum, machineId = 'M1') {
+  return {
+    verified: true,
+    source: 'PioSOLVER',
+    scenarioHash,
+    solverVersion: 'PioSOLVER-3.0',
+    solverBinaryChecksum: SOLVER_BINARY_CHECKSUM,
+    machineId,
+    pipelineCommit: PIPELINE_COMMIT,
+    manifestVersion: 'phase6-fixture-v1',
+    manifestChecksum: MANIFEST_CHECKSUM,
+    sourceArtifactChecksum,
+    qualityStatus: 'validated',
+    auditedAt: '2026-09-08T00:00:00.000Z',
+  };
+}
+
+function derivedSnapshotPolicy({
+  scenarioHash,
+  sourceNode,
+  street,
+  boardCards,
+  potBb,
+  provenance,
+  actions,
+}) {
+  const key = createSolverPolicyKey({
+    variant: 'nlh',
+    bettingStructure: 'no_limit',
+    tableSize: 2,
+    positions: {
+      hero: 'BTN',
+      villains: ['BB'],
+      button: 'BTN',
+      smallBlind: 'BTN',
+      bigBlind: 'BB',
+    },
+    stackVector: [
+      { seat: 0, position: 'BTN', stackBb: 100, active: true },
+      { seat: 1, position: 'BB', stackBb: 100, active: true },
+    ],
+    blinds: { smallBlind: 0.5, bigBlind: 1, ante: 0, straddles: [], complete: true },
+    rake: { percent: 0, capBb: 0, complete: true },
+    tournamentUtility: { mode: 'cash', complete: true },
+    payouts: [],
+    bounties: [],
+    street,
+    board: boardCards,
+    holding: ['9h', '8h'],
+    publicActionHistory: { complete: true, actions: [] },
+    legalActions: actions.map((action) => ({
+      action: action.family,
+      exactChips: action.family === 'bet' ? action.size.chips : 0,
+    })),
+    sidePotEligibility: {
+      complete: true,
+      pots: [{ id: 'main', amountChips: potBb, eligibleSeats: [0, 1], heroEligible: true }],
+    },
+  });
+  return createSolverPolicyAnswer({
+    key,
+    kind: POLICY_KIND.DERIVED,
+    node: {
+      semantics: NODE_SEMANTICS.CHECK_OR_BET,
+      sourceNode,
+      actor: 'BTN',
+      potBb,
+      facingBetBb: 0,
+    },
+    actions,
+    sourceArtifact: {
+      system: 'solved_spots_gold_v2',
+      artifactId: `solved-row:${scenarioHash}:${sourceNode}`,
+      ...provenance,
+      provenanceComplete: true,
+    },
+    qualitySeal: QUALITY_SEAL.SOLVER_DERIVED_RESPONSE,
+    validDomain: { exactMatchDimensions: ['all'], approximatedDimensions: [], exclusions: [] },
+    confidence: 1,
+    fallbackReason: 'decision_key_incomplete',
+  });
+}
+
+function privateContinuationSnapshotQuestions() {
+  const actions = [
+    {
+      id: 'check', sourceCode: 'c', family: 'check', label: 'Check', frequency: 0.1,
+      legal: true, size: { unit: 'none', exact: false },
+    },
+    {
+      id: 'bet_33pct', sourceCode: 'b200', family: 'bet', label: 'Bet 33% Pot', frequency: 0.2,
+      legal: true,
+      size: { unit: 'chips', chips: 200, bigBlinds: 2, potFraction: 0.33, exact: true },
+    },
+    {
+      id: 'bet_75pct', sourceCode: 'b412', family: 'bet', label: 'Bet 75% Pot', frequency: 0.6,
+      legal: true,
+      size: { unit: 'chips', chips: 412, bigBlinds: 4.12, potFraction: 0.75, exact: true },
+    },
+    {
+      id: 'bet_125pct', sourceCode: 'b700', family: 'bet', label: 'Bet 125% Pot', frequency: 0.1,
+      legal: true,
+      size: { unit: 'chips', chips: 700, bigBlinds: 7, potFraction: 1.25, exact: true },
+    },
+  ];
+  const parentScenarioHash = 'hu_cash_BTN_100bb_AsKdQc';
+  const parentProvenance = exactSnapshotProvenance(parentScenarioHash, '4'.repeat(64));
+  const parent = {
+    id: 'question-1',
+    question: 'The Big Blind checks to you on the flop. What is your best action?',
+    dataQuality: 'SOLVER_DERIVED_RESPONSE',
+    sourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    heroCards: ['9h', '8h'],
+    boardCards: ['As', 'Kd', 'Qc'],
+    options: actions.map(({ id, label }) => ({ id, text: label })),
+    correctAnswer: 'bet_75pct',
+    gtoFrequencies: Object.fromEntries(actions.map(({ id, frequency }) => [id, frequency * 100])),
+    policyChecksum: SHA,
+    solverProvenance: parentProvenance,
+    scenario: {
+      board: 'As Kd Qc',
+      boardCards: ['As', 'Kd', 'Qc'],
+      street: 'flop',
+      gameType: 'hu_cash',
+      scenarioHash: parentScenarioHash,
+      heroHand: '98s',
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      pot: 5.5,
+      stackDepth: 100,
+      solverNode: 'r:0:c',
+      solverActionUnits: 'chips',
+      nodeType: 'hero_bets_or_checks',
+      nextStreetContinuationAction: 'b412',
+      solverLineage: {
+        rootPotBb: 5.5,
+        effectiveStackBb: 97.5,
+        rake: '0 0',
+        treeGeometry: 'srp_parameterized_v2',
+        oopPosition: 'BB',
+        ipPosition: 'BTN',
+      },
+    },
+  };
+  parent.solverPolicy = derivedSnapshotPolicy({
+    scenarioHash: parentScenarioHash,
+    sourceNode: parent.scenario.solverNode,
+    street: 'flop',
+    boardCards: parent.boardCards,
+    potBb: parent.scenario.pot,
+    provenance: parentProvenance,
+    actions,
+  });
+
+  const childBoard = ['As', 'Kd', 'Qc', '2s'];
+  const childScenarioHash = 'turn_hu_cash_BTN_100bb_AsKdQc2s';
+  const childNode = 'r:0:c:b412:c:2s:c';
+  const childProvenance = exactSnapshotProvenance(childScenarioHash, '5'.repeat(64), 'M2');
+  const child = {
+    id: 'question-1-2',
+    question: 'The Big Blind checks to you on the turn. What is your best action?',
+    dataQuality: 'SOLVER_DERIVED_RESPONSE',
+    sourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    heroCards: ['9h', '8h'],
+    boardCards: childBoard,
+    options: actions.map(({ id, label }) => ({ id, text: label })),
+    correctAnswer: 'bet_75pct',
+    gtoFrequencies: Object.fromEntries(actions.map(({ id, frequency }) => [id, frequency * 100])),
+    policyChecksum: SHA,
+    solverProvenance: childProvenance,
+    scenario: {
+      scenarioHash: childScenarioHash,
+      solverNode: childNode,
+      street: 'turn',
+      heroPosition: 'BTN',
+      villainPosition: 'BB',
+      boardCards: childBoard,
+      pot: 13.74,
+      stackDepth: 95.88,
+      solverStackDepth: 100,
+      solverLineage: {
+        solverVersion: parentProvenance.solverVersion,
+        solverBinaryChecksum: parentProvenance.solverBinaryChecksum,
+        pipelineCommit: parentProvenance.pipelineCommit,
+        manifestVersion: parentProvenance.manifestVersion,
+        manifestChecksum: parentProvenance.manifestChecksum,
+        rootPotBb: 5.5,
+        effectiveStackBb: 97.5,
+        rake: '0 0',
+        treeGeometry: 'srp_parameterized_v2',
+        oopPosition: 'BB',
+        ipPosition: 'BTN',
+      },
+    },
+  };
+  child.solverPolicy = derivedSnapshotPolicy({
+    scenarioHash: childScenarioHash,
+    sourceNode: childNode,
+    street: 'turn',
+    boardCards: childBoard,
+    potBb: child.scenario.pot,
+    provenance: childProvenance,
+    actions,
+  });
+  return { parent, child };
+}
 
 function receipt(payload) {
   return `${Buffer.from(JSON.stringify(payload)).toString('base64url')}.${'a'.repeat(43)}`;
 }
+
+test('administrator snapshot fixture preserves derived authority while proving exact lineage', () => {
+  const { parent, child } = privateContinuationSnapshotQuestions();
+  const validation = validateStrictTrainingContinuationSnapshotPair({
+    parentQuestion: parent,
+    childQuestion: child,
+    persistedAnswerId: 'grouped_medium',
+    difficultyMode: 'grouped',
+    gameConfig: pioQueryService.getGameConfig('cash-002'),
+  });
+  assert.deepEqual(validation, {
+    ok: true,
+    parentSourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    childSourceClassification: 'SOLVER_DERIVED_RESPONSE',
+    exactWarehouseLineage: true,
+  });
+});
 
 function receiptPayload(receiptValue) {
   return JSON.parse(Buffer.from(receiptValue.split('.')[0], 'base64url').toString('utf8'));
@@ -132,17 +380,38 @@ function eventKey(handOrdinal, decisionOrdinal = 1, attemptId = ATTEMPT) {
 }
 
 function publicCloseoutEvidence(attemptId = ATTEMPT) {
+  const sessionId = 'phase6-attestation-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const continuationCohortPrecommit = buildTrainingAttestationContinuationPrecommit({
+    selectionRule: TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+    sessionId,
+    gameId: 'cash-002',
+    level: 8,
+    targetHands: 20,
+  });
+  const snapshotQuestions = privateContinuationSnapshotQuestions();
+  const parentSnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: snapshotQuestions.parent,
+    gameId: 'cash-002',
+    level: 8,
+  });
+  const childSnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: snapshotQuestions.child,
+    gameId: 'cash-002',
+    level: 8,
+  });
   const parentCandidateAttempts = Array.from({ length: 20 }, (_, index) => ({
     attemptId,
     handOrdinal: index + 1,
     decisionOrdinal: 1,
     eventKey: eventKey(index + 1, 1, attemptId),
     submissionId: eventKey(index + 1, 1, attemptId),
-    snapshotKey: `${(index + 1).toString(16).padStart(4, '0')}${'b'.repeat(60)}`,
+    snapshotKey: index === 0
+      ? parentSnapshot.snapshot_key
+      : `${(index + 1).toString(16).padStart(4, '0')}${'b'.repeat(60)}`,
     questionId: `question-${index + 1}`,
     policyChecksum: SHA,
-    selectedAnswer: index === 0 ? 'b50' : 'check',
-    continuationAction: index === 0 ? 'b50' : null,
+    selectedAnswer: index === 0 ? 'grouped_medium' : 'check',
+    continuationAction: index === 0 ? 'grouped_medium' : null,
     followedContinuationBranch: index === 0,
     responseLossRecovered: index === 0,
     exactReplay: true,
@@ -159,7 +428,7 @@ function publicCloseoutEvidence(attemptId = ATTEMPT) {
     eventKey: eventKey(1, 2, attemptId),
     submissionId: eventKey(1, 2, attemptId),
     parentEventKey: eventKey(1, 1, attemptId),
-    snapshotKey: 'c'.repeat(64),
+    snapshotKey: childSnapshot.snapshot_key,
     questionId: 'question-1-2',
     policyChecksum: SHA,
     recoveredExistingContinuation: true,
@@ -176,7 +445,10 @@ function publicCloseoutEvidence(attemptId = ATTEMPT) {
     countsTowardCompletion,
     practiceOnly: false,
     evidence: { isCorrect: true, classification: 'best' },
-    feedback: { correctAnswer: 'b50', explanation: 'Canonical explanation' },
+    feedback: {
+      correctAnswer: countsTowardCompletion ? correlation.selectedAnswer : 'check',
+      explanation: 'Canonical explanation',
+    },
   });
   const selectedParent = {
     ...parentCandidateAttempts[0],
@@ -221,11 +493,12 @@ function publicCloseoutEvidence(attemptId = ATTEMPT) {
         level: 8,
         requestedDifficultyTier: 'standard',
         difficultyMode: 'grouped',
-        sessionId: 'phase6-attestation-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        sessionId,
         attemptId,
         targetHands: 20,
         deliveredHands: 20,
         completeManifest: true,
+        continuationCohortPrecommit,
       },
       parentCandidateAttempts,
       reissue: {
@@ -336,6 +609,8 @@ function administratorCloseoutEvidence(publicEvidence, publicEvidenceSha256 = 'b
       attemptId: publicEvidence.publicApi.initialAttempt.attemptId,
       auditUserId: publicEvidence.auditUserId,
       attemptRowBindingExact: true,
+      attemptConfigHash: attestationAttemptConfigHash(publicEvidence),
+      continuationPrecommitBoundInAttemptConfig: true,
       servedEventCount: 21,
       servedEventKeys,
       allServedFieldBindingsExact: true,
@@ -344,6 +619,9 @@ function administratorCloseoutEvidence(publicEvidence, publicEvidenceSha256 = 'b
       allAnswerFieldBindingsExact: true,
       continuationParentEventKey: publicEvidence.publicApi.continuation.parentEventKey,
       continuationSlotBindingExact: true,
+      continuationSnapshotLineageExact: true,
+      continuationParentSourceClassification: 'SOLVER_EXACT',
+      continuationChildSourceClassification: 'SOLVER_EXACT',
     },
     privateAttemptScopedServeAttestation: {
       status: 'passed',
@@ -413,6 +691,21 @@ function stableJsonForTest(value) {
   return JSON.stringify(value);
 }
 
+function attestationAttemptConfigHash(publicEvidence) {
+  return trainingAttemptConfigHash({
+    gameMode: 'street',
+    handSelection: 'all',
+    targetStreet: 'flop',
+    attestationContinuationCohort:
+      publicEvidence.publicApi.initialAttempt.continuationCohortPrecommit,
+    gameId: 'cash-002',
+    level: 8,
+    sessionKind: 'campaign',
+    difficultyMode: 'grouped',
+    targetHands: 20,
+  });
+}
+
 function healthyDeploymentFetch({ deploymentId = DEPLOYMENT_ID, build = BUILD } = {}) {
   return async () => ({
     status: 200,
@@ -431,7 +724,14 @@ function healthyDeploymentFetch({ deploymentId = DEPLOYMENT_ID, build = BUILD } 
 
 function fakeMachineDatabase(
   publicEvidence,
-  { denyCorrelation = false, failRollback = false, auditUserId = publicEvidence.auditUserId } = {}
+  {
+    denyCorrelation = false,
+    failRollback = false,
+    auditUserId = publicEvidence.auditUserId,
+    configHash = attestationAttemptConfigHash(publicEvidence),
+    snapshotMutator = null,
+    snapshotDigestMutator = null,
+  } = {}
 ) {
   const calls = [];
   let inTransaction = false;
@@ -440,6 +740,21 @@ function fakeMachineDatabase(
   const parents = publicEvidence.publicApi.parentCandidateAttempts;
   const continuation = publicEvidence.publicApi.continuation;
   const decisions = [...parents, continuation];
+  const privateSnapshots = privateContinuationSnapshotQuestions();
+  const persistedSnapshots = {
+    parent: { ...buildTrainingQuestionSnapshot({
+      canonicalQuestion: privateSnapshots.parent,
+      gameId: 'cash-002',
+      level: 8,
+    }) },
+    child: { ...buildTrainingQuestionSnapshot({
+      canonicalQuestion: privateSnapshots.child,
+      gameId: 'cash-002',
+      level: 8,
+    }) },
+  };
+  if (typeof snapshotDigestMutator === 'function') snapshotDigestMutator(persistedSnapshots);
+  if (typeof snapshotMutator === 'function') snapshotMutator(privateSnapshots);
   const answerBySubmission = new Map(
     parents.map((parent) => [parent.submissionId, parent.selectedAnswer])
   );
@@ -500,6 +815,7 @@ function fakeMachineDatabase(
               sessionKind: 'campaign',
               difficulty: 'grouped',
               expectedHands: 20,
+              configHash,
               practiceOnly: false,
               status: 'open',
             },
@@ -555,6 +871,29 @@ function fakeMachineDatabase(
             },
           ],
           rowCount: 1,
+        };
+      }
+      if (text.includes('phase6:continuation-snapshot-correlation')) {
+        return {
+          rows: [
+            {
+              snapshotKey: parents[0].snapshotKey,
+              questionId: parents[0].questionId,
+              gameId: 'cash-002',
+              level: 8,
+              contentDigest: persistedSnapshots.parent.content_digest,
+              questionData: privateSnapshots.parent,
+            },
+            {
+              snapshotKey: continuation.snapshotKey,
+              questionId: continuation.questionId,
+              gameId: 'cash-002',
+              level: 8,
+              contentDigest: persistedSnapshots.child.content_digest,
+              questionData: privateSnapshots.child,
+            },
+          ],
+          rowCount: 2,
         };
       }
       if (text.includes('phase6:private-attestation-correlation')) {
@@ -675,6 +1014,7 @@ function machineCoreConfig(publicPath) {
     expectedSupabaseProjectRef: 'a'.repeat(20),
     acknowledgement: ADMIN_ACKNOWLEDGEMENT,
     predecessor: { mode: 'controlled_rehearsal', rehearsalAcknowledged: true },
+    protectionBypassSecret: 'phase6-test-bypass-secret',
   };
 }
 
@@ -946,6 +1286,34 @@ test('protected browser routing never forwards the bypass header through a cross
   ]);
 });
 
+test('attestation browser teardown detaches in-flight routes before closing the context', async () => {
+  const calls = [];
+  const context = {
+    async unrouteAll(options) {
+      calls.push(['unrouteAll', options]);
+    },
+    async close() {
+      calls.push(['close']);
+    },
+  };
+  await closeAttestationBrowserContext(context);
+  assert.deepEqual(calls, [
+    ['unrouteAll', { behavior: 'ignoreErrors' }],
+    ['close'],
+  ]);
+  await closeAttestationBrowserContext(undefined);
+});
+
+test('attestation error redaction removes the exact protection bypass secret', () => {
+  const secret = 'phase6-test-bypass-secret';
+  const redacted = redactProtectionBypassSecret(
+    `route.fetch failed with x-vercel-protection-bypass: ${secret}`,
+    secret
+  );
+  assert.doesNotMatch(redacted, new RegExp(secret));
+  assert.match(redacted, /\[REDACTED\]/);
+});
+
 test('public evidence output lease is exclusive, mode 0600, and refuses existing output', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'phase6-delivery-run-lock-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
@@ -1082,6 +1450,69 @@ test('full attempt validation requires every signed, unique, attempt-scoped slot
   assert.throws(
     () => validateFullAttemptDelivery(wrongDifficulty, { sessionId: SESSION }),
     /wrong difficulty mode/
+  );
+});
+
+test('every public delivery surface rejects hidden selection fields while post-answer feedback stays explicit', () => {
+  const questions = Array.from({ length: 20 }, (_, index) => question(index + 1));
+  const batch = {
+    success: true,
+    gameId: 'cash-002',
+    level: 8,
+    sessionId: SESSION,
+    attemptId: ATTEMPT,
+    sessionKind: 'campaign',
+    targetHands: 20,
+    count: 20,
+    questions,
+  };
+  const leakyBatch = structuredClone(batch);
+  leakyBatch.questions[0].scenario = { correctAnswer: 'b50' };
+  assert.throws(
+    () => validateFullAttemptDelivery(leakyBatch, { sessionId: SESSION }),
+    /initial batch response leaked a private selection field/,
+  );
+
+  const reissue = {
+    success: true,
+    recoveredExistingAttempt: true,
+    attemptId: ATTEMPT,
+    sessionId: SESSION,
+    targetHands: 20,
+    count: 20,
+    questions: structuredClone(questions),
+  };
+  reissue.questions[0].options[0].isOptimal = true;
+  assert.throws(
+    () => compareReissuedManifest(batch, reissue),
+    /reissue response leaked a private selection field/,
+  );
+
+  const recorded = answer(questions[0]);
+  assert.doesNotThrow(() => assertRevealedAnswerPayloadContainsOnlyIntendedFields(recorded));
+  const leakyRecorded = structuredClone(recorded);
+  leakyRecorded.feedback.evData = { answerKey: 'b50' };
+  assert.throws(
+    () => assertRevealedAnswerPayloadContainsOnlyIntendedFields(leakyRecorded),
+    /leaked a raw private selection field/,
+  );
+
+  const child = question(1, 2, '-child');
+  const first = {
+    success: true,
+    question: child,
+    sessionId: SESSION,
+    attemptId: ATTEMPT,
+    handOrdinal: 1,
+    decisionOrdinal: 2,
+  };
+  const replay = { ...structuredClone(first), recoveredExistingContinuation: true };
+  const parentAnswer = { ...answer(questions[0]), selectedAnswer: 'b50' };
+  const leakyNextStreet = structuredClone(first);
+  leakyNextStreet.question._difficultyMembers = { grouped_medium: ['b50'] };
+  assert.throws(
+    () => validateContinuation(questions[0], parentAnswer, leakyNextStreet, replay),
+    /next-street response leaked a private selection field/,
   );
 });
 
@@ -2022,6 +2453,7 @@ test('machine collector accepts credentials from private out-of-repository files
     TRAINING_PHASE6_ADMIN_DATABASE_CREDENTIAL_FILE: databaseCredentialPath,
     TRAINING_PHASE6_VERCEL_TOKEN_FILE: vercelCredentialPath,
     TRAINING_PHASE6_VERCEL_PROJECT: 'hub-vanguard',
+    TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET: 'phase6-test-bypass-secret',
     TRAINING_PHASE6_PREDECESSOR_MODE: 'controlled_rehearsal',
     TRAINING_PHASE6_PREDECESSOR_REHEARSAL_ACKNOWLEDGEMENT:
       'I_ACKNOWLEDGE_CONTROLLED_REHEARSAL_IS_NOT_AUTHENTIC_PRODUCTION_PREDECESSOR_EVIDENCE',
@@ -2033,6 +2465,7 @@ test('machine collector accepts credentials from private out-of-repository files
   assert.equal(config.predecessor.mode, 'controlled_rehearsal');
   assert.equal(config.predecessor.rehearsalAcknowledged, true);
   assert.equal(config.vercelProject, 'hub-vanguard');
+  assert.equal(config.protectionBypassSecret, 'phase6-test-bypass-secret');
   assert.throws(
     () =>
       readMachineCollectorConfig({
@@ -2055,6 +2488,10 @@ test('machine collector core orchestrates exact health, parameterized read-only 
   let healthCalls = 0;
   const fetchFn = async (...args) => {
     healthCalls += 1;
+    assert.equal(
+      args[1].headers['x-vercel-protection-bypass'],
+      'phase6-test-bypass-secret'
+    );
     return healthyDeploymentFetch()(...args);
   };
   const collected = await collectMachineAdministratorEvidenceCore(machineCoreConfig(publicPath), {
@@ -2079,6 +2516,23 @@ test('machine collector core orchestrates exact health, parameterized read-only 
   );
   assert.equal(collected.adminEvidence.correlation.servedEventCount, 21);
   assert.equal(collected.adminEvidence.correlation.answerCount, 21);
+  assert.equal(
+    collected.adminEvidence.correlation.attemptConfigHash,
+    attestationAttemptConfigHash(publicEvidence),
+  );
+  assert.equal(
+    collected.adminEvidence.correlation.continuationPrecommitBoundInAttemptConfig,
+    true,
+  );
+  assert.equal(collected.adminEvidence.correlation.continuationSnapshotLineageExact, true);
+  assert.equal(
+    collected.adminEvidence.correlation.continuationParentSourceClassification,
+    'SOLVER_DERIVED_RESPONSE',
+  );
+  assert.equal(
+    collected.adminEvidence.correlation.continuationChildSourceClassification,
+    'SOLVER_DERIVED_RESPONSE',
+  );
   assert.deepEqual(collected.adminEvidence.negativeRefusalMatrix.probes, {
     answeredSlotPromotion: 'passed',
     changedAnswerReplay: 'passed',
@@ -2088,7 +2542,7 @@ test('machine collector core orchestrates exact health, parameterized read-only 
     nullOwnerLegacyEvent: 'passed',
   });
   for (const call of database.calls.filter(({ text }) =>
-    /phase6:(?:attempt|served|answer|continuation-slot|private-attestation)-correlation/.test(text)
+    /phase6:(?:attempt|served|answer|continuation-slot|continuation-snapshot|private-attestation)-correlation/.test(text)
   )) {
     assert.ok(call.params.length > 0, 'every correlation lookup must carry bind parameters');
     assert.equal(
@@ -2169,6 +2623,30 @@ test('machine collector rejects incomplete logs, cross-account rows, and cross-d
   await assert.rejects(
     () => run({ database: fakeMachineDatabase(publicEvidence, { auditUserId: ATTEMPT }) }),
     /attempt row did not exactly match|owner mismatch/
+  );
+  await assert.rejects(
+    () => run({ database: fakeMachineDatabase(publicEvidence, { configHash: '0'.repeat(64) }) }),
+    /attempt row did not exactly match/
+  );
+  await assert.rejects(
+    () => run({
+      database: fakeMachineDatabase(publicEvidence, {
+        snapshotMutator: ({ child }) => {
+          child.scenario.solverNode = `${child.scenario.solverNode}:c`;
+        },
+      }),
+    }),
+    /continuation snapshot key\/content binding failed integrity verification/
+  );
+  await assert.rejects(
+    () => run({
+      database: fakeMachineDatabase(publicEvidence, {
+        snapshotDigestMutator: ({ child }) => {
+          child.content_digest = '0'.repeat(64);
+        },
+      }),
+    }),
+    /continuation snapshot key\/content binding failed integrity verification/
   );
   await assert.rejects(
     () => run({ fetchFn: healthyDeploymentFetch({ deploymentId: 'dpl_otherDeployment' }) }),
