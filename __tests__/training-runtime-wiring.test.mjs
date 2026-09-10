@@ -180,6 +180,19 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
     '../../../src/lib/training/questionOrderContract.mjs': {
       shuffleBalancedQuestionOrder: (questions) => questions,
     },
+    '../../../src/lib/training/trainingContinuationEligibility.mjs': {
+      selectPublicAttestationContinuationAnswerForStrictParent: () => {
+        throw new Error('ordinary delivery must not inspect an attestation continuation parent');
+      },
+      selectTrainingAttestationContinuationCohort: async () => {
+        throw new Error('ordinary delivery must not build an attestation continuation cohort');
+      },
+    },
+    '../../../src/lib/training/trainingAttestationContinuationContract.mjs': {
+      validateTrainingAttestationContinuationPrecommit: () => {
+        throw new Error('ordinary delivery must not validate an attestation continuation precommit');
+      },
+    },
     '../../../src/lib/training/trainingPersistence.mjs': {
       isTrainingPersistenceUnavailable,
       runTrainingPersistenceQuery: (queryFactory, options = {}) => runTrainingPersistenceQuery(
@@ -516,13 +529,13 @@ test('both question endpoints persist the exact post-contract envelope used for 
   assert.match(batch, /for \(const question of configuredCandidates\)/);
   assert.match(batch, /canonicalPairs\.length >= questionCount/);
   assert.match(batch, /canonicalPairs\.push\(\{ question, row \}\)/);
-  assert.match(batch, /const canonicalRows = canonicalPairs\.map\(\(\{ row \}\) => row\)/);
-  assert.match(batch, /canonicalRows\.length !== questionCount/);
+  assert.match(batch, /const canonicalRows = selectedCanonicalPairs\.map\(\(\{ row \}\) => row\)/);
+  assert.match(batch, /selectedCanonicalPairs\.length !== questionCount/);
   assert.match(batch, /TRAINING_ATTEMPT_QUESTION_SHORTFALL/);
   assert.match(batch, /buildTrainingCacheRow\(\{/);
   assert.match(batch, /\.upsert\(canonicalRows, \{[\s\S]*defaultToNull: false/);
   assert.match(batch, /withPersistedCacheReceipt/);
-  assert.match(batch, /servedBatch = canonicalPairs\.map/);
+  assert.match(batch, /servedBatch = selectedCanonicalPairs\.map/);
   assert.match(batch, /recordTrainingQuestionsServed/);
   assert.match(batch, /Refusing to serve uncanonicalized questions/);
   assert.match(batch, /status\(503\)\.json\(trainingPersistenceUnavailableBody\(\)\)/);
@@ -810,6 +823,10 @@ test('curated fallback honors the exact game stack and excludes cached identitie
 test('next-street client sends only the signed parent while the API derives exact state', () => {
   const trainer = fs.readFileSync('src/hooks/useGTOTrainer.js', 'utf8');
   const api = fs.readFileSync('pages/api/training/next-street.js', 'utf8');
+  const continuationAuthority = fs.readFileSync(
+    'src/lib/training/trainingContinuationEligibility.mjs',
+    'utf8',
+  );
   assert.match(trainer, /body: JSON\.stringify\(\{ gradingReceipt: activeContext\.receipt \}\)/);
   const requestStart = trainer.indexOf("trainingFetch('/api/training/next-street'");
   const requestEnd = trainer.indexOf('\n      });', requestStart);
@@ -820,8 +837,12 @@ test('next-street client sends only the signed parent while the API derives exac
   assert.match(api, /verifyTrainingGradingReceipt/);
   assert.match(api, /from\('training_question_snapshots'\)/);
   assert.match(api, /from\('training_answers'\)[\s\S]*receiptPayload\.jti/);
-  assert.match(api, /new Set\(normalizedCards\)\.size === normalizedCards\.length/);
-  assert.match(api, /TRAINING_CONTINUATION_STATE_INVALID/);
+  assert.match(api, /resolveStrictTrainingContinuation\(\{/);
+  assert.match(
+    continuationAuthority,
+    /new Set\(normalizedCards\)\.size === normalizedCards\.length/,
+  );
+  assert.match(continuationAuthority, /TRAINING_CONTINUATION_STATE_INVALID/);
   assert.doesNotMatch(api, /req\.(?:body|query)\?\.(?:heroCards|boardCards|heroPosition|villainPosition|pot|stackDepth)/);
 });
 

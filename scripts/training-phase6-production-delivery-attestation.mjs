@@ -23,6 +23,19 @@ import {
 } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  buildTrainingAttestationContinuationPrecommit,
+  selectPublicAttestationContinuationAnswer,
+  TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+} from '../src/lib/training/trainingAttestationContinuationContract.mjs';
+import {
+  trainingAttemptConfigHash,
+  trainingQuestionSnapshotMatchesIdentity,
+} from '../src/lib/training/trainingAttemptDelivery.mjs';
+import { pioQueryService } from '../src/services/PIOQueryService.js';
+import {
+  validateStrictTrainingContinuationSnapshotPair,
+} from '../src/lib/training/trainingContinuationEligibility.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SHA40_RE = /^[0-9a-f]{40}$/i;
 const SHA256_RE = /^[0-9a-f]{64}$/i;
@@ -112,6 +125,138 @@ export function redactReceiptMaterial(value) {
     .replace(CONNECTION_CREDENTIAL_RE, (match) =>
       match.replace(/\/\/.*@/, '//[REDACTED_CREDENTIALS]@')
     );
+}
+
+const PRE_ANSWER_PRIVATE_SELECTION_KEYS = new Set([
+  'correctanswer',
+  'correctanswertext',
+  'answerkey',
+  'bestaction',
+  'bestactionid',
+  'preferredaction',
+  'preferredactionid',
+  'optimalaction',
+  'optimalactionid',
+  'explanation',
+  'structuredexplanation',
+  'mistakefeedback',
+  'feedback',
+  'gtofrequencies',
+  'frequencies',
+  'rawfrequencies',
+  'actionevs',
+  'evdata',
+  'solverstrategy',
+  'solverpolicy',
+  'distribution',
+  'strategy',
+  'gtodata',
+  'originalcorrect',
+  'originalfrequencies',
+  'originalactionevs',
+  'originaloptions',
+  'difficultymembers',
+  'nextstreetcontinuation',
+  'nextstreetcontinuationaction',
+  'contractdistractor',
+  'solverrank',
+  'hint',
+  'tip',
+  'recommendation',
+  'recommended',
+  'isrecommended',
+  'isoptimal',
+  'privateselection',
+  'canonicalanswer',
+]);
+
+const RAW_PRIVATE_SELECTION_KEYS = new Set([
+  'answerkey',
+  'solverpolicy',
+  'solverstrategy',
+  'difficultymembers',
+  'originalcorrect',
+  'originalfrequencies',
+  'originalactionevs',
+  'originaloptions',
+  'nextstreetcontinuationaction',
+  'privateselection',
+  'canonicalanswer',
+]);
+
+function normalizedSelectionField(key) {
+  return String(key || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function walkPublicPayload(value, visit, path = 'payload') {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => walkPublicPayload(item, visit, `${path}[${index}]`));
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    visit(key, `${path}.${key}`);
+    walkPublicPayload(child, visit, `${path}.${key}`);
+  }
+}
+
+export function assertNoPreAnswerPrivateSelectionFields(value, label = 'public pre-answer payload') {
+  walkPublicPayload(value, (key, path) => {
+    const normalized = normalizedSelectionField(key);
+    const permittedReceiptContext = key === '_gradingContext';
+    assert.equal(
+      (!String(key).startsWith('_') || permittedReceiptContext)
+        && !PRE_ANSWER_PRIVATE_SELECTION_KEYS.has(normalized),
+      true,
+      `${label} leaked a private selection field at ${path}`,
+    );
+  }, label);
+  return value;
+}
+
+function assertNoRawPrivateSelectionFields(value, label) {
+  walkPublicPayload(value, (key, path) => {
+    const normalized = normalizedSelectionField(key);
+    assert.equal(
+      (!String(key).startsWith('_') || key === '_gradingContext')
+        && !RAW_PRIVATE_SELECTION_KEYS.has(normalized),
+      true,
+      `${label} leaked a raw private selection field at ${path}`,
+    );
+  }, label);
+}
+
+function assertOnlyAllowedKeys(value, allowed, label) {
+  assert.ok(value && typeof value === 'object' && !Array.isArray(value), `${label} must be an object`);
+  const unexpected = Object.keys(value).filter((key) => !allowed.includes(key));
+  assert.deepEqual(unexpected, [], `${label} contains an unintended field`);
+}
+
+export function assertRevealedAnswerPayloadContainsOnlyIntendedFields(payload, label = 'answer') {
+  assertOnlyAllowedKeys(payload, [
+    'success', 'idempotentReplay', 'submissionId', 'sessionId', 'attemptId', 'snapshotKey',
+    'handOrdinal', 'decisionOrdinal', 'countsTowardCompletion', 'practiceOnly', 'evidence',
+    'feedback',
+  ], `${label} response`);
+  assertOnlyAllowedKeys(payload?.evidence, [
+    'solverVerified', 'classification', 'evLossMeasured', 'isCorrect', 'gradeMode',
+    'difficultyMode', 'rng', 'canonicalSolverClassification', 'selectedFrequency',
+    'optimalFrequency', 'evLoss', 'optimalAction',
+  ], `${label} evidence`);
+  assertOnlyAllowedKeys(payload?.feedback, [
+    'correctAnswer', 'correctAnswerText', 'explanation', 'structuredExplanation',
+    'gtoFrequencies', 'frequencies', 'rawFrequencies', 'evData', 'actionEVs',
+    'solverVerified', 'dataQuality', 'continuation',
+  ], `${label} feedback`);
+  if (payload.feedback.continuation !== null && payload.feedback.continuation !== undefined) {
+    assertOnlyAllowedKeys(
+      payload.feedback.continuation,
+      ['actionId', 'sourceAction'],
+      `${label} continuation feedback`,
+    );
+  }
+  assertNoRawPrivateSelectionFields(payload, label);
+  return payload;
 }
 
 export function validateImmutableDeploymentUrl(value) {
@@ -528,8 +673,15 @@ function publicQuestionFingerprint(question) {
 
 export function validateFullAttemptDelivery(
   payload,
-  { sessionId, gameId = GAME_ID, level = LEVEL, difficultyMode = EXPECTED_DIFFICULTY_MODE } = {}
+  {
+    sessionId,
+    gameId = GAME_ID,
+    level = LEVEL,
+    difficultyMode = EXPECTED_DIFFICULTY_MODE,
+    continuationCohortPrecommit = null,
+  } = {}
 ) {
+  assertNoPreAnswerPrivateSelectionFields(payload, 'initial batch response');
   assert.equal(payload?.success, true, 'initial batch response did not succeed');
   assert.equal(payload?.gameId, gameId, 'initial batch returned the wrong game');
   assert.equal(Number(payload?.level), level, 'initial batch returned the wrong level');
@@ -556,6 +708,18 @@ export function validateFullAttemptDelivery(
     'initial batch did not deliver the complete attempt'
   );
   assert.equal(payload.count, payload.targetHands, 'initial batch count did not equal targetHands');
+  if (continuationCohortPrecommit) {
+    assert.deepEqual(
+      payload.attestationContinuationCohort,
+      continuationCohortPrecommit,
+      'initial batch did not echo the public continuation cohort precommit exactly'
+    );
+    assert.deepEqual(
+      Object.keys(payload.attestationContinuationCohort).sort(),
+      ['commitment', 'selectionRule', 'version'],
+      'continuation cohort response leaked a private selection field'
+    );
+  }
 
   const questionIds = new Set();
   const snapshotKeys = new Set();
@@ -688,6 +852,7 @@ export function validateFullAttemptDelivery(
 }
 
 export function compareReissuedManifest(initial, reissued) {
+  assertNoPreAnswerPrivateSelectionFields(reissued, 'reissue response');
   assert.equal(reissued?.success, true, 'reissue response did not succeed');
   assert.equal(
     reissued?.recoveredExistingAttempt,
@@ -847,6 +1012,7 @@ export function buildAnswerRequest(question, selectedAnswer) {
 }
 
 export function immutableAnswerEvidence(payload) {
+  assertRevealedAnswerPayloadContainsOnlyIntendedFields(payload, 'record-question');
   assert.equal(payload?.success, true, 'answer response did not succeed');
   assert.ok(
     payload?.feedback && typeof payload?.evidence?.isCorrect === 'boolean',
@@ -917,6 +1083,8 @@ export function assertExactReplay(first, replay, label = 'answer') {
 }
 
 export function validateContinuation(parentQuestion, parentAnswer, first, replay) {
+  assertNoPreAnswerPrivateSelectionFields(first, 'next-street response');
+  assertNoPreAnswerPrivateSelectionFields(replay, 'next-street replay response');
   const parent = parentQuestion._gradingContext;
   const child = first?.question?._gradingContext;
   assert.equal(first?.success, true, 'next-street response did not succeed');
@@ -1511,6 +1679,23 @@ export function validateCompletePublicAttestation(publicEvidence) {
   assert.equal(initial?.targetHands, TARGET_HANDS, 'public evidence targetHands mismatch');
   assert.equal(initial?.deliveredHands, TARGET_HANDS, 'public evidence deliveredHands mismatch');
   assert.equal(initial?.completeManifest, true, 'public evidence manifest is incomplete');
+  const expectedContinuationPrecommit = buildTrainingAttestationContinuationPrecommit({
+    selectionRule: TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+    sessionId: initial.sessionId,
+    gameId: initial.gameId,
+    level: initial.level,
+    targetHands: initial.targetHands,
+  });
+  assert.deepEqual(
+    initial?.continuationCohortPrecommit,
+    expectedContinuationPrecommit,
+    'public evidence continuation cohort precommit is not bound to the attempt selection'
+  );
+  assert.deepEqual(
+    Object.keys(initial.continuationCohortPrecommit).sort(),
+    ['commitment', 'selectionRule', 'version'],
+    'public evidence continuation cohort precommit leaked a private selection field'
+  );
   const attemptId = initial.attemptId;
 
   const parents = api?.parentCandidateAttempts;
@@ -2025,6 +2210,8 @@ export function validateAdministratorCloseout(
       'attemptId',
       'auditUserId',
       'attemptRowBindingExact',
+      'attemptConfigHash',
+      'continuationPrecommitBoundInAttemptConfig',
       'servedEventCount',
       'servedEventKeys',
       'allServedFieldBindingsExact',
@@ -2033,6 +2220,9 @@ export function validateAdministratorCloseout(
       'allAnswerFieldBindingsExact',
       'continuationParentEventKey',
       'continuationSlotBindingExact',
+      'continuationSnapshotLineageExact',
+      'continuationParentSourceClassification',
+      'continuationChildSourceClassification',
     ],
     'administrator correlation'
   );
@@ -2047,6 +2237,27 @@ export function validateAdministratorCloseout(
     correlation?.attemptRowBindingExact,
     true,
     'administrator attempt row binding did not pass'
+  );
+  assert.equal(
+    correlation?.attemptConfigHash,
+    trainingAttemptConfigHash({
+      gameMode: 'street',
+      handSelection: 'all',
+      targetStreet: 'flop',
+      attestationContinuationCohort:
+        publicEvidence.publicApi.initialAttempt.continuationCohortPrecommit,
+      gameId: GAME_ID,
+      level: LEVEL,
+      sessionKind: 'campaign',
+      difficultyMode: PERSISTED_DIFFICULTY_MODE,
+      targetHands: TARGET_HANDS,
+    }),
+    'administrator attempt config hash did not bind the public continuation precommit'
+  );
+  assert.equal(
+    correlation?.continuationPrecommitBoundInAttemptConfig,
+    true,
+    'administrator attempt config did not bind the public continuation precommit'
   );
   assert.equal(
     correlation?.servedEventCount,
@@ -2083,6 +2294,23 @@ export function validateAdministratorCloseout(
     correlation?.continuationSlotBindingExact,
     true,
     'administrator continuation-slot binding did not pass'
+  );
+  assert.equal(
+    correlation?.continuationSnapshotLineageExact,
+    true,
+    'administrator continuation snapshot lineage did not pass'
+  );
+  assert.ok(
+    ['SOLVER_EXACT', 'SOLVER_DERIVED_RESPONSE'].includes(
+      correlation?.continuationParentSourceClassification,
+    ),
+    'administrator continuation parent source classification is not solver-backed'
+  );
+  assert.ok(
+    ['SOLVER_EXACT', 'SOLVER_DERIVED_RESPONSE'].includes(
+      correlation?.continuationChildSourceClassification,
+    ),
+    'administrator continuation child source classification is not solver-backed'
   );
 
   const privateAttestation = adminEvidence?.privateAttemptScopedServeAttestation;
@@ -2516,13 +2744,25 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
       'administrator correlation transaction is not read-only'
     );
 
+    const expectedAttemptConfigHash = trainingAttemptConfigHash({
+      gameMode: 'street',
+      handSelection: 'all',
+      targetStreet: 'flop',
+      attestationContinuationCohort:
+        publicEvidence.publicApi.initialAttempt.continuationCohortPrecommit,
+      gameId: GAME_ID,
+      level: LEVEL,
+      sessionKind: 'campaign',
+      difficultyMode: PERSISTED_DIFFICULTY_MODE,
+      targetHands: TARGET_HANDS,
+    });
     const attemptRows = rowsFromQuery(
       await database.query(
         `/* phase6:attempt-correlation */
        SELECT id::text AS "attemptId", user_id::text AS "auditUserId",
               client_nonce AS "sessionId", game_id AS "gameId", level,
               session_kind AS "sessionKind", difficulty, expected_hands AS "expectedHands",
-              practice_only AS "practiceOnly", status
+              config_hash AS "configHash", practice_only AS "practiceOnly", status
        FROM public.training_attempts
        WHERE id = $1::uuid AND user_id = $2::uuid`,
         [publicContract.attemptId, publicContract.auditUserId]
@@ -2545,6 +2785,7 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
         sessionKind: 'campaign',
         difficulty: PERSISTED_DIFFICULTY_MODE,
         expectedHands: TARGET_HANDS,
+        configHash: expectedAttemptConfigHash,
         practiceOnly: false,
         status: 'open',
       },
@@ -2669,6 +2910,7 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
     const continuationParent = publicEvidence.publicApi.parentCandidateAttempts.find(
       ({ eventKey }) => eventKey === publicContract.continuation.parentEventKey
     );
+    assert.ok(continuationParent, 'administrator continuation parent is missing');
     assert.deepEqual(
       slotRows[0],
       {
@@ -2680,6 +2922,71 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
         parentSubmissionId: publicContract.continuation.parentEventKey,
       },
       'administrator continuation slot binding mismatch'
+    );
+
+    const continuationSnapshotRows = rowsFromQuery(
+      await database.query(
+        `/* phase6:continuation-snapshot-correlation */
+       SELECT snapshot_key AS "snapshotKey", source_question_id AS "questionId",
+              game_id AS "gameId", level, content_digest AS "contentDigest",
+              question_data AS "questionData"
+       FROM public.training_question_snapshots
+       WHERE snapshot_key = ANY($1::text[])
+       ORDER BY snapshot_key`,
+        [[continuationParent.snapshotKey, publicContract.continuation.snapshotKey]]
+      ),
+      'continuation snapshot correlation'
+    );
+    assert.equal(
+      continuationSnapshotRows.length,
+      2,
+      'administrator continuation snapshots are missing or ambiguous'
+    );
+    const snapshotByKey = new Map(
+      continuationSnapshotRows.map((row) => [String(row.snapshotKey), row])
+    );
+    const parentSnapshot = snapshotByKey.get(String(continuationParent.snapshotKey));
+    const childSnapshot = snapshotByKey.get(String(publicContract.continuation.snapshotKey));
+    assert.ok(parentSnapshot && childSnapshot, 'administrator continuation snapshot keys mismatch');
+    assert.equal(parentSnapshot.questionId, continuationParent.questionId, 'parent snapshot question mismatch');
+    assert.equal(childSnapshot.questionId, publicContract.continuation.questionId, 'child snapshot question mismatch');
+    for (const snapshot of [parentSnapshot, childSnapshot]) {
+      assert.equal(snapshot.gameId, GAME_ID, 'continuation snapshot game mismatch');
+      assert.equal(Number(snapshot.level), LEVEL, 'continuation snapshot level mismatch');
+      assert.ok(
+        snapshot.questionData && typeof snapshot.questionData === 'object',
+        'continuation snapshot omitted canonical question data'
+      );
+      assert.equal(
+        trainingQuestionSnapshotMatchesIdentity({
+          snapshot_key: snapshot.snapshotKey,
+          source_question_id: snapshot.questionId,
+          game_id: snapshot.gameId,
+          level: snapshot.level,
+          content_digest: snapshot.contentDigest,
+          question_data: snapshot.questionData,
+        }, {
+          gameId: GAME_ID,
+          level: LEVEL,
+        }),
+        true,
+        'continuation snapshot key/content binding failed integrity verification'
+      );
+    }
+    const continuationGameConfig = pioQueryService.getGameConfig(GAME_ID);
+    assert.equal(continuationGameConfig?.pioGameType, 'hu_cash', 'attestation game family drifted');
+    assert.equal(Number(continuationGameConfig?.pioStackDepth), 100, 'attestation stack contract drifted');
+    const strictSnapshotLineage = validateStrictTrainingContinuationSnapshotPair({
+      parentQuestion: parentSnapshot.questionData,
+      childQuestion: childSnapshot.questionData,
+      persistedAnswerId: continuationParent.selectedAnswer,
+      difficultyMode: PERSISTED_DIFFICULTY_MODE,
+      gameConfig: continuationGameConfig,
+    });
+    assert.equal(
+      strictSnapshotLineage?.ok,
+      true,
+      'administrator continuation snapshots failed strict solver-lineage verification'
     );
 
     const attestationRows = rowsFromQuery(
@@ -2716,6 +3023,8 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
         attemptId: publicContract.attemptId,
         auditUserId: publicContract.auditUserId,
         attemptRowBindingExact: true,
+        attemptConfigHash: expectedAttemptConfigHash,
+        continuationPrecommitBoundInAttemptConfig: true,
         servedEventCount: servedRows.length,
         servedEventKeys: servedRows.map(({ eventKey }) => eventKey),
         allServedFieldBindingsExact: true,
@@ -2724,6 +3033,11 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
         allAnswerFieldBindingsExact: true,
         continuationParentEventKey: publicContract.continuation.parentEventKey,
         continuationSlotBindingExact: true,
+        continuationSnapshotLineageExact: true,
+        continuationParentSourceClassification:
+          strictSnapshotLineage.parentSourceClassification,
+        continuationChildSourceClassification:
+          strictSnapshotLineage.childSourceClassification,
       },
       privateAttemptScopedServeAttestation: {
         status: 'passed',
@@ -4026,14 +4340,6 @@ function correlationRecord(question) {
   };
 }
 
-function publicContinuationCandidates(question) {
-  const options = question.options.map((option) => String(option?.id ?? option));
-  const betOptions = options.filter((option) =>
-    /^(?:b\d+|bet(?:[_-].*)?|raise(?:[_-].*)?)$/i.test(option)
-  );
-  return betOptions.length > 0 ? betOptions : options;
-}
-
 export async function runProductionDeliveryAttestation(
   config = readAttestationConfig(),
   runtime = {}
@@ -4152,6 +4458,17 @@ export async function runProductionDeliveryAttestation(
     assert.equal(authProbe.payload?.success, true, 'authenticated session probe did not succeed');
 
     const sessionId = `phase6-attestation-${randomUUID()}`;
+    const continuationCohortPrecommit = buildTrainingAttestationContinuationPrecommit({
+      selectionRule: TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
+      sessionId,
+      gameId: GAME_ID,
+      level: LEVEL,
+      targetHands: TARGET_HANDS,
+    });
+    assert.ok(
+      continuationCohortPrecommit,
+      'public continuation cohort precommit could not be constructed before delivery'
+    );
     const params = new URLSearchParams({
       gameId: GAME_ID,
       level: String(LEVEL),
@@ -4161,6 +4478,8 @@ export async function runProductionDeliveryAttestation(
       gameMode: 'street',
       handSelection: 'all',
       targetStreet: 'flop',
+      attestationContinuationRule: continuationCohortPrecommit.selectionRule,
+      attestationContinuationPrecommit: continuationCohortPrecommit.commitment,
     });
     const initialResult = await expectApi(
       page,
@@ -4172,6 +4491,7 @@ export async function runProductionDeliveryAttestation(
     const validatedInitial = validateFullAttemptDelivery(initial, {
       sessionId,
       difficultyMode: EXPECTED_DIFFICULTY_MODE,
+      continuationCohortPrecommit,
     });
     observations.push(...validatedInitial.observations);
     evidence.publicApi = {
@@ -4188,6 +4508,7 @@ export async function runProductionDeliveryAttestation(
         targetHands: initial.targetHands,
         deliveredHands: initial.questions.length,
         completeManifest: true,
+        continuationCohortPrecommit: initial.attestationContinuationCohort,
       },
       parentCandidateAttempts: [],
       receiptFormatCensus: receiptFormatCensus(observations),
@@ -4240,8 +4561,13 @@ export async function runProductionDeliveryAttestation(
     ) {
       const initialQuestion = initial.questions[index];
       const question = reissued.questions[index];
-      const options = publicContinuationCandidates(question);
-      const selectedAnswer = options[index % options.length];
+      const continuationRuleAnswer = selectPublicAttestationContinuationAnswer(
+        question,
+        continuationCohortPrecommit.selectionRule,
+      );
+      const selectedAnswer = continuationRuleAnswer
+        || String(question.options?.[0]?.id ?? question.options?.[0] ?? '');
+      assert.ok(selectedAnswer, `public answer selection failed for hand ${index + 1}`);
       const initialBody = buildAnswerRequest(initialQuestion, selectedAnswer);
       const reissuedBody = buildAnswerRequest(question, selectedAnswer);
       const initialRequestBinding = structuredClone(initialBody);
