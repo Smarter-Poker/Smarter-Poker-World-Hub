@@ -147,6 +147,9 @@ export default async function handler(req, res) {
                 .limit(100),
         ]);
 
+        // A refused authoritative read is not a confirmed empty feed.
+        if (socialResult.error) throw socialResult.error;
+        if (followsResult.error) throw followsResult.error;
         const socialNotifs = (socialResult.data || []).map(n => ({ ...n, _source: 'social' }));
 
         // ── Phase 2: Fetch poker notifs (only if user follows pages) ──
@@ -154,26 +157,34 @@ export default async function handler(req, res) {
         // and notification_reads now run sequentially only when needed (can't
         // parallelize because we need page_notification IDs first).
         let pokerNotifs = [];
-        if (followsResult.data && followsResult.data.length > 0) {
-            const orConditions = followsResult.data
+        // Match the existing poker notification route's filter boundary.
+        // Follow ids are user-provided text and must not reshape a service query.
+        const safeFollows = (followsResult.data || []).filter(f =>
+            /^[A-Za-z0-9_]{1,32}$/.test(String(f.page_type || '')) &&
+            /^[A-Za-z0-9_-]{1,64}$/.test(String(f.page_id || ''))
+        );
+        if (safeFollows.length > 0) {
+            const orConditions = safeFollows
                 .map(f => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`)
                 .join(',');
 
-            const { data: pageNotifRows } = await supabase
+            const { data: pageNotifRows, error: pageError } = await supabase
                 .from('page_notifications')
                 .select('*')
                 .or(orConditions)
                 .order('created_at', { ascending: false })
                 .limit(30);
+            if (pageError) throw pageError;
 
             if (pageNotifRows && pageNotifRows.length > 0) {
                 const allIds = pageNotifRows.map(n => n.id);
-                const { data: reads } = await supabase
+                const { data: reads, error: readError } = await supabase
                     .from('notification_reads')
                     .select('notification_id')
                     .eq('user_id', userId)
                     .in('notification_id', allIds)
                     .limit(100);
+                if (readError) throw readError;
 
                 const readSet = new Set((reads || []).map(r => r.notification_id));
                 pokerNotifs = pageNotifRows.map(pn => ({
