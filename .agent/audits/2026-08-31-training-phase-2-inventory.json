@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 332,
+    "dependencyFiles": 334,
     "componentFiles": 50,
     "hookFiles": 14,
     "ctas": 343,
     "dialogs": 12,
-    "persistenceFiles": 76,
+    "persistenceFiles": 77,
     "realtimeFiles": 6,
     "tests": 129,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 352,
+    "possibleUnwiredFunctions": 357,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -18333,6 +18333,8 @@
         "src/lib/training/sessionAttemptContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
         "src/utils/trainingApiUtils.js"
@@ -18373,15 +18375,15 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 56,
-          "references": 10,
+          "line": 63,
+          "references": 11,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 72,
+          "line": 79,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -18389,15 +18391,23 @@
         },
         {
           "name": "handler",
-          "line": 96,
+          "line": 103,
           "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "refuseUnavailableAttestationContinuationCohort",
+          "line": 217,
+          "references": 7,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "isAggressiveAnswer",
-          "line": 425,
+          "line": 500,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18408,7 +18418,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 275,
+          "line": 326,
           "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -18417,7 +18427,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 377,
+          "line": 449,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18425,7 +18435,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 408,
+          "line": 480,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18433,7 +18443,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 490,
+          "line": 582,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -18441,7 +18451,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 502,
+          "line": 594,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -20477,16 +20487,13 @@
         "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
-        "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
         "src/lib/training/gradingReceipt.mjs",
-        "src/lib/training/questionContract.mjs",
-        "src/lib/training/solverPolicyContract.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
-        "src/utils/trainingApiUtils.js",
-        "src/utils/v2Matrix.js"
+        "src/utils/trainingApiUtils.js"
       ],
       "links": [],
       "apiReferences": [],
@@ -20499,7 +20506,7 @@
       },
       "states": {
         "loading": false,
-        "empty": true,
+        "empty": false,
         "error": true,
         "retry": false,
         "offline": false,
@@ -20524,103 +20531,15 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 40,
+          "line": 56,
           "references": 12,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "parseCards",
-          "line": 64,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "firstCardSet",
-          "line": 74,
-          "references": 5,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "authoritativeHandState",
-          "line": 82,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "parseContinuationNode",
-          "line": 142,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "canonicalSolverScenarioHash",
-          "line": 161,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "canonicalContinuationPolicyMatchesQuestion",
-          "line": 178,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "validatePersistedContinuationDecision",
-          "line": 249,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "buildExactContinuationLineage",
-          "line": 303,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "bindExactContinuationQuestion",
-          "line": 417,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "deterministicCardOrderValue",
-          "line": 477,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "orderDeterministicEducationalCards",
-          "line": 490,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "readSnapshot",
-          "line": 522,
+          "line": 67,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20628,7 +20547,7 @@
         },
         {
           "name": "receiptErrorResponse",
-          "line": 533,
+          "line": 78,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20636,18 +20555,10 @@
         },
         {
           "name": "handler",
-          "line": 541,
+          "line": 86,
           "references": 1,
           "exported": true,
           "defaultExport": true,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "normalize",
-          "line": 65,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
@@ -21045,7 +20956,7 @@
         },
         {
           "name": "handler",
-          "line": 252,
+          "line": 262,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -21053,7 +20964,7 @@
         },
         {
           "name": "storedOr",
-          "line": 184,
+          "line": 194,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -21066,7 +20977,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 184,
+          "line": 194,
           "excerpt": "const storedOr = (column, metadataKey, fallback) => {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -21074,7 +20985,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 187,
+          "line": 197,
           "excerpt": "return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -45045,7 +44956,7 @@
         {
           "name": "fetchAdmittedSolverCandidates",
           "line": 83,
-          "references": 3,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -45077,7 +44988,7 @@
         {
           "name": "prepareSolverScenarioRow",
           "line": 215,
-          "references": 4,
+          "references": 5,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -45187,8 +45098,16 @@
           "namedFunctionExpression": true
         },
         {
+          "name": "generateAttestationContinuationParentCandidates",
+          "line": 649,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": true
+        },
+        {
           "name": "patchedFetchSolverPool",
-          "line": 640,
+          "line": 708,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45196,7 +45115,7 @@
         },
         {
           "name": "patchedBuild",
-          "line": 720,
+          "line": 788,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45204,7 +45123,7 @@
         },
         {
           "name": "patchedQueryNextStreet",
-          "line": 779,
+          "line": 847,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45220,7 +45139,7 @@
         },
         {
           "name": "attachCanonicalPolicy",
-          "line": 734,
+          "line": 802,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -45228,7 +45147,7 @@
         },
         {
           "name": "sameRelease",
-          "line": 802,
+          "line": 870,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -54695,6 +54614,295 @@
       ]
     },
     {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 1,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "publicOptionId",
+          "line": 9,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isPublicThreeQuarterPotAggression",
+          "line": 13,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectPublicAttestationContinuationAnswer",
+          "line": 25,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildTrainingAttestationContinuationPrecommit",
+          "line": 35,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validateTrainingAttestationContinuationPrecommit",
+          "line": 70,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isTrainingAttestationContinuationPrecommit",
+          "line": 92,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "selectPublicAttestationContinuationAnswer",
+        "validateTrainingAttestationContinuationPrecommit",
+        "isTrainingAttestationContinuationPrecommit"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/training/trainingContinuationEligibility.mjs",
+      "imports": [
+        "src/engines/deterministicEnginePatches.js",
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/difficultyQuestionContract.mjs",
+        "src/lib/training/questionContract.mjs",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/utils/v2Matrix.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "parseCards",
+          "line": 26,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "firstCardSet",
+          "line": 36,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "authoritativeHandState",
+          "line": 44,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseContinuationNode",
+          "line": 104,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "canonicalSolverScenarioHash",
+          "line": 123,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "canonicalContinuationPolicyMatchesQuestion",
+          "line": 140,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validatePersistedContinuationDecision",
+          "line": 211,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validatePersistedContinuationDecisionForDifficulty",
+          "line": 269,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildExactContinuationLineage",
+          "line": 306,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bindExactContinuationQuestion",
+          "line": 420,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validateStrictTrainingContinuationSnapshotPair",
+          "line": 485,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "deterministicCardOrderValue",
+          "line": 547,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "orderDeterministicEducationalCards",
+          "line": 560,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "continuationFailure",
+          "line": 592,
+          "references": 14,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectPublicAttestationContinuationAnswerForStrictParent",
+          "line": 601,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "resolveStrictTrainingContinuation",
+          "line": 629,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectTrainingAttestationContinuationCohort",
+          "line": 763,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalize",
+          "line": 27,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "validateStrictTrainingContinuationSnapshotPair",
+        "selectTrainingAttestationContinuationCohort"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/training/trainingPersistence.mjs",
       "imports": [
         "src/lib/supabaseRetry.js"
@@ -57001,6 +57209,14 @@
     },
     {
       "from": "pages/api/training/batch-preload.js",
+      "to": "src/lib/training/trainingAttestationContinuationContract.mjs"
+    },
+    {
+      "from": "pages/api/training/batch-preload.js",
+      "to": "src/lib/training/trainingContinuationEligibility.mjs"
+    },
+    {
+      "from": "pages/api/training/batch-preload.js",
       "to": "src/lib/training/trainingPersistence.mjs"
     },
     {
@@ -57541,10 +57757,6 @@
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/training/cacheTruthContract.mjs"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
       "to": "src/lib/training/cacheTruthPersistence.mjs"
     },
     {
@@ -57553,15 +57765,11 @@
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/training/questionContract.mjs"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
-      "to": "src/lib/training/solverPolicyContract.js"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
       "to": "src/lib/training/trainingAttemptDelivery.mjs"
+    },
+    {
+      "from": "pages/api/training/next-street.js",
+      "to": "src/lib/training/trainingContinuationEligibility.mjs"
     },
     {
       "from": "pages/api/training/next-street.js",
@@ -57574,10 +57782,6 @@
     {
       "from": "pages/api/training/next-street.js",
       "to": "src/utils/trainingApiUtils.js"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
-      "to": "src/utils/v2Matrix.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
@@ -60632,6 +60836,34 @@
       "to": "src/lib/training/trainingPersistence.mjs"
     },
     {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/engines/deterministicEnginePatches.js"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/cacheTruthContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/difficultyQuestionContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/questionContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/solverPolicyContract.js"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/trainingAttestationContinuationContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/utils/v2Matrix.js"
+    },
+    {
       "from": "src/lib/training/trainingPersistence.mjs",
       "to": "src/lib/supabaseRetry.js"
     },
@@ -61671,6 +61903,17 @@
         "updates": 2,
         "deletes": 0,
         "rpc": 5
+      }
+    },
+    {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 1,
+        "deletes": 0,
+        "rpc": 0
       }
     },
     {
@@ -66512,6 +66755,8 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
         "src/services/SolverPolicyService.js",
@@ -66596,6 +66841,17 @@
             "updates": 2,
             "deletes": 0,
             "rpc": 5
+          }
+        },
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -67585,6 +67841,8 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
         "src/services/SolverPolicyService.js",
@@ -67669,6 +67927,17 @@
             "updates": 2,
             "deletes": 0,
             "rpc": 5
+          }
+        },
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -82129,7 +82398,8 @@
       "tests": [
         "__tests__/training-answer-grading-contract.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
-        "__tests__/training-daily-challenge-authority.test.mjs"
+        "__tests__/training-daily-challenge-authority.test.mjs",
+        "__tests__/training-next-street-authority.test.mjs"
       ]
     },
     {
@@ -82512,6 +82782,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
@@ -82542,6 +82813,7 @@
         "__tests__/leak-engine-wiring.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-question-delivery-authority.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
@@ -82662,10 +82934,103 @@
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-phase6-truth-closeout.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-question-delivery-authority.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-single-question-recovery-contract.test.mjs"
+      ]
+    },
+    {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "reachableFiles": [
+        "src/lib/training/trainingAttestationContinuationContract.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-batch-canonical-replacement.test.mjs",
+        "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs"
+      ]
+    },
+    {
+      "file": "src/lib/training/trainingContinuationEligibility.mjs",
+      "reachableFiles": [
+        "src/engines/DifficultyEngine.js",
+        "src/engines/deterministicEnginePatches.js",
+        "src/engines/positionOrder.js",
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
+        "src/lib/training/difficultyQuestionContract.mjs",
+        "src/lib/training/questionContract.mjs",
+        "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
+        "src/services/SolverPolicyService.js",
+        "src/utils/actionGrouper.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/engines/deterministicEnginePatches.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-batch-canonical-replacement.test.mjs",
+        "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs"
       ]
     },
     {
@@ -82750,6 +83115,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-retired-legacy-solver-surfaces.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
@@ -83031,7 +83397,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 275,
+        "line": 326,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -83041,7 +83407,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 377,
+        "line": 449,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -83050,7 +83416,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 408,
+        "line": 480,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -83059,7 +83425,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 490,
+        "line": 582,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -83068,7 +83434,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 502,
+        "line": 594,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -83198,7 +83564,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 184,
+        "line": 194,
         "excerpt": "const storedOr = (column, metadataKey, fallback) => {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -83207,7 +83573,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 187,
+        "line": 197,
         "excerpt": "return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -86424,7 +86790,7 @@
       {
         "file": "pages/api/training/next-street.js",
         "name": "handler",
-        "line": 541,
+        "line": 86,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -86476,7 +86842,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "name": "handler",
-        "line": 252,
+        "line": 262,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89339,7 +89705,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 640,
+        "line": 708,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -89352,7 +89718,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 720,
+        "line": 788,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -89365,7 +89731,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 779,
+        "line": 847,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -90160,9 +90526,11 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-answer-grading-contract.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
           "pages/api/training/hand-of-the-day.js",
           "src/lib/training/answerGradingContract.mjs",
-          "src/lib/training/gradingReceipt.mjs"
+          "src/lib/training/gradingReceipt.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -90531,9 +90899,9 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/difficultyQuestionContract.mjs"
+          "src/lib/training/difficultyQuestionContract.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -90553,10 +90921,10 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "pages/api/training/reissue-questions.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/trainingAttemptDelivery.mjs"
+          "src/lib/training/trainingAttemptDelivery.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -90993,6 +91361,88 @@
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
           "pages/api/training/reissue-questions.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "selectPublicAttestationContinuationAnswer",
+        "line": 25,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
+          "scripts/training-phase6-production-delivery-attestation.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "validateTrainingAttestationContinuationPrecommit",
+        "line": 70,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "isTrainingAttestationContinuationPrecommit",
+        "line": 92,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-next-street-authority.test.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "validateStrictTrainingContinuationSnapshotPair",
+        "line": 485,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-production-delivery-attestation.test.mjs",
+          "pages/api/training/next-street.js",
+          "scripts/training-phase6-production-delivery-attestation.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "selectTrainingAttestationContinuationCohort",
+        "line": 763,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/api/training/batch-preload.js"
         ]
       },
       {
@@ -91523,7 +91973,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 275,
+        "line": 326,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -91533,7 +91983,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 377,
+        "line": 449,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -91542,7 +91992,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 408,
+        "line": 480,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -91551,7 +92001,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 490,
+        "line": 582,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -91560,7 +92010,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 502,
+        "line": 594,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -91690,7 +92140,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 184,
+        "line": 194,
         "excerpt": "const storedOr = (column, metadataKey, fallback) => {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -91699,7 +92149,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 187,
+        "line": 197,
         "excerpt": "return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -94916,7 +95366,7 @@
       {
         "file": "pages/api/training/next-street.js",
         "name": "handler",
-        "line": 541,
+        "line": 86,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94968,7 +95418,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "name": "handler",
-        "line": 252,
+        "line": 262,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -97831,7 +98281,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 640,
+        "line": 708,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -97844,7 +98294,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 720,
+        "line": 788,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -97857,7 +98307,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 779,
+        "line": 847,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -98652,9 +99102,11 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-answer-grading-contract.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
           "pages/api/training/hand-of-the-day.js",
           "src/lib/training/answerGradingContract.mjs",
-          "src/lib/training/gradingReceipt.mjs"
+          "src/lib/training/gradingReceipt.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -99023,9 +99475,9 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/difficultyQuestionContract.mjs"
+          "src/lib/training/difficultyQuestionContract.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -99045,10 +99497,10 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "pages/api/training/reissue-questions.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/trainingAttemptDelivery.mjs"
+          "src/lib/training/trainingAttemptDelivery.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -99485,6 +99937,88 @@
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
           "pages/api/training/reissue-questions.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "selectPublicAttestationContinuationAnswer",
+        "line": 25,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
+          "scripts/training-phase6-production-delivery-attestation.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "validateTrainingAttestationContinuationPrecommit",
+        "line": 70,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "isTrainingAttestationContinuationPrecommit",
+        "line": 92,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-next-street-authority.test.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "validateStrictTrainingContinuationSnapshotPair",
+        "line": 485,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-production-delivery-attestation.test.mjs",
+          "pages/api/training/next-street.js",
+          "scripts/training-phase6-production-delivery-attestation.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "selectTrainingAttestationContinuationCohort",
+        "line": 763,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/api/training/batch-preload.js"
         ]
       },
       {
