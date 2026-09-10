@@ -415,11 +415,19 @@ const nextConfig = {
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
   // from ~1.8s to ~1.1s on a 950-page repo. Safe for Pages Router. Don't set
   // this in dev — dev uses the default server.
-  // A/B 2026-09-09, on a preview so production is untouched. Vercel's Next
-  // builder does its own output tracing and does not consume .next/standalone,
-  // so this may be a second trace over 1,324 packages for an artifact nothing
-  // reads. Measured against the production baseline of the same tree.
-  output: undefined,
+  // MEASURED AND PUT BACK 2026-09-09. The hypothesis was that Vercel's own Next
+  // builder traces output and does not consume .next/standalone, so setting it
+  // here might be a second trace over 1,324 packages for an artifact nothing
+  // reads. The experiment reached production by accident (see below) and
+  // answered the question anyway:
+  //
+  //   standalone OFF  dpl_C6VAk6  build 259.3s, READY, no failure
+  //   standalone ON   dpl_EzRgt7  build 190.1s
+  //
+  // Not a controlled A/B - different trees, different cache states - but there
+  // is no sign of a win, and it is not free to find out: turning it off is a
+  // change to how production is packaged. It stays as it was.
+  output: process.env.VERCEL ? 'standalone' : undefined,
 
   // ─── R3F Package Transpilation ───────────────────────────────────────────────
   // ESM-only packages need transpilation for proper Next.js compatibility.
