@@ -11,3 +11,5 @@ Club Arena uses the existing bust=1 feed option with browser no-store and the ex
 A separate Club Arena migration restores the missing notifications publication membership caused by September 8's publication SET TABLE. Version 20260910003525 was applied once and verified with unchanged owner-only RLS and unrelated publication column lists.
 
 Release status: implementation and targeted tests verified; production adoption must be verified from /api/health after normal auto-PR, CI, autopilot, and Vercel publication. Physical-device delivery is not established by handler tests.
+
+Required CI caught a wiring omission in the first push: the new handler suite was not reachable from CHECK 8. It is now imported by the existing CI test entry point, preserving the reachability guard and running the actual regressions on future changes. No workflow or guard was weakened.
