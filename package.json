@@ -61,7 +61,7 @@
     "audit:training:award-db": "node scripts/verify-award-diamonds-v2-concurrency-postgres.mjs",
     "audit:training:authority-db": "node scripts/verify-training-authority-postgres.mjs",
     "test:training:legacy-windows-retirement": "node --test __tests__/training-legacy-windows-ingest-retirement.test.mjs",
-    "pretest:training:phase6-authority": "npm run test:training:legacy-windows-retirement && node --test __tests__/supabase-admin-credential-safety.test.mjs __tests__/training-phase6-consumer-regressions.test.mjs __tests__/training-production-delivery-attestation.test.mjs __tests__/sql-migration-transaction-control.test.mjs",
+    "pretest:training:phase6-authority": "npm run test:training:legacy-windows-retirement && node --test __tests__/supabase-admin-credential-safety.test.mjs __tests__/training-phase6-consumer-regressions.test.mjs __tests__/training-production-delivery-attestation.test.mjs __tests__/training-solver-bounded-canary.test.mjs __tests__/sql-migration-transaction-control.test.mjs",
     "audit:training:cross-rpc-db": "node scripts/verify-training-cross-rpc-concurrency-postgres.mjs",
     "audit:training:delivery-db": "node scripts/verify-training-cache-replay-postgres.mjs",
     "audit:training:acl-db": "node scripts/verify-training-acl-closeout-postgres.mjs",

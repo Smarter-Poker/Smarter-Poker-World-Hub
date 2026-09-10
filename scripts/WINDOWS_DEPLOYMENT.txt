@@ -62,12 +62,17 @@ or:
 The check never connects to Supabase and never starts the solver. After the
 operator gate is complete, start exactly one supervised canary:
 
-    python scripts\preflop-deep\run_machine.py M1 2 0
+    python scripts\preflop-deep\run_machine.py M1 2 0 --canary
 
-For M2, only after M1's signed heartbeat and one-artifact admission are verified:
+For M2, only after M1's signed heartbeat and exact parent/child admissions are
+verified:
 
-    python scripts\preflop-deep\run_machine.py M2 2 1
+    python scripts\preflop-deep\run_machine.py M2 2 1 --canary
 
-Do not enable either worker while the canonical manifest release gate is closed,
-while the target ledger has a missing or duplicate UUID, or before the external
-credential-rotation and provenance-approval steps are complete.
+The default backlog runner still requires `release_gate.solver_ready=true`.
+That backlog gate may remain false while a deliberately bounded canary is
+enabled by the independent `release_gate.bounded_canary_ready=true` gate. In
+that state, run only the explicit `--canary` command above; never start the
+default backlog loop. Do not enable either mode while its applicable gate is
+closed, while the target ledger has a missing or duplicate UUID, or before the
+external credential-rotation and provenance-approval steps are complete.

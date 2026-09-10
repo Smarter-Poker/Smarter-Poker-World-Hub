@@ -74,7 +74,7 @@ if not defined RANGE_DIRECTORY goto :missing_gateway_setting
 echo Signed worker environment is present for %SP_MACHINE_ID%.
 echo This check did not print secrets, connect to a database, or start a solver.
 echo Complete the operator approval gate before running:
-echo   python scripts\preflop-deep\run_machine.py %SP_MACHINE_ID% 2 %SP_PARTITION_INDEX%
+echo   python scripts\preflop-deep\run_machine.py %SP_MACHINE_ID% 2 %SP_PARTITION_INDEX% --canary
 exit /b 0
 
 :legacy_database_setting

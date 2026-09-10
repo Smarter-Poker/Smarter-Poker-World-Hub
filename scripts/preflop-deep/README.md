@@ -20,6 +20,46 @@ until `phases.json.release_gate.solver_ready` is true in a protected commit, the
 operator supplies that exact manifest checksum, and every range artifact passes
 its per-phase SHA-256 check. The current gate is intentionally closed.
 
+A separately protected bounded canary may run while the backlog gate remains
+closed, but only when `release_gate.bounded_canary_ready` is true and the same
+checksum-pinned manifest seals exactly one Flop parent UUID plus its exact Turn
+child UUID and the canonical `2/0` or `2/1` partition for that machine. Launch
+it explicitly with `--canary`. The launcher resolves both pre-existing warehouse
+identities and requires the caller-bound server allowlist to match their exact
+machine, manifest, partition, role, UUID, scenario, street, node, and position
+before Pio starts, solves one tree, validates every pending artifact,
+re-reads both active catalog admissions, writes a final heartbeat, and exits. A
+retry may skip an artifact only when it is already certified under the exact
+same machine, manifest, pipeline, solver, and binary tuple; it ingests only the
+missing identity, or verifies both and exits with zero writes when already
+complete. Missing, duplicate, foreign, stale, cross-machine, or geometrically
+mismatched targets are hard stops; they never fall through to the backlog
+scanner.
+
+The protected manifest owns this exact additional shape (the partition values
+show M1; M2 uses index `1`; all other values below are descriptive placeholders,
+not runnable inputs):
+
+```json
+{
+  "release_gate": { "solver_ready": false, "bounded_canary_ready": true },
+  "bounded_canary_contracts_schema": "training-solver-bounded-canary-contracts.v1",
+  "bounded_canary_contracts_sha256": "<sha256-of-canonical-contract-array>",
+  "bounded_canary_contracts": [{
+    "machine_id": "<M1-or-M2>",
+    "partition_count": 2,
+    "partition_index": 0,
+    "phase_id": "<exact-sealed-phase-id>",
+    "parent_artifact_id": "<pre-existing-flop-uuid-v4>",
+    "parent_scenario_hash": "<exact-flop-scenario-hash>",
+    "parent_node": "<exact-sealed-flop-node>",
+    "child_artifact_id": "<pre-existing-turn-uuid-v4>",
+    "child_scenario_hash": "<exact-turn-scenario-hash>",
+    "child_node": "<exact-derived-turn-node>"
+  }]
+}
+```
+
 PioSOLVER's postflop objective is chip EV. A family name containing `icm` does
 not make the output ICM-aware, so the worker rejects ICM-labelled phases until
 an approved objective engine with explicit payout and stack inputs exists.
