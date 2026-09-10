@@ -20,7 +20,7 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     color: '#ff9900',
     label: 'Poker Arena',
     gradient: ['#ffb347', '#cc7722'],
-    imageUrl: '/cards/poker-arena.png?v=diamond-phase5',
+    imageUrl: '/cards/poker-arena.png?v=frame2',
     description: 'SHARK CLUB, DIAMOND ARENA AND YOUR JOINED CLUBS',
   },
   {
