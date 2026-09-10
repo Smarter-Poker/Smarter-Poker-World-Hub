@@ -24,6 +24,7 @@ import {
   buildAnswerRequest,
   compareReissuedManifest,
   collectMachineAdministratorEvidenceCore,
+  closeAttestationBrowserContext,
   continueRouteWithProtectionBypass,
   createSlidingWindowRequestPacer,
   createVercelCliRuntimeLogTransport,
@@ -32,6 +33,7 @@ import {
   acquireEvidenceRunLock,
   originScopedAuthState,
   protectionBypassHeaders,
+  redactProtectionBypassSecret,
   redactReceiptMaterial,
   readDeploymentIdentity,
   readAdministratorCloseoutConfig,
@@ -1281,6 +1283,34 @@ test('protected browser routing never forwards the bypass header through a cross
     'https://smarter.poker/hub/training',
     `${DEPLOYMENT_URL}/hub/training`,
   ]);
+});
+
+test('attestation browser teardown detaches in-flight routes before closing the context', async () => {
+  const calls = [];
+  const context = {
+    async unrouteAll(options) {
+      calls.push(['unrouteAll', options]);
+    },
+    async close() {
+      calls.push(['close']);
+    },
+  };
+  await closeAttestationBrowserContext(context);
+  assert.deepEqual(calls, [
+    ['unrouteAll', { behavior: 'ignoreErrors' }],
+    ['close'],
+  ]);
+  await closeAttestationBrowserContext(undefined);
+});
+
+test('attestation error redaction removes the exact protection bypass secret', () => {
+  const secret = 'phase6-test-bypass-secret';
+  const redacted = redactProtectionBypassSecret(
+    `route.fetch failed with x-vercel-protection-bypass: ${secret}`,
+    secret
+  );
+  assert.doesNotMatch(redacted, new RegExp(secret));
+  assert.match(redacted, /\[REDACTED\]/);
 });
 
 test('public evidence output lease is exclusive, mode 0600, and refuses existing output', async (t) => {

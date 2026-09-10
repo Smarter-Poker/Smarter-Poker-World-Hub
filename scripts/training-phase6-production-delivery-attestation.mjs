@@ -359,6 +359,25 @@ export async function continueRouteWithProtectionBypass(route, targetOrigin, sec
   await route.fulfill({ response });
 }
 
+export async function closeAttestationBrowserContext(context) {
+  if (!context) return;
+  // Playwright route handlers may still be forwarding media requests when the
+  // attestation reaches either its success or failure boundary. Detach every
+  // handler with the documented ignoreErrors teardown behavior before closing
+  // the context so a late route.fetch rejection cannot escape as an unhandled
+  // promise (or print privileged request headers in its call log).
+  if (typeof context.unrouteAll === 'function') {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  }
+  await context.close();
+}
+
+export function redactProtectionBypassSecret(value, secret) {
+  const text = redactReceiptMaterial(value);
+  const protectedValue = String(secret || '');
+  return protectedValue ? text.split(protectedValue).join('[REDACTED]') : text;
+}
+
 function isPathInsideRepository(path) {
   const candidate = resolve(path);
   const fromRoot = relative(ROOT, candidate);
@@ -4396,6 +4415,7 @@ export async function runProductionDeliveryAttestation(
   const observations = [];
   const publicClientErrors = [];
   let browser;
+  let context;
   let outputOwned = false;
   try {
     writeOutputAtomic(config.output, evidence, { overwrite: false });
@@ -4406,7 +4426,7 @@ export async function runProductionDeliveryAttestation(
       protectionBypassSecret: config.protectionBypassSecret,
     });
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({ storageState: designatedAuth.storageState });
+    context = await browser.newContext({ storageState: designatedAuth.storageState });
     const page = await context.newPage();
     if (config.protectionBypassSecret) {
       await page.route('**/*', (route) =>
@@ -4906,7 +4926,8 @@ export async function runProductionDeliveryAttestation(
     );
     validateCompletePublicAttestation(evidence);
     writeOutputAtomic(config.output, evidence);
-    await context.close();
+    await closeAttestationBrowserContext(context);
+    context = undefined;
     return evidence;
   } catch (error) {
     evidence.success = false;
@@ -4916,12 +4937,16 @@ export async function runProductionDeliveryAttestation(
     evidence.failedAt = now().toISOString();
     evidence.failure = {
       name: redactReceiptMaterial(error?.name || 'Error'),
-      message: redactReceiptMaterial(error?.message || String(error)),
+      message: redactProtectionBypassSecret(
+        error?.message || String(error),
+        config.protectionBypassSecret
+      ),
     };
     evidence.receiptFormatCensus = receiptFormatCensus(observations);
     if (outputOwned) writeOutputAtomic(config.output, evidence);
     throw error;
   } finally {
+    if (context) await closeAttestationBrowserContext(context).catch(() => undefined);
     if (browser) await browser.close().catch(() => undefined);
     lease.release();
   }
@@ -4952,7 +4977,10 @@ if (isMain) {
     })
     .catch((error) => {
       process.stderr.write(
-        `[phase6-delivery-attestation] ${redactReceiptMaterial(error?.stack || error)}\n`
+        `[phase6-delivery-attestation] ${redactProtectionBypassSecret(
+          error?.stack || error,
+          process.env.TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET
+        )}\n`
       );
       process.exitCode = 1;
     });
