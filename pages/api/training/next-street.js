@@ -15,6 +15,7 @@ import {
   resolveStrictTrainingContinuation,
   validatePersistedContinuationDecision,
   validatePersistedContinuationDecisionForDifficulty,
+  validateStrictTrainingContinuationSnapshotPair,
 } from '../../../src/lib/training/trainingContinuationEligibility.mjs';
 import {
   prepareTrainingQuestionForDelivery,
@@ -198,6 +199,24 @@ export default async function handler(req, res) {
           success: false,
           error: 'This continuation decision was already answered and cannot receive a new receipt.',
           code: 'TRAINING_CONTINUATION_ALREADY_ANSWERED',
+        });
+      }
+      const existingGameConfig = pioQueryService.getGameConfig(receiptPayload.gameId);
+      if (!existingGameConfig) {
+        return res.status(404).json({ success: false, error: 'Game config not found' });
+      }
+      const existingLineage = validateStrictTrainingContinuationSnapshotPair({
+        parentQuestion: parentSnapshot.question_data,
+        childQuestion: snapshot.question_data,
+        persistedAnswerId: precedingResult.data.answer_id,
+        difficultyMode: receiptPayload.difficultyMode,
+        gameConfig: existingGameConfig,
+      });
+      if (!existingLineage.ok) {
+        return res.status(existingLineage.status).json({
+          success: false,
+          error: existingLineage.error,
+          code: existingLineage.code,
         });
       }
       const servedQuestion = prepareTrainingQuestionForDelivery({

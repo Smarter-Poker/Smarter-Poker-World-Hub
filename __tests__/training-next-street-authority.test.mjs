@@ -39,6 +39,7 @@ async function loadAuthorityHelpers({
   receiptPayload = {},
   parentSnapshot = null,
   existingContinuation = null,
+  pioGameConfig = null,
   onPreparedQuestion = null,
   onServedQuestion = null,
   executePersistenceQuery = null,
@@ -82,7 +83,9 @@ async function loadAuthorityHelpers({
       applyDeterministicEnginePatches: (engine) => engine,
       toHandClass: (cards) => Array.isArray(cards) && cards.length === 2 ? 'AKo' : String(cards || ''),
     },
-    '../../../src/services/PIOQueryService': { pioQueryService: {} },
+    '../../../src/services/PIOQueryService': {
+      pioQueryService: { getGameConfig: () => pioGameConfig },
+    },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
     '../../../src/lib/sentryWrap': { reportApiError: () => {} },
@@ -588,6 +591,94 @@ test('an already-answered continuation is refused before a replacement receipt i
   assert.equal(answerRead, 2, 'the predecessor and target decision are checked separately');
   assert.equal(prepared, 0, 'an answered slot must not be re-signed');
   assert.equal(served, 0, 'an answered slot must not record another serve');
+});
+
+test('a recovered continuation from an older release must still pass the current exact lineage contract', async () => {
+  const payload = {
+    jti: 'parent-submission',
+    userId: 'user-1',
+    gameId: 'cash-002',
+    level: 8,
+    sessionId: 'session-1',
+    attemptId: 'attempt-1',
+    snapshotKey: 'parent-snapshot',
+    sessionKind: 'campaign',
+    sessionTargetHands: 20,
+    handOrdinal: 4,
+    decisionOrdinal: 1,
+    practiceOnly: false,
+    difficultyMode: 'exact',
+  };
+  const parent = derivedParentQuestion({
+    question: 'The Big Blind checks to you on the flop. What is your best action?',
+  });
+  const legacyChild = {
+    id: 'legacy-child',
+    scenario: {
+      street: 'turn',
+      boardCards: ['2c', '4c', '7c', '2d'],
+    },
+  };
+  let answerRead = 0;
+  let prepared = 0;
+  let served = 0;
+  const query = (data) => {
+    const builder = {
+      select() { return builder; },
+      eq() { return builder; },
+      maybeSingle() { return Promise.resolve({ data, error: null }); },
+    };
+    return builder;
+  };
+  const supabase = {
+    from(table) {
+      if (table === 'training_question_snapshots') {
+        return query({
+          snapshot_key: payload.snapshotKey,
+          question_data: parent,
+        });
+      }
+      if (table === 'training_answers') {
+        answerRead += 1;
+        return query(answerRead === 1
+          ? { submission_id: payload.jti, answer_id: 'bet_75pct' }
+          : null);
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+  const module = await loadAuthorityHelpers({
+    user: { id: 'user-1' },
+    supabase,
+    receiptPayload: payload,
+    existingContinuation: {
+      slot: {
+        parent_snapshot_key: payload.snapshotKey,
+        parent_submission_id: payload.jti,
+      },
+      snapshot: {
+        snapshot_key: 'legacy-child-snapshot',
+        question_data: legacyChild,
+      },
+    },
+    pioGameConfig: { pioGameType: 'hu_cash', pioStackDepth: 100 },
+    onPreparedQuestion: () => { prepared += 1; },
+    onServedQuestion: () => { served += 1; },
+    executePersistenceQuery: async (factory) => factory(),
+  });
+  const response = responseHarness();
+
+  await module.default({
+    method: 'POST',
+    headers: { authorization: 'Bearer test-token' },
+    body: { gradingReceipt: 'signed-parent-receipt' },
+  }, response);
+
+  assert.equal(response.statusCode, 422);
+  assert.equal(response.body.code, 'TRAINING_CONTINUATION_CHILD_NOT_EXACT');
+  assert.equal(answerRead, 2, 'the unanswered recovered target is checked before lineage validation');
+  assert.equal(prepared, 0, 'an invalid legacy continuation must not receive a fresh signed receipt');
+  assert.equal(served, 0, 'an invalid legacy continuation must not record another serve');
 });
 
 test('persisted predecessor answer must exactly select the canonical non-terminal branch', async () => {

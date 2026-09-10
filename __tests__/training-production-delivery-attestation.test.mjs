@@ -11,7 +11,10 @@ import {
   buildTrainingAttestationContinuationPrecommit,
   TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
 } from '../src/lib/training/trainingAttestationContinuationContract.mjs';
-import { trainingAttemptConfigHash } from '../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  buildTrainingQuestionSnapshot,
+  trainingAttemptConfigHash,
+} from '../src/lib/training/trainingAttemptDelivery.mjs';
 
 import {
   assertNoPreAnswerPrivateSelectionFields,
@@ -383,13 +386,26 @@ function publicCloseoutEvidence(attemptId = ATTEMPT) {
     level: 8,
     targetHands: 20,
   });
+  const snapshotQuestions = privateContinuationSnapshotQuestions();
+  const parentSnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: snapshotQuestions.parent,
+    gameId: 'cash-002',
+    level: 8,
+  });
+  const childSnapshot = buildTrainingQuestionSnapshot({
+    canonicalQuestion: snapshotQuestions.child,
+    gameId: 'cash-002',
+    level: 8,
+  });
   const parentCandidateAttempts = Array.from({ length: 20 }, (_, index) => ({
     attemptId,
     handOrdinal: index + 1,
     decisionOrdinal: 1,
     eventKey: eventKey(index + 1, 1, attemptId),
     submissionId: eventKey(index + 1, 1, attemptId),
-    snapshotKey: `${(index + 1).toString(16).padStart(4, '0')}${'b'.repeat(60)}`,
+    snapshotKey: index === 0
+      ? parentSnapshot.snapshot_key
+      : `${(index + 1).toString(16).padStart(4, '0')}${'b'.repeat(60)}`,
     questionId: `question-${index + 1}`,
     policyChecksum: SHA,
     selectedAnswer: index === 0 ? 'grouped_medium' : 'check',
@@ -410,7 +426,7 @@ function publicCloseoutEvidence(attemptId = ATTEMPT) {
     eventKey: eventKey(1, 2, attemptId),
     submissionId: eventKey(1, 2, attemptId),
     parentEventKey: eventKey(1, 1, attemptId),
-    snapshotKey: 'c'.repeat(64),
+    snapshotKey: childSnapshot.snapshot_key,
     questionId: 'question-1-2',
     policyChecksum: SHA,
     recoveredExistingContinuation: true,
@@ -712,6 +728,7 @@ function fakeMachineDatabase(
     auditUserId = publicEvidence.auditUserId,
     configHash = attestationAttemptConfigHash(publicEvidence),
     snapshotMutator = null,
+    snapshotDigestMutator = null,
   } = {}
 ) {
   const calls = [];
@@ -722,6 +739,19 @@ function fakeMachineDatabase(
   const continuation = publicEvidence.publicApi.continuation;
   const decisions = [...parents, continuation];
   const privateSnapshots = privateContinuationSnapshotQuestions();
+  const persistedSnapshots = {
+    parent: { ...buildTrainingQuestionSnapshot({
+      canonicalQuestion: privateSnapshots.parent,
+      gameId: 'cash-002',
+      level: 8,
+    }) },
+    child: { ...buildTrainingQuestionSnapshot({
+      canonicalQuestion: privateSnapshots.child,
+      gameId: 'cash-002',
+      level: 8,
+    }) },
+  };
+  if (typeof snapshotDigestMutator === 'function') snapshotDigestMutator(persistedSnapshots);
   if (typeof snapshotMutator === 'function') snapshotMutator(privateSnapshots);
   const answerBySubmission = new Map(
     parents.map((parent) => [parent.submissionId, parent.selectedAnswer])
@@ -849,6 +879,7 @@ function fakeMachineDatabase(
               questionId: parents[0].questionId,
               gameId: 'cash-002',
               level: 8,
+              contentDigest: persistedSnapshots.parent.content_digest,
               questionData: privateSnapshots.parent,
             },
             {
@@ -856,6 +887,7 @@ function fakeMachineDatabase(
               questionId: continuation.questionId,
               gameId: 'cash-002',
               level: 8,
+              contentDigest: persistedSnapshots.child.content_digest,
               questionData: privateSnapshots.child,
             },
           ],
@@ -2567,7 +2599,17 @@ test('machine collector rejects incomplete logs, cross-account rows, and cross-d
         },
       }),
     }),
-    /continuation snapshots failed strict solver-lineage verification/
+    /continuation snapshot key\/content binding failed integrity verification/
+  );
+  await assert.rejects(
+    () => run({
+      database: fakeMachineDatabase(publicEvidence, {
+        snapshotDigestMutator: ({ child }) => {
+          child.content_digest = '0'.repeat(64);
+        },
+      }),
+    }),
+    /continuation snapshot key\/content binding failed integrity verification/
   );
   await assert.rejects(
     () => run({ fetchFn: healthyDeploymentFetch({ deploymentId: 'dpl_otherDeployment' }) }),

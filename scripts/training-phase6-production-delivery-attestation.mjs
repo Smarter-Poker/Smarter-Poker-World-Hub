@@ -28,7 +28,10 @@ import {
   selectPublicAttestationContinuationAnswer,
   TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
 } from '../src/lib/training/trainingAttestationContinuationContract.mjs';
-import { trainingAttemptConfigHash } from '../src/lib/training/trainingAttemptDelivery.mjs';
+import {
+  trainingAttemptConfigHash,
+  trainingQuestionSnapshotMatchesIdentity,
+} from '../src/lib/training/trainingAttemptDelivery.mjs';
 import { pioQueryService } from '../src/services/PIOQueryService.js';
 import {
   validateStrictTrainingContinuationSnapshotPair,
@@ -2925,7 +2928,8 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
       await database.query(
         `/* phase6:continuation-snapshot-correlation */
        SELECT snapshot_key AS "snapshotKey", source_question_id AS "questionId",
-              game_id AS "gameId", level, question_data AS "questionData"
+              game_id AS "gameId", level, content_digest AS "contentDigest",
+              question_data AS "questionData"
        FROM public.training_question_snapshots
        WHERE snapshot_key = ANY($1::text[])
        ORDER BY snapshot_key`,
@@ -2952,6 +2956,21 @@ async function collectReadOnlyDatabaseCorrelation(database, publicEvidence, publ
       assert.ok(
         snapshot.questionData && typeof snapshot.questionData === 'object',
         'continuation snapshot omitted canonical question data'
+      );
+      assert.equal(
+        trainingQuestionSnapshotMatchesIdentity({
+          snapshot_key: snapshot.snapshotKey,
+          source_question_id: snapshot.questionId,
+          game_id: snapshot.gameId,
+          level: snapshot.level,
+          content_digest: snapshot.contentDigest,
+          question_data: snapshot.questionData,
+        }, {
+          gameId: GAME_ID,
+          level: LEVEL,
+        }),
+        true,
+        'continuation snapshot key/content binding failed integrity verification'
       );
     }
     const continuationGameConfig = pioQueryService.getGameConfig(GAME_ID);
