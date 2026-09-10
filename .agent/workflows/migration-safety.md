@@ -156,13 +156,18 @@ mcp_apply_migration --name <short_name> --query <SQL>
 node scripts/antigravity_sql_push.js supabase/migrations/<file>.sql
 ```
 
-The MCP path is preferred because it logs to `supabase_migrations.schema_migrations` automatically and shows up in `mcp_list_migrations`. The script path also works but has slightly different audit visibility.
+The MCP path is preferred because it logs to `supabase_migrations.schema_migrations` automatically. The script path also works but has slightly different audit visibility.
 
 ## Post-apply verify
 
 After apply, before declaring done:
 
-1. **`mcp_list_migrations`** — confirm the new migration shows up.
+1. **Confirm the new migration is recorded** with a SELECT through `execute_sql`:
+   `SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 5`.
+   Not `list_migrations`: every MCP `list_migrations` call first runs no-op
+   `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on the history table, which reloads
+   PostgREST's schema cache (~28 s), and inside the hourly break window (:50-:03
+   UTC) the database refuses it (CLAUDE.md section 1.2 item 2).
 2. **Run the migration's own post-apply assertions** (the `DO $$ ... $$;`
    block at the bottom of the file should already do this).
 3. **Re-run the advisor scan** — finding count should be ≤ pre-flight.
