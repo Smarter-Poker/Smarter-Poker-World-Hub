@@ -11,9 +11,31 @@ name: E2E Tests (Playwright)
 # runner. A red, unactioned, non-blocking suite on the critical path is pure
 # cost: it runs on main and on demand until it is green again, at which point
 # the pull_request trigger belongs back here in the same commit that fixes it.
+# AND OFF THE MAIN-PUSH PATH TOO (2026-09-09). The note above took the suite
+# off pull requests while it is red. It stayed on `push: [main]`, which was
+# survivable only because `cancel-in-progress: true` killed most runs early.
+# Removing that cancellation on 2026-09-08 - correct in general, wrong for a
+# suite whose verdict is already known - turned "cancelled and cheap" into
+# "completes and expensive":
+#
+#   MEASURED over the following 24 hours: 20 runs on main, EVERY ONE red,
+#   556 runner-minutes. That is nine hours of an estate runner a day, on the
+#   pool the audit found to be the binding constraint on the whole estate.
+#
+# And it learns nothing new each time. 78 of the failures in a run are one
+# environmental cause: /api/health answers 503 because the job starts the app
+# against `https://placeholder.supabase.co` (the `|| 'placeholder'` fallbacks
+# below fire when the Supabase secrets are absent), so the health route
+# correctly reports itself unhealthy and three separate specs assert 200.
+#
+# WHAT TO FIX BEFORE PUTTING EITHER TRIGGER BACK: give this job real Supabase
+# credentials, or teach those specs that a placeholder-backed server is
+# expected to be degraded. Then restore `push: [main]` and `pull_request` in
+# the same commit, per the note above. `cancel-in-progress` below is already
+# written to do the right thing on either ref.
+#
+# It remains runnable on demand, which is what it is for while it is red.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
