@@ -30,9 +30,24 @@ test('the provisioner judges the main clone by its payload and can borrow from a
     assert.match(src, /\[ -x "\$nm\/\.bin\/tsc" \] \|\| return 1/, 'the root needs the type checker binary');
     assert.match(src, /\[ "\$n" -ge 100 \] \|\| return 1/, 'and a real population');
     assert.match(src, /^find_node_modules_donor\(\) \{/m, 'a donor search exists');
-    assert.match(src, /cmp -s "\$cand\$\{rel:\+\/\$rel\}\/package-lock\.json" "\$ROOT\$\{rel:\+\/\$rel\}\/package-lock\.json" \|\| continue/, 'a donor must carry the same lockfile');
+    // 2026-09-10: the reference lockfile is the TREE's, not the main clone's.
+    // A main clone behind origin/main has an install that matches its OWN old
+    // lockfile, so judging a donor against it borrows the wrong dependency set.
+    assert.match(src, /local lock="\$DIR\$\{rel:\+\/\$rel\}\/package-lock\.json"/, 'the donor is judged against the tree lockfile');
+    assert.match(src, /cmp -s "\$cand\$\{rel:\+\/\$rel\}\/package-lock\.json" "\$lock" \|\| continue/, 'a donor must carry the tree lockfile');
+    assert.match(src, /node_modules_matches_lockfile "\$nm" "\$lock" \|\| continue/, 'and its install must satisfy it');
     assert.match(src, /if ! node_modules_usable "\$src\/node_modules" "\$rel"; then/, 'the source is tested before it is cloned');
     assert.match(src, /bash "\$ROOT\/scripts\/check-node-modules\.sh"/, 'with no donor, the main clone is repaired');
+});
+
+test('an install is judged against a lockfile by npm’s own record, and a mismatched clone is finished with npm ci', () => {
+    const src = code('scripts/agent-workspace.sh');
+    assert.match(src, /^node_modules_matches_lockfile\(\) \{/m, 'the lockfile comparison exists');
+    assert.match(src, /\.package-lock\.json/, 'npm’s own install record is what is read');
+    assert.match(src, /v\.optional\) continue/, 'optional platform packages, empty by design, do not count');
+    assert.match(src, /node_modules_matches_lockfile "\$src\/node_modules" "\$dst\/package-lock\.json"/, 'the source is checked against the tree lockfile');
+    assert.match(src, /node_modules_matches_lockfile "\$dst\/node_modules" "\$dst\/package-lock\.json"/, 'and so is the clone, after it lands');
+    assert.match(src, /\(cd "\$dst" && npm ci --no-audit --no-fund/, 'a mismatched clone is finished with npm ci in the tree itself');
 });
 
 test('the repair script exists here, runs, and installs without the browser downloads', () => {
