@@ -93,7 +93,6 @@ test('the shared composer persists cards through every publishing path', () => {
 // go through PokerCardText rather than reach the DOM as text.
 const CARD_RENDERING_SURFACES = [
   'src/components/social/SmarterPokerStyleCard.jsx',
-  'src/components/social/SocialCard.jsx',
   'src/components/social/ClubPageDashboard.jsx',
   'src/components/social/HashtagRenderer.jsx',
   'src/components/social/Stories.jsx',
@@ -110,6 +109,12 @@ const CARD_RENDERING_SURFACES = [
 // They are moved here rather than dropped, so that re-introducing body
 // rendering without PokerCardText fails instead of passing silently.
 const NO_LONGER_RENDERS_POST_BODIES = [
+  // SocialCard.jsx: deleted 2026-09-10 as unreachable from any page, in the
+  // 39-file sweep. Unlike the three below it DID render post bodies and DID use
+  // PokerCardText - so if it is ever restored it belongs back in
+  // CARD_RENDERING_SURFACES above, not here. Listed so the deletion is on the
+  // record rather than a name that quietly vanished from a list.
+  'src/components/social/SocialCard.jsx',
   'src/components/social/ClubPagesView.jsx',
   'src/components/social/PublicGameBoard.jsx',
   'src/components/social/ChatWindow.jsx', // deleted 2026-09-08
