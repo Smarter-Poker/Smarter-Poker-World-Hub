@@ -29,6 +29,10 @@ RUN:
   MACHINE 1:  python run_machine.py M1 2 0
   MACHINE 2:  python run_machine.py M2 2 1
 
+BOUNDED CANARY (requires a protected, machine-bound sealed target):
+  MACHINE 1:  python run_machine.py M1 2 0 --canary
+  MACHINE 2:  python run_machine.py M2 2 1 --canary
+
 Safety: if the transport or engine is off in any way, the startup self-test
 FAILS LOUDLY and aborts before a single row is written — it never guesses.
 """
@@ -43,6 +47,13 @@ REPO = "Smarter-Poker/Smarter-Poker-World-Hub"
 machine_id = sys.argv[1] if len(sys.argv) > 1 else "M1"
 if machine_id not in ("M1", "M2"):
     raise SystemExit("machine id must be M1 or M2")
+extra_arguments = sys.argv[4:]
+if not extra_arguments:
+    RUN_MODE = "backlog"
+elif extra_arguments == ["--canary"]:
+    RUN_MODE = "canary"
+else:
+    raise SystemExit("usage: run_machine.py M1|M2 NUM IDX [--canary]")
 FORBIDDEN_DATABASE_ENVIRONMENT = frozenset((
     "SUPABASE_SERVICE_ROLE_KEY",
     "SUPABASE_SERVICE_KEY",
@@ -283,8 +294,29 @@ def _cleanup_solver_process(process, reader=None, grace_seconds=10):
         reader.join(timeout=1)
 
 
+_prepared_bounded_canary = None
+
+
 def _launch_approved_solver():
-    validated_manifest, _ = orchestrate.validate_manifest(manifest_bytes.decode("utf-8"))
+    global _prepared_bounded_canary
+    run_mode = globals().get("RUN_MODE", "backlog")
+    if run_mode == "canary":
+        validated_manifest, validated_checksum = orchestrate.validate_manifest(
+            manifest_bytes.decode("utf-8"), "canary"
+        )
+        _prepared_bounded_canary = orchestrate.prepare_bounded_canary_execution(
+            validated_manifest, validated_checksum, machine_id,
+            orchestrate.NUM, orchestrate.IDX,
+        )
+        if not _prepared_bounded_canary["pending_targets"]:
+            orchestrate.complete_bounded_canary_without_solver(
+                _prepared_bounded_canary
+            )
+            raise SystemExit(0)
+    else:
+        validated_manifest, _ = orchestrate.validate_manifest(
+            manifest_bytes.decode("utf-8")
+        )
     # A valid manifest is necessary but not sufficient: prove that this exact
     # signed worker identity is still active and that the gateway/database path
     # works before allocating a Pio process. Unlike orchestrate.heartbeat(),
@@ -292,7 +324,7 @@ def _launch_approved_solver():
     orchestrate._worker_request(
         "heartbeat",
         {
-            "phase": "preflight",
+            "phase": "bounded-canary-preflight" if run_mode == "canary" else "preflight",
             "board": "",
             "spots_done": 0,
             "rows_written": 0,
@@ -738,6 +770,8 @@ def read_results():
 # ---- 2. wire the transport into the orchestrator and run ------------------
 orchestrate.pio = pio
 orchestrate.read_results = read_results
+if RUN_MODE == "canary":
+    orchestrate.PREPARED_BOUNDED_CANARY = _prepared_bounded_canary
 print("[run] transport wired; handing off to orchestrator (self-test first)...")
 
 

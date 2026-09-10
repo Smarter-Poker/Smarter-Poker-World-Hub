@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 129,
+    "tests": 130,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 357,
     "routeStateCells": 752,
@@ -21866,7 +21866,7 @@
         },
         {
           "name": "boardPage",
-          "line": 282,
+          "line": 343,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21874,7 +21874,7 @@
         },
         {
           "name": "heartbeat",
-          "line": 307,
+          "line": 368,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -21882,7 +21882,7 @@
         },
         {
           "name": "handler",
-          "line": 322,
+          "line": 383,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -61100,6 +61100,7 @@
     "__tests__/training-skill-tree-zero-xp-authority.test.mjs",
     "__tests__/training-solutions-v2-authority.test.mjs",
     "__tests__/training-solved-spots-warehouse-audit.test.mjs",
+    "__tests__/training-solver-bounded-canary.test.mjs",
     "__tests__/training-solver-contract.test.mjs",
     "__tests__/training-solver-row-identity.test.mjs",
     "__tests__/training-solver-worker-ingestion.test.mjs",
@@ -86972,7 +86973,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 322,
+        "line": 383,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -95548,7 +95549,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 322,
+        "line": 383,
         "references": 1,
         "exported": true,
         "defaultExport": true,
