@@ -112,7 +112,18 @@ jobs:
       - name: Install dependencies
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: |
-          npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
+          # LOUD, NOT SILENT (2026-09-09). This was `npm ci ... 2>/dev/null ||`.
+          # The redirect threw away the only evidence of WHY npm ci failed, so
+          # the job fell through to a slower, non-deterministic `npm install`
+          # and reported success either way. That is how the lockfile break
+          # this fallback was written for went unnoticed long enough to be
+          # described in a comment as current when it had already been fixed.
+          # The fallback stays - it costs nothing when npm ci works, which it
+          # now does - but it says so.
+          npm ci --ignore-scripts || {
+            echo "::warning::npm ci failed here - falling back to npm install, which is slower and not lockfile-deterministic. The error is above."
+            npm install --ignore-scripts
+          }
 
       - name: Verify lock file integrity
         # Ensures package.json and package-lock.json are in sync.
