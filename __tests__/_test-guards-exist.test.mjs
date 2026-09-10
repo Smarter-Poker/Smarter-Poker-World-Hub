@@ -164,7 +164,6 @@ import './pre-push-typescript-baseline-safety.test.mjs';
 // 21 of 26 advertised rewards had never paid a diamond. This pins the triggers
 // that fix it, the shared reference-id that stops a trigger and an endpoint
 // both paying, and every anti-farming guard.
-import './check8-runs-without-experimental-flags.test.mjs';
 import './an-advertised-reward-is-actually-payable.law.test.mjs';
 import './safe-profile-columns-are-granted.test.mjs';
 // Registered 2026-09-08. It had lived only as the npm script
@@ -202,19 +201,7 @@ import './training-phase6-release-harness.test.mjs';
 import './training-production-smoke-auth.test.mjs';
 import './training-production-smoke-contract.test.mjs';
 import './training-route-runtime-inventory.test.mjs';
-// training-request-deadline.test.mjs is deliberately NOT imported here.
-//
-// It builds its subject with `new vm.SourceTextModule(...)`, which exists only
-// when node is started with --experimental-vm-modules. CHECK 8 runs this file
-// as a plain `node --test`, so every case that touches the module threw
-// "vm.SourceTextModule is not a constructor": 12 tests, 5 pass, 7 fail,
-// deterministically, on every run. Importing it here turned CHECK 8 red on
-// main and would have blocked every pull request behind it.
-//
-// The test itself is fine and it already has a correct home: the
-// `test:training:phase6-authority` script passes the flag, where it is 12/12.
-// Nothing is lost by leaving it there. The guard below stops the next agent
-// re-adding a flag-dependent test to this unflagged chain.
+import './training-request-deadline.test.mjs';
 import './training-surface-inventory.test.mjs';
 import './trivia-pvp-containment.test.mjs';
 import './trivia-tournament-containment.test.mjs';
