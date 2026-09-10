@@ -722,3 +722,138 @@ gaps under eight minutes, against 7.3 min and 53% from a different sample.
    lockfile needs a network the sandbox does not have and a verification pass this
    session could not give it.
 
+
+---
+---
+
+# Round 4 - the day after, and four more retractions
+
+Round 3 closed with five items open. Four of them turned out not to be worth
+doing, and finding that out cost less than doing them would have. The fifth
+was a defect I had introduced myself.
+
+## The one that was mine
+
+**E2E was burning 556 runner-minutes a day.** Removing `cancel-in-progress`
+from `e2e-tests.yml` was right in general and wrong for that workflow. It runs
+on `push: [main]` only, takes 25-50 minutes, is not a required check, and has
+been red since 2026-09-03 - so cancellation was the only thing keeping it
+affordable. Measured over the following 24 hours: **20 runs on main, every one
+red, 556 runner-minutes**, nine hours a day of a runner from the pool this
+audit itself identified as the estate's binding constraint.
+
+And the verdict was environmental. 78 failures a run trace to one cause:
+
+```
+GET /api/health   Expected: 200   Received: 503
+```
+
+The job starts the app against `https://placeholder.supabase.co`, so the health
+route correctly reports itself unhealthy and three specs assert 200.
+Production's `/api/health` is `status ok`. It is now `workflow_dispatch` only,
+with the fix recorded for whoever restores the triggers.
+
+## The law that was generalised, tried, and narrowed
+
+The obvious next move was a general rule: no workflow triggering on `push:
+main` may carry a bare `cancel-in-progress: true`. It flagged seven. Measured
+over 30 main runs each **before** believing it:
+
+| workflow | cancelled | declared timeout |
+|---|---|---|
+| audit-marker-guard | 0/30 | 3m |
+| no-conflict-markers | 0/30 | 2m |
+| silent-write-guard | 0/30 | 6m |
+| supabase-invariants | 0/30 | none |
+| undefined-identifier-guard | 0/30 | none |
+| build-safety-gate | 1/30 | 30m |
+| silent-revert-guard | 2/30 | none |
+
+All seven finish inside the ~7m50s median gap between commits on main, so the
+cancellation never fires and `true` is correct for them. The inversion only
+bites when a job cannot finish inside that gap - a property of run history that
+a file-reading law cannot see. A static proxy would have been wrong for most of
+the repo, so the law asserts the two cases actually measured instead.
+
+## Four retractions
+
+**R-4. The `ajv` lockfile mismatch.** `npm ci --ignore-scripts` on npm 11.16.0
+- newer than the node 24.12.0 CI runs - returns **exit 0, 1170 packages in
+11s**. The nesting is ordinary deduplication and is valid. Someone had already
+fixed it and left a comment in `silent-write-guard.yml` warning against
+regenerating a healthy lockfile on the strength of a stale sentence. That
+warning caught me with a worktree open to do exactly that. *What was real* is
+the `2>/dev/null` that hid it: three jobs now emit a `::warning::` before
+falling back.
+
+**R-5. The 84 MB artifact round-trip.** Ranked #2 on the Club Arena list as
+"the clearest waste". Measured on a real successful publish:
+
+```
+Upload dist for the sync job              12.0s
+Download the dist built by the previous job  17.0s
+Publish - rsync, swap the symlink, prune      7.0s
+publish-to-origin, whole job              0.6 min
+```
+
+Twenty-nine seconds. Removing it means moving SSH secrets into another job and
+restructuring which job holds the bundle when the `client-tests` gate is
+evaluated - on a live publish path - to save about twenty seconds. The audit
+inferred that 84 MB must be slow without timing it.
+
+**R-6. Folding `publish-needed`.** The same measurement: 0.1 min. Six seconds.
+
+**R-7. `output: 'standalone'`.** No evidence of a win:
+
+```
+standalone OFF   dpl_C6VAk6   build 259.3s   READY
+standalone ON    dpl_EzRgt7   build 190.1s
+```
+
+n=1 each on different trees, so not conclusive either way - but nothing
+suggests it is costing anything, and turning it off changes how production is
+packaged. Restored.
+
+## Shipped
+
+- `AGENT-PLAYBOOK.md` said the watchdog "self-heals once per sha";
+  `publish-watchdog.sh:289` sets `MAX_RETRIES=3`. Corrected in **all seven
+  repos** that carry the file, in one pass. Every one was on blob
+  `6212cb3f1992` before and is on `1bbc91aa2356` after, so byte-identity holds.
+  The padding was trimmed by exactly the characters the sentence grew, leaving
+  the file at 46,032 bytes.
+- The three silent `npm ci ... 2>/dev/null ||` fallbacks are loud.
+
+## And one more hole, found by falling into it
+
+I pushed `preview/standalone-ab` to measure something, on a preview branch
+precisely so production would be untouched, with "Not for merging as-is" in
+the commit message. `agent-open-pr.yml` opened a pull request for it because
+it opens one for every non-main branch; autopilot squash-merged it; Vercel
+promoted it. **An experiment was serving smarter.poker four minutes after I
+pushed it.**
+
+Nothing enforces a commit message. The two halves of the preview mechanism had
+been taught different things - `vercel-should-build.sh` learned on 2026-09-08
+that `preview/*` means "build me a preview", and `agent-open-pr.yml` still
+treated it as a branch to land. `preview/` now joins the skip list that file
+already keeps for `backup/`, `ci-marker/`, `build/`, `dependabot/`,
+`renovate/`, `sentry-autofix/` and `revert-`, and one law asserts both halves
+together.
+
+No outage: the accidental deployment built and served correctly.
+
+## Not mine, but on main right now
+
+`__tests__/_test-guards-exist.test.mjs` is **1412 of 1419** on main - seven
+Training deadline and transport assertions failing identically on every branch
+I tested. Someone's work in flight, flagged rather than touched.
+
+## What is left
+
+**A merge queue**, and nothing else. Every other item from Rounds 1-3 is
+shipped, retracted on measurement, or recorded above with the number that
+settled it. The merge queue is the only remaining change that alters the shape
+rather than the seconds, it is now unblocked because a required check that can
+actually fail exists, and it is the one item whose blast radius is every merge
+in the estate - so it wants a deliberate decision, not a quiet Tuesday.
