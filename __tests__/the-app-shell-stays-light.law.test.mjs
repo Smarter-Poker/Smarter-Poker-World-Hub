@@ -45,18 +45,43 @@ function staticImports(file) {
 }
 
 function shellGraph() {
-  const seen = new Set();
-  const stack = ['pages/_app.js'];
+  return graphFrom('pages/_app.js');
+}
+
+/** The same walk from any entry point, so a PAGE can be measured too. */
+function graphFrom(entry) {
+  return walk(entry).files;
+}
+
+/**
+ * Walk the static graph and return BOTH the local files reached and the bare
+ * package specifiers reached.
+ *
+ * The bare set matters: resolveSpec() only resolves relative paths, so a heavy
+ * node_modules package is invisible to a file-only check. That hole was real -
+ * when this law was proved by breaking it, adding
+ * `import { Room } from 'livekit-client'` to liveStreamReads.js left the law
+ * GREEN, because the very thing the split exists to keep out was the one thing
+ * the walk could not see.
+ */
+function walk(entry) {
+  const files = new Set();
+  const bare = new Set();
+  const stack = [entry];
   while (stack.length) {
     const f = stack.pop();
-    if (seen.has(f)) continue;
-    seen.add(f);
+    if (files.has(f)) continue;
+    files.add(f);
     for (const spec of staticImports(f)) {
       const r = resolveSpec(spec, f);
-      if (r && !seen.has(r)) stack.push(r);
+      if (r) {
+        if (!files.has(r)) stack.push(r);
+      } else if (!spec.startsWith('.')) {
+        bare.add(spec);
+      }
     }
   }
-  return seen;
+  return { files, bare };
 }
 
 const BANNED = [
@@ -103,4 +128,91 @@ test('the shell graph has not quietly doubled', () => {
       '2026-09-08 pass, 127 before it). Something heavy was added to the shell - ' +
       'check whether it can be dynamic()'
   );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2026-09-10: the same disease one level down, on the pages themselves.
+//
+// /hub/social-media shipped 3,076 KB of JS, and 825 KB of it - 27% - was two
+// STATIC imports of live-streaming UI:
+//
+//     import { GoLiveModal }      -> lottie-react     -> a 298 KB Lottie chunk
+//     import { LiveStreamViewer } -> LiveStreamService -> livekit-client
+//                                                      -> a 527 KB WebRTC chunk
+//
+// Both render nothing until a reader opens them: GoLiveModal begins
+// `if (!isOpen) return null` and LiveStreamViewer sits behind
+// `watchingStream &&`. Every one of the 27 uses of the livekit symbols lives
+// inside an async method of LiveStreamService, so nothing needed it at import
+// time either. Confirmed from the served bundle, not inferred: the 527 KB chunk
+// carries RTCPeerConnection x157, LocalParticipant, SignalClient and
+// DataPacket, and the 298 KB chunk carries AnimationItem x94 and bodymovin.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STREAMING_PAGES = [
+  'pages/hub/social-media/index.js',
+  'pages/hub/social-pages/[pageId].js',
+];
+
+/** Heavy local leaves that must not be reachable from a page by STATIC import. */
+const PAGE_BANNED = [
+  'src/components/social/GoLiveModal.jsx',
+  'src/components/social/LiveStreamViewer.jsx',
+  'src/services/LiveStreamService.js',
+];
+
+/**
+ * Heavy PACKAGES that must not be reachable either. This is the check that
+ * actually defends the split: LiveStreamService could be renamed or wrapped,
+ * but the moment any file in a page's static graph imports the SDK the weight
+ * is back, whatever the file is called.
+ */
+const PAGE_BANNED_PACKAGES = ['livekit-client', 'lottie-react'];
+
+test('the live-streaming UI is not statically imported by the pages that list streams', () => {
+  const offenders = [];
+  for (const page of STREAMING_PAGES) {
+    const { files, bare } = walk(page);
+    // Control: a page must reach SOMETHING, or an empty graph passes trivially.
+    assert.ok(files.size > 10, `${page} reaches only ${files.size} modules - the walker is broken`);
+    // Control: the bare-specifier collector must actually collect. Every one of
+    // these pages imports react, so an empty bare set means the walk is blind
+    // to packages - which is the hole this half of the law exists to close.
+    assert.ok(bare.size > 3, `${page} reached only ${bare.size} packages - the bare collector is broken`);
+    for (const banned of PAGE_BANNED) {
+      if (files.has(banned)) offenders.push(`${page} -> ${banned}`);
+    }
+    for (const pkg of PAGE_BANNED_PACKAGES) {
+      if (bare.has(pkg)) offenders.push(`${page} -> ${pkg} (package)`);
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'these pages only LIST streams - they call getLiveStreams/getStream - but now ' +
+      'reach the streaming UI by static import, so every reader downloads Lottie ' +
+      '(298 KB) and the WebRTC SDK (527 KB). Use next/dynamic:\n  ' + offenders.join('\n  ')
+  );
+});
+
+test('both streaming components are still declared with dynamic() on those pages', () => {
+  for (const page of STREAMING_PAGES) {
+    const src = readFileSync(join(ROOT, page), 'utf8');
+    for (const name of ['GoLiveModal', 'LiveStreamViewer']) {
+      assert.match(
+        src,
+        new RegExp(`const ${name} = dynamic\\(`),
+        `${page}: ${name} is no longer dynamic()`
+      );
+      assert.ok(
+        !new RegExp(`^import\\s+\\{[^}]*\\b${name}\\b`, 'm').test(src),
+        `${page}: ${name} has a static import as well as a dynamic one`
+      );
+    }
+    assert.match(
+      src,
+      /^import dynamic from 'next\/dynamic';/m,
+      `${page}: uses dynamic() but does not import it - that is a ReferenceError at runtime`
+    );
+  }
 });

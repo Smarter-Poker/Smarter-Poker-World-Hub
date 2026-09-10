@@ -273,7 +273,14 @@ test('the budget row is converted and the law lists phase 3', () => {
   assert.equal(budget.converted, true);
   assert.ok(budget.jsKb <= 850);
   assert.ok(budget.lcpMs <= 2500);
-  assert.match(read('__tests__/no-slide-to-see.law.test.mjs'), /const CONVERTED = \[1, 2, 3\]/);
+  // The pin MOVED with phase 4 (2026-09-09), it was not loosened: the list is
+  // append-only and what this test cares about is that 3 is still in it, so
+  // asserting the exact array would have to be re-edited by every later phase
+  // for no gain. Phase 4's own test pins the full array as [1, 2, 3, 4].
+  const law = read('__tests__/no-slide-to-see.law.test.mjs');
+  const converted = JSON.parse(law.match(/const CONVERTED = (\[[^\]]*\]);/)[1]);
+  assert.ok(converted.includes(3), `phase 3 is still in CONVERTED (${converted.join(', ')})`);
+  assert.deepEqual(converted.slice(0, 3), [1, 2, 3], 'phases 1 to 3 lead the list, in order');
   assert.match(read('__tests__/page-tutorials.test.mjs'), /phase: 3,\s*route: '\/hub\/poker-near-me'/);
 });
 

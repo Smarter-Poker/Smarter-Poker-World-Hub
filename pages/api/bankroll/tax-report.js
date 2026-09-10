@@ -4,21 +4,12 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Generate IRS-ready session logs with W2-G tracking
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
 
 // W2-G thresholds
 const W2G_THRESHOLDS = {
@@ -85,7 +76,7 @@ export default async function handler(req, res) {
           // Fetch uploaded W-2G forms for the year
           const { data: uploadedW2g } = await getSupabase()
               .from('w2g_forms')
-              .select('*')
+              .select('upload_date, created_at, form_type, source_description, file_name, gross_amount, withholding_amount, federal_withheld, state_withheld, file_url')
               .eq('user_id', user.id)
               .eq('tax_year', parseInt(year))
               .order('upload_date', { ascending: true })
@@ -104,6 +95,12 @@ export default async function handler(req, res) {
               description: f.source_description || f.file_name,
               amount: f.gross_amount !== null && f.gross_amount !== undefined ? parseFloat(f.gross_amount) : null,
               withheld: f.withholding_amount !== null && f.withholding_amount !== undefined ? parseFloat(f.withholding_amount) : null,
+              // A return wants the two figures APART, which is why migration
+              // 20260908232953 split them and why the reader has been filling
+              // both in since. Reporting only the total gave a player a number
+              // they could not get back to the two the form actually prints.
+              federalWithheld: f.federal_withheld !== null && f.federal_withheld !== undefined ? parseFloat(f.federal_withheld) : null,
+              stateWithheld: f.state_withheld !== null && f.state_withheld !== undefined ? parseFloat(f.state_withheld) : null,
               fileUrl: f.file_url,
           }));
 

@@ -19,6 +19,20 @@
 // vercel.json has no comment syntax. That is the whole reason this file exists
 // instead: the knowledge that was in the comment is asserted here, where it
 // cannot be ignored and cannot break a deploy.
+//
+// IT HAPPENED AGAIN on 2026-09-09, with a different schema rule, and this file
+// did not catch it because it only knew about the first one:
+//
+//   dpl_AxmHg6vwG5Cr5Vg2sBt88R6Vqd9j  state ERROR
+//   dpl_EHr4CF2B4TuwHmBqangQNQ5pPFgr  state ERROR
+//   "The `vercel.json` schema validation failed with the following message:
+//    `buildCommand` should NOT be longer than 256 characters"
+//
+// Chaining a second asset-copy script into buildCommand took it to 280. TWO
+// production deploys errored before anybody looked, and main went on showing
+// green ticks the whole time. So the limits are asserted below by NUMBER, not
+// by the one example that has bitten us, because the next one will be a
+// different field.
 // ----------------------------------------------------------------------------
 
 import { test } from 'node:test';
@@ -111,4 +125,58 @@ test('AVATARS ARE NOT CACHED FOR A MONTH', () => {
     'stale-while-revalidate is what makes the short max-age free: the cached ' +
       'copy is still served instantly and the fresh one is fetched behind it'
   );
+});
+
+// ----------------------------------------------------------------------------
+// LENGTH LIMITS. Vercel enforces these at deploy time and nowhere earlier.
+// ----------------------------------------------------------------------------
+
+/** Vercel's documented schema maxima for the string fields this repo sets. */
+const MAX_LENGTH = {
+    buildCommand: 256,
+    installCommand: 256,
+    devCommand: 256,
+    ignoreCommand: 256,
+    outputDirectory: 256,
+};
+
+test('no command in vercel.json is longer than the schema allows', () => {
+    const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
+    for (const [field, max] of Object.entries(MAX_LENGTH)) {
+        const value = config[field];
+        if (typeof value !== 'string') continue;
+        assert.ok(
+            value.length <= max,
+            `${field} is ${value.length} characters, and Vercel refuses the whole deployment above ${max}. `
+            + 'Move the steps into one script rather than chaining another into the command.',
+        );
+    }
+});
+
+test('the build command is kept short by a script, not by luck', () => {
+    // 239 of 256 is not much room. The next person to add a build step should
+    // add it to scripts/copy-reader-assets.mjs, or to whatever script the
+    // command already calls, rather than to the command.
+    const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
+    assert.match(config.buildCommand, /copy-reader-assets\.mjs/,
+        'the asset copies belong behind one script, which is what keeps this under the limit');
+    assert.doesNotMatch(config.buildCommand, /copy-tesseract-assets\.mjs/, 'chained directly, this overflowed');
+    assert.doesNotMatch(config.buildCommand, /copy-pdfjs-assets\.mjs/);
+});
+
+test('the one script still runs both copies, before next build', () => {
+    const script = readFileSync(join(ROOT, 'scripts/copy-reader-assets.mjs'), 'utf8');
+    assert.match(script, /copy-tesseract-assets\.mjs/);
+    assert.match(script, /copy-pdfjs-assets\.mjs/);
+    // A missing engine is a reader that never works, so a failed copy must
+    // fail the build rather than be skipped.
+    assert.match(script, /process\.exit\(run\.status \|\| 1\)/);
+
+    const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
+    const copyAt = config.buildCommand.indexOf('copy-reader-assets.mjs');
+    const buildAt = config.buildCommand.indexOf('next build');
+    assert.ok(copyAt >= 0 && buildAt >= 0 && copyAt < buildAt);
+
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+    assert.match(pkg.scripts.prebuild, /copy-reader-assets\.mjs/, 'a local build must generate them too');
 });

@@ -38,6 +38,7 @@ export const RECEIPT_ACTIONS = {
     FILE_W2G: 'file_w2g',          // the W-2G Document Vault in Tax Reports
     ATTACH: 'attach',              // an existing session or expense
     SAVE_LATER: 'save_later',      // keep it in Receipts Waiting, assign later
+    CLOSE_SESSION: 'close_session', // a cash out lands on the open session it ends
 };
 
 /**
@@ -103,6 +104,18 @@ export function receiptActions(route, context = {}) {
     if (destination === DESTINATIONS.SESSION) {
         // Rule 2. A buy-in is a session on a trip. It is never an expense.
         const kind = prefill.entryKind === 'cashout' ? 'Cash Out' : 'Buy-In';
+        const open = context.openSession || null;
+        if (prefill.entryKind === 'cashout' && open) {
+            // The session this ticket ends is already logged: finish it.
+            const closeIt = {
+                id: RECEIPT_ACTIONS.CLOSE_SESSION,
+                tone: 'CLOSE',
+                title: `Close Session: ${open.location_name || 'Poker'} ${String(open.entry_date || '').slice(0, 10)}`,
+                detail: 'Record This Cash Out On The Session That Is Still Open',
+                primary: true,
+            };
+            return [closeIt, session(false, kind), attach, later];
+        }
         return [session(true, kind), attach, later];
     }
 
@@ -151,6 +164,9 @@ export function w2gRowFromReceipt(userId, route, imageUrl, today = isoToday()) {
     const federal = toNumber(prefill.federal_withheld);
     const state = toNumber(prefill.state_withheld);
     const withheld = federal === null && state === null ? null : (federal || 0) + (state || 0);
+    // withholding_amount stays the TOTAL, because every existing reader adds
+    // it up that way. The split is kept beside it (migration 20260908232953)
+    // because a return wants the federal and the state figure apart.
     const yearFromDate = /^\d{4}/.test(String(prefill.date || '')) ? Number(String(prefill.date).slice(0, 4)) : null;
     const taxYear = toNumber(prefill.tax_year) || yearFromDate || Number(today.slice(0, 4));
 
@@ -161,6 +177,8 @@ export function w2gRowFromReceipt(userId, route, imageUrl, today = isoToday()) {
         source_description: String(prefill.source_description || prefill.vendor || '').slice(0, 200) || null,
         gross_amount: toNumber(prefill.gross_amount ?? prefill.amount),
         withholding_amount: withheld,
+        federal_withheld: federal,
+        state_withheld: state,
         file_url: imageUrl,
         file_name: fileNameFromUrl(imageUrl),
         upload_date: today,
@@ -188,18 +206,234 @@ export function ledgerCategoryFor(route) {
     }
 }
 
+/** Case- and punctuation-insensitive key for a venue name. */
+function venueKey(name) {
+    return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/**
+ * The user's saved location that matches a venue the receipt printed, so an
+ * auto-started trip carries the venue (and its GPS, which venue analytics
+ * keys on) instead of a bare name.
+ *
+ * @param {{id:string,name:string}[]} locations
+ * @returns {object|null}
+ */
+export function matchLocationByName(locations, name) {
+    const key = venueKey(name);
+    if (!key || !Array.isArray(locations)) return null;
+    const exact = locations.find((l) => venueKey(l && l.name) === key);
+    if (exact) return exact;
+    // "Bellagio Poker Room" printed, "Bellagio" saved: the longer contains the shorter.
+    return locations.find((l) => {
+        const k = venueKey(l && l.name);
+        return k.length >= 4 && (key.includes(k) || k.includes(key));
+    }) || null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+function daysBetween(a, b) {
+    const ta = Date.parse(String(a || '').slice(0, 10) + 'T12:00:00');
+    const tb = Date.parse(String(b || '').slice(0, 10) + 'T12:00:00');
+    if (!Number.isFinite(ta) || !Number.isFinite(tb)) return null;
+    return Math.abs(ta - tb) / DAY_MS;
+}
+
+function isPokerSession(entry) {
+    return entry && (entry.category === 'poker_cash' || entry.category === 'poker_mtt');
+}
+
+/**
+ * A cash-out ticket ends a session that is already logged. Find it: a poker
+ * session at the same venue (when the ticket names one) within two days
+ * with no cash-out recorded yet. Two scans become one complete session with
+ * a real result, instead of a buy-in and a separate unexplained credit.
+ *
+ * @returns {object|null} the ledger entry to close
+ */
+export function findOpenSessionFor(route, entries) {
+    if (!route || route.destination !== DESTINATIONS.SESSION) return null;
+    const prefill = route.prefill || {};
+    if (prefill.entryKind !== 'cashout') return null;
+    const venue = venueKey(prefill.location_name || prefill.vendor);
+    const candidates = (Array.isArray(entries) ? entries : []).filter((e) => {
+        if (!isPokerSession(e)) return false;
+        if (Number(e.gross_out) > 0) return false;
+        const gap = daysBetween(e.entry_date, prefill.date);
+        if (prefill.date && (gap === null || gap > 2)) return false;
+        if (venue && e.location_name && venueKey(e.location_name) !== venue) return false;
+        return true;
+    });
+    candidates.sort((a, b) => (daysBetween(a.entry_date, prefill.date) ?? 99) - (daysBetween(b.entry_date, prefill.date) ?? 99));
+    return candidates[0] || null;
+}
+
+/**
+ * Order existing entries for "Attach To Existing Entry" so the right one is
+ * first: same day and same venue outrank recency. Stable for ties.
+ */
+export function rankEntriesForReceipt(entries, route) {
+    const prefill = (route && route.prefill) || {};
+    const venue = venueKey(prefill.location_name || prefill.vendor);
+    const score = (e) => {
+        let s = 0;
+        const gap = daysBetween(e.entry_date, prefill.date);
+        if (prefill.date && gap !== null) { if (gap === 0) s += 4; else if (gap <= 1) s += 2; }
+        if (venue && venueKey(e.location_name) === venue) s += 3;
+        if (route && route.destination === DESTINATIONS.EXPENSE && e.category === 'expense') s += 1;
+        if (route && route.destination === DESTINATIONS.SESSION && isPokerSession(e)) s += 1;
+        return s;
+    };
+    return (Array.isArray(entries) ? entries : [])
+        .map((e, i) => ({ e, i, s: score(e) }))
+        .sort((a, b) => b.s - a.s || a.i - b.i)
+        .map((x) => x.e);
+}
+
+/**
+ * The bankroll_ledger row a receipt files DIRECTLY, with no form in between.
+ *
+ * Only for a receipt the router was confident enough to auto-file: the single
+ * receipt path still opens LogEntryModal so a person sees it. This is what
+ * "File All Suggested" writes, so a player who scans five receipts at the end
+ * of a trip taps once instead of five times.
+ *
+ * Returns null whenever a safe row cannot be built - no category, no legible
+ * amount, or a cash out, which CLOSES a session rather than opening one.
+ */
+export function ledgerEntryFromReceipt(route, context = {}) {
+    const prefill = (route && route.prefill) || {};
+    const destination = route && route.destination;
+    const today = context.today || isoToday();
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(prefill.date || '')) && prefill.date <= today ? prefill.date : today;
+
+    const base = {
+        entry_date: date,
+        location_id: context.locationId || null,
+        trip_id: context.tripId || null,
+        media_urls: context.imageUrl ? [context.imageUrl] : null,
+        notes: 'Filed From A Scanned Receipt',
+    };
+
+    if (destination === DESTINATIONS.EXPENSE) {
+        const amount = toNumber(prefill.amount);
+        if (amount === null) return null;
+        return {
+            ...base,
+            category: 'expense',
+            expense_type: prefill.expense_type || 'other',
+            gross_in: Math.abs(amount),
+            gross_out: 0,
+        };
+    }
+
+    if (destination === DESTINATIONS.SESSION) {
+        if (prefill.entryKind === 'cashout') return null;
+        const category = ledgerCategoryFor(route);
+        if (!category) return null;
+        if (category === 'poker_mtt') {
+            const buyIn = toNumber(prefill.buy_in_amount ?? prefill.gross_in);
+            if (buyIn === null) return null;
+            return {
+                ...base,
+                category,
+                gross_in: buyIn,
+                gross_out: 0,
+                buy_in_amount: buyIn,
+                tournament_name: prefill.tournament_name || null,
+                game_type: prefill.game_type || null,
+            };
+        }
+        const grossIn = toNumber(prefill.gross_in ?? prefill.amount);
+        if (grossIn === null) return null;
+        return {
+            ...base,
+            category,
+            gross_in: grossIn,
+            gross_out: 0,
+            stakes: prefill.stakes || null,
+            game_type: prefill.game_type || null,
+        };
+    }
+
+    return null;
+}
+
 /** The `bankroll_receipts` row written the moment a scan completes (rule 4). */
-export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType }) {
+/**
+ * What the on-device reader did, as bankroll_receipts records it.
+ *
+ * These are not decoration. `engine_failed` means the DEPLOY is broken, which
+ * is exactly how the reader shipped on 2026-09-09 with every asset 404ing and
+ * nothing anywhere saying so. `no_text` means the photograph or its
+ * preprocessing is the problem instead. Counting them apart is the difference
+ * between fixing a build and fixing a filter.
+ */
+export const READ_OUTCOMES = {
+    READ: 'read',
+    NO_TEXT: 'no_text',
+    ENGINE_FAILED: 'engine_failed',
+    ROUTE_REFUSED: 'route_refused',
+    NOT_ATTEMPTED: 'not_attempted',
+};
+
+const READ_OUTCOME_VALUES = new Set(Object.values(READ_OUTCOMES));
+
+/**
+ * 0-100, or null. The column is a smallint with a CHECK; never send it junk.
+ *
+ * `null`, `undefined` and `''` are NOT zero. Number() turns all three into 0,
+ * and a stored 0 reads as "the engine was certain it saw nothing legible",
+ * which is a different and much more alarming claim than "no confidence was
+ * reported". Absence stays absent.
+ */
+function toOcrConfidence(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value !== 'number' && typeof value !== 'string') return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+export function receiptRowFromScan(userId, { imageUrl, extracted, route, documentType, imageHash, readOutcome, ocrConfidence }) {
     return {
         user_id: userId,
         image_url: imageUrl,
         document_type: documentType || (route && route.documentType) || 'unknown',
         destination: (route && route.destination) || DESTINATIONS.MANUAL,
         summary: (route && route.summary) || null,
-        route: route ? { destination: route.destination, label: route.label, summary: route.summary, prefill: route.prefill || {} } : null,
+        // autoFile travels with the route so the inbox can act on the router's
+        // verdict later without reading the image again.
+        route: route ? { destination: route.destination, label: route.label, summary: route.summary, prefill: route.prefill || {}, autoFile: route.autoFile === true } : null,
         extracted: extracted || null,
+        image_hash: imageHash || null,
+        confidence: extracted && Number.isFinite(Number(extracted.confidence)) ? Number(extracted.confidence) : null,
+        auto_file: Boolean(route && route.autoFile),
+        // An outcome the CHECK does not allow would fail the whole insert and
+        // lose the scan, which is the one thing this table exists to prevent.
+        read_outcome: READ_OUTCOME_VALUES.has(readOutcome) ? readOutcome : null,
+        ocr_confidence: toOcrConfidence(ocrConfidence),
         status: 'unassigned',
     };
+}
+
+/**
+ * The receipts "File All Suggested" would file, and the ones it would leave.
+ *
+ * A W-2G is never in the first list however confident the read: a human
+ * confirms a tax form, always (AUTOFILE_MIN_CONFIDENCE and the W-2G rule).
+ */
+export function partitionForBulkFiling(receipts) {
+    const willFile = [];
+    const willKeep = [];
+    for (const receipt of Array.isArray(receipts) ? receipts : []) {
+        const route = receipt && receipt.route;
+        const auto = receipt && (receipt.auto_file === true || (route && route.autoFile === true));
+        const filable = Boolean(auto) && Boolean(route) && route.destination !== DESTINATIONS.TAX
+            && ledgerEntryFromReceipt(route, { imageUrl: receipt.image_url }) !== null;
+        (filable ? willFile : willKeep).push(receipt);
+    }
+    return { willFile, willKeep };
 }
 
 function toNumber(value) {

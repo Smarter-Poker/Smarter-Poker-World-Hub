@@ -32,7 +32,7 @@ import {
  * Load both preference tables for a set of users in two queries total.
  * @returns {Promise<Map<string, { prefs: object|null, legacy: object|null }>>}
  */
-export async function loadGateContext(supabase, userIds) {
+export async function loadGateContext(supabase, userIds, { strict = false } = {}) {
     const ids = Array.from(new Set((userIds || []).filter(Boolean)));
     const ctx = new Map();
     if (!supabase || ids.length === 0) return ctx;
@@ -47,6 +47,10 @@ export async function loadGateContext(supabase, userIds) {
             .select(['user_id', ...LEGACY_PREF_COLUMNS].join(','))
             .in('user_id', ids),
     ]);
+
+    if (strict && (prefsRes?.error || legacyRes?.error)) {
+        throw new Error('Push preference lookup failed');
+    }
 
     // A failed read must not silence anyone. Missing context = default-allow,
     // which is the same posture the per-user gate has always taken.
@@ -131,7 +135,7 @@ export async function countSentToday(supabase, userId) {
  *
  * @returns {Promise<Map<string, number>>}
  */
-export async function countSentTodayBatch(supabase, userIds) {
+export async function countSentTodayBatch(supabase, userIds, { strict = false } = {}) {
     const counts = new Map();
     const ids = Array.from(new Set((userIds || []).filter(Boolean)));
     if (!supabase || ids.length === 0) return counts;
@@ -143,12 +147,16 @@ export async function countSentTodayBatch(supabase, userIds) {
             .in('recipient_user_id', ids)
             .eq('status', 'sent')
             .gte('sent_at', since);
-        if (error) return counts;
+        if (error) {
+            if (strict) throw new Error('Push daily count lookup failed');
+            return counts;
+        }
         for (const row of data || []) {
             counts.set(row.recipient_user_id, (counts.get(row.recipient_user_id) || 0) + 1);
         }
         return counts;
-    } catch {
+    } catch (error) {
+        if (strict) throw error;
         return counts; // fail open
     }
 }

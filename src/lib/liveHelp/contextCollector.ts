@@ -115,8 +115,7 @@ function extractOrbFromPath(path: string): string {
         'social-media': 'Social Hub',
         'messenger': 'Messenger',
         'training': 'GTO Training',
-        'diamond-arena': 'Diamond Arena',
-        'club-arena': 'Club Arena',
+        'club-arena': 'Poker Arena',
         'diamond-store': 'Diamond Store',
         'tournaments': 'Tournaments',
         'poker-near-me': 'Poker Near Me',
@@ -135,7 +134,6 @@ function extractOrbFromPath(path: string): string {
  */
 function determineMode(path: string): string {
     if (path.includes('/training/arena')) return 'training';
-    if (path.includes('/diamond-arena/table')) return 'playing';
     if (path.includes('/club-arena/table')) return 'playing';
     if (path.includes('/settings')) return 'settings';
     if (path.includes('/social-media')) return 'social';

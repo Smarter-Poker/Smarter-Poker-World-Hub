@@ -131,9 +131,12 @@ test('rule 4: every list ends with keeping the receipt, and never with nothing',
 
 test('the W-2G vault row matches the w2g_forms columns and sums the withholding', () => {
     const row = w2gRowFromReceipt('user-1', W2G, 'https://x.supabase.co/storage/v1/object/public/user-media/user-1/bankroll/1.jpg', '2026-09-08');
+    // The split columns arrived with migration 20260908232953; the total
+    // stays, because every existing reader adds federal and state up.
     assert.deepEqual(Object.keys(row).sort(), [
-        'file_name', 'file_url', 'form_type', 'gross_amount', 'source_description',
-        'tax_year', 'upload_date', 'user_id', 'withholding_amount',
+        'federal_withheld', 'file_name', 'file_url', 'form_type', 'gross_amount',
+        'source_description', 'state_withheld', 'tax_year', 'upload_date', 'user_id',
+        'withholding_amount',
     ]);
     assert.equal(row.tax_year, 2026);
     assert.equal(row.gross_amount, 2140);
@@ -196,7 +199,15 @@ test('a scanned session opens a category the ledger CHECK accepts', () => {
 
 test('rule 4: the row is written before a choice can be taken, and closing keeps it', () => {
     const src = code(PAGE);
-    const onComplete = src.slice(src.indexOf('onScanComplete={async'), src.indexOf('onScanComplete={async') + 1200);
+    // The handler, to where it ends, NOT a fixed number of characters. A
+    // count-based window silently stops covering the code it was written to
+    // pin the moment somebody adds a line inside the handler, which is the
+    // failure mode the playbook keeps warning about.
+    const from = src.indexOf('onScanComplete={async');
+    assert.ok(from > 0, 'the scanner hand-off must exist');
+    const end = src.indexOf('/>', from);
+    assert.ok(end > from, 'the hand-off must be a closed element');
+    const onComplete = src.slice(from, end);
     assert.ok(
         onComplete.indexOf('setReceiptSaving(true)') < onComplete.indexOf("setScannerStep('post-capture')"),
         'the sheet opens in the saving state',
@@ -233,7 +244,8 @@ test('rule 2: with no active trip the page starts one before logging the session
     const src = code(PAGE);
     const block = src.slice(src.indexOf('actionId === RECEIPT_ACTIONS.LOG_SESSION'), src.indexOf('actionId === RECEIPT_ACTIONS.FILE_W2G'));
     assert.match(block, /if \(!activeTrip\)/);
-    assert.match(block, /await createTrip\(userId, tripFromReceipt\(scannerRoute\)\)/);
+    assert.match(block, /const draft = tripFromReceipt\(scannerRoute\);/);
+    assert.match(block, /await createTrip\(userId, \{ \.\.\.draft, location_id: match \? match\.id : null \}\)/, 'and the trip carries the matched venue');
     assert.match(block, /openEntryForReceipt\(ledgerCategoryFor\(scannerRoute\)\)/, 'and it is logged as a SESSION, under a real ledger category');
     assert.doesNotMatch(block, /openEntryForReceipt\('expense'\)/);
 });

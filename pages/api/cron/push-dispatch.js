@@ -32,6 +32,7 @@ import { withCronHealth } from '../../../src/lib/cronHealth';
 import { isPushConfigured } from '../../../src/lib/push/web-push';
 import { sendPush, SUBSCRIPTION_COLUMNS } from '../../../src/lib/push/send-push';
 import { recordSendFailure } from '../../../src/lib/push/push-deliver';
+import { isTournamentReminder, deliverTournamentReminder } from '../../../src/lib/push/tournament-reminder-delivery';
 import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
 
 // Vercel's default Pages-Router function timeout is short, and this route
@@ -320,7 +321,7 @@ async function handler(req, res) {
         // a digest is never built around a carrier that is about to be gated.
         const digestGroups = new Map();
         for (const row of deliverable) {
-            if (!row.event) continue;
+            if (!row.event || isTournamentReminder(row)) continue;
             const key = `${row.recipient_user_id}|${row.event}`;
             if (!digestGroups.has(key)) digestGroups.set(key, []);
             digestGroups.get(key).push(row);
@@ -405,6 +406,13 @@ async function handler(req, res) {
 
             // Folded into a digest carrier above; already accounted for.
             if (absorbed.has(row.id)) continue;
+
+            if (isTournamentReminder(row)) {
+                const outcome = await deliverTournamentReminder(supabase, row);
+                for (const key of ['sent', 'skipped', 'failed', 'deactivated']) stats[key] += outcome[key];
+                if (outcome.uncertain) stats.failed += outcome.uncertain;
+                continue;
+            }
 
             const { data: subs } = await supabase
                 .from('push_subscriptions')

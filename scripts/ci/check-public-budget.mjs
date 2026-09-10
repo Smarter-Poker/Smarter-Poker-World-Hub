@@ -52,6 +52,7 @@
  *      serve it.
  */
 import { readdirSync, statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 
@@ -59,6 +60,14 @@ import process from 'node:process';
  * Bytes. Set 2026-09-05 after removing 244 MB of unreferenced media, with ~5%
  * of headroom so an ordinary asset addition is not a build failure - only an
  * unnoticed accumulation is.
+ *
+ * RAISED ONCE, ON 2026-09-09, 260 -> 272 MB: the OCR engine. Receipt and
+ * dealer-document scanning used to photograph a player's tax form and send it
+ * to a vision model. Tesseract compiled to WebAssembly now reads it on the
+ * player's own device, and the engine has to be served from our own origin or
+ * it comes from somebody else's CDN. That is 14.1 MB, generated into
+ * public/tesseract by scripts/copy-tesseract-assets.mjs, and it is counted
+ * below whether or not that script has run yet.
  *
  * LOWERED TWICE ON 2026-09-06. First 406 -> 300 MB: 200 avatar PNGs became
  * webp, 117.9 -> 11.6 MB. Then 300 -> 260 MB: another 68 across images/pitch,
@@ -69,7 +78,7 @@ import process from 'node:process';
  *
  * THE NUMBER GOES DOWN. If you lower it, say in the commit what you removed.
  */
-const BUDGET_BYTES = 260_000_000;
+const BUDGET_BYTES = 272_000_000;
 
 /** Also a ratchet: a thousand new files is a problem a size cap can miss. */
 const BUDGET_FILES = 1_850;
@@ -102,11 +111,45 @@ function walk(dir) {
 
 const mb = (n) => `${(n / 1_000_000).toFixed(1)} MB`;
 
-const { bytes, files, biggest, symlinks } = walk('public');
+const walked = walk('public');
+const { biggest, symlinks } = walked;
+
+/**
+ * Assets that are GENERATED into public/ at build time, counted here even
+ * when they are not on disk yet.
+ *
+ * This script walks the checkout. The OCR engine is copied out of
+ * node_modules by `prebuild`, so on a fresh CI checkout it is not there, and
+ * without this the 14 MB it adds to every Vercel deploy would be invisible to
+ * a ratchet whose entire purpose is that nothing arrives unnoticed.
+ */
+let generatedBytes = 0;
+let generatedFiles = 0;
+const generatedNotes = [];
+for (const [dir, script] of [['tesseract', '../copy-tesseract-assets.mjs'], ['pdfjs', '../copy-pdfjs-assets.mjs']]) {
+  if (existsSync(join('public', dir))) continue;
+  try {
+    const { generatedBytes: measure } = await import(script);
+    const measured = measure();
+    if (measured) {
+      generatedBytes += measured.bytes;
+      generatedFiles += measured.files;
+      generatedNotes.push(`${mb(measured.bytes)} into public/${dir}`);
+    } else {
+      generatedNotes.push(`public/${dir} could not be measured; run npm ci`);
+    }
+  } catch (err) {
+    generatedNotes.push(`public/${dir} could not be measured: ${err.message}`);
+  }
+}
+const generatedNote = generatedNotes.length ? ` (+ ${generatedNotes.join('; ')} at build time)` : '';
+
+const bytes = walked.bytes + generatedBytes;
+const files = walked.files + generatedFiles;
 const overBytes = bytes - BUDGET_BYTES;
 const overFiles = files - BUDGET_FILES;
 
-console.log(`public/ is ${mb(bytes)} across ${files} files.`);
+console.log(`public/ is ${mb(bytes)} across ${files} files${generatedNote}.`);
 console.log(`budget:  ${mb(BUDGET_BYTES)} across ${BUDGET_FILES} files.`);
 
 if (symlinks.length > 0) {

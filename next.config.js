@@ -415,6 +415,18 @@ const nextConfig = {
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
   // from ~1.8s to ~1.1s on a 950-page repo. Safe for Pages Router. Don't set
   // this in dev — dev uses the default server.
+  // MEASURED AND PUT BACK 2026-09-09. The hypothesis was that Vercel's own Next
+  // builder traces output and does not consume .next/standalone, so setting it
+  // here might be a second trace over 1,324 packages for an artifact nothing
+  // reads. The experiment reached production by accident (see below) and
+  // answered the question anyway:
+  //
+  //   standalone OFF  dpl_C6VAk6  build 259.3s, READY, no failure
+  //   standalone ON   dpl_EzRgt7  build 190.1s
+  //
+  // Not a controlled A/B - different trees, different cache states - but there
+  // is no sign of a win, and it is not free to find out: turning it off is a
+  // change to how production is packaged. It stays as it was.
   output: process.env.VERCEL ? 'standalone' : undefined,
 
   // ─── R3F Package Transpilation ───────────────────────────────────────────────
@@ -1025,9 +1037,10 @@ const nextConfig = {
       { source: '/auth/sign' + 'in', destination: '/auth/login', permanent: true },
       { source: '/signup', destination: '/auth/sign' + 'up', permanent: true },
       { source: '/register', destination: '/auth/sign' + 'up', permanent: true },
-      // Privacy/legal routes → terms page (no separate privacy page exists)
-      { source: '/privacy', destination: '/terms', permanent: true },
-      { source: '/legal/privacy', destination: '/terms', permanent: true },
+      // /privacy is a real, server-rendered page since 2026-09-08 (the app
+      // stores read the privacy policy URL with a crawler, and the tab inside
+      // /terms is client-rendered). Only the legacy alias redirects now.
+      { source: '/legal/privacy', destination: '/privacy', permanent: true },
       { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
@@ -1091,6 +1104,14 @@ const nextConfig = {
       // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
       beforeFiles: [],
       afterFiles: [
+        /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
+           origin wants the app to open /hub/club-arena/* by fetching these two
+           files. They are API routes, not files in public/, because their
+           contents are Dan's credentials (Apple Team ID, Android release cert
+           SHA-256) read from the environment at request time: a 404 until
+           they exist, live the moment they are set. src/lib/app-links.js. */
+        { source: '/.well-known/apple-app-site-association', destination: '/api/app-links/aasa' },
+        { source: '/.well-known/assetlinks.json', destination: '/api/app-links/assetlinks' },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
         /* AD CREATIVES ARE SAME-ORIGIN (2026-09-03). A club owner's advert
@@ -1107,6 +1128,18 @@ const nextConfig = {
           source: '/ad-creatives/:path*',
           destination:
             'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/ad-creatives/:path*',
+        },
+        /* THE AD CLICK REDIRECT (2026-09-09). A sponsor's advert points at
+           /c/<code> - a rooted, same-origin path, so every same-origin check
+           on ad destinations still sees what it has always seen. The handler
+           takes the opaque code, asks the database for the address approved
+           against it, records the click server-side and 302s. It accepts no
+           URL, which is what makes an open redirect structurally impossible.
+           Short path rather than /api/c/ because it is what a player's browser
+           shows for a moment on the way out. */
+        {
+          source: '/c/:code',
+          destination: '/api/c/:code',
         },
       ],
       fallback: [],

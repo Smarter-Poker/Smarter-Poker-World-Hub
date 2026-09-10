@@ -6,21 +6,10 @@
  * extract structured hand history data.
  */
 
-import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
-// Lazy-init Supabase client (RAT-AUTH-NUCLEAR compliant)
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        if (!key) throw new Error('[ai-hand-reader] No Supabase key');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
-}
 
 export const config = {
     api: {

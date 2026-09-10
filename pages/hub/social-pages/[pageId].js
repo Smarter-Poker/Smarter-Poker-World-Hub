@@ -2,6 +2,7 @@
  * Social Page Detail View - Full page with feed, followers, about, and content management
  * Supports venue, group, community, and brand pages
  */
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useActiveIdentity } from '../../../src/contexts/ActiveIdentityContext';
@@ -20,10 +21,25 @@ import { SharedLinkPreviewCard } from '../../../src/components/social/SharedLink
 import { VideoThumbnail, VideoPostWrapper, FullScreenVideoViewer } from '../../../src/components/social/SharedVideoComponents';
 import toast from '../../../src/stores/toastStore';
 // Phase 9: Shared components for full feature parity with social-media
-import { GoLiveModal } from '../../../src/components/social/GoLiveModal';
+// 2026-09-10: these two were STATIC imports and they cost every reader 825 KB.
+// GoLiveModal pulls lottie-react and LiveStreamViewer reaches livekit-client, so
+// a feed scroll downloaded a 298 KB Lottie chunk and a 527 KB WebRTC chunk -
+// 27% of this page's 3,076 KB - for two components that render nothing until
+// somebody opens them. GoLiveModal has `if (!isOpen) return null` and
+// LiveStreamViewer sits behind `watchingStream &&`, so deferring both is
+// transparent. Same pattern and same reason as the _app trim that took the
+// shell from 1,588 KB to 683 KB.
+const GoLiveModal = dynamic(
+  () => import('../../../src/components/social/GoLiveModal').then((m) => m.GoLiveModal),
+  { ssr: false, loading: () => null }
+);
 import { LiveStreamCard } from '../../../src/components/social/LiveStreamCard';
-import { LiveStreamViewer } from '../../../src/components/social/LiveStreamViewer';
-import LiveStreamService from '../../../src/services/LiveStreamService';
+const LiveStreamViewer = dynamic(
+  () => import('../../../src/components/social/LiveStreamViewer').then((m) => m.LiveStreamViewer),
+  { ssr: false, loading: () => null }
+);
+// Reads only (getLiveStreams). See the note in src/services/liveStreamReads.js.
+import * as LiveStreamService from '../../../src/services/liveStreamReads';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
 import CheckInModal from '../../../src/components/social/CheckInModal';
 import GiphyPicker from '../../../src/components/shared/GiphyPicker';

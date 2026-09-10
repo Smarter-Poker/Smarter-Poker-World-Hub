@@ -97,6 +97,8 @@
  */
 import process from 'node:process';
 
+import { groupByWorkflow, redWorkflows } from './lib/workflowVerdicts.mjs';
+
 /**
  * The estate, in the same order and with the same names as `REPOS` in Club
  * Arena's `.github/scripts/estate-integrity.sh`. Keep the two in step: a repo
@@ -168,39 +170,20 @@ async function scanRepo(repo) {
   if (runs.length === 0) return { repo, workflows: 0, runs: 0, red: [] };
 
   // Newest first, then group by workflow.
+  //
+  // A SKIPPED OR CANCELLED RUN IS NOT A GREEN RUN. This used to read the single
+  // newest run per workflow and require `conclusion === 'failure'`. The listing
+  // is fetched with `status=completed`, and completed includes `skipped` and
+  // `cancelled`, so any workflow that interleaves no-ops with failures was
+  // invisible - and an event-driven workflow interleaves by construction.
+  // Measured 2026-09-09: `Push Delivery Watchdog` here, and Club Arena's
+  // `Post-Deploy E2E (production)` at 24 failures in 21 hours, were both hidden
+  // behind a `cancelled` newest run. See ./lib/workflowVerdicts.mjs.
   runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const byWorkflow = new Map();
-  for (const r of runs) {
-    if (!byWorkflow.has(r.name)) byWorkflow.set(r.name, []);
-    byWorkflow.get(r.name).push(r);
-  }
+  const byWorkflow = groupByWorkflow(runs);
 
   const now = Date.now();
-  const red = [];
-  for (const [name, list] of byWorkflow) {
-    const latest = list[0];
-    if (latest.conclusion !== 'failure') continue;
-
-    // How many consecutive failures, and when did the rot start?
-    let consecutive = 0;
-    let firstBad = latest;
-    for (const r of list) {
-      if (r.conclusion !== 'failure') break;
-      consecutive++;
-      firstBad = r;
-    }
-
-    const lastGreen = list.find((r) => r.conclusion === 'success');
-    red.push({
-      repo,
-      name,
-      consecutive,
-      hours: (now - new Date(firstBad.created_at)) / 3_600_000,
-      since: firstBad.created_at,
-      url: latest.html_url,
-      lastGreen: lastGreen ? lastGreen.created_at : null,
-    });
-  }
+  const red = redWorkflows(runs, now).map((r) => ({ ...r, repo }));
 
   return { repo, workflows: byWorkflow.size, runs: runs.length, red };
 }
@@ -285,7 +268,7 @@ for (const r of red) {
       (r.loud ? ' [an open issue already names it]' : '')
   );
 }
-if (red.length === 0) console.log(`  every workflow's latest run on ${BRANCH} is green or neutral.`);
+if (red.length === 0) console.log(`  every workflow's latest VERDICT on ${BRANCH} is green.`);
 console.log('');
 
 // Alarm only on SILENT failures that have outlived the threshold. Under it is a

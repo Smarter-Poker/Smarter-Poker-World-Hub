@@ -32,7 +32,7 @@ const auditInventory = JSON.parse(
 
 const EXPECTED_WORLDS = [
   'personal-assistant', 'training', 'news', 'trivia', 'social-media',
-  'diamond-arena', 'my-clubs', 'video-library', 'odds-calculator',
+  'my-clubs', 'video-library', 'odds-calculator',
   'bankroll-manager', 'toke-tracker', 'preflop-charts', 'poker-near-me',
   'marketplace',
 ];
@@ -42,7 +42,7 @@ const isTitleCased = (value) => String(value).split(/\s+/).every((word) => {
   return !normalized || !/^[a-z]/.test(normalized);
 });
 
-test('all 14 World Hub families share one canonical command identity with the footer', () => {
+test('all 13 World Hub families share one canonical command identity with the footer', () => {
   assert.deepEqual(registry.worlds.map((world) => world.id), EXPECTED_WORLDS);
   assert.match(menuRegistrySource, /footerRegistry\.worlds\.map/);
   assert.match(menuRegistrySource, /primaryItems/);
@@ -68,7 +68,7 @@ test('all 14 World Hub families share one canonical command identity with the fo
 test('every family has a real adaptive menu configuration', () => {
   for (const menuKey of [
     'personal-assistant', 'training', 'news', 'trivia', 'social',
-    'diamond-arena', 'my-clubs', 'video-library', 'odds-calculator',
+    'my-clubs', 'video-library', 'odds-calculator',
     'bankroll-manager', 'toke-tracker', 'preflop-charts', 'poker-near-me',
     'marketplace',
   ]) {
@@ -234,7 +234,11 @@ test('the exhaustive audit inventory covers every owned physical route', () => {
   assert.equal(auditInventory.afterSummary.uncoveredRoutes, 0);
   assert.equal(auditInventory.beforeSummary.previouslyUncoveredRoutes, 116);
   assert.equal(new Set(auditInventory.routes.map((route) => route.route)).size, 203);
-  for (const route of auditInventory.routes) {
+  // Preserve the historical 203-route audit; Phase 5 retires exactly these six screens.
+  const retired = auditInventory.routes.filter(route => /^\/hub\/diamond-arena(?:\/|$)/.test(route.route));
+  assert.equal(retired.length, 6);
+  for (const route of retired) assert.equal(existsSync(join(ROOT, route.source)), false);
+  for (const route of auditInventory.routes.filter(route => !retired.includes(route))) {
     assert.ok(existsSync(join(ROOT, route.source)), `${route.route} source is missing`);
     assert.notEqual(route.navigationCoverage, '', `${route.route} has no menu coverage`);
     assert.ok(route.disposition, `${route.route} has no disposition`);

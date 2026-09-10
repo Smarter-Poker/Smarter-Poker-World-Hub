@@ -11,8 +11,7 @@ import { persist } from 'zustand/middleware';
 // ─────────────────────────────────────────────────────────────────────────────
 export const POKER_IQ_ORBS = [
   { id: 'social-media', label: 'Social Media', color: '#00d4ff' },
-  { id: 'club-arena', label: 'Club Arena', color: '#8a2be2' },
-  { id: 'diamond-arena', label: 'Diamond Arena', color: '#00ff88' },
+  { id: 'club-arena', label: 'Poker Arena', color: '#8a2be2' },
   { id: 'training-games', label: 'Training Games', color: '#ffa500' },
   { id: 'trivia', label: 'Trivia', color: '#ff00ff' },
   { id: 'bankroll-manager', label: 'Bankroll Manager', color: '#6495ed' },
@@ -75,6 +74,12 @@ export const useWorldStore = create<WorldState>()(
     }),
     {
       name: 'world-store-v1',
+      version: 1,
+      // Retire a cached standalone selection without changing other saved worlds.
+      migrate: (persisted) => {
+        const saved = persisted as { activeOrb?: string | null };
+        return { activeOrb: saved?.activeOrb === 'diamond-arena' ? null : saved?.activeOrb ?? null };
+      },
       // Only persist UI state — NOT diamonds (those come from Supabase)
       partialize: (state) => ({ activeOrb: state.activeOrb }),
     }

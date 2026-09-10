@@ -462,6 +462,20 @@ jobs:
           # gate stays green.
           node scripts/ci/check-migrations-applied.mjs
 
+      - name: "CHECK 25: The code is checked against the live database and the live model list"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # Three defects shipped green on 2026-09-08 because every gate here
+          # compares source to source: a category the ledger CHECK refuses
+          # ('session'), a column w2g_forms does not have (amount), and model
+          # ids api.x.ai answers "Model not found" (grok-2-vision-latest).
+          # This asks the database (values via fn_ci_check_constraints,
+          # columns via OpenAPI) and the model API (no credential needed: a
+          # missing model is refused before authentication).
+          node scripts/ci/check-live-contracts.mjs
+
       - name: "CHECK 13: No phantom Supabase COLUMNS"
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -961,13 +975,15 @@ jobs:
             __tests__/revenuecat-webhook.test.mjs \
             __tests__/pull-to-refresh-no-transform-at-rest.test.mjs \
             __tests__/native-app-cors.test.mjs \
+            __tests__/privacy-page-and-app-links.test.mjs \
             tests/club-arena-is-a-rewrite.test.mjs \
             tests/the-deploy-docs-name-the-live-route.test.mjs \
             tests/the-from-scanner-is-fast-and-faithful.test.mjs \
             tests/a-required-check-does-not-reinstall-a-restored-tree.test.mjs \
             tests/the-app-does-not-fight-the-readers-scroll.test.mjs \
             tests/autopilot-merges-when-the-ruleset-is-satisfied.test.mjs \
-            __tests__/avatar-art-has-no-punched-holes.test.mjs
+            __tests__/avatar-art-has-no-punched-holes.test.mjs \
+            __tests__/a-skipped-run-is-not-a-green-run.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -1253,7 +1269,16 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: |
-          npm ci --ignore-scripts 2>/dev/null || {
+          # LOUD, NOT SILENT (2026-09-09). This was `npm ci ... 2>/dev/null ||`.
+          # The redirect threw away the only evidence of WHY npm ci failed, so
+          # the job fell through to a slower, non-deterministic `npm install`
+          # and reported success either way. That is how the lockfile break
+          # this fallback was written for went unnoticed long enough to be
+          # described in a comment as current when it had already been fixed.
+          # The fallback stays - it costs nothing when npm ci works, which it
+          # now does - but it says so.
+          npm ci --ignore-scripts || {
+            echo "::warning::npm ci failed here - falling back to npm install, which is slower and not lockfile-deterministic. The error is above."
             npm install --ignore-scripts
           }
 

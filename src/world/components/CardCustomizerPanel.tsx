@@ -15,7 +15,6 @@ const CARD_EMOJI: Record<string, string> = {
 
     'club-commander': '🏢',
     'social-media': '💬',
-    'diamond-arena': '💎',
     'trivia': '🧠',
     'training': '🎓',
     'news': '📰',

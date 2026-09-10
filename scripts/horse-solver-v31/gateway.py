@@ -20,6 +20,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+from contract import ContractError, _json_bytes
+
 
 PROTOCOL = "smarter-poker.horse-solver-v31-ingress.v1"
 MAX_BODY_BYTES = 4 * 1024 * 1024
@@ -41,6 +43,41 @@ class GatewayError(RuntimeError):
     def __init__(self, message: str, status: int | None = None):
         super().__init__(message)
         self.status = status
+
+
+def decode_success_response(raw: bytes, operation: str) -> Any:
+    """Decode one exact gateway success envelope without JSON ambiguity."""
+
+    try:
+        decoded = _json_bytes(raw, "gateway response")
+    except ContractError as error:
+        raise GatewayError("gateway returned invalid strict JSON") from error
+    if (
+        not isinstance(decoded, dict)
+        or set(decoded) != {"success", "operation", "result"}
+        or decoded.get("success") is not True
+        or decoded.get("operation") != operation
+    ):
+        raise GatewayError("gateway returned an invalid success envelope")
+    return decoded["result"]
+
+
+def decode_error_response(raw: bytes, status: int) -> str:
+    """Return only the bounded message from one exact gateway error envelope."""
+
+    try:
+        decoded = _json_bytes(raw, "gateway error response")
+    except ContractError:
+        return f"HTTP {status}"
+    if (
+        not isinstance(decoded, dict)
+        or set(decoded) != {"success", "error"}
+        or decoded.get("success") is not False
+        or not isinstance(decoded.get("error"), str)
+        or not decoded["error"]
+    ):
+        return f"HTTP {status}"
+    return decoded["error"][:500]
 
 
 def canonical_json(value: Any) -> bytes:
@@ -175,26 +212,15 @@ class GatewayClient:
                     raw = response.read(MAX_BODY_BYTES + 1)
                 if len(raw) > MAX_BODY_BYTES:
                     raise GatewayError("gateway response exceeds the client limit")
-                decoded = json.loads(raw.decode("utf-8"))
-                if (
-                    not isinstance(decoded, dict)
-                    or decoded.get("success") is not True
-                    or decoded.get("operation") != operation
-                    or "result" not in decoded
-                ):
-                    raise GatewayError("gateway returned an invalid success envelope")
-                return decoded["result"]
+                return decode_success_response(raw, operation)
             except HTTPError as error:
                 raw = error.read(4096)
-                try:
-                    decoded = json.loads(raw.decode("utf-8"))
-                    message = str(decoded.get("error") or f"HTTP {error.code}")
-                except (UnicodeDecodeError, json.JSONDecodeError):
-                    message = f"HTTP {error.code}"
-                last_error = GatewayError(message[:500], error.code)
+                last_error = GatewayError(
+                    decode_error_response(raw, error.code), error.code
+                )
                 if error.code not in {429, 500, 502, 503, 504}:
                     raise last_error
-            except (URLError, TimeoutError, OSError, json.JSONDecodeError, UnicodeDecodeError) as error:
+            except (URLError, TimeoutError, OSError) as error:
                 last_error = error
             if attempt + 1 < max(1, self.attempts):
                 time.sleep(min(4.0, 0.5 * (2**attempt)))

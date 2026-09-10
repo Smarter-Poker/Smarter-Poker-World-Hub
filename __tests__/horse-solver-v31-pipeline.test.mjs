@@ -24,15 +24,19 @@ test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   const gateway = read('scripts/horse-solver-v31/gateway.py');
   const pio = read('scripts/horse-solver-v31/pio_upi.py');
   const compactor = read('scripts/horse-solver-v31/compactor.py');
+  const preparer = read('scripts/horse-solver-v31/prepare_bundle.py');
   const documentation = read('scripts/horse-solver-v31/README.md');
 
   assert.doesNotMatch(worker + gateway + compactor, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(preparer, /HMAC_SECRET|SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(gateway, /smarter-poker\.horse-solver-v31-ingress\.v1/);
   assert.match(gateway, /uuid\.uuid4\(\)/);
   assert.match(worker, /"ingest_artifact"/);
   assert.match(worker, /not a regular file, or not executable/);
   assert.match(worker, /mark_invalid\(heartbeat\)/);
   assert.match(worker, /source_receipt_is_valid/);
+  assert.match(worker, /--preflight-only/);
+  assert.match(worker, /no gateway was contacted and no source row was written/);
   assert.doesNotMatch(worker, /node_checksum/);
   assert.match(compactor, /"build_cell"/);
   assert.match(compactor, /"seal_dataset"/);
@@ -44,6 +48,11 @@ test('workers use narrow HMAC ingress and PostgreSQL-owned node seals', () => {
   assert.ok(rakeSetup > 0 && treeBuild > rakeSetup);
   assert.match(documentation, /cannot mark a candidate or promote one/);
   assert.match(documentation, /no OpenClaw dependency/);
+  assert.match(preparer, /"approved": False/);
+  assert.match(preparer, /verify_published_pipeline/);
+  assert.match(preparer, /input_bundle_checksum/);
+  assert.match(preparer, /input_bundle_id/);
+  assert.match(documentation, /prepare_bundle\.py/);
 });
 
 test('the shipped example is deliberately disabled and cannot claim a corpus', () => {

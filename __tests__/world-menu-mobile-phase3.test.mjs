@@ -19,10 +19,9 @@ const hamburgerRegistry = read('src/config/hamburgerMenus.js');
 const footerRegistry = JSON.parse(read('src/config/world-footer-navigation.json'));
 const mobileBudget = JSON.parse(read('scripts/ci/mobile-budget.json'));
 
-test('mobile budgets cover exactly the thirteen non-Social World roots', () => {
+test('mobile budgets cover exactly the twelve non-Social World roots', () => {
   const expectedRoots = [
     '/hub/bankroll-manager',
-    '/hub/diamond-arena',
     '/hub/marketplace',
     '/hub/my-clubs',
     '/hub/news',
