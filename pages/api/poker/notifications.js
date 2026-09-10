@@ -312,6 +312,7 @@ try {
             .from('page_notifications')
             .select('id')
             .or(orConditions)
+            .order('created_at', { ascending: false })
             .limit(100);
 
           if (notifError) {
