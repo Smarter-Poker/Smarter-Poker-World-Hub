@@ -359,6 +359,22 @@ export async function continueRouteWithProtectionBypass(route, targetOrigin, sec
   await route.fulfill({ response });
 }
 
+export async function installAttestationProtectionBypassRoute(context, targetOrigin, secret) {
+  if (typeof secret !== 'string' || secret.length === 0) return false;
+  assert.equal(
+    typeof context?.route,
+    'function',
+    'attestation protection routing requires a browser context owner'
+  );
+  // Register on the BrowserContext, not its Page. Teardown below calls
+  // context.unrouteAll(), and Playwright can only suppress late failures from
+  // handlers owned by that same routing surface.
+  await context.route('**/*', (route) =>
+    continueRouteWithProtectionBypass(route, targetOrigin, secret)
+  );
+  return true;
+}
+
 export async function closeAttestationBrowserContext(context) {
   if (!context) return;
   // Playwright route handlers may still be forwarding media requests when the
@@ -376,6 +392,26 @@ export function redactProtectionBypassSecret(value, secret) {
   const text = redactReceiptMaterial(value);
   const protectedValue = String(secret || '');
   return protectedValue ? text.split(protectedValue).join('[REDACTED]') : text;
+}
+
+export function attachAttestationClientErrorCapture(page, destination, protectionBypassSecret) {
+  page.on('pageerror', (error) => {
+    destination.push({
+      kind: 'pageerror',
+      message: redactProtectionBypassSecret(
+        error?.message || String(error),
+        protectionBypassSecret
+      ),
+    });
+  });
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      destination.push({
+        kind: 'console',
+        message: redactProtectionBypassSecret(message.text(), protectionBypassSecret),
+      });
+    }
+  });
 }
 
 function isPathInsideRepository(path) {
@@ -4450,25 +4486,16 @@ export async function runProductionDeliveryAttestation(
     browser = await chromium.launch({ headless: true });
     context = await browser.newContext({ storageState: designatedAuth.storageState });
     const page = await context.newPage();
-    if (config.protectionBypassSecret) {
-      await page.route('**/*', (route) =>
-        continueRouteWithProtectionBypass(route, config.baseUrl, config.protectionBypassSecret)
-      );
-    }
-    page.on('pageerror', (error) => {
-      publicClientErrors.push({
-        kind: 'pageerror',
-        message: redactReceiptMaterial(error?.message || String(error)),
-      });
-    });
-    page.on('console', (message) => {
-      if (message.type() === 'error') {
-        publicClientErrors.push({
-          kind: 'console',
-          message: redactReceiptMaterial(message.text()),
-        });
-      }
-    });
+    await installAttestationProtectionBypassRoute(
+      context,
+      config.baseUrl,
+      config.protectionBypassSecret
+    );
+    attachAttestationClientErrorCapture(
+      page,
+      publicClientErrors,
+      config.protectionBypassSecret
+    );
     const pageResponse = await page.goto(
       `${config.baseUrl}/hub/training?revision=phase6-delivery-attestation`,
       {
