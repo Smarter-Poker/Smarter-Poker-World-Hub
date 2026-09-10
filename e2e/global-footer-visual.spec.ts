@@ -534,6 +534,42 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
     }
   });
 
+  test('a small inner scroller cannot countermand document travel', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await visit(page, '/hub/video-library');
+
+    const nav = page.locator('[data-global-bottom-nav="true"]');
+    await expect(nav).toHaveAttribute('data-footer-scroll-armed', 'true');
+    await page.evaluate(() => {
+      document.body.style.minHeight = '400vh';
+      window.scrollTo(0, 200);
+    });
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await expect(nav).toHaveAttribute('data-footer-hidden', 'true');
+
+    // A late-loading rail can transiently gain a few pixels of vertical
+    // overflow. It never met MIN_SCROLLER_RANGE, so its own scroll event must
+    // not reveal a footer that document travel parked below the viewport.
+    await page.evaluate(() => {
+      const rail = document.createElement('div');
+      rail.dataset.footerSmallScrollerProbe = 'true';
+      rail.style.cssText =
+        'position:fixed;top:0;left:0;width:20px;height:44px;overflow-y:auto;pointer-events:none';
+      const content = document.createElement('div');
+      content.style.height = '64px';
+      rail.appendChild(content);
+      document.body.appendChild(rail);
+      rail.scrollTop = 1;
+    });
+
+    await page.waitForTimeout(50);
+    await expect(nav).toHaveAttribute('data-footer-hidden', 'true');
+    await expect
+      .poll(async () => (await nav.boundingBox())?.y ?? -Infinity)
+      .toBeGreaterThanOrEqual(844 - 1);
+  });
+
   test('the fallback remains available on legacy World Hub pages', async ({ page }) => {
     await visit(page, '/hub/install');
     const nav = page.locator('[data-global-bottom-nav="true"]');

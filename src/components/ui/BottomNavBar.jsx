@@ -282,10 +282,17 @@ function useHideOnScroll(enabled, resetKey) {
          this floor WHILE the bar is hidden, and from there no amount of
          scrolling reveals it - only a route change. The travel entry goes too,
          so if the scroller grows back the next event starts from a fresh anchor
-         instead of comparing against a stale one. */
+         instead of comparing against a stale one.
+
+         A scroller that STARTED below this floor is different: it never owned
+         the footer and must not reveal one hidden by the document. Chromium's
+         Video Library rail can briefly gain a few pixels of vertical overflow
+         while its late content settles; its scroll event produced the exact
+         795.9375px (fully shown) geometry seen in CI. Only a source that was
+         previously admitted to `travel` may use the shrink recovery. */
       if (limit < MIN_SCROLLER_RANGE) {
-        travel.delete(source);
-        setHidden(false);
+        const wasTracked = travel.delete(source);
+        if (wasTracked) setHidden(false);
         return;
       }
 
