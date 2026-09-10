@@ -107,6 +107,49 @@ async function fetchLinkPreview(url) {
     return result;
 }
 
+// Track in-flight batch requests so we don't double-fire for the same URL
+const _batchInflight = new Set();
+
+/**
+ * Batch-prefill the module-level metadata cache before ArticleCards mount.
+ * Call this once with all link_url values from a feed batch — it fires a single
+ * POST /api/link-preview/batch and writes every result into _metadataCache.
+ * When the ArticleCards then mount, their useEffect finds data already cached
+ * and skips the individual GET entirely.  Fire-and-forget safe; errors are non-fatal.
+ *
+ * Sentry issue #7720346314 — N+1 API Call on /hub/social-media (2026-09-10).
+ */
+export async function prewarmLinkPreviews(urls) {
+    if (!Array.isArray(urls) || urls.length === 0) return;
+    const needed = urls.filter(
+        (u) => u && !_metadataCache.has(u) && !_batchInflight.has(u)
+    );
+    if (needed.length === 0) return;
+
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < needed.length; i += BATCH_SIZE) {
+        const chunk = needed.slice(i, i + BATCH_SIZE);
+        chunk.forEach((u) => _batchInflight.add(u));
+        try {
+            const res = await fetch('/api/link-preview/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls: chunk }),
+            });
+            if (res.ok) {
+                const { results } = await res.json();
+                for (const [url, data] of Object.entries(results || {})) {
+                    if (data && (data.image || data.title)) setCacheWithEviction(url, data);
+                }
+            }
+        } catch (err) {
+            console.warn('[ArticleCard] prewarmLinkPreviews batch failed:', err?.message);
+        } finally {
+            chunk.forEach((u) => _batchInflight.delete(u));
+        }
+    }
+}
+
 /**
  * Validates if a URL is likely a valid image
  */
@@ -191,11 +234,14 @@ export default function ArticleCard({
     const [loading, setLoading] = useState(!title && !image);
     const [imageError, setImageError] = useState(false);
 
-    // Fetch metadata if not provided (uses shared cache to avoid N+1)
-    // imageError is reset on url change so recycled cards don't inherit prior error state
+    // Fetch metadata if not provided (uses shared cache to avoid N+1).
+    // imageError is reset on url change so recycled cards don't inherit prior error state.
+    // Skip the API call whenever we already have a title — image is optional for rendering.
+    // prewarmLinkPreviews() populates _metadataCache before cards mount so the
+    // happy-path useEffect resolves as a synchronous cache hit with zero network.
     useEffect(() => {
         setImageError(false);
-        if (!url || (title && image)) {
+        if (!url || title) {
             setLoading(false);
             return;
         }
