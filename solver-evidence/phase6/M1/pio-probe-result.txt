@@ -1,0 +1,34 @@
+=== PIO PROBE v5 - 2026-09-10T17:29:30Z ===
+Pre-probe: Clean
+Launching C:\PioSOLVER\PioSOLVER3-pro.exe
+PID=18032
+Return code: 0
+Stdout length: 6802 chars
+Output lines: 12
+--- ALL OUTPUT ---
+  [000] 'PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)'
+  [001] '(c) Piotr Lopusiewicz'
+  [002] 'registered to daniel@bekavactrading.com'
+  [003] ''
+  [004] 'set_end_string ok!'
+  [005] 'END'
+  [006] '3.8.0'
+  [007] 'END'
+  [008] '2d2c 2h2c 2h2d 2s2c 2s2d 2s2h 3c2c 3c2d 3c2h 3c2s 3d2c 3d2d 3d2h 3d2s 3d3c 3h2c 3h2d 3h2h 3h2s 3h3c 3h3d 3s2c 3s2d 3s2h 3s2s 3s3c 3s3d 3s3h 4c2c 4c2d 4c2h 4c2s 4c3c 4c3d 4c3h 4c3s 4d2c 4d2d 4d2h 4d2s '
+  [009] 'END'
+  [010] 'EOF encountered'
+  [011] ''
+
+=== VERSION ===
+PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)
+
+=== HAND ORDER VALIDATION ===
+Token count: 1326
+COMBO_COUNT: PASS (1326)
+UNIQUENESS: PASS (0 dups)
+NO_REPEAT_CARD: PASS
+COMPLETENESS: PASS (0 missing)
+HAND_ORDER_VALIDATION: PASS
+Hand-order SHA-256: 7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a
+Saved to local file: C:\sp-solver\audit-results\phase6-M1-20260910T171328Z\hand_order_full.txt
+Post-probe survivors: NONE
