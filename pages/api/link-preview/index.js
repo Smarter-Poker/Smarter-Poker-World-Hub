@@ -38,9 +38,9 @@ function isBlockedUrl(urlStr) {
     }
 }
 
-import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
-const { applyCors } = require('../../src/lib/cors');
-import { reportApiError } from '../../src/lib/sentryWrap';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+const { applyCors } = require('../../../src/lib/cors');
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Wrap fetch with an AbortController so a hanging upstream (Cloudflare,
 // slow CDN, dead origin) can't pin the function until Vercel's 504.
