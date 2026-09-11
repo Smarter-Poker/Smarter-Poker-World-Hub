@@ -1,0 +1,345 @@
+{
+  "capture_window_utc": {
+    "start": "2026-09-11T05:34:05Z",
+    "end": "2026-09-11T05:38:37.226839+00:00"
+  },
+  "machine": {
+    "id": "M1",
+    "hostname": "SmarterPoker2"
+  },
+  "repository": {
+    "url": "https://github.com/Smarter-Poker/Smarter-Poker-World-Hub",
+    "fetched_origin_main_sha": "33a0381b1757398a1b220bada072e35d1f44dfcc",
+    "anchor_commits": [
+      {
+        "commit": "e628f15542",
+        "is_ancestor": true
+      },
+      {
+        "commit": "7a5651cc0f",
+        "is_ancestor": true
+      },
+      {
+        "commit": "85a048b9d5",
+        "is_ancestor": true
+      }
+    ]
+  },
+  "pio": {
+    "version": "PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)",
+    "binary_sha256": "E21EA7AD1DBC2A9D826C25AC264688F632DD461B92DE2BC35A53F6B78BCF5CEB",
+    "authenticode_state": "unsigned",
+    "size_bytes": 10567168
+  },
+  "validation": {
+    "hand_order_hash": "7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a",
+    "hand_order_combos": 1326,
+    "range_files": "470 files, all valid"
+  },
+  "counters": {
+    "worker_launcher_executions": 0,
+    "pio_probe_invocations": 1,
+    "pio_solve_invocations": 0,
+    "solved_spots": 0,
+    "exported_rows": 0,
+    "signed_gateway_admissions": 0
+  },
+  "tasks": {
+    "SmarterPokerSolver": "Ready (failed to disable via UAC)",
+    "PioSOLVER_Watchdog_Autopilot": "Ready (failed to disable via UAC)"
+  },
+  "inventory": {
+    "processes": "All solver processes terminated",
+    "persistence": "watchdog startup bat locked, scripts quarantined"
+  },
+  "credentials": {
+    "scan_results": [
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\boot.py",
+        "Line": 2,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\boot.py",
+        "Line": 2,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\orchestrate.py",
+        "Line": 61,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\orchestrate.py",
+        "Line": 62,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\orchestrate.py",
+        "Line": 65,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\orchestrate.py",
+        "Line": 65,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\query_db.py",
+        "Line": 4,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\query_db.py",
+        "Line": 5,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\run_machine.py",
+        "Line": 29,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\run_machine.py",
+        "Line": 29,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\supa_orc.py",
+        "Line": 61,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\supa_orc.py",
+        "Line": 62,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\supa_orc.py",
+        "Line": 65,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\supa_orc.py",
+        "Line": 65,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\upload_pipeline.py",
+        "Line": 7,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\upload_pipeline.py",
+        "Line": 8,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\sp-solver\\upload_v2.py",
+        "Line": 3,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\sp-solver\\upload_v2.py",
+        "Line": 4,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "C:\\PioSOLVER\\.env",
+        "Line": 1,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_ANON_KEY",
+        "Path": "C:\\PioSOLVER\\.env",
+        "Line": 2,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "C:\\PioSOLVER\\.env",
+        "Line": 3,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_KEY",
+        "Path": "C:\\PioSOLVER\\.env",
+        "Line": 4,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_EMAIL",
+        "Path": "C:\\PioSOLVER\\.env",
+        "Line": 5,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_PASSWORD",
+        "Path": "C:\\PioSOLVER\\.env",
+        "Line": 6,
+        "Present": true,
+        "Remediation": "Cleaned via Phase 6 Stage A (value removed)",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_URL",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_ANON_KEY",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_ROLE_KEY",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_SERVICE_KEY",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_PASSWORD",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "SUPABASE_EMAIL",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "DATABASE_URL",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "POSTGRES_URL",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "PGHOST",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      },
+      {
+        "Name": "PGPASSWORD",
+        "Path": "Environment Variable",
+        "Line": "N/A",
+        "Present": false,
+        "Remediation": "None needed",
+        "PassFail": "PASS"
+      }
+    ]
+  },
+  "hmac": {
+    "plaintext_present": false
+  },
+  "canary": {
+    "attempts_during_remediation": 0
+  },
+  "verdict": {
+    "status": "HOLD",
+    "remaining_prerequisites": [
+      "Formal scheduled task disable via elevated access",
+      "M1_HMAC_SECRET.txt delivery via authenticated channel",
+      "Signed gateway approval"
+    ]
+  }
+}
