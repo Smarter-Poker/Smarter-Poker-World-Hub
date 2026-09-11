@@ -772,6 +772,66 @@ const nextConfig = {
       // ignores it and says so, on every single page load.
     ].join('; ');
 
+    // ─── THE DIRECTIVES THAT ARE ENFORCED (2026-09-11) ──────────────────────
+    //
+    // The comment at the top of this block has said since Phase 6.1.14 that
+    // the policy graduates to enforcing "once violations have been monitored
+    // and confirmed zero". Nothing has ever monitored it: there is no
+    // `report-uri` and no `report-to` in the policy above, so a violation
+    // writes one line to one browser console and is forgotten. That is how the
+    // missing Sentry allowance survived ten days - see the comment on
+    // connect-src, which says so in as many words.
+    //
+    // Club Arena's tests/e2e/production-csp-violations.spec.ts now collects
+    // `securitypolicyviolation` events (they fire for a report-only policy too,
+    // with disposition "report") across five arena routes and three Hub routes
+    // on every post-deploy run. Signed in against production on 2026-09-11 it
+    // reported ZERO violations. That is the evidence this block has been
+    // waiting for, and it now arrives after every publish rather than once.
+    //
+    // Even so, this does NOT flip the whole policy. Eight routes are not the
+    // whole Hub, and the directives that say WHERE A RESOURCE MAY COME FROM -
+    // script-src, style-src, connect-src, img-src, font-src, media-src,
+    // frame-src, worker-src - break a page the moment one is wrong. They stay
+    // report-only until the sweep has watched them for a while.
+    //
+    // What graduates here is the other kind: the four directives that govern
+    // INJECTION rather than loading. None of them names a resource this site
+    // fetches, so none of them can break a page by being slightly incomplete,
+    // and each was checked against the source before being moved:
+    //
+    //   object-src 'none'       no <object> or <embed> exists in src, pages or
+    //                           public. (The `Promise<object>` hits are JSDoc.)
+    //   base-uri 'self'         no <base> tag exists either - except the one
+    //                           pages/api/proxy.js injects on line ~452, and
+    //                           that endpoint sets its OWN enforced
+    //                           Content-Security-Policy with `base-uri https:`,
+    //                           which REPLACES this header rather than adding
+    //                           to it. Measured live: /api/proxy returns only
+    //                           the proxy's policy, not this one. __tests__/
+    //                           the-proxy-keeps-its-own-policy.test.js pins
+    //                           that, because if it ever stops being true this
+    //                           directive breaks the reader.
+    //   form-action 'self'      no form anywhere posts off-origin, and the
+    //                           proxy rewrites every proxied form action to
+    //                           /api/proxy?url=... which is same-origin.
+    //   frame-ancestors 'self'  already enforced, by X-Frame-Options:
+    //                           SAMEORIGIN three headers up. This is the modern
+    //                           spelling of a restriction the site has had all
+    //                           along, so it changes nothing at all.
+    //
+    // upgrade-insecure-requests stays Vercel-only for the reason given below:
+    // `next start` serves HTTP locally and WebKit upgrades every same-origin
+    // chunk, leaving the page blank. The four above are unaffected by scheme,
+    // so they apply everywhere and localhost is protected too.
+    const enforcedCsp = [
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      ...(process.env.VERCEL ? ['upgrade-insecure-requests'] : []),
+    ].join('; ');
+
     return [
       {
         source: '/(.*)',
@@ -849,43 +909,41 @@ const nextConfig = {
             key: 'Content-Security-Policy-Report-Only',
             value: csp,
           },
-          ...(process.env.VERCEL
-            ? [
-                {
-                  /**
-                   * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
-                   * Report-Only policy above, where it did NOTHING. The spec says the
-                   * directive is ignored in report-only mode, and Chrome announces
-                   * that on every page load:
-                   *
-                   *   "The Content Security Policy directive
-                   *    'upgrade-insecure-requests' is ignored when delivered in a
-                   *    report-only policy."
-                   *
-                   * So the one directive in that policy meant to CHANGE behaviour was
-                   * the one directive guaranteed not to, while adding a console error
-                   * to every route (it was also tripping the E2E console-error specs).
-                   *
-                   * Delivered on its own enforced header it actually applies, and the
-                   * rest of the policy stays report-only as the staged rollout above
-                   * intends. Enforcing this alone is safe here: it only rewrites
-                   * http:// SUB-RESOURCE requests to https://, the site is already
-                   * HSTS-preloaded with includeSubDomains, and Vercel redirects
-                   * http->https at the edge — so in practice it catches stray http
-                   * URLs in user-generated content and nothing else.
-                   *
-                   * Vercel-only is intentional. `next start` serves HTTP locally;
-                   * WebKit correctly applies this directive there and upgrades every
-                   * same-origin chunk to HTTPS, leaving the page blank and making a
-                   * real Safari CI pass impossible. Vercel always serves HTTPS, so
-                   * production retains the enforced policy while localhost remains
-                   * a faithful runnable test target.
-                   */
-                  key: 'Content-Security-Policy',
-                  value: 'upgrade-insecure-requests',
-                },
-              ]
-            : []),
+          {
+            /**
+             * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
+             * Report-Only policy above, where it did NOTHING. The spec says the
+             * directive is ignored in report-only mode, and Chrome announces
+             * that on every page load:
+             *
+             *   "The Content Security Policy directive
+             *    'upgrade-insecure-requests' is ignored when delivered in a
+             *    report-only policy."
+             *
+             * So the one directive in that policy meant to CHANGE behaviour was
+             * the one directive guaranteed not to, while adding a console error
+             * to every route (it was also tripping the E2E console-error specs).
+             *
+             * Delivered on its own enforced header it actually applies.
+             *
+             * 2026-09-11: this header is no longer Vercel-only and no longer
+             * carries one directive. It carries the four injection directives
+             * that graduated out of the report-only policy - see the comment on
+             * enforcedCsp above for what each one was checked against. Only
+             * upgrade-insecure-requests is still conditional on Vercel, inside
+             * that list, for the reason below.
+             *
+             * Vercel-only for THAT directive is intentional. `next start` serves
+             * HTTP locally; WebKit correctly applies it there and upgrades every
+             * same-origin chunk to HTTPS, leaving the page blank and making a
+             * real Safari CI pass impossible. Vercel always serves HTTPS, so
+             * production keeps it while localhost remains a faithful runnable
+             * test target. The other four are scheme-independent, so localhost
+             * is protected by them too.
+             */
+            key: 'Content-Security-Policy',
+            value: enforcedCsp,
+          },
         ],
       },
       // ─── CLUB ARENA CACHE POLICY (perf pass 2026-08-22) ─────────────────────
