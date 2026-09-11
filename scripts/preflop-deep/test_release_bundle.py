@@ -208,6 +208,28 @@ class ReleaseBundleTests(unittest.TestCase):
                 with self.assertRaisesRegex(SystemExit, 'remove legacy database'):
                     reject({name: 'synthetic-value'})
 
+    def test_orchestrator_uses_only_launcher_verified_manifest(self):
+        source = Path(__file__).with_name('orchestrate.py').read_text(encoding='utf-8')
+        tree = ast.parse(source)
+        body = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'fetch_text']
+        module = ast.fix_missing_locations(ast.Module(body=body, type_ignores=[]))
+        scope = {'hashlib': hashlib, 'APPROVED_MANIFEST_BYTES': self.raw,
+                 'APPROVED_MANIFEST_CHECKSUM': self.approved}
+        exec(compile(module, 'orchestrate.py', 'exec'), scope)
+        with patch('urllib.request.urlopen', side_effect=AssertionError('unexpected network')):
+            self.assertEqual(scope['fetch_text']('phases.json'), self.raw.decode('utf-8'))
+            with self.assertRaisesRegex(SystemExit, 'only the approved phases.json'):
+                scope['fetch_text']('../other.py')
+            scope['APPROVED_MANIFEST_BYTES'] = None
+            with self.assertRaisesRegex(SystemExit, 'supplied by the pinned launcher'):
+                scope['fetch_text']('phases.json')
+            scope['APPROVED_MANIFEST_BYTES'] = b'{}'
+            with self.assertRaisesRegex(SystemExit, 'manifest checksum does not match'):
+                scope['fetch_text']('phases.json')
+        self.assertIn('orchestrate.APPROVED_MANIFEST_BYTES = manifest_bytes', SOURCE)
+        self.assertNotIn('raw.githubusercontent.com', SOURCE)
+        self.assertNotIn('raw.githubusercontent.com', source)
+
 
 if __name__ == '__main__':
     unittest.main()

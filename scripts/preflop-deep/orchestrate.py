@@ -1,8 +1,8 @@
 """
 SMARTER-POKER SOLVER ORCHESTRATOR  (launch once; runs until every phase is done)
 ================================================================================
-One command per machine. Self-tests, then works through phases.json (fetched live
-from the repo), auto-advancing with no re-prompt. Each phase carries its OWN
+One command per machine. Self-tests, then works through the immutable manifest
+verified and injected by the launcher. Each phase carries its OWN
 game config -> pot_chips (antes), eff_chips (blind depth), rake (cash vs
 tournament), ranges (format/depth) -> so cash and tournament and each stack solve
 completely different games. Per flop solve it also harvests the turn rows off the
@@ -107,7 +107,7 @@ if len(APPROVED_MANIFEST_CHECKSUM) != 64 or any(c not in "0123456789abcdef" for 
     raise SystemExit("APPROVED_MANIFEST_CHECKSUM must pin the exact approved manifest bytes")
 if not RANGE_DIRECTORY:
     raise SystemExit("RANGE_DIRECTORY must point to the approved solver range artifacts")
-RAW = "https://raw.githubusercontent.com/Smarter-Poker/Smarter-Poker-World-Hub/%s/scripts/preflop-deep" % PIPELINE_COMMIT
+APPROVED_MANIFEST_BYTES = None  # Set only by the checksum-pinned launcher.
 
 # Injected only by the pinned run_machine.py launcher. Direct execution fails
 # before any solve or write, which prevents an ad-hoc transport from bypassing
@@ -204,8 +204,14 @@ def _worker_request(operation, payload, manifest_version, manifest_checksum):
     raise last_error or WorkerGatewayError("solver worker gateway request failed")
 
 def fetch_text(name):
-    with urllib.request.urlopen(RAW + "/" + name, timeout=60) as r:
-        return r.read().decode()
+    """Re-use the sealed manifest for canary and backlog revalidation."""
+    if name != "phases.json":
+        raise SystemExit("only the approved phases.json may be read")
+    if not isinstance(APPROVED_MANIFEST_BYTES, bytes):
+        raise SystemExit("approved manifest bytes must be supplied by the pinned launcher")
+    if hashlib.sha256(APPROVED_MANIFEST_BYTES).hexdigest() != APPROVED_MANIFEST_CHECKSUM:
+        raise SystemExit("manifest checksum does not match APPROVED_MANIFEST_CHECKSUM")
+    return APPROVED_MANIFEST_BYTES.decode("utf-8")
 
 SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_]+$")
 CARD = re.compile(r"^[AKQJT98765432][cdhs]$")

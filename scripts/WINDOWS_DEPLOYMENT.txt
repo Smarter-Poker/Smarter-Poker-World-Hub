@@ -78,6 +78,9 @@ changed manifest bytes, per-file mismatches, aggregate mismatches, and a
 running launcher that differs from the sealed source. All checks precede
 pipeline imports, gateway requests and Pio startup. Install the launcher into
 a separate new release directory; do not overwrite a legacy solver directory.
+The launcher supplies the verified manifest bytes to the orchestrator, which
+rechecks the same checksum for canary and backlog reads. It never re-downloads
+a manifest or picks up a new release in place during an active run.
 
 This transport change does not approve a solve. Keep solver_ready=false and
 bounded_canary_ready closed until the separate host, Training ledger, ranges,

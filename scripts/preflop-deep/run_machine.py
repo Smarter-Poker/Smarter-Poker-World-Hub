@@ -290,6 +290,7 @@ print("[pio] approved console solver checksum: %s" % actual_binary)
 # manifest is not permission to start, much less orphan, a solver process.
 import pio_harvest as _ph
 import orchestrate
+orchestrate.APPROVED_MANIFEST_BYTES = manifest_bytes
 
 
 # Pio needs the normal Windows process/runtime directories, not the gateway's

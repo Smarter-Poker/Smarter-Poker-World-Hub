@@ -6,6 +6,8 @@ transport reads a controller-delivered directory and verifies the externally
 pinned manifest, four protected per-file hashes, the aggregate hash, and its
 own launcher bytes before importing the pipeline. It never obtains a GitHub
 credential or falls back to a network download.
+The orchestrator's separate manifest fetch path uses launcher-injected bytes
+and rechecks their approved checksum throughout canary and backlog execution.
 
 The manifest remains version 4 with solver_ready=false. No bounded-canary gate,
 target UUID, 107-game ledger approval, range approval, or database authority is
@@ -47,7 +49,7 @@ parent's settings or certify whole-host credential absence.
 
 ## Validation
 
-- New hermetic release-bundle suite: 16 tests passed, including altered manifest,
+- New hermetic release-bundle suite: 17 tests passed, including altered manifest,
   each altered source file, aggregate mismatch, missing/extra entries, invalid
   hashes, reparse paths, oversized files, launcher self-attestation and no
   network/process calls during bundle installation.
@@ -58,7 +60,7 @@ parent's settings or certify whole-host credential absence.
 - Windows test adapter selected the installed python executable for existing
   python3 subprocess calls; no assertion or test source was weakened.
 
-The remaining three pipeline source blobs match protected main byte-for-byte.
+The unchanged tree generator and harvester match protected main byte-for-byte.
 No --no-verify option or branch-protection change was used. The connector
 publication uses an atomic Git tree and a review branch, not a write to main.
 
