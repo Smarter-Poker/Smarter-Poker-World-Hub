@@ -641,6 +641,44 @@ export const REWARDS = {
       'Awarded by pages/api/training/daily-bonus.js, idempotency-keyed to user+date. Amount passed in metadata.bonus_diamonds.',
   },
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // DOCUMENTED BECAUSE THE TABLE ALREADY PAYS IT (2026-09-11)
+  //
+  // `daily_bonus_boost` was inserted straight into diamond_reward_catalog on
+  // 2026-09-10 18:21 UTC with no migration, no config entry and no PR, and it
+  // stopped every merge in this repository for fourteen hours: CHECK 9 reads
+  // the table, found an action the config did not describe, and failed closed.
+  //
+  // It is NOT a stray row, and deleting it would have broken a half-landed
+  // feature. award_diamonds_v2 names it explicitly, in the SAME family branch
+  // as daily_bonus:
+  //
+  //     ELSIF p_action_key IN ('daily_bonus', 'daily_bonus_boost') THEN
+  //
+  // so it draws its amount from metadata.bonus_diamonds and is clamped to 125,
+  // exactly like the tile claim beside it. Nothing has ever claimed it - zero
+  // rows in diamond_transactions - so this documents a path that is wired and
+  // waiting, not one that is paying today. The numbers below MIRROR the table;
+  // the table is what users experience, and this file has to agree with it.
+  // ───────────────────────────────────────────────────────────────────────────
+  daily_bonus_boost: {
+    key: 'daily_bonus_boost',
+    label: 'Daily Bonus Boost',
+    description:
+      'Boosted claim on the Club Arena daily bonus sheet. Pays the boosted tile amount, drawn from the same 125 ◆/day family ceiling as the daily bonus itself.',
+    diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
+    maxDiamonds: 125,
+    category: 'daily',
+    countsTowardDailyCap: true,
+    lifetime: false,
+    maxPerDay: 24,
+    icon: 'Zap',
+    gate: 'free',
+    serverOnly: true,
+    verifyNote:
+      'Awarded through award_diamonds_v2 in the daily_bonus family. Amount passed in metadata.bonus_diamonds and clamped to 125 in SQL.',
+  },
+
   training_reward: {
     key: 'training_reward',
     label: 'Training Session Reward',
