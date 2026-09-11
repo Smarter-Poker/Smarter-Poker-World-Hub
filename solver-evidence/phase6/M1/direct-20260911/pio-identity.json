@@ -1,0 +1,20 @@
+{
+  "utc": "2026-09-11T15:10:29.8055073Z",
+  "commands": [
+    "show_version",
+    "show_hand_order",
+    "quit"
+  ],
+  "solve_commands_sent": false,
+  "exited": true,
+  "exit_code": 0,
+  "version": [
+    "PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)"
+  ],
+  "combo_count": 1326,
+  "unique_combos": 1326,
+  "valid_cards": true,
+  "hand_order_sha256": "7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a",
+  "stderr_present": false,
+  "raw_output_retained": false
+}

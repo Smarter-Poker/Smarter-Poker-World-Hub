@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "pipeline_bundle_checksum": "264f94e175ea4ac3137dadf0cd9ecb10ba04f5d9c3075d24c93e1374078809ea",
+  "pipeline_bundle_checksum": "8c9171081fea4e3f21089d08b52926f2a929d70ac0577f9986a5ef5db8d0b6c1",
   "range_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "artifact_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "source_combo_order_schema": "piosolver.show_hand_order.v1",
@@ -10,7 +10,125 @@
   "training_game_contracts": [],
   "phase_contracts_schema": "training-solver-phase-contracts.v1",
   "phase_contracts_sha256": "abdc4b4554577f8ed1e74aa596878156f1bc95abf4addff77813f75072aef7be",
-  "phase_contracts": [{"id":"6max_cash_100bb_BTNvsBB","game_type":"6max_cash","stack":100,"street":"flop","streets":["flop","turn"],"objective":"chip_ev","pot_chips":550,"eff_chips":9750,"rake":"0 0","accuracy_fraction":0.005,"ip_range":"RFI_BTN_100.txt","ip_range_checksum":null,"oop_range":"BBflat_vs_BTN_100.txt","oop_range_checksum":null,"ip_player":"BTN","oop_player":"BB","harvest":[{"node":"r:0","hero":"OOP","position":"BB"},{"node":"r:0:c","hero":"IP","position":"BTN"}]},{"id":"6max_cash_100bb_COvsBB","game_type":"6max_cash","stack":100,"street":"flop","streets":["flop","turn"],"objective":"chip_ev","pot_chips":550,"eff_chips":9750,"rake":"0 0","accuracy_fraction":0.005,"ip_range":"RFI_CO_100.txt","ip_range_checksum":null,"oop_range":"BBflat_vs_CO_100.txt","oop_range_checksum":null,"ip_player":"CO","oop_player":"BB","harvest":[{"node":"r:0:c","hero":"IP","position":"CO"}]},{"id":"6max_cash_100bb_MPvsBB","game_type":"6max_cash","stack":100,"street":"flop","streets":["flop","turn"],"objective":"chip_ev","pot_chips":550,"eff_chips":9750,"rake":"0 0","accuracy_fraction":0.005,"ip_range":"RFI_MP_100.txt","ip_range_checksum":null,"oop_range":"BBflat_vs_MP_100.txt","oop_range_checksum":null,"ip_player":"MP","oop_player":"BB","harvest":[{"node":"r:0:c","hero":"IP","position":"MP"}]},{"id":"6max_cash_100bb_UTGvsBB","game_type":"6max_cash","stack":100,"street":"flop","streets":["flop","turn"],"objective":"chip_ev","pot_chips":550,"eff_chips":9750,"rake":"0 0","accuracy_fraction":0.005,"ip_range":"RFI_UTG_100.txt","ip_range_checksum":null,"oop_range":"BBflat_vs_UTG_100.txt","oop_range_checksum":null,"ip_player":"UTG","oop_player":"BB","harvest":[{"node":"r:0:c","hero":"IP","position":"UTG"}]}],
+  "phase_contracts": [
+    {
+      "id": "6max_cash_100bb_BTNvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range": "RFI_BTN_100.txt",
+      "ip_range_checksum": null,
+      "oop_range": "BBflat_vs_BTN_100.txt",
+      "oop_range_checksum": null,
+      "ip_player": "BTN",
+      "oop_player": "BB",
+      "harvest": [
+        {
+          "node": "r:0",
+          "hero": "OOP",
+          "position": "BB"
+        },
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "BTN"
+        }
+      ]
+    },
+    {
+      "id": "6max_cash_100bb_COvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range": "RFI_CO_100.txt",
+      "ip_range_checksum": null,
+      "oop_range": "BBflat_vs_CO_100.txt",
+      "oop_range_checksum": null,
+      "ip_player": "CO",
+      "oop_player": "BB",
+      "harvest": [
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "CO"
+        }
+      ]
+    },
+    {
+      "id": "6max_cash_100bb_MPvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range": "RFI_MP_100.txt",
+      "ip_range_checksum": null,
+      "oop_range": "BBflat_vs_MP_100.txt",
+      "oop_range_checksum": null,
+      "ip_player": "MP",
+      "oop_player": "BB",
+      "harvest": [
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "MP"
+        }
+      ]
+    },
+    {
+      "id": "6max_cash_100bb_UTGvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range": "RFI_UTG_100.txt",
+      "ip_range_checksum": null,
+      "oop_range": "BBflat_vs_UTG_100.txt",
+      "oop_range_checksum": null,
+      "ip_player": "UTG",
+      "oop_player": "BB",
+      "harvest": [
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "UTG"
+        }
+      ]
+    }
+  ],
   "updated": "2026-07-24",
   "note": "Phase 4 safety hold. This file cannot authorize either solver host until every exact range, game-state, objective, and target input has passed the protected review and carries immutable checksums.",
   "release_gate": {
@@ -28,30 +146,129 @@
     ]
   },
   "phases": [
-    {"id": "6max_cash_100bb_BTNvsBB", "game_type": "6max_cash", "stack": 100, "street": "flop", "objective": "chip_ev",
-     "pot_chips": 550, "eff_chips": 9750, "rake": "0 0",
-     "accuracy_fraction": 0.005, "ip_range_checksum": null, "oop_range_checksum": null,
-     "ip_range": "RFI_BTN_100.txt", "oop_range": "BBflat_vs_BTN_100.txt",
-     "ip_player": "BTN", "oop_player": "BB", "streets": ["flop", "turn"],
-     "harvest": [{"node": "r:0", "hero": "OOP", "position": "BB"},
-                 {"node": "r:0:c", "hero": "IP", "position": "BTN"}]},
-    {"id": "6max_cash_100bb_COvsBB", "game_type": "6max_cash", "stack": 100, "street": "flop", "objective": "chip_ev",
-     "pot_chips": 550, "eff_chips": 9750, "rake": "0 0",
-     "accuracy_fraction": 0.005, "ip_range_checksum": null, "oop_range_checksum": null,
-     "ip_range": "RFI_CO_100.txt", "oop_range": "BBflat_vs_CO_100.txt",
-     "ip_player": "CO", "oop_player": "BB", "streets": ["flop", "turn"],
-     "harvest": [{"node": "r:0:c", "hero": "IP", "position": "CO"}]},
-    {"id": "6max_cash_100bb_MPvsBB", "game_type": "6max_cash", "stack": 100, "street": "flop", "objective": "chip_ev",
-     "pot_chips": 550, "eff_chips": 9750, "rake": "0 0",
-     "accuracy_fraction": 0.005, "ip_range_checksum": null, "oop_range_checksum": null,
-     "ip_range": "RFI_MP_100.txt", "oop_range": "BBflat_vs_MP_100.txt",
-     "ip_player": "MP", "oop_player": "BB", "streets": ["flop", "turn"],
-     "harvest": [{"node": "r:0:c", "hero": "IP", "position": "MP"}]},
-    {"id": "6max_cash_100bb_UTGvsBB", "game_type": "6max_cash", "stack": 100, "street": "flop", "objective": "chip_ev",
-     "pot_chips": 550, "eff_chips": 9750, "rake": "0 0",
-     "accuracy_fraction": 0.005, "ip_range_checksum": null, "oop_range_checksum": null,
-     "ip_range": "RFI_UTG_100.txt", "oop_range": "BBflat_vs_UTG_100.txt",
-     "ip_player": "UTG", "oop_player": "BB", "streets": ["flop", "turn"],
-     "harvest": [{"node": "r:0:c", "hero": "IP", "position": "UTG"}]}
-  ]
+    {
+      "id": "6max_cash_100bb_BTNvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range_checksum": null,
+      "oop_range_checksum": null,
+      "ip_range": "RFI_BTN_100.txt",
+      "oop_range": "BBflat_vs_BTN_100.txt",
+      "ip_player": "BTN",
+      "oop_player": "BB",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "harvest": [
+        {
+          "node": "r:0",
+          "hero": "OOP",
+          "position": "BB"
+        },
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "BTN"
+        }
+      ]
+    },
+    {
+      "id": "6max_cash_100bb_COvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range_checksum": null,
+      "oop_range_checksum": null,
+      "ip_range": "RFI_CO_100.txt",
+      "oop_range": "BBflat_vs_CO_100.txt",
+      "ip_player": "CO",
+      "oop_player": "BB",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "harvest": [
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "CO"
+        }
+      ]
+    },
+    {
+      "id": "6max_cash_100bb_MPvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range_checksum": null,
+      "oop_range_checksum": null,
+      "ip_range": "RFI_MP_100.txt",
+      "oop_range": "BBflat_vs_MP_100.txt",
+      "ip_player": "MP",
+      "oop_player": "BB",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "harvest": [
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "MP"
+        }
+      ]
+    },
+    {
+      "id": "6max_cash_100bb_UTGvsBB",
+      "game_type": "6max_cash",
+      "stack": 100,
+      "street": "flop",
+      "objective": "chip_ev",
+      "pot_chips": 550,
+      "eff_chips": 9750,
+      "rake": "0 0",
+      "accuracy_fraction": 0.005,
+      "ip_range_checksum": null,
+      "oop_range_checksum": null,
+      "ip_range": "RFI_UTG_100.txt",
+      "oop_range": "BBflat_vs_UTG_100.txt",
+      "ip_player": "UTG",
+      "oop_player": "BB",
+      "streets": [
+        "flop",
+        "turn"
+      ],
+      "harvest": [
+        {
+          "node": "r:0:c",
+          "hero": "IP",
+          "position": "UTG"
+        }
+      ]
+    }
+  ],
+  "pipeline_distribution": "controller-local-bundle.v1",
+  "pipeline_files_sha256": {
+    "run_machine.py": "9cc894828c16bf240c4ab3269a817a8abf40877359c0f353e63a1e8f2c12d115",
+    "tree_gen.py": "f38072c0888bff9204345c582e61fc35bda899ec5ca769c413d2a49e020753d4",
+    "pio_harvest.py": "371da761a2a529b2fb6508750aeff2f84d7950b02176806a07bfa382d60598a7",
+    "orchestrate.py": "bbc262f0cdb58fe211c89d363ac3c04db3e908374b59f5ed0359f2e653ea41ea"
+  }
 }

@@ -1,0 +1,14 @@
+{
+  "schema": "m1-child-environment-isolation.v1",
+  "parent_database_settings_present": true,
+  "child": {
+    "database_present": false,
+    "hmac_present": false
+  },
+  "child_exit_code": 0,
+  "method": "Explicit existing Windows runtime allowlist; actual Python child process inspected its own environment.",
+  "pio_started": false,
+  "worker_started": false,
+  "whole_host_credential_absence_claimed": false,
+  "secret_values_recorded": false
+}
