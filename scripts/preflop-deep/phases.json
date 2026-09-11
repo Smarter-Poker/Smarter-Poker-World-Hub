@@ -1,6 +1,6 @@
 {
   "version": 4,
-  "pipeline_bundle_checksum": "6b72f2f8dd4e50488c1c36d610b7da45fc057c5d8b1a4442fcda7378caa200e4",
+  "pipeline_bundle_checksum": "264f94e175ea4ac3137dadf0cd9ecb10ba04f5d9c3075d24c93e1374078809ea",
   "range_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "artifact_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "source_combo_order_schema": "piosolver.show_hand_order.v1",

@@ -18,10 +18,10 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
   {
     id: 'club-arena',
     color: '#ff9900',
-    label: 'Club Arena',
+    label: 'Poker Arena',
     gradient: ['#ffb347', '#cc7722'],
-    imageUrl: '/cards/club-arena.png?v=splash4',
-    description: 'JOIN PRIVATE CLUBS - COMPETE WITH PLAYERS FROM AROUND THE WORLD',
+    imageUrl: '/cards/poker-arena.png?v=frame2',
+    description: 'SHARK CLUB, DIAMOND ARENA AND YOUR JOINED CLUBS',
   },
   {
     id: 'bankroll-manager',
@@ -101,14 +101,6 @@ export const POKER_IQ_ORBS: OrbConfig[] = [
     gradient: ['#ff6b6b', '#c73d3d'],
     imageUrl: '/cards/social-media.png?v=splash4',
     description: 'STAY CONNECTED TO THE POKER WORLD - SHARE YOUR WINS, FOLLOW YOUR HEROES',
-  },
-  {
-    id: 'diamond-arena',
-    color: '#ffee00',
-    label: 'Diamond Arena',
-    gradient: ['#fff176', '#c9b000'],
-    imageUrl: '/cards/diamond-arena.png?v=splash4',
-    description: 'HIGH STAKES ACTION - PLAY FOR DIAMONDS AGAINST ELITE COMPETITION',
   },
   {
     id: 'video-library',

@@ -8,7 +8,6 @@ import { useEffect } from 'react';
 // Route to world ID mapping
 const ROUTE_TO_WORLD = {
     '/hub/social-media': 'social-hub',
-    '/hub/diamond-arena': 'diamond-arena',
     '/hub/trivia': 'trivia',
     '/hub/training': 'training',
     '/hub/news': 'news',

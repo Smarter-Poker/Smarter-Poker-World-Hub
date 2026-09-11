@@ -267,13 +267,74 @@ async function ingestArtifact(supabase, envelope, identity) {
     return result;
 }
 
-async function rowStates(supabase, payload) {
-    const query = supabase.rpc('training_solver_worker_row_states_v1', {
+async function rowStates(supabase, payload, worker) {
+    const query = supabase.rpc('training_solver_worker_row_states_v2', {
+        p_machine_id: worker.machine_id,
+        p_solver_version: worker.solver_version,
+        p_solver_binary_checksum: worker.solver_binary_checksum,
+        p_pipeline_commit: worker.pipeline_commit,
+        p_manifest_version: worker.manifest_version,
+        p_manifest_checksum: worker.manifest_checksum,
         p_scenario_hashes: payload.scenario_hashes,
     });
     const { data, error } = await executeBoundedDatabaseOperation(query);
     if (error) throw error;
-    if (!Array.isArray(data) || data.length > MAX_ROW_STATE_RESULTS) {
+    const requested = new Set(payload.scenario_hashes);
+    if (!Array.isArray(data) || data.length > MAX_ROW_STATE_RESULTS
+        || data.some((row) => {
+            const parsed = parseSolverScenarioHash(row?.scenario_hash);
+            const persistedNode = row?.node;
+            const persistedPosition = row?.hero_position;
+            const admissionMode = row?.admission_mode;
+            const targetRole = row?.canary_target_role;
+            const authorizedNode = row?.authorized_node;
+            const authorizedPosition = row?.authorized_hero_position;
+            return !UUID_V4.test(String(row?.id || ''))
+                || !requested.has(row?.scenario_hash)
+                || !parsed.ok
+                || parsed.identity.gameType !== row?.game_type
+                || parsed.identity.stackDepth !== row?.stack_depth
+                || parsed.identity.street !== row?.street
+                || typeof row?.admitted !== 'boolean'
+                || !Object.prototype.hasOwnProperty.call(row, 'node')
+                || !Object.prototype.hasOwnProperty.call(row, 'hero_position')
+                || !Object.prototype.hasOwnProperty.call(row, 'admission_mode')
+                || !Object.prototype.hasOwnProperty.call(row, 'partition_count')
+                || !Object.prototype.hasOwnProperty.call(row, 'partition_index')
+                || !Object.prototype.hasOwnProperty.call(row, 'canary_target_role')
+                || !Object.prototype.hasOwnProperty.call(row, 'authorized_node')
+                || !Object.prototype.hasOwnProperty.call(row, 'authorized_hero_position')
+                || typeof row?.canary_authorized !== 'boolean'
+                || (persistedNode !== null
+                    && (typeof persistedNode !== 'string'
+                        || persistedNode.length < 3
+                        || persistedNode.length > 4096))
+                || (persistedPosition !== null && !POSITION_SET.has(persistedPosition))
+                || (row.admitted
+                    && (persistedNode === null || persistedPosition === null))
+                || ![null, 'held', 'backlog', 'bounded_canary'].includes(admissionMode)
+                || (row.partition_count !== null
+                    && (!Number.isSafeInteger(row.partition_count)
+                        || row.partition_count < 1))
+                || (row.partition_index !== null
+                    && (!Number.isSafeInteger(row.partition_index)
+                        || row.partition_index < 0))
+                || ![null, 'parent', 'child'].includes(targetRole)
+                || (authorizedNode !== null
+                    && (typeof authorizedNode !== 'string'
+                        || authorizedNode.length < 3
+                        || authorizedNode.length > 4096))
+                || (authorizedPosition !== null
+                    && !POSITION_SET.has(authorizedPosition))
+                || (row.canary_authorized && (
+                    admissionMode !== 'bounded_canary'
+                    || row.partition_count !== 2
+                    || row.partition_index !== (worker.machine_id === 'M1' ? 0 : 1)
+                    || targetRole === null
+                    || authorizedNode === null
+                    || authorizedPosition === null
+                ));
+        })) {
         throw new Error('Solver row-state query returned an invalid result');
     }
     return data;
@@ -389,7 +450,7 @@ export default async function handler(req, res) {
             return res.status(409).json({ success: false, error: 'Solver worker nonce already consumed' });
         }
         if (envelope.operation === 'row_states') {
-            const rows = await rowStates(supabase, envelope.payload);
+            const rows = await rowStates(supabase, envelope.payload, envelope.worker);
             return res.status(200).json({ success: true, operation: envelope.operation, rows });
         }
         if (envelope.operation === 'board_page') {

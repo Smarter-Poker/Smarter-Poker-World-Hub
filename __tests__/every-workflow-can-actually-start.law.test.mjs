@@ -23,13 +23,27 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = join(ROOT, '.github/workflows');
 const FILES = readdirSync(DIR).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
+
+const CLUB_ARENA_RUNTIME_SIGNATURES = [
+  { label: 'Club Arena host path', pattern: /\/opt\/club-arena(?:\/|\b)/i },
+  { label: 'Club Arena engine image', pattern: /\bclub-arena-engine\b/i },
+  { label: 'Club Arena engine launcher', pattern: /\bengine-up\.sh\b/i },
+  { label: 'Club Arena maintenance flag', pattern: /\bMAINTENANCE_MODE\b/ },
+];
+
+function clubArenaRuntimeViolations(filename, source) {
+  return CLUB_ARENA_RUNTIME_SIGNATURES.flatMap(({ label, pattern }) => {
+    const lineIndex = source.split('\n').findIndex((line) => pattern.test(line));
+    return lineIndex === -1 ? [] : [`${filename}:${lineIndex + 1}  ${label}`];
+  });
+}
 
 // The complete set GitHub accepts in a `permissions:` block. Anything else is
 // a parse error, not a warning.
@@ -41,6 +55,44 @@ const PERMISSION_KEYS = new Set([
 
 test('there are workflows to check', () => {
   assert.ok(FILES.length > 10, `only found ${FILES.length} workflow files`);
+});
+
+test('the retired cross-repository Club Arena diagnostic stays deleted', () => {
+  assert.equal(
+    existsSync(join(DIR, 'agent-diagnostic.yml')),
+    false,
+    'World Hub must not own a workflow that changes Club Arena engine state'
+  );
+});
+
+test('World Hub workflows cannot mutate the Club Arena runtime', () => {
+  const violations = FILES.flatMap((filename) =>
+    clubArenaRuntimeViolations(filename, readFileSync(join(DIR, filename), 'utf8'))
+  );
+
+  assert.deepEqual(
+    violations,
+    [],
+    'Club Arena engine and environment changes belong to the sealed Club Arena ' +
+      'deployment authority, never a World Hub workflow:\n  ' + violations.join('\n  ')
+  );
+});
+
+test('the Club Arena runtime boundary recognizes the former bypass surface', () => {
+  const formerBypass = `
+    sed -i '/^MAINTENANCE_MODE=/s/^/#/' /opt/club-arena/server/.env
+    IMAGE=club-arena-engine:current /opt/club-arena/server/scripts/engine-up.sh
+  `;
+
+  assert.deepEqual(
+    clubArenaRuntimeViolations('former-agent-diagnostic.yml', formerBypass),
+    [
+      'former-agent-diagnostic.yml:2  Club Arena host path',
+      'former-agent-diagnostic.yml:3  Club Arena engine image',
+      'former-agent-diagnostic.yml:3  Club Arena engine launcher',
+      'former-agent-diagnostic.yml:2  Club Arena maintenance flag',
+    ]
+  );
 });
 
 // No YAML parser is a dependency of this repo and this law is not worth adding

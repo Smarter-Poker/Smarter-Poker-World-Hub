@@ -21,6 +21,7 @@
 
 import { Room, RoomEvent, Track, VideoPresets } from 'livekit-client';
 import { supabase } from '../lib/supabase';
+import * as READS from './liveStreamReads';
 import { getAccessToken, getFreshAccessToken } from '../lib/authUtils';
 import { busEmit } from '../engine/EventBus';
 
@@ -38,8 +39,10 @@ const RECONNECT_DELAY_MS = 2000;
 // client SELECT must therefore enumerate the safe-columns list (no `*`).
 // This constant matches the GRANT SELECT (...) column set in that migration.
 // The broadcaster's own code is fetched via fn_get_my_guest_invite_code RPC.
-const LIVE_STREAM_SAFE_COLS =
-  'id, broadcaster_id, title, description, thumbnail_url, status, viewer_count, started_at, ended_at, created_at, video_url, is_posted, is_draft, mime_type, livekit_room, slow_mode, peak_viewers, reaction_count, category, feed_post_id, preview_clip_url, preview_updated_at';
+// Moved to ./liveStreamReads on 2026-09-10 so pages that only LIST streams can
+// import it without pulling livekit-client. Re-exported here so every existing
+// caller of LiveStreamService.LIVE_STREAM_SAFE_COLS keeps working.
+const LIVE_STREAM_SAFE_COLS = READS.LIVE_STREAM_SAFE_COLS;
 
 /**
  * LiveStreamService v2 — LiveKit SFU
@@ -1649,80 +1652,19 @@ class LiveStreamService {
   // STATIC
   // ═══════════════════════════════════════════════════
 
+  // Delegates to ./liveStreamReads - see the note on LIVE_STREAM_SAFE_COLS.
   static async getLiveStreams() {
-    // BUG-FIX-LIVE-AUDIT (B3): use the get_visible_live_streams RPC which
-    // filters out streams from broadcasters the caller has blocked OR
-    // who have blocked the caller. The previous direct SELECT returned
-    // every live stream regardless of mutual blocks.
-    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_visible_live_streams');
-
-    if (!rpcErr && rpcData) {
-      // Reshape RPC rows to the same shape the rest of the app expects:
-      // { ...stream_columns, broadcaster: { id, username, full_name, avatar_url } }
-      return rpcData.map((r) => ({
-        id: r.id,
-        broadcaster_id: r.broadcaster_id,
-        title: r.title,
-        description: r.description,
-        thumbnail_url: r.thumbnail_url,
-        preview_clip_url: r.preview_clip_url,
-        preview_updated_at: r.preview_updated_at,
-        status: r.status,
-        viewer_count: r.viewer_count,
-        peak_viewers: r.peak_viewers,
-        reaction_count: r.reaction_count,
-        category: r.category,
-        started_at: r.started_at,
-        livekit_room: r.livekit_room,
-        broadcaster: {
-          id: r.broadcaster_id,
-          username: r.broadcaster_username,
-          full_name: r.broadcaster_full_name,
-          avatar_url: r.broadcaster_avatar,
-        },
-      }));
-    }
-
-    // Fallback: RPC missing (older dev DB) — direct SELECT, NO block filter.
-    // Production has the RPC; this branch only fires in mismatched envs.
-    if (rpcErr && (rpcErr.code === 'PGRST202' || rpcErr.message?.includes('not exist'))) {
-      console.warn(
-        '[LiveStreamService] get_visible_live_streams RPC missing - falling back to unfiltered SELECT'
-      );
-      const { data, error } = await supabase
-        .from('live_streams')
-        // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-        .select(
-          LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)'
-        )
-        .eq('status', 'live')
-        .order('started_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    }
-
-    if (rpcErr) throw rpcErr;
-    return [];
+    return READS.getLiveStreams();
   }
+
 
   static async getStream(streamId) {
-    const { data, error } = await supabase
-      .from('live_streams')
-      // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: safe-cols enumeration.
-      .select(LIVE_STREAM_SAFE_COLS + ', broadcaster:profiles(id, username, full_name, avatar_url)')
-      .eq('id', streamId)
-      .maybeSingle();
-    if (error) throw error;
-    return data || null;
+    return READS.getStream(streamId);
   }
 
+
   static async getStreamAnalytics(streamId) {
-    const { data } = await supabase
-      .from('live_stream_analytics')
-      .select('*')
-      .eq('id', streamId)
-      .maybeSingle();
-    return data || null;
+    return READS.getStreamAnalytics(streamId);
   }
 }
 

@@ -140,20 +140,6 @@ const WORLDS: WorldCase[] = [
     ]),
   },
   {
-    id: 'diamond-arena',
-    label: 'Diamond Arena',
-    path: '/hub/diamond-arena',
-    accent: '#ffe34d',
-    primary: items([
-      ['/hub/diamond-arena', 'Arena'],
-      ['/hub/diamond-arena/schedule', 'Schedule'],
-      ['/hub/diamond-arena/leaderboard', 'Ranks'],
-      ['/hub/diamond-arena/stats', 'Stats'],
-      ['/hub/diamond-arena/history', 'History'],
-      ['/hub/diamond-store', 'Store'],
-    ]),
-  },
-  {
     id: 'my-clubs',
     label: 'My Clubs',
     path: '/hub/my-clubs',
@@ -696,15 +682,14 @@ test('Toke Taxes opens for an empty account and closes without stale deep-link s
   await expect(page).not.toHaveURL(/tab=tax/);
 });
 
-test('Diamond Arena content never hides beneath its fixed world footer', async ({ page }) => {
-  await page.goto('/hub/diamond-arena', { waitUntil: 'domcontentloaded' });
-  const arena = page.locator('[data-diamond-arena-page="true"]');
-  const footer = page.locator('[data-global-bottom-nav="true"]');
-  await expect(arena).toBeVisible();
-  await expect(footer).toBeVisible();
-  await expect.poll(async () => {
-    const [arenaBox, footerBox] = await Promise.all([arena.boundingBox(), footer.boundingBox()]);
-    if (!arenaBox || !footerBox) return Number.POSITIVE_INFINITY;
-    return arenaBox.y + arenaBox.height - footerBox.y;
-  }).toBeLessThanOrEqual(1);
+test('retired standalone Diamond routes return 404 on desktop and mobile', async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    for (const path of ['/hub/diamond-arena', '/hub/diamond-arena/history']) {
+      const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
+      expect(response?.status()).toBe(404);
+      await expect(page.locator('iframe[title="Diamond Arena Live Poker Room"]')).toHaveCount(0);
+      await expect(page.locator('[data-diamond-arena-page="true"]')).toHaveCount(0);
+    }
+  }
 });

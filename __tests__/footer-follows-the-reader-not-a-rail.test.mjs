@@ -80,3 +80,18 @@ test('a scroller seen for the first time is seeded where it actually is', () => 
   );
   assert.match(SRC, /seed\(source, y\);\n\s*return;/, 'A first sample carries no direction, so it must decide nothing.');
 });
+
+test('a never-admitted small scroller cannot reveal a footer hidden by the document', () => {
+  assert.match(
+    SRC,
+    /const wasTracked = travel\.delete\(source\);\n\s*if \(wasTracked\) setHidden\(false\);/,
+    'A source below MIN_SCROLLER_RANGE must only run shrink recovery when it was ' +
+      'previously admitted as a meaningful vertical scroller. Otherwise a tiny rail ' +
+      'scroll can countermand document travel and reveal the footer.'
+  );
+  assert.doesNotMatch(
+    SRC,
+    /if \(limit < MIN_SCROLLER_RANGE\) \{\s*travel\.delete\(source\);\s*setHidden\(false\);/,
+    'Never unconditionally reveal for a below-threshold source.'
+  );
+});

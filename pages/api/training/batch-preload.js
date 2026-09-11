@@ -45,6 +45,13 @@ import {
 } from '../../../src/lib/training/questionSelectionContract.mjs';
 import { shuffleBalancedQuestionOrder } from '../../../src/lib/training/questionOrderContract.mjs';
 import {
+    selectPublicAttestationContinuationAnswerForStrictParent,
+    selectTrainingAttestationContinuationCohort,
+} from '../../../src/lib/training/trainingContinuationEligibility.mjs';
+import {
+    validateTrainingAttestationContinuationPrecommit,
+} from '../../../src/lib/training/trainingAttestationContinuationContract.mjs';
+import {
     buildTrainingCacheRow,
     cacheQuestionFromRow,
     cacheRowIsServingEligible,
@@ -123,8 +130,28 @@ export default async function handler(req, res) {
           handOrdinalStart: rawHandOrdinalStart,
           gameMode: rawGameMode,
           handSelection: rawHandSelection,
+          attestationContinuationRule: rawAttestationContinuationRule,
+          attestationContinuationPrecommit: rawAttestationContinuationPrecommit,
       } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
+      const attestationContinuationRequested =
+          rawAttestationContinuationRule !== undefined
+          || rawAttestationContinuationPrecommit !== undefined;
+
+      if (attestationContinuationRequested) {
+          const designatedAuditUserId = String(
+              process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID || '',
+          ).trim();
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+              designatedAuditUserId,
+          ) || String(_authUser.id) !== designatedAuditUserId) {
+              return res.status(403).json({
+                  success: false,
+                  error: 'This production attestation cohort is restricted to the designated audit account.',
+                  code: 'TRAINING_ATTESTATION_AUDIT_ACCOUNT_REQUIRED',
+              });
+          }
+      }
 
       if (!gameId) {
           return res.status(400).json({ success: false, error: 'gameId is required' });
@@ -151,7 +178,9 @@ export default async function handler(req, res) {
           // here lets one malformed row turn an otherwise healthy N-hand
           // attempt into an outage. Selective drills need a wider pool because
           // their street/frequency filter runs before canonical construction.
-          const candidateQuestionCount = handSelection === 'all'
+          const candidateQuestionCount = attestationContinuationRequested
+              ? 100
+              : handSelection === 'all'
               ? Math.min(100, Math.max(questionCount + 5, questionCount * 2))
               : Math.min(100, questionCount * 4);
           const handOrdinalStart = isSingleHandRecovery
@@ -175,10 +204,32 @@ export default async function handler(req, res) {
           const hasExplicitSessionId = Boolean(requestedSessionId);
           const trainingSessionId = requestedSessionId || createTrainingSessionId();
           const enforcedTargetStreet = gameMode === 'street' ? targetStreet : null;
+          const attestationContinuationPrecommit = attestationContinuationRequested
+              ? validateTrainingAttestationContinuationPrecommit({
+                  selectionRule: sanitizeParam(rawAttestationContinuationRule, 100),
+                  commitment: sanitizeParam(rawAttestationContinuationPrecommit, 64),
+                  sessionId: trainingSessionId,
+                  gameId,
+                  level: gameLevel,
+                  targetHands: attemptTargetHands,
+              })
+              : null;
+          const refuseUnavailableAttestationContinuationCohort = () => res.status(422).json({
+              success: false,
+              error: 'No exact 20-hand continuation cohort is available for this public precommit.',
+              code: 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE',
+          });
+          if (attestationContinuationRequested
+              && (!attestationContinuationPrecommit || isSingleHandRecovery)) {
+              return refuseUnavailableAttestationContinuationCohort();
+          }
           const attemptSelection = {
               gameMode,
               handSelection,
               targetStreet: enforcedTargetStreet,
+              ...(attestationContinuationPrecommit
+                  ? { attestationContinuationCohort: attestationContinuationPrecommit }
+                  : {}),
           };
 
           // A one-hand request is recovery, not a request to replace an
@@ -328,7 +379,8 @@ export default async function handler(req, res) {
           const cachedQuestions = usable.slice(0, candidateQuestionCount);
           let solverQuestions = [];
 
-          if (cachedQuestions.length < candidateQuestionCount) {
+          if (cachedQuestions.length < candidateQuestionCount
+              || attestationContinuationPrecommit) {
               const pioConfig = declaredCfg;
               const gameCfg = getGameCfg(gameId);
 
@@ -340,27 +392,47 @@ export default async function handler(req, res) {
                   // Inject service-role client so engine bypasses RLS
                   deterministicEngine.setSupabaseClient(getSupabase());
                   try {
-                      const needed = candidateQuestionCount - cachedQuestions.length;
+                      // A warm mutable cache can hold a full browsing pool
+                      // while containing zero exact continuation parents. The
+                      // audit cohort therefore performs one bounded, read-only
+                      // solver-catalog fetch even when cache capacity is full.
+                      const needed = attestationContinuationPrecommit
+                          ? 25
+                          : candidateQuestionCount - cachedQuestions.length;
                       const generationSeenIds = Array.from(new Set([
                           ...seenIds,
                           ...cachedQuestions.flatMap((row) => [row?.id, row?.question_data?.id]).filter(Boolean),
                       ]));
-                      const batch = await deterministicEngine.generateBatch({
-                          gameId,
-                          level: gameLevel,
-                          count: needed,
-                          gameConfig: pioConfig,
-                          // ●●● PHASE 15: Pass targeting hints ●●●
-                          targetPositions: targetPositions || (scenarioConfig?.positions) || undefined,
-                          targetStreet: targetStreet || undefined,
-                          // ●●● PHASE 19: Difficulty filter ●●●
-                          difficulty: difficulty || 'standard',
-                          // ●●● SOLVER SCENARIO MAP: Inject solver routing ●●●
-                          scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
-                          spotTypes: scenarioConfig?.spotTypes || undefined,
-                          stackDepths: scenarioConfig?.stackDepths || undefined,
-                          seenIds: generationSeenIds,
-                      });
+                      const batch = attestationContinuationPrecommit
+                          ? await deterministicEngine.generateAttestationContinuationParentCandidates({
+                              gameConfig: pioConfig,
+                              level: gameLevel,
+                              count: needed,
+                              targetStreet: targetStreet || undefined,
+                              acceptQuestion: (question) => Boolean(
+                                  selectPublicAttestationContinuationAnswerForStrictParent(
+                                      question,
+                                      attestationContinuationPrecommit,
+                                      difficulty,
+                                  ),
+                              ),
+                          })
+                          : await deterministicEngine.generateBatch({
+                              gameId,
+                              level: gameLevel,
+                              count: needed,
+                              gameConfig: pioConfig,
+                              // ●●● PHASE 15: Pass targeting hints ●●●
+                              targetPositions: targetPositions || (scenarioConfig?.positions) || undefined,
+                              targetStreet: targetStreet || undefined,
+                              // ●●● PHASE 19: Difficulty filter ●●●
+                              difficulty: difficulty || 'standard',
+                              // ●●● SOLVER SCENARIO MAP: Inject solver routing ●●●
+                              scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
+                              spotTypes: scenarioConfig?.spotTypes || undefined,
+                              stackDepths: scenarioConfig?.stackDepths || undefined,
+                              seenIds: generationSeenIds,
+                          });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch
                               .map(question => ({
@@ -407,6 +479,9 @@ export default async function handler(req, res) {
           if (allQuestions.length === 0) {
               // ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●
               console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} - engines returned empty.`);
+              if (attestationContinuationPrecommit) {
+                  return refuseUnavailableAttestationContinuationCohort();
+              }
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
 
@@ -450,6 +525,20 @@ export default async function handler(req, res) {
           // cryptographic shuffle removes the passive/even, aggressive/odd
           // side channel before the immutable attempt manifest is sealed.
           batch = shuffleBalancedQuestionOrder(batch);
+          if (attestationContinuationPrecommit && solverQuestions.length > 0) {
+              const includedQuestionIds = new Set(
+                  batch.map((row) => String(row?.question_data?.id || '')).filter(Boolean),
+              );
+              batch = [
+                  ...batch,
+                  ...solverQuestions.filter((row) => {
+                      const questionId = String(row?.question_data?.id || '');
+                      if (!questionId || includedQuestionIds.has(questionId)) return false;
+                      includedQuestionIds.add(questionId);
+                      return true;
+                  }),
+              ];
+          }
 
           // Cache truth owns the immutable grading policy and its persisted
           // receipt. It may classify a complete authored question, but it must
@@ -478,6 +567,9 @@ export default async function handler(req, res) {
           );
 
           if (configuredCandidates.length < questionCount) {
+              if (attestationContinuationPrecommit) {
+                  return refuseUnavailableAttestationContinuationCohort();
+              }
               return res.status(422).json({
                   success: false,
                   error: `Only ${configuredCandidates.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
@@ -517,7 +609,8 @@ export default async function handler(req, res) {
           const gameType = String(gameId).startsWith('mtt-') ? 'tournament'
               : String(gameId).startsWith('spins-') ? 'sng' : 'cash';
           for (const question of configuredCandidates) {
-              if (canonicalPairs.length >= questionCount) break;
+              if (!attestationContinuationPrecommit
+                  && canonicalPairs.length >= questionCount) break;
               const original = originalCacheRowByQuestionId.get(String(question?.id));
               const questionId = String(original?.question_id || question?.id || '');
               try {
@@ -546,7 +639,6 @@ export default async function handler(req, res) {
                   });
               }
           }
-          const canonicalRows = canonicalPairs.map(({ row }) => row);
 
           if (canonicalizeFailures.length > 0) {
               console.warn(
@@ -555,13 +647,46 @@ export default async function handler(req, res) {
                   `${JSON.stringify(canonicalizeFailures.slice(0, 5))}`
               );
           }
-          if (canonicalRows.length !== questionCount) {
+          if (canonicalPairs.length < questionCount) {
+              if (attestationContinuationPrecommit) {
+                  return refuseUnavailableAttestationContinuationCohort();
+              }
               return res.status(422).json({
                   success: false,
-                  error: `Only ${canonicalRows.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
+                  error: `Only ${canonicalPairs.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
                   code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
               });
           }
+
+          let selectedCanonicalPairs = canonicalPairs.slice(0, questionCount);
+          let attestationContinuationCohort = null;
+          if (attestationContinuationPrecommit) {
+              deterministicEngine.setSupabaseClient(getSupabase());
+              const cohort = await selectTrainingAttestationContinuationCohort({
+                  questionPairs: canonicalPairs,
+                  targetHands: questionCount,
+                  difficultyMode: difficulty,
+                  gameConfig: declaredCfg,
+                  precommit: attestationContinuationPrecommit,
+                  queryNextStreet: (request) => deterministicEngine.queryNextStreet(request),
+              });
+              if (!cohort) {
+                  return refuseUnavailableAttestationContinuationCohort();
+              }
+              selectedCanonicalPairs = [...cohort.questionPairs];
+              attestationContinuationCohort = cohort.publicContract;
+          }
+          if (selectedCanonicalPairs.length !== questionCount) {
+              if (attestationContinuationPrecommit) {
+                  return refuseUnavailableAttestationContinuationCohort();
+              }
+              return res.status(422).json({
+                  success: false,
+                  error: `Only ${selectedCanonicalPairs.length} of ${questionCount} questions satisfy this immutable drill configuration.`,
+                  code: 'TRAINING_ATTEMPT_QUESTION_SHORTFALL',
+              });
+          }
+          const canonicalRows = selectedCanonicalPairs.map(({ row }) => row);
 
           let servedBatch;
           try {
@@ -580,7 +705,7 @@ export default async function handler(req, res) {
               if (receiptByQuestionId.size !== canonicalRows.length) {
                   throw new Error('Database did not return one canonical receipt per question');
               }
-              servedBatch = canonicalPairs.map(({ row }) => {
+              servedBatch = selectedCanonicalPairs.map(({ row }) => {
                   const questionId = String(row.question_id);
                   return withPersistedCacheReceipt(
                       row.question_data,
@@ -637,7 +762,10 @@ export default async function handler(req, res) {
               sessionKind: delivery.sessionKind,
               targetHands: delivery.targetHands,
               count: delivery.questions.length,
-              questions: delivery.questions
+              questions: delivery.questions,
+              ...(attestationContinuationCohort
+                  ? { attestationContinuationCohort }
+                  : {}),
           });
 
       } catch (err) {

@@ -11,22 +11,22 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 331,
-    "componentFiles": 49,
+    "dependencyFiles": 334,
+    "componentFiles": 50,
     "hookFiles": 14,
-    "ctas": 342,
+    "ctas": 343,
     "dialogs": 12,
-    "persistenceFiles": 75,
+    "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 129,
-    "markerCandidates": 330,
-    "possibleUnwiredFunctions": 353,
+    "tests": 130,
+    "markerCandidates": 329,
+    "possibleUnwiredFunctions": 357,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 106,
+    "markerDocumentedFollowUp": 105,
     "functionPhaseReview": 0
   },
   "games": [
@@ -4599,6 +4599,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -4704,6 +4705,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/achievements.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -4734,6 +4736,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -5828,6 +5831,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -5911,6 +5915,7 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -5935,6 +5940,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -6197,6 +6203,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/GameBadge.jsx",
@@ -6296,6 +6303,7 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -6321,6 +6329,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -6430,6 +6439,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -6535,6 +6545,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/challenges.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -6566,6 +6577,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/challenges.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -6713,6 +6725,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -6793,6 +6806,7 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -6815,6 +6829,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -8110,6 +8125,7 @@
         "pages/hub/training/final-table-sim.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -8194,6 +8210,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/final-table-sim.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -8216,6 +8233,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -9332,6 +9350,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -9421,6 +9440,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-lab.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -9445,6 +9465,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -9829,6 +9850,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -9922,6 +9944,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/jarvis.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -9947,6 +9970,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -10058,6 +10082,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -10166,6 +10191,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/leaderboard.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -10198,6 +10224,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -10344,6 +10371,7 @@
         "pages/hub/training/live-hud-sync.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -10423,6 +10451,7 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -10445,6 +10474,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -11643,6 +11673,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/LevelSelector.tsx",
@@ -11754,6 +11785,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/play/[gameId].js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/LevelSelector.tsx",
@@ -11784,6 +11816,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/LevelSelector.tsx",
             "src/components/ui/UniversalHeader.js",
@@ -12404,6 +12437,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -12526,6 +12560,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/progress.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -12566,6 +12601,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/progress.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -12760,6 +12796,7 @@
         "pages/hub/training/pvp-lobby.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -12843,6 +12880,7 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -12867,6 +12905,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -15344,6 +15383,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -15443,6 +15483,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/streaks.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -15471,6 +15512,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/streaks.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -15593,6 +15635,7 @@
         "pages/hub/training/study-group.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -15690,6 +15733,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/study-group.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/training/ErrorBanner.js",
@@ -15717,6 +15761,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/ErrorBanner.js",
             "src/components/training/TrainerEmptyState.jsx",
@@ -16102,6 +16147,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -16181,6 +16227,7 @@
         "error": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -16203,6 +16250,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -16483,6 +16531,7 @@
         "pages/hub/training/tournament-prep.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -16572,6 +16621,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tournament-prep.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -16597,6 +16647,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -16716,6 +16767,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/transitions/PageTransition.js",
@@ -16806,6 +16858,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tournament/[id].js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -16830,6 +16883,7 @@
         "retry": {
           "status": "implemented-or-detected",
           "evidence": [
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/UniversalHeader.js",
             "src/components/ui/WorldCommandMenuBoundary.jsx",
@@ -16936,6 +16990,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -17038,6 +17093,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tournaments.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/store/StoreToast.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -17067,6 +17123,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/tournaments.js",
+            "src/components/store/DiamondInPlayBalance.jsx",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/training/TrainerEmptyState.jsx",
             "src/components/ui/UniversalHeader.js",
@@ -18276,6 +18333,8 @@
         "src/lib/training/sessionAttemptContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
         "src/utils/trainingApiUtils.js"
@@ -18316,15 +18375,15 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 56,
-          "references": 10,
+          "line": 63,
+          "references": 11,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 72,
+          "line": 79,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -18332,15 +18391,23 @@
         },
         {
           "name": "handler",
-          "line": 96,
+          "line": 103,
           "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "refuseUnavailableAttestationContinuationCohort",
+          "line": 217,
+          "references": 7,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "isAggressiveAnswer",
-          "line": 425,
+          "line": 500,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18351,7 +18418,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 275,
+          "line": 326,
           "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -18360,7 +18427,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 377,
+          "line": 449,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18368,7 +18435,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 408,
+          "line": 480,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18376,7 +18443,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 490,
+          "line": 582,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -18384,7 +18451,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 502,
+          "line": 594,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -20420,16 +20487,13 @@
         "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
-        "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
         "src/lib/training/gradingReceipt.mjs",
-        "src/lib/training/questionContract.mjs",
-        "src/lib/training/solverPolicyContract.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
-        "src/utils/trainingApiUtils.js",
-        "src/utils/v2Matrix.js"
+        "src/utils/trainingApiUtils.js"
       ],
       "links": [],
       "apiReferences": [],
@@ -20442,7 +20506,7 @@
       },
       "states": {
         "loading": false,
-        "empty": true,
+        "empty": false,
         "error": true,
         "retry": false,
         "offline": false,
@@ -20467,103 +20531,15 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 40,
+          "line": 56,
           "references": 12,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "parseCards",
-          "line": 64,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "firstCardSet",
-          "line": 74,
-          "references": 5,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "authoritativeHandState",
-          "line": 82,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "parseContinuationNode",
-          "line": 142,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "canonicalSolverScenarioHash",
-          "line": 161,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "canonicalContinuationPolicyMatchesQuestion",
-          "line": 178,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "validatePersistedContinuationDecision",
-          "line": 249,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "buildExactContinuationLineage",
-          "line": 303,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "bindExactContinuationQuestion",
-          "line": 417,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "deterministicCardOrderValue",
-          "line": 477,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "orderDeterministicEducationalCards",
-          "line": 490,
-          "references": 2,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "readSnapshot",
-          "line": 522,
+          "line": 67,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20571,7 +20547,7 @@
         },
         {
           "name": "receiptErrorResponse",
-          "line": 533,
+          "line": 78,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -20579,18 +20555,10 @@
         },
         {
           "name": "handler",
-          "line": 541,
+          "line": 86,
           "references": 1,
           "exported": true,
           "defaultExport": true,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "normalize",
-          "line": 65,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
@@ -20988,7 +20956,7 @@
         },
         {
           "name": "handler",
-          "line": 252,
+          "line": 262,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -20996,7 +20964,7 @@
         },
         {
           "name": "storedOr",
-          "line": 184,
+          "line": 194,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -21009,7 +20977,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 184,
+          "line": 194,
           "excerpt": "const storedOr = (column, metadataKey, fallback) => {",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -21017,7 +20985,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 187,
+          "line": 197,
           "excerpt": "return fallback;",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -21898,7 +21866,7 @@
         },
         {
           "name": "boardPage",
-          "line": 282,
+          "line": 343,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21906,7 +21874,7 @@
         },
         {
           "name": "heartbeat",
-          "line": 307,
+          "line": 368,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -21914,7 +21882,7 @@
         },
         {
           "name": "handler",
-          "line": 322,
+          "line": 383,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -35638,9 +35606,90 @@
       "markers": []
     },
     {
+      "file": "src/components/store/DiamondInPlayBalance.jsx",
+      "imports": [
+        "src/lib/supabase.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [
+        {
+          "element": "button",
+          "name": "Retry Balance",
+          "line": 56,
+          "handler": "() => setRetry((v) => v + 1)",
+          "destination": null,
+          "type": null,
+          "disabled": null,
+          "wiring": "handler"
+        }
+      ],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": true,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 1
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "DiamondInPlayBalance",
+          "line": 4,
+          "references": 1,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "refresh",
+          "line": 11,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "onVisible",
+          "line": 29,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "DiamondInPlayBalance"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/components/store/DiamondWalletModal.jsx",
       "imports": [
         "src/components/diamonds/CapHitPopup.jsx",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/StoreToast.jsx",
         "src/engine/EventBus.js",
         "src/lib/authUtils.js",
@@ -35662,7 +35711,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 1750,
+          "line": 1737,
           "handler": "onClose",
           "destination": null,
           "type": null,
@@ -35672,7 +35721,7 @@
         {
           "element": "button",
           "name": "Buy Diamonds",
-          "line": 1846,
+          "line": 1834,
           "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
           "destination": null,
           "type": "button",
@@ -35682,8 +35731,8 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1867,
-          "handler": "() => {\n                showStoreToast(\n                  'info',\n                  'Transfers Are Off. Diamonds Cannot Be Sent Directly To Another Player, But You Can Still Send Gifts During A Live Stream.'\n                );\n              }",
+          "line": 1846,
+          "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
           "destination": null,
           "type": "button",
           "disabled": null,
@@ -35692,7 +35741,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 1912,
+          "line": 1889,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -35702,7 +35751,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1952,
+          "line": 1929,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -35712,7 +35761,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1974,
+          "line": 1951,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -35722,7 +35771,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2074,
+          "line": 2049,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": null,
@@ -35732,7 +35781,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2105,
+          "line": 2080,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": null,
@@ -35742,7 +35791,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2171,
+          "line": 2146,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": null,
@@ -35752,7 +35801,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2242,
+          "line": 2217,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": null,
@@ -35762,7 +35811,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2387,
+          "line": 2362,
           "handler": "handleTransfer",
           "destination": null,
           "type": null,
@@ -35772,7 +35821,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2508,
+          "line": 2483,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": null,
@@ -35782,7 +35831,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2524,
+          "line": 2499,
           "handler": "handleTransfer",
           "destination": null,
           "type": null,
@@ -35792,7 +35841,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2996,
+          "line": 2971,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": null,
@@ -35802,7 +35851,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 3051,
+          "line": 3026,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -35812,7 +35861,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 3074,
+          "line": 3049,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": null,
@@ -35822,7 +35871,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 3266,
+          "line": 3241,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": null,
@@ -35832,7 +35881,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 3302,
+          "line": 3277,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": null,
@@ -35872,7 +35921,7 @@
       "functions": [
         {
           "name": "getPersistedRecipients",
-          "line": 215,
+          "line": 216,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35880,7 +35929,7 @@
         },
         {
           "name": "persistRecipients",
-          "line": 224,
+          "line": 225,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35888,7 +35937,7 @@
         },
         {
           "name": "parseRateLimitError",
-          "line": 233,
+          "line": 234,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35896,7 +35945,7 @@
         },
         {
           "name": "copyReceiptToClipboard",
-          "line": 274,
+          "line": 275,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -35904,7 +35953,7 @@
         },
         {
           "name": "showConfettiAnimation",
-          "line": 290,
+          "line": 291,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -35912,7 +35961,7 @@
         },
         {
           "name": "getCachedTransactions",
-          "line": 502,
+          "line": 503,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35920,7 +35969,7 @@
         },
         {
           "name": "setCachedTransactions",
-          "line": 518,
+          "line": 519,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35928,7 +35977,7 @@
         },
         {
           "name": "getCachedBalance",
-          "line": 550,
+          "line": 551,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -35936,7 +35985,7 @@
         },
         {
           "name": "getDateGroup",
-          "line": 564,
+          "line": 565,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35944,7 +35993,7 @@
         },
         {
           "name": "getSkeletonCount",
-          "line": 582,
+          "line": 583,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35952,7 +36001,7 @@
         },
         {
           "name": "useAnimatedCounter",
-          "line": 674,
+          "line": 675,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35960,7 +36009,7 @@
         },
         {
           "name": "DiamondWalletModal",
-          "line": 718,
+          "line": 719,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -35968,7 +36017,7 @@
         },
         {
           "name": "WalletDescription",
-          "line": 257,
+          "line": 258,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -35976,7 +36025,7 @@
         },
         {
           "name": "EmptyStateDiamond",
-          "line": 309,
+          "line": 310,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35984,7 +36033,7 @@
         },
         {
           "name": "DonutChart",
-          "line": 375,
+          "line": 376,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -35992,7 +36041,7 @@
         },
         {
           "name": "SkeletonRow",
-          "line": 590,
+          "line": 591,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36000,7 +36049,7 @@
         },
         {
           "name": "tick",
-          "line": 696,
+          "line": 697,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36008,7 +36057,7 @@
         },
         {
           "name": "handleBalanceRefresh",
-          "line": 825,
+          "line": 826,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36016,7 +36065,7 @@
         },
         {
           "name": "handleBusEvent",
-          "line": 857,
+          "line": 858,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36024,7 +36073,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 1123,
+          "line": 1124,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36034,17 +36083,8 @@
       "possibleUnwiredFunctions": [],
       "markers": [
         {
-          "kind": "FALLBACK",
-          "line": 1342,
-          "excerpt": "// Legacy fallback: include newBalance so listeners don't fall back to stale cache",
-          "disposition": "runtime-resilience-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 15,
-          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-        },
-        {
           "kind": "PLACEHOLDER",
-          "line": 1495,
+          "line": 1482,
           "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36052,7 +36092,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1907,
+          "line": 1884,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36060,7 +36100,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2156,
+          "line": 2131,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36068,7 +36108,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2372,
+          "line": 2347,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -41450,7 +41490,7 @@
       "functions": [
         {
           "name": "applyWorldMenuDeck",
-          "line": 1441,
+          "line": 1407,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -41458,7 +41498,7 @@
         },
         {
           "name": "getMenuConfig",
-          "line": 1476,
+          "line": 1442,
           "references": 10,
           "exported": true,
           "defaultExport": false,
@@ -41466,7 +41506,7 @@
         },
         {
           "name": "getMenuConfigForPath",
-          "line": 1514,
+          "line": 1480,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41490,7 +41530,7 @@
         },
         {
           "name": "hasItemWithId",
-          "line": 1389,
+          "line": 1355,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -41498,7 +41538,7 @@
         },
         {
           "name": "worldPrimaryDeck",
-          "line": 1391,
+          "line": 1357,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41506,7 +41546,7 @@
         },
         {
           "name": "removePrimaryDuplicates",
-          "line": 1420,
+          "line": 1386,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41520,7 +41560,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 341,
+          "line": 336,
           "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -41923,7 +41963,7 @@
       "functions": [
         {
           "name": "getWorldMenuStyleVariables",
-          "line": 155,
+          "line": 146,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41931,7 +41971,7 @@
         },
         {
           "name": "cleanPath",
-          "line": 175,
+          "line": 166,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -41939,7 +41979,7 @@
         },
         {
           "name": "getWorldMenuById",
-          "line": 201,
+          "line": 192,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41947,7 +41987,7 @@
         },
         {
           "name": "getWorldMenuByKey",
-          "line": 202,
+          "line": 193,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41955,7 +41995,7 @@
         },
         {
           "name": "resolveWorldMenu",
-          "line": 204,
+          "line": 195,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41963,7 +42003,7 @@
         },
         {
           "name": "getWorldMenuInventory",
-          "line": 240,
+          "line": 231,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -41989,7 +42029,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 51,
+          "line": 49,
           "excerpt": "* artwork. Keeping the materials here gives the drawer, fallback trigger, and",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -44916,7 +44956,7 @@
         {
           "name": "fetchAdmittedSolverCandidates",
           "line": 83,
-          "references": 3,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -44948,7 +44988,7 @@
         {
           "name": "prepareSolverScenarioRow",
           "line": 215,
-          "references": 4,
+          "references": 5,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -45058,8 +45098,16 @@
           "namedFunctionExpression": true
         },
         {
+          "name": "generateAttestationContinuationParentCandidates",
+          "line": 649,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": true
+        },
+        {
           "name": "patchedFetchSolverPool",
-          "line": 640,
+          "line": 708,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45067,7 +45115,7 @@
         },
         {
           "name": "patchedBuild",
-          "line": 720,
+          "line": 788,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45075,7 +45123,7 @@
         },
         {
           "name": "patchedQueryNextStreet",
-          "line": 779,
+          "line": 847,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45091,7 +45139,7 @@
         },
         {
           "name": "attachCanonicalPolicy",
-          "line": 734,
+          "line": 802,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -45099,7 +45147,7 @@
         },
         {
           "name": "sameRelease",
-          "line": 802,
+          "line": 870,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -46334,7 +46382,7 @@
         {
           "name": "UnreadProvider",
           "line": 51,
-          "references": 8,
+          "references": 9,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -46342,15 +46390,7 @@
         {
           "name": "useUnreadCount",
           "line": 358,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "UnreadBadge",
-          "line": 363,
-          "references": 1,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -46404,10 +46444,7 @@
           "namedFunctionExpression": false
         }
       ],
-      "possibleUnwiredFunctions": [
-        "useUnreadCount",
-        "UnreadBadge"
-      ],
+      "possibleUnwiredFunctions": [],
       "markers": [
         {
           "kind": "FALLBACK",
@@ -54577,6 +54614,295 @@
       ]
     },
     {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 1,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "publicOptionId",
+          "line": 9,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isPublicThreeQuarterPotAggression",
+          "line": 13,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectPublicAttestationContinuationAnswer",
+          "line": 25,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildTrainingAttestationContinuationPrecommit",
+          "line": 35,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validateTrainingAttestationContinuationPrecommit",
+          "line": 70,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "isTrainingAttestationContinuationPrecommit",
+          "line": 92,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "selectPublicAttestationContinuationAnswer",
+        "validateTrainingAttestationContinuationPrecommit",
+        "isTrainingAttestationContinuationPrecommit"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/training/trainingContinuationEligibility.mjs",
+      "imports": [
+        "src/engines/deterministicEnginePatches.js",
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/difficultyQuestionContract.mjs",
+        "src/lib/training/questionContract.mjs",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/utils/v2Matrix.js"
+      ],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "parseCards",
+          "line": 26,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "firstCardSet",
+          "line": 36,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "authoritativeHandState",
+          "line": 44,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parseContinuationNode",
+          "line": 104,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "canonicalSolverScenarioHash",
+          "line": 123,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "canonicalContinuationPolicyMatchesQuestion",
+          "line": 140,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validatePersistedContinuationDecision",
+          "line": 211,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validatePersistedContinuationDecisionForDifficulty",
+          "line": 269,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildExactContinuationLineage",
+          "line": 306,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "bindExactContinuationQuestion",
+          "line": 420,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validateStrictTrainingContinuationSnapshotPair",
+          "line": 485,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "deterministicCardOrderValue",
+          "line": 547,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "orderDeterministicEducationalCards",
+          "line": 560,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "continuationFailure",
+          "line": 592,
+          "references": 14,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectPublicAttestationContinuationAnswerForStrictParent",
+          "line": 601,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "resolveStrictTrainingContinuation",
+          "line": 629,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectTrainingAttestationContinuationCohort",
+          "line": 763,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "normalize",
+          "line": 27,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "validateStrictTrainingContinuationSnapshotPair",
+        "selectTrainingAttestationContinuationCohort"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/training/trainingPersistence.mjs",
       "imports": [
         "src/lib/supabaseRetry.js"
@@ -56883,6 +57209,14 @@
     },
     {
       "from": "pages/api/training/batch-preload.js",
+      "to": "src/lib/training/trainingAttestationContinuationContract.mjs"
+    },
+    {
+      "from": "pages/api/training/batch-preload.js",
+      "to": "src/lib/training/trainingContinuationEligibility.mjs"
+    },
+    {
+      "from": "pages/api/training/batch-preload.js",
       "to": "src/lib/training/trainingPersistence.mjs"
     },
     {
@@ -57423,10 +57757,6 @@
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/training/cacheTruthContract.mjs"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
       "to": "src/lib/training/cacheTruthPersistence.mjs"
     },
     {
@@ -57435,15 +57765,11 @@
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/training/questionContract.mjs"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
-      "to": "src/lib/training/solverPolicyContract.js"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
       "to": "src/lib/training/trainingAttemptDelivery.mjs"
+    },
+    {
+      "from": "pages/api/training/next-street.js",
+      "to": "src/lib/training/trainingContinuationEligibility.mjs"
     },
     {
       "from": "pages/api/training/next-street.js",
@@ -57456,10 +57782,6 @@
     {
       "from": "pages/api/training/next-street.js",
       "to": "src/utils/trainingApiUtils.js"
-    },
-    {
-      "from": "pages/api/training/next-street.js",
-      "to": "src/utils/v2Matrix.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
@@ -59550,8 +59872,16 @@
       "to": "src/stores/toastStore.js"
     },
     {
+      "from": "src/components/store/DiamondInPlayBalance.jsx",
+      "to": "src/lib/supabase.js"
+    },
+    {
       "from": "src/components/store/DiamondWalletModal.jsx",
       "to": "src/components/diamonds/CapHitPopup.jsx"
+    },
+    {
+      "from": "src/components/store/DiamondWalletModal.jsx",
+      "to": "src/components/store/DiamondInPlayBalance.jsx"
     },
     {
       "from": "src/components/store/DiamondWalletModal.jsx",
@@ -60506,6 +60836,34 @@
       "to": "src/lib/training/trainingPersistence.mjs"
     },
     {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/engines/deterministicEnginePatches.js"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/cacheTruthContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/difficultyQuestionContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/questionContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/solverPolicyContract.js"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/lib/training/trainingAttestationContinuationContract.mjs"
+    },
+    {
+      "from": "src/lib/training/trainingContinuationEligibility.mjs",
+      "to": "src/utils/v2Matrix.js"
+    },
+    {
       "from": "src/lib/training/trainingPersistence.mjs",
       "to": "src/lib/supabaseRetry.js"
     },
@@ -60576,6 +60934,7 @@
     "src/components/poker/QuizAnswer.jsx",
     "src/components/sandbox/paTokens.js",
     "src/components/seo/SEOHead.js",
+    "src/components/store/DiamondInPlayBalance.jsx",
     "src/components/store/DiamondWalletModal.jsx",
     "src/components/store/StoreToast.jsx",
     "src/components/training/BlockerScorePanel.jsx",
@@ -60741,6 +61100,7 @@
     "__tests__/training-skill-tree-zero-xp-authority.test.mjs",
     "__tests__/training-solutions-v2-authority.test.mjs",
     "__tests__/training-solved-spots-warehouse-audit.test.mjs",
+    "__tests__/training-solver-bounded-canary.test.mjs",
     "__tests__/training-solver-contract.test.mjs",
     "__tests__/training-solver-row-identity.test.mjs",
     "__tests__/training-solver-worker-ingestion.test.mjs",
@@ -61184,6 +61544,17 @@
       }
     },
     {
+      "file": "src/components/store/DiamondInPlayBalance.jsx",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 1
+      }
+    },
+    {
       "file": "src/components/store/DiamondWalletModal.jsx",
       "writes": {
         "localStorage": 6,
@@ -61533,6 +61904,17 @@
         "updates": 2,
         "deletes": 0,
         "rpc": 5
+      }
+    },
+    {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "writes": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 1,
+        "deletes": 0,
+        "rpc": 0
       }
     },
     {
@@ -64431,11 +64813,24 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1750:1",
+      "id": "src/components/store/DiamondInPlayBalance.jsx:56:1",
+      "file": "src/components/store/DiamondInPlayBalance.jsx",
+      "element": "button",
+      "name": "Retry Balance",
+      "line": 56,
+      "handler": "() => setRetry((v) => v + 1)",
+      "destination": null,
+      "type": null,
+      "disabled": null,
+      "wiring": "handler",
+      "effectRef": "src/components/store/DiamondInPlayBalance.jsx"
+    },
+    {
+      "id": "src/components/store/DiamondWalletModal.jsx:1737:1",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Close",
-      "line": 1750,
+      "line": 1737,
       "handler": "onClose",
       "destination": null,
       "type": null,
@@ -64444,11 +64839,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1846:2",
+      "id": "src/components/store/DiamondWalletModal.jsx:1834:2",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Buy Diamonds",
-      "line": 1846,
+      "line": 1834,
       "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
       "destination": null,
       "type": "button",
@@ -64457,12 +64852,12 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1867:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1846:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1867,
-      "handler": "() => {\n                showStoreToast(\n                  'info',\n                  'Transfers Are Off. Diamonds Cannot Be Sent Directly To Another Player, But You Can Still Send Gifts During A Live Stream.'\n                );\n              }",
+      "line": 1846,
+      "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
       "destination": null,
       "type": "button",
       "disabled": null,
@@ -64470,11 +64865,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1912:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1889:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 1912,
+      "line": 1889,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -64483,11 +64878,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1952:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1929:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1952,
+      "line": 1929,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -64496,11 +64891,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1974:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1951:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1974,
+      "line": 1951,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -64509,11 +64904,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2074:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:2049:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2074,
+      "line": 2049,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": null,
@@ -64522,11 +64917,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2105:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:2080:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2105,
+      "line": 2080,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": null,
@@ -64535,11 +64930,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2171:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:2146:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2171,
+      "line": 2146,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": null,
@@ -64548,11 +64943,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2242:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:2217:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2242,
+      "line": 2217,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": null,
@@ -64561,11 +64956,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2387:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:2362:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2387,
+      "line": 2362,
       "handler": "handleTransfer",
       "destination": null,
       "type": null,
@@ -64574,11 +64969,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2508:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2483:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2508,
+      "line": 2483,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": null,
@@ -64587,11 +64982,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2524:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2499:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2524,
+      "line": 2499,
       "handler": "handleTransfer",
       "destination": null,
       "type": null,
@@ -64600,11 +64995,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2996:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2971:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2996,
+      "line": 2971,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": null,
@@ -64613,11 +65008,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3051:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:3026:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 3051,
+      "line": 3026,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -64626,11 +65021,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3074:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:3049:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 3074,
+      "line": 3049,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": null,
@@ -64639,11 +65034,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3266:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:3241:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 3266,
+      "line": 3241,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": null,
@@ -64652,11 +65047,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:3302:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:3277:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 3302,
+      "line": 3277,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": null,
@@ -66361,6 +66756,8 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
         "src/services/SolverPolicyService.js",
@@ -66445,6 +66842,17 @@
             "updates": 2,
             "deletes": 0,
             "rpc": 5
+          }
+        },
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -67434,6 +67842,8 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
         "src/services/PIOQueryService.js",
         "src/services/SolverPolicyService.js",
@@ -67518,6 +67928,17 @@
             "updates": 2,
             "deletes": 0,
             "rpc": 5
+          }
+        },
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
           }
         },
         {
@@ -68635,6 +69056,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -68704,6 +69126,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -69464,6 +69897,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -69526,6 +69960,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -69785,6 +70230,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/GameBadge.jsx",
@@ -69858,6 +70304,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -70104,6 +70561,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -70172,6 +70630,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -70411,6 +70880,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -70474,6 +70944,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -71076,6 +71557,7 @@
         "pages/hub/training/final-table-sim.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -71142,6 +71624,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -71667,6 +72160,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/poker/PlayingCard.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -71734,6 +72228,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -72078,6 +72583,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -72146,6 +72652,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -72381,6 +72898,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -72451,6 +72969,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -72701,6 +73230,7 @@
         "pages/hub/training/live-hud-sync.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -72763,6 +73293,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -73440,6 +73981,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/LevelSelector.tsx",
@@ -73517,6 +74059,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -73980,6 +74533,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -74048,6 +74602,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -74292,6 +74857,7 @@
         "pages/hub/training/pvp-lobby.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -74354,6 +74920,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -75553,6 +76130,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -75622,6 +76200,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -75905,6 +76494,7 @@
         "pages/hub/training/study-group.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -75973,6 +76563,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -76265,6 +76866,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -76327,6 +76929,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -76619,6 +77232,7 @@
         "pages/hub/training/tournament-prep.js",
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -76685,6 +77299,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -76921,6 +77546,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/transitions/PageTransition.js",
@@ -76987,6 +77613,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -77222,6 +77859,7 @@
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
         "src/components/seo/SEOHead.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/training/ConnectionToast.js",
@@ -77291,6 +77929,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -77898,9 +78547,33 @@
       "tests": []
     },
     {
+      "file": "src/components/store/DiamondInPlayBalance.jsx",
+      "reachableFiles": [
+        "src/components/store/DiamondInPlayBalance.jsx",
+        "src/lib/supabase.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/components/store/DiamondWalletModal.jsx",
       "reachableFiles": [
         "src/components/diamonds/CapHitPopup.jsx",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/engine/EventBus.js",
@@ -77922,6 +78595,17 @@
         "/api/training/save-session"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -79358,6 +80042,7 @@
       "reachableFiles": [
         "src/components/diamonds/CapHitPopup.jsx",
         "src/components/sandbox/paTokens.js",
+        "src/components/store/DiamondInPlayBalance.jsx",
         "src/components/store/DiamondWalletModal.jsx",
         "src/components/store/StoreToast.jsx",
         "src/components/ui/GeevesMenuWidget.jsx",
@@ -79420,6 +80105,17 @@
         "/api/vip/check-status"
       ],
       "persistence": [
+        {
+          "file": "src/components/store/DiamondInPlayBalance.jsx",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
         {
           "file": "src/components/store/DiamondWalletModal.jsx",
           "writes": {
@@ -81703,7 +82399,8 @@
       "tests": [
         "__tests__/training-answer-grading-contract.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
-        "__tests__/training-daily-challenge-authority.test.mjs"
+        "__tests__/training-daily-challenge-authority.test.mjs",
+        "__tests__/training-next-street-authority.test.mjs"
       ]
     },
     {
@@ -82086,6 +82783,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
@@ -82116,6 +82814,7 @@
         "__tests__/leak-engine-wiring.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-question-delivery-authority.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
@@ -82236,10 +82935,103 @@
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-phase6-truth-closeout.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-question-delivery-authority.test.mjs",
         "__tests__/training-reissue-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-single-question-recovery-contract.test.mjs"
+      ]
+    },
+    {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "reachableFiles": [
+        "src/lib/training/trainingAttestationContinuationContract.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-batch-canonical-replacement.test.mjs",
+        "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs"
+      ]
+    },
+    {
+      "file": "src/lib/training/trainingContinuationEligibility.mjs",
+      "reachableFiles": [
+        "src/engines/DifficultyEngine.js",
+        "src/engines/deterministicEnginePatches.js",
+        "src/engines/positionOrder.js",
+        "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/customSolverSpotContract.mjs",
+        "src/lib/training/difficultyQuestionContract.mjs",
+        "src/lib/training/questionContract.mjs",
+        "src/lib/training/solverDecisionEvidence.js",
+        "src/lib/training/solverMatrixTrust.js",
+        "src/lib/training/solverPolicyContract.js",
+        "src/lib/training/solverRowIdentity.mjs",
+        "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "src/lib/training/trainingContinuationEligibility.mjs",
+        "src/services/SolverPolicyService.js",
+        "src/utils/actionGrouper.js",
+        "src/utils/trainingApiUtils.js",
+        "src/utils/v2Matrix.js"
+      ],
+      "apiReferences": [],
+      "persistence": [
+        {
+          "file": "src/engines/deterministicEnginePatches.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        },
+        {
+          "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 1,
+            "deletes": 0,
+            "rpc": 0
+          }
+        },
+        {
+          "file": "src/services/SolverPolicyService.js",
+          "writes": {
+            "localStorage": 0,
+            "sessionStorage": 0,
+            "inserts": 0,
+            "updates": 0,
+            "deletes": 0,
+            "rpc": 1
+          }
+        }
+      ],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-batch-canonical-replacement.test.mjs",
+        "__tests__/training-next-street-authority.test.mjs",
+        "__tests__/training-production-delivery-attestation.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs"
       ]
     },
     {
@@ -82324,6 +83116,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-retired-legacy-solver-surfaces.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
       ]
@@ -82605,7 +83398,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 275,
+        "line": 326,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -82615,7 +83408,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 377,
+        "line": 449,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -82624,7 +83417,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 408,
+        "line": 480,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -82633,7 +83426,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 490,
+        "line": 582,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -82642,7 +83435,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 502,
+        "line": 594,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -82772,7 +83565,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 184,
+        "line": 194,
         "excerpt": "const storedOr = (column, metadataKey, fallback) => {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -82781,7 +83574,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 187,
+        "line": 197,
         "excerpt": "return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -83403,18 +84196,8 @@
       },
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
-        "kind": "FALLBACK",
-        "line": 1342,
-        "excerpt": "// Legacy fallback: include newBalance so listeners don't fall back to stale cache",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1495,
+        "line": 1482,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -83423,7 +84206,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1907,
+        "line": 1884,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -83432,7 +84215,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2156,
+        "line": 2131,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -83441,7 +84224,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2372,
+        "line": 2347,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84005,7 +84788,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 341,
+        "line": 336,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84062,7 +84845,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "kind": "FALLBACK",
-        "line": 51,
+        "line": 49,
         "excerpt": "* artwork. Keeping the materials here gives the drawer, fallback trigger, and",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -86008,7 +86791,7 @@
       {
         "file": "pages/api/training/next-street.js",
         "name": "handler",
-        "line": 541,
+        "line": 86,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -86060,7 +86843,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "name": "handler",
-        "line": 252,
+        "line": 262,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -86190,7 +86973,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 322,
+        "line": 383,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -87605,6 +88388,21 @@
         ]
       },
       {
+        "file": "src/components/store/DiamondInPlayBalance.jsx",
+        "name": "DiamondInPlayBalance",
+        "line": 4,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/store/DiamondWalletModal.jsx"
+        ]
+      },
+      {
         "file": "src/components/training/BlockerScorePanel.jsx",
         "name": "BlockerScorePanel",
         "line": 183,
@@ -87960,12 +88758,6 @@
           "pages/hub/avatars.js",
           "pages/hub/bankroll-manager.js",
           "pages/hub/bankroll-manager/export.js",
-          "pages/hub/diamond-arena.js",
-          "pages/hub/diamond-arena/history.js",
-          "pages/hub/diamond-arena/leaderboard.js",
-          "pages/hub/diamond-arena/schedule.js",
-          "pages/hub/diamond-arena/stats.js",
-          "pages/hub/diamond-arena/table-settings.js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
           "pages/hub/diamond-store/orders.js",
@@ -88144,7 +88936,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1514,
+        "line": 1480,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88411,7 +89203,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuStyleVariables",
-        "line": 155,
+        "line": 146,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88428,7 +89220,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuById",
-        "line": 201,
+        "line": 192,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88441,7 +89233,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuByKey",
-        "line": 202,
+        "line": 193,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88456,7 +89248,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "resolveWorldMenu",
-        "line": 204,
+        "line": 195,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88474,7 +89266,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuInventory",
-        "line": 240,
+        "line": 231,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -88914,7 +89706,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 640,
+        "line": 708,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -88927,7 +89719,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 720,
+        "line": 788,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -88940,7 +89732,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 779,
+        "line": 847,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -88995,40 +89787,6 @@
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/training/GodModeArena.jsx"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "useUnreadCount",
-        "line": 358,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/messenger.js",
-          "pages/hub/social-media/index.js",
-          "src/components/social/SmarterPokerLayout.jsx",
-          "src/components/ui/BottomNavBar.jsx",
-          "src/components/ui/UniversalHeader.js"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "UnreadBadge",
-        "line": 363,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/social/SmarterPokerLayout.jsx"
         ]
       },
       {
@@ -89769,9 +90527,11 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-answer-grading-contract.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
           "pages/api/training/hand-of-the-day.js",
           "src/lib/training/answerGradingContract.mjs",
-          "src/lib/training/gradingReceipt.mjs"
+          "src/lib/training/gradingReceipt.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -90140,9 +90900,9 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/difficultyQuestionContract.mjs"
+          "src/lib/training/difficultyQuestionContract.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -90162,10 +90922,10 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "pages/api/training/reissue-questions.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/trainingAttemptDelivery.mjs"
+          "src/lib/training/trainingAttemptDelivery.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -90602,6 +91362,88 @@
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
           "pages/api/training/reissue-questions.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "selectPublicAttestationContinuationAnswer",
+        "line": 25,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
+          "scripts/training-phase6-production-delivery-attestation.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "validateTrainingAttestationContinuationPrecommit",
+        "line": 70,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "isTrainingAttestationContinuationPrecommit",
+        "line": 92,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-next-street-authority.test.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "validateStrictTrainingContinuationSnapshotPair",
+        "line": 485,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-production-delivery-attestation.test.mjs",
+          "pages/api/training/next-street.js",
+          "scripts/training-phase6-production-delivery-attestation.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "selectTrainingAttestationContinuationCohort",
+        "line": 763,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/api/training/batch-preload.js"
         ]
       },
       {
@@ -91132,7 +91974,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 275,
+        "line": 326,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -91142,7 +91984,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 377,
+        "line": 449,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -91151,7 +91993,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 408,
+        "line": 480,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -91160,7 +92002,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 490,
+        "line": 582,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -91169,7 +92011,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 502,
+        "line": 594,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -91299,7 +92141,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 184,
+        "line": 194,
         "excerpt": "const storedOr = (column, metadataKey, fallback) => {",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -91308,7 +92150,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "kind": "FALLBACK",
-        "line": 187,
+        "line": 197,
         "excerpt": "return fallback;",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -91930,18 +92772,8 @@
       },
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
-        "kind": "FALLBACK",
-        "line": 1342,
-        "excerpt": "// Legacy fallback: include newBalance so listeners don't fall back to stale cache",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1495,
+        "line": 1482,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -91950,7 +92782,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1907,
+        "line": 1884,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -91959,7 +92791,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2156,
+        "line": 2131,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -91968,7 +92800,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2372,
+        "line": 2347,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -92532,7 +93364,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "kind": "FALLBACK",
-        "line": 341,
+        "line": 336,
         "excerpt": "// Fallback so the item is never a silent no-op on other pages that",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -92589,7 +93421,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "kind": "FALLBACK",
-        "line": 51,
+        "line": 49,
         "excerpt": "* artwork. Keeping the materials here gives the drawer, fallback trigger, and",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -94535,7 +95367,7 @@
       {
         "file": "pages/api/training/next-street.js",
         "name": "handler",
-        "line": 541,
+        "line": 86,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94587,7 +95419,7 @@
       {
         "file": "pages/api/training/record-question.js",
         "name": "handler",
-        "line": 252,
+        "line": 262,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -94717,7 +95549,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 322,
+        "line": 383,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -96132,6 +96964,21 @@
         ]
       },
       {
+        "file": "src/components/store/DiamondInPlayBalance.jsx",
+        "name": "DiamondInPlayBalance",
+        "line": 4,
+        "references": 1,
+        "exported": true,
+        "defaultExport": true,
+        "namedFunctionExpression": false,
+        "disposition": "imported-default-entrypoint",
+        "review": "accepted",
+        "rationale": "Default export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/store/DiamondWalletModal.jsx"
+        ]
+      },
+      {
         "file": "src/components/training/BlockerScorePanel.jsx",
         "name": "BlockerScorePanel",
         "line": 183,
@@ -96487,12 +97334,6 @@
           "pages/hub/avatars.js",
           "pages/hub/bankroll-manager.js",
           "pages/hub/bankroll-manager/export.js",
-          "pages/hub/diamond-arena.js",
-          "pages/hub/diamond-arena/history.js",
-          "pages/hub/diamond-arena/leaderboard.js",
-          "pages/hub/diamond-arena/schedule.js",
-          "pages/hub/diamond-arena/stats.js",
-          "pages/hub/diamond-arena/table-settings.js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
           "pages/hub/diamond-store/orders.js",
@@ -96671,7 +97512,7 @@
       {
         "file": "src/config/hamburgerMenus.js",
         "name": "getMenuConfigForPath",
-        "line": 1514,
+        "line": 1480,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96938,7 +97779,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuStyleVariables",
-        "line": 155,
+        "line": 146,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96955,7 +97796,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuById",
-        "line": 201,
+        "line": 192,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96968,7 +97809,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuByKey",
-        "line": 202,
+        "line": 193,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -96983,7 +97824,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "resolveWorldMenu",
-        "line": 204,
+        "line": 195,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97001,7 +97842,7 @@
       {
         "file": "src/config/worldMenuNavigation.js",
         "name": "getWorldMenuInventory",
-        "line": 240,
+        "line": 231,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97441,7 +98282,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 640,
+        "line": 708,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -97454,7 +98295,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 720,
+        "line": 788,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -97467,7 +98308,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 779,
+        "line": 847,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -97522,40 +98363,6 @@
         "rationale": "Default export is imported by another repository source file.",
         "externalReferenceFiles": [
           "src/components/training/GodModeArena.jsx"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "useUnreadCount",
-        "line": 358,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/messenger.js",
-          "pages/hub/social-media/index.js",
-          "src/components/social/SmarterPokerLayout.jsx",
-          "src/components/ui/BottomNavBar.jsx",
-          "src/components/ui/UniversalHeader.js"
-        ]
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "name": "UnreadBadge",
-        "line": 363,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "src/components/social/SmarterPokerLayout.jsx"
         ]
       },
       {
@@ -98296,9 +99103,11 @@
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
           "__tests__/training-answer-grading-contract.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
           "pages/api/training/hand-of-the-day.js",
           "src/lib/training/answerGradingContract.mjs",
-          "src/lib/training/gradingReceipt.mjs"
+          "src/lib/training/gradingReceipt.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -98667,9 +99476,9 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/difficultyQuestionContract.mjs"
+          "src/lib/training/difficultyQuestionContract.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -98689,10 +99498,10 @@
           "pages/api/training/custom-train.js",
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
-          "pages/api/training/next-street.js",
           "pages/api/training/reissue-questions.js",
           "scripts/backfill-training-cache-truth.mjs",
-          "src/lib/training/trainingAttemptDelivery.mjs"
+          "src/lib/training/trainingAttemptDelivery.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
         ]
       },
       {
@@ -99129,6 +99938,88 @@
           "pages/api/training/get-question.js",
           "pages/api/training/hand-of-the-day.js",
           "pages/api/training/reissue-questions.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "selectPublicAttestationContinuationAnswer",
+        "line": 25,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "__tests__/training-next-street-authority.test.mjs",
+          "scripts/training-phase6-production-delivery-attestation.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "validateTrainingAttestationContinuationPrecommit",
+        "line": 70,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+        "name": "isTrainingAttestationContinuationPrecommit",
+        "line": 92,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-next-street-authority.test.mjs",
+          "src/lib/training/trainingContinuationEligibility.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "validateStrictTrainingContinuationSnapshotPair",
+        "line": 485,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-production-delivery-attestation.test.mjs",
+          "pages/api/training/next-street.js",
+          "scripts/training-phase6-production-delivery-attestation.mjs"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingContinuationEligibility.mjs",
+        "name": "selectTrainingAttestationContinuationCohort",
+        "line": 763,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/api/training/batch-preload.js"
         ]
       },
       {

@@ -51,7 +51,7 @@ if (!url || !key) {
 }
 
 const endpoint = `${url.replace(/\/+$/, '')}/rest/v1/diamond_reward_catalog`
-    + '?select=action_key,diamonds,max_per_day,counts_toward_daily_cap,lifetime,category,active';
+    + '?select=action_key,diamonds,max_per_day,counts_toward_daily_cap,lifetime,category,active,updated_at';
 
 // This gate died at 2026-08-24 06:39 on HTTP 503 PGRST002, during a window
 // where PostgREST could not reach Postgres at all. Nothing was wrong with the
@@ -102,9 +102,30 @@ for (const [key_, cfg] of Object.entries(REWARDS)) {
     }
 }
 
+/** "3 hours ago" / "6 days ago", so a reader can tell fresh from ancient. */
+function hoursAgo(iso) {
+    const then = Date.parse(iso);
+    if (Number.isNaN(then)) return 'unparseable timestamp';
+    const hours = Math.round((Date.now() - then) / 3_600_000);
+    if (hours < 1) return 'less than an hour ago';
+    if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.round(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
 for (const action of Object.keys(rows)) {
     if (!REWARDS[action]) {
-        problems.push(`${action}: in diamond_reward_catalog, MISSING from the config (payable but undocumented)`);
+        // WHEN is the most useful fact here and it was the one missing. This
+        // check fails every pull request in the repository, so the person
+        // reading the failure is almost never the person who wrote the row.
+        // "changed 4 hours ago" says immediately that this is somebody's
+        // in-flight work and who to ask; without it the failure looks like a
+        // long-standing condition that the reader has somehow caused.
+        const when = rows[action]?.updated_at;
+        const age = when ? ` — the row changed ${when} (${hoursAgo(when)})` : '';
+        problems.push(
+            `${action}: in diamond_reward_catalog, MISSING from the config (payable but undocumented)${age}`,
+        );
     }
 }
 

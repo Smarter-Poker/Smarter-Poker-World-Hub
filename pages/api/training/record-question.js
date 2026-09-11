@@ -172,13 +172,23 @@ function buildRecordedAnswerResponse({
   const continuationPolicyAction = continuationPolicyMatches.length === 1
     ? continuationPolicyMatches[0]
     : null;
+  const difficultyMembers = servedQuestion?._difficultyMembers
+    || answerContract?.difficultyMembers
+    || {};
+  const continuationPublicOwners = continuationPolicyAction
+    ? (servedQuestion.options || []).filter((option) => {
+        const optionId = String(option?.id ?? option);
+        const members = Array.isArray(difficultyMembers?.[optionId])
+          ? [...new Set(difficultyMembers[optionId].map(String))]
+          : [optionId];
+        return members.includes(String(continuationPolicyAction.id));
+      })
+    : [];
   const revealedContinuationAction = continuationPolicyAction
     && /^b[1-9]\d*$/.test(continuationSourceAction)
     && continuationPolicyAction.family === 'bet'
-    && servedQuestion.options?.some(
-      (option) => String(option?.id ?? option) === String(continuationPolicyAction.id),
-    )
-    ? String(continuationPolicyAction.id)
+    && continuationPublicOwners.length === 1
+    ? String(continuationPublicOwners[0]?.id ?? continuationPublicOwners[0])
     : null;
 
   const storedOr = (column, metadataKey, fallback) => {

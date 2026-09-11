@@ -1,0 +1,186 @@
+{
+  "schema_version": "phase6-M1-attestation-v1",
+  "machine_id": "M1",
+  "machine_hostname": "SmarterPoker2",
+  "audit_timestamp_utc": "2026-09-10T17:13:28Z",
+  "attestation_generated_utc": "2026-09-10T17:36:51Z",
+  "host": {
+    "os": "Windows",
+    "os_version": "10.0.26200",
+    "os_release": "11",
+    "python_version": "3.12.8",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 197 Stepping 2, GenuineIntel"
+  },
+  "piosolver": {
+    "path": "C:\\PioSOLVER\\PioSOLVER3-pro.exe",
+    "version": "PioSOLVER-pro 3.8.0 (Sep 22 2025, 11:05:45)",
+    "sha256": "E21EA7AD1DBC2A9D826C25AC264688F632DD461B92DE2BC35A53F6B78BCF5CEB",
+    "size_bytes": 1235982,
+    "authenticode": "NotSigned",
+    "registered_to": "daniel@bekavactrading.com",
+    "probe_commands": [
+      "set_end_string END",
+      "show_version",
+      "show_hand_order"
+    ],
+    "probe_process_survived": false,
+    "running_at_final_audit": false
+  },
+  "hand_order": {
+    "token_count": 1326,
+    "sha256_canonical": "7d1e445d2a9fe34d416ea41adf7f2df2c4319c49141b389be5eb3d6cb2d9618a",
+    "validation_pass": true,
+    "checks": {
+      "combo_count_1326": true,
+      "all_valid_two_card_combos": true,
+      "no_duplicate_combos": true,
+      "no_repeat_card_in_combo": true,
+      "all_1326_canonical_combos_present": true,
+      "extra_combos": 0,
+      "missing_combos": 0
+    }
+  },
+  "ranges": {
+    "directory": "C:\\sp-solver\\ranges",
+    "file_count": 470,
+    "all_exactly_1326_tokens": true,
+    "all_floats_finite": true,
+    "all_in_0_1": true,
+    "all_at_least_one_positive": true,
+    "validation_pass": true
+  },
+  "credentials": {
+    "solver_tick_cmd": {
+      "path": "C:\\sp-solver\\solver_tick.cmd",
+      "was_sanitized": true,
+      "removed_vars": [
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "now_clean": true
+    },
+    "piosolver_env": {
+      "path": "C:\\PioSOLVER\\.env",
+      "was_sanitized": true,
+      "removed_vars": [
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_SERVICE_KEY",
+        "SUPABASE_EMAIL",
+        "SUPABASE_PASSWORD"
+      ],
+      "now_clean": true
+    },
+    "env_scope_clean": {
+      "Process": true,
+      "User": "CHECKING",
+      "Machine": "CHECKING"
+    },
+    "git_config_credentials": false,
+    "git_credentials_file": false
+  },
+  "scheduled_tasks": {
+    "SmarterPokerSolver": {
+      "state_at_audit": "Running",
+      "state_after_stop": "Ready",
+      "disabled": false,
+      "disable_blocked_by": "Access Denied (requires elevation)",
+      "action_script": "C:\\sp-solver\\solver_tick.cmd",
+      "action_script_sanitized": true,
+      "action_script_locked": true,
+      "lock_action": "solver_tick.cmd replaced with exit /b 1 script",
+      "state_final": "Ready (cannot solve - script locked)"
+    },
+    "PioSOLVER_Watchdog_Autopilot": {
+      "state_at_audit": "Ready",
+      "state_after_stop": "Ready",
+      "disabled": false,
+      "disable_blocked_by": "Access Denied (requires elevation)",
+      "startup_bat": "C:\\Users\\danie\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\start_watchdog.bat",
+      "startup_bat_has_credentials": false
+    }
+  },
+  "hmac": {
+    "M1_HMAC_SECRET_found": false,
+    "search_paths": [
+      "C:\\sp-solver",
+      "%USERPROFILE%\\Downloads",
+      "%USERPROFILE%\\Documents",
+      "%USERPROFILE%\\Desktop"
+    ],
+    "status": "HMAC_FILE_MISSING_AWAITING_RELEASE_PACKET"
+  },
+  "repository": {
+    "Smarter_Poker_World_Hub_cloned": false,
+    "clone_blocked_by": "GitHub authentication required",
+    "gh_cli_authenticated": false,
+    "gh_device_flow_code": "61F0-3ADC",
+    "gh_device_flow_url": "https://github.com/login/device",
+    "gh_auth_pending_user_action": true
+  },
+  "blockers": [
+    {
+      "id": "B1",
+      "type": "requires_user_action",
+      "action": "GitHub device flow: Go to https://github.com/login/device and enter code 61F0-3ADC",
+      "blocking": [
+        "repository clone",
+        "PR creation"
+      ]
+    },
+    {
+      "id": "B2",
+      "type": "requires_elevation",
+      "action": "Approve UAC prompt to disable SmarterPokerSolver and PioSOLVER_Watchdog_Autopilot scheduled tasks",
+      "blocking": [
+        "task_disable_verification"
+      ]
+    },
+    {
+      "id": "B3",
+      "type": "awaiting_release",
+      "action": "M1_HMAC_SECRET.txt not received - awaiting release packet from control",
+      "blocking": [
+        "M1_bounded_canary"
+      ]
+    }
+  ],
+  "compliance": {
+    "no_M2_partition_used": true,
+    "no_backlog_solving": true,
+    "no_unauthorized_targets_solved": true,
+    "hmac_not_exposed": true,
+    "supabase_not_restarted": true,
+    "postgres_not_directly_connected": true,
+    "pio_probe_commands_only": true,
+    "canary_not_run_pending_hmac": true,
+    "legacy_processes_killed": true,
+    "solver_tick_locked": true
+  },
+  "attestation_updated_utc": "2026-09-10T17:40:43Z",
+  "legacy_processes": {
+    "watchdog_pid_20040": {
+      "cmdline": "python.exe C:\\PioSOLVER\\watchdog.py",
+      "launched_from": "startup bat (logon trigger)",
+      "killed": true,
+      "kill_time_utc": "2026-09-10T17:40:43Z"
+    },
+    "watchdog_pid_20224": {
+      "cmdline": "python.exe watchdog.py (cwd=C:\\sp-solver)",
+      "launched_from": "SmarterPokerSolver task",
+      "killed": true,
+      "kill_time_utc": "2026-09-10T17:40:43Z"
+    }
+  },
+  "solver_activity_during_audit": {
+    "ran_m1_solver": true,
+    "spots_solved": 0,
+    "rows_solved": 0,
+    "last_activity_utc": "2026-09-10T17:34:02Z",
+    "db_status": "no_work_found_all_scans",
+    "piosolver_launched_during_audit": false,
+    "note": "run_machine.py ran and queried Supabase but found no pending work. Zero Pio solves occurred during Phase 6 audit window."
+  }
+}

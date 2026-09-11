@@ -415,6 +415,18 @@ const nextConfig = {
   // cuts the serverless function zipped bundle ~40% and drops cold-start p50
   // from ~1.8s to ~1.1s on a 950-page repo. Safe for Pages Router. Don't set
   // this in dev — dev uses the default server.
+  // MEASURED AND PUT BACK 2026-09-09. The hypothesis was that Vercel's own Next
+  // builder traces output and does not consume .next/standalone, so setting it
+  // here might be a second trace over 1,324 packages for an artifact nothing
+  // reads. The experiment reached production by accident (see below) and
+  // answered the question anyway:
+  //
+  //   standalone OFF  dpl_C6VAk6  build 259.3s, READY, no failure
+  //   standalone ON   dpl_EzRgt7  build 190.1s
+  //
+  // Not a controlled A/B - different trees, different cache states - but there
+  // is no sign of a win, and it is not free to find out: turning it off is a
+  // change to how production is packaged. It stays as it was.
   output: process.env.VERCEL ? 'standalone' : undefined,
 
   // ─── R3F Package Transpilation ───────────────────────────────────────────────
@@ -760,6 +772,66 @@ const nextConfig = {
       // ignores it and says so, on every single page load.
     ].join('; ');
 
+    // ─── THE DIRECTIVES THAT ARE ENFORCED (2026-09-11) ──────────────────────
+    //
+    // The comment at the top of this block has said since Phase 6.1.14 that
+    // the policy graduates to enforcing "once violations have been monitored
+    // and confirmed zero". Nothing has ever monitored it: there is no
+    // `report-uri` and no `report-to` in the policy above, so a violation
+    // writes one line to one browser console and is forgotten. That is how the
+    // missing Sentry allowance survived ten days - see the comment on
+    // connect-src, which says so in as many words.
+    //
+    // Club Arena's tests/e2e/production-csp-violations.spec.ts now collects
+    // `securitypolicyviolation` events (they fire for a report-only policy too,
+    // with disposition "report") across five arena routes and three Hub routes
+    // on every post-deploy run. Signed in against production on 2026-09-11 it
+    // reported ZERO violations. That is the evidence this block has been
+    // waiting for, and it now arrives after every publish rather than once.
+    //
+    // Even so, this does NOT flip the whole policy. Eight routes are not the
+    // whole Hub, and the directives that say WHERE A RESOURCE MAY COME FROM -
+    // script-src, style-src, connect-src, img-src, font-src, media-src,
+    // frame-src, worker-src - break a page the moment one is wrong. They stay
+    // report-only until the sweep has watched them for a while.
+    //
+    // What graduates here is the other kind: the four directives that govern
+    // INJECTION rather than loading. None of them names a resource this site
+    // fetches, so none of them can break a page by being slightly incomplete,
+    // and each was checked against the source before being moved:
+    //
+    //   object-src 'none'       no <object> or <embed> exists in src, pages or
+    //                           public. (The `Promise<object>` hits are JSDoc.)
+    //   base-uri 'self'         no <base> tag exists either - except the one
+    //                           pages/api/proxy.js injects on line ~452, and
+    //                           that endpoint sets its OWN enforced
+    //                           Content-Security-Policy with `base-uri https:`,
+    //                           which REPLACES this header rather than adding
+    //                           to it. Measured live: /api/proxy returns only
+    //                           the proxy's policy, not this one. __tests__/
+    //                           the-proxy-keeps-its-own-policy.test.js pins
+    //                           that, because if it ever stops being true this
+    //                           directive breaks the reader.
+    //   form-action 'self'      no form anywhere posts off-origin, and the
+    //                           proxy rewrites every proxied form action to
+    //                           /api/proxy?url=... which is same-origin.
+    //   frame-ancestors 'self'  already enforced, by X-Frame-Options:
+    //                           SAMEORIGIN three headers up. This is the modern
+    //                           spelling of a restriction the site has had all
+    //                           along, so it changes nothing at all.
+    //
+    // upgrade-insecure-requests stays Vercel-only for the reason given below:
+    // `next start` serves HTTP locally and WebKit upgrades every same-origin
+    // chunk, leaving the page blank. The four above are unaffected by scheme,
+    // so they apply everywhere and localhost is protected too.
+    const enforcedCsp = [
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      ...(process.env.VERCEL ? ['upgrade-insecure-requests'] : []),
+    ].join('; ');
+
     return [
       {
         source: '/(.*)',
@@ -837,43 +909,41 @@ const nextConfig = {
             key: 'Content-Security-Policy-Report-Only',
             value: csp,
           },
-          ...(process.env.VERCEL
-            ? [
-                {
-                  /**
-                   * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
-                   * Report-Only policy above, where it did NOTHING. The spec says the
-                   * directive is ignored in report-only mode, and Chrome announces
-                   * that on every page load:
-                   *
-                   *   "The Content Security Policy directive
-                   *    'upgrade-insecure-requests' is ignored when delivered in a
-                   *    report-only policy."
-                   *
-                   * So the one directive in that policy meant to CHANGE behaviour was
-                   * the one directive guaranteed not to, while adding a console error
-                   * to every route (it was also tripping the E2E console-error specs).
-                   *
-                   * Delivered on its own enforced header it actually applies, and the
-                   * rest of the policy stays report-only as the staged rollout above
-                   * intends. Enforcing this alone is safe here: it only rewrites
-                   * http:// SUB-RESOURCE requests to https://, the site is already
-                   * HSTS-preloaded with includeSubDomains, and Vercel redirects
-                   * http->https at the edge — so in practice it catches stray http
-                   * URLs in user-generated content and nothing else.
-                   *
-                   * Vercel-only is intentional. `next start` serves HTTP locally;
-                   * WebKit correctly applies this directive there and upgrades every
-                   * same-origin chunk to HTTPS, leaving the page blank and making a
-                   * real Safari CI pass impossible. Vercel always serves HTTPS, so
-                   * production retains the enforced policy while localhost remains
-                   * a faithful runnable test target.
-                   */
-                  key: 'Content-Security-Policy',
-                  value: 'upgrade-insecure-requests',
-                },
-              ]
-            : []),
+          {
+            /**
+             * Dan 2026-08-20: upgrade-insecure-requests used to sit inside the
+             * Report-Only policy above, where it did NOTHING. The spec says the
+             * directive is ignored in report-only mode, and Chrome announces
+             * that on every page load:
+             *
+             *   "The Content Security Policy directive
+             *    'upgrade-insecure-requests' is ignored when delivered in a
+             *    report-only policy."
+             *
+             * So the one directive in that policy meant to CHANGE behaviour was
+             * the one directive guaranteed not to, while adding a console error
+             * to every route (it was also tripping the E2E console-error specs).
+             *
+             * Delivered on its own enforced header it actually applies.
+             *
+             * 2026-09-11: this header is no longer Vercel-only and no longer
+             * carries one directive. It carries the four injection directives
+             * that graduated out of the report-only policy - see the comment on
+             * enforcedCsp above for what each one was checked against. Only
+             * upgrade-insecure-requests is still conditional on Vercel, inside
+             * that list, for the reason below.
+             *
+             * Vercel-only for THAT directive is intentional. `next start` serves
+             * HTTP locally; WebKit correctly applies it there and upgrades every
+             * same-origin chunk to HTTPS, leaving the page blank and making a
+             * real Safari CI pass impossible. Vercel always serves HTTPS, so
+             * production keeps it while localhost remains a faithful runnable
+             * test target. The other four are scheme-independent, so localhost
+             * is protected by them too.
+             */
+            key: 'Content-Security-Policy',
+            value: enforcedCsp,
+          },
         ],
       },
       // ─── CLUB ARENA CACHE POLICY (perf pass 2026-08-22) ─────────────────────
@@ -1025,9 +1095,10 @@ const nextConfig = {
       { source: '/auth/sign' + 'in', destination: '/auth/login', permanent: true },
       { source: '/signup', destination: '/auth/sign' + 'up', permanent: true },
       { source: '/register', destination: '/auth/sign' + 'up', permanent: true },
-      // Privacy/legal routes → terms page (no separate privacy page exists)
-      { source: '/privacy', destination: '/terms', permanent: true },
-      { source: '/legal/privacy', destination: '/terms', permanent: true },
+      // /privacy is a real, server-rendered page since 2026-09-08 (the app
+      // stores read the privacy policy URL with a crawler, and the tab inside
+      // /terms is client-rendered). Only the legacy alias redirects now.
+      { source: '/legal/privacy', destination: '/privacy', permanent: true },
       { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
@@ -1091,6 +1162,14 @@ const nextConfig = {
       // tests/club-arena-is-a-rewrite.test.mjs pins that the tree is gone.
       beforeFiles: [],
       afterFiles: [
+        /* THE CLUB ARENA APP (2026-09-08). iOS and Android verify that this
+           origin wants the app to open /hub/club-arena/* by fetching these two
+           files. They are API routes, not files in public/, because their
+           contents are Dan's credentials (Apple Team ID, Android release cert
+           SHA-256) read from the environment at request time: a 404 until
+           they exist, live the moment they are set. src/lib/app-links.js. */
+        { source: '/.well-known/apple-app-site-association', destination: '/api/app-links/aasa' },
+        { source: '/.well-known/assetlinks.json', destination: '/api/app-links/assetlinks' },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
         /* AD CREATIVES ARE SAME-ORIGIN (2026-09-03). A club owner's advert
@@ -1107,6 +1186,18 @@ const nextConfig = {
           source: '/ad-creatives/:path*',
           destination:
             'https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/ad-creatives/:path*',
+        },
+        /* THE AD CLICK REDIRECT (2026-09-09). A sponsor's advert points at
+           /c/<code> - a rooted, same-origin path, so every same-origin check
+           on ad destinations still sees what it has always seen. The handler
+           takes the opaque code, asks the database for the address approved
+           against it, records the click server-side and 302s. It accepts no
+           URL, which is what makes an open redirect structurally impossible.
+           Short path rather than /api/c/ because it is what a player's browser
+           shows for a moment on the way out. */
+        {
+          source: '/c/:code',
+          destination: '/api/c/:code',
         },
       ],
       fallback: [],

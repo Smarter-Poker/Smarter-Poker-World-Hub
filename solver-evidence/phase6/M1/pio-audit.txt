@@ -1,0 +1,25 @@
+﻿=== PIO EXECUTABLE AUDIT - 2026-09-10T17:23:45Z ===
+
+=== PIO EXECUTABLE ===
+Path: C:\PioSOLVER\PioSOLVER3-pro.exe
+Size: 1235982 bytes
+LastModified: 01/19/2026 16:00:55
+SHA-256: E21EA7AD1DBC2A9D826C25AC264688F632DD461B92DE2BC35A53F6B78BCF5CEB
+FileVersion: 
+ProductVersion: 
+ProductName: 
+CompanyName: 
+Description: 
+LegalCopyright: 
+Authenticode Status: NotSigned
+Authenticode StatusMessage: The file C:\PioSOLVER\PioSOLVER3-pro.exe is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170
+
+--- PE HEADER CHECK ---
+PE Subsystem: Unknown(0) (value=0)
+
+=== OTHER PIO EXECUTABLES ===
+Found: C:\PioSOLVER\PioViewer3.exe (size=3196928, modified=01/19/2026 16:01:12)
+Found: C:\PioSOLVER\PioUpdater.exe (size=1445888, modified=01/19/2026 15:59:42)
+
+=== CHECK FOR RUNNING PIO PROCESSES ===
+No Pio processes currently running - safe to probe

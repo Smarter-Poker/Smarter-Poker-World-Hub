@@ -43,7 +43,7 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
         },
         {
             id: 'go-to-club-arena',
-            label: 'Club Arena',
+            label: 'Poker Arena',
             icon: '♠️',
             category: 'navigation',
             action: () => {
@@ -170,7 +170,7 @@ export function QuickActions({ onActionClick }: QuickActionsProps) {
  */
 export function getQuickActionMessage(actionId: string): string {
     const messages: Record<string, string> = {
-        'how-to-create-club': 'How do I create a poker club in Club Arena?',
+        'how-to-create-club': 'How do I create a poker club in Poker Arena?',
         'how-to-buy-diamonds': 'How do I buy diamonds from the Diamond Store?',
     };
 

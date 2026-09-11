@@ -359,40 +359,13 @@ export function useUnreadCount() {
     return useContext(UnreadContext);
 }
 
-// Standalone badge component for use anywhere
-export function UnreadBadge({ count, size = 'medium', style = {} }) {
-    if (!count || count <= 0) return null;
-
-    const sizes = {
-        small: { width: 16, height: 16, fontSize: 10 },
-        medium: { width: 20, height: 20, fontSize: 11 },
-        large: { width: 24, height: 24, fontSize: 13 },
-    };
-
-    const s = sizes[size] || sizes.medium;
-    const display = count > 99 ? '99+' : count;
-
-    return (
-        <span style={{
-            position: 'absolute',
-            top: -4,
-            right: -4,
-            minWidth: s.width,
-            height: s.height,
-            borderRadius: s.height / 2,
-            background: 'linear-gradient(135deg, #FF3B30, #E31C5F)',
-            color: 'white',
-            fontSize: s.fontSize,
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0 4px',
-            boxShadow: '0 2px 6px rgba(255, 59, 48, 0.4)',
-            border: '2px solid #fff',
-            ...style,
-        }}>
-            {display}
-        </span>
-    );
-}
+// UnreadBadge was removed on 2026-09-10. It was a standalone presentational
+// badge "for use anywhere", and the only place that ever used it was
+// src/components/social/SmarterPokerLayout.jsx - one of the 39 unreachable
+// files deleted in the same pass. With that gone the export had no importer
+// anywhere in pages, src, scripts or the test trees, which is exactly what
+// scripts/training-surface-inventory.mjs flagged: functionPhaseReview went
+// 0 -> 1 and named this export.
+//
+// UnreadProvider and useUnreadCount above are untouched and still live -
+// _app.js provides the context, and messenger and the feed consume it.

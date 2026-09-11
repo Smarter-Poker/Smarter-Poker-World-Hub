@@ -22,7 +22,7 @@ from contract import (
 
 
 CARD = re.compile(r"^[2-9TJQKA][cdhs]$")
-BET = re.compile(r"^b([1-9][0-9]*)$")
+BET = re.compile(r"^b([1-9][0-9]{0,78})$")
 STREETS = ("flop", "turn", "river")
 OPEN_ROLES = {"open", "cbet", "probe", "delayed_cbet", "barrel"}
 
