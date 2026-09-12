@@ -130,7 +130,7 @@ export default async function handler(req, res) {
         // The RPC returns a jsonb summary. It also returns { status: 'failed', ... }
         // when its own EXCEPTION block traps an error — treat that as a failure.
         const summary = stage1 || {};
-        if (summary.status && summary.status !== "anonymized") {
+        if (summary.success === false || (summary.status && summary.status !== "anonymized")) {
             return res.status(500).json({
                 success: false,
                 error: summary.error || "Anonymisation failed.",

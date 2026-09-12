@@ -154,7 +154,7 @@ export default async function handler(req, res) {
         }
 
         const summary = stage1 || {};
-        if (summary.status && summary.status !== "anonymized") {
+        if (summary.success === false || (summary.status && summary.status !== "anonymized")) {
             return res.status(500).json({
                 success: false,
                 error: summary.error || "Anonymisation failed.",
