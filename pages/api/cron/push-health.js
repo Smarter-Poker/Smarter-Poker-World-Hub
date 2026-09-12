@@ -17,6 +17,10 @@
  *    2. STAFF UNREACHABLE     admin/god accounts with no active subscription
  *    3. CONFIGURATION         VAPID env vars missing or mismatched
  *    4. DISPATCH LIVENESS     push-dispatch has not run in over 30 minutes
+ *    5. AUDIENCE COLLAPSE     devices trending to zero, or sends collapsing
+ *
+ *  A `no_subscription` skip is an UNREACHABLE RECIPIENT and never a delivery
+ *  failure; rates here are computed over what was addressable.
  *
  *  Findings go to the affected user in-app, and a summary to every admin.
  * ===========================================================================
@@ -42,6 +46,46 @@ const DISPATCH_STALE_MINUTES = 30;
 // ignore it, which defeats the whole point. Each person hears about a given
 // problem at most once per this window.
 const ALERT_COOLDOWN_DAYS = 7;
+
+/* ═══ THE AUDIENCE CAN DISAPPEAR WITHOUT ANYTHING GOING RED (2026-09-12) ═══
+ *
+ * Push is not broken. Its entire audience is two people. Measured on
+ * production on 2026-09-12, over the preceding three weeks:
+ *
+ *     active subscriptions              4, across 2 users (both human)
+ *     subscription rows ever written   58
+ *     of those, retired                54   (expired_410 and friends)
+ *     enrolled in the last 7 days      10   of which 3 are still active
+ *     sent, last 7 days                94
+ *     sent, the 7 days before that    458   -> the recent week is 20.5%
+ *
+ *     daily sends: 248 (08-31), 78, 49, 44, 23, 17, 24, 16, 15, 10, 8,
+ *                    4 (09-11), 1 (09-12 to 05:00Z)
+ *
+ * Nothing above trips a single check in this file. Every one of them asks
+ * about an individual (a zombie endpoint, an admin with no device) or about
+ * an absolute (is the count zero yet). A fleet decaying by an order of
+ * magnitude in a fortnight, while every remaining send succeeds, is invisible
+ * until the day it reaches zero - and on that day the existing
+ * `activeSubs === 0` alarm fires, far too late to be a warning.
+ *
+ * THE THRESHOLDS BELOW ARE DERIVED FROM THOSE NUMBERS, NOT GUESSED.
+ *
+ * SEND_COLLAPSE_RATIO 0.35: the observed collapse is 0.205, so 0.35 catches
+ *   it with room, while ordinary week-to-week movement does not reach it.
+ * SEND_COLLAPSE_FLOOR 50: the prior window must have carried real traffic.
+ *   Measured, the week of 08-22..08-28 sent 9 in total; without this floor a
+ *   genuinely quiet fortnight would page every day, and an alarm that always
+ *   fires is the silence this file exists to end, only louder.
+ * AUDIENCE_SHRINK_CEILING 5 and AUDIENCE_SHRINK_RATIO 2/3: the pool has sat
+ *   between 2 and 6 devices for three weeks, so losing one is noise above the
+ *   ceiling and a third of the fleet below it. Today: 6 -> 4, which is
+ *   exactly 2/3, so this fires now and would not fire on a 6 -> 5 wobble.
+ */
+const SEND_COLLAPSE_RATIO = 0.35;
+const SEND_COLLAPSE_FLOOR = 50;
+const AUDIENCE_SHRINK_CEILING = 5;
+const AUDIENCE_SHRINK_RATIO = 2 / 3;
 
 let _supabase = null;
 function getSupabase() {
@@ -544,6 +588,16 @@ async function handler(req, res) {
         report.activeSubscriptions = activeSubs || 0;
         report.skippedNoSubscription24h = skipped24h || 0;
 
+        /* A `no_subscription` skip is an UNREACHABLE RECIPIENT, not a failed
+           send. The distinction is the whole point of this block and it has a
+           measured cost: on 2026-09-12 the tournament-reminder enqueue was
+           writing 2,000 rows a day addressed to recipients with no device -
+           94.9% of all push_outbox volume over seven days - so every rate
+           computed over the raw queue read as near-total failure and buried the
+           real signal underneath it. Rates are computed over what was
+           ADDRESSABLE: the rows that had somewhere to go. */
+        report.unreachableRecipients24h = skipped24h || 0;
+
         // Nobody on the whole platform can receive a push. This is the exact
         // state that persisted unnoticed, and it is never normal once a single
         // user has enrolled.
@@ -568,6 +622,18 @@ async function handler(req, res) {
             .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
         report.sent24h = sent24h || 0;
 
+        const { count: queued24h } = await supabase
+            .from('push_outbox')
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        report.queued24h = queued24h || 0;
+        report.addressable24h = Math.max(0, (queued24h || 0) - (skipped24h || 0));
+        // Null, not a flattering 100% and not an alarming 0%, when there was
+        // nothing addressable to measure.
+        report.deliveryRate24h = report.addressable24h
+            ? Math.round(((sent24h || 0) / report.addressable24h) * 100)
+            : null;
+
         if ((activeSubs || 0) > 0 && (sent24h || 0) === 0 && (skipped24h || 0) > 0) {
             problems.push(
                 `${activeSubs} device(s) are subscribed but nothing was delivered in 24h ` +
@@ -575,6 +641,85 @@ async function handler(req, res) {
             );
         }
     } catch { /* a failed diagnostic must never fail the cron */ }
+
+    // ---- CHECK 5: is the audience disappearing? ---------------------------
+    //
+    // See the constants at the top of this file for the measurements these
+    // thresholds come from. Two independent questions, because a platform can
+    // lose its audience either way round: the devices can go, or the reasons
+    // to send to them can.
+    try {
+        const weekAgo = new Date(now - 7 * 86400_000).toISOString();
+        const twoWeeksAgo = new Date(now - 14 * 86400_000).toISOString();
+
+        const [{ count: activeNow }, { count: sentRecent }, { count: sentPrior }] = await Promise.all([
+            supabase.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('is_active', true),
+            supabase.from('push_outbox').select('id', { count: 'exact', head: true })
+                .eq('status', 'sent').gte('sent_at', weekAgo),
+            supabase.from('push_outbox').select('id', { count: 'exact', head: true })
+                .eq('status', 'sent').gte('sent_at', twoWeeksAgo).lt('sent_at', weekAgo),
+        ]);
+
+        /* HOW "ACTIVE A WEEK AGO" IS RECONSTRUCTED, and what it cannot see.
+           push_subscriptions records no deactivation timestamp, only
+           `updated_at`, so a row that existed before the window and is either
+           still active or was touched inside the window was active when the
+           window opened. That misses a row enrolled AND retired entirely
+           inside the week (it is counted in neither end), which makes this a
+           conservative floor on the loss rather than an exaggeration of it -
+           the right direction for something that raises an alarm. */
+        const { data: priorRows, error: priorErr } = await supabase
+            .from('push_subscriptions')
+            .select('id, is_active, created_at, updated_at')
+            .lte('created_at', weekAgo);
+        if (priorErr) throw new Error(priorErr.message);
+        const activeWeekAgo = (priorRows || []).filter(
+            (r) => r.is_active || Date.parse(r.updated_at || 0) >= Date.parse(weekAgo)
+        ).length;
+
+        report.audience = {
+            activeNow: activeNow || 0,
+            activeWeekAgo,
+            sentLast7d: sentRecent || 0,
+            sentPrior7d: sentPrior || 0,
+        };
+
+        // The devices are going. Only meaningful while the pool is small enough
+        // that its disappearance is close; above the ceiling a lost device is
+        // churn. `activeSubs === 0` above already covers the terminal state, so
+        // this is deliberately the WARNING before it and not a second shout
+        // about the same thing.
+        if (
+            (activeNow || 0) > 0 &&
+            activeWeekAgo > 0 &&
+            (activeNow || 0) <= AUDIENCE_SHRINK_CEILING &&
+            (activeNow || 0) <= activeWeekAgo * AUDIENCE_SHRINK_RATIO
+        ) {
+            problems.push(
+                `push audience is shrinking toward zero - ${activeNow} active subscription(s), ` +
+                `down from ${activeWeekAgo} a week ago, and nobody is re-subscribing`
+            );
+        }
+
+        // The sends are going. This is the half that would have caught the
+        // measured 248-a-day to 4-a-day decay, which no check in this file
+        // could see. Suppressed when nobody is subscribed at all, because then
+        // the platform-level alarm above is already saying the true thing.
+        if (
+            (activeNow || 0) > 0 &&
+            (sentPrior || 0) >= SEND_COLLAPSE_FLOOR &&
+            (sentRecent || 0) < (sentPrior || 0) * SEND_COLLAPSE_RATIO
+        ) {
+            const pct = Math.round(((sentRecent || 0) / (sentPrior || 1)) * 100);
+            problems.push(
+                `push delivery is collapsing - ${sentRecent} sent in the last 7 days against ` +
+                `${sentPrior} the week before (${pct}%), with ${activeNow} device(s) still subscribed`
+            );
+        }
+    } catch (e) {
+        // A watchdog that dies quietly is the thing this file is about.
+        problems.push(`audience check failed: ${e?.message || e}`);
+    }
 
     // ---- Report ------------------------------------------------------------
     if (problems.length > 0) {
