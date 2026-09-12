@@ -950,6 +950,7 @@ jobs:
             __tests__/_test-guards-exist.test.mjs \
             __tests__/auth-routes-exist.test.mjs \
             __tests__/gdpr-financial-refusal.test.mjs \
+            tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
             __tests__/sentry-coverage.test.mjs \
