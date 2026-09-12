@@ -2,9 +2,9 @@
 SMARTER-POKER — ONE-COMMAND MACHINE LAUNCHER
 ============================================================================
 Turnkey. Run this ONE file on each solver box. It:
-  1. Fetches the pinned pipeline (this launcher / tree_gen / pio_harvest /
-     orchestrate) from one exact protected commit — never a moving branch —
-     and proves this running launcher's bytes are that protected source.
+  1. Verifies a controller-delivered local pipeline bundle from one exact
+     protected commit and proves this running launcher matches that source.
+     Never fetches private GitHub files or holds a GitHub credential.
   2. Launches your PioSOLVER **console** solver (UPI mode) as a subprocess and
      provides a real transport (send command -> read until 'END'), so the two
      stubs in orchestrate.py are filled automatically. Nothing to hand-wire.
@@ -24,6 +24,7 @@ REQUIRED ENV (set before running):
   PIPELINE_COMMIT=<protected 40-character commit SHA>
   APPROVED_MANIFEST_CHECKSUM=<SHA-256 of the approved phases.json bytes>
   RANGE_DIRECTORY=<directory containing approved checksum-pinned ranges>
+  SOLVER_RELEASE_BUNDLE_DIRECTORY=<absolute directory of controller-delivered files>
 
 RUN:
   MACHINE 1:  python run_machine.py M1 2 0
@@ -36,7 +37,7 @@ BOUNDED CANARY (requires a protected, machine-bound sealed target):
 Safety: if the transport or engine is off in any way, the startup self-test
 FAILS LOUDLY and aborts before a single row is written — it never guesses.
 """
-import sys, os, json, urllib.parse, urllib.request, hashlib, math, tempfile
+import sys, os, json, urllib.parse, urllib.request, hashlib, math, tempfile, stat
 
 BASE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIRECTORY)
@@ -128,20 +129,103 @@ if not commit:
 if len(commit) != 40 or any(c not in "0123456789abcdef" for c in commit.lower()):
     raise SystemExit("PIPELINE_COMMIT must be an exact 40-character Git commit SHA")
 os.environ["PIPELINE_COMMIT"] = commit.lower()
-RAW = "https://raw.githubusercontent.com/%s/%s/scripts/preflop-deep" % (REPO, commit)
 print("[pipeline] pinned commit: %s" % commit)
 
 # ---- 1. verify and atomically install the approved pipeline ---------------
 approved_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "").strip().lower()
 if len(approved_manifest) != 64 or any(c not in "0123456789abcdef" for c in approved_manifest):
     raise SystemExit("APPROVED_MANIFEST_CHECKSUM is required before any pipeline code is installed")
-manifest_bytes = urllib.request.urlopen(RAW + "/phases.json", timeout=60).read()
-if hashlib.sha256(manifest_bytes).hexdigest() != approved_manifest:
-    raise SystemExit("pinned manifest bytes do not match APPROVED_MANIFEST_CHECKSUM")
-manifest = json.loads(manifest_bytes.decode())
-approved_bundle = str(manifest.get("pipeline_bundle_checksum") or "").lower()
-if len(approved_bundle) != 64 or any(c not in "0123456789abcdef" for c in approved_bundle):
-    raise SystemExit("approved manifest is missing pipeline_bundle_checksum")
+def _read_controller_release_bundle(bundle_directory, approved_manifest, pipeline_files):
+    """Read only controller-delivered bytes sealed by the protected manifest.
+
+    The controller must verify the protected commit and deliver its exact
+    manifest checksum out of band. A local directory or its own checksums do
+    not authorize a release. No GitHub credential or network fallback exists.
+    """
+    if (not isinstance(bundle_directory, str) or not bundle_directory
+            or bundle_directory != bundle_directory.strip()
+            or not os.path.isabs(bundle_directory)):
+        raise SystemExit("SOLVER_RELEASE_BUNDLE_DIRECTORY must be an absolute local directory")
+    root = os.path.abspath(bundle_directory)
+    if root.startswith(("\\\\", "//")):
+        raise SystemExit("release bundle must be local, not a network share")
+    # Reject redirects/reparse points in the path as well as the leaf files.
+    cursor = root
+    while True:
+        try:
+            info = os.lstat(cursor)
+        except OSError:
+            raise SystemExit("controller release bundle path is unavailable") from None
+        if (stat.S_ISLNK(info.st_mode)
+                or getattr(info, "st_file_attributes", 0) & 0x400):
+            raise SystemExit("controller release bundle may not use links or reparse points")
+        parent = os.path.dirname(cursor)
+        if parent == cursor:
+            break
+        cursor = parent
+    expected_names = set(pipeline_files) | {"phases.json"}
+    try:
+        if set(os.listdir(root)) != expected_names:
+            raise SystemExit("controller release bundle must contain exactly the five approved files")
+    except OSError:
+        raise SystemExit("controller release bundle directory is unavailable") from None
+
+    def read_file(filename):
+        path = os.path.join(root, filename)
+        try:
+            info = os.lstat(path)
+            if (not stat.S_ISREG(info.st_mode)
+                    or getattr(info, "st_file_attributes", 0) & 0x400):
+                raise SystemExit("controller release bundle requires regular files")
+            # Bound memory use before and during reads, including growing files.
+            if info.st_size > 16 * 1024 * 1024:
+                raise SystemExit("controller release bundle file exceeds size limit")
+            with open(path, "rb") as source:
+                data = source.read(16 * 1024 * 1024 + 1)
+            if len(data) > 16 * 1024 * 1024:
+                raise SystemExit("controller release bundle file exceeds size limit")
+            return data
+        except OSError:
+            raise SystemExit("controller release bundle file is unavailable") from None
+
+    manifest_bytes = read_file("phases.json")
+    if hashlib.sha256(manifest_bytes).hexdigest() != approved_manifest:
+        raise SystemExit("pinned manifest bytes do not match APPROVED_MANIFEST_CHECKSUM")
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except (ValueError, UnicodeError):
+        raise SystemExit("controller release manifest is not valid UTF-8 JSON") from None
+    if (not isinstance(manifest, dict)
+            or manifest.get("pipeline_distribution") != "controller-local-bundle.v1"):
+        raise SystemExit("protected manifest does not approve controller-local-bundle.v1")
+    checksums = manifest.get("pipeline_files_sha256")
+    if not isinstance(checksums, dict) or set(checksums) != set(pipeline_files):
+        raise SystemExit("protected manifest must seal every exact pipeline filename")
+    approved_bundle = manifest.get("pipeline_bundle_checksum")
+    for digest in list(checksums.values()) + [approved_bundle]:
+        if (not isinstance(digest, str) or len(digest) != 64
+                or any(c not in "0123456789abcdef" for c in digest)
+                or digest == "0" * 64):
+            raise SystemExit("protected pipeline checksums must be nonzero lowercase SHA-256")
+    payloads = {}
+    bundle_digest = hashlib.sha256()
+    for filename in pipeline_files:
+        payload = read_file(filename)
+        if hashlib.sha256(payload).hexdigest() != checksums[filename]:
+            raise SystemExit("controller release pipeline file checksum mismatch: %s" % filename)
+        payloads[filename] = payload
+        bundle_digest.update(filename.encode("ascii") + b"\0" + payload + b"\0")
+    if bundle_digest.hexdigest() != approved_bundle:
+        raise SystemExit("pinned pipeline bundle does not match the approved manifest")
+    return manifest_bytes, manifest, payloads
+
+
+pipeline_files = ("run_machine.py", "tree_gen.py", "pio_harvest.py", "orchestrate.py")
+manifest_bytes, manifest, payloads = _read_controller_release_bundle(
+    os.environ.get("SOLVER_RELEASE_BUNDLE_DIRECTORY", ""),
+    approved_manifest, pipeline_files,
+)
+approved_bundle = manifest["pipeline_bundle_checksum"]
 SOURCE_COMBO_ORDER_SCHEMA = "piosolver.show_hand_order.v1"
 ARTIFACT_COMBO_ORDER = (
     "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
@@ -156,15 +240,6 @@ if (len(approved_source_combo_order_sha256) != 64
                for c in approved_source_combo_order_sha256)):
     raise SystemExit("approved manifest is missing source_combo_order_sha256")
 
-pipeline_files = ("run_machine.py", "tree_gen.py", "pio_harvest.py", "orchestrate.py")
-payloads = {}
-bundle_digest = hashlib.sha256()
-for filename in pipeline_files:
-    payload = urllib.request.urlopen(RAW + "/" + filename, timeout=60).read()
-    payloads[filename] = payload
-    bundle_digest.update(filename.encode() + b"\0" + payload + b"\0")
-if bundle_digest.hexdigest() != approved_bundle:
-    raise SystemExit("pinned pipeline bundle does not match the approved manifest")
 local_launcher_path = os.path.abspath(__file__)
 with open(local_launcher_path, "rb") as local_launcher:
     local_launcher_bytes = local_launcher.read()
@@ -215,6 +290,7 @@ print("[pio] approved console solver checksum: %s" % actual_binary)
 # manifest is not permission to start, much less orphan, a solver process.
 import pio_harvest as _ph
 import orchestrate
+orchestrate.APPROVED_MANIFEST_BYTES = manifest_bytes
 
 
 # Pio needs the normal Windows process/runtime directories, not the gateway's
