@@ -77,3 +77,27 @@ test('nextLoginReward follows the catalog: base, +increment per day, capped at m
   // And it is the same formula the claim route documents.
   assert.equal(REWARDS.daily_login.scaling.formula, 'min(5 + (streak - 1) * 2, 25)');
 });
+
+test('Escape backs out one layer of the wallet, not all of them', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(
+    new URL('../src/components/store/DiamondWalletModal.jsx', import.meta.url),
+    'utf8'
+  );
+  const handler = src.slice(src.indexOf('const handleKeyDown = (e) => {'), src.indexOf('window.addEventListener(\'keydown\', handleKeyDown);'));
+  assert.match(handler, /if \(popupData\) \{\s*setPopupData\(null\);\s*return;/);
+  assert.match(handler, /if \(confirmTransfer\) \{\s*setConfirmTransfer\(null\);\s*return;/);
+  assert.ok(handler.indexOf('setConfirmTransfer(null)') < handler.indexOf('onClose();'));
+  assert.match(src, /\}, \[isOpen, onClose, popupData, confirmTransfer\]\);/);
+});
+
+test('the transactions API takes the headline from the whole-ledger RPC', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(
+    new URL('../pages/api/store/diamond-transactions.js', import.meta.url),
+    'utf8'
+  );
+  assert.match(src, /rpc\('fn_diamond_lifetime_totals', \{ p_user_id: userId \}\)/);
+  assert.match(src, /earned = e;\s*spent = sp;\s*exact = true;/);
+  assert.match(src, /lifetime = \{\s*earned,\s*spent,[\s\S]*?exact,/);
+});

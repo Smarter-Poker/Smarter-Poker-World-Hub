@@ -1053,14 +1053,28 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   }, [transactions]);
 
   // ── ENH-D: Keyboard accessibility: Escape to close ──
+  /* ESCAPE BACKS OUT ONE LAYER, NOT ALL OF THEM (2026-09-13). With the
+     Confirm Transfer dialog or a gate popup open, Escape used to close the
+     whole wallet - so a keyboard user backing out of "Send 500 Diamonds?"
+     lost the modal, the recipient and the amount together. The innermost
+     surface is what Escape dismisses; the wallet closes on the next press. */
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (popupData) {
+        setPopupData(null);
+        return;
+      }
+      if (confirmTransfer) {
+        setConfirmTransfer(null);
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, popupData, confirmTransfer]);
 
   // ── ENH-F: Persist filter selection ──
   const handleFilterChange = useCallback(

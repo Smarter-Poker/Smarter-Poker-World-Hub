@@ -41,3 +41,17 @@ week/month/gift breakdowns still need the rows and keep the window;
 
 `node --check` on both routes; 48 tests across the modal's pinned suites plus
 the new one; `next build` (see push log).
+
+## 3. Escape backs out one layer of the wallet, not all of them
+
+With the Confirm Transfer dialog or a gate popup open, Escape closed the whole
+wallet, so a keyboard user backing out of "Send 500 Diamonds?" lost the modal,
+the recipient and the amount together. The innermost surface is what Escape
+dismisses now; the wallet closes on the next press. Pinned in the same test.
+
+## Read on production, for the record
+
+`send_wallet_diamond_transfer` refuses only `p_amount <= 0` and requires a
+`p_reference_id` matching `^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$`; the route
+refuses a request without `X-Idempotency-Key`. The Club Arena wallet had never
+sent one (fixed in its companion branch), and carried an invented floor of 10.
