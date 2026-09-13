@@ -38,6 +38,13 @@ import {
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HubPageShell from '../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../src/components/ui/PullToRefresh';
+import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
+import { useHaptics } from '../../src/hooks/useHaptics';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
+import { useModalHistory } from '../../src/hooks/useModalHistory';
+import toast from '../../src/stores/toastStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { TRAINING_LIBRARY } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
@@ -102,6 +109,16 @@ function formatSignedValue(value) {
 
 export default function TrainingPage() {
   const router = useRouter();
+  // Mobile phase 5 foundation (docs/mobile-standard/ROLLOUT-PLAN.md).
+  const haptic = useHaptics();
+  const online = useOnlineStatus();
+  // Starting a drill opens a session on the server; offline it would spin
+  // for the whole timeout and fail. The button explains instead.
+  const requireOnline = useCallback(() => {
+    if (online) return true;
+    toast.error(OFFLINE_TOAST);
+    return false;
+  }, [online]);
 
   const showArena    = useTrainingStore(s => s.showArena);
   const activeGame   = useTrainingStore(s => s.activeGame);
@@ -177,9 +194,11 @@ export default function TrainingPage() {
   const [arenaSessionId, setArenaSessionId] = useState(null);
   const startDrill = useCallback((game) => {
     if (!game) return;
+    if (!requireOnline()) return;
+    haptic('light');
     setActiveGame(game);
     setSetupGame(game);  // show modal; modal will call onStart to flip showArena
-  }, [setActiveGame]);
+  }, [setActiveGame, requireOnline, haptic]);
 
   // Leak Finder And Sandbox Both Deep-Link Into The Training Center. These
   // Query Parameters Previously Had No Consumer, So The Promised Focused Game
@@ -229,6 +248,29 @@ export default function TrainingPage() {
   const handleSetupClose = useCallback(() => {
     setSetupGame(null);
   }, []);
+  useModalHistory(Boolean(setupGame), handleSetupClose);
+
+  /* LOAD FAILSAFE (mobile phase 0a). The dashboard and progress hooks own
+     their own loading flags; a request that never settles used to pin the
+     stats and progress cards on their skeletons forever. This caps that at
+     eight seconds and every "still loading" read below goes through the
+     capped pair. The hooks are untouched, so a late answer still lands. */
+  const [dataLoading, setDataLoading] = useState(true);
+  useEffect(() => {
+    if (!statsLoading && !progressLoading) setDataLoading(false);
+  }, [statsLoading, progressLoading]);
+  useLoadFailsafe(dataLoading, setDataLoading);
+  const statsBusy = statsLoading && dataLoading;
+  const progressBusy = progressLoading && dataLoading;
+  const refreshDashboard = useCallback(async () => {
+    if (!requireOnline()) return;
+    setDataLoading(true);
+    try {
+      await Promise.allSettled([Promise.resolve(retryStats?.()), Promise.resolve(retryProgress?.())]);
+    } finally {
+      setDataLoading(false);
+    }
+  }, [requireOnline, retryStats, retryProgress]);
 
   const browseTrainingLibrary = useCallback(() => {
     setActiveCat('ALL');
@@ -370,21 +412,23 @@ export default function TrainingPage() {
       )}
 
       {!showArena && (
-        <>
+        <HubPageShell className="training" maxWidth={1180} header={<UniversalHeader />}>
           <a href="#main" className="sp-skip">Skip To Main Content</a>
 
-          <UniversalHeader />
-
+          {/* Pull down at the top to re-read the dashboard. Off while the
+              session setup sheet is open so a drag inside it cannot fire a
+              reload underneath. */}
+          <PullToRefresh onRefresh={refreshDashboard} disabled={Boolean(setupGame)}>
           <main id="main" className="sp-main">
 
-            <section aria-labelledby="hero-h" className="sp-hero">
+            <section aria-labelledby="hero-h" className="sp-hero" data-tutorial="hero">
               <div className="sp-hero-copy">
                 <p className="sp-hero-eyebrow">
                   <span className="sp-dot" aria-hidden />
                   {jarvisPick?.estMinutes ? `Training Orb Online · ${jarvisPick.estMinutes} Minute Plan` : 'Training Orb Online'}
                 </p>
                 <h1 id="hero-h" className="sp-hero-title">
-                  {renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading, recommendationLoading })}
+                  {renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading: statsBusy, recommendationLoading })}
                 </h1>
                 <p className="sp-hero-sub">
                   {recommendationLoading
@@ -415,7 +459,7 @@ export default function TrainingPage() {
 
               <GradeCard
                 stats={stats}
-                loading={statsLoading}
+                loading={statsBusy}
                 error={statsError}
                 onRetry={retryStats}
                 signedIn={Boolean(authUser?.id)}
@@ -423,7 +467,7 @@ export default function TrainingPage() {
             </section>
 
             {biggestLeak && (
-              <section aria-labelledby="leak-h" className="sp-leak">
+              <section aria-labelledby="leak-h" className="sp-leak" data-tutorial="leak">
                 <div>
                   <span className="sp-leak-eyebrow"><AlertTriangle size={12} aria-hidden /> Priority Leak Detected</span>
                   <h2 id="leak-h" className="sp-leak-title">
@@ -451,7 +495,7 @@ export default function TrainingPage() {
               </section>
             )}
 
-            <section aria-labelledby="stats-h">
+            <section aria-labelledby="stats-h" data-tutorial="stats">
               <div className="sp-section-head">
                 <h2 id="stats-h" className="sp-section-title">This Week</h2>
                 <a className="sp-section-link" href="/hub/session-history">See History <ArrowRight size={14} aria-hidden /></a>
@@ -473,14 +517,14 @@ export default function TrainingPage() {
                   <Stat
                     icon={Layers}
                     label="Hands"
-                    loading={statsLoading || !stats}
+                    loading={statsBusy || !stats}
                     value={stats?.hands_this_week}
                     trend={fmtTrend(stats?.hands_this_week, stats?.hands_last_week)}
                   />
                   <Stat
                     icon={Target}
                     label="Accuracy"
-                    loading={statsLoading || !stats}
+                    loading={statsBusy || !stats}
                     value={stats?.accuracy_this_week_pct}
                     unit="%"
                     trend={fmtTrend(stats?.accuracy_this_week_pct, stats?.accuracy_last_week_pct, ' pts')}
@@ -488,7 +532,7 @@ export default function TrainingPage() {
                   <Stat
                     icon={TrendingUp}
                     label="EV Saved"
-                    loading={statsLoading || !stats}
+                    loading={statsBusy || !stats}
                     value={formatSignedValue(stats?.ev_saved_this_week_bb)}
                     unit="bb"
                     trend={fmtTrend(stats?.ev_saved_this_week_bb, stats?.ev_saved_last_week_bb, ' bb')}
@@ -496,7 +540,7 @@ export default function TrainingPage() {
                   <Stat
                     icon={Flame}
                     label="Streak"
-                    loading={statsLoading || !stats}
+                    loading={statsBusy || !stats}
                     value={stats?.current_streak_days}
                     unit="days"
                     sub={stats?.personal_best_streak_days
@@ -507,21 +551,21 @@ export default function TrainingPage() {
               )}
             </section>
 
-            <section aria-labelledby="prog-h">
+            <section aria-labelledby="prog-h" data-tutorial="progress">
               <div className="sp-section-head">
                 <h2 id="prog-h" className="sp-section-title">Progress</h2>
               </div>
               <ProgressBlock
                 sessions={lifetimeSessions}
                 positionAccuracy={positionAccuracy}
-                loading={progressLoading}
+                loading={progressBusy}
                 signedIn={Boolean(authUser?.id)}
                 error={progressError}
                 onRetry={retryProgress}
               />
             </section>
 
-            <section id="training-library" aria-labelledby="lib-h">
+            <section id="training-library" aria-labelledby="lib-h" data-tutorial="library">
               <div className="sp-section-head">
                 <h2 ref={libraryHeadingRef} id="lib-h" className="sp-section-title" tabIndex={-1}>Browse The Training Library</h2>
                 <span className="sp-section-link" aria-live="polite">
@@ -529,7 +573,7 @@ export default function TrainingPage() {
                 </span>
               </div>
 
-              <div className="sp-toolbar">
+              <div className="sp-toolbar" data-tutorial="search">
                 <label className="sp-search">
                   <Search size={16} aria-hidden />
                   <input
@@ -542,7 +586,7 @@ export default function TrainingPage() {
                 </label>
               </div>
 
-              <div className="sp-cat-chips" role="group" aria-label="Game Categories">
+              <div className="sp-cat-chips" role="group" aria-label="Game Categories" data-tutorial="categories">
                 <CatChip cat="ALL" active={activeCat==='ALL'} onClick={() => setActiveCat('ALL')} count={TRAINING_LIBRARY.length}>
                   <Grid2x2 size={14} aria-hidden /> All
                 </CatChip>
@@ -558,7 +602,7 @@ export default function TrainingPage() {
               </div>
 
               {filtered.length > 0 ? (
-                <div className="sp-grid">
+                <div className="sp-grid" data-tutorial="games">
                   {filtered.map(g => (
                     <GameCardNew
                       key={g.id}
@@ -584,8 +628,9 @@ export default function TrainingPage() {
             </section>
 
           </main>
+          </PullToRefresh>
 
-        </>
+        </HubPageShell>
       )}
     </PageTransition>
   );
@@ -1597,7 +1642,9 @@ function GlobalStyle() {
       .sp-search input { min-height: 52px; color: #f3fbff; font-size: 15px; }
       .sp-cat-chips { gap: 7px; padding: 0 0 18px; }
       .sp-cat-chip {
-        min-height: 42px;
+        /* 44px, the global touch floor. This later theme block was 42 and
+           won the cascade over both earlier 44s. */
+        min-height: 44px;
         border-radius: 0;
         color: #c7e0ec;
         background: linear-gradient(180deg, rgba(201,241,255,.11), rgba(5,16,27,.92));
