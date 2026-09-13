@@ -68,6 +68,77 @@ export default class MyDocument extends Document {
 
                     {/* OpenCV removed from _document.js — load lazily in the specific component that needs it (Toke Tracker). See: pages/hub/bankroll-manager.js or wherever the receipt scanner lives. */}
 
+                    {/* ═══ THE APP REOPENS WHERE YOU LEFT IT (Dan 2026-09-13) ═══════
+                         Dan, verbatim: "Smarter.poker app should ALWAYS open back up
+                         from exactly where you left off and inside of on the page you
+                         left off on. Not just back to the world hub."
+
+                         WHY /hub: public/manifest.json declares start_url /hub with
+                         display standalone. iOS relaunches a standalone web app at
+                         start_url whenever it has discarded the page (a call, memory
+                         pressure, a day in the background). Nothing recorded where the
+                         player was, so every relaunch landed on the World Hub.
+
+                         WHAT RECORDS IT: pages/_app.js (installLastRouteRecorder) and
+                         Club Arena, on the same origin, both write
+                         localStorage['sp:last-route'] = {path, at} on every route
+                         change and on pagehide, and sessionStorage['sp:session-alive']
+                         = '1'. Never for /auth, error pages, or the bare hub.
+
+                         LAUNCH vs NAVIGATION: sessionStorage survives in-app
+                         navigation and dies with a killed PWA, so an empty
+                         'sp:session-alive' means this is a fresh launch. A same-origin
+                         referrer means the player tapped their way to /hub on purpose
+                         (or a page reloaded), and is left alone. Both must agree.
+
+                         location.replace, not assign: /hub never enters history, so
+                         Back from the restored page does not bounce through it.
+
+                         AUTH: an expired session is fine. The destination's own auth
+                         guard redirects to /auth/login with a redirect param, which is
+                         still "where you left off" once the player signs back in.
+
+                         Runs before React on purpose: the point is to leave /hub
+                         before it paints. Every step is wrapped, storage can be
+                         absent or refused, and any failure simply shows /hub.
+                    ═══════════════════════════════════════════════════════════════ */}
+                    <script dangerouslySetInnerHTML={{
+                        __html: `
+                            (function () {
+                                try {
+                                    var LAST_ROUTE_KEY = 'sp:last-route';
+                                    var SESSION_ALIVE_KEY = 'sp:session-alive';
+                                    var MAX_AGE_MS = 24 * 60 * 60 * 1000;
+                                    var here = location.pathname.replace(/\\/+$/, '');
+                                    if (here !== '/hub' || location.search || location.hash) return;
+                                    var standalone = navigator.standalone === true ||
+                                        (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+                                    if (!standalone) return;
+                                    if (sessionStorage.getItem(SESSION_ALIVE_KEY)) return;
+                                    var ref = document.referrer || '';
+                                    if (ref && ref.indexOf(location.origin + '/') === 0) return;
+                                    var raw = localStorage.getItem(LAST_ROUTE_KEY);
+                                    if (!raw) return;
+                                    var rec = JSON.parse(raw);
+                                    if (!rec || typeof rec.path !== 'string' || typeof rec.at !== 'number') return;
+                                    if (Date.now() - rec.at > MAX_AGE_MS) {
+                                        localStorage.removeItem(LAST_ROUTE_KEY);
+                                        return;
+                                    }
+                                    var path = rec.path;
+                                    if (path.charAt(0) !== '/' || path.charAt(1) === '/') return;
+                                    if (path.indexOf('authError=') !== -1) return;
+                                    var pathname = path.split(/[?#]/)[0].replace(/\\/+$/, '') || '/';
+                                    if (pathname === '/' || pathname === '/hub') return;
+                                    if (/^\\/auth(\\/|$)/.test(pathname)) return;
+                                    if (/^\\/(404|500|_error)(\\/|$)/.test(pathname)) return;
+                                    sessionStorage.setItem(SESSION_ALIVE_KEY, '1');
+                                    location.replace(path);
+                                } catch (err) { /* storage unavailable or refused: show /hub */ }
+                            })();
+                        `
+                    }} />
+
                     {/* ═══ PWA STALE CACHE BUSTER ═════════════════════════════════
                          If Vercel deployed a new build, old PWA service workers
                          will try to request obsolete Next.js chunk files, getting 404s
