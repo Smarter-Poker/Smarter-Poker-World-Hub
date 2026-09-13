@@ -98,7 +98,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Operational Alert Delivery Contracts
-        run: node --test __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
+        run: node --test __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -162,6 +162,9 @@ jobs:
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
+
+      - name: Engine Alert Receipt PostgreSQL Contracts
+        run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs

@@ -60,7 +60,7 @@ test('engine receiver preserves legacy history and refuses to acknowledge failed
     for(const result of [{ok:false,status:503},{ok:true,json:async()=>[]}]) {
       globalThis.fetch=async()=>result;const r=response();await engine(req,r);assert.equal(r.code,503);assert.equal(r.body.recorded,0);
     }
-    globalThis.fetch=async(url,init)=>{assert.match(url,/\/rest\/v1\/engine_alerts$/);assert.equal(JSON.parse(init.body)[0].alertname,'HorseFleetHeartbeatStale');return {ok:true,json:async()=>[{id:17}]};};
+    globalThis.fetch=async(url,init)=>{assert.match(url,/\/rest\/v1\/rpc\/fn_record_engine_alerts$/);assert.equal(JSON.parse(init.body).p_alerts[0].labels.alertname,'HorseFleetHeartbeatStale');return {ok:true,json:async()=>[{id:17,event_id:null}]};};
     const r=response();await engine(req,r);assert.equal(r.code,200);assert.equal(r.body.recorded,1);
   } finally {globalThis.fetch=original;}
 });
