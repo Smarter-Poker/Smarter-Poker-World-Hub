@@ -850,6 +850,9 @@ export default function BankrollManagerPage() {
   // the connection changes, so it cannot drift away from the truth.
   const [heldScans, setHeldScans] = useState([]);
   const [resumingHeld, setResumingHeld] = useState(null);
+  // The held scan being sent on its own, with no tap. Distinct from
+  // resumingHeld, which is the one the player asked for by pressing Send.
+  const [autoFlushing, setAutoFlushing] = useState(null);
 
   /**
    * WHAT IS WAITING ON THIS DEVICE.
@@ -888,6 +891,54 @@ export default function BankrollManagerPage() {
     setScannerReceiptId(null);
     setShowScanner(true);
   }, [requireOnline]);
+
+  /**
+   * A HELD SCAN SENDS ITSELF WHEN THE SIGNAL COMES BACK.
+   *
+   * The branch that shipped this was called "a scan in the basement files
+   * itself" and then made the player press Send, which is not what that says.
+   *
+   * It runs through the SAME ReceiptScanner, the same upload, the same
+   * /api/bankroll/scan-receipt with the same bankroll_pro gate, and the same
+   * saveReceiptRow. The only difference from a tap is who presses Confirm. A
+   * quieter background path that read receipts its own way would be a second
+   * reader, and two readers eventually disagree about what a receipt said.
+   *
+   * ONE AT A TIME, and never while the player is using the scanner: the sheet
+   * has one piece of state, and a scan filing itself underneath somebody
+   * mid-scan is how the wrong photograph gets the wrong destination.
+   *
+   * WHERE IT LANDS. Saved and listed under Receipts Waiting, not filed to a
+   * trip - Dan's rule is that every scanned receipt is at least saved and
+   * assignable later, and WHICH trip a buy-in belongs to is a decision, not a
+   * default. The sending is automatic; the filing is still the player's.
+   */
+  useEffect(() => {
+    if (!online || !userId) return;
+    if (autoFlushing || resumingHeld || showScanner) return;
+    const next = heldScans.find((h) => h && h.blob && (h.attempts || 0) < 3);
+    if (!next) return;
+    let cancelled = false;
+    (async () => {
+      await noteAttempt(next.id);
+      if (!cancelled) setAutoFlushing(next);
+    })();
+    return () => { cancelled = true; };
+  }, [online, userId, autoFlushing, resumingHeld, showScanner, heldScans]);
+
+  /**
+   * The row exists, so the device copy has done its job.
+   *
+   * A scan whose upload keeps failing is left in the hold with its attempt
+   * count climbing rather than retried forever; after three it stops being
+   * picked up automatically and the player can still press Send. A queue that
+   * retries a poisoned item until the end of time is a queue that never drains.
+   */
+  const finishAutoFlush = useCallback(async (record, filed) => {
+    setAutoFlushing(null);
+    if (filed && record) await releaseHeld(record.id);
+    refreshHeldScans();
+  }, [refreshHeldScans]);
 
   /** It has a row now, so the device copy can go. Never before. */
   const releaseResumedScan = useCallback(async () => {
@@ -1571,16 +1622,51 @@ export default function BankrollManagerPage() {
                     server, and one here exists nowhere else. Clearing the
                     browser's data would take it.
                   */}
-                  {heldScans.length > 0 && (
+                  {/*
+                    THE SENDER. Mounted only while a held scan is on its way,
+                    and deliberately off-screen rather than in the modal: the
+                    player did not ask for a sheet to open, they asked for their
+                    receipt not to be lost. Progress is the banner below.
+
+                    It is the same component the visible scanner uses, so there
+                    is one upload path, one read through the paid route, and one
+                    set of numbers. autoConfirm only changes who presses
+                    Confirm.
+                  */}
+                  {autoFlushing && (
+                    <div aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+                      <ReceiptScanner
+                        userId={userId}
+                        resumeScan={autoFlushing}
+                        autoConfirm
+                        onScanComplete={async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
+                          const id = await saveReceiptRow({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence });
+                          await finishAutoFlush(autoFlushing, Boolean(id));
+                          if (id) {
+                            loadPendingReceipts();
+                            toast.success('A Scan You Took Offline Has Been Sent. It Is Waiting To Be Filed.');
+                          } else {
+                            // The row did not land, so the device copy STAYS.
+                            toast.error('A Held Scan Uploaded But Could Not Be Listed. It Is Still On This Device.');
+                          }
+                        }}
+                        onHeld={() => { finishAutoFlush(autoFlushing, false); }}
+                      />
+                    </div>
+                  )}
+
+                  {(heldScans.length > 0 || autoFlushing) && (
                     <div style={styles.receiptsWaiting} data-testid="scans-held-on-device">
                       <div style={styles.receiptsWaitingHead}>
-                        <span>{online ? 'Scans Waiting To Be Sent' : 'Scans Held On This Device'}</span>
+                        <span>{autoFlushing ? 'Sending A Scan You Took Offline' : online ? 'Scans Waiting To Be Sent' : 'Scans Held On This Device'}</span>
                         <span style={styles.receiptsWaitingCount}>{heldScans.length}</span>
                       </div>
                       <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '2px 0 8px' }}>
-                        {online
-                          ? 'These Were Taken With No Signal And Are Only On This Phone. Send Them Now.'
-                          : 'Saved Here Until You Are Back Online. They Are Read And Filed When You Reconnect.'}
+                        {autoFlushing
+                          ? 'Reading It And Saving It To Receipts Waiting. You Do Not Need To Do Anything.'
+                          : online
+                            ? 'These Were Taken With No Signal And Are Only On This Phone. Sending Them Now.'
+                            : 'Saved Here Until You Are Back Online. They Send Themselves When You Reconnect.'}
                       </div>
                       {heldScans.map((held) => (
                         <button
