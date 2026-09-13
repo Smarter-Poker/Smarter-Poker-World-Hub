@@ -739,6 +739,13 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     let autofixResult = {};
     if (!autofixRes.ok) {
       const errText = await autofixRes.text().catch(() => '');
+      let failureBody;
+      try { failureBody = JSON.parse(errText); } catch { failureBody = null; }
+      if (autofixRes.status === 503 && failureBody?.action === 'alert_delivery_failed') {
+        const error = new Error('Autofix provider alert delivery needs retry');
+        error.operationalInboxDeliveryFailure = true;
+        throw error;
+      }
       autofixResult = {
         action: 'api_error',
         reason: `Autofix API returned ${autofixRes.status}: ${errText.substring(0, 200)}`,

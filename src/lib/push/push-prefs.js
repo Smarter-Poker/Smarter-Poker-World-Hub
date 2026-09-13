@@ -239,6 +239,21 @@ const EVENT_ALIASES = {
     // and the alternative is a new toggle that is quiet by default at the one
     // hour it matters.
     tournament_blinding_off: 'tournament_starting',
+
+    // ── TOURNAMENT RESUMED (added 2026-09-13) ──────────────────────────────
+    //
+    // Raised by the Club Arena engine when a tournament picks back up after
+    // the hourly :55 maintenance break (Club Arena CLAUDE.md section 13). A
+    // player who closed the app during the five-minute freeze was never told
+    // that play had restarted, and their seat is being dealt cards, posting
+    // blinds and paying antes whether or not they are there to see it.
+    //
+    // Mapped to `tournament_starting` for exactly the reason blinding-off is:
+    // that key is in URGENT_TYPES, so this pierces quiet hours and the daily
+    // cap. "Your tournament is running again" at 3am is only worth sending if
+    // it is allowed to arrive at 3am. The same trade applies - muting
+    // "Tournament Starting" mutes this too - and it is the same right answer.
+    tournament_resumed: 'tournament_starting',
 };
 
 // Test pushes are never gated by per-type preferences -- if a user clicks

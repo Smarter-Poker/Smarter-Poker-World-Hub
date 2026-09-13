@@ -84,6 +84,10 @@ const DIGEST_LABEL = {
     club_announcement: 'club announcements',
     table_invite: 'table invites',
     tournament_starting: 'tournaments starting',
+    // Raw event string again: the engine writes `tournament_resumed` after the
+    // hourly maintenance break, and the alias to `tournament_starting` happens
+    // inside the gate, after this lookup.
+    tournament_resumed: 'tournaments resumed',
     // Keyed on the RAW event string, which is what carrier.event holds -- the
     // engine writes `waitlist_seat_open`, and the alias to `seat_open` happens
     // later, inside the gate. Without this entry the commonest notification on
