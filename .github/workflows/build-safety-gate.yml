@@ -100,6 +100,9 @@ jobs:
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
 
+      - name: Local Scraper Runtime Integrity And Delivery
+        run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
+
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
 
