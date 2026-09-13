@@ -38,7 +38,7 @@ export default function NutBlockerBluff() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BLOCKER_SPOTS.map((s, i) => (
           <button key={i} onClick={() => setSpotIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? 'linear-gradient(135deg, #8b5cf6, #ec4899)' : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.hand}
@@ -55,11 +55,11 @@ export default function NutBlockerBluff() {
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12 }}>
           <div style={{ background: `${qualityColor[spot.quality]}15`, borderRadius: 8, padding: '6px 16px' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Bluff Quality</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Bluff Quality</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: qualityColor[spot.quality] }}>{spot.quality}</div>
           </div>
           <div style={{ background: 'rgba(139,92,246,0.1)', borderRadius: 8, padding: '6px 16px' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Blocks</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Blocks</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#8b5cf6' }}>{spot.blocker}</div>
           </div>
         </div>

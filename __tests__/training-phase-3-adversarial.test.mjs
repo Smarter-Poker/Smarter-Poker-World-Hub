@@ -32,7 +32,11 @@ test('Table Dynamics uses the straight metallic Training design system', () => {
   assert.match(css, /body\.world-training \.sp-dynamics-panel/);
   assert.match(css, /\.sp-dynamics-panel[\s\S]*?border-radius:\s*0/);
   assert.match(css, /\.sp-dynamics-source,[\s\S]*?\.sp-dynamics-dock[\s\S]*?box-shadow:/);
-  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.sp-dynamics-metrics/);
+  // PIN MOVED, NOT LOOSENED (mobile phase 5, 2026-09-13). What this guards is
+  // that the dynamics metrics get a phone layout inside a media block. That
+  // still happens; the breakpoint that does it moved from 760 to the
+  // sanctioned 768 (docs/mobile-standard: 900 / 768 / 600 and no fourth).
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*?\.sp-dynamics-metrics/);
 });
 
 test('Training Hub categories and progress indicators expose valid accessible semantics', () => {

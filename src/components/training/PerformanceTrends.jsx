@@ -37,7 +37,7 @@ function LineChart({
 
     if (chartData.length < 2) {
         return (
-            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 11, fontStyle: 'italic' }}>
+            <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 12, fontStyle: 'italic' }}>
                 {emptyMessage}
             </div>
         );
@@ -124,7 +124,7 @@ function LineChart({
                         x={Math.min(points[hovered].x, svgWidth - 32)}
                         y={points[hovered].y - 10}
                         textAnchor="middle"
-                        fill="#fff" fontSize="9" fontWeight="bold"
+                        fill="#fff" fontSize='12px' fontWeight="bold"
                     >
                         {formatValue(points[hovered].value)}
                     </text>
@@ -136,7 +136,7 @@ function LineChart({
                 const d = chartData[i];
                 const dateStr = d?.date ? new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
                 return (
-                    <text key={i} x={points[i].x} y={height - 2} textAnchor="middle" fill="#475569" fontSize="8">
+                    <text key={i} x={points[i].x} y={height - 2} textAnchor="middle" fill="#475569" fontSize='12px'>
                         {dateStr}
                     </text>
                 );
@@ -219,8 +219,8 @@ function MilestoneBadge({ label, value, subValue, color = '#e2e8f0', icon }) {
             <div style={{ fontSize: 15, fontWeight: 'bold', color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 {value}
             </div>
-            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginTop: 1 }}>{label}</div>
-            {subValue && <div style={{ fontSize: 8, color: '#475569', marginTop: 1 }}>{subValue}</div>}
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 1 }}>{label}</div>
+            {subValue && <div style={{ fontSize: 12, color: '#475569', marginTop: 1 }}>{subValue}</div>}
         </div>
     );
 }
@@ -231,7 +231,7 @@ function TrendIndicator({ trending, delta }) {
     const isUp = trending === 'up';
     return (
         <span style={{
-            fontSize: 10, fontWeight: 'bold',
+            fontSize: 12, fontWeight: 'bold',
             color: isUp ? '#22c55e' : '#ef4444',
             display: 'inline-flex', alignItems: 'center', gap: 2,
         }}>
@@ -434,7 +434,7 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                                 { key: 'wrong', color: '#f97316', label: 'Wrong' },
                                 { key: 'blunder', color: '#ef4444', label: 'Blunder' },
                             ].map(item => (
-                                <span key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#64748b' }}>
+                                <span key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: '#64748b' }}>
                                     <div style={{ width: 6, height: 6, borderRadius: 2, background: item.color }} />
                                     {item.label}
                                 </span>
@@ -490,9 +490,9 @@ function LeakDetectionPanel({ sessionHistory }) {
                 marginTop: 8,
             }}
         >
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                 Leak Detection
-                <span style={{ fontSize: 9, fontWeight: 400, color: '#94a3b8' }}>
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#94a3b8' }}>
                     {leaks.length} leak{leaks.length !== 1 ? 's' : ''} Identified
                 </span>
             </div>
@@ -504,16 +504,16 @@ function LeakDetectionPanel({ sessionHistory }) {
                     marginBottom: i < 2 ? 6 : 0,
                     borderLeft: `3px solid ${severityColors[leak.severity] || '#fbbf24'}`,
                 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', marginBottom: 2 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', marginBottom: 2 }}>
                         {leak.title || leak.type}
                     </div>
-                    <div style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.4 }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.4 }}>
                         {leak.description || leak.fix}
                     </div>
                 </div>
             ))}
             {drills.length > 0 && (
-                <div style={{ marginTop: 8, fontSize: 10, color: '#64748b' }}>
+                <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
                     Recommended: {drills.slice(0, 2).map(d => d.name || d.description).join(', ')}
                 </div>
             )}
@@ -572,7 +572,7 @@ const styles = {
         padding: '3px 8px', borderRadius: 6,
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.06)',
-        color: '#64748b', fontSize: 10, fontWeight: 600,
+        color: '#64748b', fontSize: 12, fontWeight: 600,
         cursor: 'pointer', transition: 'all 0.15s',
     },
     rangeBtnActive: {
@@ -591,13 +591,13 @@ const styles = {
         borderRadius: 10,
     },
     chartLabel: {
-        fontSize: 10, fontWeight: 'bold', color: '#64748b',
+        fontSize: 12, fontWeight: 'bold', color: '#64748b',
         textTransform: 'uppercase', letterSpacing: 0.5,
         marginBottom: 4,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     },
     chartSubLabel: {
-        fontSize: 9, color: '#475569', fontWeight: 'normal', textTransform: 'none',
+        fontSize: 12, color: '#475569', fontWeight: 'normal', textTransform: 'none',
     },
     legendRow: {
         display: 'flex', gap: 8,
@@ -606,6 +606,6 @@ const styles = {
         color: '#64748b', fontSize: 12, textAlign: 'center', padding: 24,
     },
     empty: {
-        color: '#475569', fontSize: 11, textAlign: 'center', padding: 16, fontStyle: 'italic',
+        color: '#475569', fontSize: 12, textAlign: 'center', padding: 16, fontStyle: 'italic',
     },
 };

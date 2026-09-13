@@ -856,13 +856,23 @@ while [ $attempt -lt $MAX_RETRIES ]; do
   # A blind `git pull --rebase` rewrites an intentional merge from main even
   # when the remote feature branch is already an ancestor of HEAD. That makes
   # a current branch appear behind main again and destroys tested provenance.
+  REMOTE_BRANCH_MISSING=false
   if ! git fetch "${REMOTE}" "${BRANCH}" 2>&1; then
-    echo "⚠️  Could not fetch ${REMOTE}/${BRANCH}. Retrying..."
-    sleep "$((attempt * 2))"
-    continue
+    REMOTE_HEADS=$(git ls-remote --heads "${REMOTE}" "refs/heads/${BRANCH}" 2>/dev/null)
+    LS_REMOTE_EXIT=$?
+    if [ $LS_REMOTE_EXIT -eq 0 ] && [ -z "$REMOTE_HEADS" ]; then
+      REMOTE_BRANCH_MISSING=true
+      echo "ℹ️  ${REMOTE}/${BRANCH} is new; it will be created by this push."
+    else
+      echo "⚠️  Could not fetch ${REMOTE}/${BRANCH}. Retrying..."
+      sleep "$((attempt * 2))"
+      continue
+    fi
   fi
 
-  if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+  if [ "$REMOTE_BRANCH_MISSING" = true ]; then
+    echo "✅ No remote branch to reconcile."
+  elif git merge-base --is-ancestor FETCH_HEAD HEAD; then
     echo "✅ Local branch already contains the remote branch; preserving merge ancestry."
   elif ! GIT_EDITOR=true git rebase FETCH_HEAD 2>&1; then
 

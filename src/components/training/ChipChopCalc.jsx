@@ -50,7 +50,7 @@ export default function ChipChopCalc() {
             style={{ padding: '8px 4px', borderRadius: 8, border: dealIdx === i ? `2px solid ${d.color}` : '1px solid rgba(255,255,255,0.06)',
               background: dealIdx === i ? `${d.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{d.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: dealIdx === i ? d.color : '#64748b' }}>{d.deal.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: dealIdx === i ? d.color : '#64748b' }}>{d.deal.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -69,7 +69,7 @@ export default function ChipChopCalc() {
             { label: 'Verdict', text: deal.verdict, color: deal.color },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.text}</div>
             </div>
           ))}

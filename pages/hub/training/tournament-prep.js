@@ -428,7 +428,7 @@ export default function TournamentPrepPlanner() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #05050A 0%, #0A0A15 100%)',
     padding: '24px 4vw 80px',
     color: '#fff',
@@ -524,7 +524,7 @@ const styles = {
   rangeLabels: {
     display: 'flex',
     justifyContent: 'space-between',
-    fontSize: 10,
+    fontSize: 12,
     color: 'var(--sp-fg-dim)',
     marginTop: 6,
   },

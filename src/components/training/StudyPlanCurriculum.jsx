@@ -164,16 +164,16 @@ export default function StudyPlanCurriculum() {
             {recommended.level.icon}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Recommended Next</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Recommended Next</div>
             <div style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 600 }}>
               {recommended.module.name}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <span style={{ color: '#64748b', fontSize: 11 }}>{recommended.module.estimatedTime}</span>
+            <span style={{ color: '#64748b', fontSize: 12 }}>{recommended.module.estimatedTime}</span>
             <span style={{
               padding: '3px 8px', borderRadius: 4, background: `${recommended.level.color}15`,
-              color: recommended.level.color, fontSize: 10, fontWeight: 700,
+              color: recommended.level.color, fontSize: 12, fontWeight: 700,
             }}>
               {recommended.module.tool}
             </span>
@@ -218,13 +218,13 @@ export default function StudyPlanCurriculum() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ color: '#f1f5f9', fontSize: 14, fontWeight: 700 }}>{level.name}</span>
-                  {isLocked && <span style={{ color: '#64748b', fontSize: 10 }}>Locked - Complete {CURRICULUM[level.level - 2]?.name} First</span>}
+                  {isLocked && <span style={{ color: '#64748b', fontSize: 12 }}>Locked - Complete {CURRICULUM[level.level - 2]?.name} First</span>}
                 </div>
-                <div style={{ color: '#94a3b8', fontSize: 11 }}>{level.desc}</div>
+                <div style={{ color: '#94a3b8', fontSize: 12 }}>{level.desc}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ color: level.color, fontSize: 13, fontWeight: 700 }}>{lp.pct}%</div>
-                <div style={{ color: '#64748b', fontSize: 10 }}>{lp.completed}/{lp.total}</div>
+                <div style={{ color: '#64748b', fontSize: 12 }}>{lp.completed}/{lp.total}</div>
               </div>
               {/* Progress ring */}
               <svg width={32} height={32} style={{ transform: 'rotate(-90deg)' }}>
@@ -273,7 +273,7 @@ export default function StudyPlanCurriculum() {
                           {module.topics.map((topic, i) => (
                             <span key={i} style={{
                               padding: '1px 6px', borderRadius: 3, background: 'rgba(255,255,255,0.04)',
-                              color: '#64748b', fontSize: 10,
+                              color: '#64748b', fontSize: 12,
                             }}>
                               {topic}
                             </span>
@@ -282,11 +282,11 @@ export default function StudyPlanCurriculum() {
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                        <span style={{ color: '#64748b', fontSize: 10 }}>{module.estimatedTime}</span>
+                        <span style={{ color: '#64748b', fontSize: 12 }}>{module.estimatedTime}</span>
                         <span style={{
                           padding: '2px 6px', borderRadius: 3,
                           background: `${level.color}15`, color: level.color,
-                          fontSize: 9, fontWeight: 700,
+                          fontSize: 12, fontWeight: 700,
                         }}>
                           {module.tool}
                         </span>

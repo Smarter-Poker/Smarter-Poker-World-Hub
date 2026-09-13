@@ -105,7 +105,7 @@ function SqueezeTrainer() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {SQUEEZE_SPOTS.map(s => (
             <button key={s.id} onClick={() => { setSelectedId(s.id); setGuess(null); }} style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedId === s.id ? '#7c3aed' : 'rgba(255,255,255,0.06)',
               color: selectedId === s.id ? '#fff' : 'rgba(255,255,255,0.7)', border: 'none',
             }}>{s.name}</button>
@@ -160,15 +160,15 @@ function SqueezeTrainer() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
               <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#7c3aed' }}>{spot.squeezeFreq}%</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Squeeze Freq</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Squeeze Freq</div>
               </div>
               <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{spot.squeezeSize}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
               </div>
               <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>{spot.evGain}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Gain</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Gain</div>
               </div>
             </div>
 
@@ -197,8 +197,8 @@ function SqueezeTrainer() {
                   { label: 'Fold', range: spot.foldRange, color: '#ef4444' },
                 ].map(r => (
                   <div key={r.label} style={{ padding: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 6, borderLeft: `3px solid ${r.color}` }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: r.color }}>{r.label}: </span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{r.range}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{r.label}: </span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{r.range}</span>
                   </div>
                 ))}
               </div>

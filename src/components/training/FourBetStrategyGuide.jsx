@@ -62,22 +62,22 @@ function FourBetStrategyGuide() {
               flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: selected === i ? sc.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 10, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
             }}>{sc.title}</button>
           ))}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: `${s.color}11`, borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: s.color }}>{s.sizing}</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Value</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Value</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: '#10b981' }}>{s.valuePct}%</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Bluffs</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Bluffs</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: '#ef4444' }}>{s.bluffPct}%</div>
           </div>
         </div>
@@ -85,22 +85,22 @@ function FourBetStrategyGuide() {
         {/* Range display */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, borderLeft: '3px solid #10b981' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Value 4-Bet</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.valueRange}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Value 4-Bet</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.valueRange}</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Bluff 4-Bet</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.bluffRange}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Bluff 4-Bet</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.bluffRange}</div>
           </div>
         </div>
 
         {/* Postflop play */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Postflop In 4-Bet Pots:</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>Postflop In 4-Bet Pots:</div>
           {s.postflop.map((p, i) => (
             <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4, display: 'flex', gap: 8 }}>
-              <div style={{ minWidth: 65, fontSize: 10, fontWeight: 700, color: s.color }}>{p.board}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{p.action}</div>
+              <div style={{ minWidth: 65, fontSize: 12, fontWeight: 700, color: s.color }}>{p.board}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{p.action}</div>
             </div>
           ))}
         </div>

@@ -44,7 +44,7 @@ export default function NosebleedGuide() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${topic.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${topic.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? topic.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? topic.color : '#64748b' }}>
             {topic.icon} {topic.title}
           </button>
         ))}
@@ -55,11 +55,11 @@ export default function NosebleedGuide() {
         <div style={{ fontSize: 16, fontWeight: 800, color: t.color, marginBottom: 8 }}>{t.icon} {t.title}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{t.detail}</p>
         <div style={{ background: `${t.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${t.color}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: t.color }}>GOING DEEPER</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: t.color }}>GOING DEEPER</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.depth}</div>
         </div>
         <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #8b5cf6' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#8b5cf6' }}>REALITY CHECK</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6' }}>REALITY CHECK</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.reality}</div>
         </div>
       </motion.div>

@@ -48,7 +48,7 @@ export default function TrainingPlayPage() {
     if (loading || !gameId) {
         return (
             <div style={{
-                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+                minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
                 background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
                 display: 'flex',
                 alignItems: 'center',

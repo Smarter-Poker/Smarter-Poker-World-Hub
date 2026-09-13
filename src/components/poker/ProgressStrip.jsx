@@ -131,7 +131,7 @@ const ProgressStrip = React.memo(function ProgressStrip({
   };
 
   const labelStyle = {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 700,
     color: 'var(--sp-fg-dim)',
     textTransform: 'uppercase',
@@ -144,7 +144,7 @@ const ProgressStrip = React.memo(function ProgressStrip({
     gap: 4,
     padding: '3px 8px',
     borderRadius: 999,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.06)',

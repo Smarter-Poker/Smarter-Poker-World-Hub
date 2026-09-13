@@ -51,7 +51,7 @@ export default function MultiTableStrategy() {
               background: tierIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 20 }}>{t.icon}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: t.color }}>{t.tables}</div>
-            <div style={{ fontSize: 9, color: '#64748b' }}>{t.label}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{t.label}</div>
           </button>
         ))}
       </div>
@@ -60,11 +60,11 @@ export default function MultiTableStrategy() {
         style={{ background: `${tier.color}08`, border: `1px solid ${tier.color}25`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Win Rate</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Win Rate</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: tier.color }}>{tier.hourlyBB}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Volume</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Volume</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: tier.color }}>{tier.volume}</div>
           </div>
         </div>

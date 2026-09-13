@@ -50,7 +50,7 @@ function ActionTag({ action, amount }) {
                 color: style.text,
                 padding: '3px 10px',
                 borderRadius: 10,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 'bold',
                 whiteSpace: 'nowrap',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
@@ -176,7 +176,7 @@ const styles = {
 
     posLabel: {
         color: '#888',
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: '600',
         textTransform: 'uppercase',
     },
@@ -196,7 +196,7 @@ const styles = {
         borderRadius: '50%',
         background: '#fff',
         color: '#000',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 'bold',
         display: 'flex',
         alignItems: 'center',

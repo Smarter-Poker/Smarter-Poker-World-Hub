@@ -127,7 +127,7 @@ const styles = {
         bottom: 8,
         right: 16,
         color: SMARTERPOKER_DARK.primary,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 'bold',
         fontFamily: "'Inter', sans-serif",
         background: SMARTERPOKER_DARK.darkest,

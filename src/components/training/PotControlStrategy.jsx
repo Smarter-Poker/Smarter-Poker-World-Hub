@@ -71,7 +71,7 @@ function PotControlStrategy() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {SPOTS.map((s, i) => (
             <button key={i} onClick={() => setSelected(i)} style={{
-              padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? s.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{s.title}</button>
@@ -86,7 +86,7 @@ function PotControlStrategy() {
             </div>
             <div style={{ textAlign: 'right' }}>
               <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
                 background: `${catColors[spot.category]}22`, color: catColors[spot.category],
               }}>{spot.category}</span>
               <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginTop: 2 }}>{spot.action}</div>
@@ -97,15 +97,15 @@ function PotControlStrategy() {
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 0 }}>
           <div style={{ flex: 1, padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.12)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Do</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Do</div>
             {spot.doList.map((d, i) => (
-              <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2, lineHeight: 1.5 }}>+ {d}</div>
+              <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 2, lineHeight: 1.5 }}>+ {d}</div>
             ))}
           </div>
           <div style={{ flex: 1, padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.12)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Don't</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Don't</div>
             {spot.dontList.map((d, i) => (
-              <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2, lineHeight: 1.5 }}>- {d}</div>
+              <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 2, lineHeight: 1.5 }}>- {d}</div>
             ))}
           </div>
         </div>

@@ -96,6 +96,7 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
+import { isOperatorConsoleRoute } from '../src/components/admin/operatorConsoleRoutes';
 // Static on purpose: __tests__/sw-update.test.mjs requires the update prompt
 // in the shell, and it is the control that tells a reader a new build is
 // waiting - the earlier it can speak, the better.
@@ -118,6 +119,7 @@ import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import { WORLD_COPY_SCOPE_CLASS } from '../src/lib/world-copy-policy.mjs';
+import { installLastRouteRecorder } from '../src/lib/resumeRoute';
 import {
   advanceScrollLockGeneration,
   sweepStaleScrollLocks,
@@ -181,6 +183,10 @@ const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommand
   ssr: false,
   loading: () => null,
 });
+
+// Operator chrome is substantial and belongs only to /horses and admin routes.
+// Keep its custom vector and machined-frame stylesheet out of the public shell.
+const OperatorConsoleShell = dynamic(() => import('../src/components/admin/OperatorConsoleShell'));
 
 const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training',
@@ -899,6 +905,7 @@ export default function App({ Component, pageProps }) {
   const pokerNearMeOwnsSocialMetadata =
     resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
+  const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
   const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
   const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
   const worldCopyWorldId = worldFooterConfig?.id || null;
@@ -957,6 +964,12 @@ export default function App({ Component, pageProps }) {
     router.events.on('routeChangeComplete', handleRouteChange);
     return () => router.events.off('routeChangeComplete', handleRouteChange);
   }, [router]);
+
+  // THE APP REOPENS WHERE YOU LEFT IT (Dan, 2026-09-13). Record the route
+  // the player is on, so the standalone PWA can come back to it instead of to
+  // start_url. The restore half is the inline script in pages/_document.js;
+  // the contract and the exclusions are documented in src/lib/resumeRoute.js.
+  useEffect(() => installLastRouteRecorder(router), [router]);
 
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
@@ -1103,6 +1116,11 @@ export default function App({ Component, pageProps }) {
                                       <Component {...pageProps} />
                                     </div>
                                   </div>
+                                ) : isOperatorConsole ? (
+                                  <OperatorConsoleShell>
+                                    {hubPageNeedsHeader && <UniversalHeader />}
+                                    <Component {...pageProps} />
+                                  </OperatorConsoleShell>
                                 ) : (
                                   <>
                                     {hubPageNeedsHeader && <UniversalHeader />}

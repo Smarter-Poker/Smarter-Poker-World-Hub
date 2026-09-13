@@ -566,14 +566,14 @@ function LeakReport({ hands }) {
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-fg)'}}>Provenance-Audited Decision Report</div>
-        <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{total} Exact-Node Decisions</div>
+        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{total} Exact-Node Decisions</div>
       </div>
 
       {/* Grade Distribution Bar */}
       <div style={{ padding: '16px 20px' }}>
         <div
           style={{
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
@@ -601,7 +601,7 @@ function LeakReport({ hands }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 8,
+                fontSize: 12,
                 fontWeight: 800,
                 color: '#fff',
                 minWidth: counts[g] > 0 ? 20 : 0,
@@ -613,7 +613,7 @@ function LeakReport({ hands }) {
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {gradeBars.map((g) => (
-            <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+            <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
               <div
                 style={{ width: 8, height: 8, borderRadius: 2, background: GRADE_TIERS[g].color }}
               />
@@ -652,7 +652,7 @@ function LeakReport({ hands }) {
             {accuracy}%
           </div>
           <div
-            style={{ fontSize: 9, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
+            style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
             Audited Accuracy
           </div>
@@ -669,7 +669,7 @@ function LeakReport({ hands }) {
             {measuredEVHands > 0 ? `-${totalEVLoss.toFixed(1)}` : 'N/A'}
           </div>
           <div
-            style={{ fontSize: 9, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
+            style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
             Measured Action-EV Loss (BB)
           </div>
@@ -686,7 +686,7 @@ function LeakReport({ hands }) {
             {graded.reduce((sum, grade) => sum + (grade.mistakeDecisions || 0), 0)}
           </div>
           <div
-            style={{ fontSize: 9, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
+            style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}
           >
             Mistakes
           </div>
@@ -697,7 +697,7 @@ function LeakReport({ hands }) {
       <div style={{ padding: '0 20px 16px' }}>
         <div
           style={{
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
@@ -733,7 +733,7 @@ function LeakReport({ hands }) {
               </div>
               <div
                 style={{
-                  fontSize: 8,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-muted)',
                   textTransform: 'uppercase',
@@ -743,7 +743,7 @@ function LeakReport({ hands }) {
                 {street}
               </div>
               {data.evLoss > 0 && (
-                <div style={{ fontSize: 8, color: 'var(--sp-accent-red)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', marginTop: 2 }}>
                   -{Number(data.evLoss).toFixed(1)} BB
                 </div>
               )}
@@ -755,7 +755,7 @@ function LeakReport({ hands }) {
       {/* Top Coaching Insight */}
       {worstStreet?.[1]?.count > 0 && (
         <div style={{ padding: '12px 20px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ fontSize: 11, color: 'var(--sp-accent-amber)', fontWeight: 700, marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: 'var(--sp-accent-amber)', fontWeight: 700, marginBottom: 4 }}>
              Primary Leak
           </div>
           <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
@@ -818,7 +818,7 @@ function AnalyzedHandRow({ hand, index }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 800,
             color: tier.color,
             letterSpacing: 0.3,
@@ -845,7 +845,7 @@ function AnalyzedHandRow({ hand, index }) {
               </>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6, fontSize: 10, color: 'var(--sp-fg-muted)' }}>
+          <div style={{ display: 'flex', gap: 6, fontSize: 12, color: 'var(--sp-fg-muted)' }}>
             <span>
               {hand.gameType} {hand.stakes}
             </span>
@@ -873,7 +873,7 @@ function AnalyzedHandRow({ hand, index }) {
             {hand.pot > 0 ? `$${(Number.isFinite(Number(hand.pot)) ? Number(hand.pot) : 0).toFixed(0)}` : ''}
           </div>
           <div
-            style={{ fontSize: 8, fontWeight: 700, color: tier.color, textTransform: 'uppercase' }}
+            style={{ fontSize: 12, fontWeight: 700, color: tier.color, textTransform: 'uppercase' }}
           >
             {tier.label}
           </div>
@@ -910,7 +910,7 @@ function AnalyzedHandRow({ hand, index }) {
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   letterSpacing: 0.5,
@@ -926,7 +926,7 @@ function AnalyzedHandRow({ hand, index }) {
                     display: 'flex',
                     gap: 8,
                     padding: '3px 0',
-                    fontSize: 11,
+                    fontSize: 12,
                     color: a.isHero ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                     fontWeight: a.isHero ? 700 : 400,
                   }}
@@ -961,7 +961,7 @@ function AnalyzedHandRow({ hand, index }) {
                   style={{
                     padding: '3px 10px',
                     borderRadius: 6,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 800,
                     background: `${tier.color}25`,
                     color: tier.color,
@@ -974,17 +974,17 @@ function AnalyzedHandRow({ hand, index }) {
                   <span>{tier.icon}</span> {tier.label.toUpperCase()}
                 </div>
                 {coaching.evLoss > 0 && (
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
                     -{Number(coaching.evLoss).toFixed(2)} Measured Action-EV
                   </div>
                 )}
                 {Number.isFinite(coaching.score) && (
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginLeft: 'auto' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginLeft: 'auto' }}>
                     Score: {coaching.score}/100
                   </div>
                 )}
               </div>
-              <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 {coaching.solverVerified
                   ? 'Provenance-Complete Exact-Node Server Audit'
                   : 'Replay Only - No Grade, Value Estimate, Or Recommendation'}
@@ -996,7 +996,7 @@ function AnalyzedHandRow({ hand, index }) {
                     display: 'flex',
                     gap: 6,
                     padding: '4px 0',
-                    fontSize: 11,
+                    fontSize: 12,
                     color:
                       tip.type === 'good'
                         ? 'var(--sp-accent-green)'
@@ -1005,7 +1005,7 @@ function AnalyzedHandRow({ hand, index }) {
                           : 'var(--sp-fg)',
                   }}
                 >
-                  <span style={{ fontSize: 10, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, flexShrink: 0 }}>
                     {tip.type === 'good'
                       ? '✓'
                       : tip.type === 'warning'
@@ -1208,7 +1208,7 @@ export default function HandHistoryUploadPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -1246,7 +1246,7 @@ export default function HandHistoryUploadPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Hand History Review
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Replay Every Hand · Grade Only Provenance-Complete Server Audits
             </div>
           </div>
@@ -1295,7 +1295,7 @@ export default function HandHistoryUploadPage() {
                 border: '1px solid rgba(0,212,255,0.2)',
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-accent-cyan)', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', marginBottom: 6 }}>
                 Parsing: {uploadProgress.currentFile}
               </div>
               <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
@@ -1305,7 +1305,7 @@ export default function HandHistoryUploadPage() {
                   style={{ height: '100%', borderRadius: 2, background: 'var(--sp-accent-cyan)' }}
                 />
               </div>
-              <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4 }}>
                 {uploadProgress.current} / {uploadProgress.total} Files Processed
               </div>
             </motion.div>
@@ -1344,11 +1344,11 @@ export default function HandHistoryUploadPage() {
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                           {session.totalHands} Hands From {session.site}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                           {new Date(session.timestamp).toLocaleDateString()} • {session.heroActions}{' '}
                           Decisions • Avg Pot ${(Number.isFinite(Number(session.avgPot)) ? Number(session.avgPot) : 0).toFixed(0) || 'N/A'}
                         </div>
-                        <div style={{ fontSize: 9, color: 'var(--sp-fg-muted)', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 4 }}>
                           {session.authority === 'provenance_complete_server_audit'
                             ? `${session.solverVerifiedDecisions || 0} Provenance-Complete Decisions`
                             : 'Replay Only · No Audited Grade Or Value Estimate'}
@@ -1460,7 +1460,7 @@ export default function HandHistoryUploadPage() {
                       <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
                       <div
                         style={{
-                          fontSize: 9,
+                          fontSize: 12,
                           fontWeight: 600,
                           color: 'var(--sp-fg-dim)',
                           textTransform: 'uppercase',
@@ -1502,7 +1502,7 @@ export default function HandHistoryUploadPage() {
                         border: '1px solid rgba(255,255,255,0.1)',
                         background: 'rgba(255,255,255,0.03)',
                         color: 'var(--sp-fg-muted)',
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer',
                       }}

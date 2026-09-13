@@ -104,8 +104,25 @@ test('the shared overlay utilities exist in the globally imported tokens sheet',
   assert.match(css, /\.sp-overlay-close--left\s*\{/);
 });
 
+/**
+ * A component whose styling lives in its own CSS module carries the inset
+ * THERE, not inline: DiamondWalletModal moved its dialog rule into
+ * DiamondWalletModal.module.css on 2026-09-13 when its inline styles were
+ * extracted. So the file is read together with every `./*.module.css` it
+ * imports. An overlay with the inset in neither place still fails.
+ */
+const readWithOwnModules = (rel) => {
+  const src = read(rel);
+  const dir = path.dirname(rel);
+  const modules = [...src.matchAll(/from\s+['"](\.\/[^'"]+\.module\.css)['"]/g)]
+    .map((m) => path.join(dir, m[1]))
+    .filter((p) => fs.existsSync(path.join(ROOT, p)))
+    .map(read);
+  return [src, ...modules].join('\n');
+};
+
 test('every fixed full-screen overlay pushes its top chrome below the status bar', () => {
-  const missing = FIXED_FILES.filter((f) => !read(f).includes('safe-area-inset-top'));
+  const missing = FIXED_FILES.filter((f) => !readWithOwnModules(f).includes('safe-area-inset-top'));
   assert.deepEqual(
     missing,
     [],

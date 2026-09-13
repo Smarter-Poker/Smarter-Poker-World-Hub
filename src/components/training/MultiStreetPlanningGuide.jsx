@@ -67,7 +67,7 @@ function MultiStreetPlanningGuide() {
               flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: selected === i ? p.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 11, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
             }}>{p.hand}</button>
           ))}
         </div>
@@ -75,7 +75,7 @@ function MultiStreetPlanningGuide() {
         <div style={{ padding: 12, background: `${plan.color}11`, borderRadius: 10, border: `1px solid ${plan.color}33`, marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 4 }}>{plan.board}</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: plan.color, marginBottom: 2 }}>Hero: {plan.hand}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{plan.position} | Pot: {plan.pot} BB | Stack: {plan.stack} BB</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{plan.position} | Pot: {plan.pot} BB | Stack: {plan.stack} BB</div>
         </div>
 
         {/* Street-by-street plan */}
@@ -92,13 +92,13 @@ function MultiStreetPlanningGuide() {
                 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isRevealed ? 6 : 0 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: isRevealed ? plan.color : 'rgba(255,255,255,0.4)' }}>{st.street}</span>
-                  {isRevealed && <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{st.plan}</span>}
-                  {!isRevealed && i === revealedStreet + 1 && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Click To Reveal</span>}
+                  {isRevealed && <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{st.plan}</span>}
+                  {!isRevealed && i === revealedStreet + 1 && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Click To Reveal</span>}
                 </div>
                 {isRevealed && (
                   <>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 4 }}>{st.reasoning}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Pot After: {st.potAfter} BB</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 4 }}>{st.reasoning}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Pot After: {st.potAfter} BB</div>
                   </>
                 )}
               </div>
@@ -108,7 +108,7 @@ function MultiStreetPlanningGuide() {
 
         {revealedStreet >= 2 && (
           <div style={{ padding: 10, background: 'rgba(34,211,238,0.06)', borderRadius: 8, border: '1px solid rgba(34,211,238,0.12)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22d3ee', marginBottom: 4 }}>Plan Summary</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', marginBottom: 4 }}>Plan Summary</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{plan.summary}</div>
           </div>
         )}

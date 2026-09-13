@@ -101,7 +101,7 @@ function BettingPatternAnalyzer() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {PATTERNS.map((p, i) => (
             <button key={p.name} onClick={() => setSelected(i)} style={{
-              padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selected === i ? p.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{p.icon} {p.name}</button>
@@ -131,7 +131,7 @@ function BettingPatternAnalyzer() {
         <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Common Examples</div>
           {pattern.examples.map((ex, i) => (
-            <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', padding: '4px 0', borderBottom: i < pattern.examples.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+            <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', padding: '4px 0', borderBottom: i < pattern.examples.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
               {ex}
             </div>
           ))}
