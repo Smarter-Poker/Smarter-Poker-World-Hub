@@ -179,7 +179,7 @@ assert (m.PNM_SNAPSHOT_WARN_DAYS, m.PNM_SNAPSHOT_MAX_DAYS) == (21, 30)
 m._pnm_directory_health_state.update(consec_fail=0, alert_sent=False)
 m._fetch_complete_pnm_directory = lambda: (_ for _ in ()).throw(RuntimeError('synthetic outage'))
 attempts = []
-def send(body):
+def send(body, **delivery_identity):
     attempts.append(body)
     return len(attempts) >= 2
 m._send_sms = send

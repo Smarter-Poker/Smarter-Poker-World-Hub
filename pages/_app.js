@@ -16,7 +16,6 @@ import '../src/styles/worlds/club-arena.css';
 // so this is what lets any of the six table implementations opt in by adding
 // `ca-table` classes rather than inventing a seventh look.
 import '../src/styles/club-arena-table.css';
-import '../src/styles/worlds/diamond-arena.css';
 import '../src/styles/worlds/social-hub.css';
 import '../src/styles/worlds/training.css';
 import '../src/styles/worlds/marketplace.css';
@@ -119,6 +118,7 @@ import { ProactiveHelp } from '../src/world/components/Geeves/ProactiveHelp';
 import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 import { ToastProvider } from '../src/components/club-arena/ToastProvider';
 import { WORLD_COPY_SCOPE_CLASS } from '../src/lib/world-copy-policy.mjs';
+import { installLastRouteRecorder } from '../src/lib/resumeRoute';
 import {
   advanceScrollLockGeneration,
   sweepStaleScrollLocks,
@@ -958,6 +958,12 @@ export default function App({ Component, pageProps }) {
     router.events.on('routeChangeComplete', handleRouteChange);
     return () => router.events.off('routeChangeComplete', handleRouteChange);
   }, [router]);
+
+  // THE APP REOPENS WHERE YOU LEFT IT (Dan, 2026-09-13). Record the route
+  // the player is on, so the standalone PWA can come back to it instead of to
+  // start_url. The restore half is the inline script in pages/_document.js;
+  // the contract and the exclusions are documented in src/lib/resumeRoute.js.
+  useEffect(() => installLastRouteRecorder(router), [router]);
 
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>

@@ -1,4 +1,5 @@
 import './auth-network-deadline.test.mjs';
+import './notification-feed-recovery.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -265,6 +266,11 @@ import './the-status-bar-inset-has-one-owner.test.mjs';
 // while every dispatch 401'd for five weeks; the other could never report
 // success at all and was red every day for five months, hiding a real 42P10.
 import './a-scraper-run-is-judged-on-what-it-produced.test.mjs';
+// 2026-09-13: the installed PWA relaunched at start_url (/hub) every time iOS
+// discarded it, and nothing recorded where the player was. Pins the recorder,
+// the inline restore script in _document, and the urgent `tournament_resumed`
+// push that tells a player their seat is being dealt again after the break.
+import './the-app-reopens-where-you-left-it.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 

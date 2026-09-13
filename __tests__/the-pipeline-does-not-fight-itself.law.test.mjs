@@ -18,12 +18,13 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
+const WORKFLOWS = join(ROOT, '.github/workflows');
 
 // -- 1. The build reads the machine instead of hard-coding a core count -------
 
@@ -135,29 +136,81 @@ test('branches that are never browsed are refused before a container is created'
 
 // -- 3. main is allowed to finish what it started ----------------------------
 
-for (const wf of ['e2e-tests.yml', 'push-delivery-watchdog.yml']) {
-  test(`${wf} does not cancel its own main-branch runs`, () => {
-    const yml = read(`.github/workflows/${wf}`);
+// NARROWED 2026-09-09, after the general version was tried and was wrong.
+//
+// The first attempt asserted that NO workflow triggering on push:main may
+// carry a bare `cancel-in-progress: true`. It flagged seven: audit-marker-
+// guard, build-safety-gate, no-conflict-markers, silent-revert-guard,
+// silent-write-guard, supabase-invariants and undefined-identifier-guard.
+//
+// Measured before believing it - 30 main runs each:
+//
+//   audit-marker-guard          cancelled  0/30   (timeout 3m)
+//   no-conflict-markers         cancelled  0/30   (timeout 2m)
+//   silent-write-guard          cancelled  0/30   (timeout 6m)
+//   supabase-invariants         cancelled  0/30
+//   undefined-identifier-guard  cancelled  0/30
+//   build-safety-gate           cancelled  1/30
+//   silent-revert-guard         cancelled  2/30
+//
+// All seven finish comfortably inside the ~7m50s median gap between commits
+// on main, so the cancellation never fires and `true` is the right setting for
+// them - it is cheap and the superseded verdict really is worthless.
+//
+// The inversion only bites when a job cannot finish inside that gap. That is a
+// property of RUN HISTORY, which a file-reading law cannot see, so this law
+// asserts the two cases that were actually measured and fixed rather than a
+// static proxy that is wrong for most of the repo.
 
+test('push-delivery-watchdog does not cancel its own main runs', () => {
+  // Measured 2026-09-08 by scripts/ci/report-pipeline-p50.mjs: 21 of 26 main
+  // runs CANCELLED. It installs dependencies and a WebKit browser before it
+  // probes anything, so it cannot finish inside the commit gap - and it is a
+  // WATCHDOG. One cancelled before it can look is not a quieter watchdog, it
+  // is an absent one reporting green. After the fix: 1 of 30.
+  const yml = read('.github/workflows/push-delivery-watchdog.yml');
+  assert.match(
+    yml,
+    /cancel-in-progress:\s*\$\{\{\s*github\.ref\s*!=\s*'refs\/heads\/main'\s*\}\}/,
+    'push-delivery-watchdog must not bare-cancel its main runs'
+  );
+});
+
+test('e2e-tests.yml is off the per-push triggers while it is red', () => {
+  // 2026-09-09. It ran on push:[main] with cancel-in-progress removed and
+  // burned 556 RUNNER-MINUTES in 24 hours across 20 runs, every one red, on
+  // the runner pool the audit found to be the estate's binding constraint.
+  // 78 failures a run are one environmental cause: /api/health answers 503
+  // because the job starts the app against https://placeholder.supabase.co.
+  //
+  // This is the guard for putting it back: restore the triggers only together
+  // with the expression, so it cannot return to the shape that caused this.
+  const yml = read('.github/workflows/e2e-tests.yml');
+  const onBlock = yml.slice(yml.indexOf('\non:'), yml.indexOf('\njobs:'));
+  const hasMainPush = /\n\s{2}push:\n[\s\S]*?branches:\s*\[[^\]]*main/.test(onBlock);
+  const hasPr = /\n\s{2}pull_request:/.test(onBlock);
+
+  if (hasMainPush || hasPr) {
     assert.match(
       yml,
       /cancel-in-progress:\s*\$\{\{\s*github\.ref\s*!=\s*'refs\/heads\/main'\s*\}\}/,
-      `${wf} triggers on push:[main] and workflow_dispatch, so a bare "true" ` +
-        `cancels essentially every run it makes. Measured by ` +
-        `scripts/ci/report-pipeline-p50.mjs on 2026-09-08 over seven days: ` +
-        `E2E Tests 23 of 26 main runs CANCELLED, Push Delivery Watchdog 21 of ` +
-        `26 - against a median 7m 50s between commits on main.`
+      'e2e-tests.yml has regained a per-push trigger. Before that is safe, give ' +
+        'the job real Supabase credentials (or teach the /api/health specs that ' +
+        'a placeholder-backed server is expected to be degraded), and keep the ' +
+        'cancel-in-progress expression so main runs are not killed mid-verdict.'
     );
-    assert.doesNotMatch(
-      yml,
-      /cancel-in-progress:\s*true\s*$/m,
-      `${wf} has a bare "cancel-in-progress: true" again`
+  } else {
+    assert.match(
+      onBlock,
+      /workflow_dispatch:/,
+      'it must remain runnable on demand while it is off the automatic triggers'
     );
-  });
-}
+  }
+});
 
 test('e2e-tests.yml keeps its concurrency group scoped per ref', () => {
   const yml = read('.github/workflows/e2e-tests.yml');
+  // Scoping by ref is what stops every pull request serialising behind main.
 
   assert.match(
     yml,
@@ -269,5 +322,35 @@ test('the weekly pipeline report runs from publish-watchdog, not a new schedule'
     src,
     /mcp__scheduled-tasks|scheduled-tasks__create/,
     'never the Claude scheduler (CLAUDE.md 10.9)'
+  );
+});
+
+// -- 6. A preview branch is for LOOKING at ------------------------------------
+
+test('a preview/* branch builds a preview and is not auto-merged into main', () => {
+  // These two halves have to agree or the opt-in is a trap. On 2026-09-09 they
+  // did not: scripts/vercel-should-build.sh had just been taught that
+  // `preview/*` means "build me a preview", and agent-open-pr.yml still opened
+  // a pull request for every non-main branch, which autopilot then squash-
+  // merged. An experiment branch pushed to MEASURE something - with "Not for
+  // merging as-is" in its own commit message - was on main and in production
+  // four minutes later.
+  //
+  // Nothing enforces a commit message. The branch prefix is the only thing
+  // both halves can read, so both halves read it.
+  const gate = read('scripts/vercel-should-build.sh');
+  assert.match(
+    gate,
+    /preview\/\*\)/,
+    'preview/* must still be the opt-in that gets a Vercel preview build'
+  );
+
+  const openPr = read('.github/workflows/agent-open-pr.yml');
+  assert.match(
+    openPr,
+    /!startsWith\(github\.ref_name, 'preview\/'\)/,
+    "agent-open-pr.yml must skip preview/* branches. A branch whose whole " +
+      'purpose is to be looked at must not open a pull request that autopilot ' +
+      'then merges - that is how an experiment reached production on 2026-09-09.'
   );
 });

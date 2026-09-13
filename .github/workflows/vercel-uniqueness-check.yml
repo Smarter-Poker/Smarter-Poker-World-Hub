@@ -40,3 +40,11 @@ jobs:
         run: node scripts/check-branch-protection.mjs --fix
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+  # The monitor must use the same authorized credential this validation uses.
+  # Staging is idempotent and preserves the running image; the workers normal
+  # deployment reads the updated environment. No additional schedule is added.
+  stage-workers-monitor-credential:
+    needs: check
+    uses: ./.github/workflows/sync-deployment-monitor-credential.yml
+    secrets: inherit

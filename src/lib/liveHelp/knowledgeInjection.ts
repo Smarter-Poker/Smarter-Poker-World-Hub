@@ -7,8 +7,7 @@ const JARVIS_KNOWLEDGE = {
     worldHub: {
         orbs: [
             { name: 'Social Hub', orbNumber: 1, route: '/hub/social-media', status: 'LIVE' },
-            { name: 'Club Arena', orbNumber: 2, route: 'https://club.smarter.poker', status: 'LIVE' },
-            { name: 'Diamond Arena', orbNumber: 3, route: '/hub/diamond-arena', status: 'LIVE' },
+            { name: 'Poker Arena', orbNumber: 2, route: '/hub/club-arena', status: 'LIVE' },
             { name: 'GTO Training', orbNumber: 4, route: '/hub/training', status: 'LIVE' },
             { name: 'News & Content', orbNumber: 5, route: '/hub/news', status: 'LIVE' },
             { name: 'Preflop Charts', orbNumber: 6, route: '/hub/preflop-charts', status: 'LIVE' },
@@ -181,7 +180,7 @@ export function detectCurrentPage(context: any): string | null {
 export function getPageSpecificKnowledge(page: string): string {
     const pageKnowledge: Record<string, string> = {
         '/hub/training': 'User is on Training page - emphasize GTO games, PIO solver, practice modes',
-        '/hub/club-arena': 'User is on Club Arena - emphasize club management, chip economy, rake system',
+        '/hub/club-arena': 'User is in Poker Arena. Shark and joined chip clubs use their club rules; Diamond membership is automatic and funded Diamond games are not open yet.',
         '/hub/diamond-store': 'User is on Diamond Store - emphasize bundles, VIP tiers, checkout process',
         '/hub/social-media': 'User is on Social Hub - emphasize posts, reels, stories, messenger',
         '/hub/poker-near-me/lobby': 'User is on Poker Near Me - emphasize venues, tours, live schedules',

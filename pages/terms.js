@@ -65,7 +65,7 @@ export default function TermsOfService() {
 
                         {/* Footer */}
                         <div style={styles.footer}>
-                            <p style={styles.lastUpdated}>Last Updated: January 11, 2026</p>
+                            <p style={styles.lastUpdated}>Last Updated: September 8, 2026</p>
                             <p style={styles.contact}>
                                 Questions? Contact Us at{' '}
                                 <a href="mailto:support@smarter.poker" style={styles.link}>
@@ -208,8 +208,9 @@ function TermsSection() {
     );
 }
 
-// Privacy Policy Section
-function PrivacySection() {
+// Privacy Policy Section. Also rendered on its own at /privacy (pages/privacy.js),
+// which is the URL the app stores read.
+export function PrivacySection() {
     return (
         <div style={styles.section}>
             <h1 style={styles.title}>Privacy Policy</h1>
@@ -283,7 +284,21 @@ function PrivacySection() {
                 From Children. If We Learn We Have Collected Information From A Child, We Will Delete It Promptly.
             </p>
 
-            <h2 style={styles.heading}>8. Contact Us</h2>
+            <h2 style={styles.heading}>8. The Club Arena App</h2>
+            <p style={styles.paragraph}>
+                The Club Arena App For Apple And Android Phones Is The Same Service Under This Policy. In The App:
+            </p>
+            <ul style={styles.list}>
+                <li><strong>Purchases:</strong> Diamonds And VIP Are Sold Through The App Store Or Google Play. We Receive A Receipt And The Product Purchased From RevenueCat; We Never See Your Card.</li>
+                <li><strong>Notifications:</strong> If You Turn Them On, Your Device's Push Token Is Stored So We Can Send You Seat, Tournament And Club Alerts. Turn Them Off In Settings Or In Your Phone's Notification Settings And The Token Is Retired.</li>
+                <li><strong>Crash Reports:</strong> Sent To Sentry Without Your Email Address, To Fix Errors.</li>
+                <li><strong>Analytics:</strong> Product Analytics (PostHog) Run Only After You Say Yes In The App, And Can Be Turned Off In Settings At Any Time.</li>
+                <li><strong>Age:</strong> We Ask Your Date Of Birth Once. Under 18 Cannot Create An Account, And Nothing About A Minor Is Sent To Us.</li>
+                <li><strong>Deleting Your Account:</strong> Settings, Then Delete Account, Removes Your Profile, Your Wallet And Your Push Tokens. Records We Must Keep By Law Are Retained Only As Long As Required.</li>
+                <li><strong>Chips:</strong> Chips Are Club Play Credits. Smarter.Poker Does Not Sell, Redeem Or Pay Out Chips And Assigns Them No Monetary Value.</li>
+            </ul>
+
+            <h2 style={styles.heading}>9. Contact Us</h2>
             <p style={styles.paragraph}>
                 For Privacy-Related Inquiries, Contact Us at{' '}
                 <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a>
@@ -548,7 +563,7 @@ function GamingSection() {
 }
 
 // Styles
-const styles = {
+export const styles = {
     container: {
         minHeight: '100vh',
         position: 'relative',

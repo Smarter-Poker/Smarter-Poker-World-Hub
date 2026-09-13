@@ -52,6 +52,42 @@ SAFE_AGENT=$(printf '%s' "$AGENT" | tr -c 'A-Za-z0-9._-' '-')
 BRANCH="agent/${SAFE_AGENT}/$(printf '%s' "$SLUG" | sed 's#^agent/[^/]*/##')"
 DIR="$TREES/$SAFE_AGENT"
 
+# ── THE COPY ON DISK IS NOT NECESSARILY THE ESTATE'S (2026-09-11) ───────────
+#
+# This script is invoked from the MAIN CLONE, and the main clone's working tree
+# is not kept current by anything. On 2026-09-11 the Club Arena clone was 624
+# commits behind origin/main with 408 staged entries left over from an
+# abandoned index, and two separate things followed from it in one morning:
+#
+#   1. `./scripts/agent-workspace.sh` was 100644 there and refused to run,
+#      while origin/main has had it 100755 all along.
+#   2. The copy that DID run was the pre-2026-09-10 provisioner, which judges
+#      node_modules against the MAIN CLONE's lockfile instead of the tree's -
+#      the exact bug fixed in #4205 and synced to the Hub in #1735. Every tree
+#      claimed from that clone would have come up short again.
+#
+# The worktree itself was never at risk: it is cut from origin/main a few lines
+# below. The risk is entirely that the LOGIC doing the cutting is old, and an
+# agent has no way to tell - the script prints a confident banner either way.
+#
+# So: fetch, compare this file against origin/main's, and if they differ, hand
+# over to main's copy. The guard variable is what stops that being a loop, and
+# it is set on the exec so a nested invocation inherits it.
+#
+# Deliberately NOT a warning. An agent reading a warning has to decide whether
+# a 624-commit-old provisioner matters, with no information to decide it with.
+git -C "$ROOT" fetch origin main --quiet 2>/dev/null || true
+if [ -z "${AGENT_WORKSPACE_REEXEC:-}" ] && [ -r "$0" ]; then
+  _MAIN_COPY=$(git -C "$ROOT" show origin/main:scripts/agent-workspace.sh 2>/dev/null || true)
+  if [ -n "$_MAIN_COPY" ] && [ "$_MAIN_COPY" != "$(cat "$0")" ]; then
+    _MAIN_SCRIPT=$(mktemp "${TMPDIR:-/tmp}/agent-workspace.XXXXXX")
+    printf '%s\n' "$_MAIN_COPY" > "$_MAIN_SCRIPT"
+    echo "# this copy of agent-workspace.sh differs from origin/main - running main's copy instead" >&2
+    echo "#   (the clone at $ROOT is $(git -C "$ROOT" rev-list --count HEAD..origin/main 2>/dev/null || echo '?') commit(s) behind)" >&2
+    AGENT_WORKSPACE_REEXEC=1 exec bash "$_MAIN_SCRIPT" "$@"
+  fi
+fi
+
 # Share the main clone's dependencies. The alternative is an npm install per
 # tree - minutes each, gigabytes across 47 trees - or a test gate that silently
 # skips, which is how a red test reaches main and blocks the bundle for all.
@@ -136,6 +172,29 @@ provision_node_modules() {
     return 0
   fi
 
+  # THE TREE'S OWN LOCKFILE IS THE JUDGE (2026-09-10). Usable is not current.
+  # The Club Arena main clone sat 25 commits behind origin/main with 400 dirty
+  # entries, and its install matched its OWN old lockfile perfectly - typescript,
+  # tsc, 319 packages, every test above green - while the tree being claimed was
+  # cut from origin/main and needed 430. Every tree cloned that day came up with
+  # `tsc` failing on a package that was not there, and every agent ran `npm ci`
+  # by hand after reading the same confusing error. The donor search could not
+  # help: it compared candidates against the MAIN CLONE's lockfile, which was
+  # the stale one. So the reference is the lockfile this tree will actually run
+  # with, for the source and for every donor alike.
+  if [ -f "$dst/package-lock.json" ] \
+     && ! node_modules_matches_lockfile "$src/node_modules" "$dst/package-lock.json"; then
+    local fresh
+    fresh="$(find_node_modules_donor "$rel")"
+    if [ -n "$fresh" ]; then
+      echo "# $label: the main clone's install is behind this tree's lockfile; cloning from $fresh instead" >&2
+      src="${fresh%/node_modules}"
+      src="${src%${rel:+/$rel}}"
+    else
+      echo "# $label: no install on this machine matches this tree's lockfile; npm ci runs here after the clone" >&2
+    fi
+  fi
+
   # ATOMIC, because `[ -e ]` above is a presence test and not a completeness
   # test. Copying straight to the destination means any interruption - a killed
   # session, a full disk, a TCC prompt - leaves a partial tree that every later
@@ -157,6 +216,51 @@ provision_node_modules() {
   else
     rm -rf "$tmp" 2>/dev/null || true
     echo "# $label: could not be provisioned - run 'npm ci' in ${rel:-the tree root}" >&2
+    return 0
+  fi
+
+  # A clone that does not satisfy this tree's lockfile is finished by npm, in
+  # THIS tree, which the 2026-08-23 note above established is safe: the tree
+  # owns its node_modules outright. About a minute, and it is the minute every
+  # agent was already spending by hand, after a failed hook, without knowing why.
+  if [ -f "$dst/package-lock.json" ] \
+     && ! node_modules_matches_lockfile "$dst/node_modules" "$dst/package-lock.json"; then
+    if command -v npm >/dev/null 2>&1; then
+      echo "# $label: installing this tree's lockfile exactly (npm ci, about a minute)..." >&2
+      (cd "$dst" && npm ci --no-audit --no-fund 2>&1 | tail -3 | sed "s/^/#   /" >&2) || true
+      if node_modules_matches_lockfile "$dst/node_modules" "$dst/package-lock.json"; then
+        echo "# $label: now matches this tree's lockfile" >&2
+      else
+        echo "# $label: STILL does not match this tree's lockfile - run 'npm ci' in ${rel:-the tree root} and read its output" >&2
+      fi
+    else
+      echo "# $label: does not match this tree's lockfile and npm is not on PATH - run 'npm ci' in ${rel:-the tree root}" >&2
+    fi
+  fi
+}
+
+# Does an install satisfy a lockfile? npm records what it installed in
+# node_modules/.package-lock.json; every top-level, non-optional package the
+# lockfile names must be there at the lockfile's version. Optional packages are
+# skipped on purpose: npm populates exactly one platform binary per family and
+# leaves the other twenty-three directories empty by design. Without node the
+# only honest answer is the two lockfiles being the same bytes.
+node_modules_matches_lockfile() {
+  local nm="$1" lock="$2"
+  [ -f "$lock" ] || return 0
+  [ -f "$nm/.package-lock.json" ] || return 1
+  if command -v node >/dev/null 2>&1; then
+    node -e '
+      const fs = require("fs");
+      const have = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).packages || {};
+      const want = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).packages || {};
+      for (const [k, v] of Object.entries(want)) {
+        if (!k.startsWith("node_modules/") || k.indexOf("node_modules/", 13) !== -1 || v.optional) continue;
+        if (!have[k] || have[k].version !== v.version) process.exit(1);
+      }
+    ' "$nm/.package-lock.json" "$lock"
+  else
+    cmp -s "$(dirname "$nm")/package-lock.json" "$lock"
   fi
 }
 
@@ -178,16 +282,21 @@ node_modules_usable() {
 }
 
 # The freshest sibling tree with a usable node_modules AND a package-lock.json
-# byte-identical to the main clone's. Prints the node_modules path, or nothing.
+# byte-identical to THIS TREE's (2026-09-10: it used to be the main clone's,
+# which is the stale one whenever the main clone is behind), whose install
+# satisfies that lockfile. Prints the node_modules path, or nothing.
 find_node_modules_donor() {
   local rel="$1" cand nm best="" best_t=0 t
+  local lock="$DIR${rel:+/$rel}/package-lock.json"
+  [ -f "$lock" ] || lock="$ROOT${rel:+/$rel}/package-lock.json"
   [ -d "$TREES" ] || return 0
   for cand in "$TREES"/*/; do
     cand="${cand%/}"
     [ "$cand" = "$DIR" ] && continue
     nm="$cand${rel:+/$rel}/node_modules"
     node_modules_usable "$nm" "$rel" || continue
-    cmp -s "$cand${rel:+/$rel}/package-lock.json" "$ROOT${rel:+/$rel}/package-lock.json" || continue
+    cmp -s "$cand${rel:+/$rel}/package-lock.json" "$lock" || continue
+    node_modules_matches_lockfile "$nm" "$lock" || continue
     t=$(stat -f %m "$nm" 2>/dev/null || stat -c %Y "$nm" 2>/dev/null || echo 0)
     if [ "$t" -gt "$best_t" ]; then best="$nm"; best_t="$t"; fi
   done

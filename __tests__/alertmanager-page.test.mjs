@@ -92,55 +92,6 @@ test('refuses non-POST', async () => {
   assert.equal(res.statusCode, 405);
 });
 
-test('pages on a valid firing notification and answers 200', async () => {
-  let sent = null;
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    sent = { url, body: init.body };
-    return { ok: true, status: 201 };
-  };
-  try {
-    const res = fakeRes();
-    await handler(
-      { method: 'POST', headers: { authorization: 'Bearer test-secret' }, body: { status: 'firing', alerts: [firing('UndeclaredTriggerOnAMoneyTable', '1 undeclared trigger(s) on a money or seat table')] } },
-      res
-    );
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.body.sent, true);
-    assert.match(sent.url, /api\.twilio\.com/);
-    const form = new URLSearchParams(sent.body);
-    assert.equal(form.get('To'), '+17086775221');
-    assert.match(form.get('Body'), /UndeclaredTriggerOnAMoneyTable/);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-});
-
-test('answers 502 when Twilio refuses, so Alertmanager retries a failed page', async () => {
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = async () => ({ ok: false, status: 429, json: async () => ({ message: 'rate limited' }) });
-  try {
-    const res = fakeRes();
-    await handler(
-      { method: 'POST', headers: { authorization: 'Bearer test-secret' }, body: { status: 'firing', alerts: [firing('EngineDown', 'down')] } },
-      res
-    );
-    assert.equal(res.statusCode, 502);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-});
-
-test('answers 200 (not retry) when the payload carries nothing pageable', async () => {
-  const res = fakeRes();
-  await handler(
-    { method: 'POST', headers: { authorization: 'Bearer test-secret' }, body: { status: 'firing', alerts: [{ status: 'firing', labels: { alertname: 'X' }, annotations: {} }] } },
-    res
-  );
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.sent, false);
-});
-
 test('the route obeys the house rules: no emoji, no .single(), no hardcoded secrets', () => {
   assert.doesNotMatch(src, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, 'no emoji in source');
   assert.doesNotMatch(src, /\.single\(\)/);

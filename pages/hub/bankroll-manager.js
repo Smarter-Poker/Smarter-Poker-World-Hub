@@ -98,6 +98,7 @@ import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -844,6 +845,57 @@ export default function BankrollManagerPage() {
   // The photograph only exists in memory at that point and the receipt itself
   // is back in someone's pocket, so closing the modal destroys real work.
   const [scannerHasUnsaved, setScannerHasUnsaved] = useState(false);
+  // Scans taken with no signal, waiting on this device. Never a number the
+  // page invents: it is whatever the hold actually contains, re-read whenever
+  // the connection changes, so it cannot drift away from the truth.
+  const [heldScans, setHeldScans] = useState([]);
+  const [resumingHeld, setResumingHeld] = useState(null);
+
+  /**
+   * WHAT IS WAITING ON THIS DEVICE.
+   *
+   * Re-read on mount and every time the connection changes, because the only
+   * honest source for "you have two scans waiting" is the hold itself. A
+   * counter kept in state would be right until the day it was not, and the
+   * day it was not is the day somebody loses a receipt.
+   */
+  const refreshHeldScans = useCallback(async () => {
+    try { setHeldScans(await listHeld()); } catch (_e) { setHeldScans([]); }
+  }, []);
+
+  useEffect(() => { refreshHeldScans(); }, [refreshHeldScans, online]);
+
+  /**
+   * Hand a held scan back to the scanner, which uploads and reads it exactly
+   * as it would a fresh photograph.
+   *
+   * Deliberately NOT a headless background flush. The parse runs through
+   * /api/bankroll/scan-receipt - where the bankroll_pro entitlement is checked
+   * and where the player's saved venues live - so a second, quieter path
+   * would be a second reader, and two readers eventually disagree about what
+   * a receipt said. One door.
+   */
+  const resumeHeldScan = useCallback(async (record) => {
+    if (!record || !record.blob) return;
+    if (!requireOnline()) return;
+    await noteAttempt(record.id);
+    setResumingHeld(record);
+    setScannerStep('scan');
+    setScannerEntryId(null);
+    setScannerImageUrl(null);
+    setScannerExtractedData(null);
+    setScannerRoute(null);
+    setScannerReceiptId(null);
+    setShowScanner(true);
+  }, [requireOnline]);
+
+  /** It has a row now, so the device copy can go. Never before. */
+  const releaseResumedScan = useCallback(async () => {
+    const record = resumingHeld;
+    setResumingHeld(null);
+    if (record) await releaseHeld(record.id);
+    refreshHeldScans();
+  }, [resumingHeld, refreshHeldScans]);
   // What the scan was read as, and where its values belong. Set by
   // ReceiptScanner from the shared router so the page and the scanner agree.
   const [scannerRoute, setScannerRoute] = useState(null);
@@ -1236,7 +1288,24 @@ export default function BankrollManagerPage() {
     // ═══ ACTION GATE: Pro tool sidebar actions require access ═══
     if (sectionId !== 'dashboard' && !guardAction()) return;
     if (sectionId === 'scan-receipt') {
-      if (!requireOnline()) return;
+      // NO ONLINE GATE HERE, AND ONLY HERE.
+      //
+      // Reading a receipt is entirely local: tesseract.js, its core and its
+      // language model are served same-origin under /tesseract/<version>/
+      // with an immutable year-long cache. Measured against production on
+      // 2026-09-09, with a fetch to /api/health throwing to prove the network
+      // really was cut: all three assets came back in 8 ms.
+      //
+      // This line used to refuse - "You Are Offline. Try Again When
+      // Connected." - which is an engine built for a poker room basement
+      // behind a door locked in a poker room basement. Commander's ID
+      // capture shares the engine and has never had this gate.
+      //
+      // SAVING still needs the network, and that is what src/lib/bankroll/
+      // receiptHold.mjs is for: a scan taken with no signal is written to
+      // the device and filed when the signal returns. The other eleven
+      // requireOnline() gates guard writes with no such fallback and stay
+      // exactly where they are.
       setShowScanner(true);
       setScannerStep('scan');
       setScannerEntryId(null);
@@ -1494,6 +1563,39 @@ export default function BankrollManagerPage() {
               {/* Dashboard View */}
               {activeSection === 'dashboard' && categoryFilter === 'all' && (
                 <>
+
+                  {/*
+                    HELD ON THIS DEVICE: photographed with no signal, never sent.
+                    Listed ABOVE Receipts Waiting because these are the ones at
+                    risk - a receipt in Receipts Waiting is already on the
+                    server, and one here exists nowhere else. Clearing the
+                    browser's data would take it.
+                  */}
+                  {heldScans.length > 0 && (
+                    <div style={styles.receiptsWaiting} data-testid="scans-held-on-device">
+                      <div style={styles.receiptsWaitingHead}>
+                        <span>{online ? 'Scans Waiting To Be Sent' : 'Scans Held On This Device'}</span>
+                        <span style={styles.receiptsWaitingCount}>{heldScans.length}</span>
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '2px 0 8px' }}>
+                        {online
+                          ? 'These Were Taken With No Signal And Are Only On This Phone. Send Them Now.'
+                          : 'Saved Here Until You Are Back Online. They Are Read And Filed When You Reconnect.'}
+                      </div>
+                      {heldScans.map((held) => (
+                        <button
+                          key={held.id}
+                          type="button"
+                          className="sp-btn"
+                          disabled={!online || Boolean(resumingHeld)}
+                          onClick={() => resumeHeldScan(held)}
+                          style={{ width: '100%', marginBottom: 6, textAlign: 'left' }}
+                        >
+                          {`Send Scan From ${new Date(held.capturedAt).toLocaleString()}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Receipts Waiting: scans not yet filed anywhere. Listed until they are. */}
                   {pendingReceipts.length > 0 && (
@@ -2553,8 +2655,24 @@ export default function BankrollManagerPage() {
                   <ReceiptScanner
                     userId={userId}
                     onPendingChange={setScannerHasUnsaved}
+                    resumeScan={resumingHeld}
+                    onHeld={({ held, dropped }) => {
+                      setScannerHasUnsaved(false);
+                      refreshHeldScans();
+                      // The player is told the true thing in both directions.
+                      // A hold that quietly forgets is the same bug as a scan
+                      // that quietly vanishes, so a dropped one is said out
+                      // loud rather than counted.
+                      if (dropped && dropped.length) {
+                        toast.error(`No Room To Hold ${dropped.length} Older Scan${dropped.length === 1 ? '' : 's'}. File What Is Waiting.`);
+                      }
+                      toast.success(`Saved On This Device. ${held} Waiting For A Signal.`);
+                    }}
                     onScanComplete={async ({ imageUrl, extractedData, route, documentType, imageHash, readOutcome, ocrConfidence }) => {
                       setScannerHasUnsaved(false);
+                      // It has an image URL and a row is about to exist, so the
+                      // device copy has done its job. Released only here.
+                      if (resumingHeld) await releaseResumedScan();
                       setScannerImageUrl(imageUrl);
                       setScannerExtractedData(extractedData);
                       setScannerRoute(route ? { ...route, documentType } : null);

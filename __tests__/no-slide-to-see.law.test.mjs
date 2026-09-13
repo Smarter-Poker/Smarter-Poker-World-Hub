@@ -59,7 +59,7 @@ const PHASES = {
   5: ['pages/hub/training.js', 'pages/hub/training', 'src/styles/worlds/training.css', 'src/components/training'],
   6: ['pages/hub/news.js', 'src/components/news'],
   7: ['pages/hub/trivia', 'src/components/trivia'],
-  8: ['pages/hub/diamond-arena.js', 'pages/hub/diamond-arena', 'src/styles/worlds/diamond-arena.css'],
+  // Diamond now uses Poker Arena's shared selector; its old standalone pages are retired.
   9: ['pages/hub/video-library.js', 'src/styles/worlds/video-library.css', 'src/components/video-library'],
   10: ['pages/hub/poker-tools.js'],
 };
@@ -92,7 +92,13 @@ for (const phase of CONVERTED) {
   });
 }
 
-test('every rollout phase is declared', () => {
-  assert.deepEqual(Object.keys(PHASES).map(Number), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+test('every active rollout phase is declared', () => {
+  assert.deepEqual(Object.keys(PHASES).map(Number), [1, 2, 3, 4, 5, 6, 7, 9, 10]);
   for (const p of CONVERTED) assert.ok(PHASES[p], `phase ${p} exists`);
+});
+
+test('the retired standalone Diamond rollout has no remaining targets', () => {
+  for (const target of ['pages/hub/diamond-arena.js', 'pages/hub/diamond-arena', 'src/styles/worlds/diamond-arena.css']) {
+    assert.equal(walk(target).length, 0, target);
+  }
 });

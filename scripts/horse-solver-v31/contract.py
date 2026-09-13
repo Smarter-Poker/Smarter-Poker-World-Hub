@@ -6,7 +6,9 @@ import hashlib
 import json
 import math
 import re
+import uuid as uuidlib
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -14,6 +16,7 @@ from typing import Any, Iterable
 MANIFEST_CONTRACT = "smarter-poker.horse-solver-v31-manifest.v1"
 RANGE_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-range-bundle.v1"
 ICM_MODEL_CONTRACT = "smarter-poker.horse-solver-v31-icm-model.v1"
+INPUT_BUNDLE_CONTRACT = "smarter-poker.horse-solver-v31-input-bundle.v2"
 COMBO_ORDER = "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -24,8 +27,22 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{1,159}$")
 DATASET_KEY = re.compile(r"^[a-z0-9][a-z0-9._:-]{2,127}$")
 SAFE_PATH = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{1,255}$")
 CARD = re.compile(r"^[2-9TJQKA][cdhs]$")
-NODE = re.compile(r"^r:0(?::(?:c|f|b[1-9][0-9]*|[2-9TJQKA][cdhs]))*$")
-ACTION = re.compile(r"^(?:c|f|b[1-9][0-9]*)$")
+NODE = re.compile(r"^r:0(?::(?:c|f|b[1-9][0-9]{0,78}|[2-9TJQKA][cdhs]))*$")
+ACTION = re.compile(r"^(?:c|f|b[1-9][0-9]{0,78})$")
+BUNDLE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$")
+JSON_NUMBER = re.compile(
+    r"^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"
+)
+REQUIRED_PIPELINE_FILES = frozenset(
+    {
+        "scripts/horse-solver-v31/contract.py",
+        "scripts/horse-solver-v31/gateway.py",
+        "scripts/horse-solver-v31/pio_upi.py",
+        "scripts/horse-solver-v31/prepare_bundle.py",
+        "scripts/horse-solver-v31/worker.py",
+        "scripts/horse-solver-v31/compactor.py",
+    }
+)
 
 ROOT_KEYS = {
     "contract",
@@ -114,6 +131,9 @@ class ContractError(ValueError):
     """The approved manifest or one of its pinned files is not trustworthy."""
 
 
+JSON_MAX_SAFE_INTEGER = (1 << 53) - 1
+
+
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -123,11 +143,76 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _reject_nonfinite_json_constant(value: str) -> None:
+    raise ContractError(f"non-finite JSON number is forbidden: {value}")
+
+
+def _parse_exact_json_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise ContractError("JSON integer is outside the exact ingress range") from error
+    if abs(parsed) > JSON_MAX_SAFE_INTEGER:
+        raise ContractError(f"JSON integer is outside the exact ingress range: {value}")
+    return parsed
+
+
+def _parse_finite_json_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except (OverflowError, ValueError) as error:
+        raise ContractError("JSON number is outside the finite ingress range") from error
+    if not math.isfinite(parsed):
+        raise ContractError(f"JSON number is outside the finite ingress range: {value}")
+    # The JavaScript gateway rejects any numeric token that becomes an unsafe
+    # integral Number, including exponent or decimal spellings. Match that
+    # contract before a manifest or pinned input can be approved locally.
+    try:
+        exact = Decimal(value)
+    except InvalidOperation as error:
+        raise ContractError("JSON number is outside the finite ingress range") from error
+    exact_is_integer = exact == exact.to_integral_value()
+    if (exact_is_integer and abs(exact) > JSON_MAX_SAFE_INTEGER) or (
+        not exact_is_integer and parsed.is_integer()
+    ):
+        raise ContractError(f"JSON integer is outside the exact ingress range: {value}")
+    return parsed
+
+
 def _json_bytes(payload: bytes, label: str) -> Any:
     try:
-        return json.loads(payload.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        decoded = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_nonfinite_json_constant,
+            parse_int=_parse_exact_json_integer,
+            parse_float=_parse_finite_json_float,
+        )
+    except ContractError:
+        raise
+    except RecursionError as error:
+        raise ContractError(f"{label} JSON nesting exceeds the contract limit") from error
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
         raise ContractError(f"{label} is not strict UTF-8 JSON") from error
+    pending = [(decoded, 0)]
+    while pending:
+        value, depth = pending.pop()
+        if depth > 128:
+            raise ContractError(f"{label} JSON nesting exceeds the contract limit")
+        if isinstance(value, dict):
+            if any(
+                any(0xD800 <= ord(character) <= 0xDFFF for character in key)
+                for key in value
+            ):
+                raise ContractError(f"{label} contains an unpaired Unicode surrogate")
+            pending.extend((child, depth + 1) for child in value.values())
+        elif isinstance(value, list):
+            pending.extend((child, depth + 1) for child in value)
+        elif isinstance(value, str) and any(
+            0xD800 <= ord(character) <= 0xDFFF for character in value
+        ):
+            raise ContractError(f"{label} contains an unpaired Unicode surrogate")
+    return decoded
 
 
 def _exact_keys(value: Any, expected: set[str], label: str) -> dict[str, Any]:
@@ -136,8 +221,14 @@ def _exact_keys(value: Any, expected: set[str], label: str) -> dict[str, Any]:
     return value
 
 
+def _json_string(value: Any, label: str) -> str:
+    if not isinstance(value, str):
+        raise ContractError(f"{label} must be a JSON string")
+    return value
+
+
 def _nonzero_hex(value: Any, length: int, label: str) -> str:
-    text = str(value or "").lower()
+    text = _json_string(value, label)
     pattern = HEX40 if length == 40 else HEX64
     if not pattern.fullmatch(text) or text == "0" * length:
         raise ContractError(f"{label} must be a nonzero lowercase SHA-{length * 4}")
@@ -157,11 +248,12 @@ def _canonical_identity_text(value: Any, max_length: int, label: str) -> str:
 
 
 def _safe_relative_path(value: Any, label: str) -> str:
-    text = str(value or "")
+    text = _json_string(value, label)
     if (
         not SAFE_PATH.fullmatch(text)
         or text.startswith("/")
         or "\\" in text
+        or ".." in text
         or any(part in ("", ".", "..") for part in text.split("/"))
     ):
         raise ContractError(f"{label} must be a canonical relative path")
@@ -209,6 +301,12 @@ def pipeline_bundle_checksum(root: Path, receipts: Iterable[dict[str, str]]) -> 
         normalized.append((relative, checksum))
     if not normalized:
         raise ContractError("pipeline_files cannot be empty")
+    if seen != REQUIRED_PIPELINE_FILES:
+        missing = ",".join(sorted(REQUIRED_PIPELINE_FILES - seen)) or "none"
+        extra = ",".join(sorted(seen - REQUIRED_PIPELINE_FILES)) or "none"
+        raise ContractError(
+            f"pipeline_files must be the complete V31 executable set; missing={missing}; extra={extra}"
+        )
     for relative, checksum in sorted(normalized):
         path = _verify_file(root, relative, checksum)
         payload = path.read_bytes()
@@ -216,8 +314,138 @@ def pipeline_bundle_checksum(root: Path, receipts: Iterable[dict[str, str]]) -> 
     return digest.hexdigest()
 
 
+def _canonical_json_bytes(value: Any) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError, UnicodeEncodeError) as error:
+        raise ContractError("V31 input identity is not canonical JSON") from error
+
+
+def input_bundle_identity(p_bundle: Any) -> dict[str, Any]:
+    """Return the manifest-independent identity approved by PostgreSQL.
+
+    The final scenario manifest must carry this identity's checksum and UUID,
+    so its own receipt cannot participate in the identity hash. PostgreSQL
+    separately requires that exact manifest receipt during dataset registration.
+    """
+
+    bundle = _exact_keys(
+        p_bundle,
+        {
+            "bundle_key",
+            "bundle_version",
+            "range_bundle_checksum",
+            "source_combo_order_checksum",
+            "icm_model_checksum",
+            "files",
+            "approval_note",
+        },
+        "input approval bundle",
+    )
+    bundle_key = _json_string(bundle["bundle_key"], "input approval bundle_key")
+    if not DATASET_KEY.fullmatch(bundle_key):
+        raise ContractError("input approval bundle_key is invalid")
+    bundle_version = _json_string(
+        bundle["bundle_version"], "input approval bundle_version"
+    )
+    if not BUNDLE_VERSION.fullmatch(bundle_version):
+        raise ContractError("input approval bundle_version is invalid")
+    range_checksum = _nonzero_hex(
+        bundle["range_bundle_checksum"], 64, "input approval range_bundle_checksum"
+    )
+    combo_checksum = _nonzero_hex(
+        bundle["source_combo_order_checksum"],
+        64,
+        "input approval source_combo_order_checksum",
+    )
+    icm_checksum = _nonzero_hex(
+        bundle["icm_model_checksum"], 64, "input approval icm_model_checksum"
+    )
+    note = bundle["approval_note"]
+    if not isinstance(note, str) or not note.strip() or len(note) > 2000:
+        raise ContractError("input approval note is invalid")
+    receipts = bundle["files"]
+    if not isinstance(receipts, list) or not receipts:
+        raise ContractError("input approval files cannot be empty")
+
+    allowed_kinds = {
+        "range",
+        "combo_order",
+        "icm_model",
+        "payout_model",
+        "scenario_manifest",
+    }
+    seen_paths: set[str] = set()
+    normalized: list[dict[str, str]] = []
+    for index, raw in enumerate(receipts):
+        item = _exact_keys(raw, {"kind", "path", "checksum"}, f"input approval files[{index}]")
+        kind = _json_string(item["kind"], f"input approval files[{index}].kind")
+        if kind not in allowed_kinds:
+            raise ContractError(f"input approval files[{index}].kind is invalid")
+        path = _safe_relative_path(item["path"], f"input approval files[{index}].path")
+        checksum = _nonzero_hex(
+            item["checksum"], 64, f"input approval files[{index}].checksum"
+        )
+        if path in seen_paths:
+            raise ContractError(f"input approval repeats file path: {path}")
+        seen_paths.add(path)
+        normalized.append({"kind": kind, "path": path, "checksum": checksum})
+
+    expected = {
+        "range": range_checksum,
+        "combo_order": combo_checksum,
+        "icm_model": icm_checksum,
+    }
+    for kind, checksum in expected.items():
+        if sum(item["kind"] == kind for item in normalized) != 1:
+            raise ContractError(f"input approval must bind exactly one {kind} receipt")
+        matches = [
+            item
+            for item in normalized
+            if item["kind"] == kind and item["checksum"] == checksum
+        ]
+        if len(matches) != 1:
+            raise ContractError(f"input approval does not bind exactly one {kind} receipt")
+    if sum(item["kind"] == "scenario_manifest" for item in normalized) != 1:
+        raise ContractError("input approval must bind exactly one scenario_manifest receipt")
+
+    identity_files = sorted(
+        (item for item in normalized if item["kind"] != "scenario_manifest"),
+        key=lambda item: (item["kind"], item["path"], item["checksum"]),
+    )
+    if not identity_files:
+        raise ContractError("input approval has no immutable input receipts")
+    return {
+        "contract": INPUT_BUNDLE_CONTRACT,
+        "bundle_key": bundle_key,
+        "bundle_version": bundle_version,
+        "range_bundle_checksum": range_checksum,
+        "source_combo_order_checksum": combo_checksum,
+        "icm_model_checksum": icm_checksum,
+        "files": identity_files,
+    }
+
+
+def input_bundle_checksum(p_bundle: Any) -> str:
+    return hashlib.sha256(_canonical_json_bytes(input_bundle_identity(p_bundle))).hexdigest()
+
+
+def input_bundle_id(p_bundle_checksum: str) -> str:
+    checksum = _nonzero_hex(p_bundle_checksum, 64, "input bundle checksum")
+    value = list(checksum[:32])
+    value[12] = "5"
+    value[16] = "8"
+    return str(uuidlib.UUID(hex="".join(value)))
+
+
 def _cards(board: Any, minimum: int, maximum: int, label: str) -> list[str]:
-    text = str(board or "")
+    text = _json_string(board, label)
     cards = [text[index : index + 2] for index in range(0, len(text), 2)]
     if (
         len(text) % 2
@@ -232,23 +460,36 @@ def _cards(board: Any, minimum: int, maximum: int, label: str) -> list[str]:
 def _finite_number(value: Any, label: str, minimum: float | None = None) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ContractError(f"{label} must be numeric")
-    result = float(value)
+    try:
+        result = float(value)
+    except (OverflowError, ValueError) as error:
+        raise ContractError(f"{label} is outside its allowed range") from error
     if not math.isfinite(result) or (minimum is not None and result < minimum):
         raise ContractError(f"{label} is outside its allowed range")
     return result
 
 
 def load_range_vector(path: Path) -> list[float]:
-    payload = path.read_text(encoding="utf-8").strip()
     try:
-        decoded = json.loads(payload)
-        values = decoded if isinstance(decoded, list) else None
-    except json.JSONDecodeError:
-        values = None
-    if values is None:
-        values = payload.split()
+        payload = path.read_bytes().decode("utf-8").strip()
+    except (OSError, UnicodeDecodeError) as error:
+        raise ContractError(f"range is not readable strict UTF-8: {path}") from error
     try:
-        result = [float(value) for value in values]
+        if payload.startswith("["):
+            values = _json_bytes(payload.encode("utf-8"), f"range vector {path}")
+            if not isinstance(values, list):
+                raise ContractError(f"range must be a JSON array: {path}")
+            result = [
+                _finite_number(value, f"range weight {index}")
+                for index, value in enumerate(values)
+            ]
+        else:
+            tokens = payload.split()
+            if any(not JSON_NUMBER.fullmatch(token) for token in tokens):
+                raise ContractError(f"range contains a nonnumeric value: {path}")
+            result = [_parse_finite_json_float(token) for token in tokens]
+    except ContractError:
+        raise
     except (TypeError, ValueError) as error:
         raise ContractError(f"range contains a nonnumeric value: {path}") from error
     if (
@@ -338,7 +579,9 @@ def _icm_models(input_root: Path, manifest: dict[str, Any]) -> dict[str, dict[st
     models: dict[str, dict[str, Any]] = {}
     for model_index, raw_model in enumerate(root["models"]):
         model = _exact_keys(raw_model, ICM_MODEL_KEYS, f"ICM models[{model_index}]")
-        model_id = str(model["model_id"] or "")
+        model_id = _json_string(
+            model["model_id"], f"ICM models[{model_index}].model_id"
+        )
         if not SAFE_ID.fullmatch(model_id) or model_id in models:
             raise ContractError(f"ICM models[{model_index}].model_id is invalid or duplicate")
         oop_stack = _positive_integer(
@@ -454,11 +697,13 @@ def _validate_quality_gates(value: Any) -> None:
 
 def _validate_target(raw: Any, scenario: dict[str, Any], index: int) -> dict[str, Any]:
     target = _exact_keys(raw, TARGET_KEYS, f"target[{index}]")
-    if not SAFE_ID.fullmatch(str(target["target_id"] or "")):
+    if not SAFE_ID.fullmatch(
+        _json_string(target["target_id"], f"target[{index}].target_id")
+    ):
         raise ContractError(f"target[{index}].target_id is invalid")
     if target["machine_id"] not in ("M1", "M2"):
         raise ContractError(f"target[{index}].machine_id must be M1 or M2")
-    node = str(target["node"] or "")
+    node = _json_string(target["node"], f"target[{index}].node")
     if not NODE.fullmatch(node) or ":f" in node:
         raise ContractError(f"target[{index}].node is not a decision-node path")
     root_cards = _cards(scenario["flop_board"], 3, 3, "scenario.flop_board")
@@ -490,7 +735,10 @@ def _validate_target(raw: Any, scenario: dict[str, Any], index: int) -> dict[str
         not isinstance(children, list)
         or len(children) < 2
         or len(children) != len(set(children))
-        or any(not ACTION.fullmatch(str(action)) for action in children)
+        or any(
+            not isinstance(action, str) or not ACTION.fullmatch(action)
+            for action in children
+        )
     ):
         raise ContractError(f"target[{index}].expected_children is invalid")
     return target
@@ -505,7 +753,9 @@ def _validate_scenario(
     verify_inputs: bool,
 ) -> dict[str, Any]:
     scenario = _exact_keys(raw, SCENARIO_KEYS, f"scenarios[{index}]")
-    scenario_id = str(scenario["scenario_id"] or "")
+    scenario_id = _json_string(
+        scenario["scenario_id"], f"scenarios[{index}].scenario_id"
+    )
     if not SAFE_ID.fullmatch(scenario_id):
         raise ContractError(f"scenarios[{index}].scenario_id is invalid")
     family = scenario["game_family"]
@@ -556,10 +806,12 @@ def _validate_scenario(
     if objective == "icm":
         if rake is not None:
             raise ContractError(f"scenarios[{index}] ICM and rake are mutually exclusive")
-        if not SAFE_ID.fullmatch(str(icm_model_id or "")):
+        if not SAFE_ID.fullmatch(
+            _json_string(icm_model_id, f"scenarios[{index}].icm_model_id")
+        ):
             raise ContractError(f"scenarios[{index}] requires one approved ICM model id")
         if verify_inputs:
-            model = icm_models.get(str(icm_model_id))
+            model = icm_models.get(icm_model_id)
             if model is None:
                 raise ContractError(f"scenarios[{index}] names an absent ICM model")
             if min(model["oop_stack_chips"], model["ip_stack_chips"]) != scenario[
@@ -681,7 +933,7 @@ def load_manifest(
         if require_enabled:
             raise ContractError("manifest release gate is disabled")
         return ApprovedManifest(manifest_path, Path(input_root).resolve(), manifest, checksum)
-    if not DATASET_KEY.fullmatch(str(manifest["dataset_key"] or "")):
+    if not DATASET_KEY.fullmatch(_json_string(manifest["dataset_key"], "dataset_key")):
         raise ContractError("dataset_key is invalid")
     _canonical_identity_text(manifest["manifest_version"], 160, "manifest_version")
     _nonzero_hex(manifest["pipeline_commit"], 40, "pipeline_commit")
@@ -690,9 +942,16 @@ def load_manifest(
     _nonzero_hex(manifest["range_bundle_checksum"], 64, "range_bundle_checksum")
     _nonzero_hex(manifest["source_combo_order_checksum"], 64, "source_combo_order_checksum")
     _nonzero_hex(manifest["icm_model_checksum"], 64, "icm_model_checksum")
-    _nonzero_hex(manifest["input_bundle_checksum"], 64, "input_bundle_checksum")
-    if not UUID.fullmatch(str(manifest["input_bundle_id"] or "").lower()):
+    input_checksum = _nonzero_hex(
+        manifest["input_bundle_checksum"], 64, "input_bundle_checksum"
+    )
+    input_bundle_id_text = _json_string(
+        manifest["input_bundle_id"], "input_bundle_id"
+    )
+    if not UUID.fullmatch(input_bundle_id_text):
         raise ContractError("input_bundle_id is invalid")
+    if input_bundle_id_text != input_bundle_id(input_checksum):
+        raise ContractError("input_bundle_id does not derive from input_bundle_checksum")
     _canonical_identity_text(manifest["solver_version"], 120, "solver_version")
     _validate_quality_gates(manifest["quality_gates"])
     root = Path(input_root).resolve()
@@ -705,7 +964,13 @@ def load_manifest(
             manifest["source_combo_order_checksum"], 64, "source_combo_order_checksum"
         )
         combo_file = _verify_file(root, combo_path, combo_checksum)
-        source_combo_order = parse_source_combo_order(combo_file.read_text(encoding="utf-8"))
+        try:
+            combo_payload = combo_file.read_bytes().decode("utf-8")
+        except (OSError, UnicodeDecodeError) as error:
+            raise ContractError(
+                f"source combo-order file is not readable strict UTF-8: {combo_file}"
+            ) from error
+        source_combo_order = parse_source_combo_order(combo_payload)
         icm_models = _icm_models(root, manifest)
     scenarios = manifest["scenarios"]
     if not isinstance(scenarios, list) or not scenarios:
@@ -734,14 +999,14 @@ def load_manifest(
         raise ContractError("self_test scenario or solver player is invalid")
     if scenario_by_id[self_test["scenario_id"]]["objective"] == "icm":
         raise ContractError("self_test must use chip/cash EV so exploitability has chip units")
-    if not NODE.fullmatch(str(self_test["node"] or "")):
+    if not NODE.fullmatch(_json_string(self_test["node"], "self_test node")):
         raise ContractError("self_test node is invalid")
     children = self_test["expected_children"]
     if (
         not isinstance(children, list)
         or len(children) < 2
         or len(children) != len(set(children))
-        or any(not ACTION.fullmatch(str(x)) for x in children)
+        or any(not isinstance(x, str) or not ACTION.fullmatch(x) for x in children)
     ):
         raise ContractError("self_test expected_children is invalid")
     self_scenario = scenario_by_id[self_test["scenario_id"]]

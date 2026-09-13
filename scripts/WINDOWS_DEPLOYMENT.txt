@@ -42,11 +42,57 @@ Required per-process environment names
     PIPELINE_COMMIT
     APPROVED_MANIFEST_CHECKSUM
     RANGE_DIRECTORY
+    SOLVER_RELEASE_BUNDLE_DIRECTORY
 
 The HMAC value must come from the authorized per-host secret store. Do not echo
 it, pass it on a command line, put it in a batch file, or persist it with SETX.
 The launcher validates the exact endpoint, manifest, protected pipeline bundle,
 range files, and Pio executable before starting solver work.
+
+Controller-delivered release bundle
+------------------------------------
+
+The worker must not fetch source from private GitHub raw URLs. It has no
+GitHub credential and no network fallback for pipeline distribution.
+
+On the controller, independently verify a protected 40-character commit and
+all required framework ancestors. Read the five exact Git blob byte streams
+from that commit: phases.json, run_machine.py, tree_gen.py, pio_harvest.py and
+orchestrate.py from scripts/preflop-deep. Preserve LF bytes on Windows; do not
+package checkout files that Git has converted to CRLF.
+
+The protected phases.json must declare
+pipeline_distribution="controller-local-bundle.v1", pipeline_files_sha256
+with exactly the four Python filenames and their SHA-256 values, and the
+existing pipeline_bundle_checksum. The aggregate is SHA-256 over each filename,
+a NUL byte, exact file bytes, and a NUL byte, in this order:
+run_machine.py, tree_gen.py, pio_harvest.py, orchestrate.py.
+
+Deliver these five files through the approved controller delivery mechanism
+to a new local bundle directory. Set SOLVER_RELEASE_BUNDLE_DIRECTORY to its
+absolute path, and provision PIPELINE_COMMIT plus APPROVED_MANIFEST_CHECKSUM
+from the independently verified protected release record. Never derive the
+approved checksum from the received directory itself. The worker rejects
+missing or extra files, redirected paths, non-regular files, oversized files,
+changed manifest bytes, per-file mismatches, aggregate mismatches, and a
+running launcher that differs from the sealed source. All checks precede
+pipeline imports, gateway requests and Pio startup. Install the launcher into
+a separate new release directory; do not overwrite a legacy solver directory.
+The launcher supplies the verified manifest bytes to the orchestrator, which
+rechecks the same checksum for canary and backlog reads. It never re-downloads
+a manifest or picks up a new release in place during an active run.
+
+This transport change does not approve a solve. Keep solver_ready=false and
+bounded_canary_ready closed until the separate host, Training ledger, ranges,
+target identities, HMAC provisioning and database authority gates pass.
+
+The provisioning controller must launch the worker with an explicit minimal
+environment, rather than inheriting its own database credentials. Include
+only required Windows runtime variables and the approved worker settings
+listed above. Supply the machine-scoped HMAC through the approved in-memory
+mechanism only. The runner's database-variable rejection remains mandatory;
+do not remove that rejection or treat filtering as proof of whole-host
+credential sanitization. User/machine/task/file scopes require separate audit.
 
 Safe validation and launch
 --------------------------
@@ -62,12 +108,17 @@ or:
 The check never connects to Supabase and never starts the solver. After the
 operator gate is complete, start exactly one supervised canary:
 
-    python scripts\preflop-deep\run_machine.py M1 2 0
+    python scripts\preflop-deep\run_machine.py M1 2 0 --canary
 
-For M2, only after M1's signed heartbeat and one-artifact admission are verified:
+For M2, only after M1's signed heartbeat and exact parent/child admissions are
+verified:
 
-    python scripts\preflop-deep\run_machine.py M2 2 1
+    python scripts\preflop-deep\run_machine.py M2 2 1 --canary
 
-Do not enable either worker while the canonical manifest release gate is closed,
-while the target ledger has a missing or duplicate UUID, or before the external
-credential-rotation and provenance-approval steps are complete.
+The default backlog runner still requires `release_gate.solver_ready=true`.
+That backlog gate may remain false while a deliberately bounded canary is
+enabled by the independent `release_gate.bounded_canary_ready=true` gate. In
+that state, run only the explicit `--canary` command above; never start the
+default backlog loop. Do not enable either mode while its applicable gate is
+closed, while the target ledger has a missing or duplicate UUID, or before the
+external credential-rotation and provenance-approval steps are complete.

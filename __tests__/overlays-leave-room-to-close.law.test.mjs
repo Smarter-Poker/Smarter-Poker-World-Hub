@@ -47,10 +47,8 @@ const FIXED_FILES = [
   'src/components/social/Reels.jsx',
   'src/components/social/ReelsFeedCarousel.jsx',
   'src/components/social/Stories.jsx',
-  'src/components/social/SmarterPokerPhotos.jsx',
   'src/components/social/ArticleReaderModal.jsx',
   'src/components/social/SharedVideoComponents.jsx',
-  'src/components/social/compose/sheets/SheetShell.jsx',
   'src/components/ui/ExternalLinkModal.jsx',
   'src/components/ui/BottomSheet.jsx',
   'src/components/ui/LocationEnableModal.jsx',
@@ -82,6 +80,19 @@ const CLOSE_ONLY_FILES = [
   'pages/hub/home-games/[slug].js',
 ];
 
+// Files that WERE in FIXED_FILES and are now DELETED, because they were
+// unreachable from any page (2026-09-10, 39 files / 17,400 lines removed after
+// an import closure from every page proved it, with five live controls).
+//
+// They are recorded rather than quietly dropped. Each really did carry a
+// full-screen overlay, so if one is ever restored it needs its safe-area
+// handling back in FIXED_FILES - and the assertion below is what will say so,
+// instead of the file returning with no guard watching it.
+const DELETED_WERE_FIXED = [
+  'src/components/social/SmarterPokerPhotos.jsx',
+  'src/components/social/compose/sheets/SheetShell.jsx',
+];
+
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 test('the shared overlay utilities exist in the globally imported tokens sheet', () => {
@@ -93,8 +104,25 @@ test('the shared overlay utilities exist in the globally imported tokens sheet',
   assert.match(css, /\.sp-overlay-close--left\s*\{/);
 });
 
+/**
+ * A component whose styling lives in its own CSS module carries the inset
+ * THERE, not inline: DiamondWalletModal moved its dialog rule into
+ * DiamondWalletModal.module.css on 2026-09-13 when its inline styles were
+ * extracted. So the file is read together with every `./*.module.css` it
+ * imports. An overlay with the inset in neither place still fails.
+ */
+const readWithOwnModules = (rel) => {
+  const src = read(rel);
+  const dir = path.dirname(rel);
+  const modules = [...src.matchAll(/from\s+['"](\.\/[^'"]+\.module\.css)['"]/g)]
+    .map((m) => path.join(dir, m[1]))
+    .filter((p) => fs.existsSync(path.join(ROOT, p)))
+    .map(read);
+  return [src, ...modules].join('\n');
+};
+
 test('every fixed full-screen overlay pushes its top chrome below the status bar', () => {
-  const missing = FIXED_FILES.filter((f) => !read(f).includes('safe-area-inset-top'));
+  const missing = FIXED_FILES.filter((f) => !readWithOwnModules(f).includes('safe-area-inset-top'));
   assert.deepEqual(
     missing,
     [],
@@ -204,5 +232,17 @@ test('the files removed from FIXED_FILES really have no full-screen overlay', ()
     [],
     'these files grew a full-screen fixed overlay again and must go back into ' +
       'FIXED_FILES with safe-area-inset-top handling:\n  ' + offenders.join('\n  ')
+  );
+});
+
+test('the deleted overlay files are still deleted, or are back under guard', () => {
+  const returned = DELETED_WERE_FIXED.filter((f) => fs.existsSync(path.join(ROOT, f)));
+  assert.deepEqual(
+    returned,
+    [],
+    'these were deleted as unreachable but exist again. Each carried a full-screen ' +
+      'overlay, so put them back into FIXED_FILES in this file - restoring the file ' +
+      'without restoring its guard is how the safe-area regression returns:\n  ' +
+      returned.join('\n  ')
   );
 });

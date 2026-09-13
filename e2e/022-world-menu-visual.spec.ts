@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { WORLD_MENU_VISUAL_CASES, type WorldMenuVisualCase } from './fixtures/world-menu-cases';
+import { WORLD_MENU_VISUAL_CASES, expectStillInWorld, type WorldMenuVisualCase } from './fixtures/world-menu-cases';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 test.describe.configure({ mode: 'serial', timeout: 90_000 });
@@ -10,6 +10,7 @@ async function openMenu(page: Page, world: WorldMenuVisualCase) {
     await page.addInitScript(() => window.sessionStorage.setItem('news-intro-seen', 'true'));
   }
   await page.goto(world.path, { waitUntil: 'domcontentloaded' });
+  await expectStillInWorld(page, world);
   await page.evaluate(() => document.fonts.ready);
   const trigger = page.locator('[data-world-menu-trigger]');
   await expect(trigger).toHaveCount(1);

@@ -1,5 +1,5 @@
 /**
- * WORLD HUB FOOTER NAVIGATION — one shell mount, 14 audited world variants.
+ * WORLD HUB FOOTER NAVIGATION — one shell mount, 13 audited world variants.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,7 +26,6 @@ const EXPECTED_WORLDS = [
   'news',
   'trivia',
   'social-media',
-  'diamond-arena',
   'my-clubs',
   'video-library',
   'odds-calculator',
@@ -43,7 +42,6 @@ const EXPECTED_ARTWORK = {
   news: 'footer-poker-news-v2.png',
   trivia: 'footer-poker-trivia-v2.png',
   'social-media': 'footer-social-media-v2.png',
-  'diamond-arena': 'footer-diamond-arena-v2.png',
   'my-clubs': 'footer-my-clubs-v2.png',
   'video-library': 'footer-video-library-v2.png',
   'odds-calculator': 'footer-odds-calculator-v2.png',
@@ -105,7 +103,7 @@ test('the legacy route policy remains valid and excludes Club Arena ownership', 
   }
 });
 
-test('all 14 requested worlds use exact approved artwork and unique six-destination overlays', () => {
+test('all 13 requested worlds use exact approved artwork and unique six-destination overlays', () => {
   assert.deepEqual(registry.worlds.map((world) => world.id), EXPECTED_WORLDS);
   const signatures = new Set();
   const artworkHashes = new Set();
@@ -159,12 +157,12 @@ test('all 14 requested worlds use exact approved artwork and unique six-destinat
 
   assert.equal(
     registry.worlds.reduce((total, world) => total + world.items.length, 0),
-    84,
-    'the approved footer set must expose exactly 84 independently wired controls'
+    78,
+    'the approved footer set must expose exactly 78 independently wired controls'
   );
 });
 
-test('all 203 applicable physical routes resolve to one exact-artwork family', () => {
+test('all 197 applicable physical routes resolve to one exact-artwork family', () => {
   const pageRoutes = walk(path.join(ROOT, 'pages'))
     .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file) && !file.includes(`${path.sep}api${path.sep}`))
     .map((file) => {
@@ -182,14 +180,14 @@ test('all 203 applicable physical routes resolve to one exact-artwork family', (
     return owners.length ? [{ route, owners }] : [];
   });
 
-  assert.equal(applicable.length, 203);
+  assert.equal(applicable.length, 197);
   for (const { route, owners } of applicable) {
     assert.equal(owners.length, 1, `${route} resolves to ${owners.map((owner) => owner.id).join(', ')}`);
     assert.ok(owners[0].artwork, `${route} resolved to a legacy footer`);
   }
 
   const matrix = fs.readFileSync(path.join(ROOT, 'docs/world-hub-footer-route-matrix.md'), 'utf8');
-  assert.match(matrix, /\*\*Total applicable physical routes: 203\.\*\*/);
+  assert.match(matrix, /\*\*Total applicable physical routes: 197\.\*\*/);
   for (const { route } of applicable) {
     assert.ok(matrix.includes(`| \`${route}\` |`), `${route} is missing from the route matrix`);
   }

@@ -302,7 +302,7 @@ export default function PremiumHub() {
     const mainCards = [
         { icon: '⚙️', label: 'TRAINING', color: '100, 150, 255', route: '/hub/training' },
         { icon: '👥', label: 'SOCIAL', color: '180, 100, 255', route: '/hub/social-media' },
-        { icon: '🏆', label: 'ARENA', color: '255, 100, 180', route: '/hub/diamond-arena' },
+        { icon: '🏆', label: 'POKER ARENA', color: '255, 100, 180', route: '/hub/club-arena' },
     ];
 
     const handleCardClick = (index: number, route: string) => {

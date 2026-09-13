@@ -26,6 +26,10 @@ const WORKER_MIGRATION_SOURCE = fs.readFileSync(
   'supabase/migrations/20260907204100_training_solver_worker_signed_ingestion.sql',
   'utf8',
 );
+const BOUNDED_CANARY_MIGRATION_SOURCE = fs.readFileSync(
+  'supabase/migrations/20260910120000_training_solver_bounded_canary_authority.sql',
+  'utf8',
+);
 const M1_SECRET_HEX = '1'.repeat(64);
 const M2_SECRET_HEX = '2'.repeat(64);
 const FORBIDDEN_WORKER_DATABASE_ENV = [
@@ -142,7 +146,7 @@ function boundedResult(result, observations, label) {
   };
 }
 
-async function loadApi({ claim = true } = {}) {
+async function loadApi({ claim = true, rowStateMutator = null } = {}) {
   const observations = { rpc: [], tables: [], abortSignals: [] };
   const client = {
     rpc(name, args) {
@@ -164,26 +168,37 @@ async function loadApi({ claim = true } = {}) {
           error: null,
         }, observations, name);
       }
-      if (name === 'training_solver_worker_row_states_v1') {
+      if (name === 'training_solver_worker_row_states_v2') {
+        let rows = args.p_scenario_hashes.map((scenarioHash) => ({
+          id: artifact().id,
+          scenario_hash: scenarioHash,
+          game_type: 'hu_cash',
+          stack_depth: 100,
+          street: 'flop',
+          node: 'r:0',
+          hero_position: 'BB',
+          solved_v2_at: artifact().solved_v2_at,
+          quality_status: 'validated',
+          solver_version: 'PioSOLVER 3.0',
+          solver_binary_checksum: 'a'.repeat(64),
+          machine_id: 'M1',
+          pipeline_commit: 'b'.repeat(40),
+          manifest_version: 'training-v2',
+          manifest_checksum: 'c'.repeat(64),
+          source_artifact_checksum: 'd'.repeat(64),
+          audited_at: artifact().audited_at,
+          admitted: true,
+          admission_mode: 'backlog',
+          partition_count: null,
+          partition_index: null,
+          canary_target_role: null,
+          authorized_node: null,
+          authorized_hero_position: null,
+          canary_authorized: false,
+        }));
+        if (rowStateMutator) rows = rowStateMutator(rows);
         return boundedResult({
-          data: args.p_scenario_hashes.map((scenarioHash) => ({
-            id: artifact().id,
-            scenario_hash: scenarioHash,
-            game_type: 'hu_cash',
-            stack_depth: 100,
-            street: 'flop',
-            solved_v2_at: artifact().solved_v2_at,
-            quality_status: 'validated',
-            solver_version: 'PioSOLVER 3.0',
-            solver_binary_checksum: 'a'.repeat(64),
-            machine_id: 'M1',
-            pipeline_commit: 'b'.repeat(40),
-            manifest_version: 'training-v2',
-            manifest_checksum: 'c'.repeat(64),
-            source_artifact_checksum: 'd'.repeat(64),
-            audited_at: artifact().audited_at,
-            admitted: true,
-          })),
+          data: rows,
           error: null,
         }, observations, name);
       }
@@ -407,11 +422,22 @@ test('metadata reads consume a durable nonce and remain keyset/row bounded', asy
   }), rowResponse);
   assert.equal(rowResponse.statusCode, 200, JSON.stringify(rowResponse.body));
   assert.equal(rowResponse.body.rows[0].admitted, true);
+  assert.equal(rowResponse.body.rows[0].node, 'r:0');
+  assert.equal(rowResponse.body.rows[0].hero_position, 'BB');
   assert.deepEqual(rowRuntime.observations.rpc.map(([name]) => name), [
     'check_rate_limit_strict',
     'training_claim_solver_worker_request_v1',
-    'training_solver_worker_row_states_v1',
+    'training_solver_worker_row_states_v2',
   ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(rowRuntime.observations.rpc[2][1])), {
+    p_machine_id: 'M1',
+    p_solver_version: 'PioSOLVER 3.0',
+    p_solver_binary_checksum: 'a'.repeat(64),
+    p_pipeline_commit: 'b'.repeat(40),
+    p_manifest_version: 'training-v2',
+    p_manifest_checksum: 'c'.repeat(64),
+    p_scenario_hashes: ['hu_cash_BB_100bb_Jh7d2c'],
+  });
   assert.equal(rowRuntime.observations.tables.length, 0,
     'resume certification must come from the catalog+authority RPC');
   assert.equal(rowRuntime.observations.abortSignals.length, 3);
@@ -424,6 +450,31 @@ test('metadata reads consume a durable nonce and remain keyset/row bounded', asy
   assert.equal(replayResponse.statusCode, 409);
   assert.equal(replayRuntime.observations.tables.length, 0,
     'a consumed nonce cannot execute its metadata operation again');
+});
+
+test('caller-bound canary row-state proof fails closed on an invalid partition', async () => {
+  const runtime = await loadApi({
+    rowStateMutator: (rows) => rows.map((row) => ({
+      ...row,
+      admission_mode: 'bounded_canary',
+      partition_count: 2,
+      partition_index: 1,
+      canary_target_role: 'parent',
+      authorized_node: 'r:0',
+      authorized_hero_position: 'BB',
+      canary_authorized: true,
+    })),
+  });
+  const res = response();
+  await runtime.handler(signedRequest('row_states', {
+    scenario_hashes: ['hu_cash_BB_100bb_Jh7d2c'],
+  }), res);
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(JSON.parse(JSON.stringify(res.body)), {
+    success: false,
+    error: 'Solver worker request unavailable',
+  });
+  assert.equal(runtime.observations.tables.length, 0);
 });
 
 test('worker transport is redirect-proof, service-key-free, bounded, and index-gated', () => {
@@ -440,7 +491,7 @@ test('worker transport is redirect-proof, service-key-free, bounded, and index-g
   assert.doesNotMatch(ORCHESTRATOR_SOURCE, /Authorization.*Bearer/);
   assert.match(API_SOURCE, /const DB_OPERATION_TIMEOUT_MS = 12_000/);
   assert.equal((API_SOURCE.match(/executeBoundedDatabaseOperation\(/g) || []).length >= 7, true);
-  assert.match(API_SOURCE, /training_solver_worker_row_states_v1/);
+  assert.match(API_SOURCE, /training_solver_worker_row_states_v2/);
   assert.match(API_SOURCE, /training_solver_worker_board_page_v1/);
   assert.doesNotMatch(API_SOURCE, /\.from\('solved_spots_gold'\)/);
   assert.match(WORKER_MIGRATION_SOURCE,
@@ -485,6 +536,70 @@ test('worker transport is redirect-proof, service-key-free, bounded, and index-g
     assert.doesNotMatch(source, /(?:eyJ[a-zA-Z0-9_-]{20,}|sb_secret_[a-zA-Z0-9_-]{20,})/,
       'no JWT, service-role token, or worker secret may be committed');
   }
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /CREATE TABLE IF NOT EXISTS public\.training_solver_ingest_scopes/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /CREATE TABLE IF NOT EXISTS public\.training_solver_bounded_canary_targets/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /CREATE TABLE IF NOT EXISTS public\.training_solver_scope_migration_state/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /admission_mode IN \('held', 'backlog', 'bounded_canary'\)/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /target\.node = p_artifact -> 'strategy_matrix_v2' ->> 'node'/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /target\.hero_position =\s*p_artifact -> 'strategy_matrix_v2' ->> 'position'/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /artifact\.strategy_matrix_v2 ->> 'node' AS node/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /artifact\.strategy_matrix_v2 ->> 'position' AS hero_position/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /training_solver_scope_hold_on_authority_v1/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /OLD\.admission_mode IS DISTINCT FROM 'held'/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /TRAINING_SOLVER_CANARY_TARGETS_IMMUTABLE/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /NEW\.machine_id IS DISTINCT FROM OLD\.machine_id[\s\S]*NEW\.target_role IS DISTINCT FROM OLD\.target_role/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /WHERE scope\.machine_id = OLD\.machine_id[\s\S]*WHERE scope\.machine_id = NEW\.machine_id/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /pg_advisory_xact_lock\([\s\S]*training-solver-ingest-scope:/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /other_scope\.admission_mode IN \('backlog', 'bounded_canary'\)[\s\S]*other_authority\.retired_at IS NULL/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /TRAINING_SOLVER_MACHINE_INGEST_SCOPE_ALREADY_ACTIVE/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /OLD\.retired_at IS NOT NULL AND NEW\.retired_at IS NULL/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /TRAINING_SOLVER_PROVENANCE_RETIREMENT_IMMUTABLE/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /CREATE TRIGGER training_solver_provenance_reactivation_guard_v1/);
+  for (const marker of [
+    'TRAINING_SOLVER_INGEST_SCOPES_CONTRACT_INCOMPLETE',
+    'TRAINING_SOLVER_CANARY_TARGETS_CONTRACT_INCOMPLETE',
+    'TRAINING_SOLVER_SCOPE_MIGRATION_STATE_CONTRACT_INCOMPLETE',
+    'TRAINING_SOLVER_PRIVATE_SCOPE_ACL_INCOMPLETE',
+  ]) {
+    assert.match(BOUNDED_CANARY_MIGRATION_SOURCE, new RegExp(marker));
+  }
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /REVOKE ALL PRIVILEGES \(%s\) ON TABLE public\.%I/);
+  assert.equal((BOUNDED_CANARY_MIGRATION_SOURCE.match(
+    /has_any_column_privilege\(/g,
+  ) || []).length, 4);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /TRAINING_SOLVER_NEW_SCOPE_MUST_BE_HELD/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /training_solver_worker_row_states_v2/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /authorized_hero_position text/);
+  assert.match(API_SOURCE, /rowStates\(supabase, envelope\.payload, envelope\.worker\)/);
+  assert.match(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /REVOKE ALL ON FUNCTION public\.training_ingest_solver_artifact_unscoped_v1[\s\S]*service_role/);
+  assert.doesNotMatch(BOUNDED_CANARY_MIGRATION_SOURCE,
+    /(?:eyJ[a-zA-Z0-9_-]{20,}|sb_secret_[a-zA-Z0-9_-]{20,})/);
 });
 
 test('legacy service-role worker configuration aborts before transport or solver work', () => {

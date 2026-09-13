@@ -45,7 +45,7 @@ const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const MIGRATIONS = join(ROOT, 'supabase/migrations');
 const migrationText = () =>
     readdirSync(MIGRATIONS)
-        .filter((f) => f.includes('rewards_are_awarded') || f.includes('rewards_are_actually_awarded'))
+        .filter((f) => /reward(s)?_(are|is)_(actually_)?award(ed)?/.test(f))
         .map((f) => readFileSync(join(MIGRATIONS, f), 'utf8'))
         .join('\n');
 
@@ -66,11 +66,18 @@ const activeSql = () =>
         .filter((l) => !l.trimStart().startsWith('--'))
         .join('\n');
 
+// Every migration in the 2026-09-08/09 reward sweep. Named individually so a
+// DELETION is caught - a glob would simply match fewer files and stay green.
+const AWARD_MIGRATIONS = [
+    'social_rewards_are_actually_awarded',
+    'share_and_trivia_rewards_are_awarded',
+    'first_training_session_reward_is_awarded',
+];
+
 test('the award migrations exist and are not empty', () => {
-    const files = readdirSync(MIGRATIONS).filter((f) =>
-        f.includes('social_rewards_are_actually_awarded') || f.includes('share_and_trivia_rewards_are_awarded')
-    );
-    assert.equal(files.length, 2, `expected both award migrations, found: ${files.join(', ')}`);
+    const present = readdirSync(MIGRATIONS);
+    const missing = AWARD_MIGRATIONS.filter((slug) => !present.some((f) => f.includes(slug)));
+    assert.deepEqual(missing, [], `these award migrations are gone: ${missing.join(', ')}`);
     assert.ok(migrationText().length > 1000, 'award migrations are suspiciously small');
 });
 
@@ -100,6 +107,12 @@ test('every social action has a trigger that awards it', () => {
     for (const [table, trigger] of Object.entries(REQUIRED)) {
         const re = new RegExp(`CREATE TRIGGER ${trigger}\\s+AFTER INSERT ON public\\.${table}`, 'i');
         if (!re.test(sql)) missing.push(`${trigger} on ${table}`);
+    }
+    // training_attempts is the exception: an attempt is INSERTed in progress and
+    // UPDATEd on finish (all completed rows have completed_at > started_at), so
+    // an AFTER INSERT trigger would never see a completed session.
+    if (!/CREATE TRIGGER trg_award_first_training_session\s+AFTER UPDATE ON public\.training_attempts/i.test(sql)) {
+        missing.push('trg_award_first_training_session on training_attempts (AFTER UPDATE)');
     }
     assert.deepEqual(missing, [], `these awards have no trigger:\n  ${missing.join('\n  ')}`);
 });
@@ -140,6 +153,12 @@ test('the anti-farming guards are still in the triggers', () => {
         [/< 20/, 'post content length floor (20)'],
         [/< 10/, 'comment content length floor (10)'],
         [/interaction_type IS DISTINCT FROM 'like'/, 'only real likes pay, not comment_like'],
+        // first_training_session: a welcome bonus that must pay once, ever, and
+        // never for practice or for a failed attempt.
+        [/COALESCE\(NEW\.practice_only, false\)/, 'practice attempts earn no welcome bonus'],
+        [/NOT COALESCE\(NEW\.passed, false\)/, 'a failed attempt earns no welcome bonus'],
+        [/OLD\.completed_at IS NOT NULL OR NEW\.completed_at IS NULL/, 'only the transition into completed fires'],
+        [/'first_training_session_' \|\| NEW\.user_id::text/, 'the welcome bonus key is the user alone, so it pays once forever'],
     ];
     const missing = REQUIRED.filter(([re]) => !re.test(sql)).map(([, name]) => name);
     assert.deepEqual(missing, [], `anti-farming guards missing from the triggers:\n  ${missing.join('\n  ')}`);
@@ -153,6 +172,25 @@ test('the award helper fails closed and can never break the action', () => {
         sql,
         /IF v_created_at IS NULL OR \(now\(\) - v_created_at\) < interval '24 hours' THEN\s+RETURN;/,
         'the age gate must fail closed on a missing profile, not pay'
+    );
+});
+
+test('the training welcome bonus has no age gate, and the social helper still does', () => {
+    const sql = activeSql();
+    // These two helpers differ on purpose. If they are ever collapsed into one,
+    // either a brand-new player loses the welcome bonus that exists for them,
+    // or the social rewards lose their 24h anti-farming gate. Both are bugs.
+    assert.match(sql, /fn_social_reward_award/, 'the social helper must still exist');
+    assert.match(sql, /fn_training_reward_award/, 'the training helper must still exist');
+    const training = sql.slice(sql.indexOf('FUNCTION public.fn_training_reward_award'));
+    const trainingBody = training.slice(0, training.indexOf('END $$;'));
+    assert.ok(
+        !/interval '24 hours'/.test(trainingBody),
+        'fn_training_reward_award must NOT gate on account age - the welcome bonus is for new players'
+    );
+    assert.ok(
+        /profiles WHERE id = p_user_id/.test(trainingBody),
+        'it must still fail closed on a user that does not exist'
     );
 });
 
@@ -181,9 +219,11 @@ test('the reaction endpoint accepts a like from either table', () => {
 });
 
 test('the migrations carry a rollback, because they are Tier 3', () => {
-    for (const f of readdirSync(MIGRATIONS).filter((x) =>
-        x.includes('social_rewards_are_actually_awarded') || x.includes('share_and_trivia_rewards_are_awarded')
-    )) {
+    const files = readdirSync(MIGRATIONS).filter((x) =>
+        AWARD_MIGRATIONS.some((slug) => x.includes(slug))
+    );
+    assert.equal(files.length, AWARD_MIGRATIONS.length, 'an award migration went missing');
+    for (const f of files) {
         const src = readFileSync(join(MIGRATIONS, f), 'utf8');
         assert.match(src, /ROLLBACK/, `${f} is Tier 3 and must carry a pasted rollback section`);
         assert.match(src, /DROP TRIGGER IF EXISTS/, `${f} rollback must drop its triggers`);

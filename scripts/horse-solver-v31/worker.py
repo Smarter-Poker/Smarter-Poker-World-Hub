@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 import math
 import os
 import re
@@ -16,7 +15,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
-from contract import ApprovedManifest, ContractError, load_manifest, sha256_file
+from contract import (
+    UUID,
+    ApprovedManifest,
+    ContractError,
+    _json_bytes,
+    load_manifest,
+    sha256_file,
+)
 from gateway import MAX_BODY_BYTES, GatewayClient, GatewayError, canonical_json
 from pio_upi import (
     PioError,
@@ -51,43 +57,49 @@ def load_checkpoint(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
 
-    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        for key, value in pairs:
-            if key in result:
-                raise ContractError(f"artifact checkpoint repeats JSON key: {key}")
-            result[key] = value
-        return result
-
-    def reject_non_json_constant(value: str) -> None:
-        raise ContractError(f"artifact checkpoint contains non-JSON number: {value}")
-
-    def parse_finite_float(value: str) -> float:
-        parsed = float(value)
-        if not math.isfinite(parsed):
-            raise ContractError(
-                f"artifact checkpoint contains non-finite JSON number: {value}"
-            )
-        return parsed
-
     try:
-        if path.stat().st_size > MAX_BODY_BYTES:
+        raw = path.read_bytes()
+        if len(raw) > MAX_BODY_BYTES:
             raise ContractError(
                 f"artifact checkpoint exceeds the {MAX_BODY_BYTES}-byte gateway limit: {path}"
             )
-        value = json.loads(
-            path.read_text(encoding="utf-8"),
-            object_pairs_hook=reject_duplicate_keys,
-            parse_constant=reject_non_json_constant,
-            parse_float=parse_finite_float,
-        )
+        value = _json_bytes(raw, "artifact checkpoint")
     except ContractError:
         raise
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, RecursionError, ValueError) as error:
+    except OSError as error:
         raise ContractError(f"artifact checkpoint is unreadable: {path}") from error
     if not isinstance(value, dict):
         raise ContractError(f"artifact checkpoint is not an object: {path}")
     return value
+
+
+def worker_heartbeat_receipt_is_valid(
+    value: Any, machine: str, run_id: str, sequence: int
+) -> bool:
+    if not isinstance(value, dict) or value.get("accepted") is not True:
+        return False
+    if (
+        value.get("machine_id") != machine
+        or value.get("run_id") != run_id
+        or isinstance(value.get("sequence"), bool)
+        or value.get("sequence") != sequence
+        or not isinstance(value.get("idempotent"), bool)
+    ):
+        return False
+    base = {"accepted", "idempotent", "machine_id", "run_id", "sequence"}
+    if value["idempotent"]:
+        return set(value) == base
+    if set(value) != base | {"rows_per_hour", "eta_at"}:
+        return False
+    rate = value["rows_per_hour"]
+    eta = value["eta_at"]
+    return (
+        not isinstance(rate, bool)
+        and isinstance(rate, (int, float))
+        and math.isfinite(float(rate))
+        and rate >= 0
+        and (eta is None or (isinstance(eta, str) and 1 <= len(eta) <= 80))
+    )
 
 
 class WorkerHeartbeat:
@@ -124,6 +136,10 @@ class WorkerHeartbeat:
                     "error_detail": error_detail[:2000] if error_detail else None,
                 },
             )
+            if not worker_heartbeat_receipt_is_valid(
+                result, self.machine, self.run_id, self.sequence
+            ):
+                raise GatewayError("database returned an invalid worker-heartbeat receipt")
             self.sequence += 1
             return result
 
@@ -174,11 +190,32 @@ def artifact_path(work_directory: Path, machine: str, target_id: str) -> Path:
     return work_directory / "artifacts" / machine / f"{safe}.json"
 
 
-def source_receipt_is_valid(source_id: str, source_checksum: str, artifact: dict[str, Any]) -> bool:
+def source_receipt_is_valid(receipt: Any, artifact: dict[str, Any]) -> bool:
+    """Prove that the database acknowledged this exact source-row identity.
+
+    The database adds its own canonical node checksum before calculating the
+    source checksum, so the worker intentionally cannot reproduce that digest.
+    It can and must still reject missing/extra fields, a substituted row id,
+    an incorrect node count, or a non-boolean idempotency claim.
+    """
+
+    matrix = artifact.get("strategy_matrix_v2")
+    nodes = matrix.get("nodes") if isinstance(matrix, dict) else None
     return (
-        source_id == artifact.get("id")
-        and HEX64.fullmatch(source_checksum) is not None
-        and source_checksum != "0" * 64
+        isinstance(receipt, dict)
+        and set(receipt)
+        == {"source_row_id", "source_artifact_checksum", "node_count", "idempotent"}
+        and isinstance(receipt.get("source_row_id"), str)
+        and UUID.fullmatch(receipt["source_row_id"]) is not None
+        and receipt["source_row_id"] == artifact.get("id")
+        and isinstance(receipt.get("source_artifact_checksum"), str)
+        and HEX64.fullmatch(receipt["source_artifact_checksum"]) is not None
+        and receipt["source_artifact_checksum"] != "0" * 64
+        and isinstance(nodes, list)
+        and not isinstance(receipt.get("node_count"), bool)
+        and isinstance(receipt.get("node_count"), int)
+        and receipt["node_count"] == len(nodes)
+        and isinstance(receipt.get("idempotent"), bool)
     )
 
 
@@ -286,6 +323,25 @@ def owned_targets(scenario: dict[str, Any], machine: str) -> list[dict[str, Any]
     return [target for target in scenario["targets"] if target["machine_id"] == machine]
 
 
+def solver_self_test(pio: Any, manifest: ApprovedManifest) -> tuple[dict[str, Any], dict[str, float]]:
+    scenarios = ordered_scenarios(manifest)
+    self_test = manifest.raw["self_test"]
+    self_scenario = next(
+        scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
+    )
+    convergence = solve_scenario(pio, self_scenario, manifest)
+    receipt = run_self_test(pio, self_scenario, self_test, convergence=convergence)
+    return self_scenario, receipt
+
+
+def print_self_test(receipt: dict[str, float]) -> None:
+    print(
+        "[v31-worker] self-test passed: "
+        f"EV={receipt['weighted_policy_ev_bb']:.6f} bb, "
+        f"exploitability={receipt['exploitability_pct']:.6f}"
+    )
+
+
 def run(args: argparse.Namespace) -> None:
     script_root = Path(__file__).resolve().parents[2]
     expected_manifest = os.environ.get("APPROVED_MANIFEST_CHECKSUM", "")
@@ -303,21 +359,43 @@ def run(args: argparse.Namespace) -> None:
     if not executable.exists() or not executable.is_file() or not os.access(executable, os.X_OK):
         raise ContractError("PIO_EXE is absent, not a regular file, or not executable")
     verify_environment(manifest, executable)
-    client = GatewayClient.from_environment(args.machine, manifest.provenance)
-    contract = client.call("dataset_contract", {})
-    if contract.get("state") != "building":
-        print(
-            f"[v31-worker] dataset {manifest.raw['dataset_key']} is {contract.get('state')}; "
-            "no source rows were changed"
-        )
-        return
-    dataset_id = contract.get("dataset_id")
     planned = sum(
         len(owned_targets(scenario, args.machine))
         for scenario in manifest.raw["scenarios"]
     )
     if planned <= 0:
         raise ContractError(f"manifest assigns no targets to {args.machine}")
+
+    if args.preflight_only:
+        with PioProcess(
+            executable,
+            expected_solver_version=manifest.raw["solver_version"],
+            expected_hand_order=manifest.source_combo_order,
+        ) as process:
+            _, receipt = solver_self_test(process.command, manifest)
+        print_self_test(receipt)
+        print(
+            f"[v31-worker] {args.machine} local preflight passed for {planned} assigned targets; "
+            "no gateway was contacted and no source row was written"
+        )
+        return
+
+    client = GatewayClient.from_environment(args.machine, manifest.provenance)
+    contract = client.call("dataset_contract", {})
+    if not isinstance(contract, dict):
+        raise GatewayError("dataset contract response is not an object")
+    state = contract.get("state")
+    dataset_id = contract.get("dataset_id")
+    if state not in {"building", "evaluating", "candidate", "active", "rejected", "retired"}:
+        raise GatewayError("dataset contract returned an invalid state")
+    if not isinstance(dataset_id, str) or not UUID.fullmatch(dataset_id):
+        raise GatewayError("dataset contract returned no canonical dataset id")
+    if state != "building":
+        print(
+            f"[v31-worker] dataset {manifest.raw['dataset_key']} is {state}; "
+            "no source rows were changed"
+        )
+        return
     heartbeat = WorkerHeartbeat(client, manifest, args.machine, planned)
     heartbeat.pulse("starting", "startup")
     work_directory = Path(args.work_directory).resolve()
@@ -332,21 +410,15 @@ def run(args: argparse.Namespace) -> None:
         ) as process:
             pio = process.command
             scenarios = ordered_scenarios(manifest)
-            self_test = manifest.raw["self_test"]
             self_scenario = next(
-                scenario for scenario in scenarios if scenario["scenario_id"] == self_test["scenario_id"]
+                scenario
+                for scenario in scenarios
+                if scenario["scenario_id"] == manifest.raw["self_test"]["scenario_id"]
             )
             with heartbeat.keepalive("self_test", f"self_test:{self_scenario['scenario_id']}"):
-                convergence = solve_scenario(pio, self_scenario, manifest)
-                receipt = run_self_test(
-                    pio, self_scenario, self_test, convergence=convergence
-                )
+                _, receipt = solver_self_test(pio, manifest)
             loaded_scenario = self_scenario["scenario_id"]
-            print(
-                "[v31-worker] self-test passed: "
-                f"EV={receipt['weighted_policy_ev_bb']:.6f} bb, "
-                f"exploitability={receipt['exploitability_pct']:.6f}"
-            )
+            print_self_test(receipt)
 
             for scenario in scenarios:
                 targets = owned_targets(scenario, args.machine)
@@ -404,11 +476,11 @@ def run(args: argparse.Namespace) -> None:
                         if error.status is not None and 400 <= error.status < 500 and error.status != 429:
                             mark_invalid(heartbeat)
                         raise
-                    source_id = str(result.get("source_row_id") or "")
-                    source_checksum = str(result.get("source_artifact_checksum") or "")
-                    if not source_receipt_is_valid(source_id, source_checksum, artifact):
+                    if not source_receipt_is_valid(result, artifact):
                         mark_invalid(heartbeat)
                         raise GatewayError("database returned an invalid source-artifact receipt")
+                    source_id = result["source_row_id"]
+                    source_checksum = result["source_artifact_checksum"]
                     heartbeat.done += 1
                     heartbeat.written += 1
                     heartbeat.last_artifact_id = source_id
@@ -434,8 +506,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("machine", choices=("M1", "M2"))
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--input-root", required=True)
-    parser.add_argument("--work-directory", required=True)
-    return parser.parse_args()
+    parser.add_argument("--work-directory")
+    parser.add_argument("--preflight-only", action="store_true")
+    args = parser.parse_args()
+    if not args.preflight_only and not args.work_directory:
+        parser.error("--work-directory is required unless --preflight-only is used")
+    return args
 
 
 if __name__ == "__main__":

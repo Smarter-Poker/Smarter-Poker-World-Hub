@@ -48,7 +48,7 @@ EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SERVICE_KEY = ''
+SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '').strip()
 TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_TOKEN = ''
 TWILIO_PHONE_FROM = ''
@@ -61,7 +61,7 @@ if CRED_PATH.exists():
         if '=' in _line and not _line.strip().startswith('#'):
             _k, _, _v = _line.partition('=')
             _v = _v.strip().strip('"\'')
-            if _k.strip() == 'SUPABASE_SERVICE_ROLE_KEY': SERVICE_KEY = _v
+            if _k.strip() == 'SUPABASE_SERVICE_ROLE_KEY' and not SERVICE_KEY: SERVICE_KEY = _v
             if _k.strip() == 'TWILIO_ACCOUNT_SID': TWILIO_ACCOUNT_SID = _v
             if _k.strip() == 'TWILIO_AUTH_TOKEN': TWILIO_AUTH_TOKEN = _v
             if _k.strip() == 'TWILIO_PHONE_NUMBER': TWILIO_PHONE_FROM = _v
@@ -248,26 +248,12 @@ CHARITY_TARGETS = [
 # ══════════════════════════════════════════════════════════
 
 def send_sms_alert(msg):
-    """Send Twilio SMS to 708-677-5221 on scraper failures."""
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-        print('  ⚠️  Twilio not configured — SMS skipped')
-        return
-    url = f'https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json'
-    body = urllib.parse.urlencode({
-        'To': ALERT_PHONE_TO,
-        'From': TWILIO_PHONE_FROM,
-        'Body': f'[Smarter.Poker Charity Scraper v5] {msg}',
-    }).encode('utf-8')
-    auth = base64.b64encode(f'{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}'.encode()).decode()
-    req = urllib.request.Request(url, data=body, method='POST', headers={
-        'Authorization': f'Basic {auth}',
-        'Content-Type': 'application/x-www-form-urlencoded',
-    })
-    try:
-        urllib.request.urlopen(req, timeout=10)
-        print(f'  📱 SMS sent → {ALERT_PHONE_TO}: {msg[:80]}')
-    except Exception as e:
-        print(f'  ❌ SMS send failed: {e}')
+    """Legacy name: save this fault for investigation in the operational inbox."""
+    from operational_alerts import record_alert
+    receipt = record_alert('charity-scraper', msg, BATCH_ID, SUPABASE_URL, SERVICE_KEY)
+    print(f'Operational alert recorded: {receipt}')
+    return receipt
+
 
 
 # ══════════════════════════════════════════════════════════

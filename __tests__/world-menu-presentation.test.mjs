@@ -16,7 +16,6 @@ const SCHEMES = Object.freeze({
   news: 'newsroom',
   trivia: 'arcade',
   'social-media': 'facebook',
-  'diamond-arena': 'diamond-lacquer',
   'my-clubs': 'club-crest',
   'video-library': 'cinema',
   'odds-calculator': 'analytics',
@@ -41,9 +40,9 @@ const paletteBody = (worldId) => {
   return match[1];
 };
 
-test('all 14 worlds own complete and unique premium presentation contracts', () => {
-  assert.equal(Object.keys(SCHEMES).length, 14);
-  assert.equal(new Set(Object.values(SCHEMES)).size, 14);
+test('all 13 worlds own complete and unique premium presentation contracts', () => {
+  assert.equal(Object.keys(SCHEMES).length, 13);
+  assert.equal(new Set(Object.values(SCHEMES)).size, 13);
 
   for (const [worldId, scheme] of Object.entries(SCHEMES)) {
     const body = paletteBody(worldId);

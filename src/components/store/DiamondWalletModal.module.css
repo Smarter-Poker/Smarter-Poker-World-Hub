@@ -469,6 +469,592 @@
   background: linear-gradient(90deg, var(--vault-gold), #d99a1c);
 }
 
+/* ── Send: recipient, amount, confirmation ──────────────────────────────── */
+
+.sendForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The dropdown anchors to this. */
+.sendRecipient {
+  position: relative;
+}
+
+.sendFieldLabel {
+  margin-bottom: 4px;
+  color: var(--vault-muted);
+  font-family: var(--vault-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The chosen friend, seated in a raised plate. */
+.sendChosen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-carbon));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.sendChosenAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sendChosenName {
+  flex: 1;
+  color: var(--vault-chrome-hot);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The small round dismiss, used to unseat a friend and to clear the search. */
+.sendClear {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--vault-gunmetal);
+  color: var(--vault-chrome);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sendClearSmall {
+  width: 18px;
+  height: 18px;
+}
+
+.sendClear:active {
+  transform: translateY(1px);
+}
+
+.sendClear:focus-visible,
+.sendRecentChip:focus-visible,
+.sendMatch:focus-visible,
+.sendConfirmCancel:focus-visible,
+.sendConfirmGo:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+.sendRecent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.sendRecentChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-chrome);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.sendRecentChip:active {
+  transform: translateY(1px);
+}
+
+.sendRecentAmount {
+  color: var(--vault-cyan);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The search field and the amount field share one machined frame. */
+.sendField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 10px;
+  background: var(--vault-carbon);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.sendField:focus-within {
+  border-color: rgba(0, 212, 255, 0.55);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(0, 212, 255, 0.25);
+}
+
+.sendFieldGrow {
+  flex: 1;
+}
+
+.sendFieldIcon {
+  flex-shrink: 0;
+  color: var(--vault-muted);
+}
+
+.sendInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--vault-chrome-hot);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.sendInput::placeholder {
+  color: var(--vault-muted);
+}
+
+/* Diamonds are a number; the amount reads in the display face, no
+   capitalisation, tabular figures. */
+.sendAmountInput {
+  composes: sendInput;
+  font-family: var(--vault-font-display);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+}
+
+.sendDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  max-height: 180px;
+  margin-top: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 10px;
+  background: var(--vault-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.sendDropdownNote {
+  padding: 12px 14px;
+  color: var(--vault-muted);
+  font-size: 12px;
+}
+
+.sendMatch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid var(--vault-gunmetal);
+  background: transparent;
+  color: var(--vault-chrome-hot);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* No hover; the press lights the row. */
+.sendMatch:active {
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.sendMatchAvatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sendMatchInitial {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--vault-gunmetal);
+  color: var(--vault-chrome-hot);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sendMatchBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.sendMatchName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sendMatchHandle {
+  color: var(--vault-muted);
+  font-size: 10px;
+}
+
+.sendHint {
+  margin-top: 4px;
+  padding-left: 4px;
+  color: var(--vault-muted);
+  font-size: 10px;
+}
+
+.sendAmountRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sendAmountIcon {
+  flex-shrink: 0;
+  color: var(--vault-cyan);
+}
+
+/* The Send button: a lit chrome key. Disabled is dimmed, never hidden, so
+   the player can see the control they are waiting on. */
+.sendGo {
+  padding: 9px 18px;
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.22), rgba(0, 212, 255, 0.08));
+  color: var(--vault-chrome-hot);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 14px rgba(0, 212, 255, 0.18);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sendGo:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.sendGo:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.sendGo:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+/* Feedback strips under the form. */
+.sendNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.sendNoteError {
+  background: rgba(248, 113, 113, 0.08);
+  color: #f87171;
+}
+
+.sendNoteOk {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--vault-cyan);
+}
+
+/* The confirmation: a raised plate the money question is asked on. */
+.sendConfirm {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: walletFadeIn 0.15s ease;
+}
+
+.sendConfirmTitle {
+  margin-bottom: 8px;
+  color: var(--vault-chrome-hot);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sendConfirmText {
+  margin-bottom: 10px;
+  color: var(--vault-chrome);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sendConfirmAmount {
+  color: var(--vault-cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.sendConfirmWho {
+  color: var(--vault-chrome-hot);
+}
+
+.sendConfirmActions {
+  display: flex;
+  gap: 8px;
+}
+
+.sendConfirmCancel {
+  flex: 1;
+  padding: 7px 0;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-chrome);
+  font-family: var(--vault-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.sendConfirmGo {
+  composes: sendGo;
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.sendConfirmCancel:active {
+  transform: translateY(1px);
+}
+
+/* ── The Stats panel: whole-ledger figures on machined plates ───────────── */
+
+.statsPanel {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vault-gunmetal);
+  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  animation: walletFadeIn 0.2s ease;
+}
+
+.statsPanelGifts {
+  padding: 8px 16px 12px;
+}
+
+.statsGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.statsGrid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.statsGridTight {
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+/* One plate for every figure; the tint says which side of the ledger. */
+.statsPlate {
+  padding: 8px 10px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: var(--vault-radius);
+  background: var(--vault-carbon);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.statsPlateIn {
+  border-color: rgba(0, 212, 255, 0.3);
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.1), var(--vault-carbon));
+}
+
+.statsPlateOut {
+  border-color: rgba(184, 195, 205, 0.25);
+}
+
+.statsPlateCenter {
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.statsPlateSmall {
+  padding: 6px 10px;
+}
+
+.statsHeading {
+  margin-bottom: 8px;
+  color: var(--vault-muted);
+  font-family: var(--vault-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.statsHeadingTight {
+  margin-bottom: 4px;
+}
+
+.statsSub {
+  margin-top: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--vault-gunmetal);
+}
+
+.statsLabel {
+  margin-bottom: 2px;
+  color: var(--vault-muted);
+  font-size: 10px;
+}
+
+.statsLabelSmall {
+  font-size: 9px;
+}
+
+.statsFigure {
+  font-family: var(--vault-font-display);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.statsFigureSmall {
+  font-size: 14px;
+}
+
+/* Credits in the vault's energy, debits in chrome: spending is not an
+   error, so it is not red (the same rule the ledger rows follow). */
+.statsFigureIn {
+  color: var(--vault-cyan);
+}
+
+.statsFigureOut {
+  color: var(--vault-chrome-hot);
+}
+
+.statsFoot {
+  margin-top: 2px;
+  color: var(--vault-muted);
+  font-size: 9px;
+}
+
+/* Month-on-month: up is the energy colour, down is chrome. Which direction is
+   good depends on the column, so the JSX picks the class. */
+.statsTrend {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  font-size: 9px;
+}
+
+.statsTrendUp {
+  color: var(--vault-cyan);
+}
+
+.statsTrendDown {
+  color: var(--vault-chrome);
+}
+
+/* Ranked bars: the top row is full width, the rest scale to it. Width and
+   colour are data and ride in as custom properties. */
+.statsBarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.statsBarRowTight {
+  margin-bottom: 2px;
+}
+
+.statsBarTrack {
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--vault-carbon);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.statsBarTrackThin {
+  height: 3px;
+}
+
+.statsBarFill {
+  width: var(--bar-width);
+  height: 100%;
+  border-radius: 2px;
+  background: var(--bar-color);
+}
+
+.statsBarLabel {
+  min-width: 80px;
+  color: var(--vault-chrome);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.statsBarLabelSmall {
+  min-width: 70px;
+  font-size: 9px;
+}
+
+/* The skeleton shown while the whole-ledger pass is still running. */
+.statsSkeletonPlate {
+  height: 60px;
+  border-radius: var(--vault-radius);
+  background: rgba(255, 255, 255, 0.04);
+  animation: walletShimmer 1.2s ease-in-out infinite;
+}
+
+.statsSkeletonPlateLate {
+  animation-delay: 0.2s;
+}
+
 /* The way back out of a search or date range that emptied the view. */
 .emptyReset {
   margin-top: 12px;
@@ -585,6 +1171,381 @@
 
 .txAmountOut {
   color: var(--vault-chrome);
+}
+
+/* ── The shell: backdrop, dialog, close bar, scroll body ─────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 89;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: walletFadeIn 0.2s ease;
+}
+
+.dialog {
+  position: fixed;
+  /* 60 is the UniversalHeader height; the header itself grows by the
+     status-bar inset, so the modal must too (mobile phase 0b). */
+  top: calc(env(safe-area-inset-top, 0px) + 60px);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(0, 100, 220, 0.25) 0%, rgba(2, 8, 20, 0.4) 100%),
+    url('/images/diamond-wallet-bg-new.png') center/cover no-repeat;
+  font-family: 'Inter', -apple-system, sans-serif;
+  text-transform: capitalize;
+  animation: walletFadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.closeBar {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px 16px 0;
+}
+
+.scrollBody {
+  flex: 1;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The two painted buttons sit one each side of the plate. */
+.artHitboxBuy {
+  left: 10%;
+}
+
+.artHitboxSend {
+  right: 10%;
+}
+
+/* A <select> paints its own popup on the platform's colours; the option
+   colours are the one place the vault has to say so explicitly. */
+.rangeOption {
+  background: #0a1628;
+  color: #fff;
+}
+
+/* ── The empty-state diamond and the category donut ─────────────────────── */
+
+.emptyDiamond {
+  opacity: 0.6;
+  filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.4));
+}
+
+.donut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.donutRing {
+  flex-shrink: 0;
+}
+
+.donutLegend {
+  flex: 1;
+}
+
+.donutLegendRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+/* The swatch takes its colour from the slice it stands for. */
+.donutSwatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--swatch);
+}
+
+.donutLegendLabel {
+  flex: 1;
+  overflow: hidden;
+  color: var(--vault-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donutLegendValue {
+  color: var(--vault-chrome);
+  font-family: var(--vault-font-display);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Skeleton rows while the ledger loads ───────────────────────────────── */
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.skeletonBone {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  animation: walletShimmer 1.2s ease-in-out infinite;
+}
+
+.skeletonIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.skeletonBody {
+  flex: 1;
+}
+
+.skeletonTitle {
+  width: 60%;
+  height: 12px;
+  margin-bottom: 6px;
+}
+
+.skeletonSub {
+  width: 40%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  animation-delay: 0.2s;
+}
+
+.skeletonAmount {
+  flex-shrink: 0;
+  width: 48px;
+  height: 14px;
+  animation-delay: 0.4s;
+}
+
+/* ── The list, its states, and the footer ───────────────────────────────── */
+
+/* Pull-to-refresh: the distance the finger has travelled is data. */
+.pullBanner {
+  padding: var(--pull-pad) 0;
+  color: var(--vault-muted);
+  font-family: var(--vault-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.pullBannerArmed {
+  color: var(--vault-cyan);
+}
+
+.pullBannerSettling {
+  transition: all 0.2s;
+}
+
+.list {
+  padding: 4px 0 24px;
+}
+
+.stateBox {
+  padding: 40px;
+  color: var(--vault-muted);
+  text-align: center;
+}
+
+.stateBoxEmpty {
+  padding: 30px 40px;
+}
+
+.stateGlyph {
+  margin-bottom: 10px;
+  font-size: 28px;
+  opacity: 0.5;
+}
+
+.stateText {
+  margin-bottom: 14px;
+  color: var(--vault-chrome);
+  font-size: 13px;
+}
+
+.stateTitle {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.stateHint {
+  margin-top: 6px;
+  color: var(--vault-muted);
+  font-size: 11px;
+}
+
+/* Retry, Load More, and the first-diamonds call to action share one lit key. */
+.litKey {
+  padding: 8px 20px;
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(0, 212, 255, 0.18), rgba(0, 212, 255, 0.06));
+  color: var(--vault-cyan);
+  font-family: var(--vault-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 14px rgba(0, 212, 255, 0.22);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.litKey:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.litKey:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.litKey:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+.litKeyLarge {
+  margin-top: 16px;
+  padding: 10px 28px;
+  border-radius: 20px;
+  font-size: 14px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.loadMore {
+  padding: 12px 16px;
+  text-align: center;
+}
+
+/* Today / Yesterday / This Week / Earlier. */
+.groupHeader {
+  padding: 10px 16px 4px;
+  color: rgba(0, 212, 255, 0.6);
+  font-family: var(--vault-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.groupHeaderRuled {
+  border-top: 1px solid var(--vault-gunmetal);
+}
+
+.txAfter {
+  color: var(--vault-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.txWhen {
+  margin-top: 4px;
+  color: var(--vault-muted);
+  font-size: 12px;
+}
+
+/* The row opened: its receipt, laid under the icon column. */
+.txDetail {
+  padding: 0 16px 12px 64px;
+  animation: walletFadeIn 0.15s ease;
+}
+
+.txDetailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  font-size: 11px;
+}
+
+.txDetailWide {
+  grid-column: 1 / -1;
+}
+
+.txDetailKey {
+  color: var(--vault-muted);
+}
+
+.txDetailValue {
+  color: var(--vault-chrome);
+}
+
+.txDetailRef {
+  color: var(--vault-chrome);
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.copyKey {
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #1a2430, #0e141c);
+  color: var(--vault-chrome);
+  font-family: var(--vault-font-label);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.copyKey:active {
+  transform: translateY(1px);
+}
+
+.copyKey:focus-visible {
+  outline: 2px solid var(--vault-cyan);
+  outline-offset: 2px;
+}
+
+.copyKeyDone {
+  border-color: rgba(0, 212, 255, 0.5);
+  color: var(--vault-cyan);
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--vault-gunmetal);
+  color: var(--vault-muted);
+  font-family: var(--vault-font-label);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-align: center;
 }
 
 /* Available to assistive technology, absent from the render. */
