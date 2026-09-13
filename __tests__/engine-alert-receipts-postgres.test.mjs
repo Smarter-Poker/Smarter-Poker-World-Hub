@@ -28,7 +28,7 @@ test('PostgreSQL17 receipts enforce replay, collision, rollback, concurrency and
   const rpc=async(c,alerts)=>(await c.query('select public.fn_record_engine_alerts($1::jsonb) as receipts',[JSON.stringify(alerts)])).rows[0].receipts;
   const count=async()=>(await db.query('select count(*)::int as n from public.engine_alerts')).rows[0].n;
   const a=event();const original=await rpc(db,[a]);assert.equal(original[0].event_id,a.labels.engine_alert_event_id);assert.ok(original[0].id>0);
-  assert.deepEqual(await rpc(db,[{...a,labels:{...a.labels}}]),original);assert.equal(await count(),1);
+  assert.deepEqual(await rpc(db,[{...a,labels:Object.fromEntries(Object.entries(a.labels).reverse())}]),original);assert.equal(await count(),1);
   await assert.rejects(rpc(db,[{...a,annotations:{summary:'changed'}}]),e=>e.code==='23505');assert.equal(await count(),1);
   await assert.rejects(rpc(db,[event(),{...a,annotations:{summary:'changed'}}]),e=>e.code==='23505');assert.equal(await count(),1,'collision rolls back earlier new member');
   await assert.rejects(rpc(db,[event(),{...event(),startsAt:'not-a-time'}]),e=>e.code==='22007');assert.equal(await count(),1,'late cast failure rolls back both tables');
@@ -40,13 +40,15 @@ test('PostgreSQL17 receipts enforce replay, collision, rollback, concurrency and
   assert.ok(deliveries.every(r=>r[0].id===deliveries[0][0].id));assert.equal(await count(),2,'concurrent retry inserts one engine row');
   const b=event(),c=event();await Promise.all([rpc(peers[0],[b,c]),rpc(peers[1],[c,b])]);assert.equal(await count(),4,'reversed batches cannot deadlock or duplicate');
   const legacy=event();delete legacy.labels.engine_alert_event_id;const l1=await rpc(db,[legacy]),l2=await rpc(db,[legacy]);assert.equal(l1[0].event_id,null);assert.notEqual(l1[0].id,l2[0].id);assert.equal(await count(),6);
+  const racing=event();const conflicting=await Promise.allSettled([rpc(peers[0],[racing]),rpc(peers[1],[{...racing,annotations:{summary:'different payload'}}])]);
+  assert.equal(conflicting.filter(r=>r.status==='fulfilled').length,1);assert.equal(conflicting.filter(r=>r.status==='rejected'&&r.reason.code==='23505').length,1);assert.equal(await count(),7,'simultaneous conflicting payloads acknowledge exactly one winner');
   for(const role of ['anon','authenticated']){
    await db.query(`set role ${role}`);await assert.rejects(rpc(db,[event()]),e=>e.code==='42501');await assert.rejects(db.query('select * from public.engine_alert_delivery_receipts'),e=>e.code==='42501');await db.query('reset role');
   }
   await db.query('set role service_role');assert.deepEqual(await rpc(db,[a]),original);
   await assert.rejects(db.query('delete from public.engine_alert_delivery_receipts'),e=>e.code==='42501');await assert.rejects(db.query("update public.engine_alert_delivery_receipts set payload='{}'"),e=>e.code==='42501');await db.query('reset role');
   assert.equal((await db.query("select relrowsecurity from pg_class where oid='public.engine_alert_delivery_receipts'::regclass")).rows[0].relrowsecurity,true);
-  assert.equal((await db.query('select count(*)::int as n from public.engine_alert_delivery_receipts')).rows[0].n,4);
+  assert.equal((await db.query('select count(*)::int as n from public.engine_alert_delivery_receipts')).rows[0].n,5);
  }finally{
   await Promise.allSettled(clients.map(c=>c.end()));if(started)execFileSync(join(pgBin,'pg_ctl'),['-D',data,'-m','fast','-w','stop'],{stdio:'ignore'});rmSync(root,{recursive:true,force:true});
  }
