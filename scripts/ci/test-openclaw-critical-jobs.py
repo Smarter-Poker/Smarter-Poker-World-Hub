@@ -49,8 +49,9 @@ spec = importlib.util.spec_from_file_location('dispatcher', SRC)
 d = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(d)
 
+transport = d._send_sms
 sent = []
-d._send_sms = lambda body: (sent.append(body) or True)
+d._send_sms = lambda body, **kwargs: (sent.append(body) or True)
 
 PROBE = '/api/internal/login-bridge-probe'
 assert PROBE in d.CRITICAL_JOBS, 'the commander login-bridge probe must be a critical job'
@@ -126,3 +127,40 @@ st = d._critical_state[TABLE]
 assert st.get('outcomes') == [], f'recovery must clear the outcome window: {st}'
 
 print('critical-jobs: OK (7 scenarios)')
+
+# Offline delivery keeps both transitions and preserves receipt identity.
+attempts = []
+def offline(body, event_key=None):
+    attempts.append((body, event_key))
+    return False
+d._send_sms = offline
+state = d._alert_bind('test:offline', {'consec_fail': 2, 'alert_sent': False})
+assert not d._alert(state, 'Repeated failure')
+first_id = attempts[-1][1]
+assert not d._alert(state, 'Repeated failure')
+assert attempts[-1][1] == first_id
+state['consec_fail'] = 0
+d._alert_flush(state)
+pending = d._alert_persist['test:offline']['pending']
+assert len(pending) == 2 and pending[1]['recovery']
+# Load persisted bytes, as a process restart would.
+import json
+d._alert_persist = json.loads(d.ALERT_STATE_PATH.read_text())
+d._send_sms = lambda body, event_key=None: (attempts.append((body, event_key)) or True)
+d._alert_flush(state)
+assert not d._alert_persist['test:offline']['pending']
+state['consec_fail'] = 2
+assert d._alert(state, 'Repeated failure')
+assert attempts[-1][1] != first_id, 'recurrence must get a fresh event identity'
+# Real transport requires a durable receipt, never sends a phone request.
+calls = []
+def fake_post(url, **kwargs):
+    calls.append((url, kwargs))
+    return types.SimpleNamespace(status_code=200, json=lambda: {'recorded': True})
+d.requests.post = fake_post
+assert transport('fault', event_key='stable-id')
+assert calls[0][0].endswith('/api/internal/operational-alert')
+assert calls[0][1]['json']['eventKey'] == 'stable-id'
+d.requests.post = lambda *a, **k: types.SimpleNamespace(status_code=200, json=lambda: {'recorded': False})
+assert not transport('fault', event_key='stable-id')
+print('operational-inbox: OK (offline, restart, recurrence, receipt)')

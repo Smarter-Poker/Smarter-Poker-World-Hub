@@ -44,6 +44,9 @@ import sys
 import time
 import json
 import hashlib
+import uuid
+import threading
+import functools
 import logging
 import subprocess
 import requests
@@ -283,6 +286,19 @@ def _alert_state_load():
                     'starting clean — a repeat page is possible this cycle')
 
 
+# Scheduler jobs can alert concurrently. Serialize the shared outbox and its
+# atomic snapshot so two temp-file replacements cannot lose pending events.
+_alert_lock = threading.RLock()
+
+def _with_alert_lock(fn):
+    @functools.wraps(fn)
+    def locked(*args, **kwargs):
+        with _alert_lock:
+            return fn(*args, **kwargs)
+    return locked
+
+
+@_with_alert_lock
 def _alert_state_save():
     # The service runs as the unprivileged `openclaw` user, which cannot create
     # /var/lib/openclaw itself on a box where the bootstrap never made it — and
@@ -307,6 +323,7 @@ def _alert_state_save():
     log.warning(f'[alert] could not persist state anywhere: {last}')
 
 
+@_with_alert_lock
 def _alert_bind(key, state):
     """Rehydrate one watchdog's in-memory dict from the persisted copy."""
     saved = _alert_persist.get(key) or {}
@@ -317,6 +334,19 @@ def _alert_bind(key, state):
     return state
 
 
+def _drain_alert_outbox(entry):
+    pending = entry.setdefault('pending', [])
+    while pending:
+        event = pending[0]
+        if not _send_sms(event['body'], event_key=event['id']):
+            break
+        pending.pop(0)
+        entry['last_digest'] = None if event['recovery'] else event['digest']
+        entry['last_sent_at'] = time.time()
+        _alert_state_save()
+
+
+@_with_alert_lock
 def _alert_flush(state):
     key = state.get('_key')
     if not key:
@@ -324,39 +354,46 @@ def _alert_flush(state):
     entry = _alert_persist.setdefault(key, {})
     entry['consec_fail'] = state.get('consec_fail', 0)
     entry['alert_sent'] = bool(state.get('alert_sent'))
+    pending = entry.setdefault('pending', [])
+    # A condition can recover before its first delivery succeeds. Keep both
+    # transitions, including when the caller has cleared alert_sent already.
+    if state.get('consec_fail', 0) == 0 and pending and not pending[-1]['recovery']:
+        pending.append({'id': str(uuid.uuid4()), 'body': '[RESOLVED] ' + key,
+                        'recovery': True, 'digest': None})
     _alert_state_save()
+    _drain_alert_outbox(entry)
 
 
+@_with_alert_lock
 def _alert(state, body, recovery=False):
-    """Page, unless this exact text already went out inside the cooldown.
+    """Persist each transition before delivery; retry the same event receipt.
 
-    Returns the value the caller should store in state['alert_sent'] — True
-    once the operator has been told, so a suppressed duplicate still counts as
-    "already notified" and does not re-arm on the next run.
+    A fresh failure following a recovery gets a new identity even when its
+    text is identical. Undelivered firing and recovery events survive restart.
     """
     key = state.get('_key', 'unknown')
     entry = _alert_persist.setdefault(key, {})
     digest = hashlib.sha256(body.encode('utf-8')).hexdigest()[:16]
     now = time.time()
-
+    pending = entry.setdefault('pending', [])
+    if not recovery and entry.get('last_digest') == digest and not pending:
+        age = now - float(entry.get('last_sent_at') or 0)
+        if age < ALERT_MIN_REPEAT_S:
+            return True
+    event = next((p for p in pending if p['digest'] == digest and p['recovery'] == recovery), None)
+    if event is None:
+        event = {'id': str(uuid.uuid4()), 'body': body, 'digest': digest, 'recovery': recovery}
+        pending.append(event)
+    # Clear the cooldown on recovery whether transport is online or offline.
     if recovery:
-        # A recovery always goes out: it is the message that closes the loop.
-        sent = _send_sms(body)
         entry['last_digest'] = None
-        entry['last_sent_at'] = now if sent else entry.get('last_sent_at')
-        return sent
-
-    age = now - float(entry.get('last_sent_at') or 0)
-    if entry.get('last_digest') == digest and age < ALERT_MIN_REPEAT_S:
-        log.warning(f'[alert] suppressed duplicate for {key} '
-                    f'(same text, {int(age)}s < {ALERT_MIN_REPEAT_S}s cooldown); '
-                    f'condition still failing — see the ERROR lines above')
-        return True
-
-    sent = _send_sms(body)
+    _alert_state_save()
+    _drain_alert_outbox(entry)
+    sent = event not in pending
     if sent:
-        entry['last_digest'] = digest
+        entry['last_digest'] = None if recovery else digest
         entry['last_sent_at'] = now
+        _alert_state_save()
     return sent
 
 
@@ -1328,24 +1365,37 @@ def fire_script(path: str, extra_args: list):
         _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
-def _send_sms(body: str):
-    """Best-effort Twilio SMS alert. Returns True/False."""
-    if not (TWILIO_SID and TWILIO_TOKEN and TWILIO_FROM and ADMIN_PHONE):
-        log.warning(f'[alert] Twilio not configured, would have sent: {body[:120]}')
+def _send_sms(body: str, event_key=None):
+    """Legacy call site name: deliver to the durable Codex inbox, never SMS.
+
+    The caller's existing pending/retry state is acknowledged only after the
+    inbox confirms a committed receipt. Identical retries retain one event.
+    """
+    if not CRON_SECRET:
+        log.error('[alert] Operational inbox authentication is missing')
         return False
     try:
+        recovery = 'RECOVERED' in body.upper() or body.startswith('[RESOLVED]')
+        payload = {
+            'source': 'openclaw',
+            'eventKey': event_key or str(uuid.uuid4()),
+            'alertname': 'OpenClawOperationalAlert',
+            'status': 'resolved' if recovery else 'firing',
+            'severity': 'critical',
+            'payload': {'message': body},
+        }
         resp = requests.post(
-            f'https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json',
-            auth=(TWILIO_SID, TWILIO_TOKEN),
-            data={'From': TWILIO_FROM, 'To': ADMIN_PHONE, 'Body': body[:1500]},
-            timeout=15,
+            BASE_URL + '/api/internal/operational-alert',
+            headers={'Authorization': 'Bearer ' + CRON_SECRET,
+                     'Content-Type': 'application/json'},
+            json=payload, timeout=15,
         )
-        if 200 <= resp.status_code < 300:
-            log.info(f'[alert] Twilio SMS sent: {body[:80]}')
+        if 200 <= resp.status_code < 300 and resp.json().get('recorded') is True:
+            log.info('[alert] Operational alert recorded in Codex inbox')
             return True
-        log.error(f'[alert] Twilio HTTP {resp.status_code}: {resp.text[:200]}')
+        log.error('[alert] Operational inbox refused delivery: HTTP %s', resp.status_code)
     except Exception as e:
-        log.error(f'[alert] Twilio exception {type(e).__name__}: {e}')
+        log.error('[alert] Operational inbox delivery failed: %s', type(e).__name__)
     return False
 
 
