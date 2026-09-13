@@ -380,7 +380,8 @@ def _alert(state, body, recovery=False):
         age = now - float(entry.get('last_sent_at') or 0)
         if age < ALERT_MIN_REPEAT_S:
             return True
-    event = next((p for p in pending if p['digest'] == digest and p['recovery'] == recovery), None)
+    last = pending[-1] if pending else None
+    event = last if last and last['digest'] == digest and last['recovery'] == recovery else None
     if event is None:
         event = {'id': str(uuid.uuid4()), 'body': body, 'digest': digest, 'recovery': recovery}
         pending.append(event)
@@ -1242,8 +1243,9 @@ def _critical_record(path: str, ok: bool, detail: str = ''):
         if st.get('alert_sent'):
             body = (f'✅ RECOVERED {path} - 200 again after '
                     f'{st.get("consec_fail", 0)} consecutive failure(s)')
-            if _alert(st, body, recovery=True):
-                st['alert_sent'] = False
+            _alert(st, body, recovery=True)
+        # Delivery retries live in the outbox; the producer episode closes now.
+        st['alert_sent'] = False
         st['consec_fail'] = 0
         st['outcomes'] = []
     else:

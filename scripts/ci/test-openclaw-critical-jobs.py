@@ -164,3 +164,21 @@ assert calls[0][1]['json']['eventKey'] == 'stable-id'
 d.requests.post = lambda *a, **k: types.SimpleNamespace(status_code=200, json=lambda: {'recorded': False})
 assert not transport('fault', event_key='stable-id')
 print('operational-inbox: OK (offline, restart, recurrence, receipt)')
+
+# An entire F-R-F episode sequence while offline must survive in order.
+d._send_sms = offline
+state = d._alert_bind('test:offline-recurrence', {'consec_fail': 2, 'alert_sent': False})
+assert not d._alert(state, 'same fault')
+assert not d._alert(state, 'recovered', recovery=True)
+assert not d._alert(state, 'same fault')
+pending = d._alert_persist['test:offline-recurrence']['pending']
+assert [p['recovery'] for p in pending] == [False, True, False]
+assert len(set(p['id'] for p in pending)) == 3
+# A delivered fault recovering offline must not suppress the next episode.
+d._send_sms = lambda body, **kwargs: True
+d._critical_record(PROBE, False, 'new incident')
+d._critical_record(PROBE, False, 'new incident')
+d._send_sms = offline
+d._critical_record(PROBE, True)
+assert d._critical_state[PROBE]['alert_sent'] is False
+print('offline-recurrence: OK')
