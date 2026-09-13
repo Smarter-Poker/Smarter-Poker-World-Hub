@@ -154,6 +154,9 @@ import './pa-closeout-hardening.test.mjs';
 // Decision Loop label and session date, the wrapping trend row and coaching
 // views, 100dvh, overflow-x clip, the 12px floor and the eight-step tutorial.
 import './pa-mobile-upgrades.test.mjs';
+// Mobile phase 5 (Training Games): pins the wrapping pills row, the 12px
+// floor, the returned labels, the three breakpoints and the tutorial.
+import './training-mobile-upgrades.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
 // Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,

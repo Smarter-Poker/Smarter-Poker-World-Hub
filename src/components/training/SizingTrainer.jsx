@@ -200,7 +200,7 @@ export default function SizingTrainer() {
           }}>
             {score.correct}/{score.total} ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%)
           </span>
-          <span style={{ color: '#64748b', fontSize: 11 }}>
+          <span style={{ color: '#64748b', fontSize: 12 }}>
             Q {(scenarioIdx % SCENARIOS.length) + 1}/{SCENARIOS.length}
           </span>
         </div>
@@ -214,19 +214,19 @@ export default function SizingTrainer() {
         {/* Hand + Board */}
         <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Your Hand</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Your Hand</div>
             <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, fontFamily: 'monospace', letterSpacing: 2 }}>
               {scenario.hand}
             </div>
           </div>
           <div>
-            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
             <div style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 1 }}>
               {scenario.board}
             </div>
           </div>
           <div>
-            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pot</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pot</div>
             <div style={{ color: '#f59e0b', fontSize: 18, fontWeight: 700 }}>{scenario.pot}bb</div>
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function SizingTrainer() {
           {[scenario.street, scenario.position, scenario.spot].map((tag, i) => (
             <span key={i} style={{
               padding: '3px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.06)',
-              color: '#94a3b8', fontSize: 11, fontWeight: 600,
+              color: '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               {tag}
             </span>
@@ -283,7 +283,7 @@ export default function SizingTrainer() {
                 }}>
                   {s.label}
                 </div>
-                <div style={{ color: '#94a3b8', fontSize: 11 }}>{betAmount}bb</div>
+                <div style={{ color: '#94a3b8', fontSize: 12 }}>{betAmount}bb</div>
               </button>
             );
           })}
@@ -320,7 +320,7 @@ export default function SizingTrainer() {
               <span key={i} style={{
                 padding: '3px 8px', borderRadius: 4,
                 background: 'rgba(139,92,246,0.15)', color: '#a78bfa',
-                fontSize: 10, fontWeight: 600,
+                fontSize: 12, fontWeight: 600,
               }}>
                 {concept}
               </span>
@@ -342,7 +342,7 @@ export default function SizingTrainer() {
       {/* ●●● STATS BY SIZING TYPE ●●● */}
       {score.total >= 3 && (
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
-          <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
             Accuracy By Sizing
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -352,9 +352,9 @@ export default function SizingTrainer() {
               const pct = stat.shown > 0 ? Math.round(stat.correct / stat.shown * 100) : 0;
               return (
                 <div key={s.id} style={{ textAlign: 'center' }}>
-                  <div style={{ color: s.color, fontSize: 11, fontWeight: 700, marginBottom: 2 }}>{s.label}</div>
+                  <div style={{ color: s.color, fontSize: 12, fontWeight: 700, marginBottom: 2 }}>{s.label}</div>
                   <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>{pct}%</div>
-                  <div style={{ color: '#64748b', fontSize: 10 }}>{stat.correct}/{stat.shown}</div>
+                  <div style={{ color: '#64748b', fontSize: 12 }}>{stat.correct}/{stat.shown}</div>
                 </div>
               );
             })}

@@ -22,9 +22,12 @@ function MiniCard({ card, size = 'sm' }) {
     if (!card || card.length < 2) return null;
     const rank = card[0].toUpperCase();
     const suit = card[1].toLowerCase();
-    const suitMap = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' };
+    // The suit line used to spell the word ('hearts'), which only ever fitted a
+    // 28px card because it was 7px. At the 12px floor it cannot, so it renders
+    // the glyph every other mini card in this folder already uses.
+    const suitMap = { h: '♥', d: '♦', c: '♣', s: '♠' };
     const colorMap = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
-    const dims = size === 'lg' ? { w: 38, h: 52, fs: 14 } : { w: 28, h: 38, fs: 11 };
+    const dims = size === 'lg' ? { w: 38, h: 52, fs: 14 } : { w: 28, h: 38, fs: 12 };
 
     return (
         <div style={{
@@ -45,7 +48,7 @@ function MiniCard({ card, size = 'sm' }) {
             boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
         }}>
             <span>{rank}</span>
-            <span style={{ fontSize: dims.fs - 4 }}>{suitMap[suit] || suit}</span>
+            <span style={{ fontSize: Math.max(12, dims.fs - 4) }}>{suitMap[suit] || suit}</span>
         </div>
     );
 }
@@ -234,7 +237,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                     YOUR HAND {handData.heroPosition && <span style={styles.positionBadge}>{handData.heroPosition}</span>}
                                     {handData.street && (
                                         <span style={{
-                                            fontSize: 9, fontWeight: 600, marginLeft: 6, padding: '1px 5px', borderRadius: 3,
+                                            fontSize: 12, fontWeight: 600, marginLeft: 6, padding: '1px 5px', borderRadius: 3,
                                             background: handData.street === 'preflop' ? 'rgba(167,139,250,0.15)' :
                                                 handData.street === 'flop' ? 'rgba(74,222,128,0.15)' :
                                                 handData.street === 'turn' ? 'rgba(251,146,60,0.15)' : 'rgba(248,113,113,0.15)',
@@ -252,7 +255,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 {/* Phase 51: Hand categorization */}
                                 {handData.handCategory && (
                                     <div style={{
-                                        marginTop: 6, fontSize: 11, fontWeight: 600, fontStyle: 'italic',
+                                        marginTop: 6, fontSize: 12, fontWeight: 600, fontStyle: 'italic',
                                         color: handData.handCategory.includes('monster') ? '#f97316' :
                                             handData.handCategory.includes('nut') ? '#22c55e' :
                                             handData.handCategory.includes('combo') ? '#a855f7' :
@@ -327,12 +330,12 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                     border: '1px solid rgba(255,255,255,0.06)',
                                 }}>
                                     <div style={{
-                                        fontSize: 9, fontWeight: 700, color: '#94a3b8',
+                                        fontSize: 12, fontWeight: 700, color: '#94a3b8',
                                         textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
                                     }}>
                                         SPOT CONTEXT
                                     </div>
-                                    <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5 }}>
+                                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
                                         {handData.question}
                                     </div>
                                 </div>
@@ -347,12 +350,12 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                     border: '1px solid rgba(0, 212, 255, 0.12)',
                                 }}>
                                     <div style={{
-                                        fontSize: 9, fontWeight: 700, color: '#00d4ff',
+                                        fontSize: 12, fontWeight: 700, color: '#00d4ff',
                                         textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
                                     }}>
                                         WHY THIS IS OPTIMAL
                                     </div>
-                                    <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.6 }}>
+                                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
                                         {handData.explanation}
                                     </div>
                                 </div>
@@ -374,14 +377,14 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                                     display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3,
                                                 }}>
                                                     <div style={{
-                                                        width: 55, fontSize: 10, fontWeight: 600,
+                                                        width: 55, fontSize: 12, fontWeight: 600,
                                                         color: isOptimal ? '#22c55e' : isSelected ? config.color : '#94a3b8',
                                                         textAlign: 'right',
                                                     }}>
                                                         {isOptimal && '✓ '}{isSelected && !isOptimal && '✕ '}{action}
                                                     </div>
                                                     <div style={{
-                                                        fontSize: 11, fontWeight: 700,
+                                                        fontSize: 12, fontWeight: 700,
                                                         fontFamily: "'Inter', monospace",
                                                         color: ev >= 0 ? '#22c55e' : '#ef4444',
                                                     }}>
@@ -461,11 +464,11 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={styles.listHand}>
                                         {hd.heroPosition && <span style={styles.listPos}>{hd.heroPosition}</span>}
-                                        {hd.street && <span style={{ fontSize: 9, color: '#64748b', marginRight: 4 }}>{hd.street}</span>}
+                                        {hd.street && <span style={{ fontSize: 12, color: '#64748b', marginRight: 4 }}>{hd.street}</span>}
                                         {Array.isArray(hd.heroCards) ? hd.heroCards.join('') : (hd.heroCards || '')}
                                     </div>
                                     {/* Phase 27: Show action taken + correct action in list view */}
-                                    <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1, whiteSpace: 'normal', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {hd.action && (
                                             <span style={{ color: entry.classification === 'best' || entry.classification === 'correct' ? '#22c55e' : c.color }}>
                                                 {hd.action}
@@ -605,7 +608,7 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                     border: `1px solid ${expanded ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
                     borderRadius: 8,
                     color: expanded ? '#00d4ff' : '#64748b',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
@@ -807,7 +810,7 @@ function RunoutHeatmapSection({ boardCards, heldCards, gridData, actions }) {
                     background: expanded ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.02)',
                     border: `1px solid ${expanded ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
                     borderRadius: 8, color: expanded ? '#f87171' : '#64748b',
-                    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                    fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
                     cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     transition: 'all 0.2s ease',
                 }}
@@ -863,7 +866,7 @@ function SolverTreeSection({ gridData, actions, street }) {
                     background: expanded ? 'rgba(168,85,247,0.06)' : 'rgba(255,255,255,0.02)',
                     border: `1px solid ${expanded ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.06)'}`,
                     borderRadius: 8, color: expanded ? '#a78bfa' : '#64748b',
-                    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                    fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
                     cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     transition: 'all 0.2s ease',
                 }}
@@ -902,7 +905,7 @@ const styles = {
     toggleBtn: {
         padding: '4px 12px', borderRadius: 6,
         border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)',
-        color: '#64748b', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+        color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer',
     },
     toggleBtnActive: {
         border: '1px solid rgba(0,212,255,0.4)', background: 'rgba(0,212,255,0.1)',
@@ -931,30 +934,30 @@ const styles = {
     heroSection: { marginBottom: 12 },
     actionSection: { marginBottom: 4 },
     sectionLabel: {
-        fontSize: 9, fontWeight: 700, color: '#64748b',
+        fontSize: 12, fontWeight: 700, color: '#64748b',
         letterSpacing: 1.2, marginBottom: 6,
     },
     positionBadge: {
         marginLeft: 6, padding: '1px 6px', borderRadius: 4,
         background: 'rgba(0,212,255,0.15)', color: '#00d4ff',
-        fontSize: 9, fontWeight: 'bold', letterSpacing: 0.5,
+        fontSize: 12, fontWeight: 'bold', letterSpacing: 0.5,
     },
     cardRow: { display: 'flex', gap: 4 },
     freqBars: { display: 'flex', flexDirection: 'column', gap: 4 },
     freqRow: { display: 'flex', alignItems: 'center', gap: 8 },
-    freqLabel: { width: 50, fontSize: 11, color: '#94a3b8', fontWeight: 600 },
+    freqLabel: { width: 50, fontSize: 12, color: '#94a3b8', fontWeight: 600 },
     freqBarBg: {
         flex: 1, height: 8, background: 'rgba(255,255,255,0.05)',
         borderRadius: 4, overflow: 'hidden',
     },
     freqBarFill: { height: '100%', borderRadius: 4 },
-    freqValue: { width: 36, fontSize: 11, color: '#94a3b8', textAlign: 'right', fontWeight: 600 },
+    freqValue: { width: 36, fontSize: 12, color: '#94a3b8', textAlign: 'right', fontWeight: 600 },
     handStrip: {
         display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 12,
         justifyContent: 'center',
     },
     stripDot: {
-        width: 24, height: 24, borderRadius: 6, fontSize: 9,
+        width: 24, height: 24, borderRadius: 6, fontSize: 12,
         fontWeight: 'bold', color: '#fff', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
     },
@@ -968,13 +971,13 @@ const styles = {
         borderBottom: '1px solid rgba(255,255,255,0.03)',
     },
     listNum: {
-        width: 22, height: 22, borderRadius: 4, fontSize: 10,
+        width: 22, height: 22, borderRadius: 4, fontSize: 12,
         fontWeight: 'bold', color: '#64748b', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
         borderLeft: '2px solid',
     },
     listBadge: {
-        padding: '2px 8px', borderRadius: 8, fontSize: 10,
+        padding: '2px 8px', borderRadius: 8, fontSize: 12,
         fontWeight: 'bold', border: '1px solid', minWidth: 65, textAlign: 'center',
     },
     listHand: {
@@ -982,7 +985,7 @@ const styles = {
     },
     listPos: {
         marginRight: 4, padding: '1px 4px', borderRadius: 3,
-        background: 'rgba(0,212,255,0.1)', color: '#00d4ff', fontSize: 9,
+        background: 'rgba(0,212,255,0.1)', color: '#00d4ff', fontSize: 12,
     },
     listEV: {
         fontSize: 12, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",

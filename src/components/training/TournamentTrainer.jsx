@@ -238,9 +238,9 @@ export default function TournamentTrainer() {
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: stageInfo.color }} />
             <div>
               <div style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 600 }}>{stageInfo.label}</div>
-              <div style={{ color: '#94a3b8', fontSize: 11 }}>{stageInfo.desc}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12 }}>{stageInfo.desc}</div>
             </div>
-            <div style={{ marginLeft: 'auto', color: '#64748b', fontSize: 11 }}>
+            <div style={{ marginLeft: 'auto', color: '#64748b', fontSize: 12 }}>
               Blinds: {stageInfo.blinds} · Avg: {stageInfo.avgStack}
             </div>
           </div>
@@ -251,7 +251,7 @@ export default function TournamentTrainer() {
       <div style={{ ...sectionStyle, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>{scenario.title}</div>
-          <div style={{ color: '#64748b', fontSize: 11 }}>
+          <div style={{ color: '#64748b', fontSize: 12 }}>
             {scenarioIdx + 1}/{scenarios.length}
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function TournamentTrainer() {
                 background: i === scenario.heroIdx ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
                 border: i === scenario.heroIdx ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
               }}>
-                <div style={{ color: i === scenario.heroIdx ? '#3b82f6' : '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>
+                <div style={{ color: i === scenario.heroIdx ? '#3b82f6' : '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>
                   {i === scenario.heroIdx ? 'Hero' : `P${i + 1}`}
                 </div>
                 <div style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 700 }}>{stack}bb</div>
@@ -377,7 +377,7 @@ export default function TournamentTrainer() {
       {/* ●●● PAYOUTS (if available) ●●● */}
       {scenario.payouts && (
         <div style={sectionStyle}>
-          <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
             Payout Structure
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -385,14 +385,14 @@ export default function TournamentTrainer() {
               <div key={i} style={{
                 padding: '3px 8px', borderRadius: 4,
                 background: i === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
-                color: i === 0 ? '#f59e0b' : '#94a3b8', fontSize: 11, fontWeight: 600,
+                color: i === 0 ? '#f59e0b' : '#94a3b8', fontSize: 12, fontWeight: 600,
               }}>
                 {i + 1}st: ${p}
               </div>
             ))}
           </div>
           {scenario.bubbleSize && (
-            <div style={{ color: '#f59e0b', fontSize: 11, marginTop: 6 }}>
+            <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 6 }}>
               Bubble: {scenario.playersLeft} Remain, {scenario.bubbleSize} Get Paid
             </div>
           )}

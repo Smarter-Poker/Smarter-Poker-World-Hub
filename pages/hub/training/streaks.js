@@ -383,7 +383,7 @@ export default function StreaksPage() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
                     Your {streak.currentStreak}-Day Streak Is At Risk!
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                     Train Today To Keep It Alive.
                   </div>
                 </div>
@@ -395,7 +395,7 @@ export default function StreaksPage() {
                     background: 'rgba(239,68,68,0.12)',
                     border: '1px solid rgba(239,68,68,0.3)',
                     color: 'var(--sp-accent-red)',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     textDecoration: 'none',
                     whiteSpace: 'nowrap',
@@ -464,7 +464,7 @@ export default function StreaksPage() {
                   borderRadius: 10,
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.06)',
-                  fontSize: 11,
+                  fontSize: 12,
                   color: 'var(--sp-fg-muted)',
                   lineHeight: 1.5,
                   fontStyle: 'italic',
@@ -695,7 +695,7 @@ export default function StreaksPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -717,7 +717,7 @@ const styles = {
   settlementStatus: {
     marginTop: 6,
     color: 'var(--sp-accent-amber)',
-    fontSize: 10,
+    fontSize: 12,
     lineHeight: 1.4,
   },
   heroSection: {
@@ -832,7 +832,7 @@ const styles = {
     fontWeight: 500,
   },
   trainedIndicator: {
-    fontSize: '10px',
+    fontSize: '12px',
     position: 'absolute',
     bottom: '2px',
     color: '#fff',
@@ -911,7 +911,7 @@ const styles = {
     fontSize: '16px',
   },
   loadingContainer: {
-    minHeight: '100vh',
+    minHeight: '100dvh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

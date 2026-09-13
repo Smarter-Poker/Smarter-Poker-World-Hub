@@ -135,8 +135,9 @@ function MiniCard({ card, size = 20 }) {
     return (
         <span style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: size, height: size * 1.35, background: '#fff', borderRadius: 3,
-            fontSize: size * 0.38, fontWeight: 800, color: suitColor,
+            minWidth: size, height: Math.max(24, size * 1.35), padding: '0 3px',
+            background: '#fff', borderRadius: 3,
+            fontSize: Math.max(12, size * 0.38), fontWeight: 800, color: suitColor,
             boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
         }}>
             {rank}{suitSymbol}
@@ -152,7 +153,7 @@ function ScoreBar({ label, score, color, detail }) {
     return (
         <div style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>{label}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>{label}</span>
                 <span style={{ fontSize: 12, fontWeight: 800, color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     {score}%
                 </span>
@@ -168,7 +169,7 @@ function ScoreBar({ label, score, color, detail }) {
                 />
             </div>
             {detail && (
-                <div style={{ fontSize: 9, color: '#64748b', marginTop: 3, fontWeight: 600 }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, fontWeight: 600 }}>
                     {detail}
                 </div>
             )}
@@ -234,7 +235,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
         >
             {/* Header */}
             <div style={{
-                fontSize: 11, fontWeight: 700, color: '#64748b',
+                fontSize: 12, fontWeight: 700, color: '#64748b',
                 textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12,
                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -259,7 +260,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
                     {analysis.compositeScore}
                 </div>
                 <div style={{
-                    fontSize: 9, fontWeight: 700, color: '#64748b',
+                    fontSize: 12, fontWeight: 700, color: '#64748b',
                     textTransform: 'uppercase', letterSpacing: 1.5,
                 }}>
                     Blocker Score
@@ -290,7 +291,7 @@ export default function BlockerScorePanel({ board, gridData, actions, heldCards 
             <div style={{
                 marginTop: 10, padding: '8px 10px', borderRadius: 8,
                 background: 'rgba(255,255,255,0.02)',
-                fontSize: 10, color: '#64748b', lineHeight: 1.5,
+                fontSize: 12, color: '#64748b', lineHeight: 1.5,
             }}>
                 <strong style={{ color: '#94a3b8' }}>How To Read:</strong> Blocking villain's{' '}
                 <span style={{ color: '#22c55e' }}>Bluffs</span> Is Good (They Can't Bluff As Often).

@@ -53,7 +53,7 @@ function BluffToValueRatio() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
           {COMMON_SIZINGS.map(s => (
             <button key={s.pct} onClick={() => setBetPct(s.pct)} style={{
-              padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: betPct === s.pct ? '#f43f5e' : 'rgba(255,255,255,0.06)',
               color: betPct === s.pct ? '#fff' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{s.label}</button>
@@ -63,12 +63,12 @@ function BluffToValueRatio() {
         {/* Sliders */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Bet Size (% Pot)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Bet Size (% Pot)</div>
             <input type="range" min={10} max={300} step={5} value={betPct} onChange={e => setBetPct(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#f43f5e' }} />
             <div style={{ fontSize: 16, fontWeight: 800, color: '#f43f5e' }}>{betPct}%</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Value Combos</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Value Combos</div>
             <input type="range" min={5} max={50} value={valueCombos} onChange={e => setValueCombos(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#10b981' }} />
             <div style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>{valueCombos}</div>
           </div>
@@ -102,14 +102,14 @@ function BluffToValueRatio() {
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Explanation */}
         <div style={{ padding: 10, background: 'rgba(244,63,94,0.06)', borderRadius: 8, border: '1px solid rgba(244,63,94,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f43f5e', marginBottom: 4 }}>How It Works</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f43f5e', marginBottom: 4 }}>How It Works</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
             At {betPct}% Pot, Villain Gets {calc.potOdds}% Pot Odds And Must Call {calc.mdfPct}% To Stay Unexploitable.
             Your Betting Range Should Be {calc.valuePct}% Value And {calc.bluffPct}% Bluffs.

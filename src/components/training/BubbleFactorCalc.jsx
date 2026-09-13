@@ -87,29 +87,29 @@ function BubbleFactorCalc() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {PAYOUT_STRUCTURES.map((p, i) => (
             <button key={p.name} onClick={() => setSelectedPayout(i)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedPayout === i ? '#fbbf24' : 'rgba(255,255,255,0.06)',
               color: selectedPayout === i ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{p.name}</button>
           ))}
         </div>
 
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>{calc.structure.description}</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>{calc.structure.description}</div>
 
         {/* Inputs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Players Left</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Players Left</div>
             <input type="range" min={2} max={calc.structure.players} value={playersLeft} onChange={e => setPlayersLeft(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#fbbf24' }} />
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{playersLeft}</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Your Stack (%)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Your Stack (%)</div>
             <input type="range" min={3} max={60} value={heroStack} onChange={e => setHeroStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#fbbf24' }} />
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{heroStack}%</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Villain Shove (%)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Villain Shove (%)</div>
             <input type="range" min={3} max={50} value={villainShove} onChange={e => setVillainShove(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#fbbf24' }} />
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{villainShove}%</div>
           </div>
@@ -119,18 +119,18 @@ function BubbleFactorCalc() {
         <div style={{ textAlign: 'center', padding: 16, background: calc.isBubble ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.08)', borderRadius: 10, border: `1px solid ${calc.isBubble ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.25)'}`, marginBottom: 16 }}>
           <div style={{ fontSize: 36, fontWeight: 900, color: calc.isBubble ? '#ef4444' : '#fbbf24' }}>{calc.bubbleFactor}x</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: calc.isBubble ? '#ef4444' : '#fbbf24' }}>Bubble Factor</div>
-          {calc.isBubble && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>ON THE BUBBLE - Tighten Up!</div>}
+          {calc.isBubble && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>ON THE BUBBLE - Tighten Up!</div>}
         </div>
 
         {/* Equity Comparison */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 12, background: 'rgba(59,130,246,0.06)', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(59,130,246,0.15)' }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>{calc.chipEVEquity}%</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Chip EV Equity Needed</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Chip EV Equity Needed</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(239,68,68,0.06)', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(239,68,68,0.15)' }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>{calc.requiredEquityPct}%</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ICM-Adjusted Equity Needed</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>ICM-Adjusted Equity Needed</div>
           </div>
         </div>
 
@@ -140,8 +140,8 @@ function BubbleFactorCalc() {
           {STACK_SCENARIOS.map((s, i) => (
             <div key={s.name} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{s.name}</span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{s.note}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{s.name}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{s.note}</span>
               </div>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>{s.bf}x</span>
             </div>

@@ -59,9 +59,9 @@ function RiverDecisionMatrix() {
 
         {/* Header */}
         <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: 4, marginBottom: 4 }}>
-          <div style={{ padding: 6, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>Hand Strength</div>
-          <div style={{ padding: 6, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 4 }}>Villain Checks</div>
-          <div style={{ padding: 6, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 4 }}>Villain Bets</div>
+          <div style={{ padding: 6, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>Hand Strength</div>
+          <div style={{ padding: 6, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 4 }}>Villain Checks</div>
+          <div style={{ padding: 6, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 4 }}>Villain Bets</div>
         </div>
 
         {/* Matrix Rows */}
@@ -76,15 +76,15 @@ function RiverDecisionMatrix() {
                 background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: 6,
               }}>
                 <span style={{ fontSize: 16 }}>{row.icon}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: row.color, lineHeight: 1.2 }}>{row.handStrength}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: row.color, lineHeight: 1.2 }}>{row.handStrength}</span>
               </div>
               <div style={{ padding: 8, borderRadius: 6, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: row.color }}>{row.vsCheck.action}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{row.vsCheck.sizing}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{row.vsCheck.sizing}</div>
               </div>
               <div style={{ padding: 8, borderRadius: 6, background: 'rgba(255,255,255,0.03)', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: row.color }}>{row.vsBet.action}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{row.vsBet.sizing}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{row.vsBet.sizing}</div>
               </div>
             </div>
           ))}
@@ -96,15 +96,15 @@ function RiverDecisionMatrix() {
             <div style={{ fontSize: 13, fontWeight: 700, color: MATRIX[selected].color, marginBottom: 8 }}>{MATRIX[selected].icon} {MATRIX[selected].handStrength}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>When Villain Checks:</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{MATRIX[selected].vsCheck.note}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>When Villain Checks:</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{MATRIX[selected].vsCheck.note}</div>
               </div>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>When Villain Bets:</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{MATRIX[selected].vsBet.note}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>When Villain Bets:</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{MATRIX[selected].vsBet.note}</div>
               </div>
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Examples: {MATRIX[selected].examples}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Examples: {MATRIX[selected].examples}</div>
           </div>
         )}
       </div>

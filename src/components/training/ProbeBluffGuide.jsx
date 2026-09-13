@@ -76,10 +76,10 @@ export default function ProbeBluffGuide() {
       <div style={{ display: 'grid', gap: 6 }}>
         {PROBE_FACTORS.map((f, i) => (
           <div key={i} style={{ background: 'rgba(16,185,129,0.06)', borderRadius: 8, padding: '8px 12px', display: 'flex', gap: 10, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>{f.weight}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>{f.weight}</span>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{f.factor}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{f.desc}</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>{f.desc}</div>
             </div>
           </div>
         ))}

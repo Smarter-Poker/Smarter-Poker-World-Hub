@@ -50,7 +50,7 @@ export default function StackToBlindRatio() {
             style={{ padding: '8px 4px', borderRadius: 8, border: zoneIdx === i ? `2px solid ${z.color}` : '1px solid rgba(255,255,255,0.06)',
               background: zoneIdx === i ? `${z.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{z.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: zoneIdx === i ? z.color : '#64748b' }}>{z.range}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: zoneIdx === i ? z.color : '#64748b' }}>{z.range}</div>
           </button>
         ))}
       </div>
@@ -66,7 +66,7 @@ export default function StackToBlindRatio() {
             { label: 'Avoid', text: zone.avoid, color: '#ef4444' },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.text}</div>
             </div>
           ))}

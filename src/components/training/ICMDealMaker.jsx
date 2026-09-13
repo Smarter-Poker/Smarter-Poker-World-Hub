@@ -55,7 +55,7 @@ export default function ICMDealMaker() {
             style={{ padding: '8px 4px', borderRadius: 8, border: scenIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: scenIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: scenIdx === i ? s.color : '#64748b' }}>{s.scenario.substring(0, 14)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: scenIdx === i ? s.color : '#64748b' }}>{s.scenario.substring(0, 14)}</div>
           </button>
         ))}
       </div>
@@ -71,13 +71,13 @@ export default function ICMDealMaker() {
             { label: 'Chip Chop', val: scen.chipChop },
           ].map((r, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 6, padding: '6px 10px' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>{r.label}</span>
-              <span style={{ fontSize: 10, color: '#cbd5e1', fontFamily: 'monospace' }}>{r.val}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{r.label}</span>
+              <span style={{ fontSize: 12, color: '#cbd5e1', fontFamily: 'monospace' }}>{r.val}</span>
             </div>
           ))}
         </div>
         <div style={{ background: `${scen.color}10`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${scen.color}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: scen.color }}>Negotiation Advice</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: scen.color }}>Negotiation Advice</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{scen.advice}</div>
         </div>
       </motion.div>

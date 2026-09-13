@@ -44,7 +44,7 @@ export default function CashVsTournament() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.topic}
           </button>
         ))}
@@ -55,15 +55,15 @@ export default function CashVsTournament() {
         <div style={{ fontSize: 16, fontWeight: 800, color: c.color, marginBottom: 12 }}>{c.icon} {c.topic}</div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>CASH GAMES</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>CASH GAMES</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.cash}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>TOURNAMENTS</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>TOURNAMENTS</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.mtt}</div>
           </div>
           <div style={{ background: `${c.color}06`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${c.color}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: c.color }}>STRATEGIC IMPACT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: c.color }}>STRATEGIC IMPACT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.impact}</div>
           </div>
         </div>

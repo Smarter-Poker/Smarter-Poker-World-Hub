@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
+import OperatorGlyph from '../../src/components/admin/OperatorGlyph';
 
 const INITIAL_OVERLAYS = [
   {
@@ -87,7 +88,6 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
     <>
       <Head>
         <title>Wallet Overlay Position Editor</title>
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
       </Head>
       <div style={{
         minHeight: '100vh',
@@ -99,8 +99,11 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
         fontFamily: "'Inter', sans-serif",
         color: '#e2e8f0',
       }}>
-        <h1 style={{ fontFamily: "'Orbitron', sans-serif", color: '#00d4ff', fontSize: 20, marginBottom: 8, letterSpacing: 2 }}>
-          💎 WALLET OVERLAY POSITION EDITOR
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 12, fontFamily: 'var(--font-rajdhani), sans-serif', color: '#bfeeff', fontSize: 20, marginBottom: 8, letterSpacing: 2 }}>
+          <span style={{ width: 38, height: 38, display: 'grid', placeItems: 'center', border: '1px solid #8aa1ac', background: 'linear-gradient(145deg, #263a45, #050b0e 70%)', boxShadow: 'inset 0 1px rgba(255,255,255,.28), 0 0 18px rgba(35,184,255,.18)' }}>
+            <OperatorGlyph kind="layers" size={20} />
+          </span>
+          Wallet Overlay Position Editor
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginBottom: 20, textAlign: 'center' }}>
           Drag Each Label To The Perfect Position. Copy The Coordinates When Done.
@@ -217,8 +220,8 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
           borderRadius: 10,
           padding: '16px 20px',
         }}>
-          <div style={{ fontSize: 11, color: 'rgba(0,212,255,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
-            📋 Live Coordinates
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'rgba(0,212,255,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+            <OperatorGlyph kind="save" size={15} /> Live Coordinates
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {overlays.map(o => (
@@ -229,7 +232,7 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
                 border: '1px solid rgba(255,255,255,0.06)',
               }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase' }}>
-                  {o.id === 'diamonds' ? '💎 Diamond Balance' : '👑 VIP Expiry'}
+                  {o.id === 'diamonds' ? 'Diamond Balance' : 'VIP Expiry'}
                 </div>
                 <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#00d4ff', lineHeight: 1.8 }}>
                   <span style={{ color: 'rgba(255,255,255,0.4)' }}>Top:</span> {o.topPct}%<br />
@@ -249,7 +252,7 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
               border: copied ? '1px solid rgba(0,200,100,0.5)' : '1px solid rgba(0,212,255,0.4)',
               borderRadius: 8,
               color: copied ? '#4ade80' : '#00d4ff',
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: 'var(--font-rajdhani), sans-serif',
               fontSize: 12,
               fontWeight: 700,
               letterSpacing: 1,
@@ -257,7 +260,8 @@ VIP Expiry:       top: '${vip.topPct}%',  left: '${vip.leftPct}%'`;
               transition: 'all 0.2s',
             }}
           >
-            {copied ? '✅ COPIED! SEND TO AGENT' : '📋 COPY COORDINATES FOR AGENT'}
+            <OperatorGlyph kind={copied ? 'check' : 'save'} size={15} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+            {copied ? 'Copied. Send To Agent' : 'Copy Coordinates For Agent'}
           </button>
           
           <pre style={{

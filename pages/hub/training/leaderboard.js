@@ -56,7 +56,7 @@ function MedalIcon({ rank, size = 22, color = 'currentColor' }) {
       <path d="M7 2l3 5" />
       <path d="M17 2l-3 5" />
       <circle cx="12" cy="14" r="7" />
-      <text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="700"
+      <text x="12" y="17" textAnchor="middle" fontSize='12px' fontWeight="700"
         fill={color} stroke="none">{rank}</text>
     </svg>
   );
@@ -306,7 +306,7 @@ function LeaderboardEntry({
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -422,7 +422,7 @@ const styles = {
     padding: '2px 8px',
     background: '#00E0FF',
     color: '#000',
-    fontSize: '10px',
+    fontSize: '12px',
     fontWeight: 700,
     borderRadius: '4px',
   },

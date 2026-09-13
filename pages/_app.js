@@ -96,6 +96,7 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
+import { isOperatorConsoleRoute } from '../src/components/admin/operatorConsoleRoutes';
 // Static on purpose: __tests__/sw-update.test.mjs requires the update prompt
 // in the shell, and it is the control that tells a reader a new build is
 // waiting - the earlier it can speak, the better.
@@ -182,6 +183,10 @@ const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommand
   ssr: false,
   loading: () => null,
 });
+
+// Operator chrome is substantial and belongs only to /horses and admin routes.
+// Keep its custom vector and machined-frame stylesheet out of the public shell.
+const OperatorConsoleShell = dynamic(() => import('../src/components/admin/OperatorConsoleShell'));
 
 const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training',
@@ -900,6 +905,7 @@ export default function App({ Component, pageProps }) {
   const pokerNearMeOwnsSocialMetadata =
     resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
+  const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
   const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
   const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
   const worldCopyWorldId = worldFooterConfig?.id || null;
@@ -1110,6 +1116,11 @@ export default function App({ Component, pageProps }) {
                                       <Component {...pageProps} />
                                     </div>
                                   </div>
+                                ) : isOperatorConsole ? (
+                                  <OperatorConsoleShell>
+                                    {hubPageNeedsHeader && <UniversalHeader />}
+                                    <Component {...pageProps} />
+                                  </OperatorConsoleShell>
                                 ) : (
                                   <>
                                     {hubPageNeedsHeader && <UniversalHeader />}

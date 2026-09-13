@@ -78,7 +78,7 @@ function TableImageTracker() {
               flex: 1, padding: '8px 4px', borderRadius: 6, border: 'none', cursor: 'pointer',
               background: selected === i ? im.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 10, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
             }}>
               <div style={{ fontSize: 16 }}>{im.icon}</div>
               <div>{im.name.split(' (')[0]}</div>
@@ -96,22 +96,22 @@ function TableImageTracker() {
           {img.exploits.map((e, i) => (
             <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: img.color, marginBottom: 2 }}>{e.adj}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{e.reason}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{e.reason}</div>
             </div>
           ))}
         </div>
 
         <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.12)', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Watch Out For</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Watch Out For</div>
           {img.counters.map((c, i) => (
-            <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>- {c}</div>
+            <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>- {c}</div>
           ))}
         </div>
 
         <div style={{ padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f97316', marginBottom: 4 }}>Meta Tips</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f97316', marginBottom: 4 }}>Meta Tips</div>
           {TIPS.map((t, i) => (
-            <div key={i} style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2, lineHeight: 1.4 }}>• {t}</div>
+            <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2, lineHeight: 1.4 }}>• {t}</div>
           ))}
         </div>
       </div>

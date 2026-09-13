@@ -73,7 +73,7 @@ function TournamentPayJumpCalc() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {TOURNAMENT_STRUCTURES.map((t, i) => (
             <button key={t.name} onClick={() => setSelectedTourney(i)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedTourney === i ? '#fbbf24' : 'rgba(255,255,255,0.06)',
               color: selectedTourney === i ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{t.name}</button>
@@ -84,21 +84,21 @@ function TournamentPayJumpCalc() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24' }}>${tourney.prizePool.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Prize Pool</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Prize Pool</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>${tourney.buyIn.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Buy-In</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Buy-In</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#10b981' }}>${icmEquity.toLocaleString()}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Your ICM Equity ({heroChips}% Chips)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Your ICM Equity ({heroChips}% Chips)</div>
           </div>
         </div>
 
         {/* Chip Slider */}
         <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Your Chip Stack (%)</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Your Chip Stack (%)</div>
           <input type="range" min={1} max={60} value={heroChips} onChange={e => setHeroChips(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#fbbf24' }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{heroChips}% Of Chips In Play</div>
         </div>
@@ -108,7 +108,7 @@ function TournamentPayJumpCalc() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {tourney.payouts.map((p, i) => (
             <div key={i} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{p.place}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{p.place}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>${p.amount.toLocaleString()}</div>
             </div>
           ))}
@@ -122,7 +122,7 @@ function TournamentPayJumpCalc() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: j.color }}>{j.label}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{j.significance}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{j.significance}</span>
                 </div>
                 <span style={{ fontSize: 14, fontWeight: 800, color: j.jumpValue > 0 ? '#10b981' : '#6b7280' }}>
                   +${j.jumpValue.toLocaleString()}

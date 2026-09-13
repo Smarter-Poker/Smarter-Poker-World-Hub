@@ -45,7 +45,7 @@ export default function AllInEVDashboard() {
             style={{ padding: '8px 4px', borderRadius: 8, border: conceptIdx === i ? `2px solid ${c.color}` : '1px solid rgba(255,255,255,0.06)',
               background: conceptIdx === i ? `${c.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{c.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: conceptIdx === i ? c.color : '#64748b' }}>{c.concept.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: conceptIdx === i ? c.color : '#64748b' }}>{c.concept.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -61,11 +61,11 @@ export default function AllInEVDashboard() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${concept.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${concept.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: concept.color }}>Example</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: concept.color }}>Example</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.example}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{concept.tip}</div>
           </div>
         </div>

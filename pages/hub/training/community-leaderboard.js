@@ -167,7 +167,7 @@ export default function CommunityLeaderboardPage() {
       <div
         className="sp-training-intelligence sp-training-intelligence--community"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -208,7 +208,7 @@ export default function CommunityLeaderboardPage() {
           <div>
             {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
           </div>
         </div>
 
@@ -257,7 +257,7 @@ export default function CommunityLeaderboardPage() {
                   border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
                   background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
                   color: category === c.id ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -320,13 +320,13 @@ export default function CommunityLeaderboardPage() {
                     </div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         marginBottom: 2,
                         color: p.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        whiteSpace: 'normal',
                       }}
                     >
                       {p.name}
@@ -401,7 +401,7 @@ export default function CommunityLeaderboardPage() {
                   <div
                     style={{
                       width: 24,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-faint)',
                       textAlign: 'center',
@@ -418,7 +418,7 @@ export default function CommunityLeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 800,
                       color: '#fff',
                     }}
@@ -435,7 +435,7 @@ export default function CommunityLeaderboardPage() {
                     >
                       {entry.name}
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
                       {entry.correctAnswers} Correct Answers · {entry.sessions} Sessions
                     </div>
                   </div>

@@ -122,7 +122,7 @@ const RangeCell = memo(({ hand, weight, solverWeight, isSelected, isDragging, on
             </div>
             {weight > 0 && weight < 1 && (
                 <div style={{
-                    fontSize: 6, fontWeight: 600, color: '#86efac',
+                    fontSize: 12, fontWeight: 600, color: '#86efac',
                     lineHeight: 1, marginTop: 1,
                 }}>
                     {(weight * 100).toFixed(0)}%
@@ -175,13 +175,13 @@ const RangeStats = memo(({ range, solverRange }) => {
     return (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 8, color: '#64748b' }}>Combos</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Combos</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     {stats.combos}
                 </div>
             </div>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 8, color: '#64748b' }}>Range %</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Range %</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     {((stats.combos / 1326) * 100).toFixed(1)}%
                 </div>
@@ -189,19 +189,19 @@ const RangeStats = memo(({ range, solverRange }) => {
             {solverRange && (
                 <>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#22c55e' }}>Match</div>
+                        <div style={{ fontSize: 12, color: '#22c55e' }}>Match</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {stats.matching}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#ef4444' }}>Missing</div>
+                        <div style={{ fontSize: 12, color: '#ef4444' }}>Missing</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {stats.missing}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#f59e0b' }}>Extra</div>
+                        <div style={{ fontSize: 12, color: '#f59e0b' }}>Extra</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {stats.extra}
                         </div>
@@ -305,7 +305,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         <button
                             onClick={() => setShowCompare(!showCompare)}
                             style={{
-                                padding: '3px 10px', fontSize: 10, fontWeight: 600,
+                                padding: '3px 10px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 4, border: '1px solid', cursor: 'pointer',
                                 background: showCompare ? 'rgba(0,212,255,0.1)' : 'transparent',
                                 color: showCompare ? '#00d4ff' : '#64748b',
@@ -317,7 +317,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         <button
                             onClick={() => { setRange({}); setSelectedPreset(''); }}
                             style={{
-                                padding: '3px 10px', fontSize: 10, fontWeight: 600,
+                                padding: '3px 10px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 4, border: '1px solid rgba(239,68,68,0.2)',
                                 cursor: 'pointer', background: 'rgba(239,68,68,0.05)',
                                 color: '#f87171',
@@ -335,7 +335,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                             key={name}
                             onClick={() => { setRange({ ...RANGE_PRESETS[name] }); setSelectedPreset(name); }}
                             style={{
-                                padding: '2px 8px', fontSize: 9, fontWeight: 600,
+                                padding: '2px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid',
                                 cursor: 'pointer',
                                 background: selectedPreset === name ? 'rgba(0,212,255,0.1)' : 'rgba(0,0,0,0.15)',
@@ -351,12 +351,12 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                 {/* Compare selector */}
                 {showCompare && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <span style={{ fontSize: 9, color: '#64748b' }}>Compare To:</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>Compare To:</span>
                         <select
                             value={comparePreset}
                             onChange={e => setComparePreset(e.target.value)}
                             style={{
-                                padding: '2px 6px', fontSize: 9,
+                                padding: '2px 6px', fontSize: 12,
                                 background: 'rgba(0,0,0,0.3)', color: '#94a3b8',
                                 border: '1px solid rgba(100,116,139,0.2)',
                                 borderRadius: 3, outline: 'none',
@@ -371,7 +371,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
 
                 {/* Brush weight slider */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>Weight:</span>
+                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Weight:</span>
                     <input
                         type="range"
                         min="0" max="100" value={brushWeight * 100}
@@ -379,7 +379,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         style={{ flex: 1, height: 4, accentColor: '#22c55e' }}
                     />
                     <span style={{
-                        fontSize: 11, fontWeight: 700, color: '#22c55e',
+                        fontSize: 12, fontWeight: 700, color: '#22c55e',
                         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 35, textAlign: 'right',
                     }}>
                         {(brushWeight * 100).toFixed(0)}%
@@ -389,7 +389,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
 
             {/* Grid */}
             <div style={{ padding: 12 }}>
-                <div style={{
+                <div data-allow-small="true" style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(13, 1fr)',
                     gap: 1,
@@ -425,7 +425,7 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         ].map(l => (
                             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: l.color }} />
-                                <span style={{ fontSize: 8, color: '#64748b' }}>{l.label}</span>
+                                <span style={{ fontSize: 12, color: '#64748b' }}>{l.label}</span>
                             </div>
                         ))}
                     </div>
@@ -437,9 +437,9 @@ export default function RangeBuilder({ solverRange: propSolverRange, onRangeChan
                         marginTop: 8, padding: 8, borderRadius: 4,
                         background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(100,116,139,0.08)',
                     }}>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginBottom: 2 }}>RANGE STRING</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 2 }}>RANGE STRING</div>
                         <div style={{
-                            fontSize: 9, color: '#94a3b8', wordBreak: 'break-all',
+                            fontSize: 12, color: '#94a3b8', wordBreak: 'break-all',
                             fontFamily: "'Fira Code', monospace", lineHeight: 1.4,
                         }}>
                             {rangeString}

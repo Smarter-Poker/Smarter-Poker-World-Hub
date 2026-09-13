@@ -44,7 +44,7 @@ export default function HighStakesGuide() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.title}
           </button>
         ))}
@@ -55,11 +55,11 @@ export default function HighStakesGuide() {
         <div style={{ fontSize: 16, fontWeight: 800, color: c.color, marginBottom: 8 }}>{c.icon} {c.title}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{c.detail}</p>
         <div style={{ background: `${c.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${c.color}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: c.color }}>PRINCIPLE</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: c.color }}>PRINCIPLE</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.principle}</div>
         </div>
         <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>WARNING</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>WARNING</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.warning}</div>
         </div>
       </motion.div>

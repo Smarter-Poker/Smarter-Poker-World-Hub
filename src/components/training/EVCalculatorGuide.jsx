@@ -55,7 +55,7 @@ export default function EVCalculatorGuide() {
             style={{ padding: '8px 4px', borderRadius: 8, border: exIdx === i ? `2px solid ${e.color}` : '1px solid rgba(255,255,255,0.06)',
               background: exIdx === i ? `${e.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{e.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: exIdx === i ? e.color : '#64748b' }}>{e.scenario.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: exIdx === i ? e.color : '#64748b' }}>{e.scenario.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -67,21 +67,21 @@ export default function EVCalculatorGuide() {
           <span style={{ fontSize: 16, fontWeight: 800, color: ex.color }}>{ex.scenario}</span>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, padding: 8, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{ex.setup}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{ex.setup}</div>
         </div>
         <div style={{ background: `${ex.color}08`, borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Formula</div>
-          <div style={{ fontSize: 11, color: ex.color }}>{ex.formula}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Formula</div>
+          <div style={{ fontSize: 12, color: ex.color }}>{ex.formula}</div>
         </div>
         <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 8, padding: 8, marginBottom: 8, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Calculation</div>
-          <div style={{ fontSize: 11, color: '#3b82f6' }}>{ex.calc}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Calculation</div>
+          <div style={{ fontSize: 12, color: '#3b82f6' }}>{ex.calc}</div>
         </div>
         <div style={{ background: 'rgba(34,197,94,0.1)', borderRadius: 8, padding: 10, marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>{ex.result}</div>
         </div>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Lesson</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Lesson</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{ex.lesson}</div>
         </div>
       </motion.div>

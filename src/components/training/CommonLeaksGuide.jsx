@@ -50,7 +50,7 @@ export default function CommonLeaksGuide() {
             style={{ padding: '8px 4px', borderRadius: 8, border: leakIdx === i ? `2px solid ${l.color}` : '1px solid rgba(255,255,255,0.06)',
               background: leakIdx === i ? `${l.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{l.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: leakIdx === i ? l.color : '#64748b' }}>{l.leak.substring(0, 12)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: leakIdx === i ? l.color : '#64748b' }}>{l.leak.substring(0, 12)}</div>
           </button>
         ))}
       </div>
@@ -60,12 +60,12 @@ export default function CommonLeaksGuide() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: leak.color }}>{leak.leak}</div>
           <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 10, color: '#94a3b8' }}>{leak.level}</span>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>{leak.level}</span>
           </div>
         </div>
 
         <div style={{ background: `${leak.color}10`, borderRadius: 8, padding: 8, marginBottom: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Diagnostic Stat</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Diagnostic Stat</div>
           <div style={{ fontSize: 14, fontWeight: 800, color: leak.color, fontFamily: 'monospace' }}>{leak.stat}</div>
         </div>
 
@@ -73,11 +73,11 @@ export default function CommonLeaksGuide() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>How To Diagnose</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>How To Diagnose</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{leak.diagnostic}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{leak.plug}</div>
           </div>
         </div>

@@ -60,12 +60,12 @@ export default function BigBlindDefense() {
         </div>
 
         <div style={{ background: 'rgba(34,197,94,0.06)', borderLeft: '3px solid #22c55e', borderRadius: 8, padding: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>CALL</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>CALL</div>
           <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{scenario.call}</div>
         </div>
 
         <div style={{ background: 'rgba(239,68,68,0.06)', borderLeft: '3px solid #ef4444', borderRadius: 8, padding: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>3-BET</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>3-BET</div>
           <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{scenario.threebet}</div>
         </div>
 
@@ -79,12 +79,12 @@ export default function BigBlindDefense() {
         <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>Defense Frequency By Opener</div>
         {DEFENSE_SCENARIOS.map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: '#94a3b8', minWidth: 50 }}>{s.opener}</span>
+            <span style={{ fontSize: 12, color: '#94a3b8', minWidth: 50 }}>{s.opener}</span>
             <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
               <motion.div initial={{ width: 0 }} animate={{ width: s.defense }}
                 style={{ height: '100%', background: s.color, borderRadius: 4 }} />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: s.color, minWidth: 45 }}>{s.defense}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: s.color, minWidth: 45 }}>{s.defense}</span>
           </div>
         ))}
       </div>

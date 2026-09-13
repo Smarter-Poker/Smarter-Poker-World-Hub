@@ -78,7 +78,7 @@ function HandReadingTrainer() {
               }} onClick={() => { if (i === revealedStreet + 1) setRevealedStreet(i); }} onKeyDown={(event) => { if ((event.key === 'Enter' || event.key === ' ') && i === revealedStreet + 1) { event.preventDefault(); setRevealedStreet(i); } }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: streetColors[i] }}>{s.street}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{s.action}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{s.action}</span>
                 </div>
                 {visible && (
                   <>
@@ -86,11 +86,11 @@ function HandReadingTrainer() {
                     <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, marginBottom: 4 }}>
                       <div style={{ width: `${s.rangeWidth}%`, height: '100%', background: streetColors[i], borderRadius: 4, transition: 'width 0.5s' }} />
                     </div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{s.note}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{s.note}</div>
                   </>
                 )}
                 {!visible && i === revealedStreet + 1 && (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Click To Reveal Next Street →</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>Click To Reveal Next Street →</div>
                 )}
               </div>
             );

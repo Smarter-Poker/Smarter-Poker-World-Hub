@@ -408,7 +408,7 @@ const styles = {
     },
 
     statLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.5)',
         textTransform: 'capitalize',
         letterSpacing: 0.5,

@@ -238,7 +238,7 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
             }}
         >
             <span style={{
-                fontSize: 9, fontWeight: 700,
+                fontSize: 12, fontWeight: 700,
                 color: isDead ? '#333' : '#fff',
                 fontFamily: "'Inter', sans-serif",
                 textShadow: hasData ? '0 1px 2px rgba(0,0,0,0.5)' : 'none',
@@ -248,7 +248,7 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
             </span>
             {hasData && strategy.betFreq > 0 && (
                 <span style={{
-                    fontSize: 6, fontWeight: 700, color: '#fff',
+                    fontSize: 12, fontWeight: 700, color: '#fff',
                     opacity: 0.8, lineHeight: 1,
                 }}>
                     {strategy.betFreq}%
@@ -267,16 +267,16 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
                     boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
                     pointerEvents: 'none', whiteSpace: 'nowrap',
                 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: suit.color, marginBottom: 2 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: suit.color, marginBottom: 2 }}>
                         {rank}{suit.symbol}
                     </div>
-                    <div style={{ fontSize: 8, color: '#fbbf24', textTransform: 'uppercase', marginBottom: 3 }}>
+                    <div style={{ fontSize: 12, color: '#fbbf24', textTransform: 'uppercase', marginBottom: 3 }}>
                         {strategy.runoutType?.replace(/_/g, ' ')}
                     </div>
-                    <div style={{ fontSize: 8, color: '#94a3b8', marginBottom: 3 }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 3 }}>
                         Hand: {strategy.handClass?.replace(/_/g, ' ')}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                         <span style={{ color: '#22c55e', fontWeight: 700 }}>Bet {strategy.betFreq}%</span>
                         <span style={{ color: '#64748b', fontWeight: 700 }}>Chk {strategy.checkFreq}%</span>
                     </div>
@@ -286,7 +286,7 @@ const RunoutCell = memo(({ rank, suit, strategy, isDead, isSelected, onClick }) 
                                 .filter(([_, w]) => w > 0.05)
                                 .sort((a, b) => b[1] - a[1])
                                 .map(([size, weight]) => (
-                                    <div key={size} style={{ fontSize: 7, display: 'flex', justifyContent: 'space-between' }}>
+                                    <div key={size} style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#94a3b8' }}>{size.replace('s', '')}%</span>
                                         <span style={{ color: '#e2e8f0' }}>{Math.round(weight * 100)}%</span>
                                     </div>
@@ -330,7 +330,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                         {rank}{suitInfo?.symbol || ''}
                     </span>
                     <span style={{
-                        fontSize: 9, color: '#fbbf24', fontWeight: 700,
+                        fontSize: 12, color: '#fbbf24', fontWeight: 700,
                         background: 'rgba(251,191,36,0.1)',
                         padding: '2px 8px', borderRadius: 12,
                         textTransform: 'uppercase',
@@ -345,7 +345,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
             </div>
 
             <div style={{
-                fontSize: 9, color: '#94a3b8', marginBottom: 8,
+                fontSize: 12, color: '#94a3b8', marginBottom: 8,
                 padding: '4px 8px', background: 'rgba(255,255,255,0.03)',
                 borderRadius: 6,
             }}>
@@ -372,7 +372,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
                         >
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
                                 Bet {strategy.betFreq}%
                             </span>
                         </motion.div>
@@ -387,7 +387,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}
                         >
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>
                                 Check {strategy.checkFreq}%
                             </span>
                         </motion.div>
@@ -398,7 +398,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
             {/* Sizing breakdown */}
             {strategy.sizes && Object.keys(strategy.sizes || {}).length > 0 && (
                 <div>
-                    <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4, fontWeight: 600 }}>
                         When Betting:
                     </div>
                     {Object.entries(strategy.sizes || {})
@@ -411,7 +411,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                                 <div key={size} style={{
                                     display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3,
                                 }}>
-                                    <div style={{ width: 55, fontSize: 10, fontWeight: 700, color: '#94a3b8', textAlign: 'right' }}>
+                                    <div style={{ width: 55, fontSize: 12, fontWeight: 700, color: '#94a3b8', textAlign: 'right' }}>
                                         {sizeLabel}
                                     </div>
                                     <div style={{
@@ -427,7 +427,7 @@ function RunoutDetail({ card, strategy, suitInfo, onClose }) {
                                             }}
                                         />
                                     </div>
-                                    <span style={{ width: 30, fontSize: 9, fontWeight: 700, color: '#e2e8f0', textAlign: 'right' }}>
+                                    <span style={{ width: 30, fontSize: 12, fontWeight: 700, color: '#e2e8f0', textAlign: 'right' }}>
                                         {pct}%
                                     </span>
                                 </div>
@@ -469,16 +469,16 @@ function RunoutSummary({ strategies }) {
             padding: '6px 10px', background: 'rgba(0,0,0,0.2)',
             borderRadius: 8, flexWrap: 'wrap', justifyContent: 'center',
         }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 Avg: Bet {stats.avgBet}% / Check {stats.avgCheck}%
             </div>
-            <div style={{ fontSize: 9, color: '#64748b' }}>
+            <div style={{ fontSize: 12, color: '#64748b' }}>
                 {stats.count} Runouts Analyzed
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
                 {Object.entries(stats.types || {}).filter(([_, c]) => c > 0).map(([type, count]) => (
                     <span key={type} style={{
-                        fontSize: 8, color: '#94a3b8',
+                        fontSize: 12, color: '#94a3b8',
                         background: 'rgba(255,255,255,0.04)',
                         padding: '1px 6px', borderRadius: 8,
                     }}>
@@ -547,7 +547,7 @@ export default function RunoutStrategyMatrix({
                 }}>
                     {street === 'turn' ? 'TURN' : 'RIVER'} ILLUSTRATIVE RUNOUT MODEL
                 </div>
-                <div style={{ fontSize: 9, color: '#64748b' }}>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
                     How Does The Local Preference Change Per Card?
                 </div>
             </div>
@@ -558,7 +558,7 @@ export default function RunoutStrategyMatrix({
             {/* Legend */}
             <div style={{
                 display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
-                fontSize: 9,
+                fontSize: 12,
             }}>
                 {Object.entries(ACTION_COLORS || {}).map(([action, color]) => (
                     <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -582,7 +582,7 @@ export default function RunoutStrategyMatrix({
                         {RANKS.map(r => (
                             <div key={r} style={{
                                 width: 30, textAlign: 'center',
-                                fontSize: 9, fontWeight: 700, color: '#64748b',
+                                fontSize: 12, fontWeight: 700, color: '#64748b',
                             }}>
                                 {r}
                             </div>
@@ -630,7 +630,7 @@ export default function RunoutStrategyMatrix({
 
             {/* Footer */}
             <div style={{
-                fontSize: 8, color: '#475569', textAlign: 'center',
+                fontSize: 12, color: '#475569', textAlign: 'center',
                 padding: '4px 8px',
             }}>
                 Illustrative Local Weights Only - Not A Solved Node Or Exact EV.
