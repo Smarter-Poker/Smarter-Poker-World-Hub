@@ -160,14 +160,48 @@
 }
 
 .loginCard {
-    background: var(--bg-panel-90);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 22%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px),
+        var(--bg-panel-90);
     backdrop-filter: blur(20px);
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
     padding: 48px;
     width: 100%;
     max-width: 420px;
-    box-shadow: 0 4px 24px var(--shadow-drop), 0 0 40px var(--accent-glow);
+    box-shadow:
+        0 28px 70px var(--shadow-drop-strong),
+        0 0 46px var(--accent-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -18px 38px rgba(0, 0, 0, 0.34);
+}
+
+.loginCard::before,
+.loginCard::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+}
+
+.loginCard::before {
+    inset: 7px;
+    z-index: -1;
+    border: 1px solid var(--accent-line);
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    box-shadow: inset 0 0 28px var(--accent-soft);
+}
+
+.loginCard::after {
+    top: 0;
+    left: 28px;
+    right: 28px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), rgba(255, 255, 255, 0.9), var(--accent), transparent);
+    box-shadow: 0 0 14px var(--accent-glow);
 }
 
 .loginHeader {
@@ -214,7 +248,7 @@
     padding: 14px 18px;
     background: var(--bg-inset);
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: 3px;
     color: var(--text);
     font-size: 16px;
     transition: all 0.2s;
@@ -239,14 +273,18 @@
 .loginBtn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
-    border: none;
-    border-radius: 12px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 16%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.11) 0 1px, transparent 1px 4px),
+        linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+    border: 1px solid rgba(213, 236, 246, 0.8);
+    border-radius: 3px;
     color: var(--bg-page);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52), 0 10px 24px var(--shadow-drop);
 }
 
 .loginBtn:hover {
@@ -260,7 +298,12 @@
 
 .dashboard {
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--bg-page) 0%, var(--bg-panel) 50%, var(--bg-surface) 100%);
+    background:
+        linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px),
+        radial-gradient(circle at 48% -12%, var(--accent-soft), transparent 38%),
+        var(--bg-page);
+    background-size: 40px 40px, 40px 40px, auto, auto;
     color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif;
 }
@@ -307,9 +350,12 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 32px;
-    background: var(--bg-panel-80);
-    border-bottom: 1px solid var(--line);
+    background:
+        repeating-linear-gradient(94deg, rgba(255,255,255,.025) 0 1px, transparent 1px 7px),
+        linear-gradient(180deg, rgba(48,66,76,.96), rgba(8,17,23,.97) 38%, rgba(2,7,10,.98));
+    border-block: 1px solid rgba(196, 215, 223, .34);
     backdrop-filter: blur(20px);
+    box-shadow: inset 0 1px rgba(255,255,255,.2), inset 0 -1px rgba(0,0,0,.86), 0 10px 30px rgba(0,0,0,.34);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -322,14 +368,25 @@
 }
 
 .headerLeft .logo {
-    font-size: 32px;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid rgba(196, 215, 223, .48);
+    border-radius: 3px;
+    color: var(--accent);
+    background: linear-gradient(145deg, rgba(62,82,93,.96), rgba(4,10,14,.98) 68%);
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.44), 0 0 18px var(--accent-soft);
+    font-size: 18px;
+    font-family: var(--font-rajdhani), sans-serif;
+    letter-spacing: .08em;
 }
 
 .headerLeft h1 {
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 3px;
-    background: linear-gradient(135deg, var(--accent), var(--info));
+    background: linear-gradient(180deg, #f4fbfd 0%, #89a8b5 54%, #dff7ff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -393,15 +450,16 @@
     display: flex;
     gap: 8px;
     padding: 12px 32px;
-    background: var(--bg-page-50);
-    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(9,20,27,.96), rgba(2,7,10,.98));
+    border-bottom: 1px solid rgba(138,161,172,.32);
+    box-shadow: inset 0 -1px rgba(0,0,0,.78);
 }
 
 .nav button {
     padding: 12px 24px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 3px;
     color: var(--text-dim);
     font-size: 14px;
     font-weight: 500;
@@ -415,9 +473,10 @@
 }
 
 .nav button.active {
-    background: var(--bg-panel-80);
-    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(37,65,79,.96), rgba(5,14,20,.98));
+    border-color: rgba(138, 205, 231, .72);
     color: var(--accent);
+    box-shadow: inset 0 1px rgba(255,255,255,.14), inset 0 -2px var(--accent), 0 0 16px var(--accent-soft);
 }
 
 /* Content */
@@ -442,11 +501,12 @@
 }
 
 .statBox {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(34,49,59,.94), rgba(4,10,14,.98) 64%);
+    border: 1px solid rgba(138,161,172,.35);
+    border-radius: 3px;
     padding: 20px 32px;
     text-align: center;
+    box-shadow: inset 0 1px rgba(255,255,255,.15), inset 0 0 0 2px rgba(0,0,0,.35), 0 14px 30px rgba(0,0,0,.2);
 }
 
 .statNumber {
@@ -547,11 +607,15 @@
 }
 
 .personaCard {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    background:
+        linear-gradient(110deg, var(--accent-soft), transparent 26%),
+        linear-gradient(150deg, rgba(30,45,55,.96), rgba(4,10,14,.99) 58%);
+    border: 1px solid rgba(138,161,172,.34);
+    border-left: 3px solid var(--accent-dim);
+    border-radius: 3px;
     padding: 24px;
     transition: all 0.3s;
+    box-shadow: inset 0 1px rgba(255,255,255,.13), inset 0 0 0 1px rgba(0,0,0,.48), 0 18px 36px rgba(0,0,0,.26);
 }
 
 .personaCard:hover {
@@ -741,12 +805,13 @@
     flex-direction: column;
     align-items: center;
     padding: 24px 16px;
-    background: var(--bg-panel-80);
-    border: 2px solid var(--line);
-    border-radius: 12px;
+    background: linear-gradient(150deg, rgba(38,55,65,.96), rgba(4,10,14,.99) 62%);
+    border: 1px solid rgba(138,161,172,.4);
+    border-radius: 3px;
     cursor: pointer;
     transition: all 0.3s;
     color: var(--text);
+    box-shadow: inset 0 1px rgba(255,255,255,.15), inset 0 0 0 2px rgba(0,0,0,.4), 0 14px 30px rgba(0,0,0,.22);
 }
 
 .actionBtn:hover {
@@ -821,10 +886,11 @@
 }
 
 .settingCard {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(32,48,58,.94), rgba(4,10,14,.98) 58%);
+    border: 1px solid rgba(138,161,172,.34);
+    border-radius: 3px;
     padding: 24px;
+    box-shadow: inset 0 1px rgba(255,255,255,.13), inset 0 0 0 2px rgba(0,0,0,.35), 0 16px 34px rgba(0,0,0,.22);
 }
 
 .settingCard.fullWidth {
@@ -936,11 +1002,12 @@
 }
 
 .statCardLarge {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(34,51,61,.95), rgba(4,10,14,.99) 62%);
+    border: 1px solid rgba(138,161,172,.34);
+    border-radius: 3px;
     padding: 32px;
     text-align: center;
+    box-shadow: inset 0 1px rgba(255,255,255,.14), inset 0 0 0 2px rgba(0,0,0,.38), 0 16px 34px rgba(0,0,0,.22);
 }
 
 .statCardLarge .statNumber {
@@ -961,10 +1028,11 @@
 }
 
 .contentBreakdown {
-    background: var(--bg-panel-80);
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    background: linear-gradient(150deg, rgba(25,40,50,.96), rgba(3,9,13,.99) 55%);
+    border: 1px solid rgba(138,161,172,.32);
+    border-radius: 3px;
     padding: 24px;
+    box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 0 0 2px rgba(0,0,0,.36), 0 16px 34px rgba(0,0,0,.2);
 }
 
 .breakdownGrid {
@@ -1004,17 +1072,18 @@
 .btnCreate {
     padding: 12px 20px;
     border: none;
-    border-radius: 12px;
+    border: 1px solid #d8f5ff;
+    border-radius: 3px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    background: var(--accent);
+    background: linear-gradient(180deg, #eefcff, #83c9dc 48%, #2e7189);
     color: var(--bg-page);
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 12px var(--accent-glow);
+    box-shadow: inset 0 1px #ffffff, inset 0 -1px rgba(0,0,0,.5), 0 8px 20px rgba(0,0,0,.32);
 }
 
 .btnCreate:hover {
@@ -1283,10 +1352,10 @@
 }
 
 .filterBtn {
-    background: var(--bg-surface);
+    background: linear-gradient(180deg, rgba(34,50,60,.96), rgba(5,12,16,.99));
     color: var(--text-dim);
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 7px 16px;
     font-size: 13px;
     font-weight: 600;
@@ -1315,9 +1384,10 @@
 .tableWrapper {
     width: 100%;
     overflow-x: auto;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--bg-panel);
+    border: 1px solid rgba(138,161,172,.34);
+    border-radius: 3px;
+    background: linear-gradient(155deg, rgba(20,34,43,.98), rgba(3,9,13,.99) 48%);
+    box-shadow: inset 0 1px rgba(255,255,255,.1), inset 0 0 0 2px rgba(0,0,0,.4), 0 18px 36px rgba(0,0,0,.22);
     -webkit-overflow-scrolling: touch;
 }
 
@@ -1360,11 +1430,12 @@
    Was `.rssSources, .recentRuns`. The RSS source list was five hardcoded
    names each with a green dot, wired to nothing, and it is gone. */
 .recentRuns {
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    background: linear-gradient(150deg, rgba(25,40,49,.96), rgba(3,9,13,.99) 58%);
+    border: 1px solid rgba(138,161,172,.32);
+    border-radius: 3px;
     padding: 20px;
     margin-top: 24px;
+    box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 0 0 2px rgba(0,0,0,.4), 0 16px 34px rgba(0,0,0,.2);
 }
 
 .recentRuns h3 {
@@ -1412,11 +1483,12 @@
 }
 
 .card {
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(27,43,52,.96), rgba(3,9,13,.99) 62%);
+    border: 1px solid rgba(138,161,172,.32);
+    border-radius: 3px;
     padding: 16px 18px;
     margin-bottom: 12px;
+    box-shadow: inset 0 1px rgba(255,255,255,.11), inset 0 0 0 2px rgba(0,0,0,.4), 0 14px 30px rgba(0,0,0,.18);
 }
 
 .cardGrid {
@@ -1433,11 +1505,12 @@
 }
 
 .kpi {
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(31,47,57,.96), rgba(3,9,13,.99) 65%);
+    border: 1px solid rgba(138,161,172,.32);
+    border-radius: 3px;
     padding: 16px;
     text-align: center;
+    box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 0 0 2px rgba(0,0,0,.38), 0 14px 30px rgba(0,0,0,.18);
 }
 
 .kpiValue {
@@ -1461,9 +1534,9 @@
     padding: 40px 20px;
     color: var(--text-muted);
     font-size: 14px;
-    background: var(--bg-panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
+    background: repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 8px, transparent 8px 16px), var(--bg-panel);
+    border: 1px solid rgba(138,161,172,.3);
+    border-radius: 3px;
 }
 
 .errorState {

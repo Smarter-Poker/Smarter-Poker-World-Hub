@@ -1,9 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Archive, Box, Check, CircleAlert, Eye, Glasses, Layers3, PackagePlus,
-  RefreshCw, Save, Search, Shirt, Sparkles, Tags, Undo2,
-} from 'lucide-react';
+import OperatorGlyph from './OperatorGlyph';
 import styles from './MerchCatalogAdmin.module.css';
+
+const Archive = props => <OperatorGlyph kind="archive" {...props} />;
+const Box = props => <OperatorGlyph kind="box" {...props} />;
+const Check = props => <OperatorGlyph kind="check" {...props} />;
+const CircleAlert = props => <OperatorGlyph kind="alert" {...props} />;
+const Eye = props => <OperatorGlyph kind="eye" {...props} />;
+const Glasses = props => <OperatorGlyph kind="glasses" {...props} />;
+const Layers3 = props => <OperatorGlyph kind="layers" {...props} />;
+const PackagePlus = props => <OperatorGlyph kind="package-plus" {...props} />;
+const RefreshCw = props => <OperatorGlyph kind="refresh" {...props} />;
+const Save = props => <OperatorGlyph kind="save" {...props} />;
+const Search = props => <OperatorGlyph kind="search" {...props} />;
+const Shirt = props => <OperatorGlyph kind="shirt" {...props} />;
+const Sparkles = props => <OperatorGlyph kind="spark" {...props} />;
+const Tags = props => <OperatorGlyph kind="tag" {...props} />;
+const Undo2 = props => <OperatorGlyph kind="undo" {...props} />;
 
 const EMPTY_ITEM = {
   id: '', name: '', description: '', category: 'apparel', image_url: '',
