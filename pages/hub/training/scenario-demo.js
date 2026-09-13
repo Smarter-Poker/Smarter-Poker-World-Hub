@@ -128,7 +128,7 @@ function FrequencyBars({ freqs }) {
     >
       <div
         style={{
-          fontSize: 9,
+          fontSize: 12,
           color: 'var(--sp-accent-amber)',
           letterSpacing: 0.8,
           textTransform: 'uppercase',
@@ -139,7 +139,7 @@ function FrequencyBars({ freqs }) {
       </div>
       {Object.entries(freqs || {}).map(([action, pct]) => (
         <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 60, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right' }}>
+          <span style={{ width: 60, fontSize: 12, color: 'var(--sp-fg-muted)', textAlign: 'right' }}>
             {action}
           </span>
           <div
@@ -158,7 +158,7 @@ function FrequencyBars({ freqs }) {
               style={{ height: '100%', borderRadius: 4, background: colors[action] || 'var(--sp-accent-blue)' }}
             />
           </div>
-          <span style={{ width: 32, fontSize: 11, fontWeight: 700, color: 'var(--sp-fg)' }}>{pct}%</span>
+          <span style={{ width: 32, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>{pct}%</span>
         </div>
       ))}
     </div>
@@ -254,7 +254,7 @@ export default function ScenarioDemoPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0d0d14 0%, #0a0a1a 50%, #0d0d14 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -295,7 +295,7 @@ export default function ScenarioDemoPage() {
               background: 'rgba(var(--sp-accent-cyan-rgb), 0.08)',
               border: '1px solid rgba(var(--sp-accent-cyan-rgb), 0.25)',
               color: 'var(--sp-accent-cyan)',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               padding: '4px 12px',
               borderRadius: 12,
@@ -355,7 +355,7 @@ export default function ScenarioDemoPage() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: 'calc(100vh - 80px)',
+            minHeight: 'calc(100dvh - 80px)',
             padding: 20,
           }}
         >
@@ -444,7 +444,7 @@ export default function ScenarioDemoPage() {
                 {/* Quiz inside tutorial */}
                 {isQuizStep && quizQ && (
                   <div style={{ marginTop: 8 }}>
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 12 }}>
                       Q{quizIdx + 1}/{QUIZ_QUESTIONS.length}
                     </div>
                     <div

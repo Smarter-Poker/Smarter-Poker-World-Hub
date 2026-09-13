@@ -118,7 +118,7 @@ function CumulativeEVChart({ handHistory, width = 500, height = 160 }) {
                         x={pad.left - 6}
                         y={scaleY(v) + 3}
                         fill="#64748b"
-                        fontSize={8}
+                        fontSize={12}
                         fontWeight={600}
                         textAnchor="end"
                         style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}
@@ -128,16 +128,16 @@ function CumulativeEVChart({ handHistory, width = 500, height = 160 }) {
                 ))}
 
                 {/* X axis labels */}
-                <text x={pad.left} y={height - 6} fill="#64748b" fontSize={8} textAnchor="start">1</text>
-                <text x={width - pad.right} y={height - 6} fill="#64748b" fontSize={8} textAnchor="end">{data.length}</text>
-                <text x={pad.left + w / 2} y={height - 6} fill="#475569" fontSize={8} textAnchor="middle">Hand #</text>
+                <text x={pad.left} y={height - 6} fill="#64748b" fontSize={12} textAnchor="start">1</text>
+                <text x={width - pad.right} y={height - 6} fill="#64748b" fontSize={12} textAnchor="end">{data.length}</text>
+                <text x={pad.left + w / 2} y={height - 6} fill="#475569" fontSize={12} textAnchor="middle">Hand #</text>
 
                 {/* Final value label */}
                 <text
                     x={scaleX(data.length - 1) + 8}
                     y={scaleY(finalEV) + 3}
                     fill={lineColor}
-                    fontSize={10}
+                    fontSize={12}
                     fontWeight={800}
                     style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}
                 >
@@ -192,18 +192,18 @@ function PositionHeatmap({ handHistory }) {
                         minWidth: 42,
                     }}>
                         <div style={{
-                            fontSize: 11, fontWeight: 800, color: '#e2e8f0',
+                            fontSize: 12, fontWeight: 800, color: '#e2e8f0',
                             fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             {p.position}
                         </div>
                         <div style={{
-                            fontSize: 10, fontWeight: 700, marginTop: 2,
+                            fontSize: 12, fontWeight: 700, marginTop: 2,
                             color: p.evLoss > 0 ? '#fca5a5' : '#86efac',
                         }}>
                             {p.evLoss > 0 ? `-${p.evLoss.toFixed(1)}` : '0.0'}
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>
                             {p.hands} Hands
                         </div>
                     </div>
@@ -255,7 +255,7 @@ function SpotTypeBreakdown({ handHistory }) {
                 return (
                     <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{
-                            width: 80, fontSize: 10, fontWeight: 700,
+                            width: 80, fontSize: 12, fontWeight: 700,
                             color: data.color, textAlign: 'right',
                         }}>
                             {name}
@@ -277,12 +277,12 @@ function SpotTypeBreakdown({ handHistory }) {
                             />
                             <span style={{
                                 position: 'absolute', right: 6, top: 2,
-                                fontSize: 10, fontWeight: 600, color: '#e2e8f0',
+                                fontSize: 12, fontWeight: 600, color: '#e2e8f0',
                             }}>
                                 {data.evLoss > 0 ? `-${data.evLoss.toFixed(1)}` : '0.0'} BB
                             </span>
                         </div>
-                        <div style={{ width: 40, fontSize: 9, color: '#64748b', textAlign: 'right' }}>
+                        <div style={{ width: 40, fontSize: 12, color: '#64748b', textAlign: 'right' }}>
                             {data.hands}h
                         </div>
                     </div>
@@ -338,13 +338,13 @@ function MistakeSeverityChart({ handHistory }) {
                                 <span style={{
                                     position: 'absolute', top: -14, left: '50%',
                                     transform: 'translateX(-50%)',
-                                    fontSize: 9, fontWeight: 700, color: '#e2e8f0',
+                                    fontSize: 12, fontWeight: 700, color: '#e2e8f0',
                                 }}>
                                     {b.count}
                                 </span>
                             )}
                         </motion.div>
-                        <div style={{ fontSize: 7, color: '#64748b', marginTop: 3 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
                             {b.label}
                         </div>
                     </div>
@@ -391,7 +391,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
 
     if (!summary || summary.hands < 2) {
         return (
-            <div style={{ padding: 16, textAlign: 'center', color: '#475569', fontSize: 11 }}>
+            <div style={{ padding: 16, textAlign: 'center', color: '#475569', fontSize: 12 }}>
                 Play At Least 2 Hands To See EV Tracking Data.
             </div>
         );
@@ -417,7 +417,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
             }}>
                 <div>
                     <div style={{
-                        fontSize: 10, color: '#64748b', fontWeight: 600,
+                        fontSize: 12, color: '#64748b', fontWeight: 600,
                         letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2,
                     }}>
                         Total EV Lost
@@ -434,19 +434,19 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {summary.avgLoss.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b' }}>BB/Hand</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>BB/Hand</div>
                     </div>
                     <div>
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {summary.accuracy.toFixed(0)}%
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b' }}>Accuracy</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>Accuracy</div>
                     </div>
                     <div>
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {summary.worstLoss.toFixed(1)}
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b' }}>Worst</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>Worst</div>
                     </div>
                 </div>
             </div>
@@ -465,7 +465,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
                             background: activeSection === s.id ? 'rgba(0,212,255,0.12)' : 'rgba(0,0,0,0.2)',
                             color: activeSection === s.id ? '#00d4ff' : '#64748b',
                             border: 'none', cursor: 'pointer',
-                            fontSize: 10, fontWeight: 700,
+                            fontSize: 12, fontWeight: 700,
                             borderBottom: activeSection === s.id ? '2px solid #00d4ff' : '2px solid transparent',
                             transition: 'all 0.15s',
                         }}
@@ -495,7 +495,7 @@ export default function EVLossTracker({ handHistory, compact = false }) {
 
                 {activeSection === 'severity' && (
                     <div>
-                        <div style={{ fontSize: 9, color: '#64748b', marginBottom: 6, textAlign: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, textAlign: 'center' }}>
                             EV Loss Distribution (BB)
                         </div>
                         <MistakeSeverityChart handHistory={handHistory} />

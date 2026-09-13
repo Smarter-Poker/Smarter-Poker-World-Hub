@@ -34,7 +34,7 @@ export default function TurnCheckRaiseGuide() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {TURN_XR_SPOTS.map((s, i) => (
           <button key={i} onClick={() => setSpotIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? `linear-gradient(135deg, ${s.color}, ${s.color}cc)` : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.hand}

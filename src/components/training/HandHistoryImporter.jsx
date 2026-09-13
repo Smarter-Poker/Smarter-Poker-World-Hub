@@ -327,7 +327,7 @@ export default function HandHistoryImporter() {
               <input type="file" accept=".txt,.log,.hh" onChange={handleFile} style={{ display: 'none' }} />
             </label>
 
-            <div style={{ color: '#64748b', fontSize: 11 }}>
+            <div style={{ color: '#64748b', fontSize: 12 }}>
               Solver Audit: PokerStars, GGPoker, 888
             </div>
           </div>
@@ -344,20 +344,20 @@ export default function HandHistoryImporter() {
           <div style={{ ...sectionStyle, display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
             {detectedSite && (
               <div>
-                <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Site</div>
+                <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Site</div>
                 <div style={{ color: '#3b82f6', fontSize: 14, fontWeight: 700 }}>{detectedSite.name}</div>
               </div>
             )}
             <div>
-              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Hands</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Hands</div>
               <div style={{ color: '#f1f5f9', fontSize: 14, fontWeight: 700 }}>{parsedHands.length}</div>
             </div>
             <div>
-              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Total EV Loss</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Total EV Loss</div>
               <div style={{ color: totalEVLoss > 2 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalEVLoss} BB</div>
             </div>
             <div>
-              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Mistakes</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Mistakes</div>
               <div style={{ color: totalMistakes > 3 ? '#ef4444' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>{totalMistakes}</div>
             </div>
             <button onClick={() => { setParsedHands([]); setSelectedHand(null); setAnalyses({}); setAnalysisError(''); }} style={{
@@ -392,7 +392,7 @@ export default function HandHistoryImporter() {
                       </span>
                       {analysis && analysis.mistakes > 0 && (
                         <span style={{
-                          padding: '1px 5px', borderRadius: 3, fontSize: 9, fontWeight: 700,
+                          padding: '1px 5px', borderRadius: 3, fontSize: 12, fontWeight: 700,
                           background: 'rgba(239,68,68,0.2)', color: '#ef4444',
                         }}>
                           {analysis.mistakes} Err
@@ -405,7 +405,7 @@ export default function HandHistoryImporter() {
                       </div>
                     )}
                     {hand.stakes && (
-                      <div style={{ color: '#64748b', fontSize: 10, marginTop: 2 }}>
+                      <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
                         ${hand.stakes.sb}/${hand.stakes.bb}
                       </div>
                     )}
@@ -426,24 +426,24 @@ export default function HandHistoryImporter() {
                       {/* Hero Cards + Board */}
                       <div style={{ ...sectionStyle, display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
                         <div>
-                          <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Hero</div>
+                          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Hero</div>
                           <CardDisplay cards={hand.heroCards} />
                         </div>
                         {hand.board && (
                           <div>
-                            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
+                            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
                             <CardDisplay cards={hand.board} />
                           </div>
                         )}
                         {hand.potSize > 0 && (
                           <div>
-                            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pot</div>
+                            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pot</div>
                             <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 700 }}>${hand.potSize.toFixed(2)}</div>
                           </div>
                         )}
                         {hand.winner && (
                           <div>
-                            <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Winner</div>
+                            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Winner</div>
                             <div style={{ color: '#22c55e', fontSize: 13, fontWeight: 600 }}>
                               {hand.winner.name} (${hand.winner.amount.toFixed(2)})
                             </div>
@@ -454,7 +454,7 @@ export default function HandHistoryImporter() {
                       {/* Players */}
                       {hand.players.length > 0 && (
                         <div style={sectionStyle}>
-                          <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Players</div>
+                          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Players</div>
                           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                             {hand.players.map((p, i) => (
                               <div key={i} style={{
@@ -462,10 +462,10 @@ export default function HandHistoryImporter() {
                                 background: p.name === hand.heroName ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.04)',
                                 border: p.name === hand.heroName ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
                               }}>
-                                <span style={{ color: p.name === hand.heroName ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 600 }}>
+                                <span style={{ color: p.name === hand.heroName ? '#3b82f6' : '#94a3b8', fontSize: 12, fontWeight: 600 }}>
                                   {p.name}
                                 </span>
-                                <span style={{ color: '#64748b', fontSize: 10, marginLeft: 6 }}>
+                                <span style={{ color: '#64748b', fontSize: 12, marginLeft: 6 }}>
                                   ${p.stack.toFixed(2)}
                                 </span>
                               </div>
@@ -476,7 +476,7 @@ export default function HandHistoryImporter() {
 
                       {/* Actions + Analysis */}
                       <div style={sectionStyle}>
-                        <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
+                        <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>
                           Action Timeline
                         </div>
                         {hand.actions.map((action, i) => {
@@ -507,7 +507,7 @@ export default function HandHistoryImporter() {
                               )}
                               {dec && (
                                 <span style={{
-                                  marginLeft: 'auto', padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 700,
+                                  marginLeft: 'auto', padding: '1px 6px', borderRadius: 3, fontSize: 12, fontWeight: 700,
                                   background: ['best', 'correct'].includes(dec.grade) ? 'rgba(34,197,94,0.15)' : ['wrong', 'blunder'].includes(dec.grade) ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
                                   color: ['best', 'correct'].includes(dec.grade) ? '#22c55e' : ['wrong', 'blunder'].includes(dec.grade) ? '#ef4444' : '#f59e0b',
                                 }}>
@@ -531,21 +531,21 @@ export default function HandHistoryImporter() {
                           <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Verified Solver Audit</div>
                           <div style={{ display: 'flex', gap: 16 }}>
                             <div>
-                              <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>EV Lost</div>
+                              <div style={{ color: '#64748b', fontSize: 12, textTransform: 'uppercase' }}>EV Lost</div>
                               <div style={{ color: parseFloat(analysis.totalEVLoss) > 0.5 ? '#ef4444' : '#22c55e', fontSize: 16, fontWeight: 700 }}>
                                 {analysis.totalEVLoss} BB
                               </div>
                             </div>
                             <div>
-                              <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>Decisions</div>
+                              <div style={{ color: '#64748b', fontSize: 12, textTransform: 'uppercase' }}>Decisions</div>
                               <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>{analysis.decisions.length}</div>
                             </div>
                             <div>
-                              <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>Verified</div>
+                              <div style={{ color: '#64748b', fontSize: 12, textTransform: 'uppercase' }}>Verified</div>
                               <div style={{ color: '#22c55e', fontSize: 16, fontWeight: 700 }}>{analysis.verifiedDecisions}</div>
                             </div>
                             <div>
-                              <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>Mistakes</div>
+                              <div style={{ color: '#64748b', fontSize: 12, textTransform: 'uppercase' }}>Mistakes</div>
                               <div style={{ color: analysis.mistakes > 0 ? '#ef4444' : '#22c55e', fontSize: 16, fontWeight: 700 }}>{analysis.mistakes}</div>
                             </div>
                           </div>

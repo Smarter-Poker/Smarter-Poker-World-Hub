@@ -59,11 +59,11 @@ export default function FloatingStrategy() {
         <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3, textAlign: 'center', marginBottom: 8 }}>{spot.board}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Villain</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Villain</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>{spot.villain}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Your Hand</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Your Hand</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>{spot.you}</div>
           </div>
         </div>

@@ -119,7 +119,7 @@ function RadarChart({ data }) {
         const p = getPoint(i, 115);
         return (
           <text key={pos} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle"
-            fill={getMasteryColor(data[pos].mastery)} fontSize="9" fontWeight="700">
+            fill={getMasteryColor(data[pos].mastery)} fontSize='12px' fontWeight="700">
             {pos}
           </text>
         );
@@ -143,7 +143,7 @@ export default function PositionMasteryTracker() {
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Position Mastery</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Track Your Skill Level From Every Seat</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Track Your Skill Level From Every Seat</div>
         </div>
 
         {/* Summary */}
@@ -155,7 +155,7 @@ export default function PositionMasteryTracker() {
             { label: 'Total EV Loss', value: `${totalEVLoss.toFixed(1)}bb`, color: '#f59e0b' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
               <div style={{ color: s.color, fontSize: 18, fontWeight: 800 }}>{s.value}</div>
             </div>
           ))}
@@ -182,7 +182,7 @@ export default function PositionMasteryTracker() {
                     <div style={{ flex: 1, height: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 4, overflow: 'hidden' }}>
                       <div style={{ width: `${d.mastery}%`, height: '100%', background: getMasteryColor(d.mastery), borderRadius: 4 }} />
                     </div>
-                    <span style={{ color: getMasteryColor(d.mastery), fontSize: 11, fontWeight: 700, width: 35, textAlign: 'right' }}>{d.mastery}%</span>
+                    <span style={{ color: getMasteryColor(d.mastery), fontSize: 12, fontWeight: 700, width: 35, textAlign: 'right' }}>{d.mastery}%</span>
                   </div>
                 );
               })}
@@ -195,16 +195,16 @@ export default function PositionMasteryTracker() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ color: getMasteryColor(data.mastery), fontSize: 20, fontWeight: 800 }}>{selectedPos}</span>
             <span style={{ color: getMasteryColor(data.mastery), fontSize: 12, fontWeight: 600 }}>{getMasteryLabel(data.mastery)}</span>
-            <span style={{ color: '#64748b', fontSize: 10, marginLeft: 'auto' }}>{data.hands} Hands • {data.accuracy}% Accuracy</span>
+            <span style={{ color: '#64748b', fontSize: 12, marginLeft: 'auto' }}>{data.hands} Hands • {data.accuracy}% Accuracy</span>
           </div>
 
           {/* Street accuracy */}
           <div style={{ marginBottom: 10 }}>
-            <div style={{ color: '#475569', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Street Accuracy</div>
+            <div style={{ color: '#475569', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Street Accuracy</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
               {Object.entries(data.streets || {}).map(([street, acc]) => (
                 <div key={street} style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#64748b', fontSize: 8, textTransform: 'capitalize' }}>{street}</div>
+                  <div style={{ color: '#64748b', fontSize: 12, textTransform: 'capitalize' }}>{street}</div>
                   <div style={{ color: getMasteryColor(acc), fontSize: 16, fontWeight: 800 }}>{acc}%</div>
                 </div>
               ))}
@@ -213,14 +213,14 @@ export default function PositionMasteryTracker() {
 
           {/* Action accuracy */}
           <div style={{ marginBottom: 10 }}>
-            <div style={{ color: '#475569', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Action Accuracy</div>
+            <div style={{ color: '#475569', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Action Accuracy</div>
             {Object.entries(data.actions || {}).filter(([, v]) => v > 0).map(([action, acc]) => (
               <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <span style={{ color: '#94a3b8', fontSize: 9, width: 60, textTransform: 'capitalize' }}>{action}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12, width: 60, textTransform: 'capitalize' }}>{action}</span>
                 <div style={{ flex: 1, height: 6, background: 'rgba(0,0,0,0.3)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ width: `${acc}%`, height: '100%', background: getMasteryColor(acc), borderRadius: 3 }} />
                 </div>
-                <span style={{ color: getMasteryColor(acc), fontSize: 10, fontWeight: 700, width: 30, textAlign: 'right' }}>{acc}%</span>
+                <span style={{ color: getMasteryColor(acc), fontSize: 12, fontWeight: 700, width: 30, textAlign: 'right' }}>{acc}%</span>
               </div>
             ))}
           </div>
@@ -228,22 +228,22 @@ export default function PositionMasteryTracker() {
           {/* Strengths / Weaknesses */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <div style={{ color: '#22c55e', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Strengths</div>
+              <div style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Strengths</div>
               {data.strengths.map((s, i) => (
-                <div key={i} style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>✓ {s}</div>
+                <div key={i} style={{ color: '#94a3b8', fontSize: 12, marginBottom: 2 }}>✓ {s}</div>
               ))}
             </div>
             <div>
-              <div style={{ color: '#ef4444', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Weaknesses</div>
+              <div style={{ color: '#ef4444', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Weaknesses</div>
               {data.weaknesses.map((w, i) => (
-                <div key={i} style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>✕ {w}</div>
+                <div key={i} style={{ color: '#94a3b8', fontSize: 12, marginBottom: 2 }}>✕ {w}</div>
               ))}
             </div>
           </div>
 
           {/* EV Loss */}
           <div style={{ marginTop: 8, padding: '6px 8px', borderRadius: 4, background: 'rgba(239,68,68,0.06)', textAlign: 'center' }}>
-            <span style={{ color: '#ef4444', fontSize: 11, fontWeight: 600 }}>
+            <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}>
               EV Loss From {selectedPos}: -{data.evLoss.toFixed(1)}bb/100
             </span>
           </div>

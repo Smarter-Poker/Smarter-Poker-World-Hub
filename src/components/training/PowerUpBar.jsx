@@ -74,7 +74,7 @@ export default function PowerUpBar({
                     >
                         <span style={{ fontSize: compact ? 12 : 14 }}>{pu.icon}</span>
                         <span style={{
-                            fontSize: compact ? 9 : 10,
+                            fontSize: compact ? 12 : 12,
                             fontWeight: 700,
                             color: isActive ? pu.color : isUsed ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
                             letterSpacing: 0.5,
@@ -82,7 +82,7 @@ export default function PowerUpBar({
                             {isUsed ? 'USED' : isActive ? 'ACTIVE' : pu.cost}
                         </span>
                         {!isUsed && !isActive && (
-                            <span style={{ fontSize: compact ? 8 : 9, opacity: 0.5 }}>◆</span>
+                            <span style={{ fontSize: compact ? 12 : 12, opacity: 0.5 }}>◆</span>
                         )}
                     </button>
                 );

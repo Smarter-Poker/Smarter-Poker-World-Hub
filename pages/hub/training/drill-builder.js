@@ -307,7 +307,7 @@ export default function DrillBuilderPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -345,7 +345,7 @@ export default function DrillBuilderPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Custom Drill Builder
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Create Focused Practice Sessions</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Create Focused Practice Sessions</div>
           </div>
         </div>
 
@@ -363,7 +363,7 @@ export default function DrillBuilderPage() {
           <div style={{ marginBottom: 24 }}>
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
@@ -393,7 +393,7 @@ export default function DrillBuilderPage() {
                   >
                     {preset.name}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{preset.desc}</div>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{preset.desc}</div>
                 </motion.button>
               ))}
             </div>
@@ -413,7 +413,7 @@ export default function DrillBuilderPage() {
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -445,7 +445,7 @@ export default function DrillBuilderPage() {
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -471,7 +471,7 @@ export default function DrillBuilderPage() {
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -498,7 +498,7 @@ export default function DrillBuilderPage() {
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -525,7 +525,7 @@ export default function DrillBuilderPage() {
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -601,7 +601,7 @@ export default function DrillBuilderPage() {
             <div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -634,7 +634,7 @@ export default function DrillBuilderPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       {drill.title || drill.name}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                       {drill.config?.format?.toUpperCase()} |{' '}
                       {(drill.config?.positions || []).join(', ') || 'All Positions'} |{' '}
                       {(drill.config?.streets || []).join(', ') || 'All Streets'}
@@ -647,7 +647,7 @@ export default function DrillBuilderPage() {
                       background: 'rgba(0,212,255,0.08)',
                       border: '1px solid rgba(0,212,255,0.15)',
                       color: 'var(--sp-accent-cyan)',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                     }}
                   >

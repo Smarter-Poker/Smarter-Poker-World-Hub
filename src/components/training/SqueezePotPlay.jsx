@@ -48,7 +48,7 @@ export default function SqueezePotPlay() {
           <button key={i} onClick={() => setSpotIdx(i)}
             style={{ padding: '8px 6px', borderRadius: 8, border: spotIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: spotIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.title}</div>
           </button>
         ))}
       </div>

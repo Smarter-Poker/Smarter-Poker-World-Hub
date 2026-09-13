@@ -86,7 +86,7 @@ export default function AnimatedAccuracyBar({
                 marginBottom: 10,
             }}>
                 <div style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'rgba(255,255,255,0.4)',
                     letterSpacing: 1.5,
@@ -104,7 +104,7 @@ export default function AnimatedAccuracyBar({
                     </span>
                     {personalBest !== null && (
                         <span style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             color: isNewPB ? '#FFD700' : 'rgba(255,255,255,0.3)',
                             fontWeight: 600,
                         }}>
@@ -151,7 +151,7 @@ export default function AnimatedAccuracyBar({
                 display: 'flex',
                 justifyContent: 'space-between',
                 marginTop: 6,
-                fontSize: 8,
+                fontSize: 12,
                 color: 'rgba(255,255,255,0.2)',
                 fontWeight: 600,
             }}>

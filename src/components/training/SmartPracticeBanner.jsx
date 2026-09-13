@@ -78,7 +78,7 @@ function RecommendationCard({ rec, isPrimary = false, onStart }) {
                             </span>
                         )}
                         {Number.isFinite(rec.stats.avgEvLoss) && (
-                            <span style={{ color: '#ef4444', fontSize: 10, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                            <span style={{ color: '#ef4444', fontSize: 12, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                                 -{rec.stats.avgEvLoss.toFixed(2)}
                             </span>
                         )}
@@ -86,7 +86,7 @@ function RecommendationCard({ rec, isPrimary = false, onStart }) {
                 )}
             </div>
 
-            <div style={{ ...styles.recDesc, fontSize: isPrimary ? 11 : 10 }}>
+            <div style={{ ...styles.recDesc, fontSize: isPrimary ? 12 : 12 }}>
                 {rec.description}
             </div>
 
@@ -218,8 +218,8 @@ const styles = {
         display: 'flex', alignItems: 'center', gap: 6,
     },
     analyticsRow: { display: 'flex', gap: 8 },
-    analyticsStat: { fontSize: 10, color: '#475569', fontWeight: 600 },
-    loadingText: { color: '#64748b', fontSize: 11, textAlign: 'center', padding: 12 },
+    analyticsStat: { fontSize: 12, color: '#475569', fontWeight: 600 },
+    loadingText: { color: '#64748b', fontSize: 12, textAlign: 'center', padding: 12 },
     recCard: {
         padding: '10px 12px',
         borderRadius: 10,
@@ -240,7 +240,7 @@ const styles = {
     recTitleCol: { display: 'flex', alignItems: 'center', gap: 6 },
     recTitle: { fontWeight: 700 },
     priorityBadge: {
-        fontSize: 8, fontWeight: 700,
+        fontSize: 12, fontWeight: 700,
         padding: '1px 5px', borderRadius: 3,
         border: '1px solid', letterSpacing: 0.5,
     },
@@ -248,7 +248,7 @@ const styles = {
     recDesc: { color: '#64748b', lineHeight: 1.4, marginBottom: 6 },
     targetRow: { display: 'flex', gap: 4, marginBottom: 8 },
     targetChip: {
-        fontSize: 9, fontWeight: 700,
+        fontSize: 12, fontWeight: 700,
         padding: '2px 8px', borderRadius: 4,
         border: '1px solid', letterSpacing: 0.5,
     },
@@ -266,7 +266,7 @@ const styles = {
     altsToggle: {
         width: '100%', padding: '6px 0',
         background: 'none', border: 'none',
-        color: '#475569', fontSize: 10, fontWeight: 600,
+        color: '#475569', fontSize: 12, fontWeight: 600,
         cursor: 'pointer', display: 'flex', alignItems: 'center',
         justifyContent: 'center', gap: 4,
     },

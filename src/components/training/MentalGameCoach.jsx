@@ -59,7 +59,7 @@ export default function MentalGameCoach() {
             style={{ padding: '10px 6px', borderRadius: 10, border: moduleIdx === i ? `2px solid ${m.color}` : '1px solid rgba(255,255,255,0.06)',
               background: moduleIdx === i ? `${m.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 20 }}>{m.icon}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: moduleIdx === i ? m.color : '#64748b' }}>{m.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: moduleIdx === i ? m.color : '#64748b' }}>{m.title}</div>
           </button>
         ))}
       </div>

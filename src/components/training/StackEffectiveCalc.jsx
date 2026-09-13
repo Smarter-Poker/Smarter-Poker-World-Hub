@@ -73,7 +73,7 @@ export default function StackEffectiveCalc() {
       {/* Effective stack result */}
       <motion.div key={heroEffective} initial={{ scale: 0.95 }} animate={{ scale: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, textAlign: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Effective Stack (Hero)</div>
+        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Effective Stack (Hero)</div>
         <div style={{ fontSize: 36, fontWeight: 800, color: '#8b5cf6' }}>{heroEffective} BB</div>
         <div style={{ fontSize: 12, color: '#94a3b8' }}>
           {activePlayers.length} Active Players | Smallest Covers: {activePlayers.map(p => p.stack).sort((a,b) => a-b)[0]} BB
@@ -99,7 +99,7 @@ export default function StackEffectiveCalc() {
         ].map((s, i) => (
           <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.depth}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{s.hands}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.hands}</div>
           </div>
         ))}
       </div>

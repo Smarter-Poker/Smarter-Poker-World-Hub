@@ -164,7 +164,7 @@ export function HandStartSequence({
                                 background: 'rgba(0,0,0,0.8)',
                                 borderRadius: '4px',
                                 color: COLORS.cyan,
-                                fontSize: '10px',
+                                fontSize: '12px',
                                 fontWeight: 700,
                                 zIndex: 1001
                             }}>

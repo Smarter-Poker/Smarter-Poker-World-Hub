@@ -23,11 +23,11 @@ export default function PvPLobbyPage() {
         <meta name="description" content="Competitive training status and verified heads-up practice." />
       </Head>
       <UniversalHeader pageDepth={2} />
-      <main className="sp-training-command sp-training-command--pvp" style={{ minHeight: 'calc(100vh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 8%, #18394d 0, #060a11 44%, #020407 100%)', color: '#f7fbff' }}>
+      <main className="sp-training-command sp-training-command--pvp" style={{ minHeight: 'calc(100dvh - 70px)', padding: 'clamp(26px, 7vw, 82px) 18px', background: 'radial-gradient(circle at 50% 8%, #18394d 0, #060a11 44%, #020407 100%)', color: '#f7fbff' }}>
         <section className="sp-command-main" style={{ position: 'relative', maxWidth: 920, margin: '0 auto', border: '1px solid rgba(157,232,255,.46)', background: 'linear-gradient(145deg, rgba(18,42,59,.98), rgba(4,9,15,.99))', boxShadow: 'inset 0 1px rgba(255,255,255,.25), inset 0 -24px 55px rgba(0,0,0,.42), 0 32px 76px rgba(0,0,0,.55)', padding: 'clamp(24px, 5vw, 48px)' }}>
           <div aria-hidden="true" style={{ position: 'absolute', inset: 7, border: '1px solid rgba(93,201,240,.16)', pointerEvents: 'none' }} />
           <div style={{ position: 'relative' }}>
-            <div className="sp-command-header" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#ffcc71', fontSize: 10, fontWeight: 900, letterSpacing: '.18em', textTransform: 'uppercase' }}>
+            <div className="sp-command-header" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: '#ffcc71', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffb84d', boxShadow: '0 0 12px rgba(255,184,77,.8)' }} />
               Competitive Service Status
             </div>
@@ -37,7 +37,7 @@ export default function PvPLobbyPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 28 }}>
               {capabilityRows.map(([label, value]) => (
                 <div key={label} style={{ padding: '17px', border: '1px solid rgba(132,213,242,.18)', background: 'linear-gradient(180deg, rgba(39,75,96,.34), rgba(3,9,14,.68))', boxShadow: 'inset 0 1px rgba(255,255,255,.12)' }}>
-                  <div style={{ color: '#6f8b9e', fontSize: 9, fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>{label}</div>
+                  <div style={{ color: '#6f8b9e', fontSize: 12, fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</div>
                   <div style={{ marginTop: 6, color: value === 'Available' ? '#77f2b4' : '#d8e7ef', fontSize: 14, fontWeight: 800 }}>{value}</div>
                 </div>
               ))}

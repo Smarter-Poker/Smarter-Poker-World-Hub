@@ -355,8 +355,8 @@ body.world-training .sp-level-game-info {
 body.world-training .sp-level-eyebrow {
     margin-bottom: 8px;
     color: #78dfff;
-    font: 700 10px/1.2 var(--font-jetbrains-mono, monospace);
-    letter-spacing: .2em;
+    font: 700 12px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: 0.04em;
     text-transform: uppercase !important;
 }
 
@@ -401,7 +401,7 @@ body.world-training .sp-level-stats strong {
 
 body.world-training .sp-level-stats span {
     color: #7f9eae;
-    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
+    font: 700 12px/1.2 var(--font-jetbrains-mono, monospace);
     letter-spacing: .09em;
     text-transform: uppercase !important;
 }
@@ -449,8 +449,8 @@ body.world-training .sp-level-command-art-label {
     align-items: end;
     gap: 12px;
     color: #cdefff;
-    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
-    letter-spacing: .12em;
+    font: 700 12px/1.2 var(--font-jetbrains-mono, monospace);
+    letter-spacing: 0.04em;
     text-transform: uppercase !important;
 }
 
@@ -546,8 +546,8 @@ body.world-training .sp-setup-live {
     left: 18px;
     bottom: 14px;
     color: #c8f3ff;
-    font: 700 9px/1 var(--font-jetbrains-mono, monospace);
-    letter-spacing: .14em;
+    font: 700 12px/1 var(--font-jetbrains-mono, monospace);
+    letter-spacing: 0.04em;
     text-transform: uppercase !important;
 }
 
@@ -602,8 +602,8 @@ body.world-training .sp-setup-config-heading > div {
 
 body.world-training .sp-setup-config-heading span {
     color: #7e9cab;
-    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
-    letter-spacing: .11em;
+    font: 700 12px/1.3 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .04em;
     text-transform: uppercase !important;
 }
 
@@ -666,8 +666,8 @@ body.world-training .sp-setup-launch > div {
 
 body.world-training .sp-setup-launch span {
     color: #7897a8;
-    font: 700 9px/1.2 var(--font-jetbrains-mono, monospace);
-    letter-spacing: .1em;
+    font: 700 12px/1.3 var(--font-jetbrains-mono, monospace);
+    letter-spacing: .04em;
     text-transform: uppercase !important;
 }
 
@@ -737,7 +737,7 @@ body.world-training .sp-arena-review__classification {
     background: rgba(3, 13, 21, .72);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
     body.world-training .sp-level-header {
         width: calc(100% - 16px);
         margin-top: 8px;
@@ -755,7 +755,7 @@ body.world-training .sp-arena-review__classification {
     body.world-training .sp-level-command-nav .sp-level-back {
         min-height: 40px;
         padding: 8px 10px !important;
-        font-size: 11px !important;
+        font-size: 12px !important;
     }
 
     body.world-training .sp-level-command-nav .sp-level-category {
@@ -784,7 +784,7 @@ body.world-training .sp-arena-review__classification {
     }
 
     body.world-training .sp-level-stats span {
-        font-size: 8px;
+        font-size: 12px;
     }
 
     body.world-training .sp-level-command-art {
@@ -825,8 +825,12 @@ body.world-training .sp-arena-review__classification {
         align-items: flex-start;
     }
 
+    /* MOBILE PHASE 5: the eyebrow stays. It was `display: none` here, which
+       left 'Configure Your Session' with nothing naming the deck it belongs
+       to. It is one short line at 12px. */
     body.world-training .sp-setup-config-heading > span {
-        display: none;
+        font-size: 12px;
+        line-height: 1.3;
     }
 
     body.world-training .sp-setup-field-grid {
@@ -847,8 +851,21 @@ body.world-training .sp-arena-review__classification {
         padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
     }
 
+    /* MOBILE PHASE 5: the readiness readout stays. It was culled here, so the
+       phone showed a Start button with no statement of whether the table was
+       actually up. It sits above the button instead of beside it. */
+    body.world-training .sp-setup-launch {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
     body.world-training .sp-setup-launch > div {
-        display: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        font-size: 12px;
     }
 
     body.world-training .sp-setup-launch button {
@@ -1010,9 +1027,9 @@ body.world-training .sp-dynamics-instrument header > span,
 body.world-training .sp-dynamics-seat-ledger header > span,
 body.world-training .sp-dynamics-adjustments header > span {
     color: #7be8ff;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: .16em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -1041,21 +1058,21 @@ body.world-training .sp-dynamics-source {
 body.world-training .sp-dynamics-source span,
 body.world-training .sp-dynamics-source small {
     color: #91a7b2;
-    font-size: 8px;
-    letter-spacing: .1em;
+    font-size: 12px;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
 body.world-training .sp-dynamics-source strong {
     color: #8eeaff;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 body.world-training .sp-dynamics-dock {
     min-width: 122px;
     padding: 0 14px;
     font-family: var(--font-orbitron, 'Orbitron', sans-serif);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
 }
@@ -1097,13 +1114,13 @@ body.world-training .sp-dynamics-scenario-rail button {
 
 body.world-training .sp-dynamics-scenario-rail button > span {
     color: #78909b;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 body.world-training .sp-dynamics-scenario-rail button > strong {
     color: inherit;
     font-family: var(--font-orbitron, 'Orbitron', sans-serif);
-    font-size: 10px;
+    font-size: 12px;
 }
 
 body.world-training .sp-dynamics-scenario-rail button[aria-pressed='true'] {
@@ -1135,8 +1152,8 @@ body.world-training .sp-dynamics-classification div {
 
 body.world-training .sp-dynamics-classification div > span {
     color: #8198a4;
-    font-size: 9px;
-    letter-spacing: .12em;
+    font-size: 12px;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -1174,7 +1191,7 @@ body.world-training .sp-dynamics-metric {
 
 body.world-training .sp-dynamics-metric span {
     color: #a6bbc5;
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -1238,7 +1255,7 @@ body.world-training .sp-dynamics-meter__label {
     justify-content: space-between;
     margin-bottom: 4px;
     color: #b8c9d1;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 body.world-training .sp-dynamics-meter__label strong {
@@ -1282,7 +1299,7 @@ body.world-training .sp-dynamics-stack > span,
 body.world-training .sp-dynamics-stack > strong {
     overflow: hidden;
     color: inherit;
-    font-size: 8px;
+    font-size: 12px;
     white-space: nowrap;
 }
 
@@ -1329,7 +1346,7 @@ body.world-training .sp-dynamics-table-scroll table {
     width: 100%;
     border-collapse: collapse;
     color: #dbe7ec;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 body.world-training .sp-dynamics-table-scroll th,
@@ -1383,16 +1400,16 @@ body.world-training .sp-dynamics-adjustment {
 
 body.world-training .sp-dynamics-adjustment > span {
     color: currentColor;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: .13em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
 body.world-training .sp-dynamics-adjustment p {
     margin: 6px 0 0;
     color: #d2dfe4;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.5;
 }
 
@@ -1402,7 +1419,7 @@ body.world-training .sp-dynamics-adjustment--danger { color: #ff7777; }
 body.world-training .sp-dynamics-adjustment--info { color: #64bdff; }
 body.world-training .sp-dynamics-adjustment--accent { color: #c293ff; }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
     body.world-training .sp-dynamics-panel--floating {
         top: 3vh;
         right: 3vw;
@@ -1472,7 +1489,7 @@ body.world-training .sp-dynamics-adjustment--accent { color: #c293ff; }
     }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 600px) {
     body.world-training .sp-dynamics-header__actions {
         flex-direction: column;
     }
@@ -1749,7 +1766,7 @@ body.world-training .sp-command-verdict > div {
 
 body.world-training .sp-command-verdict > div span {
     color: #95afba;
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
@@ -1768,7 +1785,7 @@ body.world-training .sp-command-verdict p {
 body.world-training .sp-command-verdict em {
     display: block;
     color: #9bb3bd;
-    font-size: 11px;
+    font-size: 12px;
     font-style: normal;
 }
 
@@ -1859,7 +1876,7 @@ body.world-training .sp-training-command :focus-visible {
     }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 600px) {
     body.world-training .sp-command-metric-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
@@ -2409,11 +2426,11 @@ body.world-training {
    responsive heavy lifting so trainer code stays declarative. Three patterns:
 
    [data-pills-row]
-     A horizontal selector row (positions / scenarios / chart types). Below
-     600px the row becomes a horizontal-scroll strip with momentum + snap,
-     so 8 positions don't wrap into 4 visual rows of pills. Scrollbar is
-     hidden but the row stays keyboard- and swipe-navigable. Above 600px the
-     row keeps its normal flex-wrap behavior — no change for tablet/desktop.
+     A horizontal selector row (positions / scenarios / chart types). It WRAPS
+     on every viewport. Below 600px it used to become a hidden-scrollbar snap
+     strip, which is the "slide to see" Dan banned: with eight positions, four
+     of them sat off the right edge and nothing on screen said so. See the
+     rule itself for the reasoning and what replaced it.
 
    [data-stats-grid]
      A small stats strip (Accuracy / Correct / EV-loss / Streak). Below 480px
@@ -2431,30 +2448,49 @@ body.world-training {
    completely unaffected.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* [data-pills-row] — horizontal scroll on narrow viewports */
+/* [data-pills-row]: EVERY pill is on screen. Mobile phase 5.
+   docs/mobile-standard/ALWAYS-DISPLAYED-MOBILE-STANDARD.md
+
+   This is the single highest-leverage rule on the Training surface: six pages
+   opt in (preflop-charts, hand-comparison, spot-trainer, range-builder,
+   scenario-demo, multiway-preflop), so one definition decides whether all six
+   hide their selectors or show them.
+
+   Below 600px it used to force the row to one line, make it scroll sideways,
+   snap it, and suppress the scrollbar in all three engines. Its own comment
+   explained why: "so 8 positions don't wrap into 4 visual rows of pills". The
+   intent was real - a four-row pill stack pushes the trainer below the fold -
+   but the fix traded a tall row for a hidden one, and with the scrollbar
+   suppressed nothing on screen said four positions existed off the right
+   edge. (The banned declarations are named in
+   __tests__/no-slide-to-see.law.test.mjs, not quoted here: that guard reads
+   lines, so a comment repeating them verbatim would itself be a violation.)
+
+   A WRAPPING GRID keeps both: the pills are all visible AND the row stays
+   short, because auto-fit packs eight of them into two rows of four at 375
+   instead of four rows of two. `minmax(0, 1fr)` rather than a bare `1fr`
+   because a bare 1fr is minmax(auto, 1fr), and one pill whose label will not
+   break then sets the track to its own min-content width and pushes the grid
+   past the right edge. */
 @media (max-width: 600px) {
     body.world-training [data-pills-row] {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        /* Bleed into safe-areas left/right so first/last pill can fully scroll on */
-        scroll-padding-inline: 16px;
-        padding-bottom: 4px; /* keep focus rings from being clipped by overflow */
-    }
-    body.world-training [data-pills-row]::-webkit-scrollbar {
-        display: none;
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)) !important;
+        gap: 6px;
+        padding-bottom: 4px; /* keep focus rings from being clipped */
     }
     body.world-training [data-pills-row] > * {
-        flex: 0 0 auto;
-        scroll-snap-align: start;
+        min-width: 0;
+        width: 100%;
     }
 }
 
-/* [data-stats-grid] — drop 4-col → 2-col below 480px */
-@media (max-width: 480px) {
+/* [data-stats-grid]: drop 4 columns to 2 at the 600px band and below. Raised
+   from 480 by MOBILE PHASE 5, because the standard sanctions three
+   breakpoints only (900, 768, 600). Four stat columns inside a 599px viewport
+   is about 140px a cell, which is the tight end of legible, so two columns is
+   the safe side of the same intent. */
+@media (max-width: 600px) {
     body.world-training [data-stats-grid] {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 6px !important;
@@ -2482,9 +2518,14 @@ body.world-training {
 }
 
 /* =========================================================================
-   375px IPHONE SE RESPONSIVE PASS (ITEM #48)
+   SMALL-PHONE RESPONSIVE PASS (ITEM #48)
+   Authored as a 375px iPhone SE pass; raised to the sanctioned 600px band by
+   MOBILE PHASE 5. Every rule in here relaxes a width cap or shrinks an
+   oversized inline font, so widening the band cannot hide anything: a 400px
+   card goes full width and a 48px headline lands at 32px from 600 down, both
+   of which are what the mobile standard asks for at phone widths anyway.
    ========================================================================= */
-@media (max-width: 375px) {
+@media (max-width: 600px) {
     /* 1. Audit all flex containers: Prevent horizontal overflow */
     body.world-training [style*="display: flex"] {
         max-width: 100vw !important;
@@ -2673,10 +2714,17 @@ body.world-training .sp-training-route-shell:not([data-training-route='/hub/trai
     box-shadow: 0 0 70px rgba(0, 0, 0, 0.52), inset 0 0 48px rgba(35, 215, 255, 0.025);
 }
 
+/* These match the SERIALIZED inline style of arena descendants, so the unit in
+   the selector has to track the unit in the JSX. The arena tree now writes
+   100dvh; the 100vh arm stays because any component reached from this stage
+   that has not been converted yet still serializes the old unit, and losing
+   the match here is a full-height table under the URL bar, not a small drift. */
+body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100dvh'],
 body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100vh'] {
     height: calc(100dvh - 59px) !important;
 }
 
+body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='min-height: 100dvh'],
 body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='min-height: 100vh'] {
     min-height: calc(100dvh - 59px) !important;
 }
@@ -2782,10 +2830,13 @@ body.world-training .sp-training-tool--tournaments button[aria-pressed='true'] {
         padding: 34px 14px 40px !important;
     }
 
+    /* Same two-unit match as the desktop rule above, for the same reason. */
+    body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100dvh'],
     body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='height: 100vh'] {
         height: calc(100dvh - 35px) !important;
     }
 
+    body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='min-height: 100dvh'],
     body.world-training .sp-training-route-shell[data-training-route='/hub/training/arena/[gameId]'] .sp-training-page-stage [style*='min-height: 100vh'] {
         min-height: calc(100dvh - 35px) !important;
     }
@@ -3771,7 +3822,7 @@ body.world-training .sp-training-intelligence :focus-visible {
     }
 }
 
-@media (max-width: 430px) {
+@media (max-width: 600px) {
     body.world-training .sp-training-intelligence [style*="grid-template-columns: repeat(3"],
     body.world-training .sp-training-intelligence--session-dashboard [style*="minmax(280px"] {
         grid-template-columns: minmax(0, 1fr) !important;
@@ -3807,7 +3858,7 @@ body.world-training .sp-training-command--coach.sp-coach-casino {
     isolation: isolate;
     width: 100%;
     max-width: 100vw;
-    min-height: 100vh;
+    min-height: 100dvh;
     /* clip, not hidden. `hidden` on one axis computes the other to `auto`,
        which makes this a scroll container - and WebKit then resolves fixed
        descendants against IT instead of the viewport. On this page that is the
@@ -3925,9 +3976,9 @@ body.world-training .sp-training-command--coach .sp-coach-kicker {
     margin-bottom: 17px;
     color: #a8c1cd;
     font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.23em;
+    letter-spacing: 0.04em;
     line-height: 1.4;
     text-transform: uppercase;
 }
@@ -3998,7 +4049,7 @@ body.world-training .sp-training-command--coach .sp-coach-primary {
         0 12px 22px rgba(0, 0, 0, 0.55),
         0 0 23px rgba(var(--coach-blue-rgb), 0.2);
     font-family: var(--font-orbitron, 'Orbitron'), sans-serif !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     font-weight: 750 !important;
     letter-spacing: 0.055em;
     line-height: 1.2;
@@ -4046,9 +4097,9 @@ body.world-training .sp-training-command--coach .sp-coach-completion strong {
 
 body.world-training .sp-training-command--coach .sp-coach-completion span {
     max-width: 86px;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.11em;
+    letter-spacing: 0.04em;
     line-height: 1.35;
     text-transform: uppercase;
 }
@@ -4058,7 +4109,8 @@ body.world-training .sp-training-command--coach button.sp-coach-back {
     align-items: center;
     gap: 9px;
     min-width: 0 !important;
-    min-height: 38px;
+    /* 44px, the global touch floor. It was 38. */
+    min-height: 44px;
     padding: 0 13px !important;
     border: 1px solid rgba(159, 182, 193, 0.48) !important;
     border-top-color: rgba(237, 247, 250, 0.7) !important;
@@ -4066,9 +4118,9 @@ body.world-training .sp-training-command--coach button.sp-coach-back {
     color: #cfdae0 !important;
     background: linear-gradient(180deg, #1b252c, #060a0d 76%) !important;
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.13), 0 5px 13px rgba(0, 0, 0, 0.45);
-    font-size: 10px !important;
+    font-size: 12px !important;
     font-weight: 650 !important;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     cursor: pointer;
 }
@@ -4094,8 +4146,8 @@ body.world-training .sp-training-command--coach .sp-coach-hero-plate {
     color: #8ea4ae;
     background: rgba(1, 5, 8, 0.78);
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.09), 0 8px 25px #000;
-    font-size: 9px;
-    letter-spacing: 0.15em;
+    font-size: 12px;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 
@@ -4127,9 +4179,9 @@ body.world-training .sp-training-command--coach .sp-coach-section-header span {
     display: block;
     margin-bottom: 4px;
     color: #78909b;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 650;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4148,9 +4200,9 @@ body.world-training .sp-training-command--coach .sp-coach-section-header p {
     gap: 10px;
     margin: 0 0 3px;
     color: #94a5ad;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4263,9 +4315,9 @@ body.world-training .sp-training-command--coach .sp-coach-module-complete {
     color: #dce9ee;
     background: rgba(1, 5, 8, 0.82);
     box-shadow: 0 5px 15px #000;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4313,9 +4365,9 @@ body.world-training .sp-training-command--coach .sp-coach-module-data {
     gap: 10px;
     margin-top: 16px;
     color: #718994;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 650;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4344,9 +4396,9 @@ body.world-training .sp-training-command--coach .sp-coach-module-action {
     color: #dce8ed;
     background: linear-gradient(180deg, #18232a, #070b0e 72%);
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 5px 12px rgba(0, 0, 0, 0.5);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4382,9 +4434,9 @@ body.world-training .sp-training-command--coach .sp-coach-phase-readout span {
     display: block;
     margin-bottom: 2px;
     color: #738a94;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 650;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 
@@ -4406,9 +4458,9 @@ body.world-training .sp-training-command--coach .sp-coach-phase-readout {
 body.world-training .sp-training-command--coach .sp-coach-phase-readout strong {
     color: var(--coach-blue);
     font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 550;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
 }
 
 body.world-training .sp-training-command--coach .sp-coach-progress {
@@ -4446,9 +4498,9 @@ body.world-training .sp-training-command--coach .sp-coach-progress-labels {
     align-items: center;
     justify-content: space-between;
     color: #d8e6ec;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.04em;
     text-shadow: 0 1px 4px #000;
     text-transform: uppercase;
 }
@@ -4506,9 +4558,9 @@ body.world-training .sp-training-command--coach .sp-coach-visual-label {
 body.world-training .sp-training-command--coach .sp-coach-visual-label span {
     display: block;
     color: var(--coach-blue);
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4565,9 +4617,9 @@ body.world-training .sp-training-command--coach .sp-coach-console-meta {
 body.world-training .sp-training-command--coach .sp-coach-console-meta span {
     display: block;
     color: #718994;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4644,7 +4696,7 @@ body.world-training .sp-training-command--coach .sp-coach-option-key {
     background: linear-gradient(180deg, #202c33, #05080a);
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 4px 10px #000;
     font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 body.world-training .sp-training-command--coach .sp-coach-option > i {
@@ -4716,9 +4768,9 @@ body.world-training .sp-training-command--coach .sp-coach-verdict-status {
 body.world-training .sp-training-command--coach .sp-coach-verdict-status span,
 body.world-training .sp-training-command--coach .sp-coach-verdict-answer span {
     color: #78909a;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -4767,7 +4819,7 @@ body.world-training .sp-training-command--coach .sp-coach-verdict > em {
     display: block;
     margin-bottom: 17px;
     color: #6f8792;
-    font-size: 9px;
+    font-size: 12px;
     font-style: normal;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -4847,13 +4899,13 @@ body.world-training .sp-training-command--coach .sp-coach-score strong span {
 body.world-training .sp-training-command--coach .sp-coach-score small {
     margin-top: 7px;
     color: #718994;
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 650;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
-@media (max-width: 1020px) {
+@media (max-width: 900px) {
     body.world-training .sp-training-command--coach .sp-command-grid--lessons.sp-coach-module-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
@@ -4964,8 +5016,17 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
         text-align: right;
     }
 
+    /* MOBILE PHASE 5: the phase readout stays. Culling it took the one thing
+       that says which phase of the lesson the player is in off the phone. It
+       moves under the title rather than beside it. */
     body.world-training .sp-training-command--coach .sp-coach-phase-readout {
-        display: none;
+        grid-column: 1 / -1;
+        justify-self: stretch;
+        padding-left: 0;
+        border-left: 0;
+        border-top: 1px solid #31414a;
+        padding-top: 8px;
+        text-align: left;
     }
 
     body.world-training .sp-training-command--coach .sp-coach-stage {
@@ -5040,7 +5101,7 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
     body.world-training .sp-training-command--coach .sp-coach-hero {
         min-height: 676px;
     }
@@ -5057,8 +5118,10 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
         width: 100%;
     }
 
+    /* MOBILE PHASE 5: kept and allowed to wrap rather than culled. */
     body.world-training .sp-training-command--coach .sp-coach-hero-plate span {
-        display: none;
+        font-size: 12px;
+        line-height: 1.3;
     }
 
     body.world-training .sp-training-command--coach .sp-coach-module-name {
@@ -5073,13 +5136,21 @@ body.world-training .sp-training-command--coach .sp-coach-score small {
         font-size: 12px;
     }
 
+    /* MOBILE PHASE 5: the back button keeps its words. Culling the span left a
+       bare arrow, which is the one control on the page a lost player reaches
+       for. 'All Modules' and 'Training Hub' are three words. */
     body.world-training .sp-training-command--coach button.sp-coach-back > span {
-        display: none;
+        font-size: 12px;
+        white-space: nowrap;
     }
 
+    /* MOBILE PHASE 5: 44px, not 39, and it keeps its label rather than
+       collapsing to a square icon. A back control under the touch floor is
+       the one control a lost player reaches for. */
     body.world-training .sp-training-command--coach button.sp-coach-back {
-        width: 39px !important;
-        padding: 0 !important;
+        min-width: 44px !important;
+        min-height: 44px;
+        padding: 0 12px !important;
         justify-content: center;
     }
 

@@ -1249,6 +1249,13 @@ function GlobalStyle() {
          "boxes" defect reported against the training dashboard. It was never a
          font-loading failure: Orbitron loads fine and document.fonts.check()
          passes for digits. Data numerals therefore use Inter with tabular
+         figures
+      /* 2026-07-26 · VERIFIED ON SCREEN. Orbitron's zero is a squared glyph with
+         a diagonal slash. At the 22px stat size it reads as a missing-glyph box,
+         so a dashboard of zeroes looked like four broken tiles -- this was the
+         "boxes" defect reported against the training dashboard. It was never a
+         font-loading failure: Orbitron loads fine and document.fonts.check()
+         passes for digits. Data numerals therefore use Inter with tabular
          figures; Orbitron stays on the display numerals (.sp-grade-letter),
          where it is large enough to read as deliberate. */
       .sp-stat-value.sp-num { font-family: var(--font-inter), 'Inter', system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0; }
@@ -1260,7 +1267,7 @@ function GlobalStyle() {
           radial-gradient(60% 60% at 80% -10%, rgba(0,212,255,0.10), transparent 60%),
           radial-gradient(50% 50% at 0% 30%, rgba(192,132,252,0.08), transparent 60%);
       }
-      @media (max-width: 720px) { .sp-main { padding: 16px 16px 110px; } }
+      @media (max-width: 768px) { .sp-main { padding: 16px 16px 110px; } }
       .sp-main > section + section { margin-top: 32px; }
 
       .sp-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -1277,7 +1284,7 @@ function GlobalStyle() {
         padding: 24px;
         display: grid; gap: 24px; grid-template-columns: 1.2fr 1fr; align-items: center;
       }
-      @media (max-width: 860px) { .sp-hero { grid-template-columns: 1fr; padding: 20px; } }
+      @media (max-width: 900px) { .sp-hero { grid-template-columns: 1fr; padding: 20px; } }
       .sp-hero-eyebrow { font-size: 12px; color: var(--sp-ink-2); margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
       .sp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sp-good); box-shadow: 0 0 0 4px rgba(34,197,94,0.18); }
       .sp-hero-title { font-size: 26px; font-weight: 600; line-height: 1.25; letter-spacing: -0.4px; margin: 0 0 6px; color: var(--sp-ink-0); }
@@ -1311,7 +1318,7 @@ function GlobalStyle() {
       .sp-grade-value { font-size: 14px; color: var(--sp-ink-1); margin: 0 0 10px; }
       .sp-progress { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
       .sp-progress-fill { height: 100%; background: linear-gradient(90deg, var(--sp-good), var(--sp-primary)); border-radius: 999px; }
-      .sp-grade-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--sp-ink-3); margin-top: 6px; }
+      .sp-grade-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--sp-ink-3); margin-top: 6px; }
 
       /* Loading skeletons · avoid layout shift while real data loads */
       .sp-skel-text { color: transparent; background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 100%); background-size: 200% 100%; animation: sp-shimmer 1.4s ease-in-out infinite; border-radius: 6px; }
@@ -1320,8 +1327,8 @@ function GlobalStyle() {
       @keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
       .sp-leak { border-radius: var(--sp-r-lg); border: 1px solid rgba(245,158,11,0.30); background: linear-gradient(180deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02)); padding: 18px 20px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
-      @media (max-width: 720px) { .sp-leak { grid-template-columns: 1fr; } }
-      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--sp-warn); padding: 4px 10px; border-radius: 9999px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); }
+      @media (max-width: 768px) { .sp-leak { grid-template-columns: 1fr; } }
+      .sp-leak-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sp-warn); padding: 4px 10px; border-radius: 9999px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); }
       .sp-leak-title { font-size: 17px; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.2px; color: var(--sp-ink-0); }
       .sp-leak-body { font-size: 14px; color: var(--sp-ink-1); margin: 0; line-height: 1.5; }
       .sp-leak-body b { color: var(--sp-warn); font-weight: 500; }
@@ -1333,35 +1340,35 @@ function GlobalStyle() {
       .sp-progress-blank { border-style: dashed; text-align: center; padding: 32px 16px; }
       .sp-progress-note { color: var(--sp-ink-2); font-size: 13px; }
       .sp-progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-      @media (max-width: 720px) { .sp-progress-grid { grid-template-columns: 1fr; } }
-      .sp-progress-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sp-ink-3); margin-bottom: 8px; }
+      @media (max-width: 768px) { .sp-progress-grid { grid-template-columns: 1fr; } }
+      .sp-progress-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sp-ink-3); margin-bottom: 8px; }
       .sp-progress-meta { margin-top: 6px; font-size: 12px; color: var(--sp-ink-2); }
       .sp-progress-meta b { color: var(--sp-ink-0); }
       .sp-prow { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-      .sp-prow-pos { width: 32px; flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--sp-ink-1); }
+      .sp-prow-pos { width: 32px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--sp-ink-1); }
       .sp-prow-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.05); overflow: hidden; }
       .sp-prow-fill { display: block; height: 100%; border-radius: 3px; }
-      .sp-prow-val { width: 38px; text-align: right; font-size: 11px; font-weight: 700; color: var(--sp-ink-0); }
-      .sp-prow-n { width: 34px; text-align: right; font-size: 10px; color: var(--sp-ink-3); }
+      .sp-prow-val { width: 38px; text-align: right; font-size: 12px; font-weight: 700; color: var(--sp-ink-0); }
+      .sp-prow-n { width: 34px; text-align: right; font-size: 12px; color: var(--sp-ink-3); }
       .sp-plist { list-style: none; margin: 0; padding: 0; }
       .sp-plist-row { display: flex; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--sp-line); font-size: 12px; }
       .sp-plist-row:last-child { border-bottom: none; }
-      .sp-plist-date { width: 78px; flex-shrink: 0; color: var(--sp-ink-3); font-size: 11px; }
+      .sp-plist-date { width: 78px; flex-shrink: 0; color: var(--sp-ink-3); font-size: 12px; }
       .sp-plist-game { flex: 1; color: var(--sp-ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .sp-plist-score { width: 42px; text-align: right; font-weight: 700; }
       .sp-plist-acc { width: 40px; text-align: right; color: var(--sp-ink-0); }
       .sp-plist-ev { width: 48px; text-align: right; color: var(--sp-bad); }
 
       .sp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-      @media (max-width: 720px) { .sp-stats { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 768px) { .sp-stats { grid-template-columns: repeat(2, 1fr); } }
       .sp-stat { background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); padding: 14px 16px; }
       .sp-stat-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sp-ink-2); margin-bottom: 6px; }
       .sp-stat-value { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.1; color: var(--sp-ink-0); }
       .sp-stat-unit { font-size: 12px; color: var(--sp-ink-2); margin-left: 4px; font-weight: 400; }
-      .sp-stat-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; margin-top: 4px; }
+      .sp-stat-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; margin-top: 4px; }
       .sp-stat-trend.sp-up { color: var(--sp-good); }
       .sp-stat-trend.sp-down { color: var(--sp-bad); }
-      .sp-stat-sub { font-size: 11px; color: var(--sp-ink-3); margin-top: 4px; }
+      .sp-stat-sub { font-size: 12px; color: var(--sp-ink-3); margin-top: 4px; }
 
       .sp-data-unavailable {
         display: flex; align-items: center; gap: 12px; min-height: 88px; padding: 16px;
@@ -1380,7 +1387,7 @@ function GlobalStyle() {
       }
       .sp-data-retry:hover { background: rgba(0,212,255,0.18); border-color: var(--sp-primary); }
       .sp-data-retry:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
-      @media (max-width: 540px) {
+      @media (max-width: 600px) {
         .sp-data-unavailable { align-items: flex-start; flex-wrap: wrap; }
         .sp-data-retry { width: 100%; }
       }
@@ -1392,17 +1399,22 @@ function GlobalStyle() {
       .sp-search input::placeholder { color: var(--sp-ink-3); }
       .sp-search input:focus { border-color: var(--sp-primary); background: rgba(0,212,255,0.04); }
 
-      .sp-cat-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
-      .sp-cat-chips::-webkit-scrollbar { display: none; }
-      .sp-cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; min-height: 40px; flex: 0 0 auto; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-line); color: var(--sp-ink-1); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+      /* MOBILE PHASE 5. Every category is on screen. This row used to scroll
+         sideways with its scrollbar suppressed, so half the categories sat
+         off the right edge with nothing saying they were there. A wrapping
+         row keeps them all visible and costs one extra line.
+         (No backticks in this block: it is inside a styled-jsx template
+         literal, and one would end the string mid-stylesheet.) */
+      .sp-cat-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0 14px; }
+      .sp-cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; min-height: 44px; flex: 0 1 auto; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--sp-line); color: var(--sp-ink-1); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
       .sp-cat-chip:hover { background: rgba(255,255,255,0.07); }
       .sp-cat-chip[aria-pressed="true"] { background: var(--sp-primary); color: var(--sp-primary-ink); border-color: var(--sp-primary); }
       .sp-cat-chip:focus-visible { outline: 2px solid var(--sp-primary); outline-offset: 2px; }
-      .sp-cat-count { color: var(--sp-ink-3); font-size: 11px; margin-left: 2px; }
+      .sp-cat-count { color: var(--sp-ink-3); font-size: 12px; margin-left: 2px; }
       .sp-cat-chip[aria-pressed="true"] .sp-cat-count { color: rgba(0,26,34,0.55); }
 
       .sp-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-      @media (max-width: 540px) { .sp-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 600px) { .sp-grid { grid-template-columns: 1fr; } }
 
       .sp-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid var(--sp-line); border-radius: var(--sp-r-md); overflow: hidden; transition: transform .15s, border-color .15s, background .15s; text-align: left; width: 100%; cursor: pointer; padding: 0; color: inherit; }
       .sp-card:hover { transform: translateY(-2px); border-color: var(--sp-line-2); background: rgba(255,255,255,0.05); }
@@ -1413,13 +1425,13 @@ function GlobalStyle() {
       .sp-card-cover-shade { position: absolute; inset: 0; background: radial-gradient(70% 90% at 30% 20%, var(--cover-glow, rgba(0,212,255,0.18)), transparent 60%), linear-gradient(180deg, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.55) 100%); pointer-events: none; z-index: 1; }
       .sp-card-badges { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; gap: 8px; z-index: 2; align-items: flex-start; }
       .sp-cat-pill { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); border: 1px solid var(--sp-line-2); color: var(--cat-color, var(--sp-primary)); flex: 0 0 auto; }
-      .sp-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; min-height: 22px; border-radius: 9999px; font-size: 11px; font-weight: 500; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); border: 1px solid var(--sp-line); color: var(--sp-ink-0); }
+      .sp-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; min-height: 22px; border-radius: 9999px; font-size: 12px; font-weight: 500; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); border: 1px solid var(--sp-line); color: var(--sp-ink-0); }
       .sp-badge-mastered { background: rgba(34,197,94,0.18); border-color: rgba(34,197,94,0.4); color: #BBF7D0; }
       .sp-badge-new      { background: rgba(0,212,255,0.18); border-color: rgba(0,212,255,0.4); color: #BAE6FD; }
       .sp-badge-locked   { background: rgba(100,116,139,0.18); border-color: rgba(100,116,139,0.4); color: var(--sp-ink-2); }
       .sp-badge-rec      { background: rgba(0,212,255,0.18); border-color: rgba(0,212,255,0.4); color: #BAE6FD; }
       .sp-card-body { padding: 14px; }
-      .sp-card-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--sp-ink-2); margin-bottom: 6px; }
+      .sp-card-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--sp-ink-2); margin-bottom: 6px; }
       .sp-swatch { width: 8px; height: 8px; border-radius: 2px; background: var(--cat-color, var(--sp-primary)); }
       .sp-card-title { font-size: 15px; font-weight: 500; margin: 0 0 6px; line-height: 1.35; letter-spacing: -0.1px; color: var(--sp-ink-0); }
       .sp-card-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--sp-ink-2); }
@@ -1506,7 +1518,7 @@ function GlobalStyle() {
         margin-bottom: 22px;
         color: #bcecff;
         font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: .18em;
         text-shadow: 0 0 12px rgba(37, 210, 255, .55);
@@ -1686,7 +1698,7 @@ function GlobalStyle() {
         gap: 10px;
         color: #d9f7ff;
         font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-        font-size: 8px;
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: .13em;
         text-shadow: 0 1px 2px #000, 0 0 8px rgba(0,184,255,.8);
@@ -1726,7 +1738,7 @@ function GlobalStyle() {
         margin-bottom: 6px;
         color: #93b8ca;
         font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-        font-size: 8px;
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: .09em;
       }
@@ -1741,7 +1753,7 @@ function GlobalStyle() {
         border-top: 1px solid rgba(99,196,235,.2);
         color: #d7f5ff;
         font-family: var(--font-orbitron), 'Orbitron', sans-serif;
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 700;
         letter-spacing: .08em;
       }
@@ -1755,12 +1767,12 @@ function GlobalStyle() {
       [role="dialog"] .sp-card { min-height: 0; border-radius: 0; }
       [role="dialog"] :is(h2, legend, div, span, button) { text-transform: capitalize; }
 
-      @media (max-width: 1000px) {
+      @media (max-width: 900px) {
         .sp-hero { min-height: 570px; grid-template-columns: 1fr; background-position: 58% center; }
         .sp-grade-card { max-width: 520px; }
         .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
-      @media (max-width: 720px) {
+      @media (max-width: 768px) {
         .sp-main { padding: 12px 12px 110px; }
         .sp-hero { min-height: 640px; padding: 34px 22px 24px; background-position: 64% center; }
         .sp-hero-title { font-size: 38px; }
@@ -1788,7 +1800,7 @@ function GlobalStyle() {
       /* Mobile Training Orb composition · designed as a phone-native poker
          cockpit, not a reduced desktop canvas. The global header is outside
          every selector in this block and remains completely unchanged. */
-      @media (max-width: 720px) {
+      @media (max-width: 768px) {
         .sp-main {
           width: 100%;
           padding: 10px 10px calc(104px + env(safe-area-inset-bottom, 0px));
@@ -1823,7 +1835,7 @@ function GlobalStyle() {
         .sp-hero-copy { width: 100%; max-width: none; align-self: stretch; }
         .sp-hero-eyebrow {
           margin: 0 0 11px;
-          font-size: 9px;
+          font-size: 12px;
           line-height: 1.4;
           letter-spacing: .14em;
         }
@@ -1850,7 +1862,7 @@ function GlobalStyle() {
         .sp-drill-cover { flex-basis: 54px; height: 54px; }
         .sp-drill-title { font-size: 15px; }
         .sp-drill-tags { gap: 4px; }
-        .sp-tag { padding: 3px 6px; font-size: 10px; }
+        .sp-tag { padding: 3px 6px; font-size: 12px; }
         .sp-cta-row {
           display: grid;
           grid-template-columns: 1fr;
@@ -1861,7 +1873,7 @@ function GlobalStyle() {
           width: 100%;
           min-height: 50px;
           padding: 0 14px;
-          font-size: 11px;
+          font-size: 12px;
         }
         .sp-grade-card {
           width: 100%;
@@ -1871,7 +1883,7 @@ function GlobalStyle() {
         }
         .sp-grade-row { gap: 12px; }
         .sp-grade-letter { width: 52px; font-size: 42px; }
-        .sp-grade-label { font-size: 11px; }
+        .sp-grade-label { font-size: 12px; }
         .sp-grade-value { font-size: 12px; line-height: 1.35; }
 
         .sp-section-head {
@@ -1892,7 +1904,7 @@ function GlobalStyle() {
           flex: 0 0 auto;
           min-height: 40px;
           padding: 5px 2px 5px 8px;
-          font-size: 10px;
+          font-size: 12px;
           letter-spacing: .04em;
         }
         #training-library .sp-section-head { align-items: center; }
@@ -1907,13 +1919,13 @@ function GlobalStyle() {
 
         .sp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
         .sp-stat { min-height: 102px; padding: 13px; }
-        .sp-stat-label { margin-bottom: 7px; font-size: 10px; letter-spacing: .05em; }
+        .sp-stat-label { margin-bottom: 7px; font-size: 12px; letter-spacing: .05em; }
         .sp-stat-value { font-size: 23px; }
-        .sp-stat-trend, .sp-stat-sub { font-size: 9px; line-height: 1.3; }
+        .sp-stat-trend, .sp-stat-sub { font-size: 12px; line-height: 1.3; }
 
         .sp-progress { padding: 12px; }
         .sp-progress-grid { gap: 16px; }
-        .sp-progress-label { font-size: 9px; line-height: 1.35; }
+        .sp-progress-label { font-size: 12px; line-height: 1.35; }
         .sp-plist-row {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 38px 36px;
@@ -1931,20 +1943,13 @@ function GlobalStyle() {
           font-size: 14px;
         }
         .sp-cat-chips {
-          width: calc(100% + 10px);
           gap: 7px;
-          margin-right: -10px;
-          padding: 2px 10px 14px 0;
-          scroll-padding-inline: 10px;
-          scroll-snap-type: x proximity;
-          overscroll-behavior-inline: contain;
-          -webkit-overflow-scrolling: touch;
+          padding: 2px 0 14px;
         }
         .sp-cat-chip {
           min-height: 44px;
           padding: 0 13px;
           font-size: 12px;
-          scroll-snap-align: start;
         }
 
         .sp-grid { gap: 14px; }
@@ -1952,7 +1957,7 @@ function GlobalStyle() {
         .sp-card-cover { aspect-ratio: 16 / 9; }
         .sp-card-body { min-height: 180px; padding: 15px; }
         .sp-card-title { font-size: 17px; }
-        .sp-card-meta { font-size: 11px; }
+        .sp-card-meta { font-size: 12px; }
         .sp-card-launch { min-height: 42px; margin-top: 10px; padding-top: 10px; }
 
         [role="dialog"] {
@@ -1979,7 +1984,12 @@ function GlobalStyle() {
         }
       }
 
-      @media (max-width: 360px) {
+      /* Narrow-phone trim. Authored at 360px and raised to the sanctioned
+         600px band by MOBILE PHASE 5: the standard allows 900, 768 and 600
+         only. Every declaration here is a smaller pad, a shorter hero art
+         band or a smaller display size, all above the 12px floor, so the
+         wider band compacts the 361-600 range and hides nothing. */
+      @media (max-width: 600px) {
         .sp-main { padding-inline: 8px; }
         .sp-hero { padding: 224px 13px 15px; background-size: auto 322px; }
         .sp-hero-title { font-size: 27px; }

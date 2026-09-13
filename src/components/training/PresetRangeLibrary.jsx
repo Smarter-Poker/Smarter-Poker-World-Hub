@@ -56,7 +56,7 @@ function RangeGrid({ hands, size }) {
   const cellSize = size || 22;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(13, ${cellSize}px)`, gap: 1 }}>
+    <div data-allow-small="true" style={{ display: 'grid', gridTemplateColumns: `repeat(13, ${cellSize}px)`, gap: 1 }}>
       {RANKS.map((_, r) =>
         RANKS.map((_, c) => {
           const hand = getGridCell(r, c);
@@ -111,14 +111,14 @@ function PresetRangeLibrary() {
           />
           {categories.map(c => (
             <button key={c} onClick={() => setFilterCat(c)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: filterCat === c ? '#06b6d4' : 'rgba(255,255,255,0.06)',
               color: filterCat === c ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{c}</button>
           ))}
           {gameTypes.map(g => (
             <button key={g} onClick={() => setFilterGame(g)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: filterGame === g ? '#8b5cf6' : 'rgba(255,255,255,0.06)',
               color: filterGame === g ? '#fff' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{g}</button>
@@ -136,8 +136,8 @@ function PresetRangeLibrary() {
             }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 4 }}>{r.name}</div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(6,182,212,0.15)', color: '#06b6d4' }}>{r.position}</span>
-                <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>{r.gameType}</span>
+                <span style={{ fontSize: 12, padding: '1px 6px', borderRadius: 3, background: 'rgba(6,182,212,0.15)', color: '#06b6d4' }}>{r.position}</span>
+                <span style={{ fontSize: 12, padding: '1px 6px', borderRadius: 3, background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>{r.gameType}</span>
               </div>
               <div style={{ marginTop: 6 }}>
                 <RangeGrid hands={r.hands} size={16} />
@@ -159,9 +159,9 @@ function PresetRangeLibrary() {
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Category: <span style={{ color: '#8b5cf6', fontWeight: 700 }}>{selected.category}</span></div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Game: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{selected.gameType}</span></div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Pairs</span>
-                  <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(59,130,246,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Suited</span>
-                  <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(16,185,129,0.5)' }} /> <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Offsuit</span>
+                  <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Pairs</span>
+                  <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(59,130,246,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Suited</span>
+                  <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: 'rgba(16,185,129,0.5)' }} /> <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Offsuit</span>
                 </div>
               </div>
             </div>

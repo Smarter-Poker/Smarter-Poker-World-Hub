@@ -63,14 +63,14 @@ function StackBar({ stack, maxStack, label, color, equity, isHero }) {
   const pct = (stack / maxStack) * 100;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-      <div style={{ width: 40, fontSize: 11, fontWeight: isHero ? 800 : 600, color: isHero ? '#f59e0b' : '#fff', textAlign: 'right' }}>{label}</div>
+      <div style={{ width: 40, fontSize: 12, fontWeight: isHero ? 800 : 600, color: isHero ? '#f59e0b' : '#fff', textAlign: 'right' }}>{label}</div>
       <div style={{ flex: 1, height: 20, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, border: isHero ? '1px solid #f59e0b' : 'none' }} />
-        <span style={{ position: 'absolute', left: 8, top: 2, fontSize: 10, fontWeight: 700, color: '#fff' }}>
+        <span style={{ position: 'absolute', left: 8, top: 2, fontSize: 12, fontWeight: 700, color: '#fff' }}>
           {(stack / 1000).toFixed(0)}K
         </span>
       </div>
-      <div style={{ width: 60, fontSize: 11, color: 'rgba(255,255,255,0.5)', textAlign: 'right' }}>
+      <div style={{ width: 60, fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'right' }}>
         ${equity ? equity.toFixed(0) : '-'}
       </div>
     </div>
@@ -132,7 +132,7 @@ function FinalTableICM() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Stack Distribution</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Total: {(totalChips / 1000).toFixed(0)}K Chips | Prize Pool: ${totalPrizePool.toLocaleString()}</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Total: {(totalChips / 1000).toFixed(0)}K Chips | Prize Pool: ${totalPrizePool.toLocaleString()}</span>
           </div>
           {scenario.stacks.map((stack, i) => (
             <StackBar
@@ -156,9 +156,9 @@ function FinalTableICM() {
                 padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.06)', textAlign: 'center', flex: 1, minWidth: 60,
               }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{i + 1}{i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{i + 1}{i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>${payout.toLocaleString()}</div>
-                {jump > 0 && <div style={{ fontSize: 9, color: '#f59e0b' }}>+${jump.toLocaleString()}</div>}
+                {jump > 0 && <div style={{ fontSize: 12, color: '#f59e0b' }}>+${jump.toLocaleString()}</div>}
               </div>
             );
           })}
@@ -176,7 +176,7 @@ function FinalTableICM() {
           ].map(m => (
             <div key={m.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: m.color }}>{m.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{m.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{m.label}</div>
             </div>
           ))}
         </div>
