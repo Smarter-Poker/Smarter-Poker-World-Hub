@@ -118,6 +118,21 @@ export default async function handler(req, res) {
               .limit(5000)
           : Promise.resolve({ data: null, error: null });
 
+      /*
+       * THE HEADLINE IS SUMMED IN SQL (2026-09-13). The 5,000-row window above
+       * still feeds the week/month/gift breakdowns, which need the rows, but
+       * lifetime earned and spent no longer depend on the window at all:
+       * `fn_diamond_lifetime_totals` (Club Arena migration 20260913171905)
+       * sums the WHOLE ledger where it lives. So the headline stays exact past
+       * 5,000 rows, and `truncated` below describes only the breakdowns.
+       * Same RPC the Club Arena wallet reads, so one ledger cannot report two
+       * lifetimes.
+       */
+      const totalsPromise =
+        offset === 0
+          ? getSupabase().rpc('fn_diamond_lifetime_totals', { p_user_id: userId })
+          : Promise.resolve({ data: null, error: null });
+
       const { data, count, error } = await query;
 
       if (error) {
@@ -210,9 +225,32 @@ export default async function handler(req, res) {
             }
           }
 
+          /* Prefer the SQL sum for the two headline figures. If the RPC
+             could not answer, the window sum stands and `exact` says so. */
+          let exact = false;
+          try {
+            const { data: totals, error: totalsErr } = await totalsPromise;
+            if (totalsErr) throw totalsErr;
+            const row = Array.isArray(totals) ? totals[0] : totals;
+            const e = Number(row?.lifetime_earned);
+            const sp = Number(row?.lifetime_spent);
+            if (Number.isFinite(e) && Number.isFinite(sp)) {
+              earned = e;
+              spent = sp;
+              exact = true;
+            }
+          } catch (totalsErr) {
+            console.warn(
+              '[diamond-transactions] fn_diamond_lifetime_totals unavailable, headline is the window sum:',
+              totalsErr?.message || totalsErr
+            );
+          }
+
           lifetime = {
             earned,
             spent,
+            // true when earned/spent came from the whole-ledger SQL sum.
+            exact,
             weekEarned,
             weekSpent,
             thisMonthEarned,

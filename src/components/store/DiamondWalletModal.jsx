@@ -1540,11 +1540,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
    * wallet displaying 50, that lifetime headline was built from 12% of the
    * ledger, and it moved every time the player pressed Load More.
    *
-   * `lifetime` is summed over the whole ledger by
-   * /api/store/diamond-transactions, by the sign of the amount, with the same
-   * 5,000 ceiling Club Arena uses - so the two wallets cannot report
-   * different lifetimes for the same ledger. `null` means it could not be
-   * computed, and the panel says so rather than showing zeros.
+   * `lifetime.earned` / `.spent` are summed IN SQL over the whole ledger by
+   * /api/store/diamond-transactions (`fn_diamond_lifetime_totals`, the same
+   * RPC the Club Arena wallet reads, so one ledger cannot report two
+   * lifetimes); `lifetime.exact` says the SQL sum answered. The week, month
+   * and gift breakdowns still come from the API's 5,000 most recent rows, and
+   * `lifetime.truncated` says when that window was full. `null` means none of
+   * it could be computed, and the panel says so rather than showing zeros.
    */
   const stats = useMemo(() => {
     if (!lifetime) return null;
