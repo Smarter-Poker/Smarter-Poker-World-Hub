@@ -130,7 +130,7 @@ print('critical-jobs: OK (7 scenarios)')
 
 # Offline delivery keeps both transitions and preserves receipt identity.
 attempts = []
-def offline(body, event_key=None):
+def offline(body, event_key=None, **kwargs):
     attempts.append((body, event_key))
     return False
 d._send_sms = offline
@@ -146,7 +146,7 @@ assert len(pending) == 2 and pending[1]['recovery']
 # Load persisted bytes, as a process restart would.
 import json
 d._alert_persist = json.loads(d.ALERT_STATE_PATH.read_text())
-d._send_sms = lambda body, event_key=None: (attempts.append((body, event_key)) or True)
+d._send_sms = lambda body, event_key=None, **kwargs: (attempts.append((body, event_key)) or True)
 d._alert_flush(state)
 assert not d._alert_persist['test:offline']['pending']
 state['consec_fail'] = 2
@@ -182,3 +182,16 @@ d._send_sms = offline
 d._critical_record(PROBE, True)
 assert d._critical_state[PROBE]['alert_sent'] is False
 print('offline-recurrence: OK')
+
+# Structured resolution wins even when the human text does not say RECOVERED.
+d.requests.post = fake_post
+assert transport('auth drift RESOLVED', event_key='resolved-id', recovery=True)
+assert calls[-1][1]['json']['status'] == 'resolved'
+assert transport('fault mentions RECOVERED in a diagnostic', event_key='fault-id', recovery=False)
+assert calls[-1][1]['json']['status'] == 'firing'
+# Global retries consume an outbox belonging to a producer that never runs again.
+d._send_sms = lambda body, **kwargs: True
+for _ in range(10):
+    d._drain_all_alert_outboxes()
+assert all(not entry.get('pending') for entry in d._alert_persist.values())
+print('structured-recovery-and-independent-retry: OK')

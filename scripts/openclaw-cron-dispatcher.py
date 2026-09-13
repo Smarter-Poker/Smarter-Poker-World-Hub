@@ -334,16 +334,30 @@ def _alert_bind(key, state):
     return state
 
 
-def _drain_alert_outbox(entry):
+def _drain_alert_outbox(entry, limit=20):
+    delivered = 0
     pending = entry.setdefault('pending', [])
-    while pending:
+    while pending and delivered < limit:
         event = pending[0]
-        if not _send_sms(event['body'], event_key=event['id']):
-            break
+        if not _send_sms(event['body'], event_key=event['id'], recovery=event['recovery']):
+            return False
         pending.pop(0)
+        delivered += 1
         entry['last_digest'] = None if event['recovery'] else event['digest']
         entry['last_sent_at'] = time.time()
         _alert_state_save()
+    return True
+
+
+@_with_alert_lock
+def _drain_all_alert_outboxes():
+    # Independent of a retired/daily producer: retry on the five-minute health tick.
+    deadline = time.monotonic() + 10
+    for entry in list(_alert_persist.values()):
+        if time.monotonic() >= deadline:
+            break
+        if not _drain_alert_outbox(entry, limit=1):
+            break  # common transport is unavailable; preserve every remaining event
 
 
 @_with_alert_lock
@@ -1367,7 +1381,7 @@ def fire_script(path: str, extra_args: list):
         _critical_record(path, False, f'{type(e).__name__}: {e}')
 
 
-def _send_sms(body: str, event_key=None):
+def _send_sms(body: str, event_key=None, recovery=False):
     """Legacy call site name: deliver to the durable Codex inbox, never SMS.
 
     The caller's existing pending/retry state is acknowledged only after the
@@ -1377,7 +1391,6 @@ def _send_sms(body: str, event_key=None):
         log.error('[alert] Operational inbox authentication is missing')
         return False
     try:
-        recovery = 'RECOVERED' in body.upper() or body.startswith('[RESOLVED]')
         payload = {
             'source': 'openclaw',
             'eventKey': event_key or str(uuid.uuid4()),
@@ -1403,6 +1416,7 @@ def _send_sms(body: str, event_key=None):
 
 def _workers_healthcheck_job():
     """Internal cron — pings workers /health, alerts after 2 consec failures."""
+    _drain_all_alert_outboxes()
     state = _workers_health_state
     try:
         r = requests.get(WORKERS_HEALTH_URL, timeout=8)
