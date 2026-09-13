@@ -65,7 +65,7 @@ const PHASES = {
 };
 
 // Phases already merged. Append the phase number in that phase's PR.
-const CONVERTED = [1, 2, 3, 4];
+const CONVERTED = [1, 2, 3, 4, 5];
 
 function walk(target) {
   const full = path.join(ROOT, target);
