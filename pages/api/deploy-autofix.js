@@ -1,5 +1,5 @@
 import { reportApiError } from '../../src/lib/sentryWrap';
-import { sendSMS } from '../../src/lib/commander/twilio';
+import { alertEventKey, recordOperationalAlerts } from '../../src/lib/operationalAlerts.mjs';
 /**
  * /api/deploy-autofix — AI-Powered Auto-Fix for Failed Deployments
  *
@@ -183,6 +183,35 @@ async function ensureBranch(branchName, fromSha, ghPat) {
   }
 }
 
+// Provider faults must survive a successful fallback and must be acknowledged by
+// the same durable inbox as deployment faults. Retry identity excludes wall time.
+async function recordProviderFailure({ provider, failure, deploymentId, commitSha, attempt, filePath }) {
+  const identity = { provider, deploymentId: deploymentId || null, commitSha: commitSha || null,
+    attempt: attempt ?? null, filePath, httpStatus: failure.httpStatus ?? null,
+    kind: failure.kind, responseDigest: failure.responseDigest || null };
+  try {
+    await recordOperationalAlerts([{ source: 'deployment.autofix', event_key: alertEventKey(identity),
+      alertname: failure.kind === 'billing' ? 'DeploymentRepairProviderBillingFailed' : 'DeploymentRepairProviderFailed',
+      status: 'firing', severity: 'warning',
+      payload: { ...identity, observedAt: failure.observedAt, resolutionScope: 'provider_request' },
+    }]);
+  } catch {
+    const error = new Error('Operational inbox did not acknowledge the provider failure');
+    error.operationalInboxDeliveryFailure = true;
+    throw error;
+  }
+}
+
+function providerHttpFailure(status, body) {
+  return { httpStatus: status, observedAt: new Date().toISOString(),
+    kind: status === 402 || /credit|balance|billing|payment|prepaid|funds/i.test(body)
+      ? 'billing' : 'http',
+    // Keep a response fingerprint without persisting provider bodies, source code,
+    // request headers, or credentials in operational evidence.
+    responseDigest: alertEventKey(body),
+  };
+}
+
 // Extend function timeout so the Claude API call (up to 45s) + GitHub push
 // can complete before Vercel kills the function. Default 10s is too short.
 export const config = { maxDuration: 60 };
@@ -258,6 +287,7 @@ export default async function handler(req, res) {
         errorFile: currentFile,
         buildErrors,
         commitSha,
+        deploymentId,
         attempt,
         escalation,
         anthropicKey,
@@ -300,6 +330,10 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
+    if (err.operationalInboxDeliveryFailure) {
+      return res.status(503).json({ action: 'alert_delivery_failed', sent: false,
+        retryable: true, reason: 'Provider failure was not acknowledged by the operational inbox' });
+    }
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     // Handle AbortController timeout specifically
     if (err.name === 'AbortError') {
@@ -327,7 +361,7 @@ export default async function handler(req, res) {
 /**
  * Fix a single broken file. Extracted so the handler can loop over multiple files.
  */
-async function fixSingleFile({ errorFile, buildErrors, commitSha, attempt, escalation, anthropicKey, ghPat }) {
+async function fixSingleFile({ errorFile, buildErrors, commitSha, deploymentId, attempt, escalation, anthropicKey, ghPat }) {
   try {
 
     // Validate that the extracted path is a file (has extension), not a directory.
@@ -459,6 +493,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
 
     // ── Primary: Anthropic Claude ──
     if (anthropicKey) {
+      let failure;
       try {
         console.warn(`[deploy-autofix] Trying Anthropic (${CLAUDE_MODEL})...`);
         const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -490,31 +525,22 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
           apiError = `Anthropic API returned ${claudeRes.status}: ${errBody}`;
           console.warn(`[deploy-autofix] ${apiError.substring(0, 300)}`);
 
-          // ── Detect Anthropic billing/credit exhaustion ──
-          // Anthropic returns 402 (payment), 429 with credit-related messages,
-          // or 400 with 'credit_balance_too_low' / 'insufficient_balance'.
-          // When detected: SMS immediately so credits can be added. Grok
-          // fallback below runs automatically (fixedContent is still empty).
-          const isBillingError =
-            claudeRes.status === 402 ||
-            /credit|balance|billing|payment|quota|insufficient|prepaid|funds/i.test(errBody);
-
-          if (isBillingError) {
-            console.warn('[deploy-autofix] 🚨 ANTHROPIC BILLING ALERT: API credits exhausted or payment required');
-            const adminPhone = process.env.MY_PHONE_NUMBER || process.env.ADMIN_PHONE;
-            if (adminPhone) {
-// sendSMS(
-              //   adminPhone,
-              //   `🚨 SMARTER.POKER ALERT 🚨\n\nAnthropic (Claude) API credits are exhausted.\n\nStatus: ${claudeRes.status}\nError: ${errBody.substring(0, 120)}\n\nAdd credits at: console.anthropic.com\n\nAutofix has switched to Grok as fallback.`
-              // ).catch(e => console.warn('[deploy-autofix] SMS billing alert failed:', e.message));
-              console.warn('[deploy-autofix] SMS billing alert disabled per user request');
-            }
-          }
+          failure = providerHttpFailure(claudeRes.status, errBody);
         }
       } catch (e) {
         apiError = `Anthropic request failed: ${e.message}`;
         console.warn(`[deploy-autofix] ${apiError}`);
+        failure = { kind: e.name === 'AbortError' ? 'timeout' : 'transport', observedAt: new Date().toISOString() };
+      } finally {
+        clearTimeout(apiTimeout);
       }
+      if (!fixedContent && !failure) {
+        failure = { kind: 'empty_response', observedAt: new Date().toISOString() };
+      }
+      // Keep inbox errors outside the provider catch. A failed receipt must not
+      // be swallowed as another provider error or hidden by fallback success.
+      if (failure) await recordProviderFailure({ provider: 'anthropic', failure,
+        deploymentId, commitSha, attempt, filePath: normalizedPath });
     }
 
     // ── Fallback: Grok (xAI) — OpenAI-compatible API ──
@@ -524,6 +550,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
       const grokAbort = new AbortController();
       const grokTimeout = setTimeout(() => grokAbort.abort(), 45000);
       console.warn(`[deploy-autofix] Anthropic unavailable - falling back to Grok...`);
+      let failure;
       try {
         const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
           method: 'POST',
@@ -545,12 +572,20 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
           const errBody = await grokRes.text();
           apiError += ` | Grok error: ${grokRes.status}: ${errBody.substring(0, 200)}`;
           console.warn(`[deploy-autofix] Grok API error: ${grokRes.status}`);
+          failure = providerHttpFailure(grokRes.status, errBody);
         }
       } catch (e) {
         apiError += ` | Grok request failed: ${e.message}`;
         console.warn(`[deploy-autofix] Grok request failed: ${e.message}`);
+        failure = { kind: e.name === 'AbortError' ? 'timeout' : 'transport', observedAt: new Date().toISOString() };
+      } finally {
+        clearTimeout(grokTimeout);
       }
-      clearTimeout(grokTimeout);
+      if (!fixedContent && !failure) {
+        failure = { kind: 'empty_response', observedAt: new Date().toISOString() };
+      }
+      if (failure) await recordProviderFailure({ provider: 'xai', failure,
+        deploymentId, commitSha, attempt, filePath: normalizedPath });
     }
 
     clearTimeout(apiTimeout);
@@ -815,6 +850,7 @@ Return ONLY the complete fixed file content. No explanation, no markdown fences,
     };
 
   } catch (err) {
+    if (err.operationalInboxDeliveryFailure) throw err;
     if (err.name === 'AbortError') {
       console.warn('[deploy-autofix] Anthropic API call timed out (45s limit)');
       return {

@@ -113,3 +113,21 @@ test('an autofix commit is recorded as an outcome, never as deployment recovery'
   assert.equal(calls[1].payload.result.newSha, 'b'.repeat(40));
   assert.equal(calls.some((e) => e.status === 'resolved'), false);
 });
+
+test('provider alert delivery failure remains retryable through the authenticated webhook caller', async (t) => {
+  process.env.VERCEL_TOKEN = 'test-vercel-token';
+  t.after(() => { delete process.env.VERCEL_TOKEN; });
+  const events = [];
+  stubFetch(async (url, init) => {
+    if (url.includes('/rpc/fn_record_operational_alerts')) {
+      events.push(JSON.parse(init.body).p_events[0]);
+      return { ok: true, json: async () => [48] };
+    }
+    if (url.includes('api.vercel.com')) return { ok: true, json: async () => [{ type: 'error', text: 'build failed' }] };
+    assert.match(url, /\/api\/deploy-autofix$/);
+    return { ok: false, status: 503, text: async () => JSON.stringify({ action: 'alert_delivery_failed', sent: false, retryable: true }) };
+  }, t);
+  const res = await invoke(event());
+  assert.equal(res.code, 503); assert.equal(res.body.sent, false);
+  assert.deepEqual(events.map((item) => item.alertname), ['VercelDeploymentFailed']);
+});
