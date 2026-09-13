@@ -150,9 +150,13 @@ test('the browser does not recount the badges from the loaded page', () => {
 test('Buy and Send are real buttons, reachable without a mouse', () => {
   // They were bare <div onClick> over buttons painted into the JPEG: no role,
   // no tabIndex, no key handler. These are the wallet's two money controls.
-  const hitboxes = MODAL.match(/className=\{styles\.artHitbox\}/g) || [];
+  // Each carries the shared hitbox class plus its own side of the plate.
+  const hitboxes = MODAL.match(/className=\{`\$\{styles\.artHitbox\} \$\{styles\.artHitbox(?:Buy|Send)\}`\}/g) || [];
   assert.equal(hitboxes.length, 2, 'expected exactly two artwork buttons (Buy, Send)');
-  assert.match(MODAL, /<button\n?\s*type="button"\n?\s*className=\{styles\.artHitbox\}/);
+  assert.match(
+    MODAL,
+    /<button\n?\s*type="button"\n?\s*className=\{`\$\{styles\.artHitbox\} \$\{styles\.artHitboxBuy\}`\}/
+  );
   assert.match(MODAL, /srOnly[^>]*>Buy Diamonds</, 'Buy needs an accessible name');
   assert.match(MODAL, /srOnly[^>]*>Send Diamonds To A Friend</, 'Send needs an accessible name');
 });
@@ -209,6 +213,41 @@ test('#SMARTERCASINOREALISM: the wallet uses the shared vault vocabulary', () =>
      sentence and fails on the comment that forbids the thing. */
   const rules = CSS.replace(/\/\*[\s\S]*?\*\//g, '');
   assert.doesNotMatch(rules, /:hover/);
+
+  /*
+   * THE TOKENS HAVE TO BE IN SCOPE, OR THEY ARE NOTHING.
+   *
+   * `.wallet {}` declares every `--vault-*` custom property, and from
+   * 2026-09-05 to 2026-09-13 the JSX never applied `styles.wallet` to any
+   * element. Sixty-three `var(--vault-...)` references resolved to nothing:
+   * a chip's colour fell back to inherited white, a border to currentColor,
+   * a background to transparent. The law that pinned the vocabulary read the
+   * CSS file and passed, because the file did declare them. This pins the
+   * half that matters: the dialog root carries the class that puts the
+   * tokens in scope for everything inside it.
+   */
+  assert.match(
+    MODAL,
+    /role="dialog"[\s\S]{0,400}?className=\{`[^`]*\$\{styles\.wallet\}[^`]*`\}/,
+    'the dialog root must carry styles.wallet, or every --vault-* token inside it is undefined'
+  );
+
+  /*
+   * AND THE EXTRACTION IS FINISHED. Dan chose "full extraction to a CSS
+   * module"; this component carried 171 inline style objects on 2026-09-05
+   * and 139 on 2026-09-06. What remains is only data the CSS cannot know:
+   * a slice's colour, a bar's width, the finger's pull distance. Those ride
+   * in as custom properties or a single width, so a `style={{` whose first
+   * key is a plain CSS property is a regression.
+   */
+  const inline = MODAL.match(/style=\{\{[\s\S]*?\}\}/g) || [];
+  const presentational = inline.filter((block) => !/^style=\{\{\s*(?:'--[a-z-]+'|width):/.test(block));
+  assert.deepEqual(
+    presentational,
+    [],
+    `inline presentational styles came back: ${presentational.map((b) => b.slice(0, 60)).join(' | ')}`
+  );
+  assert.ok(inline.length <= 5, `expected at most 5 data-carrying inline styles, found ${inline.length}`);
 });
 
 test('the cache is stamped with whose ledger it is', () => {
