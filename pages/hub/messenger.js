@@ -24,6 +24,7 @@ const ReportBugWidget = dynamic(() => import('../../src/components/ui/ReportBugW
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useMessengerSearch from '../../src/hooks/useMessengerSearch';
+import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -2971,9 +2972,9 @@ function MessengerPage() {
         setShowPushPrompt(false);
     }, [persistPushPromptHandled]);
 
-    const enterClubWorkspace = (club) => {
+    const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
-        setWorkspaceSelection({ clubId: club.id, folder: 'messages' });
+        setWorkspaceSelection({ clubId: club.id, folder: folder === 'invoices' ? 'invoices' : 'messages' });
         const page = club.canManage && ownedPages.find(p => p.id === club.pageId);
         if (page) switchToClub(page);
         else switchToPersonal();
@@ -2985,13 +2986,13 @@ function MessengerPage() {
     // A URL selects only among clubs the server has confirmed this user joined.
     const handledClubEntry = useRef(null);
     useEffect(() => {
-        const requested = router.query.clubId || router.query.forceIdentity;
-        if (!requested || handledClubEntry.current === requested || router.query.conversation) return;
-        const club = joinedClubs.find(c => c.id === requested || c.pageId === requested);
-        if (!club) return;
-        handledClubEntry.current = requested;
-        enterClubWorkspace(club);
-    }, [joinedClubs, router.query.clubId, router.query.forceIdentity, router.query.conversation]);
+        const entry = resolveMessengerClubEntry(joinedClubs, router.query);
+        if (!entry) return;
+        const key = `${user?.id}:${entry.club.id}:${entry.folder}`;
+        if (handledClubEntry.current === key) return;
+        handledClubEntry.current = key;
+        enterClubWorkspace(entry.club, entry.folder);
+    }, [user?.id, joinedClubs, router.query.clubId, router.query.forceIdentity, router.query.folder, router.query.conversation]);
 
     /*
      * ITEM 13 (2026-09-08): next.config.js redirects /hub/live-help to

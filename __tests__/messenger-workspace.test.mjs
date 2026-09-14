@@ -120,3 +120,15 @@ test('search validates query size and result limits before any database call',as
  const {db,calls}=fixture();for(const query of ['x',' '.repeat(3),'x'.repeat(501)])await assert.rejects(searchMessengerWorkspace(db,ids.user,{query}),e=>e.status===400);
  await assert.rejects(searchMessengerWorkspace(db,ids.user,{query:'valid'},101),e=>e.status===400);assert.equal(calls.length,0);
 });
+
+
+test('invoice deep links select only the requested joined club and supported folder',async()=>{
+ const {resolveMessengerClubEntry}=await import('../src/lib/messengerClubEntry.mjs');
+ const clubs=[{id:'club-a',pageId:'page-a'},{id:'club-b'}];
+ assert.deepEqual(resolveMessengerClubEntry(clubs,{clubId:'club-b',folder:'invoices'}),{club:clubs[1],folder:'invoices'});
+ assert.equal(resolveMessengerClubEntry(clubs,{clubId:'not-joined',folder:'invoices'}),null);
+ assert.equal(resolveMessengerClubEntry([],{clubId:'club-b',folder:'invoices'}),null);
+ assert.equal(resolveMessengerClubEntry(clubs,{clubId:['club-a'],folder:'invoices'}),null);
+ assert.equal(resolveMessengerClubEntry(clubs,{clubId:'club-a',conversation:'explicit-thread'}),null);
+ assert.equal(resolveMessengerClubEntry(clubs,{forceIdentity:'page-a',folder:'unknown'}).folder,'messages');
+});
