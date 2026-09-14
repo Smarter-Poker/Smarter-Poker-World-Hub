@@ -187,6 +187,8 @@ jobs:
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
       - name: Integrity Hand Search PostgreSQL Continuation
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-integrity-hands-continuation.py
+      - name: Operator Approval PostgreSQL Concurrency
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-approval-concurrency.py
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
