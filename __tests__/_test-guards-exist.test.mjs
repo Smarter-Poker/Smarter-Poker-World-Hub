@@ -1,5 +1,7 @@
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
+// Required CHECK 8 must catch wallet palette regressions before Vercel builds.
+import './diamond-store-phase-9.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────

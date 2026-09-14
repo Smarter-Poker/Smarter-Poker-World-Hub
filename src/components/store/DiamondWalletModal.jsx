@@ -182,24 +182,24 @@ const TX_TYPES = {
      alone is 55,183 of the 57,000 rows written in that window. Same labels
      as Club Arena's DiamondWalletModal.tsx, so one ledger reads one way. */
   arena_deposit: { Icon: Gem, label: 'Diamond Arena Buy-In', color: '#00a8e8' },
-  arena_withdraw: { Icon: Gem, label: 'Diamond Arena Cash-Out', color: '#22c55e' },
+  arena_withdraw: { Icon: Gem, label: 'Diamond Arena Cash-Out', color: '#00a8e8' },
   live_gift_sent: { Icon: Send, label: 'Live Gift Sent', color: '#ffffff' },
   live_gift_received: { Icon: Gift, label: 'Live Gift Received', color: '#00a8e8' },
   debt_settlement: { Icon: Settings, label: 'Owed Diamonds Settled', color: '#94a3b8' },
-  daily_challenge_claim: { Icon: Target, label: 'Daily Challenge', color: '#22c55e' },
+  daily_challenge_claim: { Icon: Target, label: 'Daily Challenge', color: '#06b6d4' },
   daily_challenge_reroll: { Icon: RotateCcw, label: 'Challenge Reroll', color: '#ef4444' },
-  daily_mission_milestone: { Icon: Medal, label: 'Mission Milestone', color: '#22c55e' },
-  training_reward: { Icon: Brain, label: 'Training Reward', color: '#22c55e' },
-  easter_egg: { Icon: Sparkles, label: 'Easter Egg', color: '#a855f7' },
+  daily_mission_milestone: { Icon: Medal, label: 'Mission Milestone', color: '#06b6d4' },
+  training_reward: { Icon: Brain, label: 'Training Reward', color: '#7395a8' },
+  easter_egg: { Icon: Sparkles, label: 'Easter Egg', color: '#f59e0b' },
   pvp_stake: { Icon: Swords, label: 'PvP Stake', color: '#ef4444' },
   plinko_drop: { Icon: Gamepad2, label: 'Plinko Drop', color: '#ef4444' },
   crash_bet: { Icon: Gamepad2, label: 'Crash Bet', color: '#ef4444' },
   wheel_spin: { Icon: Gamepad2, label: 'Wheel Spin', color: '#ef4444' },
-  wheel_prize: { Icon: Trophy, label: 'Wheel Prize', color: '#22c55e' },
+  wheel_prize: { Icon: Trophy, label: 'Wheel Prize', color: '#eab308' },
   chip_mint: { Icon: Settings, label: 'Chip Mint', color: '#ef4444' },
   reconciliation: { Icon: Settings, label: 'Balance Reconciliation', color: '#94a3b8' },
   transfer: { Icon: Send, label: 'Transfer', color: '#94a3b8' },
-  credit: { Icon: Gem, label: 'Diamond Credit', color: '#22c55e' },
+  credit: { Icon: Gem, label: 'Diamond Credit', color: '#00a8e8' },
 };
 
 /**
