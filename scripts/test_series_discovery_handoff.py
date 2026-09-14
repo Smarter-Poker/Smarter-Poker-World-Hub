@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
 """Exercise the discovery database-to-master handoff without network or writes."""
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+
+os.environ["SUPABASE_SERVICE_ROLE_KEY"] = "offline-handoff-test-no-authority"
+os.environ["SUPABASE_KEY"] = "offline-handoff-test-no-authority"
 
 import scrape_poker_series_discovery as discovery
 import poker_series_scraper as scraper
 
 
 class DiscoverySourceHandoffTests(unittest.TestCase):
+    def setUp(self):
+        network = mock.patch(
+            "urllib.request.urlopen",
+            side_effect=AssertionError("Offline handoff test attempted network access"),
+        )
+        network.start()
+        self.addCleanup(network.stop)
+
     def fetch_records(self, rows):
         def read(table, columns, filters):
             if table == "poker_series":
