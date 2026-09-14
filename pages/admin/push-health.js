@@ -9,6 +9,7 @@
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { getAccessToken } from '../../src/lib/authUtils';
+import { isPushHealthSnapshot } from '../../src/lib/pushHealthSnapshot.mjs';
 
 const STATUS_LABEL = {
     ok: 'Reachable',
@@ -28,6 +29,7 @@ const REASON_LABEL = {
     too_stale_to_deliver: 'Too old to be useful',
     time_budget_exhausted: 'Deferred to next run',
     unknown: 'Unknown',
+    digested_into: 'Included In A Digest',
 };
 
 // user_choice and not_enrolled are EXPECTED. Only `fault` means we are broken.
@@ -64,6 +66,9 @@ export default function PushHealthPage() {
                 });
                 const json = await res.json();
                 if (!res.ok) { setError(json?.error || `Failed (${res.status})`); return; }
+                if (!isPushHealthSnapshot(json) || typeof json.config?.configured !== 'boolean' || typeof json.config?.keyMatches !== 'boolean') {
+                    setError('Push Health Is Unavailable. Please Try Again.'); return;
+                }
                 setData(json);
             } catch (e) {
                 setError(e?.message || 'Failed to load');
@@ -84,15 +89,16 @@ export default function PushHealthPage() {
                     {error && <p style={{ color: '#FCA5A5', marginTop: 20 }}>{error}</p>}
                     {!data && !error && <p style={{ color: '#6B7280', marginTop: 20 }}>Loading...</p>}
 
-                    {data && (
+                    {data && !error && (
                         <>
+                            <p style={{ color: '#9CA3AF', fontSize: 12 }}>Checked {new Date(data.observedAt).toLocaleString()}. Counts Include Every Matching Record.</p>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 20 }}>
                                 <Stat label="VAPID configured" value={data.config.configured ? 'Yes' : 'NO'} bad={!data.config.configured} />
                                 <Stat label="Keys match" value={data.config.keyMatches ? 'Yes' : 'NO'} bad={!data.config.keyMatches} />
                                 <Stat label="Active devices" value={data.subscriptions.active} />
                                 <Stat label="Unconfirmed devices" value={data.subscriptions.zombies} bad={data.subscriptions.zombies > 0} />
                                 <Stat label="Sent (24h)" value={data.outbox.sentLast24h} />
-                                <Stat label="Queue backlog" value={data.outbox.pending} bad={data.outbox.pending > 250} />
+                                <Stat label="Queue backlog" value={data.outbox.pending + data.outbox.processing} bad={data.outbox.pending + data.outbox.processing > 250} />
                                 <Stat label="Failed" value={data.outbox.failed} bad={data.outbox.failed > 0} />
                                 <Stat
                                     label="Dispatcher last ran"
