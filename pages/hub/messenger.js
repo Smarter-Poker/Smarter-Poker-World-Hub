@@ -4024,12 +4024,12 @@ function MessengerPage() {
 
                     {/* Conversations List - Only show actual conversations with messages */}
                     <div style={{ flex: 1, overflowY: 'auto' }}>
-                        {weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
+                        {!loading && !inboxError && weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
                             <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
                                 status: weeklyPreview.report.status, lines: weeklyPreview.report }}
                                 content={`${weeklyPreview.report.basis_source}. ${weeklyPreview.report.note}`} />
                         </div>}
-                        {conversations.length === 0 ? (
+                        {loading || inboxError ? null : conversations.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}></div>
                                 {/* An empty CLUB inbox is not the same as an empty

@@ -23,3 +23,6 @@ The authenticated notification click selected the correct invoice, but the nativ
 
 
 Notification visibility was also enforced at the browser boundary. Legacy cache arrays without the current version and authenticated owner are rejected; cache age cannot be extended by marking a row read. Late responses from a previous account cannot replace the current feed. Archived individual club copies are filtered from cache, fetch, live insertion and final render, while archive updates remove an already-open copy. These checks preserve ordinary social alerts and each payee's own invoice notification. The native accounting UI/workspace suite now has 41 passing checks.
+
+
+The retained Messenger shell no longer labels a loading or failed inbox as empty or shows a stale weekly preview during that request. The explicit loading/error status remains visible until the requested inbox is authoritative.
