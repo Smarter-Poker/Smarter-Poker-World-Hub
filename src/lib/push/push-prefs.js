@@ -220,6 +220,8 @@ const EVENT_ALIASES = {
     credit_denied: 'cashier',
     settlement_dispute_filed: 'cashier',
     dispute_resolved: 'cashier',
+    // Invoice and rakeback receipts honor the existing financial push toggle.
+    accounting_invoice: 'cashier',
 
     // ── BLINDING OFF (added 2026-08-30 with #1498's last call site) ────────
     //

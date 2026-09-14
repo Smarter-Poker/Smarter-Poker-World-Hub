@@ -31,6 +31,7 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { isPushConfigured } from '../../../src/lib/push/web-push';
 import { sendPush, SUBSCRIPTION_COLUMNS } from '../../../src/lib/push/send-push';
+import { isAccountingPush, deliverAccountingPush, releaseAccountingPush } from '../../../src/lib/push/accounting-delivery';
 import { recordSendFailure } from '../../../src/lib/push/push-deliver';
 import { isTournamentReminder, deliverTournamentReminder } from '../../../src/lib/push/tournament-reminder-delivery';
 import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
@@ -175,6 +176,7 @@ async function handler(req, res) {
     const runId = runRow?.id || null;
 
     const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0, digested: 0 };
+    let accountingFailures = 0;
 
     const finish = async (note) => {
         if (!runId) return;
@@ -269,6 +271,9 @@ async function handler(req, res) {
         };
 
         for (const row of rows) {
+            // Accounting uses strict, current preference/claim reads in its
+            // sender. Never let a default-allow read or digest consume a receipt.
+            if (isAccountingPush(row)) { deliverable.push(row); continue; }
             if (!row.recipient_user_id) { suppress(row, 'no_recipient'); continue; }
 
             const ageMs = Date.now() - Date.parse(row.created_at || 0);
@@ -326,6 +331,7 @@ async function handler(req, res) {
         const digestGroups = new Map();
         for (const row of deliverable) {
             if (!row.event || isTournamentReminder(row)) continue;
+            if (isAccountingPush(row)) continue;
             const key = `${row.recipient_user_id}|${row.event}`;
             if (!digestGroups.has(key)) digestGroups.set(key, []);
             digestGroups.get(key).push(row);
@@ -390,6 +396,11 @@ async function handler(req, res) {
             // still `processing`; requeue_stuck_push_outbox reclaims them.
             if (Date.now() - startedAt > TIME_BUDGET_MS) {
                 ranOutOfTime = true;
+                if (isAccountingPush(row)) {
+                    try { await releaseAccountingPush(supabase, row); stats.skipped += 1; }
+                    catch { stats.failed += 1; accountingFailures += 1; }
+                    continue;
+                }
                 // Give the attempt back. claim_push_outbox_batch already did
                 // attempts = attempts + 1 for this row, but nothing was actually
                 // attempted. Without the decrement a row unlucky enough to sit at
@@ -410,6 +421,14 @@ async function handler(req, res) {
 
             // Folded into a digest carrier above; already accounted for.
             if (absorbed.has(row.id)) continue;
+
+            if (isAccountingPush(row)) {
+                const outcome = await deliverAccountingPush(supabase, row);
+                for (const key of ['sent', 'skipped', 'failed', 'deactivated']) stats[key] += outcome[key];
+                if (outcome.uncertain) stats.failed += outcome.uncertain;
+                accountingFailures += outcome.failed + outcome.uncertain;
+                continue;
+            }
 
             if (isTournamentReminder(row)) {
                 const outcome = await deliverTournamentReminder(supabase, row);
@@ -523,8 +542,11 @@ async function handler(req, res) {
             }
         }
 
-        await finish(ranOutOfTime ? 'time_budget_exhausted' : null);
-        return res.status(200).json({ ok: true, ...stats, slot });
+        const note = [ranOutOfTime && 'time_budget_exhausted', accountingFailures > 0 && `accounting_delivery_incomplete:${accountingFailures}`].filter(Boolean).join(' ');
+        await finish(note || null);
+        // Cron health records HTTP status. An uncertain accounting delivery must
+        // not look healthy just because the dispatcher finished its loop.
+        return res.status(accountingFailures ? 503 : 200).json({ ok: accountingFailures === 0, ...stats, slot });
     } catch (e) {
         await finish(`threw:${e?.message || e}`);
         return res.status(500).json({ error: e?.message || 'push-dispatch failed' });
