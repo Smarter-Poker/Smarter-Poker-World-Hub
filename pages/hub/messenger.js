@@ -4443,6 +4443,7 @@ function MessengerPage() {
                                                         flex: 1,
                                                         border: 'none',
                                                         background: 'transparent',
+                                                        color: C.text,
                                                         padding: '8px 0',
                                                         fontSize: 14,
                                                         outline: 'none',
