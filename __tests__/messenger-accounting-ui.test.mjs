@@ -6,14 +6,15 @@ const require=createRequire(import.meta.url);
 const React=require('react');
 const {renderToStaticMarkup}=require('react-dom/server');
 const ts=require('typescript');
-function component(path) {
+function component(path, load=require) {
  const code=ts.transpileModule(fs.readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:'component.jsx',compilerOptions:{jsx:ts.JsxEmit.React,module:ts.ModuleKind.CommonJS,esModuleInterop:true,target:ts.ScriptTarget.ES2022}}).outputText;
  const module={exports:{}};
- new Function('require','module','exports',code)(require,module,module.exports);
+ new Function('require','module','exports',code)(load,module,module.exports);
  return module.exports.default;
 }
 const Widget=component('../src/components/messenger/ClubArenaWorkspace.js');
 const Invoice=component('../src/components/messenger/AccountingInvoiceCard.js');
+const AccountingIntroduction=component('../src/components/messenger/AccountingConversationIntroduction.js');
 const theme={card:'#fff',text:'#111',border:'#ccc',textSec:'#555',blue:'#007bff'};
 const clubs=[{id:'a',name:'First Club',canManage:true},{id:'b',name:'Second Club',canManage:false}];
 function elements(element,result=[]) { if(!React.isValidElement(element))return result;result.push(element);for(const child of React.Children.toArray(element.props.children))elements(child,result);return result; }
@@ -47,4 +48,55 @@ test('message API uses the authenticated database page and preserves provenance 
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{userId:'forged',conversationId:'conversation',before:cursor,beforeId,limit:500}},res);
  assert.equal(status,200);assert.equal(calls[0].args.p_user_id,'verified-user');assert.equal(calls[0].args.p_before,cursor);assert.equal(calls[0].args.p_limit,200);assert.equal(payload.messages[0].media_metadata.issued_status,'pending');assert.equal(payload.messages[0].media_metadata.status,'paid');
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{conversationId:'conversation',beforeId}},res);assert.equal(status,400);
+});
+
+
+test('accounting conversation introduction identifies documents without a synthetic member profile',()=>{
+ const html=renderToStaticMarkup(React.createElement(AccountingIntroduction,{title:'Midway Union Statements',theme}));
+ assert.match(html,/Accounting Conversation/);assert.match(html,/Midway Union Statements/);assert.match(html,/Invoices, Statements And Related Discussions/);
+ assert.doesNotMatch(html,/href=|View Profile|Smarter.Poker Member|undefined/);
+});
+
+
+function overlayFixture(page='notifications') {
+ const handlers=new Map(),cleanups=[];let closed=0;
+ const state={overlayPage:page,overlayUrl:'/hub/notifications',overlayTitle:'Notifications',closeOverlay:()=>closed++,setNotifClearedCount:noop};
+ const mockReact={...React,useEffect:effect=>{const cleanup=effect();if(cleanup)cleanups.push(cleanup);},useCallback:fn=>fn};
+ const events={on:(event,fn)=>handlers.set(event,fn),off:(event,fn)=>{if(handlers.get(event)===fn)handlers.delete(event);}};
+ const Overlay=component('../src/components/ui/GlobalPageOverlay.jsx',name=>{
+  if(name==='react')return mockReact;if(name==='next/router')return {useRouter:()=>({events})};
+  if(name==='next/dynamic')return ()=>()=>null;if(name==='./FullScreenPageOverlay')return props=>props.children;
+  if(name.endsWith('pageOverlayStore'))return {usePageOverlayStore:selector=>selector(state)};throw Error(name);
+ });
+ const rendered=Overlay();
+ return {handlers,cleanups,rendered,closed:()=>closed};
+}
+
+test('notification popup reveals the invoice after successful same-page navigation',()=>{
+ const fixture=overlayFixture();assert.equal(fixture.rendered.props.isOpen,true);assert.equal(fixture.closed(),0);
+ fixture.handlers.get('routeChangeComplete')('/hub/messenger?conversation=invoice');assert.equal(fixture.closed(),1);
+ fixture.cleanups.forEach(cleanup=>cleanup());assert.equal(fixture.handlers.size,0);
+});
+test('failed navigation retains the notification popup and unrelated overlays do not subscribe',()=>{
+ const fixture=overlayFixture();fixture.handlers.get('routeChangeError')?.(new Error('failed'));assert.equal(fixture.closed(),0);
+ const settings=overlayFixture('settings');assert.equal(settings.handlers.size,0);assert.equal(settings.closed(),0);
+});
+
+
+test('notification cache accepts only the current account and rejects legacy or expired snapshots',async()=>{
+ const {notificationCache,readNotificationCache}=await import('../src/lib/notificationVisibility.mjs');
+ const now=1_000_000,rows=[{id:'document',type:'accounting_invoice'}];
+ const cache=notificationCache(rows,'account-a',now);
+ assert.equal(readNotificationCache(cache,'account-a',now+1)[0].id,'document');
+ assert.equal(readNotificationCache(cache,'account-b',now+1),null);assert.equal(readNotificationCache(cache,null,now+1),null);
+ assert.equal(readNotificationCache(JSON.stringify([{...rows[0],_cache_ts:now}]),'account-a',now+1),null);
+ assert.equal(readNotificationCache(cache,'account-a',now+300_000),null);assert.equal(readNotificationCache(cache,'account-a',now-1),null);
+ assert.equal(readNotificationCache('not json','account-a',now),null);
+});
+test('archived club invoice copies stay out of notification caches and realtime eligibility',async()=>{
+ const {isVisibleNotification,notificationCache,readNotificationCache}=await import('../src/lib/notificationVisibility.mjs');
+ const rows=[{id:'archived',type:'accounting_invoice_detail'},{id:'recipient',type:'accounting_invoice'},{id:'social',type:null}];
+ assert.equal(isVisibleNotification(rows[0]),false);assert.equal(isVisibleNotification(null),false);
+ const cache=notificationCache(rows,'account',1000);assert.deepEqual(readNotificationCache(cache,'account',1001).map(row=>row.id),['recipient','social']);
+ const changed=JSON.parse(cache);changed[1].type='accounting_invoice_detail';assert.deepEqual(readNotificationCache(JSON.stringify(changed),'account',1001).map(row=>row.id),['recipient']);
 });
