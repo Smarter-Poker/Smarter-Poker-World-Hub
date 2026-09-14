@@ -54,6 +54,7 @@ const LANDED = [
     ],
   },
   { phase: 5, route: '/hub/training', page: 'pages/hub/training.js', tutorial: 'src/tutorials/training.js' },
+  { phase: 6, route: '/hub/news', page: 'pages/hub/news.js', tutorial: 'src/tutorials/news.js' },
 ];
 
 test('the tutorial system is built and mounted once', () => {
