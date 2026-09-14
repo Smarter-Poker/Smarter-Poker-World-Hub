@@ -5,6 +5,8 @@ Aggressively sweeps 164 "empty shell" series without start_date/end_date.
 """
 from __future__ import annotations
 import urllib.request
+import urllib.parse
+import hashlib
 import json
 import os
 import time
@@ -57,38 +59,48 @@ def log(msg):
 
 WRITE_ERRORS = {"upsert_failed": 0, "rows_lost": 0}
 
-# Ask for the written rows back so we can count what the DB ACTUALLY stored.
-SB_WRITE_HEADERS = {**SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation'}
+# Date enrichment updates an existing identity; it never creates a thin parent.
+SB_WRITE_HEADERS = {**SB_HEADERS, 'Prefer': 'return=representation'}
 
 
 def update_db(table: str, data: list) -> int:
-    """Upsert and return the number of rows the DB CONFIRMED writing."""
-    if not data: return 0
-    url = f'{SUPABASE_URL}/rest/v1/{table}?on_conflict=series_uid'
-    req = urllib.request.Request(url, data=json.dumps(data).encode(),
-                                 method='POST', headers=SB_WRITE_HEADERS)
-    try:
-        # timeout is mandatory — an untimed urlopen can hang the process forever
-        # and there is no watchdog around this script.
-        with urllib.request.urlopen(req, timeout=60) as r:
-            try:
-                returned = json.loads(r.read() or b'[]')
-            except Exception:
-                returned = []
-            written = len(returned) if isinstance(returned, list) else 0
-            if written != len(data):
-                log(f"⛔ Upsert wrote {written}/{len(data)} rows")
-                WRITE_ERRORS["rows_lost"] += max(0, len(data) - written)
-            return written
-    except Exception as e:
-        err = e.read().decode()[:300] if hasattr(e, 'read') else str(e)
-        log(f"Upsert failed: {err}")
-        WRITE_ERRORS["upsert_failed"] += 1
-        WRITE_ERRORS["rows_lost"] += len(data)
-        return 0
+    """Count only exact existing-row acknowledgements with the fetched evidence.
+
+    A POST upsert runs BEFORE INSERT triggers before resolving its conflict.
+    These partial date records cannot satisfy the full parent's insert contract.
+    PATCH also prevents a deleted/renamed series from becoming a new shell.
+    """
+    written = 0
+    for row in data:
+        try:
+            identity = row['id']
+            uid = row['series_uid']
+            if type(identity) is not int or identity <= 0 or not isinstance(uid, str) or not uid:
+                raise ValueError('Date update requires the stored row identity')
+            patch = {k: v for k, v in row.items() if k not in ('id', 'series_uid')}
+            query = urllib.parse.urlencode({
+                'id': f'eq.{identity}', 'series_uid': f'eq.{uid}',
+                'start_date': 'is.null', 'select': 'id,series_uid',
+            })
+            req = urllib.request.Request(
+                f'{SUPABASE_URL}/rest/v1/{table}?{query}',
+                data=json.dumps(patch).encode(), method='PATCH', headers=SB_WRITE_HEADERS,
+            )
+            with urllib.request.urlopen(req, timeout=60) as response:
+                returned = json.loads(response.read() or b'[]')
+            if (not isinstance(returned, list) or len(returned) != 1
+                    or returned[0] != {'id': identity, 'series_uid': uid}):
+                raise ValueError('Date update did not acknowledge the exact stored row')
+            written += 1
+        except Exception as e:
+            err = e.read().decode()[:300] if hasattr(e, 'read') else str(e)
+            log(f"Date update failed for {row.get('id')}: {err}")
+            WRITE_ERRORS['upsert_failed'] += 1
+            WRITE_ERRORS['rows_lost'] += 1
+    return written
 
 def select_dateless():
-    url = f'{SUPABASE_URL}/rest/v1/poker_series?start_date=is.null&select=series_uid,series_name,source_url&limit=500'
+    url = f'{SUPABASE_URL}/rest/v1/poker_series?start_date=is.null&select=id,series_uid,series_name,source_url&limit=500'
     req = urllib.request.Request(url, headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read())
@@ -193,10 +205,14 @@ def process():
                 if s_date:
                     log(f"  ✅ Found dates: {s_date} to {e_date}")
                     updates.append({
+                        "id": row['id'],
                         "series_uid": uid,
                         "start_date": s_date,
                         "end_date": e_date,
-                        "scrape_status": "date_enriched"
+                        "scrape_status": "date_enriched",
+                        "scrape_html_hash": hashlib.sha256(resp.body).hexdigest(),
+                        "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
+                        "data_quality": "scraped_inferred",
                     })
                     parsed_count += 1
                 else:
