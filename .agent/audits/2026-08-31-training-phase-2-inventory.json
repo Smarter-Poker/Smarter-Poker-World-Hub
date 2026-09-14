@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 336,
+    "dependencyFiles": 337,
     "componentFiles": 50,
     "hookFiles": 14,
     "ctas": 343,
@@ -4651,6 +4651,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -5879,6 +5880,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6263,6 +6265,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6497,6 +6500,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6780,6 +6784,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -8184,6 +8189,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -9412,6 +9418,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -9915,6 +9922,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10151,6 +10159,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10435,6 +10444,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -11752,6 +11762,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -12520,6 +12531,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -12875,6 +12887,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -15470,6 +15483,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -15723,6 +15737,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16232,6 +16247,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16621,6 +16637,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16859,6 +16876,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -17087,6 +17105,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -56061,7 +56080,8 @@
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/training.js"
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js"
       ],
       "links": [
         "/hub/training"
@@ -56101,7 +56121,7 @@
       "functions": [
         {
           "name": "normalisePath",
-          "line": 63,
+          "line": 65,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56109,7 +56129,7 @@
         },
         {
           "name": "getTutorialForPath",
-          "line": 70,
+          "line": 72,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56117,7 +56137,7 @@
         },
         {
           "name": "read",
-          "line": 82,
+          "line": 84,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -56125,7 +56145,7 @@
         },
         {
           "name": "write",
-          "line": 91,
+          "line": 93,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56133,7 +56153,7 @@
         },
         {
           "name": "hasSeenTutorial",
-          "line": 100,
+          "line": 102,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56141,7 +56161,7 @@
         },
         {
           "name": "markTutorialSeen",
-          "line": 104,
+          "line": 106,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56149,7 +56169,7 @@
         },
         {
           "name": "promptKey",
-          "line": 108,
+          "line": 110,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56157,7 +56177,7 @@
         },
         {
           "name": "hasSeenPrompt",
-          "line": 112,
+          "line": 114,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56165,7 +56185,7 @@
         },
         {
           "name": "markPromptSeen",
-          "line": 116,
+          "line": 118,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56173,7 +56193,7 @@
         },
         {
           "name": "requestPageTutorial",
-          "line": 124,
+          "line": 126,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56351,6 +56371,46 @@
     },
     {
       "file": "src/tutorials/training.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/tutorials/trivia.js",
       "imports": [],
       "links": [],
       "apiReferences": [],
@@ -61061,6 +61121,10 @@
     {
       "from": "src/tutorials/index.js",
       "to": "src/tutorials/training.js"
+    },
+    {
+      "from": "src/tutorials/index.js",
+      "to": "src/tutorials/trivia.js"
     }
   ],
   "componentFiles": [
@@ -69250,6 +69314,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70087,6 +70152,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70432,6 +70498,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70761,6 +70828,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -71077,6 +71145,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -71758,6 +71827,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72364,6 +72434,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72790,6 +72861,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -73109,6 +73181,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -73436,6 +73509,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -74202,6 +74276,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -74750,6 +74825,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -75070,6 +75146,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -76351,6 +76428,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -76716,6 +76794,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77085,6 +77164,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77456,6 +77536,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77772,6 +77853,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -78090,6 +78172,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -80004,7 +80087,8 @@
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/training.js"
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js"
       ],
       "apiReferences": [
         "/api/auth/ensure-profile",
@@ -80272,6 +80356,7 @@
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -83427,7 +83512,8 @@
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/training.js"
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js"
       ],
       "apiReferences": [],
       "persistence": [
@@ -83525,6 +83611,18 @@
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
+      ]
+    },
+    {
+      "file": "src/tutorials/trivia.js",
+      "reachableFiles": [
+        "src/tutorials/trivia.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/page-tutorials.test.mjs"
       ]
     },
     {
@@ -91805,7 +91903,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 100,
+        "line": 102,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91820,7 +91918,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 104,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91835,7 +91933,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 112,
+        "line": 114,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91850,7 +91948,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 116,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91865,7 +91963,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 124,
+        "line": 126,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100381,7 +100479,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 100,
+        "line": 102,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100396,7 +100494,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 104,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100411,7 +100509,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 112,
+        "line": 114,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100426,7 +100524,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 116,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100441,7 +100539,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 124,
+        "line": 126,
         "references": 1,
         "exported": true,
         "defaultExport": false,

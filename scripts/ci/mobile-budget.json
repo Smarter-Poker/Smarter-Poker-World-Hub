@@ -33,8 +33,8 @@
     },
     "/hub/trivia": {
       "jsKb": 900,
-      "lcpMs": 3500,
-      "converted": false
+      "lcpMs": 2500,
+      "converted": true
     },
     "/hub/video-library": {
       "jsKb": 900,

@@ -30,14 +30,18 @@ test('the trivia page shell also keeps CSS out of server-rendered style text', (
 });
 
 test('mode filters support roving keyboard navigation and keep the active choice visible', () => {
-    assert.match(LOBBY, /ref=\{filterRailRef\}/);
-    assert.match(LOBBY, /filterButtonRefs\.current\[filterIndex\]/);
+    // PIN MOVED (mobile phase 7, 2026-09-14): the rail ref and rail.scrollTo
+    // are gone with the rail. Every chip is on screen (the row wraps), so the
+    // active choice is visible by construction; keyboard roving is kept and
+    // a keyboard move still lands focus on the chosen chip.
+    assert.doesNotMatch(LOBBY, /filterRailRef/);
+    assert.match(LOBBY, /filterButtonRefs\.current\[filterIndex\]\?\.focus\(\)/);
     assert.match(LOBBY, /case 'ArrowRight'/);
     assert.match(LOBBY, /case 'ArrowLeft'/);
     assert.match(LOBBY, /case 'Home'/);
     assert.match(LOBBY, /case 'End'/);
     assert.match(LOBBY, /tabIndex=\{activeFilter === filter\.id \? 0 : -1\}/);
-    assert.match(LOBBY, /rail\.scrollTo\(/);
+    assert.doesNotMatch(LOBBY, /rail\.scrollTo\(/);
     assert.match(LOBBY, /prefers-reduced-motion: reduce/);
 });
 

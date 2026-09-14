@@ -11,6 +11,12 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HubPageShell from '../../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../../src/components/ui/PullToRefresh';
+import { useLoadFailsafe } from '../../../src/hooks/useLoadFailsafe';
+import { useHaptics } from '../../../src/hooks/useHaptics';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStatus';
+import toast from '../../../src/stores/toastStore';
 import TriviaLobby from '../../../src/components/trivia/TriviaLobby';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -47,6 +53,19 @@ export default function TriviaHubPage({ modeAvailability }) {
     const [currentStreak, setCurrentStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    /* MOBILE PHASE 7 (docs/mobile-standard): the phase 0a set. The skeleton
+       is capped at eight seconds, a pull at the top re-reads the balance,
+       daily state and streak, and starting a game while offline says so
+       instead of routing into a page that cannot load. */
+    useLoadFailsafe(isLoading, setIsLoading);
+    const haptic = useHaptics();
+    const online = useOnlineStatus();
+    const requireOnline = useCallback(() => {
+        if (online) return true;
+        toast.error(OFFLINE_TOAST);
+        return false;
+    }, [online]);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -196,6 +215,12 @@ export default function TriviaHubPage({ modeAvailability }) {
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id, loadUserData]);
 
+    const refreshLobby = useCallback(async () => {
+        if (!requireOnline()) return;
+        haptic('light');
+        await loadUserData();
+    }, [requireOnline, haptic, loadUserData]);
+
     return (
         <PageTransition>
             <SEOHead
@@ -209,42 +234,52 @@ export default function TriviaHubPage({ modeAvailability }) {
             <div className={styles.page}>
                 <div className={styles.backgroundOverlay} />
 
-                <UniversalHeader
-                    pageDepth={1}
-                    commandMenuOpen={menuOpen}
-                    onCommandMenuOpenChange={setMenuOpen}
-                    onMenuClick={() => setMenuOpen(true)}
-                />
-
-                {/* Hamburger Menu */}
-                <HamburgerMenu
-                    isOpen={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                    direction="left"
-                    theme="dark"
-                    user={user || null}
-                    showProfile={!!user}
-                    menuItems={menuConfig.menuItems}
-                    bottomLinks={menuConfig.bottomLinks}
-                />
-
-                <main className={styles.content}>
-                    <h1 className="sr-only">Smarter Poker Trivia</h1>
-                    {isLoading ? (
-                        <div className={styles.loading}>
-                            <TriviaSkeleton label="Daily Trivia and Quick Stakes loading; competitive modes are in Maintenance" />
-                        </div>
-                    ) : (
-                        <TriviaLobby
-                            userDiamonds={userDiamonds}
-                            isVip={isVip}
-                            dailyCompleted={dailyCompleted}
-                            currentStreak={currentStreak}
-                            modeAvailability={modeAvailability}
-                            onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
+                <HubPageShell
+                    className="trivia"
+                    maxWidth={1000}
+                    header={(
+                        <UniversalHeader
+                            pageDepth={1}
+                            commandMenuOpen={menuOpen}
+                            onCommandMenuOpenChange={setMenuOpen}
+                            onMenuClick={() => setMenuOpen(true)}
                         />
                     )}
-                </main>
+                >
+                    {/* Hamburger Menu */}
+                    <HamburgerMenu
+                        isOpen={menuOpen}
+                        onClose={() => setMenuOpen(false)}
+                        direction="left"
+                        theme="dark"
+                        user={user || null}
+                        showProfile={!!user}
+                        menuItems={menuConfig.menuItems}
+                        bottomLinks={menuConfig.bottomLinks}
+                    />
+
+                    <PullToRefresh onRefresh={refreshLobby} disabled={menuOpen}>
+                        <div className={styles.content}>
+                            <h1 className="sr-only">Smarter Poker Trivia</h1>
+                            {isLoading ? (
+                                <div className={styles.loading}>
+                                    <TriviaSkeleton label="Daily Trivia and Quick Stakes loading; competitive modes are in Maintenance" />
+                                </div>
+                            ) : (
+                                <TriviaLobby
+                                    userDiamonds={userDiamonds}
+                                    isVip={isVip}
+                                    dailyCompleted={dailyCompleted}
+                                    currentStreak={currentStreak}
+                                    modeAvailability={modeAvailability}
+                                    requireOnline={requireOnline}
+                                    haptic={haptic}
+                                    onDiamondsChange={(delta) => setUserDiamonds(prev => prev + delta)}
+                                />
+                            )}
+                        </div>
+                    </PullToRefresh>
+                </HubPageShell>
             </div>
 
     </PageTransition>
