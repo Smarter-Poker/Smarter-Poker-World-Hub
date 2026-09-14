@@ -161,6 +161,13 @@ widget, seven culls returned, 59 sub-12px nodes and 9 tiny targets to 0,
 100dvh / clip, breakpoints to 900/768/600, the phase 0a set, an eight-step
 tutorial. The override block stays as the one plain <style> (its !importants
 are what beat the component-scoped styles) with its violating rules fixed.
+Two lessons for every later phase that stacks sections: (1) an auto-loading
+feed above other sections starves them (the news sentinel grew the page
+7,000px during one anchor scroll), so a feed on a stacked page pages with a
+44px Load More button, not an IntersectionObserver; (2) `_app.js` used to
+scroll to top on every routeChangeComplete, shallow included, which undid
+any in-page scroll made alongside a `?query` replace; it now skips shallow
+changes, platform-wide.
 
 ## Phase 7: Poker Trivia (SMALL-MED)
 
