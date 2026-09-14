@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { setTimeout as pause } from 'node:timers/promises';
 import { createRequire } from 'node:module';
 import { isPushHealthSnapshot } from '../src/lib/pushHealthSnapshot.mjs';
 const require = createRequire(import.meta.url);
@@ -16,9 +17,9 @@ function snapshot() {
   staff:[{id:'admin',username:'Admin',status:'zombie',devices:3,totalDevices:4,lastReceiptAt:null}],
  };
 }
-function compile(path, load, extraReact) {
+function compile(path, load, extraReact, env={}) {
  const code=ts.transpileModule(fs.readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:'component.jsx',compilerOptions:{module:ts.ModuleKind.CommonJS,esModuleInterop:true,jsx:ts.JsxEmit.React,target:ts.ScriptTarget.ES2022}}).outputText;
- const module={exports:{}};new Function('require','module','exports','React',code)(load,module,module.exports,extraReact);return module.exports.default;
+ const module={exports:{}};new Function('require','module','exports','React','fetch','window',code)(load,module,module.exports,extraReact,env.fetch,env.window);return module.exports.default;
 }
 function routeFixture() {
  let user={id:'verified-admin'},rpcError=null,rpcData=snapshot(),throwRpc=false;const calls=[];
@@ -56,8 +57,38 @@ function pageHtml(data,error=null) {
  let index=0;const react={...React,useState:()=>[index++===0?data:error,()=>{}],useEffect:()=>{}};
  const Page=compile('../pages/admin/push-health.js',name=>{
   if(name==='react')return react;if(name==='next/head')return ({children})=>React.createElement(React.Fragment,null,children);
-  if(name.endsWith('authUtils'))return {getAccessToken:()=>null};if(name.endsWith('pushHealthSnapshot.mjs'))return {isPushHealthSnapshot};throw Error(name);
+  if(name.endsWith('usePushHealth'))return ()=>({data,error});throw Error(name);
  },React);return renderToStaticMarkup(Page());
 }
 test('rendered dashboard does not present old healthy totals after an error',()=>{const html=pageHtml({...snapshot(),config:{configured:true,keyMatches:true}},'Push Health Is Unavailable.');assert.match(html,/Push Health Is Unavailable/);assert.doesNotMatch(html,/VAPID configured|Queue backlog|6007/);});
 test('rendered dashboard shows exact accounting volume, observed time and unfinished backlog',()=>{const html=pageHtml({...snapshot(),config:{configured:true,keyMatches:true}});assert.match(html,/accounting_invoice/);assert.match(html,/6007/);assert.match(html,/Counts Include Every Matching Record/);assert.match(html,/Queue backlog[\s\S]*?>2<\/p>/);assert.match(html,/33% \(1\/3\)/);assert.match(html,/never/);});
+
+function readerFixture() {
+ let actor={id:'admin-a'},state,effect,cleanup,authCallback,unsubscribed=false,writes=0;const requests=[],events=new Map();
+ const react={useState:()=>[state||{userId:null,data:null,error:null},next=>{state=next;writes++;}],useEffect:cb=>{effect ||= cb;}};
+ const useReader=compile('../src/hooks/usePushHealth.js',name=>{
+  if(name==='react')return react;if(name.endsWith('authUtils'))return {getAuthUser:()=>actor,getAccessToken:()=>actor?.id+'-token'};
+  if(name.endsWith('/supabase'))return {supabase:{auth:{onAuthStateChange:cb=>{authCallback=cb;return {data:{subscription:{unsubscribe(){unsubscribed=true;}}}};}}}};
+  if(name.endsWith('pushHealthSnapshot.mjs'))return {isPushHealthSnapshot};throw Error(name);
+ },React,{fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve})),window:{addEventListener:(event,fn)=>events.set(event,fn),removeEventListener:event=>events.delete(event)}});
+ return {requests,render:()=>useReader(),mount(){useReader();cleanup=effect();},unmount(){cleanup();},switch(id,event='SIGNED_IN'){actor=id?{id}:null;authCallback(event,id?{user:actor,access_token:id+'-token'}:null);},storageSwitch(id){actor=id?{id}:null;events.get('storage')({key:'smarter-poker-auth'});},setActor(id){actor=id?{id}:null;},cleaned:()=>unsubscribed&&events.size===0,writes:()=>writes};
+}
+const goodResponse=()=>({ok:true,status:200,json:async()=>({...snapshot(),config:{configured:true,keyMatches:true}})});
+test('push health hides the prior account before a listener callback and ignores delayed old requests',async()=>{
+ const f=readerFixture();f.mount();f.setActor('admin-b');assert.equal(f.render().data,null);f.switch('admin-b');
+ assert.equal(f.requests[1].options.headers.Authorization,'Bearer admin-b-token');f.requests[1].resolve(goodResponse());await pause(1);assert.ok(f.render().data);
+ f.requests[0].resolve({ok:true,status:200,json:async()=>({...snapshot(),config:{configured:true,keyMatches:true},observedAt:'2026-01-01T00:00:00Z'})});await pause(1);
+ assert.equal(f.render().data.observedAt,'2026-09-14T13:45:00Z');f.unmount();
+});
+test('cross-tab account switch clears a completed admin snapshot before a nonadmin refusal',async()=>{
+ const f=readerFixture();f.mount();f.requests[0].resolve(goodResponse());await pause(1);assert.ok(f.render().data);
+ f.storageSwitch('ordinary-user');assert.equal(f.render().data,null);f.requests[1].resolve({ok:false,status:403,json:async()=>({error:'Admin Required'})});await pause(1);
+ assert.equal(f.render().data,null);assert.equal(f.render().error,'Admin Required');f.unmount();
+});
+test('sign-out clears metrics immediately and ignores an in-flight receipt',async()=>{
+ const f=readerFixture();f.mount();f.switch(null,'SIGNED_OUT');assert.deepEqual(f.render(),{data:null,error:'Not Authenticated'});
+ f.requests[0].resolve(goodResponse());await pause(1);assert.deepEqual(f.render(),{data:null,error:'Not Authenticated'});f.unmount();
+});
+test('unmount unsubscribes auth and storage and prevents a delayed state update',async()=>{
+ const f=readerFixture();f.mount();f.unmount();const writes=f.writes();assert.equal(f.cleaned(),true);f.requests[0].resolve(goodResponse());await pause(1);assert.equal(f.writes(),writes);
+});

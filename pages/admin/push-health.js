@@ -7,9 +7,7 @@
  * results would show green while every phone stayed silent.
  */
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
-import { getAccessToken } from '../../src/lib/authUtils';
-import { isPushHealthSnapshot } from '../../src/lib/pushHealthSnapshot.mjs';
+import usePushHealth from '../../src/hooks/usePushHealth';
 
 const STATUS_LABEL = {
     ok: 'Reachable',
@@ -54,27 +52,7 @@ const STATUS_COLOR = {
 };
 
 export default function PushHealthPage() {
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const token = getAccessToken();
-                const res = await fetch('/api/admin/push-health-data', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const json = await res.json();
-                if (!res.ok) { setError(json?.error || `Failed (${res.status})`); return; }
-                if (!isPushHealthSnapshot(json) || typeof json.config?.configured !== 'boolean' || typeof json.config?.keyMatches !== 'boolean') {
-                    setError('Push Health Is Unavailable. Please Try Again.'); return;
-                }
-                setData(json);
-            } catch (e) {
-                setError(e?.message || 'Failed to load');
-            }
-        })();
-    }, []);
+    const { data, error } = usePushHealth();
 
     return (
         <>
@@ -99,7 +77,7 @@ export default function PushHealthPage() {
                                 <Stat label="Unconfirmed devices" value={data.subscriptions.zombies} bad={data.subscriptions.zombies > 0} />
                                 <Stat label="Sent (24h)" value={data.outbox.sentLast24h} />
                                 <Stat label="Queue backlog" value={data.outbox.pending + data.outbox.processing} bad={data.outbox.pending + data.outbox.processing > 250} />
-                                <Stat label="Failed" value={data.outbox.failed} bad={data.outbox.failed > 0} />
+                                <Stat label="Failed (All Time)" value={data.outbox.failed} bad={data.outbox.failed > 0} />
                                 <Stat
                                     label="Dispatcher last ran"
                                     value={data.dispatch.minutesSince == null ? 'never' : `${data.dispatch.minutesSince}m ago`}
