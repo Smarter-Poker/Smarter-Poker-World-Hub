@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
+import useMessengerConversationLink from '../../src/hooks/useMessengerConversationLink';
 import { broadcastSync } from '../../src/lib/broadcastSync';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -734,7 +735,7 @@ function MessengerPage() {
     }, [user?.id, router.query]);
 
     const resolveConversationRef = useRef(null);
-    resolveConversationRef.current = async (conversationId, draftText = '') => {
+    resolveConversationRef.current = async (conversationId, draftText = '', controls = {}) => {
         const accountId = user?.id;
         const requestScope = workspaceRef.current;
         try {
@@ -744,26 +745,35 @@ function MessengerPage() {
                 body: JSON.stringify({ workspace: 'resolve', conversationId }),
             });
             const result = await response.json();
-            if (workspaceRef.current !== requestScope) return;
-            if (!response.ok || !result.success) throw new Error(result.error || 'Conversation Unavailable');
+            if (workspaceRef.current !== requestScope || controls.isCurrent?.() === false) return;
+            if (!response.ok || !result.success || result.conversation?.id !== conversationId
+                || !Array.isArray(result.clubs) || !Array.isArray(result.conversations)
+                || !result.conversations.some(conversation => conversation.id === conversationId)
+                || !['messages', 'invoices'].includes(result.folder)) {
+                throw new Error(result.error || 'Conversation Unavailable');
+            }
+            controls.onResolved?.();
             setClubAccess({ userId: accountId, clubs: result.clubs });
             setWorkspaceSelection({ clubId: result.clubId, folder: result.folder });
             setConversations(result.conversations);
             setPendingConversationId(result.conversation.id);
             if (draftText) setConversationDraft(draftText);
         } catch (error) {
-            if (workspaceRef.current === requestScope) setToast({ type: 'error', message: error.message });
+            if (workspaceRef.current === requestScope && controls.isCurrent?.() !== false) setToast({ type: 'error', message: error.message });
         }
     };
+    useMessengerConversationLink({
+        userId: user?.id, scope: workspaceKey, conversation: router.query.conversation, draft: router.query.draft,
+        resolve: (...args) => resolveConversationRef.current(...args),
+    });
     const lastHandledConvLink = useRef(null);
     useEffect(() => {
         if (!user?.id) return;
-        const { conversation, recipientId, draft } = router.query;
-        const key = `${user.id}:${conversation || recipientId || ''}`;
-        if ((!conversation && !recipientId) || lastHandledConvLink.current === key) return;
+        const { conversation, recipientId } = router.query;
+        const key = `${user.id}:${recipientId || ''}`;
+        if (conversation || !recipientId || lastHandledConvLink.current === key) return;
         lastHandledConvLink.current = key;
-        if (conversation) resolveConversationRef.current(conversation, typeof draft === 'string' ? draft : '');
-        else if (recipientId) {
+        if (recipientId) {
             (async () => {
                 const { data } = await supabase.from('profiles').select('id,username,full_name,avatar_url').eq('id', recipientId).maybeSingle();
                 if (data) await handleStartConversation(data);
