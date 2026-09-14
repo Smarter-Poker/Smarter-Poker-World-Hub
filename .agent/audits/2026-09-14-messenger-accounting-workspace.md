@@ -29,3 +29,10 @@ The retained Messenger shell no longer labels a loading or failed inbox as empty
 
 
 Search visibility follow-up: both search endpoints previously read social_messages directly, allowing archived individual invoice content to escape the invoice-page filter. Both now use the same authenticated workspace resolver and the installed fn_messenger_search_messages reader. A request without a workspace searches social messages only. Conversation search rechecks active club membership and visible receipt/discussion access. The database excludes archived rows before the result cap, preserves literal percent/underscore searches, and verifies invoice identity and current status from the receipt link. Migration 20260914132940_invoice_search_only_returns_visible_verified_messages is installed; 18 new native PostgreSQL assertions passed alongside the prior 32. Forty-seven focused WH tests, including both real API handler auth/refusal wiring, pass; the existing 51 notification and overlay checks also pass. Search deployment and live verification follow this commit.
+
+
+### Search response lifecycle follow-up
+
+A conversation switch could retain previous search results, and failed sidebar searches were presented as zero matches. Both search views now use one scoped request hook. The current actor, workspace, conversation and query identify each result; a scope change hides old results in the first render and cancels late completion. Failed or malformed responses show an unavailable state. Conversation selection resets its search UI; sidebar hits also require a currently visible conversation. Five asynchronous lifecycle regression checks pass, bringing focused coverage to 52. This follow-up still requires merge, production revision and browser verification.
+
+Rendered production inspection also found invoice conversation titles inheriting the outer dark page text color on a light Messenger panel. The conversation header and accounting introduction now explicitly use the Messenger theme text color; both light and dark component variants are covered. Focused coverage is 53 passing checks.
