@@ -54,7 +54,7 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
 
     if (done) {
         return (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', padding: '6px 8px' }}>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', padding: '6px 8px' }}>
                 ✓ Thanks - Report Submitted
             </div>
         );
@@ -70,7 +70,7 @@ export default function ReportQuestionButton({ questionId, userToken, onDone }) 
                     color: 'rgba(255,255,255,0.5)',
                     padding: '4px 10px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     cursor: 'pointer',
                 }}
                 title="Report this question"

@@ -1116,7 +1116,7 @@ export default function TriviaModePage() {
     // While the router hydrates, show a skeleton instead of a blank flash
     if (!router.isReady) {
         return (
-            <div style={{ minHeight: '100vh', background: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ minHeight: '100dvh', background: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TriviaSkeleton />
             </div>
         );
@@ -1127,7 +1127,7 @@ export default function TriviaModePage() {
     if (!mode || !modeConfig) {
         return (
             <div style={{
-                minHeight: '100vh', background: '#0a0e1a', display: 'flex', flexDirection: 'column',
+                minHeight: '100dvh', background: '#0a0e1a', display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center',
                 fontFamily: "'Inter', -apple-system, sans-serif", padding: 24
             }}>
@@ -1503,7 +1503,7 @@ export default function TriviaModePage() {
 
             <style>{`
                 .trivia-mode-page {
-                    min-height: 100vh; padding-bottom: 70px;
+                    min-height: 100dvh;
                     background: #0a0e1a;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
@@ -1796,7 +1796,7 @@ export default function TriviaModePage() {
 
                 .daily-lb-header {
                     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-                    font-size: 11px;
+                    font-size: 12px;
                     color: rgba(255, 255, 255, 0.4);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -1871,7 +1871,7 @@ export default function TriviaModePage() {
                 }
 
                 .diamond-modal-icon svg { transform: rotate(-45deg); }
-                .diamond-modal-kicker { color: #f2b84b; font: 700 11px/1.2 'Orbitron', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+                .diamond-modal-kicker { color: #f2b84b; font: 700 12px/1.2 'Orbitron', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
                 .diamond-modal-card h3 { margin: 10px 0; color: #edf7fb; font: 700 28px/1.05 'Rajdhani', sans-serif; text-transform: capitalize; }
                 .diamond-modal-card p { margin: 0 auto 22px; color: #a9bac4; font-size: 14px; line-height: 1.55; }
                 .diamond-modal-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 8px; }
@@ -1923,7 +1923,7 @@ export default function TriviaModePage() {
                     border-radius: 2px;
                     background: linear-gradient(180deg, #1f1a0d, #090806);
                     color: #f2d38a;
-                    font: 700 11px/1 'Orbitron', sans-serif;
+                    font: 700 12px/1 'Orbitron', sans-serif;
                     letter-spacing: .08em;
                     box-shadow: inset 0 1px rgba(255,255,255,.14);
                 }
@@ -1943,7 +1943,7 @@ export default function TriviaModePage() {
                     box-shadow: inset 0 1px rgba(255,255,255,.12), 0 10px 30px #000;
                     text-align: left;
                 }
-                .daily-lobby-console span { color: #f2b84b; font: 700 10px/1.2 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+                .daily-lobby-console span { color: #f2b84b; font: 700 12px/1.2 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; }
                 .daily-lobby-console strong { color: #f3f7f9; font: 700 clamp(25px, 5vw, 46px)/1 'Rajdhani', sans-serif; text-transform: capitalize; }
                 .daily-lobby-console small { color: #a9bac4; font: 600 12px/1.4 'Inter', sans-serif; }
 
@@ -2000,7 +2000,7 @@ export default function TriviaModePage() {
                     .trivia-daily-casino .lobby-image-wrapper { min-height: calc(100dvh - 78px); max-height: none; }
                     .trivia-daily-casino .lobby-image { min-height: calc(100dvh - 78px); max-height: none; object-fit: cover; }
                     .daily-lobby-console { right: 10px; bottom: 78px; left: 10px; padding: 14px; }
-                    .daily-lobby-console small { font-size: 11px; }
+                    .daily-lobby-console small { font-size: 12px; }
                     .diamond-modal-actions { grid-template-columns: 1fr; }
                     .trivia-daily-casino .trivia-game,
                     .trivia-daily-casino .trivia-result { border-inline: 1px solid #607b8c; }

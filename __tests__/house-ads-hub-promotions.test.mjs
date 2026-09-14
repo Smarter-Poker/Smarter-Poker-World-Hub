@@ -675,3 +675,19 @@ test('the popup carries the sponsor\'s door (2026-09-13)', () => {
     assert.match(rail, /href="\/hub\/club-arena\/advertise"/);
     assert.match(rail, /Advertise With Us/);
 });
+
+test('an advert knows where it is: the Hub passes the edge-resolved country, and /api/geo returns nothing else (2026-09-14)', () => {
+    const lib = read(LIB);
+    // One memoised same-origin read, handed to the resolver as p_country.
+    assert.match(lib, /fetch\('\/api\/geo', \{ credentials: 'omit', cache: 'no-store' \}\)/);
+    assert.match(lib, /p_country: await playerCountry\(\)/);
+    // Unknown is null, never a guess.
+    assert.match(lib, /return \/\^\[A-Z\]\{2\}\$\/\.test\(c\) \? c : null;/);
+    // The route answers from the edge header alone and is cached by nobody.
+    assert.ok(existsSync(join(ROOT, 'pages/api/geo.js')), 'pages/api/geo.js is missing');
+    const geo = read('pages/api/geo.js');
+    assert.match(geo, /req\.headers\['x-vercel-ip-country'\]/);
+    assert.match(geo, /'no-store, max-age=0'/);
+    assert.match(geo, /res\.status\(200\)\.json\(\{ country \}\)/);
+    assert.doesNotMatch(geo, /x-forwarded-for|x-real-ip|x-vercel-ip-city|x-vercel-ip-latitude|getServerUser/);
+});

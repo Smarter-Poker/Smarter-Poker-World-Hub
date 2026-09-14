@@ -61,12 +61,38 @@ export function _resetSeenThisLoad() {
  * ad system that has quietly stopped serving looks different from "no
  * campaigns are running".
  */
+/**
+ * Where this player is, as the edge saw them: one same-origin GET /api/geo
+ * per page load, memoised. A hint for `fn_resolve_ads`, never a credential -
+ * a sponsor flight with a country list is served only to a player known to be
+ * inside it, and unknown (failed fetch, local dev, no header) is null, which
+ * is inside no list. Nothing else is unlocked by it.
+ */
+let countryOnce = null;
+export function playerCountry() {
+    if (countryOnce) return countryOnce;
+    countryOnce = (async () => {
+        try {
+            if (typeof fetch !== 'function') return null;
+            const res = await fetch('/api/geo', { credentials: 'omit', cache: 'no-store' });
+            if (!res.ok) return null;
+            const body = await res.json();
+            const c = typeof body?.country === 'string' ? body.country.trim().toUpperCase() : '';
+            return /^[A-Z]{2}$/.test(c) ? c : null;
+        } catch {
+            return null;
+        }
+    })();
+    return countryOnce;
+}
+
 export async function resolveHubAds(limit = 3) {
     try {
         const { data, error } = await supabase.rpc('fn_resolve_ads', {
             p_slot: HUB_SLOT,
             p_club_id: null,
             p_limit: limit,
+            p_country: await playerCountry(),
         });
         if (error) {
             console.warn('[hubAds] resolve failed:', error.message || error);

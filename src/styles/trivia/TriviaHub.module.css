@@ -2,9 +2,8 @@
     position: relative;
     width: 100%;
     max-width: 100%;
-    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0 auto;
-    padding-bottom: 70px;
     overflow-x: clip;
     background:
         radial-gradient(circle at 50% -12%, rgba(0, 148, 218, 0.18), transparent 34%),
@@ -40,7 +39,7 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
-@media (max-width: 680px) {
+@media (max-width: 768px) {
     .content {
         padding: 8px 0 24px;
     }
