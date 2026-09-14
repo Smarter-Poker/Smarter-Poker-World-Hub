@@ -52,14 +52,24 @@ export async function getMessengerClubs(db, userId) {
     }));
 }
 
-async function accountingMap(db, ids) {
+async function accountingMap(db, ids, userId) {
     const map = new Map();
     // The mapping is unique by audience, not by a synthetic row id.
     for (let start = 0; start < ids.length; start += 100) {
         const records = await rows(db.from('accounting_conversations')
             .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,last_discussion_at')
             .in('conversation_id', ids.slice(start, start + 100)));
-        for (const record of records) map.set(record.conversation_id, record);
+        if (records.length) {
+            const { data: visibility, error } = await db.rpc('fn_messenger_accounting_threads', {
+                p_user_id: userId, p_conversation_ids: records.map(record => record.conversation_id),
+            });
+            if (error || !Array.isArray(visibility)) fail(503, 'Invoice Threads Unavailable');
+            for (const record of records) {
+                const visible = visibility.find(row => row.conversation_id === record.conversation_id);
+                if (!visible) fail(503, 'Invoice Thread Unavailable');
+                map.set(record.conversation_id, { ...record, ...visible });
+            }
+        }
     }
     return map;
 }
@@ -70,7 +80,7 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
         if (folder === 'invoices') {
             // An issuer's participation allows replies but must not turn every
             // agent's private invoice into a separate club inbox item.
-            return invoice?.scope_id === club?.id && (invoice.recipient_id === userId || (invoice.sender_id === userId && !!invoice.last_discussion_at));
+            return invoice?.scope_id === club?.id && ((invoice.recipient_id === userId && invoice.recipient_visible) || (invoice.sender_id === userId && !!invoice.last_discussion_at));
         }
         return !invoice;
     }).map(c => ({ ...c, isAccounting: accounting.has(c.id), clubId: club?.id || null }));
@@ -89,12 +99,12 @@ export async function getMessengerWorkspace(db, userId, request) {
         const participation = await rows(db.from('social_conversation_participants').select('conversation_id,context_entity_id')
             .eq('user_id', userId).eq('conversation_id', request.conversationId));
         if (participation.length !== 1) fail(403, 'Conversation Unavailable');
-        const mapping = (await accountingMap(db, [request.conversationId])).get(request.conversationId);
+        const mapping = (await accountingMap(db, [request.conversationId], userId)).get(request.conversationId);
         contextId = participation[0].context_entity_id;
         club = clubs.find(c => mapping ? c.id === mapping.scope_id : c.pageId === contextId) || null;
         if ((mapping || contextId) && !club) fail(403, 'Active Club Membership Required');
         folder = mapping ? 'invoices' : 'messages';
-        if (mapping && mapping.recipient_id !== userId && !(mapping.sender_id === userId && mapping.last_discussion_at)) fail(403, 'Open The Club Weekly Statement');
+        if (mapping && !(mapping.recipient_id === userId && mapping.recipient_visible) && !(mapping.sender_id === userId && mapping.last_discussion_at)) fail(403, 'Open The Club Weekly Statement');
         resolvedId = request.conversationId;
     } else if (workspace === 'club') {
         if (!UUID.test(request.clubId || '')) fail(400, 'Choose A Club');
@@ -115,7 +125,7 @@ export async function getMessengerWorkspace(db, userId, request) {
     const ids = unique.map(c => c.conversation_id || c.id);
     const [meta, accounting] = await Promise.all([
         byIds(db, 'social_conversations', 'id,is_request,request_sender_id,last_message_preview,group_name', 'id', ids),
-        accountingMap(db, ids),
+        accountingMap(db, ids, userId),
     ]);
     const metadata = new Map(meta.map(c => [c.id, c]));
     const clubBrands = new Map();
@@ -135,7 +145,8 @@ export async function getMessengerWorkspace(db, userId, request) {
         const name = brand?.club_name || c.other_user_username;
         return {
             id, title: c.title || m.group_name, is_group: !!c.is_group,
-            last_message_at: c.last_message_at, last_message_preview: m.last_message_preview,
+            last_message_at: accounting.get(id)?.last_message_at ?? c.last_message_at,
+            last_message_preview: accounting.has(id) ? accounting.get(id).last_message_preview : m.last_message_preview,
             unreadCount: Number(c.unread_count || 0), last_read_at: c.last_read_at || null,
             isRequest: !!m.is_request, requestSenderId: m.request_sender_id,
             otherUser: c.other_user_id ? {
