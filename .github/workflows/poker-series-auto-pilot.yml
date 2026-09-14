@@ -54,6 +54,7 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
           python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
+          python3 -m unittest discover -s scripts -p test_series_date_provenance.py -v
 
       - name: Record Enrichment Startup Failure
         if: failure() && steps.enrichment_startup.outcome == 'failure'

@@ -75,8 +75,10 @@
 #      muted (CLAUDE.md 10.83/10.84). A productive run whose last pass still
 #      crashed gets a ::warning:: annotation, which is visible on the run page
 #      without paging anyone.
-#   !0 nothing was written and the last pass failed, or no pass ran at all
-#      (a budget too small to fit one). Both are worth a human.
+#   !0 nothing was written and the last pass failed; no pass ran at all (a
+#      budget too small to fit one); or ANY pass reported faults of our own -
+#      a lost row, a failed upsert, a failed patch. All are worth a human, and
+#      the last of those is not excused by a productive run.
 #
 # USAGE
 #   BUDGET_MIN=145 scripts/multi-pass-scrape.sh python3 scripts/x.py --pass-limit 1
@@ -96,6 +98,10 @@ MIN_PASS_MIN="${MIN_PASS_MIN:-15}"   # a pass spends ~6 min loading before its
 # only the ASCII tail keeps this locale-proof).
 EVENTS_RE="${EVENTS_RE:-[0-9]+/[0-9]+ events confirmed}"
 COHORT_RE="${COHORT_RE:-[0-9]+ to scrape/refresh}"
+# The scraper separates ITS OWN faults from the world's, and fails hard on the
+# former: "a lost row, a failed upsert or a failed patch is a defect in this
+# repo". This script must not launder that verdict - see OUR OWN FAULTS below.
+OURS_RE="${OURS_RE:-Run completed WITH ERRORS OF OURS}"
 
 if [ "$#" -eq 0 ]; then
   echo "usage: $0 <scraper command> [args...]" >&2
@@ -109,6 +115,8 @@ DEADLINE=$(( $(date +%s) + BUDGET_MIN * 60 ))
 total_events=0
 passes=0
 last_rc=0
+ours_fault=0
+ours_detail=""
 stop_reason="MAX_PASSES ($MAX_PASSES) reached"
 
 echo "== multi-pass scrape: up to $MAX_PASSES passes inside ${BUDGET_MIN}m =="
@@ -137,11 +145,29 @@ for pass in $(seq 1 "$MAX_PASSES"); do
 
   wrote=$(grep -oE "$EVENTS_RE" "$log" 2>/dev/null | cut -d/ -f1 \
           | awk '{s+=$1} END {print s+0}')
+  # THE PASS PRINTS ITS COHORT TWICE: once when it builds it, and again at the
+  # end when it re-reads what is left. Taking only the last one and calling it
+  # "at start" hid the very thing this script is judged on.
+  #
+  # MEASURED, scheduled run 34833374303: pass 1 really went 214 -> 180 (34
+  # series finished, 959 events), and pass 2 really started at 180. Both passes
+  # reported "cohort at start: 180", so the run read as "the cohort never
+  # shrinks, the wrapper is achieving nothing" - a conclusion I drew myself
+  # from this line before checking the scraper's own log.
+  #
+  # So: FIRST reading is the start, LAST reading is what is left. The
+  # empty-cohort stop still tests the last one, which is the only one that can
+  # answer "is there anything remaining".
+  cohort_start=$(grep -oE "$COHORT_RE" "$log" 2>/dev/null | head -1 | cut -d' ' -f1)
   cohort=$(grep -oE "$COHORT_RE" "$log" 2>/dev/null | tail -1 | cut -d' ' -f1)
   total_events=$(( total_events + wrote ))
+  if grep -qE "$OURS_RE" "$log" 2>/dev/null; then
+    ours_fault=1
+    ours_detail=$(grep -oE "$OURS_RE.*" "$log" 2>/dev/null | tail -1)
+  fi
 
   echo "---- pass $pass: exit $last_rc, ${wrote} event(s) written" \
-       "(total $total_events), cohort at start: ${cohort:-unknown} ----"
+       "(total $total_events), cohort ${cohort_start:-unknown} -> ${cohort:-unknown} ----"
 
   # An empty cohort is the end of the work, not progress toward it. Tested:
   # without this, a shrink from 69 to 0 reads as progress and buys one more
@@ -195,6 +221,27 @@ fi
 if [ "$passes" -eq 0 ]; then
   echo "::error title=No scrape pass ran::BUDGET_MIN=${BUDGET_MIN}m cannot fit one" \
        "pass of MIN_PASS_MIN=${MIN_PASS_MIN}m. Nothing was scraped."
+  exit 1
+fi
+
+# OUR OWN FAULTS ARE NOT FORGIVEN BY A PRODUCTIVE RUN.
+#
+# MEASURED, run 34799912678 (2026-09-14, the first run of this script): pass 2
+# ended "Run completed WITH ERRORS OF OURS: {'upsert_failed': 0, 'rows_lost': 0,
+# 'patch_failed': 2, ...}" and exited 1. Pass 1 had written 139 events, so the
+# rule below this one turned that into a green step. Two rows the scraper
+# failed to write went unreported, and the scraper's own unconditional rule -
+# "a lost row, a failed upsert or a failed patch is a defect in this repo" -
+# was silently overridden by the wrapper wrapping it.
+#
+# The crash this script exists for leaves no such verdict: it is an uncaught
+# RuntimeError, so the exit gate never runs and this line never appears. That
+# is exactly what makes the two distinguishable, and why the forgiveness below
+# can stay narrow instead of swallowing everything non-zero.
+if [ "$ours_fault" -eq 1 ]; then
+  echo "::error title=The scraper reported faults of ours::$ours_detail" \
+       "($passes pass(es), $total_events event(s) written). A productive run" \
+       "does not excuse a row this repo failed to write."
   exit 1
 fi
 

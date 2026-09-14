@@ -1,5 +1,7 @@
 import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
+// Required CHECK 8 must catch wallet palette regressions before Vercel builds.
+import './diamond-store-phase-9.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -161,6 +163,9 @@ import './training-mobile-upgrades.test.mjs';
 // returned sidebar widgets and labels, the 12px floor and the tutorial.
 import './news-mobile-upgrades.test.mjs';
 import './trivia-mobile-upgrades.test.mjs';
+import './video-library-mobile-upgrades.test.mjs';
+import './poker-tools-mobile-upgrades.test.mjs';
+import './toke-tracker-mobile-upgrades.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
 // Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,
@@ -186,6 +191,10 @@ import './store-commerce-hardening.test.mjs';
 // locally, and was reachable from no workflow, no npm script and no import -
 // which is exactly the shape of the 52 guards found unreachable on 2026-09-04.
 import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
+// 2026-09-13, the same audit's second pass. /api/rewards/progress reports
+// whether today's login is claimed and what the next claim pays, from the
+// catalog's own rule; the wallet's Escape backs out one layer, not all of them.
+import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.

@@ -43,9 +43,14 @@ test('command-rail selection and shareable query state cannot drift apart', () =
   assert.match(PAGE, /replaceNavigationQuery\(\{ type: null, filter \}\)/);
   assert.match(PAGE, /source: source === 'ALL' \? null : source,[\s\S]*type: selectedType === 'ALL' \? null : selectedType/);
   assert.match(COMMAND_RAIL, /selectedType === view\.id && libraryFilter === 'ALL'/);
-  assert.match(PAGE, /ref=\{filterRailRef\}/);
-  assert.match(PAGE, /ref=\{sourceRailRef\}/);
-  assert.match(PAGE, /if \(activeButton\) keepRailButtonInView\(activeButton\)/);
+  // PIN MOVED (mobile phase 9, 2026-09-14). These three pinned the RAILS:
+  // refs on the command row and the creator row so keepRailButtonInView
+  // could scroll the chosen control into a sideways strip. The always-
+  // displayed standard forbids the strip; both rows wrap, so the chosen
+  // control is on screen by construction and a keyboard choice lands focus.
+  assert.doesNotMatch(PAGE, /keepRailButtonInView/);
+  assert.doesNotMatch(PAGE, /filterRailRef|sourceRailRef/);
+  assert.match(PAGE, /button\?\.focus\?\.\(\);/);
 });
 
 test('personal subviews receive distinct responsive identity and signed-out guidance', () => {
@@ -55,7 +60,8 @@ test('personal subviews receive distinct responsive identity and signed-out guid
   assert.match(PAGE, /Favorites Need Your Profile/);
   assert.match(PAGE, /History Needs Your Profile/);
   assert.match(CSS, /\.vl-subview-banner/);
-  assert.match(CSS, /@media \(max-width: 760px\)[\s\S]*\.vl-subview-banner/);
+  // PIN MOVED (mobile phase 9): the phone block is at the standard's 768px.
+  assert.match(CSS, /@media \(max-width: 768px\)[\s\S]*\.vl-subview-banner/);
 });
 
 test('mobile cards and supporting sheets keep compact, touch-safe geometry', () => {

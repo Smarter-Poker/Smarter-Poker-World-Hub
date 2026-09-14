@@ -100,6 +100,9 @@ jobs:
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
 
+      - name: Messenger Club And Invoice Separation
+        run: node --test __tests__/messenger-workspace.test.mjs __tests__/messenger-accounting-ui.test.mjs
+
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
@@ -108,6 +111,9 @@ jobs:
 
       - name: Series Enrichment Startup Contracts
         run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+
+      - name: Series Date Provenance And Existing Row Receipts
+        run: python3 -m unittest discover -s scripts -p test_series_date_provenance.py -v
 
       - name: Series Discovery Source Handoff Contracts
         run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
@@ -185,6 +191,12 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+      - name: Integrity Hand Search PostgreSQL Continuation
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-integrity-hands-continuation.py
+      - name: Operator Approval PostgreSQL Concurrency
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-approval-concurrency.py
+      - name: Fleet policy and exact audit commit together
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-fleet-policy-audit.py
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs

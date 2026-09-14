@@ -202,6 +202,18 @@ paddingBottom guess); then the same audit and conversion inside the
 (schedule/leaderboard/table-settings/stats/history) get the standard
 shell.
 
+**Retired 2026-09-14 (nothing to convert).** The six standalone
+`/hub/diamond-arena*` pages, their iframe and their CSS were removed on
+2026-09-09 by #1701 ("make Poker Arena the shared World Hub entrance"):
+Diamond now lives inside Club Arena's shared Poker Arena selector, under
+Club Arena's own 12-phase programme, repo, pipeline and #ClubArenaConsole
+standard. `diamond.smarter.poker` returns 404 and the `diamond-arena` Vite
+repo is closed (its crons and Vercel project removed). The no-slide-to-see
+law already lists the active phases as 1 to 7, 9 and 10, and pins that the
+retired Diamond targets stay absent. Phase 8 is therefore complete by
+retirement, not skipped: there is no World Hub surface left to bring to the
+standard, and the Diamond UI is Club Arena's to hold to its own rules.
+
 ## Phase 9: Video Library (MED-LARGE)
 
 Files: `pages/hub/video-library.js` (3,229), `src/styles/worlds/video-library.css` (1,739).
@@ -216,6 +228,17 @@ Work: all four rails become 2-col grids at <=768 (continue watching and
 new this week show 4, then "Show more"); labels/logos return; keep the
 SSR-safe viewport pattern at js:373.
 
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase9-video-library.md`):
+the command controls a two-column grid under their group headings, the
+creator row wrapping (ten then Show All on a phone), the active filter list
+wrapping, Continue Watching and New This Week grids of four then Show More,
+Up Next a grid inside the viewer instead of a cull, the rail scroller and
+its refs gone, four culls returned, 182 sub-12px nodes at 375 to 0, 100dvh,
+the page's three bottom pads gone (BottomNavSpacer), breakpoints
+480/760/761/767/1024/1025/1180 to 768/769/900 with a fluid video grid,
+the phase 0a set, an eight-step tutorial. Four pins in the phase 5/7/8
+video-library tests were moved with their reasons.
+
 ## Phase 10: Odds Calculator (SMALL)
 
 File: `pages/hub/poker-tools.js` (726), route `/hub/poker-tools`.
@@ -225,6 +248,48 @@ hydration guards; `paddingBottom:70` boilerplate.
 
 Work: standard shell; card picker grid `repeat(auto-fill, minmax(44px,1fr))`;
 results as stacked cards at <=768; verify at 375.
+
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase10-odds-calculator.md`):
+the picker an auto-fill grid at 44px (52 cards from 22px targets to 44px),
+the equity as one stacked card per seat under the picker, the page-owned
+header and settings sheet replaced by the shared header and hamburger (so
+the Page Tutorial row exists), haptics on cards and Calculate, 100dvh, no
+page-owned bottom pad, every control 44px, the 10px badges and 8px
+watermark floor to 12px, an eight-step tutorial. The failsafe, pull to
+refresh and offline guard are deliberately not wired: the calculator has no
+network. With this phase every one of Dan's original ten routes is converted
+(8 retired).
+
+## Phase 11: Toke Tracker (MED, added 2026-09-14)
+
+Not in Dan's original ten. It is here because when phase 10 closed that list,
+Toke Tracker was the only World menu root still unconverted that is a real
+page: `/hub/my-clubs` and `/hub/marketplace` are both `getServerSideProps`
+redirects (retired 2026-09-08 and to the Diamond Store respectively) with no
+UI to convert, and `mobile-budget.json` keeps them `converted: false` for
+that reason. Leaving Toke Tracker out would have left one of the thirteen
+menu roots on the old standard for ever.
+
+Files: `pages/hub/toke-tracker/{index,shift,analytics,vault,venues}.js`
+(1,093 lines) plus the five components they mount from
+`src/components/bankroll` (`TokeTracker` 2,540, `DealerVault` 1,045,
+`TokeDashboard` 602, `TokeCalendar` 584, `VenueIntelligence` 290).
+
+Violations: two hidden-content tab strips (four charts, four document
+categories); a year calendar drawn three months across a phone, so every day
+was a 15px target and the 44px grid existed only for the one expanded month;
+28x28 year arrows; a 14px input; a 300px inner scroller over the day's
+downs; `100vh` / `paddingBottom: 70` / `overflowX: hidden` on all five pages;
+the same forty lines of preference state copied into all five.
+
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase11-toke-tracker.md`):
+all five pages on `HubPageShell` with one shared `useTokePrefs` hook, every
+chart and every document category rendered stacked under its own heading,
+the calendar one 44px grid per month bounded by a Show All button, pull to
+refresh and the offline guard on the four rooms, the load failsafe on the two
+that fetch, haptics, `useModalHistory` on all eight sheets, 16px inputs, a
+12px floor, and an eight-step tutorial registered for the prefix.
+`CONVERTED = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11]`.
 
 ## Every phase, in addition to its page work (added 2026-09-03)
 

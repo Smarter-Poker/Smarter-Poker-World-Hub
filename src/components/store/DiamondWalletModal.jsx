@@ -85,6 +85,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
+  Gem,
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
@@ -171,7 +172,56 @@ const TX_TYPES = {
   // Other
   refund: { Icon: RotateCcw, label: 'Refund', color: '#94a3b8' },
   adjustment: { Icon: Settings, label: 'Adjustment', color: '#94a3b8' },
+
+  /* ── ADDED 2026-09-13, read from the writers and the live ledger ──────────
+     THE DIAMOND ARENA IS DIAMONDS ONLY (Dan). A buy-in moves diamonds into
+     custody (fn_poker_diamond_buyin writes `arena_deposit`), a cash-out moves
+     them back (`arena_withdraw`). Neither is a chip and neither is labelled
+     as one. The rest are the highest-volume kinds of the last 30 days that
+     had no entry here and rendered as "Adjustment" - daily_challenge_claim
+     alone is 55,183 of the 57,000 rows written in that window. Same labels
+     as Club Arena's DiamondWalletModal.tsx, so one ledger reads one way. */
+  arena_deposit: { Icon: Gem, label: 'Diamond Arena Buy-In', color: '#00a8e8' },
+  arena_withdraw: { Icon: Gem, label: 'Diamond Arena Cash-Out', color: '#00a8e8' },
+  live_gift_sent: { Icon: Send, label: 'Live Gift Sent', color: '#ffffff' },
+  live_gift_received: { Icon: Gift, label: 'Live Gift Received', color: '#00a8e8' },
+  debt_settlement: { Icon: Settings, label: 'Owed Diamonds Settled', color: '#94a3b8' },
+  daily_challenge_claim: { Icon: Target, label: 'Daily Challenge', color: '#06b6d4' },
+  daily_challenge_reroll: { Icon: RotateCcw, label: 'Challenge Reroll', color: '#ef4444' },
+  daily_mission_milestone: { Icon: Medal, label: 'Mission Milestone', color: '#06b6d4' },
+  training_reward: { Icon: Brain, label: 'Training Reward', color: '#7395a8' },
+  easter_egg: { Icon: Sparkles, label: 'Easter Egg', color: '#f59e0b' },
+  pvp_stake: { Icon: Swords, label: 'PvP Stake', color: '#ef4444' },
+  plinko_drop: { Icon: Gamepad2, label: 'Plinko Drop', color: '#ef4444' },
+  crash_bet: { Icon: Gamepad2, label: 'Crash Bet', color: '#ef4444' },
+  wheel_spin: { Icon: Gamepad2, label: 'Wheel Spin', color: '#ef4444' },
+  wheel_prize: { Icon: Trophy, label: 'Wheel Prize', color: '#eab308' },
+  chip_mint: { Icon: Settings, label: 'Chip Mint', color: '#ef4444' },
+  reconciliation: { Icon: Settings, label: 'Balance Reconciliation', color: '#94a3b8' },
+  transfer: { Icon: Send, label: 'Transfer', color: '#94a3b8' },
+  credit: { Icon: Gem, label: 'Diamond Credit', color: '#00a8e8' },
 };
+
+/**
+ * A kind nobody has taught the map about must still read like English - never
+ * a confident "Adjustment" that claims an admin touched the account when
+ * nobody did (2026-09-13: that is what every daily challenge claim said here).
+ * Underscores become spaces and each word takes a capital, so a
+ * `weekly_streak_bonus` added server-side tomorrow reads "Weekly Streak Bonus"
+ * on the day it appears. Same rule as Club Arena's diamondTxLabel.
+ */
+function txConfigFor(rawType) {
+  const known = rawType ? TX_TYPES[rawType] : undefined;
+  if (known) return known;
+  const text = String(rawType || '').replace(/[_-]+/g, ' ').trim();
+  if (!text) return { Icon: Gem, label: 'Diamond Movement', color: '#94a3b8' };
+  const label = text
+    .split(/\s+/)
+    .map((w) => (w === w.toUpperCase() ? w.toLowerCase() : w))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return { Icon: Gem, label, color: '#94a3b8' };
+}
 
 const FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -274,7 +324,7 @@ const WalletDescription = ({ value }) => {
 
 async function copyReceiptToClipboard(tx) {
   const txType = tx.transaction_type || tx.type;
-  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+  const config = txConfigFor(txType);
   const dt = new Date(tx.created_at);
   const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
   try {
@@ -677,6 +727,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
        by the API. Sent only with a first page, so it is not overwritten with
        `null` by a Load More. */
   const [lifetime, setLifetime] = useState(null);
+  /* on_hand / sendable / collateral / in_arena from the same first-page read.
+     null until read, and null when the API could not read it - the Send
+     panel then falls back to the balance check and says nothing it does not
+     know (10.86). THE DIAMOND ARENA IS DIAMONDS ONLY. */
+  const [walletSummary, setWalletSummary] = useState(null);
   /* The tab the in-flight request belongs to. A ref, not the state value,
        because `fetchTransactions` must keep one identity: it is what the
        balance-event subscriptions and the pull-to-refresh are built from, and
@@ -939,6 +994,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           if (data.counts) setServerCounts(data.counts);
           // Only a first page carries it; never clear it on a Load More.
           if (data.lifetime) setLifetime(data.lifetime);
+          if (offset === 0) setWalletSummary(data.summary ?? null);
 
           if (offset === 0) {
             // Merge the fresh first page into any already-loaded pages so
@@ -1053,14 +1109,28 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   }, [transactions]);
 
   // ── ENH-D: Keyboard accessibility: Escape to close ──
+  /* ESCAPE BACKS OUT ONE LAYER, NOT ALL OF THEM (2026-09-13). With the
+     Confirm Transfer dialog or a gate popup open, Escape used to close the
+     whole wallet - so a keyboard user backing out of "Send 500 Diamonds?"
+     lost the modal, the recipient and the amount together. The innermost
+     surface is what Escape dismisses; the wallet closes on the next press. */
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (popupData) {
+        setPopupData(null);
+        return;
+      }
+      if (confirmTransfer) {
+        setConfirmTransfer(null);
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, popupData, confirmTransfer]);
 
   // ── ENH-F: Persist filter selection ──
   const handleFilterChange = useCallback(
@@ -1167,6 +1237,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     }
     if (amount > (balance ?? 0)) {
       setTransferError('Insufficient diamond balance');
+      return;
+    }
+    /* The server refuses purchased diamonds still inside the refund window
+       (insufficient_transferable_diamonds). Say so here, in the player's own
+       terms, before the round trip. Only when the figure was read. */
+    if (walletSummary && amount > walletSummary.sendable) {
+      setTransferError(
+        `Only ${walletSummary.sendable.toLocaleString()} Diamonds Can Be Sent Right Now. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
+      );
       return;
     }
     // #5: Show confirmation dialog first
@@ -1453,7 +1532,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       const q = searchQuery.trim().toLowerCase();
       result = result.filter((tx) => {
         const txType = tx.transaction_type || tx.type;
-        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+        const config = txConfigFor(txType);
         return (
           config.label.toLowerCase().includes(q) ||
           (tx.description || '').toLowerCase().includes(q) ||
@@ -1540,11 +1619,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
    * wallet displaying 50, that lifetime headline was built from 12% of the
    * ledger, and it moved every time the player pressed Load More.
    *
-   * `lifetime` is summed over the whole ledger by
-   * /api/store/diamond-transactions, by the sign of the amount, with the same
-   * 5,000 ceiling Club Arena uses - so the two wallets cannot report
-   * different lifetimes for the same ledger. `null` means it could not be
-   * computed, and the panel says so rather than showing zeros.
+   * `lifetime.earned` / `.spent` are summed IN SQL over the whole ledger by
+   * /api/store/diamond-transactions (`fn_diamond_lifetime_totals`, the same
+   * RPC the Club Arena wallet reads, so one ledger cannot report two
+   * lifetimes); `lifetime.exact` says the SQL sum answered. The week, month
+   * and gift breakdowns still come from the API's 5,000 most recent rows, and
+   * `lifetime.truncated` says when that window was full. `null` means none of
+   * it could be computed, and the panel says so rather than showing zeros.
    */
   const stats = useMemo(() => {
     if (!lifetime) return null;
@@ -1556,7 +1637,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // Server keys the sources by raw kind; render them by their label.
     const sourceMap = {};
     for (const [kind, value] of Object.entries(lifetime.bySource || {})) {
-      const label = (TX_TYPES[kind] || TX_TYPES.adjustment).label;
+      const label = txConfigFor(kind).label;
       sourceMap[label] = (sourceMap[label] || 0) + value;
     }
 
@@ -2050,6 +2131,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 {transferRecipient && (
                   <div>
                     <div className={styles.sendFieldLabel}>Amount</div>
+                    {walletSummary && (
+                      <div className={styles.sendHint} role="status">
+                        {`Sendable: ${walletSummary.sendable.toLocaleString()} Diamonds`}
+                        {walletSummary.collateral > 0
+                          ? `. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
+                          : ''}
+                      </div>
+                    )}
                     <div className={styles.sendAmountRow}>
                       <div className={`${styles.sendField} ${styles.sendFieldGrow}`}>
                         <Sparkles size={14} className={styles.sendAmountIcon} aria-hidden="true" />
@@ -2459,7 +2548,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   // Transaction row
                   const tx = item.data;
                   const txType = tx.transaction_type || tx.type;
-                  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+                  const config = txConfigFor(txType);
                   const isPositive = tx.amount >= 0;
                   const dt = new Date(tx.created_at);
 

@@ -26,6 +26,7 @@ import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
+import '../src/styles/worlds/toke-tracker.css';
 import '../src/styles/tutorial.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
@@ -242,7 +243,6 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/my-tournaments',
   '/hub/poker-brain',
   '/hub/poker-near-me',
-  '/hub/poker-tools',
   '/hub/poker/table/[tableId]',
   '/hub/post/[id]',
   '/hub/profile',
