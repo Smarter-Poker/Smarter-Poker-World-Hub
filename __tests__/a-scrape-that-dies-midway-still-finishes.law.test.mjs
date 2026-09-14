@@ -44,6 +44,19 @@
  *   - THE STOP CONDITIONS, executed rather than grepped. A loop over a live
  *     data-writing scraper has to be provable, so each one runs the real
  *     script against a stub.
+ *   - OUR OWN FAULTS. Added after the first real run, 34799912678, where this
+ *     script got it WRONG. Pass 2 ended "Run completed WITH ERRORS OF OURS:
+ *     {... 'patch_failed': 2 ...}" and exited 1; pass 1 had written 139
+ *     events, so "productive run, last pass crashed" turned it green. Two rows
+ *     the scraper failed to write went unreported, and the scraper's own
+ *     unconditional rule - "a lost row, a failed upsert or a failed patch is a
+ *     defect in this repo" - was overridden by the wrapper wrapping it.
+ *
+ *     The forgiveness has to stay narrow, and it can: the crash this script
+ *     exists for is an UNCAUGHT RuntimeError, so the scraper's exit gate never
+ *     runs and never prints that verdict. The verdict's presence is therefore
+ *     exactly the line between "the bug we are working around" and "a defect
+ *     of ours we must not hide".
  */
 
 import { test } from 'node:test';
@@ -234,6 +247,63 @@ test('zero passes is a fault, not a quiet success', () => {
 test('it refuses to run with no command instead of looping on nothing', () => {
     const r = runWrapper({}, );
     assert.equal(r.code, 2, r.out);
+});
+
+test('the scraper still prints the our-faults verdict the wrapper watches for', () => {
+    // Producer/consumer contract, same as the events line above: reword this
+    // and the wrapper silently starts forgiving lost rows again.
+    assert.match(scraper, /Run completed WITH ERRORS OF OURS/,
+        'poker_series_scraper.py must still announce its own faults distinctly');
+    const emitted = "\u274c Run completed WITH ERRORS OF OURS: {'upsert_failed': 0, "
+        + "'rows_lost': 0, 'patch_failed': 2, 'series_errors': 141} \u2014 exiting 1";
+    assert.match(emitted, new RegExp(defaultOf('OURS_RE')),
+        'OURS_RE must match the line the scraper actually prints');
+    // And it must stay UNCONDITIONAL on the scraper's side.
+    assert.match(scraper, /OUR faults still fail immediately and unconditionally/,
+        'the rule this law defends must still be the scraper\u2019s rule');
+});
+
+test('a lost row fails the job even when the run was productive', () => {
+    // Run 34799912678 exactly: pass 1 writes 139 and crashes, pass 2 reports
+    // patch_failed=2. This used to exit 0.
+    const stub = withStub(`#!/usr/bin/env bash
+state="$STUB_DIR/n"; [ -f "$state" ] || echo 0 > "$state"
+n=$(cat "$state"); n=$((n+1)); echo $n > "$state"
+echo "  Skipping 44 fresh (<24h) \u2192 177 to scrape/refresh"
+if [ "$n" = "1" ]; then
+  echo "  [FLUSH] 9 series \u2192 9 with events \u2192 139/139 events confirmed written, avg_completeness=71"
+  echo "    RuntimeError: cannot start sync Playwright inside a running event loop"
+  exit 1
+fi
+echo "Run completed WITH ERRORS OF OURS: {'patch_failed': 2} — exiting 1"
+exit 1
+`);
+    const r = runWrapper({ BUDGET_MIN: '145', MIN_PASS_MIN: '1' }, stub);
+    assert.notEqual(r.code, 0,
+        '139 events written does not excuse two rows we failed to write');
+    assert.match(r.out, /::error title=The scraper reported faults of ours/, r.out);
+});
+
+test('and even when that pass exited 0', () => {
+    const stub = withStub(`#!/usr/bin/env bash
+echo "  Skipping 0 fresh (<24h) \u2192 177 to scrape/refresh"
+echo "  [FLUSH] 5 series \u2192 5 with events \u2192 80/80 events confirmed written, avg_completeness=71"
+echo "Run completed WITH ERRORS OF OURS: {'rows_lost': 1} — exiting 1"
+echo "  Skipping 5 fresh (<24h) \u2192 0 to scrape/refresh"
+exit 0
+`);
+    const r = runWrapper({ BUDGET_MIN: '145', MIN_PASS_MIN: '1' }, stub);
+    assert.notEqual(r.code, 0, 'the verdict is read from the log, not from the exit code');
+});
+
+test('but the crash this script exists for is still forgiven when productive', () => {
+    // The whole point. No our-faults verdict is printed, because the exit gate
+    // never runs after an uncaught RuntimeError.
+    const r = runWrapper(
+        { BUDGET_MIN: '145', MIN_PASS_MIN: '1', MAX_PASSES: '1' }, withStub());
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /::warning title=Scrape finished with a failed pass/, r.out);
+    assert.ok(!/faults of ours/.test(r.out), 'a crash is not a fault of ours');
 });
 
 test('MAX_PASSES is a spin guard the budget can never exceed', () => {
