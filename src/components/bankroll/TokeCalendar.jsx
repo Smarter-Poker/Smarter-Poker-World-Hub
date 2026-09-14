@@ -258,7 +258,8 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
             {/* Events count badge */}
             {events.length > 0 && (
                 <div style={calStyles.eventsBadge}>
-                    {events.filter(e => e.event_date >= todayStr).length} Upcoming event{events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} This Year
+                    {/* One text node: see the note in DealerVault's header. */}
+                    {`${events.filter(e => e.event_date >= todayStr).length} Upcoming Event${events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} This Year`}
                 </div>
             )}
 
