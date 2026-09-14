@@ -80,7 +80,7 @@ function TournamentStagesGuide() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {STAGES.map((s, i) => (
             <button key={i} onClick={() => setSelected(i)} style={{
-              flex: 1, padding: '6px 3px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 600,
+              flex: 1, padding: '6px 3px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? s.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{s.name}</button>
@@ -89,27 +89,27 @@ function TournamentStagesGuide() {
 
         <div style={{ padding: 12, background: `${stage.color}11`, borderRadius: 10, border: `1px solid ${stage.color}33`, marginBottom: 16 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: stage.color, marginBottom: 4 }}>{stage.name}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{stage.range} | {stage.stacks}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{stage.range} | {stage.stacks}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{stage.overview}</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
           {stage.adjustments.map((a, i) => (
             <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, display: 'flex', gap: 8 }}>
-              <div style={{ minWidth: 70, fontSize: 10, fontWeight: 700, color: stage.color }}>{a.area}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{a.tip}</div>
+              <div style={{ minWidth: 70, fontSize: 12, fontWeight: 700, color: stage.color }}>{a.area}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{a.tip}</div>
             </div>
           ))}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div style={{ padding: 8, background: 'rgba(16,185,129,0.06)', borderRadius: 6 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', marginBottom: 2 }}>Goal</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{stage.goal}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 2 }}>Goal</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{stage.goal}</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(239,68,68,0.06)', borderRadius: 6 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', marginBottom: 2 }}>Danger</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{stage.danger}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 2 }}>Danger</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{stage.danger}</div>
           </div>
         </div>
       </div>

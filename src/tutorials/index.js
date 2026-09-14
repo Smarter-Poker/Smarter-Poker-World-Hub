@@ -26,6 +26,9 @@ import { BANKROLL_TUTORIAL } from './bankroll-manager';
 import { PREFLOP_TUTORIAL } from './preflop-charts';
 import { POKER_NEAR_ME_TUTORIAL } from './poker-near-me';
 import { PERSONAL_ASSISTANT_TUTORIAL } from './personal-assistant';
+import { TRAINING_TUTORIAL } from './training';
+import { NEWS_TUTORIAL } from './news';
+import { TRIVIA_TUTORIAL } from './trivia';
 
 // Longest prefix wins. Keep re-exported aliases (preflop-charts -> memory-games)
 // as their own rows so the URL the player sees maps to a tour.
@@ -50,6 +53,11 @@ const REGISTRY = [
   { prefix: '/hub/memory-games', tutorial: PREFLOP_TUTORIAL, exact: true },
   { prefix: '/hub/poker-near-me', tutorial: POKER_NEAR_ME_TUTORIAL },
   { prefix: '/hub/personal-assistant', tutorial: PERSONAL_ASSISTANT_TUTORIAL },
+  // Training is a PREFIX row (mobile phase 5): the hub and its 94 subpages
+  // are one product; steps whose element is off-page still read.
+  { prefix: '/hub/training', tutorial: TRAINING_TUTORIAL },
+  { prefix: '/hub/news', tutorial: NEWS_TUTORIAL },
+  { prefix: '/hub/trivia', tutorial: TRIVIA_TUTORIAL },
 ];
 
 export const TUTORIAL_PROMPT_MS = 3000;

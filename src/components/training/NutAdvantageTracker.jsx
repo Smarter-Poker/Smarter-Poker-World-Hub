@@ -69,7 +69,7 @@ function NutAdvantageTracker() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {SCENARIOS.map((sc, i) => (
             <button key={i} onClick={() => setSelected(i)} style={{
-              padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? sc.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{sc.board}</button>
@@ -78,15 +78,15 @@ function NutAdvantageTracker() {
 
         <div style={{ padding: 14, background: `${s.color}11`, borderRadius: 10, border: `1px solid ${s.color}33`, marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 4 }}>{s.board}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{s.context} | {s.street}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{s.context} | {s.street}</div>
         </div>
 
         {/* Nut advantage meter */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>PFR</span>
+            <span style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>PFR</span>
             <span style={{ fontSize: 13, fontWeight: 800, color: s.color }}>{s.nutAdvantage}</span>
-            <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>Defender</span>
+            <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>Defender</span>
           </div>
           <div style={{ display: 'flex', height: 20, borderRadius: 10, overflow: 'hidden' }}>
             <div style={{ width: `${s.score}%`, background: '#10b981', transition: 'width 0.5s' }} />
@@ -97,12 +97,12 @@ function NutAdvantageTracker() {
         {/* Nut combos */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, borderLeft: '3px solid #10b981' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>PFR Nuts</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.pfrNuts.join(', ')}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>PFR Nuts</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.pfrNuts.join(', ')}</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Defender Nuts</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.defNuts.join(', ')}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Defender Nuts</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.defNuts.join(', ')}</div>
           </div>
         </div>
 
@@ -111,7 +111,7 @@ function NutAdvantageTracker() {
         </div>
 
         <div style={{ padding: 10, background: 'rgba(244,114,182,0.06)', borderRadius: 8, border: '1px solid rgba(244,114,182,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f472b6', marginBottom: 2 }}>Strategic Implication</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f472b6', marginBottom: 2 }}>Strategic Implication</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{s.implication}</div>
         </div>
       </div>

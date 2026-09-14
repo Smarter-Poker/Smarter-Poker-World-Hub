@@ -41,7 +41,7 @@ export default function PotOddsTrainer() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {SCENARIOS.map((sc, i) => (
           <button key={i} onClick={() => { setScenarioIdx(i); setUserGuess(null); }}
-            style={{ padding: '6px 10px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 10px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: scenarioIdx === i ? 'linear-gradient(135deg, #22c55e, #3b82f6)' : 'rgba(255,255,255,0.06)',
               color: scenarioIdx === i ? '#fff' : '#94a3b8' }}>
             {sc.desc.substring(0, 15)}
@@ -53,15 +53,15 @@ export default function PotOddsTrainer() {
         <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>{s.desc}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ background: 'rgba(59,130,246,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Pot</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Pot</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#3b82f6' }}>{s.pot}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Bet To Call</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Bet To Call</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>{s.bet}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Outs ({s.cards === 2 ? '2 cards' : '1 card'})</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Outs ({s.cards === 2 ? '2 cards' : '1 card'})</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{s.outs}</div>
           </div>
         </div>
@@ -91,15 +91,15 @@ export default function PotOddsTrainer() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Pot Odds</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Pot Odds</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#ef4444' }}>{analysis.potOdds}%</div>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Your Equity</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Your Equity</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#22c55e' }}>{analysis.equity}%</div>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>EV Of Call</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>EV Of Call</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: parseFloat(analysis.ev) > 0 ? '#22c55e' : '#ef4444' }}>{analysis.ev}</div>
               </div>
             </div>

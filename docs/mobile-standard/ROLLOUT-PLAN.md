@@ -127,6 +127,15 @@ Work: redefine `[data-pills-row]` ONCE as a wrapping row (fixes 7 pages);
 category chips wrap; culled labels return; tables become stacked cards;
 consolidate breakpoints to 900/768/600.
 
+**Shipped 2026-09-13** (`docs/changelog/2026-09-13-mobile-phase5-training-games.md`):
+`[data-pills-row]` redefined once as a wrapping grid for all six adopters, the
+category chips and three component rails wrapped, five culls returned to
+layout, 866 sub-12px nodes on the hub to 0 (3,016 declarations across 400
+files), 104 x 100vh and 60 x overflow-x hidden fixed, fifteen breakpoints to
+three, the phase 0a set on the hub, and an eight-step tutorial registered for
+the whole prefix. Measured clean at 375 and 390 on eight routes. Budget row
+converted.
+
 ## Phase 6: Poker News (MED-LARGE)
 
 Files: `pages/hub/news.js` (4,407), `src/components/news/LiveWireStyles.js`
@@ -144,6 +153,22 @@ anchors; sidebar widgets move under the main column instead of vanishing;
 delete the override block and put the rules in the styled-jsx they were
 bypassing (or one plain `<style>`), no styled-jsx global blocks.
 
+**Shipped 2026-09-13** (`docs/changelog/2026-09-13-mobile-phase6-poker-news.md`):
+all five sections stacked with the tab row as anchors, the 8px tab strip a
+wrapping grid at 12px, the reels preview carousel and its arrows gone (the
+full reels grid sits directly below), the sidebar under the feed with every
+widget, seven culls returned, 59 sub-12px nodes and 9 tiny targets to 0,
+100dvh / clip, breakpoints to 900/768/600, the phase 0a set, an eight-step
+tutorial. The override block stays as the one plain <style> (its !importants
+are what beat the component-scoped styles) with its violating rules fixed.
+Two lessons for every later phase that stacks sections: (1) an auto-loading
+feed above other sections starves them (the news sentinel grew the page
+7,000px during one anchor scroll), so a feed on a stacked page pages with a
+44px Load More button, not an IntersectionObserver; (2) `_app.js` used to
+scroll to top on every routeChangeComplete, shallow included, which undid
+any in-page scroll made alongside a `?query` replace; it now skips shallow
+changes, platform-wide.
+
 ## Phase 7: Poker Trivia (SMALL-MED)
 
 Files: `src/components/trivia/TriviaLobby.jsx` (1,973),
@@ -155,6 +180,15 @@ Violations: `.mode-filters` snap strip (Lobby:1295-1332); bracket
 Work: mode filters wrap; the bracket is redesigned as a vertical round-by-
 round list on phones (round heading, then match cards); stats table
 stacks.
+
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase7-poker-trivia.md`):
+the filter rail a wrapping grid (keyboard roving kept, sticky strip gone),
+the bracket a grid that stacks one round per row on a phone, the stats and
+leaderboard tables ResponsiveTable, 112 sub-12px nodes on the lobby and 60
+on achievements to 0, 14 `100vh` to `100dvh`, breakpoints to 600/768/900
+across the whole trivia surface, the phase 0a set on the lobby, an
+eight-step tutorial. Four older lobby tests pinned the rail and the 700px
+block; each pin was moved with its reason.
 
 ## Phase 8: Diamond Arena (SMALL here, real work in `diamond-arena`)
 

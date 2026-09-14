@@ -149,7 +149,7 @@ const styles = {
         padding: '4px 10px',
         background: 'linear-gradient(135deg, #FF6B35, #E53935)',
         borderRadius: 10,
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 800,
         color: '#fff',
         letterSpacing: 0.5,
@@ -157,7 +157,7 @@ const styles = {
     },
 
     subtitle: {
-        fontSize: 11,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.4)',
         marginLeft: 24,
     },
@@ -169,13 +169,12 @@ const styles = {
     scrollContainer: {
         display: 'flex',
         gap: 16,
-        overflowX: 'auto',
-        overflowY: 'hidden',
+        // MOBILE PHASE 5: the lane wraps instead of hiding its tail behind a
+        // suppressed scrollbar. The arrow buttons that used to scroll it are
+        // unnecessary once every card is on screen.
+        flexWrap: 'wrap',
         paddingLeft: 40,
         paddingBottom: 8,
-        scrollBehavior: 'smooth',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
     },
 
     arrowButton: {

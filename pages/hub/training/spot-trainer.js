@@ -69,7 +69,7 @@ function HandBadge({ cards }) {
 const filterButtonStyle = (active) => ({
   padding: '6px 10px',
   borderRadius: 6,
-  fontSize: 10,
+  fontSize: 12,
   fontWeight: 800,
   cursor: 'pointer',
   border: active ? '1px solid rgba(103,232,249,0.70)' : '1px solid rgba(255,255,255,0.10)',
@@ -149,10 +149,10 @@ export default function SpotTrainerPage() {
 
       <main
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           width: '100%',
           maxWidth: '100vw',
-          overflowX: 'hidden',
+          overflowX: 'clip',
           boxSizing: 'border-box',
           paddingBottom: 70,
           background: 'radial-gradient(circle at 50% 4%, rgba(0,119,190,0.20), transparent 32%), linear-gradient(180deg, #03080d 0%, #07111b 55%, #020609 100%)',
@@ -192,7 +192,7 @@ export default function SpotTrainerPage() {
             </h1>
             <span
               style={{
-                fontSize: 9,
+                fontSize: 12,
                 color: '#a5f3fc',
                 background: 'rgba(8,145,178,0.16)',
                 padding: '4px 8px',
@@ -297,7 +297,7 @@ export default function SpotTrainerPage() {
                       <span
                         key={label}
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 800,
                           color: '#cffafe',
                           background: 'rgba(8,145,178,0.13)',
@@ -326,7 +326,7 @@ export default function SpotTrainerPage() {
                     boxShadow: 'inset 0 1px rgba(255,255,255,0.10), 0 14px 40px rgba(0,0,0,0.42)',
                   }}
                 >
-                  <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 10 }}>
                     Board
                   </div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
@@ -334,7 +334,7 @@ export default function SpotTrainerPage() {
                       <Card key={`${card}-${index}`} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="small" />
                     ))}
                   </div>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1.5, marginBottom: 8 }}>
                     Your Hand
                   </div>
                   <HandBadge cards={spot.heroCards} />
@@ -350,7 +350,7 @@ export default function SpotTrainerPage() {
                     border: `1px solid ${sourceBadge.border}`,
                     background: sourceBadge.bg,
                     color: sourceBadge.fg,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 800,
                     letterSpacing: 0.8,
                   }}
@@ -367,7 +367,7 @@ export default function SpotTrainerPage() {
                     boxShadow: 'inset 0 1px rgba(255,255,255,0.08), 0 10px 30px rgba(0,0,0,0.28)',
                   }}
                 >
-                  <div style={{ color: '#a5f3fc', fontSize: 11, fontWeight: 900, marginBottom: 10 }}>
+                  <div style={{ color: '#a5f3fc', fontSize: 12, fontWeight: 900, marginBottom: 10 }}>
                     Audited PioSOLVER Artifact
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 8 }}>
@@ -387,12 +387,12 @@ export default function SpotTrainerPage() {
                         : '-'],
                     ].map(([label, value]) => (
                       <div key={label} style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '7px 9px' }}>
-                        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>
-                        <div style={{ color: '#dff9ff', fontSize: 10, fontWeight: 800, marginTop: 3, overflowWrap: 'anywhere' }}>{value || '-'}</div>
+                        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>
+                        <div style={{ color: '#dff9ff', fontSize: 12, fontWeight: 800, marginTop: 3, overflowWrap: 'anywhere' }}>{value || '-'}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, lineHeight: 1.5, marginTop: 10, overflowWrap: 'anywhere' }}>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, lineHeight: 1.5, marginTop: 10, overflowWrap: 'anywhere' }}>
                     Scenario: {spot.scenarioHash} · Pipeline: {spot.provenance?.pipelineCommit} · Audited: {spot.provenance?.auditedAt}
                   </div>
                 </div>
@@ -408,11 +408,11 @@ export default function SpotTrainerPage() {
                   }}
                 >
                   <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 10, fontWeight: 800, marginBottom: 5 }}>
+                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 12, fontWeight: 800, marginBottom: 5 }}>
                       Primary Solver Action
                     </div>
                     <div style={{ color: '#86efac', fontSize: 22, fontWeight: 900 }}>{spot.gtoAction}</div>
-                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 11 }}>{spot.gtoFrequency}% In This Policy</div>
+                    <div style={{ color: 'var(--sp-fg-muted)', fontSize: 12 }}>{spot.gtoFrequency}% In This Policy</div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
                     {Object.entries(spot.actionBreakdown || {})
@@ -421,7 +421,7 @@ export default function SpotTrainerPage() {
                         <span
                           key={action}
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 700,
                             color: action === spot.gtoAction ? '#86efac' : 'var(--sp-fg-muted)',
                             background: 'rgba(255,255,255,0.05)',
@@ -468,7 +468,7 @@ export default function SpotTrainerPage() {
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1, marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg-dim)', letterSpacing: 1, marginBottom: 6 }}>
               About Solver Spot Study
             </div>
             <p style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, margin: 0 }}>

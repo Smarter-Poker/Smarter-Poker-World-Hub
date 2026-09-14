@@ -44,7 +44,7 @@ const StackInput = memo(({ index, stack, onUpdate, icmEquity, isHero, color }) =
             background: color, flexShrink: 0,
         }} />
         <div style={{
-            width: 50, fontSize: 10, fontWeight: 600,
+            width: 50, fontSize: 12, fontWeight: 600,
             color: isHero ? '#00d4ff' : '#94a3b8',
         }}>
             {isHero ? 'Hero' : `P${index + 1}`}
@@ -54,13 +54,13 @@ const StackInput = memo(({ index, stack, onUpdate, icmEquity, isHero, color }) =
             value={stack}
             onChange={e => onUpdate(index, Number(e.target.value) || 0)}
             style={{
-                width: 70, padding: '4px 6px', fontSize: 11,
+                width: 70, padding: '4px 6px', fontSize: 12,
                 background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(100,116,139,0.2)',
                 borderRadius: 4, color: '#e2e8f0', outline: 'none', textAlign: 'right',
                 fontFamily: "'Fira Code', monospace",
             }}
         />
-        <div style={{ fontSize: 9, color: '#64748b', width: 20 }}>BB</div>
+        <div style={{ fontSize: 12, color: '#64748b', width: 20 }}>BB</div>
         {/* ICM equity bar */}
         <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 4, overflow: 'hidden' }}>
             <motion.div
@@ -70,7 +70,7 @@ const StackInput = memo(({ index, stack, onUpdate, icmEquity, isHero, color }) =
             />
         </div>
         <div style={{
-            width: 50, fontSize: 11, fontWeight: 700, textAlign: 'right',
+            width: 50, fontSize: 12, fontWeight: 700, textAlign: 'right',
             color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         }}>
             {(icmEquity * 100).toFixed(1)}%
@@ -85,7 +85,7 @@ const PushFoldGrid = memo(({ pushRange, callRange, mode = 'push' }) => {
     const color = mode === 'push' ? '#22c55e' : '#3b82f6';
 
     return (
-        <div style={{
+        <div data-allow-small="true" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(13, 1fr)',
             gap: 1,
@@ -147,21 +147,21 @@ const PressureGauge = memo(({ pressure, bubbleFactor, riskPremium }) => {
                 />
                 <circle cx="60" cy="60" r="4" fill={gaugeColor} />
                 {/* Labels */}
-                <text x="10" y="68" fontSize="7" fill="#64748b" textAnchor="start">Low</text>
-                <text x="110" y="68" fontSize="7" fill="#64748b" textAnchor="end">High</text>
+                <text x="10" y="68" fontSize='12px' fill="#64748b" textAnchor="start">Low</text>
+                <text x="110" y="68" fontSize='12px' fill="#64748b" textAnchor="end">High</text>
                 <text x="60" y="55" fontSize="14" fill={gaugeColor} fontWeight="bold" textAnchor="middle" style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                     {(pressure * 100).toFixed(0)}
                 </text>
             </svg>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 4 }}>
                 <div>
-                    <div style={{ fontSize: 8, color: '#64748b' }}>Bubble Factor</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>Bubble Factor</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {bubbleFactor.toFixed(2)}x
                     </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: 8, color: '#64748b' }}>Risk Premium</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>Risk Premium</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {(riskPremium * 100).toFixed(1)}%
                     </div>
@@ -248,7 +248,7 @@ export default function ICMTournamentPanel() {
                         value={payoutType}
                         onChange={e => setPayoutType(e.target.value)}
                         style={{
-                            padding: '3px 6px', fontSize: 9, fontWeight: 600,
+                            padding: '3px 6px', fontSize: 12, fontWeight: 600,
                             background: 'rgba(0,0,0,0.3)', color: '#94a3b8',
                             border: '1px solid rgba(100,116,139,0.2)',
                             borderRadius: 4, outline: 'none',
@@ -259,13 +259,13 @@ export default function ICMTournamentPanel() {
                         <option value="winner_take_all">Winner Take All</option>
                     </select>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 9, color: '#64748b' }}>Left:</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>Left:</span>
                         <input
                             type="number"
                             value={playersLeft}
                             onChange={e => setPlayersLeft(Math.max(playerCount, Number(e.target.value) || playerCount))}
                             style={{
-                                width: 40, padding: '3px 4px', fontSize: 10,
+                                width: 40, padding: '3px 4px', fontSize: 12,
                                 background: 'rgba(0,0,0,0.3)', color: '#e2e8f0',
                                 border: '1px solid rgba(100,116,139,0.2)',
                                 borderRadius: 3, outline: 'none', textAlign: 'center',
@@ -273,13 +273,13 @@ export default function ICMTournamentPanel() {
                         />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 9, color: '#64748b' }}>Table:</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>Table:</span>
                         {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
                             <button
                                 key={n}
                                 onClick={() => setPlayerCount(n)}
                                 style={{
-                                    width: 20, height: 20, fontSize: 9, fontWeight: 600,
+                                    width: 20, height: 20, fontSize: 12, fontWeight: 600,
                                     borderRadius: 3, border: '1px solid',
                                     cursor: 'pointer',
                                     background: playerCount === n ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -297,7 +297,7 @@ export default function ICMTournamentPanel() {
             <div style={{ display: 'flex', gap: 0 }}>
                 {/* Left: Stack inputs + ICM equity */}
                 <div style={{ flex: 1, padding: 12, borderRight: '1px solid rgba(100,116,139,0.08)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase' }}>
                         Stack Distribution & ICM Equity
                     </div>
                     {activeStacks.map((s, i) => (
@@ -317,7 +317,7 @@ export default function ICMTournamentPanel() {
                                 key={i}
                                 onClick={() => setHeroIdx(i)}
                                 style={{
-                                    padding: '2px 8px', fontSize: 9, fontWeight: 600,
+                                    padding: '2px 8px', fontSize: 12, fontWeight: 600,
                                     borderRadius: 3, border: '1px solid',
                                     cursor: 'pointer',
                                     background: heroIdx === i ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -332,7 +332,7 @@ export default function ICMTournamentPanel() {
 
                     {/* Pressure gauge */}
                     <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4, textTransform: 'uppercase' }}>
                             ICM Pressure
                         </div>
                         <PressureGauge
@@ -341,7 +341,7 @@ export default function ICMTournamentPanel() {
                             riskPremium={pressure.riskPremium}
                         />
                         <div style={{
-                            marginTop: 6, fontSize: 10, color: '#818cf8',
+                            marginTop: 6, fontSize: 12, color: '#818cf8',
                             textAlign: 'center', fontStyle: 'italic',
                         }}>
                             {pressure.description}
@@ -350,7 +350,7 @@ export default function ICMTournamentPanel() {
                             <div style={{
                                 marginTop: 4, padding: '4px 8px', borderRadius: 4,
                                 background: 'rgba(239,68,68,0.1)', textAlign: 'center',
-                                fontSize: 11, fontWeight: 700, color: '#f87171',
+                                fontSize: 12, fontWeight: 700, color: '#f87171',
                             }}>
                                 ON THE BUBBLE
                             </div>
@@ -361,7 +361,7 @@ export default function ICMTournamentPanel() {
                 {/* Right: Push/Fold Range */}
                 <div style={{ flex: 1, padding: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
                             {rangeMode === 'push' ? 'Push Range' : 'Call Range'}
                         </div>
                         <div style={{ display: 'flex', gap: 4 }}>
@@ -370,7 +370,7 @@ export default function ICMTournamentPanel() {
                                     key={m}
                                     onClick={() => setRangeMode(m)}
                                     style={{
-                                        padding: '3px 8px', fontSize: 9, fontWeight: 600,
+                                        padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                         borderRadius: 4, border: '1px solid', cursor: 'pointer',
                                         textTransform: 'capitalize',
                                         background: rangeMode === m ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -395,7 +395,7 @@ export default function ICMTournamentPanel() {
                         marginTop: 8, display: 'flex', justifyContent: 'center', gap: 16,
                     }}>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 8, color: '#64748b' }}>Hands</div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>Hands</div>
                             <div style={{
                                 fontSize: 14, fontWeight: 700,
                                 color: rangeMode === 'push' ? '#22c55e' : '#3b82f6',
@@ -405,7 +405,7 @@ export default function ICMTournamentPanel() {
                             </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 8, color: '#64748b' }}>Range %</div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>Range %</div>
                             <div style={{
                                 fontSize: 14, fontWeight: 700,
                                 color: rangeMode === 'push' ? '#22c55e' : '#3b82f6',
@@ -415,7 +415,7 @@ export default function ICMTournamentPanel() {
                             </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 8, color: '#64748b' }}>Hero Stack</div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>Hero Stack</div>
                             <div style={{
                                 fontSize: 14, fontWeight: 700, color: '#f59e0b',
                                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",

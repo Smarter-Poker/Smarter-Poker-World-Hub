@@ -50,21 +50,21 @@ export default function MergeRangeGuide() {
 
         {/* Visual range bar */}
         <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>Betting Range Composition</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>Betting Range Composition</div>
           <div style={{ display: 'flex', height: 24, borderRadius: 6, overflow: 'hidden', marginBottom: 6 }}>
             <motion.div initial={{ width: 0 }} animate={{ width: `${rangeType.visual.value}%` }}
-              style={{ background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#000' }}>
+              style={{ background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#000' }}>
               {rangeType.visual.value > 10 && 'Value'}
             </motion.div>
             <motion.div initial={{ width: 0 }} animate={{ width: `${rangeType.visual.medium}%` }}
-              style={{ background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#000' }}>
+              style={{ background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#000' }}>
               {rangeType.visual.medium > 10 && 'Medium'}
             </motion.div>
             <motion.div initial={{ width: 0 }} animate={{ width: `${rangeType.visual.bluff}%` }}
-              style={{ background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+              style={{ background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
               {rangeType.visual.bluff > 10 && 'Bluff'}
             </motion.div>
-            <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#64748b' }}>
+            <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#64748b' }}>
               Check
             </div>
           </div>

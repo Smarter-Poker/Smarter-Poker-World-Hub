@@ -121,7 +121,7 @@ test('clicks are not de-duplicated', () => {
 test('the click is logged before the navigation that would unmount the rail', () => {
     const rail = read(RAIL);
     const click = rail.indexOf('logHubClick(ad.adId)');
-    const push = rail.indexOf('router.push(ad.targetUrl)');
+    const push = rail.indexOf('router.push(target)');
     assert.ok(click > -1, 'the rail does not log a click at all');
     assert.ok(push > -1, 'the rail does not navigate');
     assert.ok(click < push, 'the click must be logged BEFORE navigating away');
@@ -140,8 +140,8 @@ test('a Club Arena destination gets a real navigation, not a router push', () =>
 
     const rail = read(RAIL);
     const click = rail.indexOf('logHubClick(ad.adId)');
-    const assign = rail.indexOf('window.location.assign(ad.targetUrl)');
-    const push = rail.indexOf('router.push(ad.targetUrl)');
+    const assign = rail.indexOf('window.location.assign(target)');
+    const push = rail.indexOf('router.push(target)');
     assert.ok(assign > -1, 'no hard navigation for destinations outside the Next router');
     assert.ok(click < assign, 'the click must be logged before a full page navigation');
     assert.ok(assign < push, 'the SPA case must be handled before falling through to router.push');
@@ -161,7 +161,7 @@ test('a dismissal expires with the page load and is counted', () => {
         !rail.includes('localStorage') && !rail.includes('sessionStorage'),
         'a persisted dismissal is the absorbing state PR #1505 was about'
     );
-    assert.match(rail, /logHubAdEvent\(adId, 'dismiss'\)/);
+    assert.match(rail, /logHubAdEvent\(ad\.adId, 'dismiss'\)/);
 });
 
 test('VIP suppression is absent, in both directions', () => {
@@ -235,21 +235,22 @@ test('the rail does not send a Club Arena destination through the Next router', 
        this in production; the rail carried the identical defect. */
     const rail = read('src/components/ads/HubPromoRail.jsx');
     assert.ok(!rail.includes("from 'next/link'"), 'next/link cannot reach the Club Arena SPA');
-    assert.match(rail, /leavesTheNextRouter\(ad\.targetUrl\)/);
-    assert.match(rail, /window\.location\.assign\(ad\.targetUrl\)/);
+    assert.match(rail, /leavesTheNextRouter\(target\)/);
+    assert.match(rail, /window\.location\.assign\(target\)/);
 
     const click = rail.indexOf('logHubClick(ad.adId)');
-    const assign = rail.indexOf('window.location.assign(ad.targetUrl)');
-    const push = rail.indexOf('router.push(ad.targetUrl)');
+    const assign = rail.indexOf('window.location.assign(target)');
+    const push = rail.indexOf('router.push(target)');
     assert.ok(click > -1 && click < assign, 'the click must be logged before navigating');
     assert.ok(assign < push, 'the SPA case must be handled before falling through to router.push');
 });
 
-test('the rail card is still a link, even though it navigates by hand', () => {
+test('the rail picture is still a link, even though a tap opens the popup', () => {
     // A screen reader, a middle click and "copy link address" all want an href.
     const rail = read('src/components/ads/HubPromoRail.jsx');
-    assert.match(rail, /<a className="promo-card" href=\{href\}/);
-    assert.match(rail, /isSafeHubDestination\(ad\.targetUrl\) \? ad\.targetUrl : '\/hub'/);
+    assert.match(rail, /<a\s+className="promo-picture"\s+href=\{href\}/);
+    assert.match(rail, /const target = isSafeHubDestination\(ad\.targetUrl\) \? ad\.targetUrl : null;/);
+    assert.match(rail, /const href = target \|\| '\/hub';/);
 });
 
 test('a click is attention, and the route reports what followed it', () => {
@@ -442,8 +443,9 @@ test('a refusal is a 400, not a null the operator has to notice', () => {
 
 test('the click is logged only where a click went somewhere', () => {
     const rail = read(RAIL);
-    const railGuard = rail.indexOf('if (!isSafeHubDestination(ad.targetUrl)) return;');
-    const railClick = rail.indexOf('logHubClick(ad.adId)');
+    const proceed = rail.slice(rail.indexOf('const proceed = () => {'), rail.indexOf('const dismiss = () => {'));
+    const railGuard = proceed.indexOf('if (!target) return;');
+    const railClick = proceed.indexOf('logHubClick(ad.adId)');
     assert.ok(railGuard > -1 && railClick > railGuard, 'the rail logs before it checks');
 });
 
@@ -502,8 +504,8 @@ test('a placement destination is refused by the same rule as the campaign one', 
     const route = read('pages/api/club-arena/house-ads.js');
     assert.equal(
         route.match(/Not A Site Path: /g)?.length,
-        8,
-        'target and image on the ad verbs, plus target AND image on both placement verbs'
+        10,
+        'target, image AND poster on the ad verbs, plus target AND image on both placement verbs'
     );
 });
 
@@ -591,4 +593,101 @@ test('the ad click redirect accepts a code and never a url (2026-09-09)', () => 
     assert.match(config, /source: '\/c\/:code',\s*destination: '\/api\/c\/:code',/);
     const after = config.slice(config.indexOf('afterFiles:'), config.indexOf('fallback:'));
     assert.ok(after.includes("'/c/:code'"), 'the click rewrite is not in afterFiles');
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE STANDARD (Dan 2026-09-13): an advert is a responsive fluid picture and
+   nothing else, and a tap opens it full screen. Club Arena pins the same two
+   rules in tests/an-advert-is-a-picture.law.test.ts; these are the Hub's.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+test('the Hub advert is a responsive fluid picture, contained, and nothing else (2026-09-13)', () => {
+    const rail = read(RAIL);
+    // The box is 100% wide and owns the shape; the picture is contained.
+    assert.match(rail, /const RATIO = '16 \/ 9';/);
+    assert.match(rail, /style=\{\{ aspectRatio: RATIO \}\}/);
+    const picture = rail.slice(rail.indexOf('.promo-picture {'), rail.indexOf('.promo-dots {'));
+    assert.match(picture, /width: 100%;/);
+    assert.match(picture, /object-fit: contain;/);
+    assert.doesNotMatch(rail, /object-fit: cover/);
+    // No text card on the surface: the headline is the accessible name, not a rendered line.
+    assert.doesNotMatch(rail, /promo-headline|promo-sub|promo-glyph|promo-body|ad\.glyph/);
+    // A pictureless advert is dropped, never rendered as text; a broken file drops its advert.
+    assert.match(rail, /rows\.filter\(\(a\) => isSafeAdImage\(a\.imageUrl\)\)/);
+    assert.match(rail, /onError=\{\(\) => dropBroken\(ad\.adId\)\}/);
+    // Three rotating, as the lobby strip and the session summary.
+    assert.match(rail, /const ROTATE_MS = 7000;/);
+});
+
+test('a tap on the Hub advert opens it full screen, and the button does the going (2026-09-13)', () => {
+    const rail = read(RAIL);
+    // The tap only opens the popup; it logs nothing.
+    const activate = rail.slice(rail.indexOf('const activate = (e) => {'), rail.indexOf('const proceed = () => {'));
+    assert.match(activate, /setOpen\(true\)/);
+    assert.doesNotMatch(activate, /logHubClick|router\.push|window\./);
+    // Full screen, a dialog, the poster contained and reading its own shape.
+    assert.match(rail, /role="dialog"/);
+    assert.match(rail, /aria-modal="true"/);
+    assert.match(rail, /\.ad-interstitial \{[\s\S]*?position: fixed;[\s\S]*?inset: 0;/);
+    const pic = rail.slice(rail.indexOf('.ad-interstitial__picture img {'));
+    assert.match(pic, /object-fit: contain;/);
+    assert.match(rail, /setRatio\(`\$\{img\.naturalWidth\} \/ \$\{img\.naturalHeight\}`\)/);
+    assert.match(rail, /isSafeAdImage\(ad\.posterUrl\)/);
+    // The rotation holds while the popup is up.
+    assert.match(rail, /if \(openRef\.current\) return;/);
+    // Escape closes, focus lands on Close, scroll is locked.
+    assert.match(rail, /e\.key === 'Escape'/);
+    assert.match(rail, /closeRef\.current\?\.focus\(\)/);
+    assert.match(rail, /document\.body\.style\.overflow = 'hidden'/);
+    // Closing without going is a dismiss, never a click.
+    const dismiss = rail.slice(rail.indexOf('const dismiss = () => {'), rail.indexOf('const href ='));
+    assert.match(dismiss, /'dismiss'/);
+    assert.doesNotMatch(dismiss, /logHubClick/);
+    assert.match(rail, /onClose=\{dismiss\}/);
+    assert.match(rail, /onProceed=\{proceed\}/);
+});
+
+test('a sponsor destination leaves in a new tab through /c/<code>, counted by the redirect and never here (2026-09-13)', () => {
+    const lib = read(LIB);
+    assert.match(lib, /export const AD_CLICK_PREFIX = '\/c\/';/);
+    assert.match(lib, /export function isExternalAdClick/);
+    assert.match(lib, /posterUrl: r\.poster_url == null \? null : String\(r\.poster_url\)/);
+    const rail = read(RAIL);
+    const proceed = rail.slice(rail.indexOf('const proceed = () => {'), rail.indexOf('const dismiss = () => {'));
+    assert.match(proceed, /window\.open\(target, '_blank', 'noopener,noreferrer'\)/);
+    // The external branch returns BEFORE the click is logged: the redirect counts it.
+    assert.match(proceed, /if \(external\) \{[\s\S]*?return;\s*\}\s*logHubClick\(ad\.adId\)/);
+});
+
+test('the catalog carries a poster, and the API reads and writes it by the same rule as every ad URL (2026-09-13)', () => {
+    const route = read('pages/api/club-arena/house-ads.js');
+    assert.match(route, /cta_label, image_url, poster_url, experiment_key, is_active/);
+    assert.match(route, /const posterUrl = readSitePath\(b\.poster_url\);/);
+    assert.match(route, /poster_url: posterUrl,/);
+    assert.match(route, /if \(b\.poster_url !== undefined\) \{/);
+    assert.match(route, /patch\.poster_url = poster;/);
+});
+
+test('the popup carries the sponsor\'s door (2026-09-13)', () => {
+    // Everybody who sees an advert is a prospective advertiser. The door is
+    // the Club Arena advertise route, outside the Next router: a real link.
+    const rail = read(RAIL);
+    assert.match(rail, /href="\/hub\/club-arena\/advertise"/);
+    assert.match(rail, /Advertise With Us/);
+});
+
+test('an advert knows where it is: the Hub passes the edge-resolved country, and /api/geo returns nothing else (2026-09-14)', () => {
+    const lib = read(LIB);
+    // One memoised same-origin read, handed to the resolver as p_country.
+    assert.match(lib, /fetch\('\/api\/geo', \{ credentials: 'omit', cache: 'no-store' \}\)/);
+    assert.match(lib, /p_country: await playerCountry\(\)/);
+    // Unknown is null, never a guess.
+    assert.match(lib, /return \/\^\[A-Z\]\{2\}\$\/\.test\(c\) \? c : null;/);
+    // The route answers from the edge header alone and is cached by nobody.
+    assert.ok(existsSync(join(ROOT, 'pages/api/geo.js')), 'pages/api/geo.js is missing');
+    const geo = read('pages/api/geo.js');
+    assert.match(geo, /req\.headers\['x-vercel-ip-country'\]/);
+    assert.match(geo, /'no-store, max-age=0'/);
+    assert.match(geo, /res\.status\(200\)\.json\(\{ country \}\)/);
+    assert.doesNotMatch(geo, /x-forwarded-for|x-real-ip|x-vercel-ip-city|x-vercel-ip-latitude|getServerUser/);
 });

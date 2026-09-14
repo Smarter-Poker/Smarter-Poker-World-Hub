@@ -243,7 +243,7 @@ const styles = {
         borderRadius: 12
     },
     nextLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#666',
         textTransform: 'uppercase',
         marginBottom: 6
@@ -298,7 +298,7 @@ const styles = {
         color: '#fff'
     },
     mReward: {
-        fontSize: 10,
+        fontSize: 12,
         color: '#888'
     },
     claimed: {
@@ -309,7 +309,7 @@ const styles = {
         height: 16,
         background: '#22c55e',
         borderRadius: '50%',
-        fontSize: 10,
+        fontSize: 12,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'

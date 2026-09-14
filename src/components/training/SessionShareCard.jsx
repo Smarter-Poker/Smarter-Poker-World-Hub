@@ -292,7 +292,7 @@ export default function SessionShareCard({
                     )}
 
                     {status === 'error' && (
-                        <div style={{ color: '#ef4444', fontSize: 11, textAlign: 'center', padding: 8 }}>
+                        <div style={{ color: '#ef4444', fontSize: 12, textAlign: 'center', padding: 8 }}>
                             Failed To Generate. Try Again.
                         </div>
                     )}

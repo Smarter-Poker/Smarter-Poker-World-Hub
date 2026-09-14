@@ -20,8 +20,8 @@ function MiniCard({ rank, suit, isRed }) {
             boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
             marginRight: 2
         }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{rank}</span>
-            <span style={{ fontSize: 9, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{suit}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{rank}</span>
+            <span style={{ fontSize: 12, color: isRed ? '#dc2626' : '#1a1d24', lineHeight: 1 }}>{suit}</span>
         </div>
     );
 }
@@ -84,7 +84,7 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
                 {/* Felt / Mini Arena */}
                 <div style={styles.felt}>
                     <div style={styles.potOverlay}>
-                        <span style={{ color: '#fbbf24', fontSize: 10, marginRight: 4 }}>●</span>
+                        <span style={{ color: '#fbbf24', fontSize: 12, marginRight: 4 }}>●</span>
                         Pot: {data.pot || '?'} BB
                     </div>
 
@@ -179,7 +179,7 @@ const styles = {
         fontSize: 12, fontWeight: 900, color: '#e2e8f0', letterSpacing: 1, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif"
     },
     subtitle: {
-        fontSize: 10, color: '#64748b', marginTop: 2
+        fontSize: 12, color: '#64748b', marginTop: 2
     },
     closeBtn: {
         background: 'transparent', border: 'none', cursor: 'pointer', padding: 4
@@ -192,7 +192,7 @@ const styles = {
     potOverlay: {
         position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)',
         background: 'rgba(0, 0, 0, 0.8)', padding: '4px 12px',
-        borderRadius: 14, fontSize: 11, fontWeight: 700, color: '#fff', border: '1px solid rgba(255,255,255,0.1)'
+        borderRadius: 14, fontSize: 12, fontWeight: 700, color: '#fff', border: '1px solid rgba(255,255,255,0.1)'
     },
     boardWrap: {
         display: 'flex', position: 'absolute', top: '35%', left: '50%', transform: 'translate(-50%, -50%)'
@@ -203,10 +203,10 @@ const styles = {
     },
     heroLabel: {
         background: 'linear-gradient(180deg, #d4a020, #8b6914)', color: '#1a1d24',
-        fontSize: 9, fontWeight: 800, padding: '2px 8px', borderRadius: 4, transform: 'translateY(-4px)'
+        fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4, transform: 'translateY(-4px)'
     },
     heroStack: {
-        fontSize: 10, fontWeight: 700, color: '#94a3b8'
+        fontSize: 12, fontWeight: 700, color: '#94a3b8'
     },
     decisionOverlay: {
         position: 'absolute', bottom: 20, right: 20,
@@ -217,13 +217,13 @@ const styles = {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between'
     },
     actionLabel: {
-        fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 0.5
+        fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: 0.5
     },
     actionTag: {
-        fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 4, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif"
+        fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4, fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif"
     },
     evLabel: {
-        fontSize: 10, fontWeight: 700, textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace"
+        fontSize: 12, fontWeight: 700, textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace"
     },
     controls: {
         display: 'flex', alignItems: 'center', padding: '16px 20px', gap: 16,

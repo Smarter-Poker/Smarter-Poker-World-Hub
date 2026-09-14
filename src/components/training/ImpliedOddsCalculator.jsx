@@ -64,7 +64,7 @@ function ImpliedOddsCalculator() {
             { label: 'Eff Stack', value: stack, set: setStack, min: 20, max: 300, step: 5, color: '#f59e0b', display: `${stack} bb` },
           ].map(s => (
             <div key={s.label} style={{ padding: 6, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
               <input type="range" min={s.min} max={s.max} step={s.step} value={s.value} onChange={e => s.set(parseFloat(e.target.value))} style={{ width: '100%', accentColor: s.color }} />
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.display}</div>
             </div>
@@ -74,15 +74,15 @@ function ImpliedOddsCalculator() {
         {/* Results */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(59,130,246,0.06)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Your Equity</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Your Equity</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#3b82f6' }}>{calc.eqPct}%</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Price To Call</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Price To Call</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#ef4444' }}>{calc.directPct}%</div>
           </div>
           <div style={{ padding: 10, background: profitableWithoutImplied ? 'rgba(16,185,129,0.08)' : 'rgba(249,115,22,0.08)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Direct Odds</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Direct Odds</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: profitableWithoutImplied ? '#10b981' : '#f97316' }}>
               {profitableWithoutImplied ? 'Profitable!' : 'Need Implied'}
             </div>
@@ -94,13 +94,13 @@ function ImpliedOddsCalculator() {
           {profitableWithoutImplied ? (
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#10b981' }}>Direct Call Is Profitable!</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Implied Odds Are A Bonus - You Have The Direct Odds To Call.</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Implied Odds Are A Bonus - You Have The Direct Odds To Call.</div>
             </div>
           ) : (
             <div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Need To Win On Later Streets:</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Need To Win On Later Streets:</div>
               <div style={{ fontSize: 28, fontWeight: 900, color: calc.canRealize ? '#10b981' : '#ef4444' }}>{calc.impliedNeeded} BB</div>
-              <div style={{ fontSize: 11, color: calc.canRealize ? '#10b981' : '#ef4444', marginTop: 4, fontWeight: 600 }}>
+              <div style={{ fontSize: 12, color: calc.canRealize ? '#10b981' : '#ef4444', marginTop: 4, fontWeight: 600 }}>
                 {calc.canRealize ? `Achievable - ${Math.round(calc.impliedNeeded / (stack - calc.callAmount) * 100)}% of remaining stack` : 'NOT achievable - would need more than effective stack!'}
               </div>
             </div>
@@ -108,7 +108,7 @@ function ImpliedOddsCalculator() {
         </div>
 
         <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Implied Odds Tips</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Implied Odds Tips</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
             {outs >= 12 ? 'Monster draw - call even without great implied odds. You have enough direct equity.' :
              outs >= 8 ? 'Strong draw - need moderate implied odds. Call if you can win ~2x your call on later streets.' :

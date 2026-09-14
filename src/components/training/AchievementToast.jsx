@@ -111,7 +111,7 @@ const styles = {
         flex: 1,
     },
     label: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 600,
         color: '#fbbf24',
         textTransform: 'uppercase',

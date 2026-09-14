@@ -50,7 +50,7 @@ export default function StakesLadderGuide() {
             <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3 }}>
               <div style={{ height: '100%', width: `${(i + 1) / STAKES.length * 100}%`, background: s.color, borderRadius: 3 }} />
             </div>
-            <span style={{ fontSize: 11, color: '#64748b', minWidth: 40, textAlign: 'right' }}>{s.bi}</span>
+            <span style={{ fontSize: 12, color: '#64748b', minWidth: 40, textAlign: 'right' }}>{s.bi}</span>
           </button>
         ))}
       </div>
@@ -59,7 +59,7 @@ export default function StakesLadderGuide() {
         style={{ background: `${stake.color}08`, border: `1px solid ${stake.color}25`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 18, fontWeight: 800, color: stake.color }}>{stake.name}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: `${stake.color}20`, color: stake.color }}>{stake.skill}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: `${stake.color}20`, color: stake.color }}>{stake.skill}</span>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{stake.expect}</p>
 

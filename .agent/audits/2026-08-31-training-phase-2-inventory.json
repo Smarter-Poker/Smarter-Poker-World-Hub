@@ -11,14 +11,14 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 334,
+    "dependencyFiles": 337,
     "componentFiles": 50,
     "hookFiles": 14,
     "ctas": 343,
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 130,
+    "tests": 133,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 357,
     "routeStateCells": 752,
@@ -4646,9 +4646,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -5872,9 +5875,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6254,9 +6260,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6486,9 +6495,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6767,9 +6779,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -8169,9 +8184,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -9395,9 +9413,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -9896,9 +9917,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10130,9 +10154,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10412,9 +10439,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -11727,9 +11757,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -12320,6 +12353,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12333,6 +12367,7 @@
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12349,6 +12384,7 @@
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12361,6 +12397,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12375,6 +12412,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12390,6 +12428,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12401,6 +12440,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
@@ -12413,12 +12453,14 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/page-tutorials.test.mjs",
             "__tests__/training-preflop-chart-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs"
           ]
         }
       },
       "existingTests": [
+        "__tests__/page-tutorials.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs"
       ],
@@ -12484,9 +12526,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -12837,9 +12882,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -15430,9 +15478,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -15681,9 +15732,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16188,9 +16242,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16575,9 +16632,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16811,9 +16871,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -17037,9 +17100,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -27103,7 +27169,7 @@
         {
           "kind": "PLACEHOLDER",
           "line": 221,
-          "excerpt": "<span style={{ ...styles.placeholder, fontSize: 10 }}>",
+          "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
           "disposition": "visible-ui-state",
           "review": "accepted",
           "rationale": "Visible empty/loading UI presentation, not fabricated product data."
@@ -36266,7 +36332,7 @@
         },
         {
           "name": "ScoreBar",
-          "line": 151,
+          "line": 152,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -36274,7 +36340,7 @@
         },
         {
           "name": "BlockerScorePanel",
-          "line": 183,
+          "line": 184,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -38064,7 +38130,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 313,
+          "line": 312,
           "handler": "fetchAllSessions",
           "destination": null,
           "type": "button",
@@ -38120,7 +38186,7 @@
         },
         {
           "name": "StudyStreakMapAuto",
-          "line": 257,
+          "line": 256,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -38600,7 +38666,7 @@
         {
           "element": "button",
           "name": "Back to Training",
-          "line": 3343,
+          "line": 3363,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -38610,7 +38676,7 @@
         {
           "element": "button",
           "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-          "line": 3375,
+          "line": 3395,
           "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
           "destination": null,
           "type": null,
@@ -38620,7 +38686,7 @@
         {
           "element": "button",
           "name": "`Randomiser direction: ${rngTheme.label}`",
-          "line": 3391,
+          "line": 3411,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -38630,7 +38696,7 @@
         {
           "element": "button",
           "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-          "line": 3656,
+          "line": 3676,
           "handler": "onConfigClick",
           "destination": null,
           "type": null,
@@ -38640,7 +38706,7 @@
         {
           "element": "button",
           "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-          "line": 4813,
+          "line": 4833,
           "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
           "destination": null,
           "type": null,
@@ -38650,7 +38716,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5022,
+          "line": 5042,
           "handler": "() => rngAvailable && setRngMode(!rngMode)",
           "destination": null,
           "type": null,
@@ -38660,7 +38726,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5026,
+          "line": 5046,
           "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
           "destination": null,
           "type": null,
@@ -38670,7 +38736,7 @@
         {
           "element": "button",
           "name": "Quit Session",
-          "line": 5034,
+          "line": 5054,
           "handler": "onExit",
           "destination": null,
           "type": null,
@@ -38680,7 +38746,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5119,
+          "line": 5139,
           "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
           "destination": null,
           "type": null,
@@ -38690,7 +38756,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5457,
+          "line": 5477,
           "handler": "() => setDeepAnalysisOpen(v => !v)",
           "destination": null,
           "type": null,
@@ -38700,7 +38766,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5663,
+          "line": 5683,
           "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
           "destination": null,
           "type": null,
@@ -38710,7 +38776,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 5676,
+          "line": 5696,
           "handler": "() => setShowRangeGrid(!showRangeGrid)",
           "destination": null,
           "type": null,
@@ -38720,7 +38786,7 @@
         {
           "element": "button",
           "name": "Prev",
-          "line": 6492,
+          "line": 6512,
           "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
           "destination": null,
           "type": null,
@@ -38730,7 +38796,7 @@
         {
           "element": "button",
           "name": "Next",
-          "line": 6499,
+          "line": 6519,
           "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
           "destination": null,
           "type": null,
@@ -38740,7 +38806,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 6506,
+          "line": 6526,
           "handler": "() => setShowMistakeReview(false)",
           "destination": null,
           "type": null,
@@ -39012,7 +39078,7 @@
         },
         {
           "name": "entryMatchesSeat",
-          "line": 3781,
+          "line": 3801,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -39020,7 +39086,7 @@
         },
         {
           "name": "pick",
-          "line": 4458,
+          "line": 4478,
           "references": 9,
           "exported": false,
           "defaultExport": false,
@@ -39028,7 +39094,7 @@
         },
         {
           "name": "mistakeFeedback",
-          "line": 5523,
+          "line": 5543,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -39108,7 +39174,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4326,
+          "line": 4346,
           "excerpt": "The denominator counts the dealing placeholder too --",
           "disposition": "poker-normalization-or-ui-state",
           "review": "accepted",
@@ -39116,7 +39182,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 4342,
+          "line": 4362,
           "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -39124,7 +39190,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 5798,
+          "line": 5818,
           "excerpt": "// Fallback to basic classifier",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -56010,11 +56076,16 @@
       "file": "src/tutorials/index.js",
       "imports": [
         "src/tutorials/bankroll-manager.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/preflop-charts.js"
+        "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js"
       ],
-      "links": [],
+      "links": [
+        "/hub/training"
+      ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
       "ctas": [],
@@ -56050,7 +56121,7 @@
       "functions": [
         {
           "name": "normalisePath",
-          "line": 57,
+          "line": 65,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56058,7 +56129,7 @@
         },
         {
           "name": "getTutorialForPath",
-          "line": 64,
+          "line": 72,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56066,15 +56137,15 @@
         },
         {
           "name": "read",
-          "line": 76,
-          "references": 3,
+          "line": 84,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "write",
-          "line": 85,
+          "line": 93,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56082,7 +56153,7 @@
         },
         {
           "name": "hasSeenTutorial",
-          "line": 94,
+          "line": 102,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56090,22 +56161,6 @@
         },
         {
           "name": "markTutorialSeen",
-          "line": 98,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "promptKey",
-          "line": 102,
-          "references": 3,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "hasSeenPrompt",
           "line": 106,
           "references": 1,
           "exported": true,
@@ -56113,8 +56168,24 @@
           "namedFunctionExpression": false
         },
         {
-          "name": "markPromptSeen",
+          "name": "promptKey",
           "line": 110,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "hasSeenPrompt",
+          "line": 114,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "markPromptSeen",
+          "line": 118,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56122,7 +56193,7 @@
         },
         {
           "name": "requestPageTutorial",
-          "line": 118,
+          "line": 126,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56136,6 +56207,46 @@
         "markPromptSeen",
         "requestPageTutorial"
       ],
+      "markers": []
+    },
+    {
+      "file": "src/tutorials/news.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -56220,6 +56331,86 @@
     },
     {
       "file": "src/tutorials/preflop-charts.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/tutorials/training.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/tutorials/trivia.js",
       "imports": [],
       "links": [],
       "apiReferences": [],
@@ -60913,6 +61104,10 @@
     },
     {
       "from": "src/tutorials/index.js",
+      "to": "src/tutorials/news.js"
+    },
+    {
+      "from": "src/tutorials/index.js",
       "to": "src/tutorials/personal-assistant.js"
     },
     {
@@ -60922,6 +61117,14 @@
     {
       "from": "src/tutorials/index.js",
       "to": "src/tutorials/preflop-charts.js"
+    },
+    {
+      "from": "src/tutorials/index.js",
+      "to": "src/tutorials/training.js"
+    },
+    {
+      "from": "src/tutorials/index.js",
+      "to": "src/tutorials/trivia.js"
     }
   ],
   "componentFiles": [
@@ -60998,8 +61201,10 @@
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
+    "__tests__/page-tutorials.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
     "__tests__/scroll-lock.test.mjs",
+    "__tests__/the-app-reopens-where-you-left-it.test.mjs",
     "__tests__/training-acl-closeout-authority.test.mjs",
     "__tests__/training-advisor-followup-migration.test.mjs",
     "__tests__/training-analysis-suite-phase-8.test.mjs",
@@ -61054,6 +61259,7 @@
     "__tests__/training-memory-practice-authority.test.mjs",
     "__tests__/training-milestone-reward-authority.test.mjs",
     "__tests__/training-mixed-strategy-launch-authority.test.mjs",
+    "__tests__/training-mobile-upgrades.test.mjs",
     "__tests__/training-multistreet-hand-manager.test.mjs",
     "__tests__/training-next-street-authority.test.mjs",
     "__tests__/training-phase-2-adversarial.test.mjs",
@@ -65502,11 +65708,11 @@
       "effectRef": "src/components/training/SessionShareCard.jsx"
     },
     {
-      "id": "src/components/training/StudyStreakMap.jsx:313:1",
+      "id": "src/components/training/StudyStreakMap.jsx:312:1",
       "file": "src/components/training/StudyStreakMap.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 313,
+      "line": 312,
       "handler": "fetchAllSessions",
       "destination": null,
       "type": "button",
@@ -65606,11 +65812,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3343:2",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3363:2",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Back to Training",
-      "line": 3343,
+      "line": 3363,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -65619,11 +65825,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3375:3",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3395:3",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!rngAvailable ? 'RNG Requires A Signed Solver Hand' : (rngMode ? 'RNG on - the drill rolls a die for mixed strategies' : 'RNG off')",
-      "line": 3375,
+      "line": 3395,
       "handler": "() => {\n                                if (solverFrequencyVerified) setRngMode(v => !v);\n                            }",
       "destination": null,
       "type": null,
@@ -65632,11 +65838,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3391:4",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3411:4",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "`Randomiser direction: ${rngTheme.label}`",
-      "line": 3391,
+      "line": 3411,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -65645,11 +65851,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:3656:5",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:3676:5",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "trainerConfig ? `Custom: ${trainerConfig.label || 'Custom'}` : 'Configure Trainer'",
-      "line": 3656,
+      "line": 3676,
       "handler": "onConfigClick",
       "destination": null,
       "type": null,
@@ -65658,11 +65864,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:4813:6",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:4833:6",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "!showFeedback && (mode.id === 'range' || mode.id === 'strategy') ? 'Available After You Answer' : undefined",
-      "line": 4813,
+      "line": 4833,
       "handler": "() => {\n                            if (!showFeedback && (mode.id === 'range' || mode.id === 'strategy')) return;\n                            setActiveMode(mode.id);\n                        }",
       "destination": null,
       "type": null,
@@ -65671,11 +65877,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5022:7",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5042:7",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5022,
+      "line": 5042,
       "handler": "() => rngAvailable && setRngMode(!rngMode)",
       "destination": null,
       "type": null,
@@ -65684,11 +65890,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5026:8",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5046:8",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5026,
+      "line": 5046,
       "handler": "() => setRngHighLow(v => (v === 'low' ? 'high' : 'low'))",
       "destination": null,
       "type": null,
@@ -65697,11 +65903,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5034:9",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5054:9",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Quit Session",
-      "line": 5034,
+      "line": 5054,
       "handler": "onExit",
       "destination": null,
       "type": null,
@@ -65710,11 +65916,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5119:10",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5139:10",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5119,
+      "line": 5139,
       "handler": "() => setFeedbackCollapsed && setFeedbackCollapsed(prev => !prev)",
       "destination": null,
       "type": null,
@@ -65723,11 +65929,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5457:11",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5477:11",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5457,
+      "line": 5477,
       "handler": "() => setDeepAnalysisOpen(v => !v)",
       "destination": null,
       "type": null,
@@ -65736,11 +65942,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5663:12",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5683:12",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5663,
+      "line": 5683,
       "handler": "() => setShowWhyDrawer(!showWhyDrawer)",
       "destination": null,
       "type": null,
@@ -65749,11 +65955,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:5676:13",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:5696:13",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 5676,
+      "line": 5696,
       "handler": "() => setShowRangeGrid(!showRangeGrid)",
       "destination": null,
       "type": null,
@@ -65762,11 +65968,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6492:14",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6512:14",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Prev",
-      "line": 6492,
+      "line": 6512,
       "handler": "() => setMistakeReviewIndex(i => Math.max(0, i - 1))",
       "destination": null,
       "type": null,
@@ -65775,11 +65981,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6499:15",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6519:15",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Next",
-      "line": 6499,
+      "line": 6519,
       "handler": "() => setMistakeReviewIndex(i => Math.min(mistakes.length - 1, i + 1))",
       "destination": null,
       "type": null,
@@ -65788,11 +65994,11 @@
       "effectRef": "src/components/training/games/UniversalDynamicTable.jsx"
     },
     {
-      "id": "src/components/training/games/UniversalDynamicTable.jsx:6506:16",
+      "id": "src/components/training/games/UniversalDynamicTable.jsx:6526:16",
       "file": "src/components/training/games/UniversalDynamicTable.jsx",
       "element": "button",
       "name": "Close",
-      "line": 6506,
+      "line": 6526,
       "handler": "() => setShowMistakeReview(false)",
       "destination": null,
       "type": null,
@@ -69103,9 +69309,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -69938,9 +70147,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70281,9 +70493,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70608,9 +70823,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70922,9 +71140,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -71601,9 +71822,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72205,9 +72429,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72629,9 +72856,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72946,9 +73176,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -73271,9 +73504,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -74035,9 +74271,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -74523,6 +74762,7 @@
         }
       ],
       "tests": [
+        "__tests__/page-tutorials.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs"
       ]
     },
@@ -74580,9 +74820,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -74898,9 +75141,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -76177,9 +76423,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -76540,9 +76789,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -76907,9 +77159,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77276,9 +77531,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77590,9 +77848,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77906,9 +78167,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -79819,9 +80083,12 @@
         "src/stores/pageOverlayStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/preflop-charts.js"
+        "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js"
       ],
       "apiReferences": [
         "/api/auth/ensure-profile",
@@ -79969,6 +80236,7 @@
         }
       ],
       "tests": [
+        "__tests__/page-tutorials.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ]
@@ -80083,9 +80351,12 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
         "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -83228,7 +83499,8 @@
       "persistence": [],
       "realtime": [],
       "tests": [
-        "__tests__/no-slide-to-see.law.test.mjs"
+        "__tests__/no-slide-to-see.law.test.mjs",
+        "__tests__/page-tutorials.test.mjs"
       ]
     },
     {
@@ -83236,9 +83508,12 @@
       "reachableFiles": [
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
+        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/preflop-charts.js"
+        "src/tutorials/preflop-charts.js",
+        "src/tutorials/training.js",
+        "src/tutorials/trivia.js"
       ],
       "apiReferences": [],
       "persistence": [
@@ -83256,10 +83531,25 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/page-tutorials.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
+        "__tests__/training-mobile-upgrades.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
+      ]
+    },
+    {
+      "file": "src/tutorials/news.js",
+      "reachableFiles": [
+        "src/tutorials/news.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/no-slide-to-see.law.test.mjs",
+        "__tests__/page-tutorials.test.mjs"
       ]
     },
     {
@@ -83270,7 +83560,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/page-tutorials.test.mjs"
+      ]
     },
     {
       "file": "src/tutorials/poker-near-me.js",
@@ -83280,7 +83572,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/page-tutorials.test.mjs"
+      ]
     },
     {
       "file": "src/tutorials/preflop-charts.js",
@@ -83291,7 +83585,44 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/page-tutorials.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs"
+      ]
+    },
+    {
+      "file": "src/tutorials/training.js",
+      "reachableFiles": [
+        "src/tutorials/training.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/no-slide-to-see.law.test.mjs",
+        "__tests__/page-tutorials.test.mjs",
+        "__tests__/training-card-visual-contract.test.mjs",
+        "__tests__/training-casino-realism-catalog.test.mjs",
+        "__tests__/training-hub-outage-honesty.test.mjs",
+        "__tests__/training-mobile-upgrades.test.mjs",
+        "__tests__/training-phase-2-adversarial.test.mjs",
+        "__tests__/training-phase-3-adversarial.test.mjs",
+        "__tests__/training-phase-4-adversarial.test.mjs",
+        "__tests__/training-projection-authority-package-c.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs",
+        "__tests__/training-session-config-contract.test.mjs",
+        "__tests__/training-verified-report-authority.test.mjs"
+      ]
+    },
+    {
+      "file": "src/tutorials/trivia.js",
+      "reachableFiles": [
+        "src/tutorials/trivia.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/page-tutorials.test.mjs"
       ]
     },
     {
@@ -83759,7 +84090,7 @@
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
         "line": 221,
-        "excerpt": "<span style={{ ...styles.placeholder, fontSize: 10 }}>",
+        "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
         "rationale": "Visible empty/loading UI presentation, not fabricated product data."
@@ -84408,7 +84739,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4326,
+        "line": 4346,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -84417,7 +84748,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4342,
+        "line": 4362,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84426,7 +84757,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 5798,
+        "line": 5818,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -88405,7 +88736,7 @@
       {
         "file": "src/components/training/BlockerScorePanel.jsx",
         "name": "BlockerScorePanel",
-        "line": 183,
+        "line": 184,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -91572,7 +91903,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 94,
+        "line": 102,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91587,7 +91918,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 98,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91602,7 +91933,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 106,
+        "line": 114,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91617,7 +91948,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 110,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91632,7 +91963,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 118,
+        "line": 126,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92335,7 +92666,7 @@
         "file": "pages/hub/training/hand-lab.js",
         "kind": "PLACEHOLDER",
         "line": 221,
-        "excerpt": "<span style={{ ...styles.placeholder, fontSize: 10 }}>",
+        "excerpt": "<span style={{ ...styles.placeholder, fontSize: 12 }}>",
         "disposition": "visible-ui-state",
         "review": "accepted",
         "rationale": "Visible empty/loading UI presentation, not fabricated product data."
@@ -92984,7 +93315,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4326,
+        "line": 4346,
         "excerpt": "The denominator counts the dealing placeholder too --",
         "disposition": "poker-normalization-or-ui-state",
         "review": "accepted",
@@ -92993,7 +93324,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "PLACEHOLDER",
-        "line": 4342,
+        "line": 4362,
         "excerpt": "{/* PREFLOP: Deck placeholder when no board cards */}",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -93002,7 +93333,7 @@
       {
         "file": "src/components/training/games/UniversalDynamicTable.jsx",
         "kind": "FALLBACK",
-        "line": 5798,
+        "line": 5818,
         "excerpt": "// Fallback to basic classifier",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -96981,7 +97312,7 @@
       {
         "file": "src/components/training/BlockerScorePanel.jsx",
         "name": "BlockerScorePanel",
-        "line": 183,
+        "line": 184,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -100148,7 +100479,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 94,
+        "line": 102,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100163,7 +100494,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 98,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100178,7 +100509,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 106,
+        "line": 114,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100193,7 +100524,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 110,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100208,7 +100539,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 118,
+        "line": 126,
         "references": 1,
         "exported": true,
         "defaultExport": false,

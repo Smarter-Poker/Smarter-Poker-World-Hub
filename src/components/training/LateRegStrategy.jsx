@@ -40,7 +40,7 @@ export default function LateRegStrategy() {
             style={{ padding: '8px 4px', borderRadius: 8, border: factorIdx === i ? `2px solid ${f.color}` : '1px solid rgba(255,255,255,0.06)',
               background: factorIdx === i ? `${f.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{f.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: factorIdx === i ? f.color : '#64748b' }}>{f.factor.substring(0,8)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: factorIdx === i ? f.color : '#64748b' }}>{f.factor.substring(0,8)}</div>
           </button>
         ))}
       </div>
@@ -53,11 +53,11 @@ export default function LateRegStrategy() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e'}}>Late Reg ✓</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e'}}>Late Reg ✓</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{factor.pro}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444'}}>Register Early ✕</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444'}}>Register Early ✕</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{factor.con}</div>
           </div>
         </div>

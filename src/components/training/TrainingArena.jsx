@@ -566,7 +566,7 @@ const styles = {
     container: {
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        height: '100dvh',
         background: 'linear-gradient(180deg, #0a1628 0%, #1a2744 100%)',
         color: '#fff',
         fontFamily: 'Inter, sans-serif',
@@ -577,7 +577,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
+        height: '100dvh',
         background: '#0a1628',
     },
 
@@ -600,7 +600,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
+        height: '100dvh',
         background: '#0a1628',
         padding: 40,
         textAlign: 'center',
@@ -732,7 +732,7 @@ const styles = {
     },
 
     potLabel: {
-        fontSize: 9,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.5)',
     },
 
@@ -755,7 +755,7 @@ const styles = {
     },
 
     seatLabel: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 600,
         color: 'rgba(255,255,255,0.7)',
     },
@@ -800,7 +800,7 @@ const styles = {
     },
 
     timerLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.5)',
     },
 
@@ -904,7 +904,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
+        height: '100dvh',
         background: '#0a1628',
         textAlign: 'center',
     },

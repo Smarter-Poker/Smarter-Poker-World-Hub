@@ -156,20 +156,20 @@ function HeadsUpTrainer() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {scenario.raiseSample && (
               <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.12)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Raise Range</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.raiseSample}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Raise Range</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.raiseSample}</div>
               </div>
             )}
             {scenario.callSample && (
               <div style={{ padding: 10, background: 'rgba(59,130,246,0.06)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.12)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', marginBottom: 4 }}>Call Range</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.callSample}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', marginBottom: 4 }}>Call Range</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.callSample}</div>
               </div>
             )}
             {scenario.limpSample && (
               <div style={{ padding: 10, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.12)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Limp Range</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.limpSample}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Limp Range</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{scenario.limpSample}</div>
               </div>
             )}
           </div>

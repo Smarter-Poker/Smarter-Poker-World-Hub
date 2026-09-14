@@ -217,7 +217,7 @@ export default function TrainingCalendarPage() {
       <div
         className="sp-training-journey sp-training-journey--calendar"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -257,7 +257,7 @@ export default function TrainingCalendarPage() {
           <div>
             {/* TRAIN-CALENDAR-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Training Calendar</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Activity Heatmap</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Activity Heatmap</div>
           </div>
         </div>
         <div className="sp-journey-main" style={{ padding: '20px 16px', maxWidth: 600, margin: '0 auto' }}>
@@ -332,7 +332,7 @@ export default function TrainingCalendarPage() {
                   }}
                 >
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }} role="status" aria-label={`${streak} day streak`}>{streak}</div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     Day Streak
                   </div>
                 </div>
@@ -346,7 +346,7 @@ export default function TrainingCalendarPage() {
                   }}
                 >
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>{totalDays}</div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     Active Days
                   </div>
                 </div>
@@ -362,7 +362,7 @@ export default function TrainingCalendarPage() {
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                     {totalHands}
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     Total Hands
                   </div>
                 </div>
@@ -374,7 +374,7 @@ export default function TrainingCalendarPage() {
                   {DAYS.map((d, i) => (
                     <div
                       key={i}
-                      style={{ width: 16, textAlign: 'center', fontSize: 8, color: 'var(--sp-fg-faint)' }}
+                      style={{ width: 16, textAlign: 'center', fontSize: 12, color: 'var(--sp-fg-faint)' }}
                     >
                       {d}
                     </div>
@@ -424,14 +424,14 @@ export default function TrainingCalendarPage() {
                     justifyContent: 'flex-end',
                   }}
                 >
-                  <span style={{ fontSize: 8, color: 'var(--sp-fg-faint)' }}>Less</span>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>Less</span>
                   {INTENSITY_COLORS.map((c, i) => (
                     <div
                       key={i}
                       style={{ width: 10, height: 10, borderRadius: 2, background: c }}
                     />
                   ))}
-                  <span style={{ fontSize: 8, color: 'var(--sp-fg-faint)' }}>More</span>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>More</span>
                 </div>
               </div>
 
@@ -461,13 +461,13 @@ export default function TrainingCalendarPage() {
                         <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                           {selectedData.hands}
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Hands</span>
+                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Hands</span>
                       </div>
                       <div>
                         <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
                           {selectedData.sessions}
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Sessions</span>
+                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Sessions</span>
                       </div>
                       <div>
                         <span
@@ -488,11 +488,11 @@ export default function TrainingCalendarPage() {
                             : 0}
                           %
                         </span>{' '}
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Accuracy</span>
+                        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Accuracy</span>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)' }}>No Training On This Day</div>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>No Training On This Day</div>
                   )}
                 </motion.div>
               )}
@@ -536,7 +536,7 @@ export default function TrainingCalendarPage() {
                     />
                   </div>
                   {todayHands >= 50 && (
-                    <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-accent-green)', marginTop: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       {/* TRAIN-CALENDAR-A11Y-1: SVG sparkle replaces ★ */}
                       <span style={{ display: 'inline-flex' }} aria-hidden><StarSparkleIcon size={12} /></span>
                       Goal Met! +1 To Streak
@@ -560,19 +560,19 @@ export default function TrainingCalendarPage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Sessions</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Sessions</div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-purple)' }}>
                         {weeklyStats.sessions}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Hands Played</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Hands Played</div>
                       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--sp-accent-green)' }}>
                         {weeklyStats.hands}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Avg Accuracy</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Avg Accuracy</div>
                       <div
                         style={{
                           fontSize: 16,

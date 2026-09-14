@@ -67,7 +67,7 @@ export default function DeepStackSolutions() {
               background: depthIdx === i ? `${d.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{d.icon}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: depthIdx === i ? d.color : '#64748b' }}>{d.depth}</div>
-            <div style={{ fontSize: 9, color: '#64748b' }}>{d.label}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{d.label}</div>
           </button>
         ))}
       </div>
@@ -84,7 +84,7 @@ export default function DeepStackSolutions() {
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: depth.color, fontFamily: 'monospace' }}>{s.val}</div>
-              <div style={{ fontSize: 8, color: '#64748b' }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -95,7 +95,7 @@ export default function DeepStackSolutions() {
           <div style={{ display: 'grid', gap: 8 }}>
             {depth.adjustments.map((a, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${depth.color}` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: depth.color }}>{a.spot}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: depth.color }}>{a.spot}</div>
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>{a.change}</div>
               </div>
             ))}
@@ -106,8 +106,8 @@ export default function DeepStackSolutions() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {DEEP_CONCEPTS.map((c, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>{c.concept}</div>
-              <div style={{ fontSize: 10, color: '#94a3b8' }}>{c.detail}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>{c.concept}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.detail}</div>
             </div>
           ))}
         </div>

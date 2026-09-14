@@ -171,20 +171,20 @@ function DistributionBars({ distribution, label, side }) {
   const maxPct = Math.max(...distribution.map(d => d.pct));
   return (
     <div>
-      <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
       {distribution.map((d, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <span style={{ color: '#94a3b8', fontSize: 8, width: 48, textAlign: 'right', flexShrink: 0 }}>{d.bucket}</span>
+          <span style={{ color: '#94a3b8', fontSize: 12, width: 48, textAlign: 'right', flexShrink: 0 }}>{d.bucket}</span>
           <div style={{ flex: 1, height: 16, background: 'rgba(0,0,0,0.2)', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
             <div style={{
               width: `${(d.pct / maxPct) * 100}%`, height: '100%', background: d.color,
               borderRadius: 3, transition: 'width 0.3s', opacity: 0.7,
               display: 'flex', alignItems: 'center', paddingLeft: 4,
             }}>
-              {d.pct > 8 && <span style={{ color: '#fff', fontSize: 7, fontWeight: 700 }}>{d.pct}%</span>}
+              {d.pct > 8 && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{d.pct}%</span>}
             </div>
           </div>
-          <span style={{ color: '#64748b', fontSize: 7, width: 80, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.hands}</span>
+          <span style={{ color: '#64748b', fontSize: 12, width: 80, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal' }}>{d.hands}</span>
         </div>
       ))}
     </div>
@@ -197,8 +197,8 @@ function NutAdvantageBar({ heroNuts, villainNuts, heroLabel, villainLabel }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ color: '#22c55e', fontSize: 10, fontWeight: 700 }}>{heroLabel}: {heroNuts}%</span>
-        <span style={{ color: '#ef4444', fontSize: 10, fontWeight: 700 }}>{villainLabel}: {villainNuts}%</span>
+        <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>{heroLabel}: {heroNuts}%</span>
+        <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 700 }}>{villainLabel}: {villainNuts}%</span>
       </div>
       <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden' }}>
         <div style={{ width: `${(heroNuts / total) * 100}%`, background: '#22c55e', opacity: 0.7, transition: 'width 0.3s' }} />
@@ -225,14 +225,14 @@ export default function HandStrengthDistribution() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Hand Strength Distribution</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Equity Bucket Analysis For Range Matchups</div>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Equity Bucket Analysis For Range Matchups</div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['sidebyside', 'overlay'].map(m => (
               <button key={m} onClick={() => setViewMode(m)} style={{
                 padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: viewMode === m ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
-                color: viewMode === m ? '#3b82f6' : '#64748b', fontSize: 10, fontWeight: 600,
+                color: viewMode === m ? '#3b82f6' : '#64748b', fontSize: 12, fontWeight: 600,
               }}>{m === 'sidebyside' ? 'Side by Side' : 'Overlay'}</button>
             ))}
           </div>
@@ -245,10 +245,10 @@ export default function HandStrengthDistribution() {
               padding: '6px 10px', borderRadius: 5, cursor: 'pointer', whiteSpace: 'nowrap',
               background: selectedScenario.id === s.id ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.15)',
               border: selectedScenario.id === s.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-              color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 10, fontWeight: 600,
+              color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               <div>{s.name}</div>
-              <div style={{ color: '#64748b', fontSize: 8, marginTop: 1 }}>{s.board}</div>
+              <div style={{ color: '#64748b', fontSize: 12, marginTop: 1 }}>{s.board}</div>
             </button>
           ))}
         </div>
@@ -256,8 +256,8 @@ export default function HandStrengthDistribution() {
         {/* Board display */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
           <div style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 800, letterSpacing: 2 }}>{selectedScenario.board}</div>
-          <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>{selectedScenario.street}</span>
-          <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 9, fontWeight: 600 }}>{selectedScenario.hero} Vs {selectedScenario.villain}</span>
+          <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>{selectedScenario.street}</span>
+          <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 12, fontWeight: 600 }}>{selectedScenario.hero} Vs {selectedScenario.villain}</span>
         </div>
 
         {/* Summary stats */}
@@ -269,7 +269,7 @@ export default function HandStrengthDistribution() {
             { label: `${selectedScenario.villain} Weak`, value: `${villainWeak}%`, color: '#64748b' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
               <div style={{ color: s.color, fontSize: 16, fontWeight: 800 }}>{s.value}</div>
             </div>
           ))}
@@ -287,20 +287,20 @@ export default function HandStrengthDistribution() {
           </div>
         ) : (
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-            <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Overlay Comparison</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Overlay Comparison</div>
             {selectedScenario.heroDistribution.map((d, i) => {
               const vd = selectedScenario.villainDistribution[i];
               return (
                 <div key={i} style={{ marginBottom: 6 }}>
-                  <div style={{ color: '#94a3b8', fontSize: 8, marginBottom: 2 }}>{d.bucket}</div>
+                  <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 2 }}>{d.bucket}</div>
                   <div style={{ position: 'relative', height: 14 }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, width: `${d.pct * 2.5}%`, height: 6, background: '#22c55e', opacity: 0.6, borderRadius: 3 }} />
                     <div style={{ position: 'absolute', top: 8, left: 0, width: `${vd.pct * 2.5}%`, height: 6, background: '#ef4444', opacity: 0.6, borderRadius: 3 }} />
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                    <span style={{ color: '#22c55e', fontSize: 7 }}>{selectedScenario.hero}: {d.pct}%</span>
-                    <span style={{ color: '#ef4444', fontSize: 7 }}>{selectedScenario.villain}: {vd.pct}%</span>
-                    <span style={{ color: d.pct > vd.pct ? '#22c55e' : '#ef4444', fontSize: 7, fontWeight: 700 }}>
+                    <span style={{ color: '#22c55e', fontSize: 12 }}>{selectedScenario.hero}: {d.pct}%</span>
+                    <span style={{ color: '#ef4444', fontSize: 12 }}>{selectedScenario.villain}: {vd.pct}%</span>
+                    <span style={{ color: d.pct > vd.pct ? '#22c55e' : '#ef4444', fontSize: 12, fontWeight: 700 }}>
                       Δ {d.pct > vd.pct ? '+' : ''}{d.pct - vd.pct}%
                     </span>
                   </div>
@@ -310,11 +310,11 @@ export default function HandStrengthDistribution() {
             <div style={{ display: 'flex', gap: 10, marginTop: 8, justifyContent: 'center' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <div style={{ width: 8, height: 4, borderRadius: 2, background: '#22c55e' }} />
-                <span style={{ color: '#94a3b8', fontSize: 8 }}>{selectedScenario.hero}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12 }}>{selectedScenario.hero}</span>
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <div style={{ width: 8, height: 4, borderRadius: 2, background: '#ef4444' }} />
-                <span style={{ color: '#94a3b8', fontSize: 8 }}>{selectedScenario.villain}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12 }}>{selectedScenario.villain}</span>
               </span>
             </div>
           </div>
@@ -322,13 +322,13 @@ export default function HandStrengthDistribution() {
 
         {/* Nut Advantage */}
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Nut Advantage</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Nut Advantage</div>
           <NutAdvantageBar heroNuts={selectedScenario.heroNuts} villainNuts={selectedScenario.villainNuts} heroLabel={selectedScenario.hero} villainLabel={selectedScenario.villain} />
           <div style={{ marginTop: 6, display: 'flex', gap: 10 }}>
-            <span style={{ padding: '3px 8px', borderRadius: 4, background: selectedScenario.nutAdvantage === 'hero' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: selectedScenario.nutAdvantage === 'hero' ? '#22c55e' : '#ef4444', fontSize: 10, fontWeight: 700 }}>
+            <span style={{ padding: '3px 8px', borderRadius: 4, background: selectedScenario.nutAdvantage === 'hero' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: selectedScenario.nutAdvantage === 'hero' ? '#22c55e' : '#ef4444', fontSize: 12, fontWeight: 700 }}>
               {selectedScenario.nutAdvantage === 'hero' ? selectedScenario.hero : selectedScenario.villain} Has Nut Advantage
             </span>
-            <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 10, fontWeight: 600 }}>
+            <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>
               Vulnerability: {selectedScenario.vulnerability}
             </span>
           </div>
@@ -336,8 +336,8 @@ export default function HandStrengthDistribution() {
 
         {/* Strategic insight */}
         <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 12, border: '1px solid rgba(59,130,246,0.15)' }}>
-          <div style={{ color: '#3b82f6', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Strategic Insight</div>
-          <div style={{ color: '#cbd5e1', fontSize: 11, lineHeight: 1.6 }}>{selectedScenario.insight}</div>
+          <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Strategic Insight</div>
+          <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.6 }}>{selectedScenario.insight}</div>
         </div>
       </div>
     );

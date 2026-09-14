@@ -154,7 +154,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     justify-content: space-between;
                     gap: 12px;
                     color: #eaf6fa;
-                    font: 700 8px/1.2 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1.2 var(--font-orbitron, 'Orbitron'), sans-serif;
                     letter-spacing: .13em;
                     text-shadow: 0 2px 5px #000;
                     text-transform: uppercase;
@@ -173,7 +173,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     color: #f1f8fa;
                     background: rgba(1,5,7,.86);
                     box-shadow: 0 5px 14px #000;
-                    font: 700 8px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
                     letter-spacing: .08em;
                     text-transform: uppercase;
                 }
@@ -205,12 +205,12 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     gap: 8px;
                     margin-top: 15px;
                     color: #738c98;
-                    font: 650 8px/1.25 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 650 12px/1.25 var(--font-orbitron, 'Orbitron'), sans-serif;
                     letter-spacing: .06em;
                     text-transform: uppercase;
                 }
                 .sp-casino-game-readout span:nth-child(2) { text-align: center; color: var(--game-accent); }
-                .sp-casino-game-readout b { color: #ecf7fb; font-size: 11px; }
+                .sp-casino-game-readout b { color: #ecf7fb; font-size: 12px; }
                 .sp-casino-game-progress {
                     display: block;
                     height: 5px;
@@ -238,12 +238,12 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     color: #e6f2f6;
                     background: linear-gradient(180deg, #21313a, #070b0e 72%);
                     box-shadow: inset 0 1px rgba(255,255,255,.1), 0 6px 14px rgba(0,0,0,.55);
-                    font: 700 9px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
                     letter-spacing: .09em;
                     text-transform: uppercase;
                 }
                 .sp-casino-game-action :global(svg) { color: var(--game-accent); filter: drop-shadow(0 0 6px var(--game-accent)); }
-                @media (max-width: 700px) {
+                @media (max-width: 768px) {
                     .sp-casino-game-card { min-height: 0; }
                     .sp-casino-game-body { padding: 15px 9px 8px; }
                     .sp-casino-game-title { font-size: 17px; }

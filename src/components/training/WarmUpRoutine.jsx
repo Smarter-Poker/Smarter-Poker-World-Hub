@@ -44,7 +44,7 @@ export default function WarmUpRoutine() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${step.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${step.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? step.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? step.color : '#64748b' }}>
             {step.icon} {step.time}
           </button>
         ))}
@@ -54,11 +54,11 @@ export default function WarmUpRoutine() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.icon} {s.step}</span>
-          <span style={{ padding: '3px 8px', borderRadius: 12, background: `${s.color}20`, fontSize: 11, fontWeight: 700, color: s.color }}>{s.time}</span>
+          <span style={{ padding: '3px 8px', borderRadius: 12, background: `${s.color}20`, fontSize: 12, fontWeight: 700, color: s.color }}>{s.time}</span>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{s.detail}</p>
         <div style={{ background: `${s.color}06`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: s.color, marginBottom: 6 }}>CHECKLIST</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: s.color, marginBottom: 6 }}>CHECKLIST</div>
           {s.actions.map((a, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '3px 0', display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ color: s.color }}>□</span> {a}
@@ -66,7 +66,7 @@ export default function WarmUpRoutine() {
           ))}
         </div>
         <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>WHY IT WORKS</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>WHY IT WORKS</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.benefit}</div>
         </div>
       </motion.div>

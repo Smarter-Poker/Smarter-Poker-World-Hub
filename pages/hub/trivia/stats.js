@@ -14,6 +14,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import ResponsiveTable from '../../../src/components/ui/ResponsiveTable';
 
 export default function TriviaStats() {
     useTrainingBus('trivia-stats');
@@ -225,6 +226,18 @@ export default function TriviaStats() {
         return () => { supabase.removeChannel(_ch); };
     }, [avatarUser?.id, avatarLoading]);
 
+    /* MOBILE PHASE 7 (docs/mobile-standard): the By Mode table was a real
+       <table> with minWidth 460 inside an overflowX auto box, a sideways
+       rail on every phone. ResponsiveTable keeps the table on desktop and
+       renders one card per row under 768px, the column header as the label. */
+    const MODE_COLUMNS = [
+        { key: 'mode', label: 'Mode', render: (m) => <span style={{ color: '#e4e6eb', textTransform: 'capitalize' }}>{MODE_LABELS[m.mode] || m.mode}</span> },
+        { key: 'games', label: 'Games', align: 'right', render: (m) => <span style={{ color: '#b0b3b8' }}>{m.games.toLocaleString()}</span> },
+        { key: 'best', label: 'Best Score', align: 'right', render: (m) => <span style={{ color: '#b0b3b8' }}>{m.best.toLocaleString()}</span> },
+        { key: 'accuracy', label: 'Accuracy', align: 'right', render: (m) => <strong style={{ color: '#31a24c' }}>{m.questions > 0 ? `${m.accuracy}%` : '-'}</strong> },
+        { key: 'diamonds', label: 'Diamonds', align: 'right', render: (m) => <strong style={{ color: '#2374e1' }}>{m.diamonds.toLocaleString()}</strong> },
+    ];
+
     const StatCard = ({ label, value, color }) => (
         <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '24px' }}>
             <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '8px' }}>{label}</div>
@@ -256,7 +269,7 @@ export default function TriviaStats() {
                     }} />
                 </div>
                 {masteryLevel > 1 && (
-                    <div style={{ color: '#65676b', fontSize: '11px', marginTop: '3px' }}>
+                    <div style={{ color: '#65676b', fontSize: '12px', marginTop: '3px' }}>
                         Mastery Level {masteryLevel}
                     </div>
                 )}
@@ -275,7 +288,7 @@ export default function TriviaStats() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -285,7 +298,8 @@ export default function TriviaStats() {
                                 background: 'rgba(35, 116, 225, 0.1)',
                                 border: '1px solid rgba(35, 116, 225, 0.3)',
                                 color: '#2374e1',
-                                padding: '8px 16px',
+                                padding: '10px 16px',
+                                minHeight: 44,
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
@@ -331,38 +345,12 @@ export default function TriviaStats() {
                                         padding: '24px',
                                         background: '#242526',
                                         border: '1px solid #4e4f50',
-                                        borderRadius: '12px',
-                                        overflowX: 'auto'
+                                        borderRadius: '12px'
                                     }}>
                                         <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#e4e6eb', marginBottom: '20px' }}>
                                             By Mode
                                         </h2>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '460px' }}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={{ textAlign: 'left', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px 8px 0' }}>Mode</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px' }}>Games</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px' }}>Best Score</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px' }}>Accuracy</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 0 8px 12px' }}>Diamonds</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {modeBreakdown.map(m => (
-                                                    <tr key={m.mode} style={{ borderTop: '1px solid #3a3b3c' }}>
-                                                        <td style={{ color: '#e4e6eb', padding: '10px 12px 10px 0', textTransform: 'capitalize' }}>
-                                                            {MODE_LABELS[m.mode] || m.mode}
-                                                        </td>
-                                                        <td style={{ color: '#b0b3b8', textAlign: 'right', padding: '10px 12px' }}>{m.games.toLocaleString()}</td>
-                                                        <td style={{ color: '#b0b3b8', textAlign: 'right', padding: '10px 12px' }}>{m.best.toLocaleString()}</td>
-                                                        <td style={{ color: '#31a24c', textAlign: 'right', padding: '10px 12px', fontWeight: 700 }}>
-                                                            {m.questions > 0 ? `${m.accuracy}%` : '-'}
-                                                        </td>
-                                                        <td style={{ color: '#2374e1', textAlign: 'right', padding: '10px 0 10px 12px', fontWeight: 700 }}>{m.diamonds.toLocaleString()}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                        <ResponsiveTable columns={MODE_COLUMNS} rows={modeBreakdown} keyField="mode" caption="Results by game mode" />
                                     </div>
                                 )}
 
@@ -449,6 +437,7 @@ export default function TriviaStats() {
                                         border: 'none',
                                         color: '#fff',
                                         padding: '12px 24px',
+                                        minHeight: 44,
                                         borderRadius: '8px',
                                         cursor: 'pointer',
                                         fontWeight: 'bold'

@@ -1,5 +1,27 @@
 name: Weekly HendonMob Auto-Sync
 
+# OUR OWN ENGINE, NOT A RENTED ONE.
+#
+# This job used to curl /api/hendonmob/auto-sync, which asked Manus AI to send
+# a browser agent to read three numbers off a public profile page and POST them
+# back to us. It has failed every week since 2026-08-24 with
+#
+#     {"code":16,"message":"api key has been deleted or does not exist"}
+#
+# and nobody can fix that from this repo. It also could not be trusted when it
+# DID work: the prompt is four paragraphs of asking a language model not to make
+# the numbers up, which is not a guarantee, it is a request.
+#
+# scripts/hendon_scraper_scrapling.py already does the same job deterministically
+# and has since before this workflow existed - Scrapling with the Cloudflare
+# bypass, then a regex over explicitly labeled spans, null when a label is
+# absent. It is the same stack poker-series-auto-pilot.yml already runs here.
+# So run ours. No API key, no third party, no prompt.
+#
+# The Manus key is still read by pages/api/venue-scraper/trigger.js, so the
+# deleted key is a live problem for the venue scraper too. That is not this
+# workflow's to fix.
+
 on:
   schedule:
     # Every Monday at 9:00 AM EST (14:00 UTC)
@@ -9,22 +31,37 @@ on:
 jobs:
   sync-hendonmob:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
-      - name: Trigger Manus AI HendonMob Scraper
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
         run: |
-          echo "🔄 Triggering HendonMob auto-sync via Manus AI..."
-          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
-            "https://smarter.poker/api/hendonmob/auto-sync?key=${{ secrets.HENDON_AUTO_SYNC_SECRET }}")
-          
-          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d: -f2)
-          BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
-          
-          echo "Response: $BODY"
-          echo "Status: $HTTP_STATUS"
-          
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "❌ Auto-sync trigger failed with status $HTTP_STATUS"
-            exit 1
-          fi
-          
-          echo "✅ Manus task created successfully"
+          python -m pip install --upgrade pip
+          pip install "scrapling[all]" camoufox
+          scrapling install
+          python -m camoufox fetch
+
+      - name: Scrape HendonMob
+        id: scrape
+        # --all reads every profile with a hendon_url and writes what it finds
+        # straight to Supabase. It exits non-zero when nothing was saved, or
+        # when a profile was scraped and then lost on the write - see
+        # exit_code_for() in the script.
+        run: |
+          python3 scripts/hendon_scraper_scrapling.py --all
+
+      - name: Alert Human (HendonMob Sync Failed)
+        if: failure() && steps.scrape.outcome == 'failure'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: python3 scripts/utils/send_sms_alert.py "Weekly HendonMob Sync Failed"

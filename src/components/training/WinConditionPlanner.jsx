@@ -50,7 +50,7 @@ export default function WinConditionPlanner() {
             style={{ padding: '8px 4px', borderRadius: 8, border: condIdx === i ? `2px solid ${w.color}` : '1px solid rgba(255,255,255,0.06)',
               background: condIdx === i ? `${w.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{w.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: condIdx === i ? w.color : '#64748b' }}>{w.condition.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: condIdx === i ? w.color : '#64748b' }}>{w.condition.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -63,7 +63,7 @@ export default function WinConditionPlanner() {
         </div>
 
         <div style={{ background: `${cond.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Typical Hands</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Typical Hands</div>
           <div style={{ fontSize: 12, color: cond.color }}>{cond.hands}</div>
         </div>
 
@@ -71,11 +71,11 @@ export default function WinConditionPlanner() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Street Plan</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Street Plan</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{cond.streets}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Key Question</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Question</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{cond.keyQ}</div>
           </div>
         </div>

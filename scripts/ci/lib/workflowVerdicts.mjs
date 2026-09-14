@@ -126,3 +126,62 @@ export function redWorkflows(runs, now = Date.now()) {
   }
   return out;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * A WORKFLOW THAT NEVER RUNS ON main CAN ROT TOO.
+ *
+ * check-main-is-green exists because `Global Footer E2E` was red on every run
+ * for days and nothing said so. It sweeps `?branch=main`.
+ *
+ * `Global Footer E2E` triggers on `pull_request` and `workflow_dispatch`. It
+ * has never produced a run on main in its life. So the detector written
+ * because of it cannot see it, and on 2026-09-09 it rotted again - red on
+ * every run for sixteen hours, 152 failures in 200 runs, found by accident a
+ * second time. The blind spot is structural, not a bug in the sweep: there is
+ * nothing on main to look at.
+ *
+ * WHY THIS NEEDS A DIFFERENT RULE. On main, one red newest run is enough -
+ * main is one line of history and a failure there is the repo's failure. Off
+ * main, every run belongs to somebody's branch, and one branch that does not
+ * build is that branch's problem, not rot. Measured on this repo over the four
+ * days after the fix (50 completed runs of that workflow): the worst streak of
+ * consecutive failures was 3, across 3 different branches, and the newest run
+ * was green. During the outage it was 152 with no green at all.
+ *
+ * So: a streak long enough to clear that noise floor, AND spread across enough
+ * DIFFERENT branches that it cannot be one bad branch. Six across three, by
+ * default, which would have fired inside the first hour of the outage and does
+ * not fire on the estate as it stands today.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/** Defaults chosen from measurement, not taste. See the comment above. */
+export const PR_ONLY_MIN_CONSECUTIVE = 6;
+export const PR_ONLY_MIN_BRANCHES = 3;
+
+/**
+ * Classify a workflow whose runs come from many branches.
+ *
+ * Returns null unless the newest verdicts are an unbroken run of failures that
+ * is both long enough and spread across enough branches. Null is the common
+ * case and means "this is somebody's branch, not the repo".
+ */
+export function classifyAcrossBranches(name, list, {
+  now = Date.now(),
+  minConsecutive = PR_ONLY_MIN_CONSECUTIVE,
+  minBranches = PR_ONLY_MIN_BRANCHES,
+} = {}) {
+  const verdict = classifyWorkflow(name, list, now);
+  if (!verdict) return null;                       // newest verdict was green
+
+  const verdicts = verdictRuns(list);
+  const branches = new Set();
+  for (const run of verdicts) {
+    if (!BAD_CONCLUSIONS.has(run.conclusion)) break;
+    if (run.head_branch) branches.add(run.head_branch);
+  }
+
+  if (verdict.consecutive < minConsecutive) return null;
+  if (branches.size < minBranches) return null;
+
+  return { ...verdict, branches: [...branches], branchCount: branches.size };
+}

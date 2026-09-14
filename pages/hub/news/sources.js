@@ -146,7 +146,8 @@ export default function NewsSources() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#000407' }}>
+                {/* MOBILE PHASE 6: 100dvh, clip (WebKit fixed-child law), and no bottom pad: BottomNavSpacer in _app.js owns that clearance (/hub/news/sources is in bottom-nav-routes.json). */}
+                <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box', background: '#000407' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>

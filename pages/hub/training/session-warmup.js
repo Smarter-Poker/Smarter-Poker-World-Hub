@@ -208,7 +208,7 @@ export default function SessionWarmupPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'radial-gradient(circle at center, #1e293b 0%, #020617 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -246,7 +246,7 @@ export default function SessionWarmupPage() {
             top: 20,
             right: 20,
             zIndex: 10,
-            fontSize: 10,
+            fontSize: 12,
             color: 'var(--sp-fg-faint)',
           }}
         >
@@ -284,7 +284,7 @@ export default function SessionWarmupPage() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: '100vh',
+            minHeight: '100dvh',
             padding: 20,
           }}
         >
@@ -514,7 +514,7 @@ export default function SessionWarmupPage() {
               >
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -536,16 +536,16 @@ export default function SessionWarmupPage() {
                         borderBottom: '1px solid rgba(255,255,255,0.03)',
                       }}
                     >
-                      <span style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{label}</span>
+                      <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{label}</span>
                       <span
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           color: 'var(--sp-fg)',
                           fontWeight: 600,
                           maxWidth: 200,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
+                          whiteSpace: 'normal',
                         }}
                       >
                         {val}
@@ -565,8 +565,8 @@ export default function SessionWarmupPage() {
                   marginBottom: 24,
                 }}
               >
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>TIP: </span>
-                <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{tip}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)' }}>TIP: </span>
+                <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{tip}</span>
               </div>
 
               <motion.button

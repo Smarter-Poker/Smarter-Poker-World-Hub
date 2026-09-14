@@ -47,6 +47,20 @@ jobs:
           python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
 
+      - name: Verify Enrichment Startup Before Discovery
+        id: enrichment_startup
+        env:
+          SERIES_TEST_REAL_IMPORTS: '1'
+        run: |
+          python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+          python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
+
+      - name: Record Enrichment Startup Failure
+        if: failure() && steps.enrichment_startup.outcome == 'failure'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: python3 scripts/utils/send_sms_alert.py "Series Enrichment Startup Check Failed"
+
       # ---------------------------------------------------------
       # STEP 1: Discovery Phase (Hunt for NEW series on PokerAtlas/Others)
       # ---------------------------------------------------------
@@ -66,13 +80,34 @@ jobs:
       # ---------------------------------------------------------
       - name: Core Information Scrape
         id: scrape
-        # --pass-limit 1: a single pass per scheduled run. The run is resumable —
-        # load_missing_series() picks up whatever is still unscraped or stale, so
-        # tomorrow's run continues where this one stopped.
-        # --max-minutes 150: flush and stop cleanly well inside the job timeout.
+        # ONE PASS PER PROCESS, SEVERAL PROCESSES PER RUN.
+        #
+        # A single pass cannot finish the cohort. The scraper's session-drift
+        # handler calls create_session() again and that raises "cannot start
+        # sync Playwright inside a running event loop", after which every fetch
+        # fails and the run dies. Measured on run 34750952713 (2026-09-13): it
+        # reached series 81 of 221, wrote 921 events, and died 22 minutes into
+        # its 150-minute budget. The remaining 128 minutes bought nothing, 140
+        # series went unscraped, and a human got an SMS. All 83 runs in this
+        # workflow's recorded history have failed; since the exit gate was
+        # fixed on 2026-09-07 this is the reason.
+        #
+        # multi-pass-scrape.sh runs the scraper again in a FRESH PROCESS, which
+        # cannot inherit the stuck event loop, and the scraper skips any series
+        # whose last_scraped is inside its 24h window — so a second pass
+        # minutes later resumes instead of repeating. How many passes a cohort
+        # needs is not fixed: the six runs before this one died at series 81,
+        # 20, 86, 15, 31 and 16, so the budget decides, not a pass count.
+        #
+        # BUDGET_MIN 145 against timeout-minutes 165 leaves the final flush
+        # room; the script gives each pass what is left of that budget, so
+        # --max-minutes must NOT be passed here.
         timeout-minutes: 165
+        env:
+          BUDGET_MIN: 145
         run: |
-          python3 scripts/poker_series_scraper.py --pass-limit 1 --max-minutes 150
+          bash scripts/multi-pass-scrape.sh \
+            python3 scripts/poker_series_scraper.py --pass-limit 1
 
       - name: Alert Human (Core Scraper Failed)
         if: failure() && steps.scrape.outcome == 'failure'
