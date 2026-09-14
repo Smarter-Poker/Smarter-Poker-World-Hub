@@ -360,7 +360,9 @@ async function handler(req, res) {
       console.warn('[club-stats-maintenance] heartbeat write failed:', heartbeatErr.message);
     }
 
-    return res.status(200).json({
+    // The dispatcher and cron-health wrapper classify runs by HTTP status.
+    // Preserve each step's result, but never acknowledge partial work as success.
+    return res.status(result.errors.length ? 503 : 200).json({
       status: result.errors.length ? 'partial' : 'ok',
       ...result,
       duration_ms: Date.now() - started,
