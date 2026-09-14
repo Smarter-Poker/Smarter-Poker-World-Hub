@@ -21866,10 +21866,10 @@
       "persistenceWrites": {
         "localStorage": 0,
         "sessionStorage": 0,
-        "inserts": 1,
+        "inserts": 0,
         "updates": 0,
         "deletes": 0,
-        "rpc": 5
+        "rpc": 6
       },
       "realtime": {
         "channels": 0,
@@ -21952,7 +21952,7 @@
         },
         {
           "name": "operationPayloadIsValid",
-          "line": 186,
+          "line": 188,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21960,7 +21960,7 @@
         },
         {
           "name": "rpcIdentity",
-          "line": 194,
+          "line": 196,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -21968,7 +21968,7 @@
         },
         {
           "name": "executeBoundedDatabaseOperation",
-          "line": 208,
+          "line": 211,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -21976,7 +21976,7 @@
         },
         {
           "name": "enforceDurableWorkerRateLimit",
-          "line": 221,
+          "line": 224,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21984,7 +21984,7 @@
         },
         {
           "name": "claimRequest",
-          "line": 243,
+          "line": 246,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21992,7 +21992,7 @@
         },
         {
           "name": "ingestArtifact",
-          "line": 253,
+          "line": 256,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22000,7 +22000,7 @@
         },
         {
           "name": "rowStates",
-          "line": 270,
+          "line": 273,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22008,7 +22008,7 @@
         },
         {
           "name": "boardPage",
-          "line": 343,
+          "line": 348,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22016,15 +22016,15 @@
         },
         {
           "name": "heartbeat",
-          "line": 368,
-          "references": 3,
+          "line": 380,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "handler",
-          "line": 383,
+          "line": 401,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -35853,7 +35853,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 1716,
+          "line": 1589,
           "handler": "onClose",
           "destination": null,
           "type": null,
@@ -35863,7 +35863,7 @@
         {
           "element": "button",
           "name": "Buy Diamonds",
-          "line": 1806,
+          "line": 1678,
           "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
           "destination": null,
           "type": "button",
@@ -35873,7 +35873,7 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1817,
+          "line": 1689,
           "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
           "destination": null,
           "type": "button",
@@ -35882,8 +35882,8 @@
         },
         {
           "element": "button",
-          "name": "Clear Search",
-          "line": 1859,
+          "name": "Clear",
+          "line": 1730,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -35893,7 +35893,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1899,
+          "line": 1765,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -35903,7 +35903,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1921,
+          "line": 1787,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -35913,7 +35913,7 @@
         {
           "element": "button",
           "name": "Choose A Different Friend",
-          "line": 1998,
+          "line": 1864,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": "button",
@@ -35923,7 +35923,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2019,
+          "line": 1885,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": "button",
@@ -35933,7 +35933,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 2050,
+          "line": 1915,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": "button",
@@ -35943,7 +35943,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2081,
+          "line": 1946,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": "button",
@@ -35953,7 +35953,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2157,
+          "line": 2027,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -35963,7 +35963,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2219,
+          "line": 2088,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": "button",
@@ -35973,7 +35973,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2226,
+          "line": 2095,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -35983,7 +35983,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2459,
+          "line": 2319,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": "button",
@@ -35993,7 +35993,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 2496,
+          "line": 2358,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -36003,7 +36003,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 2519,
+          "line": 2381,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": "button",
@@ -36013,7 +36013,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2656,
+          "line": 2509,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": "button",
@@ -36023,7 +36023,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2679,
+          "line": 2532,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": "button",
@@ -36063,7 +36063,7 @@
       "functions": [
         {
           "name": "txConfigFor",
-          "line": 213,
+          "line": 152,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -36071,7 +36071,7 @@
         },
         {
           "name": "getPersistedRecipients",
-          "line": 266,
+          "line": 205,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36079,7 +36079,7 @@
         },
         {
           "name": "persistRecipients",
-          "line": 275,
+          "line": 214,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36087,7 +36087,7 @@
         },
         {
           "name": "parseRateLimitError",
-          "line": 284,
+          "line": 223,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36095,7 +36095,7 @@
         },
         {
           "name": "copyReceiptToClipboard",
-          "line": 325,
+          "line": 264,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36103,7 +36103,7 @@
         },
         {
           "name": "showConfettiAnimation",
-          "line": 341,
+          "line": 280,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36111,7 +36111,7 @@
         },
         {
           "name": "getCachedTransactions",
-          "line": 532,
+          "line": 405,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36119,7 +36119,7 @@
         },
         {
           "name": "setCachedTransactions",
-          "line": 548,
+          "line": 421,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36127,7 +36127,7 @@
         },
         {
           "name": "getCachedBalance",
-          "line": 580,
+          "line": 453,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -36135,7 +36135,7 @@
         },
         {
           "name": "getDateGroup",
-          "line": 594,
+          "line": 467,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36143,7 +36143,7 @@
         },
         {
           "name": "getSkeletonCount",
-          "line": 612,
+          "line": 485,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36151,7 +36151,7 @@
         },
         {
           "name": "useAnimatedCounter",
-          "line": 659,
+          "line": 532,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36159,31 +36159,23 @@
         },
         {
           "name": "DiamondWalletModal",
-          "line": 703,
-          "references": 3,
+          "line": 576,
+          "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
           "name": "WalletDescription",
-          "line": 308,
+          "line": 247,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "EmptyStateDiamond",
-          "line": 360,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "DonutChart",
-          "line": 426,
+          "line": 299,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36191,7 +36183,7 @@
         },
         {
           "name": "SkeletonRow",
-          "line": 620,
+          "line": 493,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36199,7 +36191,7 @@
         },
         {
           "name": "tick",
-          "line": 681,
+          "line": 554,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36207,7 +36199,7 @@
         },
         {
           "name": "handleBalanceRefresh",
-          "line": 815,
+          "line": 688,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36215,7 +36207,7 @@
         },
         {
           "name": "handleBusEvent",
-          "line": 847,
+          "line": 720,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36223,7 +36215,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 1119,
+          "line": 992,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36234,7 +36226,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 1495,
+          "line": 1368,
           "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36242,7 +36234,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1854,
+          "line": 1725,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36250,7 +36242,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2044,
+          "line": 1909,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36258,7 +36250,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2151,
+          "line": 2021,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36279,7 +36271,7 @@
         {
           "element": "button",
           "name": "Dismiss Store Message",
-          "line": 173,
+          "line": 126,
           "handler": "() => removeToast(toast.id)",
           "destination": null,
           "type": "button",
@@ -36328,7 +36320,7 @@
         {
           "name": "StoreToast",
           "line": 62,
-          "references": 2,
+          "references": 3,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
@@ -54285,7 +54277,7 @@
       "functions": [
         {
           "name": "solverWorkerSecretEnvName",
-          "line": 17,
+          "line": 19,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -54293,7 +54285,7 @@
         },
         {
           "name": "decodeSolverWorkerSecret",
-          "line": 21,
+          "line": 23,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54301,7 +54293,7 @@
         },
         {
           "name": "solverWorkerBodySha256",
-          "line": 35,
+          "line": 37,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54309,7 +54301,7 @@
         },
         {
           "name": "solverWorkerSignatureMessage",
-          "line": 39,
+          "line": 41,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54317,7 +54309,7 @@
         },
         {
           "name": "signSolverWorkerRequest",
-          "line": 43,
+          "line": 45,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54325,7 +54317,7 @@
         },
         {
           "name": "safeHexEqual",
-          "line": 49,
+          "line": 51,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -54333,7 +54325,7 @@
         },
         {
           "name": "verifySolverWorkerRequest",
-          "line": 54,
+          "line": 56,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54341,7 +54333,7 @@
         },
         {
           "name": "solverWorkerEnvelopeIsValid",
-          "line": 91,
+          "line": 93,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -61720,10 +61712,10 @@
       "writes": {
         "localStorage": 0,
         "sessionStorage": 0,
-        "inserts": 1,
+        "inserts": 0,
         "updates": 0,
         "deletes": 0,
-        "rpc": 5
+        "rpc": 6
       }
     },
     {
@@ -65251,11 +65243,11 @@
       "effectRef": "src/components/store/DiamondInPlayBalance.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1716:1",
+      "id": "src/components/store/DiamondWalletModal.jsx:1589:1",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Close",
-      "line": 1716,
+      "line": 1589,
       "handler": "onClose",
       "destination": null,
       "type": null,
@@ -65264,11 +65256,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1806:2",
+      "id": "src/components/store/DiamondWalletModal.jsx:1678:2",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Buy Diamonds",
-      "line": 1806,
+      "line": 1678,
       "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
       "destination": null,
       "type": "button",
@@ -65277,11 +65269,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1817:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1689:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1817,
+      "line": 1689,
       "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
       "destination": null,
       "type": "button",
@@ -65290,11 +65282,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1859:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1730:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
-      "name": "Clear Search",
-      "line": 1859,
+      "name": "Clear",
+      "line": 1730,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -65303,11 +65295,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1899:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1765:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1899,
+      "line": 1765,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -65316,11 +65308,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1921:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1787:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1921,
+      "line": 1787,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -65329,11 +65321,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1998:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:1864:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Choose A Different Friend",
-      "line": 1998,
+      "line": 1864,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": "button",
@@ -65342,11 +65334,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2019:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:1885:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2019,
+      "line": 1885,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": "button",
@@ -65355,11 +65347,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2050:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:1915:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 2050,
+      "line": 1915,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": "button",
@@ -65368,11 +65360,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2081:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:1946:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2081,
+      "line": 1946,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": "button",
@@ -65381,11 +65373,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2157:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:2027:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2157,
+      "line": 2027,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -65394,11 +65386,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2219:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2088:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2219,
+      "line": 2088,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": "button",
@@ -65407,11 +65399,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2226:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2095:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2226,
+      "line": 2095,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -65420,11 +65412,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2459:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2319:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2459,
+      "line": 2319,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": "button",
@@ -65433,11 +65425,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2496:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:2358:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 2496,
+      "line": 2358,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -65446,11 +65438,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2519:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:2381:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 2519,
+      "line": 2381,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": "button",
@@ -65459,11 +65451,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2656:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:2509:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2656,
+      "line": 2509,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": "button",
@@ -65472,11 +65464,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2679:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:2532:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2679,
+      "line": 2532,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": "button",
@@ -65485,11 +65477,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/StoreToast.jsx:173:1",
+      "id": "src/components/store/StoreToast.jsx:126:1",
       "file": "src/components/store/StoreToast.jsx",
       "element": "button",
       "name": "Dismiss Store Message",
-      "line": 173,
+      "line": 126,
       "handler": "() => removeToast(toast.id)",
       "destination": null,
       "type": "button",
@@ -69008,10 +69000,10 @@
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
-            "inserts": 1,
+            "inserts": 0,
             "updates": 0,
             "deletes": 0,
-            "rpc": 5
+            "rpc": 6
           }
         },
         {
@@ -84853,7 +84845,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1495,
+        "line": 1368,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84862,7 +84854,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1854,
+        "line": 1725,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84871,7 +84863,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2044,
+        "line": 1909,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84880,7 +84872,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2151,
+        "line": 2021,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -87629,7 +87621,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 383,
+        "line": 401,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -91813,7 +91805,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "decodeSolverWorkerSecret",
-        "line": 21,
+        "line": 23,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91829,7 +91821,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "verifySolverWorkerRequest",
-        "line": 54,
+        "line": 56,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91845,7 +91837,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "solverWorkerEnvelopeIsValid",
-        "line": 91,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93424,7 +93416,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1495,
+        "line": 1368,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93433,7 +93425,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1854,
+        "line": 1725,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93442,7 +93434,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2044,
+        "line": 1909,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93451,7 +93443,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2151,
+        "line": 2021,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -96200,7 +96192,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 383,
+        "line": 401,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -100384,7 +100376,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "decodeSolverWorkerSecret",
-        "line": 21,
+        "line": 23,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100400,7 +100392,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "verifySolverWorkerRequest",
-        "line": 54,
+        "line": 56,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100416,7 +100408,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "solverWorkerEnvelopeIsValid",
-        "line": 91,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": false,
