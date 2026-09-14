@@ -3365,7 +3365,7 @@ function MessengerPage() {
         };
     }, []);
 
-    if (loading) {
+    if (loading && clubAccess.userId !== user?.id) {
         return (
             <div style={{
                 minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
@@ -3982,6 +3982,7 @@ function MessengerPage() {
                         clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
+                    {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
                     {inboxError && <div role="alert" style={{ padding: 16, color: C.textSec }}>
                         {inboxError}
                         <button type="button" onClick={() => loadConversationsRef.current?.(user.id)}>Retry</button>
