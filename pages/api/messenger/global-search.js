@@ -1,4 +1,5 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { escapeLikeQuery } from '../../../src/utils/messageSanitizer';
@@ -45,13 +46,15 @@ export default async function handler(req, res) {
 
            // Search messages — only from conversations the user participates in
            // Step 1: Get user's conversation IDs (cap at 500 to prevent URL overflow in .in())
-           const { data: participations } = await getSupabase()
+           const { data: participations, error: participationError } = await getSupabase()
                .from('social_conversation_participants')
                .select('conversation_id')
                .eq('user_id', user.id)
                .limit(500);
 
-           const convIds = (participations || []).map(p => p.conversation_id);
+           if (participationError) throw participationError;
+           const workspace = req.body.workspace ? await getMessengerWorkspace(getSupabase(), user.id, req.body) : null;
+           const convIds = workspace ? workspace.conversations.map(c => c.id) : (participations || []).map(p => p.conversation_id);
            if (convIds.length === 0) {
                return res.json({ success: true, results: [] });
            }

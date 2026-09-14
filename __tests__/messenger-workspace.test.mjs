@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { getMessengerWorkspace } from '../src/lib/messengerWorkspace.mjs';
+
+const ids = { user:'00000000-0000-4000-8000-000000000001', other:'00000000-0000-4000-8000-000000000002', club:'10000000-0000-4000-8000-000000000001', second:'10000000-0000-4000-8000-000000000002', page:'20000000-0000-4000-8000-000000000001', social:'30000000-0000-4000-8000-000000000001', chat:'30000000-0000-4000-8000-000000000002', invoice:'30000000-0000-4000-8000-000000000003', agentInvoice:'30000000-0000-4000-8000-000000000004' };
+function fixture({ member=true, role='player', broken=null, cap=200, page=true }={}) {
+    const tables={
+        club_members: member ? [{ user_id:ids.user, club_id:ids.club, role, status:'active', membership_lifecycle_status:'active', is_active:true }] : [],
+        clubs:[{ id:ids.club, name:'First Club' }],
+        social_pages:page ? [{id:ids.page, linked_entity_id:ids.club, linked_entity_type:'club'}] : [],
+        social_conversations:[ids.social, ids.chat, ids.invoice, ids.agentInvoice].map(id=>({id,group_name:id,is_request:false})),
+        social_conversation_participants:[{conversation_id:ids.invoice,user_id:ids.user,context_entity_id:page ? ids.page:null}],
+        accounting_conversations:[{conversation_id:ids.invoice,scope_id:ids.club,recipient_id:ids.user,sender_id:ids.other,issuer_type:'club'}, {conversation_id:ids.agentInvoice,scope_id:ids.club,recipient_id:ids.other,sender_id:ids.user,issuer_type:'club'}],
+    };
+    const calls=[];
+    const db={ from(table) {
+        let data=[...(tables[table] || [])], limit=Infinity, order=null;
+        const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},order(k){order=k;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>a[order].localeCompare(b[order]));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
+        return q;
+    },async rpc(name,args){calls.push(args);if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
+    return {db,tables,calls};
+}
+
+test('social entry ignores saved or forged club context and reports actual memberships',async()=>{
+ const {db,calls}=fixture(); const result=await getMessengerWorkspace(db,ids.user,{workspace:'social',contextEntityId:ids.page,clubId:ids.club,folder:'invoices'});
+ assert.deepEqual(result.conversations.map(c=>c.id),[ids.social]); assert.equal(result.clubs.length,1);assert.equal(result.workspace,'social');assert.equal(result.clubs[0].canManage,false);assert.ok(calls.some(c=>c.p_context_entity_id===null));
+});
+test('nonmembers receive no Club Arena widget data',async()=>{const {db}=fixture({member:false});const r=await getMessengerWorkspace(db,ids.user,{workspace:'social'});assert.deepEqual(r.clubs,[]);});
+test('a forged club URL cannot grant membership',async()=>{const {db}=fixture({member:false});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club}),e=>e.status===403);});
+test('membership in a different club does not grant access',async()=>{const {db}=fixture();await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.second}),e=>e.status===403);});
+test('club messages exclude all accounting threads',async()=>{const {db}=fixture();const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});assert.deepEqual(r.conversations.map(c=>c.id),[ids.chat]);});
+test('invoice tab includes recipient documents and discussions, not every issuer-to-agent thread',async()=>{const {db}=fixture({role:'owner'});const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.deepEqual(r.conversations.map(c=>c.id),[ids.invoice]);assert.equal(r.conversations[0].isAccounting,true);});
+test('invoice notification resolves its workspace even from social entry',async()=>{const {db}=fixture();const r=await getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.invoice});assert.equal(r.clubId,ids.club);assert.equal(r.folder,'invoices');assert.equal(r.conversation.id,ids.invoice);});
+test('notification cannot resolve a conversation without participation',async()=>{const {db}=fixture();await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.agentInvoice}),e=>e.status===403);});
+test('removed club membership cannot be restored by a notification',async()=>{const {db}=fixture({member:false});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.invoice}),e=>e.status===403);});
+test('accounting classification outages never put invoices into social messages',async()=>{const {db}=fixture({broken:'accounting_conversations',page:false});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'social'}),e=>e.status===503);});
+test('membership outage is distinct from no memberships',async()=>{const {db}=fixture({broken:'club_members'});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'social'}),e=>e.status===503);});
+test('RPC outage does not fall back to unclassified messages',async()=>{const {db}=fixture({broken:'rpc'});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'social'}),e=>e.status===503);});
+test('ordinary member access never grants club representative identity',async()=>{const {db}=fixture();const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});assert.equal(r.clubs[0].canManage,false);});
+test('a smaller server page cap still loads every joined club',async()=>{const {db,tables}=fixture({cap:1});tables.club_members.push({...tables.club_members[0],club_id:ids.second});tables.clubs.push({id:ids.second,name:'Second Club'});const r=await getMessengerWorkspace(db,ids.user,{workspace:'social'});assert.equal(r.clubs.length,2);});
+test('page-less club invoices never mix with personal messages',async()=>{const {db}=fixture({page:false});const social=await getMessengerWorkspace(db,ids.user,{workspace:'social'});assert.deepEqual(social.conversations.map(c=>c.id),[ids.social]);const club=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});assert.deepEqual(club.conversations,[]);const invoice=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.deepEqual(invoice.conversations.map(c=>c.id),[ids.invoice]);});
+
+test('client metadata cannot forge an accounting receipt',async()=>{
+ const {verifyAccountingMessage}=await import('../src/lib/accountingMessage.mjs');
+ const message={id:'fake',message_type:'invoice',content:'Pay 1000',media_metadata:{kind:'accounting_invoice',accounting_verified:true,status:'paid'}};
+ const result=verifyAccountingMessage(message,null);
+ assert.equal(result.message_type,'text');assert.equal(result.media_metadata.accounting_verified,false);
+});
+test('current invoice status is read from its real delivery link while issued status remains recorded',async()=>{
+ const {verifyAccountingMessage}=await import('../src/lib/accountingMessage.mjs');
+ const message={id:'real',message_type:'invoice',media_metadata:{kind:'accounting_invoice',invoice_id:'forged',status:'pending'}};
+ const result=verifyAccountingMessage(message,{id:'real-invoice',status:'paid',chips_transferred:true});
+ assert.equal(result.media_metadata.accounting_verified,true);assert.equal(result.media_metadata.invoice_id,'real-invoice');assert.equal(result.media_metadata.status,'paid');assert.equal(result.media_metadata.issued_status,'pending');
+});
