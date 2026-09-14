@@ -679,17 +679,29 @@ function NavigationGuard({ children }) {
       setIsNavigating(true);
     };
 
-    const handleComplete = () => {
+    const handleComplete = (_url, { shallow = false } = {}) => {
       // Remove the hiding class
       document.body.classList.remove('page-transitioning');
       setIsNavigating(false);
-      // Scroll to the very top so the global header is always visible
-      window.scrollTo(0, 0);
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          window.scrollTo({ top: 0, behavior: 'instant' });
-        });
-      }, 100);
+      // Scroll to the very top so the global header is always visible.
+      //
+      // Not on a SHALLOW change (mobile phase 6, 2026-09-13). A shallow
+      // replace is a page updating its own ?query in place, the same page,
+      // the same scroll position; Next's own router already declines to
+      // reset scroll for one (router.js: shouldScroll = options.scroll ??
+      // !isValidShallowRoute). This handler ignored that and yanked the
+      // reader to the top 100ms after every filter chip, search box and
+      // section anchor that records itself in the address bar. On /hub/news
+      // it undid the section scroll the tap had just made: the anchor row
+      // scrolled to Events, then the page went back to 0.
+      if (!shallow) {
+        window.scrollTo(0, 0);
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          });
+        }, 100);
+      }
       // ═══════════════════════════════════════════════════════════════════
       // SCROLL SAFETY VALVE — Clear any stale overflow:hidden left by
       // modals, reels, or overlays that failed to restore body scroll

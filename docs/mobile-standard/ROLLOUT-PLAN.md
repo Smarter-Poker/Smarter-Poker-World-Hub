@@ -153,6 +153,15 @@ anchors; sidebar widgets move under the main column instead of vanishing;
 delete the override block and put the rules in the styled-jsx they were
 bypassing (or one plain `<style>`), no styled-jsx global blocks.
 
+**Shipped 2026-09-13** (`docs/changelog/2026-09-13-mobile-phase6-poker-news.md`):
+all five sections stacked with the tab row as anchors, the 8px tab strip a
+wrapping grid at 12px, the reels preview carousel and its arrows gone (the
+full reels grid sits directly below), the sidebar under the feed with every
+widget, seven culls returned, 59 sub-12px nodes and 9 tiny targets to 0,
+100dvh / clip, breakpoints to 900/768/600, the phase 0a set, an eight-step
+tutorial. The override block stays as the one plain <style> (its !importants
+are what beat the component-scoped styles) with its violating rules fixed.
+
 ## Phase 7: Poker Trivia (SMALL-MED)
 
 Files: `src/components/trivia/TriviaLobby.jsx` (1,973),
