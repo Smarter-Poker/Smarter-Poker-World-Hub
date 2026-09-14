@@ -103,6 +103,9 @@ jobs:
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
+      - name: Series Scraper Session And Data Contracts
+        run: python3 -m unittest discover -s scripts -p test_poker_series_scraper.py -v
+
       - name: Stats Maintenance Reports Its Actual Outcome Over HTTP
         run: node --experimental-vm-modules --test __tests__/club-stats-maintenance-http.test.mjs __tests__/club-stats-maintenance-runtime-budget.test.mjs
 
