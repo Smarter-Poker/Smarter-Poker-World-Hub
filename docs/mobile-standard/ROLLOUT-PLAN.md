@@ -257,8 +257,39 @@ the Page Tutorial row exists), haptics on cards and Calculate, 100dvh, no
 page-owned bottom pad, every control 44px, the 10px badges and 8px
 watermark floor to 12px, an eight-step tutorial. The failsafe, pull to
 refresh and offline guard are deliberately not wired: the calculator has no
-network. With this phase every surviving route of the rollout is converted
-(`CONVERTED = [1, 2, 3, 4, 5, 6, 7, 9, 10]`; 8 retired).
+network. With this phase every one of Dan's original ten routes is converted
+(8 retired).
+
+## Phase 11: Toke Tracker (MED, added 2026-09-14)
+
+Not in Dan's original ten. It is here because when phase 10 closed that list,
+Toke Tracker was the only World menu root still unconverted that is a real
+page: `/hub/my-clubs` and `/hub/marketplace` are both `getServerSideProps`
+redirects (retired 2026-09-08 and to the Diamond Store respectively) with no
+UI to convert, and `mobile-budget.json` keeps them `converted: false` for
+that reason. Leaving Toke Tracker out would have left one of the thirteen
+menu roots on the old standard for ever.
+
+Files: `pages/hub/toke-tracker/{index,shift,analytics,vault,venues}.js`
+(1,093 lines) plus the five components they mount from
+`src/components/bankroll` (`TokeTracker` 2,540, `DealerVault` 1,045,
+`TokeDashboard` 602, `TokeCalendar` 584, `VenueIntelligence` 290).
+
+Violations: two hidden-content tab strips (four charts, four document
+categories); a year calendar drawn three months across a phone, so every day
+was a 15px target and the 44px grid existed only for the one expanded month;
+28x28 year arrows; a 14px input; a 300px inner scroller over the day's
+downs; `100vh` / `paddingBottom: 70` / `overflowX: hidden` on all five pages;
+the same forty lines of preference state copied into all five.
+
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase11-toke-tracker.md`):
+all five pages on `HubPageShell` with one shared `useTokePrefs` hook, every
+chart and every document category rendered stacked under its own heading,
+the calendar one 44px grid per month bounded by a Show All button, pull to
+refresh and the offline guard on the four rooms, the load failsafe on the two
+that fetch, haptics, `useModalHistory` on all eight sheets, 16px inputs, a
+12px floor, and an eight-step tutorial registered for the prefix.
+`CONVERTED = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11]`.
 
 ## Every phase, in addition to its page work (added 2026-09-03)
 

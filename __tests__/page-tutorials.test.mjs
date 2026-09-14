@@ -58,6 +58,18 @@ const LANDED = [
   { phase: 7, route: '/hub/trivia', page: 'pages/hub/trivia/index.js', tutorial: 'src/tutorials/trivia.js', also: ['src/components/trivia/TriviaLobby.jsx'] },
   { phase: 9, route: '/hub/video-library', page: 'pages/hub/video-library.js', tutorial: 'src/tutorials/video-library.js', also: ['src/components/video-library/VideoLibraryCommandRail.jsx'] },
   { phase: 10, route: '/hub/poker-tools', page: 'pages/hub/poker-tools.js', tutorial: 'src/tutorials/poker-tools.js' },
+  {
+    phase: 11,
+    route: '/hub/toke-tracker',
+    page: 'pages/hub/toke-tracker/index.js',
+    tutorial: 'src/tutorials/toke-tracker.js',
+    also: [
+      'pages/hub/toke-tracker/shift.js',
+      'pages/hub/toke-tracker/analytics.js',
+      'pages/hub/toke-tracker/vault.js',
+      'pages/hub/toke-tracker/venues.js',
+    ],
+  },
 ];
 
 test('the tutorial system is built and mounted once', () => {

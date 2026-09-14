@@ -85,5 +85,5 @@ test('the tutorial is registered for the route with eight steps whose targets ex
 test('the budget row and the law count phase 10 as converted', () => {
   assert.equal(JSON.parse(read('scripts/ci/mobile-budget.json')).routes['/hub/poker-tools'].converted, true);
   const converted = JSON.parse(read('__tests__/no-slide-to-see.law.test.mjs').match(/const CONVERTED = (\[[^\]]*\]);/)[1]);
-  assert.deepEqual(converted, [1, 2, 3, 4, 5, 6, 7, 9, 10], 'every surviving phase of the rollout is converted');
+  assert.deepEqual(converted.slice(0, 9), [1, 2, 3, 4, 5, 6, 7, 9, 10], 'every phase up to this one is converted');
 });
