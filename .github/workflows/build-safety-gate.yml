@@ -106,6 +106,9 @@ jobs:
       - name: Series Scraper Session And Data Contracts
         run: python3 -m unittest discover -s scripts -p test_poker_series_scraper.py -v
 
+      - name: Video Scraper Failure And Receipt Contracts
+        run: python3 -m unittest discover -s scripts -p test_video_library_scraper.py -v
+
       - name: Stats Maintenance Reports Its Actual Outcome Over HTTP
         run: node --experimental-vm-modules --test __tests__/club-stats-maintenance-http.test.mjs __tests__/club-stats-maintenance-runtime-budget.test.mjs
 
