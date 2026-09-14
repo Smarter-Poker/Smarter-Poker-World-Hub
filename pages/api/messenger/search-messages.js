@@ -11,7 +11,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { escapeLikeQuery } from '../../../src/utils/messageSanitizer';
+import { searchMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
@@ -51,36 +51,14 @@ export default async function handler(req, res) {
         }
 
         try {
-            // Security: verify caller is a participant in this conversation
-            const { data: participant, error: partErr } = await getSupabase()
-                .from('social_conversation_participants')
-                .select('id')
-                .eq('conversation_id', conversationId)
-                .eq('user_id', user.id)
-                .maybeSingle();
-
-            if (partErr || !participant) {
-                return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
-            }
-
-            // Escape LIKE wildcards to prevent accidental full-table scans
-            const escapedQuery = escapeLikeQuery(query.trim());
-
-            const { data: messages, error: searchErr } = await getSupabase()
-                .from('social_messages')
-                .select('id, content, created_at, sender_id')
-                .eq('conversation_id', conversationId)
-                .eq('is_deleted', false)
-                .ilike('content', `%${escapedQuery}%`)
-                .order('created_at', { ascending: false })
-                .limit(50);
-
-            if (searchErr) throw searchErr;
+            // Resolve the exact visible conversation and its active club membership.
+            // The database filters archived invoice copies before applying the cap.
+            const messages = await searchMessengerWorkspace(getSupabase(), user.id, { conversationId, query }, 50);
 
             return res.json({ success: true, results: messages || [] });
         } catch (e) {
             console.warn('[search-messages] Exception:', e);
-            return res.status(500).json({ success: false, error: 'Internal server error' });
+            return res.status([400, 403, 404, 503].includes(e.status) ? e.status : 500).json({ success: false, error: 'Message Search Unavailable' });
         }
 
     } catch (err) {

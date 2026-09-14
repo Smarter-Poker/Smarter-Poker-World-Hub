@@ -100,3 +100,20 @@ test('archived club invoice copies stay out of notification caches and realtime 
  const cache=notificationCache(rows,'account',1000);assert.deepEqual(readNotificationCache(cache,'account',1001).map(row=>row.id),['recipient','social']);
  const changed=JSON.parse(cache);changed[1].type='accounting_invoice_detail';assert.deepEqual(readNotificationCache(JSON.stringify(changed),'account',1001).map(row=>row.id),['recipient']);
 });
+
+
+for (const [route, limit] of [['global-search',30],['search-messages',50]]) {
+ test(route+' authenticates the caller and uses the scoped search without a raw-message fallback',async()=>{
+  const calls=[];let refusal=null;
+  const source=fs.readFileSync(new URL('../pages/api/messenger/'+route+'.js',import.meta.url),'utf8');
+  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const module={exports:{}},db={from(){throw Error('Raw message access is forbidden');}};
+  const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},sentryWrap:{reportApiError:noop},'messengerWorkspace.mjs':{searchMessengerWorkspace:async(client,userId,request,cap)=>{assert.equal(client,db);calls.push({userId,request,cap});if(refusal)throw refusal;return [];}}};
+  new Function('require','module','exports','process',code)(name=>mocks[name.split('/').at(-1)],module,module.exports,{env:{SUPABASE_SERVICE_ROLE_KEY:'fixture'}});
+  let status=200,payload=null;const res={status(value){status=value;return this;},json(value){payload=value;return this;}};
+  const req={method:'POST',headers:{authorization:'Bearer fixture'},body:{userId:'forged-user',conversationId:'invoice',query:'query'}};
+  await module.exports.default(req,res);assert.equal(status,200);assert.deepEqual(payload.results,[]);assert.equal(calls[0].userId,'verified-user');assert.equal(calls[0].cap,limit);
+  if(route==='global-search'){assert.equal(calls[0].request.workspace,undefined);assert.equal(calls[0].request.conversationId,undefined);}else assert.equal(calls[0].request.conversationId,'invoice');
+  refusal=Object.assign(new Error('Search Permission Denied'),{status:403});await module.exports.default(req,res);assert.equal(status,403);assert.equal(payload.success,false);assert.equal(payload.results,undefined);
+ });
+}

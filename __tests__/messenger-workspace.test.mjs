@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getMessengerWorkspace } from '../src/lib/messengerWorkspace.mjs';
+import { getMessengerWorkspace, searchMessengerWorkspace } from '../src/lib/messengerWorkspace.mjs';
 
 const ids = { user:'00000000-0000-4000-8000-000000000001', other:'00000000-0000-4000-8000-000000000002', club:'10000000-0000-4000-8000-000000000001', second:'10000000-0000-4000-8000-000000000002', page:'20000000-0000-4000-8000-000000000001', social:'30000000-0000-4000-8000-000000000001', chat:'30000000-0000-4000-8000-000000000002', invoice:'30000000-0000-4000-8000-000000000003', agentInvoice:'30000000-0000-4000-8000-000000000004' };
 function fixture({ member=true, role='player', broken=null, cap=200, page=true }={}) {
@@ -17,7 +17,7 @@ function fixture({ member=true, role='player', broken=null, cap=200, page=true }
         let data=[...(tables[table] || [])], limit=Infinity, order=null, ascending=true;
         const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},not(k,op,v){data=data.filter(r=>r[k]!==v);return q;},lte(k,v){data=data.filter(r=>r[k]<=v);return q;},order(k,options={}){order=k;ascending=options.ascending!==false;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>String(a[order]).localeCompare(String(b[order]))*(ascending?1:-1));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
         return q;
-    },async rpc(name,args){calls.push(args);if(name==='fn_messenger_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_club_weekly_accounting_summary')return {data:tables.report,error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
+    },async rpc(name,args){calls.push(args);if(name==='fn_messenger_search_messages')return {data:tables.searchResults||[],error:broken==='search'?{code:'57014'}:null};if(name==='fn_messenger_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_club_weekly_accounting_summary')return {data:tables.report,error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
     return {db,tables,calls};
 }
 
@@ -98,4 +98,25 @@ test('receipt visibility failure cannot restore archived invoice copies',async()
 test('accounting preview text comes from the latest visible message',async()=>{
  const {db,tables}=fixture();tables.social_conversations.find(c=>c.id===ids.invoice).last_message_preview='Archived Individual Payout';
  const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.equal(r.conversations[0].last_message_preview,'Visible Document');
+});
+
+
+test('legacy search without a workspace is restricted to social conversations',async()=>{
+ const {db,calls,tables}=fixture({page:false});tables.searchResults=[{id:'result',conversation_id:ids.social,content:'Social Match'}];
+ const result=await searchMessengerWorkspace(db,ids.user,{query:'Match',clubId:ids.club,folder:'invoices'},30);
+ assert.deepEqual(result,tables.searchResults);assert.deepEqual(calls.find(call=>call.p_query).p_conversation_ids,[ids.social]);
+});
+test('invoice search resolves current membership and the exact visible invoice conversation',async()=>{
+ const {db,calls}=fixture();await searchMessengerWorkspace(db,ids.user,{conversationId:ids.invoice,query:' 100%_ '});
+ const search=calls.find(call=>call.p_query);assert.equal(search.p_user_id,ids.user);assert.deepEqual(search.p_conversation_ids,[ids.invoice]);assert.equal(search.p_query,'100%_');
+ const removed=fixture({member:false});await assert.rejects(searchMessengerWorkspace(removed.db,ids.user,{conversationId:ids.invoice,query:'invoice'}),e=>e.status===403);assert.ok(!removed.calls.some(call=>call.p_query));
+});
+test('search does not reopen archived-only threads or treat unavailable search as empty',async()=>{
+ const archived=fixture();archived.tables.accounting_conversations[0].recipient_visible=false;
+ await assert.rejects(searchMessengerWorkspace(archived.db,ids.user,{conversationId:ids.invoice,query:'invoice'}),e=>e.status===403);
+ const unavailable=fixture({broken:'search'});await assert.rejects(searchMessengerWorkspace(unavailable.db,ids.user,{query:'match'}),e=>e.status===503);
+});
+test('search validates query size and result limits before any database call',async()=>{
+ const {db,calls}=fixture();for(const query of ['x',' '.repeat(3),'x'.repeat(501)])await assert.rejects(searchMessengerWorkspace(db,ids.user,{query}),e=>e.status===400);
+ await assert.rejects(searchMessengerWorkspace(db,ids.user,{query:'valid'},101),e=>e.status===400);assert.equal(calls.length,0);
 });
