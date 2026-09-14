@@ -185,6 +185,8 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+      - name: Integrity Hand Search PostgreSQL Continuation
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-integrity-hands-continuation.py
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
