@@ -540,6 +540,8 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
 
     summary = {
         'run_id': str(uuid.uuid4()),
+        'scope': 'source' if filter_source else 'full',
+        'source_id': filter_source.upper() if filter_source else None,
         'processed': 0, 'failed': 0,
         'insert_failed': 0, 'metadata_failed': 0, 'errors': [],
         'total_found': 0, 'total_new': 0, 'total_skipped': 0,

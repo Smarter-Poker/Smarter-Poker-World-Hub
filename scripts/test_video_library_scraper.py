@@ -126,6 +126,11 @@ class ScraperContracts(unittest.TestCase):
     def test_unknown_source_fails_instead_of_empty_success(self):
         with self.assertRaises(ValueError): self.run_scrape(filter_source='missing')
 
+    def test_single_source_is_explicit_and_cannot_impersonate_daily_job(self):
+        result = self.run_scrape(filter_source='HCL')
+        self.assertEqual((result['scope'], result['source_id']), ('source', 'HCL'))
+        self.ns['backfill_metadata'].assert_not_called()
+
     def test_cli_uses_observed_outcome_as_exit_status(self):
         source = SOURCE.read_text()
         tree = ast.parse(source)
