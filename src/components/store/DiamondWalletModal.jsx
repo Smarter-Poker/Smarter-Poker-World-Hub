@@ -85,6 +85,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
+  Gem,
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
@@ -171,7 +172,56 @@ const TX_TYPES = {
   // Other
   refund: { Icon: RotateCcw, label: 'Refund', color: '#94a3b8' },
   adjustment: { Icon: Settings, label: 'Adjustment', color: '#94a3b8' },
+
+  /* ── ADDED 2026-09-13, read from the writers and the live ledger ──────────
+     THE DIAMOND ARENA IS DIAMONDS ONLY (Dan). A buy-in moves diamonds into
+     custody (fn_poker_diamond_buyin writes `arena_deposit`), a cash-out moves
+     them back (`arena_withdraw`). Neither is a chip and neither is labelled
+     as one. The rest are the highest-volume kinds of the last 30 days that
+     had no entry here and rendered as "Adjustment" - daily_challenge_claim
+     alone is 55,183 of the 57,000 rows written in that window. Same labels
+     as Club Arena's DiamondWalletModal.tsx, so one ledger reads one way. */
+  arena_deposit: { Icon: Gem, label: 'Diamond Arena Buy-In', color: '#00a8e8' },
+  arena_withdraw: { Icon: Gem, label: 'Diamond Arena Cash-Out', color: '#22c55e' },
+  live_gift_sent: { Icon: Send, label: 'Live Gift Sent', color: '#ffffff' },
+  live_gift_received: { Icon: Gift, label: 'Live Gift Received', color: '#00a8e8' },
+  debt_settlement: { Icon: Settings, label: 'Owed Diamonds Settled', color: '#94a3b8' },
+  daily_challenge_claim: { Icon: Target, label: 'Daily Challenge', color: '#22c55e' },
+  daily_challenge_reroll: { Icon: RotateCcw, label: 'Challenge Reroll', color: '#ef4444' },
+  daily_mission_milestone: { Icon: Medal, label: 'Mission Milestone', color: '#22c55e' },
+  training_reward: { Icon: Brain, label: 'Training Reward', color: '#22c55e' },
+  easter_egg: { Icon: Sparkles, label: 'Easter Egg', color: '#a855f7' },
+  pvp_stake: { Icon: Swords, label: 'PvP Stake', color: '#ef4444' },
+  plinko_drop: { Icon: Gamepad2, label: 'Plinko Drop', color: '#ef4444' },
+  crash_bet: { Icon: Gamepad2, label: 'Crash Bet', color: '#ef4444' },
+  wheel_spin: { Icon: Gamepad2, label: 'Wheel Spin', color: '#ef4444' },
+  wheel_prize: { Icon: Trophy, label: 'Wheel Prize', color: '#22c55e' },
+  chip_mint: { Icon: Settings, label: 'Chip Mint', color: '#ef4444' },
+  reconciliation: { Icon: Settings, label: 'Balance Reconciliation', color: '#94a3b8' },
+  transfer: { Icon: Send, label: 'Transfer', color: '#94a3b8' },
+  credit: { Icon: Gem, label: 'Diamond Credit', color: '#22c55e' },
 };
+
+/**
+ * A kind nobody has taught the map about must still read like English - never
+ * a confident "Adjustment" that claims an admin touched the account when
+ * nobody did (2026-09-13: that is what every daily challenge claim said here).
+ * Underscores become spaces and each word takes a capital, so a
+ * `weekly_streak_bonus` added server-side tomorrow reads "Weekly Streak Bonus"
+ * on the day it appears. Same rule as Club Arena's diamondTxLabel.
+ */
+function txConfigFor(rawType) {
+  const known = rawType ? TX_TYPES[rawType] : undefined;
+  if (known) return known;
+  const text = String(rawType || '').replace(/[_-]+/g, ' ').trim();
+  if (!text) return { Icon: Gem, label: 'Diamond Movement', color: '#94a3b8' };
+  const label = text
+    .split(/\s+/)
+    .map((w) => (w === w.toUpperCase() ? w.toLowerCase() : w))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return { Icon: Gem, label, color: '#94a3b8' };
+}
 
 const FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -274,7 +324,7 @@ const WalletDescription = ({ value }) => {
 
 async function copyReceiptToClipboard(tx) {
   const txType = tx.transaction_type || tx.type;
-  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+  const config = txConfigFor(txType);
   const dt = new Date(tx.created_at);
   const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
   try {
@@ -1467,7 +1517,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       const q = searchQuery.trim().toLowerCase();
       result = result.filter((tx) => {
         const txType = tx.transaction_type || tx.type;
-        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+        const config = txConfigFor(txType);
         return (
           config.label.toLowerCase().includes(q) ||
           (tx.description || '').toLowerCase().includes(q) ||
@@ -1572,7 +1622,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // Server keys the sources by raw kind; render them by their label.
     const sourceMap = {};
     for (const [kind, value] of Object.entries(lifetime.bySource || {})) {
-      const label = (TX_TYPES[kind] || TX_TYPES.adjustment).label;
+      const label = txConfigFor(kind).label;
       sourceMap[label] = (sourceMap[label] || 0) + value;
     }
 
@@ -2475,7 +2525,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   // Transaction row
                   const tx = item.data;
                   const txType = tx.transaction_type || tx.type;
-                  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+                  const config = txConfigFor(txType);
                   const isPositive = tx.amount >= 0;
                   const dt = new Date(tx.created_at);
 
