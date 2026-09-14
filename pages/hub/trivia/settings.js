@@ -298,7 +298,7 @@ export default function TriviaSettings() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
@@ -308,7 +308,8 @@ export default function TriviaSettings() {
                                 background: 'rgba(35, 116, 225, 0.1)',
                                 border: '1px solid rgba(35, 116, 225, 0.3)',
                                 color: '#2374e1',
-                                padding: '8px 16px',
+                                padding: '10px 16px',
+                                minHeight: 44,
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'

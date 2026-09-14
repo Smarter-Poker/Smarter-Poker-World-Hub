@@ -181,6 +181,15 @@ Work: mode filters wrap; the bracket is redesigned as a vertical round-by-
 round list on phones (round heading, then match cards); stats table
 stacks.
 
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase7-poker-trivia.md`):
+the filter rail a wrapping grid (keyboard roving kept, sticky strip gone),
+the bracket a grid that stacks one round per row on a phone, the stats and
+leaderboard tables ResponsiveTable, 112 sub-12px nodes on the lobby and 60
+on achievements to 0, 14 `100vh` to `100dvh`, breakpoints to 600/768/900
+across the whole trivia surface, the phase 0a set on the lobby, an
+eight-step tutorial. Four older lobby tests pinned the rail and the 700px
+block; each pin was moved with its reason.
+
 ## Phase 8: Diamond Arena (SMALL here, real work in `diamond-arena`)
 
 Files: `pages/hub/diamond-arena.js` (286, an iframe of

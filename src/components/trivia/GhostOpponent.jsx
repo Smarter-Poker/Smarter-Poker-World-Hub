@@ -272,7 +272,7 @@ export default function GhostOpponent({
                 .score-avatar.you {
                     background: linear-gradient(135deg, #2374e1, #1a5cc4);
                     color: #fff;
-                    font-size: 10px;
+                    font-size: 12px;
                     letter-spacing: 0.5px;
                 }
 
@@ -320,7 +320,7 @@ export default function GhostOpponent({
                 }
 
                 .opp-answered {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 700;
                     color: #fbbf24;
                 }
@@ -339,7 +339,7 @@ export default function GhostOpponent({
                 }
 
                 .vs-badge span {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 800;
                     color: rgba(255, 255, 255, 0.5);
                     letter-spacing: 1px;
@@ -374,7 +374,7 @@ export default function GhostOpponent({
                 }
 
                 .opp-thinking {
-                    font-size: 11px;
+                    font-size: 12px;
                     color: rgba(255, 255, 255, 0.3);
                     animation: blink 1s ease-in-out infinite;
                 }

@@ -270,7 +270,7 @@ function HintButtons({
 
                 .hint-buttons.compact .hint-cost {
                     padding: 3px 6px;
-                    font-size: 11px;
+                    font-size: 12px;
                 }
 
                 @media (prefers-reduced-motion: reduce) {
