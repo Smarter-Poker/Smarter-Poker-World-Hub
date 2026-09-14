@@ -202,6 +202,18 @@ paddingBottom guess); then the same audit and conversion inside the
 (schedule/leaderboard/table-settings/stats/history) get the standard
 shell.
 
+**Retired 2026-09-14 (nothing to convert).** The six standalone
+`/hub/diamond-arena*` pages, their iframe and their CSS were removed on
+2026-09-09 by #1701 ("make Poker Arena the shared World Hub entrance"):
+Diamond now lives inside Club Arena's shared Poker Arena selector, under
+Club Arena's own 12-phase programme, repo, pipeline and #ClubArenaConsole
+standard. `diamond.smarter.poker` returns 404 and the `diamond-arena` Vite
+repo is closed (its crons and Vercel project removed). The no-slide-to-see
+law already lists the active phases as 1 to 7, 9 and 10, and pins that the
+retired Diamond targets stay absent. Phase 8 is therefore complete by
+retirement, not skipped: there is no World Hub surface left to bring to the
+standard, and the Diamond UI is Club Arena's to hold to its own rules.
+
 ## Phase 9: Video Library (MED-LARGE)
 
 Files: `pages/hub/video-library.js` (3,229), `src/styles/worlds/video-library.css` (1,739).
@@ -215,6 +227,17 @@ culls at 1400, 1426, 1442, 1488, 1659; js `overflowX:'auto'` at 1738,
 Work: all four rails become 2-col grids at <=768 (continue watching and
 new this week show 4, then "Show more"); labels/logos return; keep the
 SSR-safe viewport pattern at js:373.
+
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase9-video-library.md`):
+the command controls a two-column grid under their group headings, the
+creator row wrapping (ten then Show All on a phone), the active filter list
+wrapping, Continue Watching and New This Week grids of four then Show More,
+Up Next a grid inside the viewer instead of a cull, the rail scroller and
+its refs gone, four culls returned, 182 sub-12px nodes at 375 to 0, 100dvh,
+the page's three bottom pads gone (BottomNavSpacer), breakpoints
+480/760/761/767/1024/1025/1180 to 768/769/900 with a fluid video grid,
+the phase 0a set, an eight-step tutorial. Four pins in the phase 5/7/8
+video-library tests were moved with their reasons.
 
 ## Phase 10: Odds Calculator (SMALL)
 
