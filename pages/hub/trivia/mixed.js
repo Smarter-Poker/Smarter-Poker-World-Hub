@@ -703,7 +703,7 @@ export default function MixedModePage() {
 
             <style>{`
                 .mixed-page {
-                    min-height: 100vh; padding-bottom: 70px;
+                    min-height: 100dvh;
                     background: #0a0e1a;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
@@ -844,7 +844,7 @@ export default function MixedModePage() {
                     background: rgba(0, 212, 255, 0.12);
                     border: 1px solid rgba(0, 212, 255, 0.3);
                     border-radius: 10px;
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 600;
                     color: #00D4FF;
                 }

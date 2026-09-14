@@ -28,6 +28,7 @@ import { POKER_NEAR_ME_TUTORIAL } from './poker-near-me';
 import { PERSONAL_ASSISTANT_TUTORIAL } from './personal-assistant';
 import { TRAINING_TUTORIAL } from './training';
 import { NEWS_TUTORIAL } from './news';
+import { TRIVIA_TUTORIAL } from './trivia';
 
 // Longest prefix wins. Keep re-exported aliases (preflop-charts -> memory-games)
 // as their own rows so the URL the player sees maps to a tour.
@@ -56,6 +57,7 @@ const REGISTRY = [
   // are one product; steps whose element is off-page still read.
   { prefix: '/hub/training', tutorial: TRAINING_TUTORIAL },
   { prefix: '/hub/news', tutorial: NEWS_TUTORIAL },
+  { prefix: '/hub/trivia', tutorial: TRIVIA_TUTORIAL },
 ];
 
 export const TUTORIAL_PROMPT_MS = 3000;

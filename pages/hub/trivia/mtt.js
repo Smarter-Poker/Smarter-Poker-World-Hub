@@ -25,7 +25,7 @@ export default function MTTPage() {
                     bottom action row underneath the nav bar on mobile. */}
                 <style>{`
                     .strategy-trivia {
-                        height: calc(100vh - 70px);
+                        height: calc(100dvh - 70px);
                         height: calc(100dvh - 70px);
                     }
                 `}</style>
