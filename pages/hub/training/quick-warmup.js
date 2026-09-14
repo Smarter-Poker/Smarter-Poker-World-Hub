@@ -27,7 +27,7 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
   loading: () => (
     <div
       style={{
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+        minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
         background: '#0a0a1a',
         display: 'flex',
         alignItems: 'center',
@@ -239,7 +239,7 @@ export default function QuickWarmupPage() {
         >
           <div
             style={{
-              fontSize: timeLeft === 0 ? 11 : 18,
+              fontSize: timeLeft === 0 ? 12 : 18,
               fontWeight: 900,
               color: timeLeft <= 30 ? '#fff' : 'var(--sp-accent-cyan)',
               fontFamily: "'Inter', monospace",
@@ -275,7 +275,7 @@ export default function QuickWarmupPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -311,7 +311,7 @@ export default function QuickWarmupPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Quick Warmup</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>5-Minute Speed Session</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>5-Minute Speed Session</div>
           </div>
         </div>
 
@@ -368,14 +368,14 @@ export default function QuickWarmupPage() {
                       <div style={{ fontSize: 18, marginBottom: 4 }}>{mode.icon}</div>
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: isActive ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)',
                         }}
                       >
                         {mode.label}
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
                         {mode.desc}
                       </div>
                     </motion.button>
@@ -414,7 +414,7 @@ export default function QuickWarmupPage() {
               >
                 <div
                   style={{
-                    fontSize: 9,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -424,7 +424,7 @@ export default function QuickWarmupPage() {
                 >
                   HOW IT WORKS
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.7 }}>
                   1. Five-Minute Clock Tracks Your Pace
                   <br />
                   2. Answer GTO Questions As Fast As You Can
@@ -479,7 +479,7 @@ export default function QuickWarmupPage() {
                   >
                     {results?.accuracy || 0}%
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     ACCURACY
                   </div>
                 </div>
@@ -494,7 +494,7 @@ export default function QuickWarmupPage() {
                   <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-cyan)' }}>
                     {results?.questionsAnswered || 0}
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     QUESTIONS
                   </div>
                 </div>
@@ -509,7 +509,7 @@ export default function QuickWarmupPage() {
                   <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-purple)' }}>
                     {formatTime(results?.timeUsed || 0)}
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     TIME
                   </div>
                 </div>

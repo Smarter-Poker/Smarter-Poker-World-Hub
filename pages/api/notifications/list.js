@@ -62,6 +62,7 @@ export default async function handler(req, res) {
               .from('notifications')
               .select('*')
               .eq('user_id', userId)
+              .or('type.is.null,type.neq.accounting_invoice_detail')
               .order('created_at', { ascending: false })
               .limit(limit);
 
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
 
           if (error) {
               console.warn('[Notifications List] Error:', error);
-              return res.status(200).json({ success: true, notifications: [] });
+              return res.status(503).json({ success: false, error: 'Notifications Unavailable' });
           }
 
           return res.status(200).json({
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
 
       } catch (err) {
           console.warn('[Notifications List] Error:', err);
-          return res.status(200).json({ success: true, notifications: [] });
+          return res.status(503).json({ success: false, error: 'Notifications Unavailable' });
       }
 
   } catch (err) {

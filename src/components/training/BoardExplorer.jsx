@@ -69,10 +69,10 @@ const MiniCard = memo(({ card }) => {
     return (
         <span style={{
             display: 'inline-flex', alignItems: 'center',
-            fontSize: 11, fontWeight: 700,
+            fontSize: 12, fontWeight: 700,
             color: SuitColor[suit] || '#e2e8f0',
         }}>
-            {rank}<span style={{ fontSize: 9 }}>{SuitSymbol[suit]}</span>
+            {rank}<span style={{ fontSize: 12 }}>{SuitSymbol[suit]}</span>
         </span>
     );
 });
@@ -124,7 +124,7 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
                 padding: '6px 10px', borderRadius: 6,
                 background: 'rgba(30,41,59,0.3)',
                 border: '1px solid rgba(100,116,139,0.05)',
-                opacity: 0.3, fontSize: 10, color: '#475569',
+                opacity: 0.3, fontSize: 12, color: '#475569',
             }}>
                 {texture} - Card Conflict
             </div>
@@ -148,17 +148,17 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0' }}>{texture}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{texture}</span>
                     <div style={{ display: 'flex', gap: 2 }}>
                         {board.map((c, i) => <MiniCard key={i} card={c} />)}
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#818cf8', fontStyle: 'italic' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#818cf8', fontStyle: 'italic' }}>
                         {analysis.made.description || analysis.made.rank || ''}
                     </span>
                     {analysis.draws?.outs > 0 && (
-                        <span style={{ fontSize: 9, color: '#64748b' }}>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
                             +{analysis.draws.outs}outs
                         </span>
                     )}
@@ -178,7 +178,7 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
                     }}
                 >
                     {analysis.betFreq >= 0.15 && (
-                        <span style={{ fontSize: 8, fontWeight: 700, color: '#fff' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
                             Bet {(analysis.betFreq * 100).toFixed(0)}%
                         </span>
                     )}
@@ -190,7 +190,7 @@ const TextureRow = memo(({ texture, board, heroCards, position, isSelected, onCl
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                     {analysis.checkFreq >= 0.15 && (
-                        <span style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
                             Check {(analysis.checkFreq * 100).toFixed(0)}%
                         </span>
                     )}
@@ -268,7 +268,7 @@ export default function BoardExplorer() {
                                 key={p}
                                 onClick={() => setPosition(p)}
                                 style={{
-                                    padding: '3px 10px', fontSize: 10, fontWeight: 600,
+                                    padding: '3px 10px', fontSize: 12, fontWeight: 600,
                                     borderRadius: 4, border: '1px solid', cursor: 'pointer',
                                     background: position === p ? 'rgba(0,212,255,0.1)' : 'transparent',
                                     color: position === p ? '#00d4ff' : '#64748b',
@@ -296,7 +296,7 @@ export default function BoardExplorer() {
                                 boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
                             }}>
                                 <span>{c[0]}</span>
-                                <span style={{ fontSize: 9 }}>{SuitSymbol[c[1]?.toLowerCase()] || ''}</span>
+                                <span style={{ fontSize: 12 }}>{SuitSymbol[c[1]?.toLowerCase()] || ''}</span>
                             </div>
                         ))}
                     </div>
@@ -306,7 +306,7 @@ export default function BoardExplorer() {
                         onChange={e => { setHandInput(e.target.value); parseHandInput(e.target.value); }}
                         placeholder="AhKd"
                         style={{
-                            width: 60, padding: '4px 6px', fontSize: 11,
+                            width: 60, padding: '4px 6px', fontSize: 12,
                             background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(100,116,139,0.2)',
                             borderRadius: 4, color: '#e2e8f0', outline: 'none',
                             fontFamily: "'Fira Code', monospace",
@@ -318,7 +318,7 @@ export default function BoardExplorer() {
                                 key={p.label}
                                 onClick={() => { setHeroCards(p.hand); setHandInput(p.hand.join('')); }}
                                 style={{
-                                    padding: '2px 6px', fontSize: 9, fontWeight: 600,
+                                    padding: '2px 6px', fontSize: 12, fontWeight: 600,
                                     borderRadius: 3, border: '1px solid rgba(100,116,139,0.1)',
                                     cursor: 'pointer',
                                     background: heroCards.join('') === p.hand.join('') ? 'rgba(0,212,255,0.1)' : 'rgba(0,0,0,0.15)',
@@ -338,7 +338,7 @@ export default function BoardExplorer() {
                 borderBottom: '1px solid rgba(100,116,139,0.08)',
                 display: 'flex', gap: 16,
             }}>
-                <div style={{ fontSize: 10 }}>
+                <div style={{ fontSize: 12 }}>
                     <span style={{ color: '#64748b' }}>Avg Bet Weight: </span>
                     <span style={{
                         color: stats.avgBet >= 0.6 ? '#22c55e' : stats.avgBet >= 0.35 ? '#f59e0b' : '#ef4444',
@@ -347,13 +347,13 @@ export default function BoardExplorer() {
                         {(stats.avgBet * 100).toFixed(0)}%
                     </span>
                 </div>
-                <div style={{ fontSize: 10 }}>
+                <div style={{ fontSize: 12 }}>
                     <span style={{ color: '#64748b' }}>Avg Check Weight: </span>
                     <span style={{ color: '#94a3b8', fontWeight: 700, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {(stats.avgCheck * 100).toFixed(0)}%
                     </span>
                 </div>
-                <div style={{ fontSize: 10 }}>
+                <div style={{ fontSize: 12 }}>
                     <span style={{ color: '#64748b' }}>Textures: </span>
                     <span style={{ color: '#818cf8', fontWeight: 700 }}>{TEXTURE_BOARDS.length}</span>
                 </div>

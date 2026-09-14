@@ -183,33 +183,33 @@ export default function CategoryPage() {
                     color: #dce8ed !important;
                     background: linear-gradient(180deg, #26343b, #06090b 74%) !important;
                     box-shadow: inset 0 1px rgba(255,255,255,.14), 0 8px 19px rgba(0,0,0,.58) !important;
-                    font: 700 9px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
+                    font: 700 12px/1 var(--font-orbitron, 'Orbitron'), sans-serif;
                     letter-spacing: .08em;
                     cursor: pointer;
                 }
                 .sp-category-copy { position: relative; z-index: 2; width: min(610px, 62%); padding: 112px 0 60px clamp(28px, 5.3vw, 78px); }
-                .sp-category-kicker { display: flex; align-items: center; gap: 10px; color: #a4b7bf; font: 700 9px/1.3 var(--font-orbitron, 'Orbitron'), sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+                .sp-category-kicker { display: flex; align-items: center; gap: 10px; color: #a4b7bf; font: 700 12px/1.3 var(--font-orbitron, 'Orbitron'), sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
                 .sp-category-kicker i { width: 28px; height: 1px; background: var(--category-accent); box-shadow: 0 0 10px var(--category-accent); }
                 .sp-category-title-row { display: flex; align-items: center; gap: 16px; margin-top: 21px; }
                 .sp-category-icon { display: grid; width: 50px; height: 50px; place-items: center; border: 1px solid #78909b; border-top-color: #e6f3f6; color: var(--category-accent); background: linear-gradient(145deg, #263941, #05090b 72%); box-shadow: inset 0 1px rgba(255,255,255,.17), 0 10px 22px #000, 0 0 19px color-mix(in srgb, var(--category-accent) 24%, transparent); }
                 h1 { margin: 0; color: #f0f5f7; font: 450 clamp(34px, 4.6vw, 67px)/1.05 var(--font-orbitron, 'Orbitron'), sans-serif; letter-spacing: .01em; text-shadow: 0 3px 2px #000, 0 15px 34px #000; }
                 .sp-category-copy > p { max-width: 560px; margin: 23px 0 27px; color: #c2d0d5; font-size: clamp(16px, 1.45vw, 20px); line-height: 1.55; text-shadow: 0 2px 7px #000; }
                 .sp-category-readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #42535b; border-top-color: #8ba0a9; background: rgba(2,6,8,.82); box-shadow: inset 0 1px rgba(255,255,255,.06), 0 14px 28px rgba(0,0,0,.55); }
-                .sp-category-readouts span { min-height: 65px; display: flex; flex-direction: column; justify-content: center; padding: 0 14px; border-right: 1px solid #33434a; color: #8298a2; font-size: 9px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+                .sp-category-readouts span { min-height: 65px; display: flex; flex-direction: column; justify-content: center; padding: 0 14px; border-right: 1px solid #33434a; color: #8298a2; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
                 .sp-category-readouts span:last-child { border-right: 0; }
                 .sp-category-readouts b { margin-bottom: 5px; color: var(--category-accent); font: 550 16px/1 var(--font-orbitron, 'Orbitron'), sans-serif; letter-spacing: .02em; }
-                .sp-category-plate { position: absolute; right: 27px; bottom: 25px; z-index: 2; display: flex; gap: 13px; padding: 8px 12px; border: 1px solid rgba(178,205,214,.36); color: #80949d; background: rgba(1,5,7,.82); box-shadow: 0 8px 22px #000; font-size: 8px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+                .sp-category-plate { position: absolute; right: 27px; bottom: 25px; z-index: 2; display: flex; gap: 13px; padding: 8px 12px; border: 1px solid rgba(178,205,214,.36); color: #80949d; background: rgba(1,5,7,.82); box-shadow: 0 8px 22px #000; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
                 .sp-category-plate strong { color: var(--category-accent); font-weight: 700; }
                 .sp-category-library { margin-top: 43px; }
                 .sp-category-library-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 20px; padding: 17px 20px 18px; border: 1px solid #3c4d55; border-top-color: #8fa3ac; background: linear-gradient(180deg, #172127, #05080a 72%); box-shadow: inset 0 1px rgba(255,255,255,.08), 0 14px 31px rgba(0,0,0,.48); }
-                .sp-category-library-head span { display: block; margin-bottom: 4px; color: #758c96; font-size: 8px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+                .sp-category-library-head span { display: block; margin-bottom: 4px; color: #758c96; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
                 h2 { margin: 0; color: #edf4f6; font: 450 clamp(20px, 2.2vw, 29px)/1.2 var(--font-orbitron, 'Orbitron'), sans-serif; }
-                .sp-category-library-head p { display: flex; align-items: center; gap: 9px; margin: 0 0 3px; color: #8fa3ac; font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+                .sp-category-library-head p { display: flex; align-items: center; gap: 9px; margin: 0 0 3px; color: #8fa3ac; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
                 .sp-category-library-head p i { width: 4px; height: 4px; transform: rotate(45deg); background: var(--category-accent); box-shadow: 0 0 8px var(--category-accent); }
                 .sp-category-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
                 .sp-category-missing { min-height: calc(100dvh - 60px); display: grid; place-content: center; gap: 14px; color: #dce9ee; background: #020608; text-align: center; }
-                @media (max-width: 1050px) { .sp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-category-copy { width: min(620px, 74%); } }
-                @media (max-width: 700px) {
+                @media (max-width: 900px) { .sp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-category-copy { width: min(620px, 74%); } }
+                @media (max-width: 768px) {
                     main { width: 100%; padding: 0 0 calc(74px + env(safe-area-inset-bottom, 0px)); }
                     .sp-category-hero { min-height: 620px; border-left: 0; border-right: 0; }
                     .sp-category-hero-art { height: 300px; object-position: 62% center; }

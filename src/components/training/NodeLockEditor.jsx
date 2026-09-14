@@ -89,14 +89,14 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
       >
         {/* Lock indicator */}
         {isLocked && (
-          <span style={{ color: '#f59e0b', fontSize: 10 }}>■</span>
+          <span style={{ color: '#f59e0b', fontSize: 12 }}>■</span>
         )}
 
         {/* Player badge */}
         {!isBoard && (
           <span style={{
             padding: '1px 5px', borderRadius: 3, background: `${playerColor}20`,
-            color: playerColor, fontSize: 9, fontWeight: 700, minWidth: 28, textAlign: 'center',
+            color: playerColor, fontSize: 12, fontWeight: 700, minWidth: 28, textAlign: 'center',
           }}>
             {node.player}
           </span>
@@ -114,7 +114,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
         {!isBoard && node.freq !== undefined && (
           <span style={{
             marginLeft: 'auto', color: isLocked ? '#f59e0b' : '#64748b',
-            fontSize: 11, fontWeight: 600,
+            fontSize: 12, fontWeight: 600,
           }}>
             {displayFreq}%
           </span>
@@ -124,7 +124,7 @@ function TreeNode({ node, depth, selectedNode, onSelect, locks, onToggleLock, on
         {node.ev !== undefined && !isBoard && (
           <span style={{
             color: node.ev >= 0 ? '#22c55e' : '#ef4444',
-            fontSize: 10, fontWeight: 600, minWidth: 40, textAlign: 'right',
+            fontSize: 12, fontWeight: 600, minWidth: 40, textAlign: 'right',
           }}>
             {node.ev >= 0 ? '+' : ''}{node.ev.toFixed(1)}
           </span>
@@ -192,7 +192,7 @@ export default function NodeLockEditor() {
             </span>
             <button onClick={() => setLocks({})} style={{
               padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
-              background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: 11, fontWeight: 600,
+              background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: 12, fontWeight: 600,
             }}>
               Unlock All
             </button>
@@ -203,7 +203,7 @@ export default function NodeLockEditor() {
       <div style={{ display: 'flex', gap: 16 }}>
         {/* ●●● GAME TREE ●●● */}
         <div style={{ flex: '1 1 400px', maxHeight: 500, overflowY: 'auto' }}>
-          <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>
             Game Tree - BTN Vs BB SRP (K♠ 8♦ 3♣)
           </div>
           <TreeNode node={tree} depth={0} selectedNode={selectedNode} onSelect={setSelectedNode}
@@ -222,7 +222,7 @@ export default function NodeLockEditor() {
                 <>
                   {/* Current frequency */}
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                       Frequency
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -243,7 +243,7 @@ export default function NodeLockEditor() {
                       </span>
                     </div>
                     {locks[selected.id] && selected.freq !== undefined && (
-                      <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>
+                      <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>
                         GTO: {selected.freq}% → Locked: {locks[selected.id].freq}%
                         <span style={{
                           marginLeft: 4,
@@ -258,7 +258,7 @@ export default function NodeLockEditor() {
                   {/* EV */}
                   {selected.ev !== undefined && (
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                         Expected Value
                       </div>
                       <div style={{
@@ -283,7 +283,7 @@ export default function NodeLockEditor() {
                   {/* Quick lock presets */}
                   {locks[selected.id] && (
                     <div style={{ marginTop: 8 }}>
-                      <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
+                      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
                         Quick Set
                       </div>
                       <div style={{ display: 'flex', gap: 4 }}>
@@ -292,7 +292,7 @@ export default function NodeLockEditor() {
                             flex: 1, padding: '4px', borderRadius: 4, border: 'none', cursor: 'pointer',
                             background: locks[selected.id]?.freq === f ? '#f59e0b' : 'rgba(255,255,255,0.06)',
                             color: locks[selected.id]?.freq === f ? '#000' : '#94a3b8',
-                            fontSize: 10, fontWeight: 700,
+                            fontSize: 12, fontWeight: 700,
                           }}>
                             {f}%
                           </button>
@@ -305,16 +305,16 @@ export default function NodeLockEditor() {
 
               {/* Node path */}
               <div style={{ marginTop: 12, padding: '8px', borderRadius: 4, background: 'rgba(255,255,255,0.03)' }}>
-                <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Info</div>
-                <div style={{ color: '#94a3b8', fontSize: 10 }}>Player: {selected.player}</div>
-                <div style={{ color: '#94a3b8', fontSize: 10 }}>Street: {selected.street}</div>
-                <div style={{ color: '#94a3b8', fontSize: 10 }}>Node ID: {selected.id}</div>
+                <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Info</div>
+                <div style={{ color: '#94a3b8', fontSize: 12 }}>Player: {selected.player}</div>
+                <div style={{ color: '#94a3b8', fontSize: 12 }}>Street: {selected.street}</div>
+                <div style={{ color: '#94a3b8', fontSize: 12 }}>Node ID: {selected.id}</div>
               </div>
             </div>
           ) : (
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 16, textAlign: 'center' }}>
               <div style={{ color: '#475569', fontSize: 13, marginBottom: 8 }}>Select A Node</div>
-              <div style={{ color: '#334155', fontSize: 11 }}>
+              <div style={{ color: '#334155', fontSize: 12 }}>
                 Click Any Action In The Game Tree To View Details And Lock Frequencies.
               </div>
             </div>
@@ -322,8 +322,8 @@ export default function NodeLockEditor() {
 
           {/* Instructions */}
           <div style={{ marginTop: 12, background: 'rgba(0,0,0,0.1)', borderRadius: 6, padding: 8 }}>
-            <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>How It Works</div>
-            <div style={{ color: '#475569', fontSize: 10, lineHeight: 1.5 }}>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>How It Works</div>
+            <div style={{ color: '#475569', fontSize: 12, lineHeight: 1.5 }}>
               Lock A Node To Force A Specific Frequency. The Solver Recalculates Downstream Strategies To Exploit The Locked Deviation. Use This To Study How Opponents Deviate From GTO.
             </div>
           </div>

@@ -215,7 +215,7 @@ export default function FinalTableSimulator() {
                           }}
                         >
                           {p.name}
-                          <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
+                          <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
                             {formatNumber(p.stack)} Chips
                           </div>
                         </td>
@@ -259,7 +259,7 @@ export default function FinalTableSimulator() {
                         <strong style={{ color: 'var(--sp-accent-green)' }}>{formatCurrency(player.icmValue)}</strong>
                       </div>
                     ))}
-                    <div style={{ marginTop: 8, color: 'var(--sp-fg-faint)', fontSize: 10, lineHeight: 1.5 }}>Strategic Training Output Only. A Real Deal Requires Every Player’s Agreement And Tournament Approval.</div>
+                    <div style={{ marginTop: 8, color: 'var(--sp-fg-faint)', fontSize: 12, lineHeight: 1.5 }}>Strategic Training Output Only. A Real Deal Requires Every Player’s Agreement And Tournament Approval.</div>
                   </div>
                 )}
               </div>
@@ -275,7 +275,7 @@ export default function FinalTableSimulator() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #05050A 0%, #0A0A15 100%)',
     padding: '24px 4vw 80px',
     color: '#fff',

@@ -108,18 +108,18 @@ function DonkBetTrainer() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, background: 'rgba(249,115,22,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'donk' ? '1px solid rgba(249,115,22,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#f97316' }}>{spot.evDonk}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Donk</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Of Donk</div>
               </div>
               <div style={{ flex: 1, padding: 10, background: 'rgba(107,114,128,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'check' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#9ca3af' }}>{spot.evCheck}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Check</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Of Check</div>
               </div>
             </div>
 
             {/* Frequency Bar */}
             <div style={{ display: 'flex', height: 20, borderRadius: 6, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ width: `${spot.donkFreq}%`, background: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Donk {spot.donkFreq}%</div>
-              <div style={{ width: `${spot.checkFreq}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Check {spot.checkFreq}%</div>
+              <div style={{ width: `${spot.donkFreq}%`, background: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Donk {spot.donkFreq}%</div>
+              <div style={{ width: `${spot.checkFreq}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Check {spot.checkFreq}%</div>
             </div>
 
             <div style={{ padding: 12, background: 'rgba(249,115,22,0.06)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.12)', marginBottom: 12 }}>

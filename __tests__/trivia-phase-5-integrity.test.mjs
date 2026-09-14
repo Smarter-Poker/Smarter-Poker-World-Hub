@@ -47,7 +47,10 @@ test('hamburger shortcuts resolve to real routes and the hub uses one preference
     assert.match(hub, /hintsEnabled: false/);
     assert.doesNotMatch(hub, /showHints:/);
     assert.match(hub, /triviaAudio\.setMuted/);
-    assert.match(hub, /<main className=\{styles\.content\}>/);
+    // PIN MOVED (mobile phase 7, 2026-09-14): HubPageShell renders the page's
+    // <main>; the module's content class now sits on the div inside it.
+    assert.match(hub, /<div className=\{styles\.content\}>/);
+    assert.match(hub, /<HubPageShell\s+className="trivia"/);
 });
 
 test('public question surfaces cannot return answer keys', () => {

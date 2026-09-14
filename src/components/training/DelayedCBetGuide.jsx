@@ -57,12 +57,12 @@ export default function DelayedCBetGuide() {
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Your Hand: <span style={{ fontWeight: 800, color: '#8b5cf6' }}>{spot.hand}</span></div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 10, color: '#64748b' }}>FLOP (Checked)</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>FLOP (Checked)</div>
             <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 2, opacity: 0.7 }}>{spot.flop}</div>
           </div>
           <span style={{ fontSize: 20, color: '#64748b' }}>→</span>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b' }}>TURN</div>
+            <div style={{ fontSize: 12, color: '#f59e0b' }}>TURN</div>
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
               style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b' }}>{spot.turn}</motion.div>
           </div>
@@ -87,7 +87,7 @@ export default function DelayedCBetGuide() {
         {WHEN_TO_DELAY.map((w, i) => (
           <div key={i} style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 8, padding: '8px 12px', borderLeft: '3px solid #8b5cf6' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6' }}>{w.when}</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{w.desc}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{w.desc}</div>
           </div>
         ))}
       </div>

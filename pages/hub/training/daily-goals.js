@@ -226,7 +226,7 @@ export default function DailyGoalsPage() {
       <div
         className={`sp-training-journey sp-training-journey--daily-goals ${casinoStyles.shell}`}
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -267,7 +267,7 @@ export default function DailyGoalsPage() {
           <div className={casinoStyles.headerCopy}>
             {/* TRAIN-DAILY-GOALS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Daily Goals</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Resets At Midnight</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Resets At Midnight</div>
           </div>
         </div>
 
@@ -328,7 +328,7 @@ export default function DailyGoalsPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-amber)' }}>
                       Daily Bonus Settlement Paused
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                       Goal Progress Is Live. No Daily-Goal Currency Is Promised Until Settlement Is Bound To A Verified Completion.
                     </div>
                   </div>
@@ -386,7 +386,7 @@ export default function DailyGoalsPage() {
                   </div>
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       color: 'var(--sp-fg-muted)',
                       textTransform: 'uppercase',
                       letterSpacing: 1,
@@ -427,7 +427,7 @@ export default function DailyGoalsPage() {
                   >
                     {streakDays}
                   </div>
-                  <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                     Day Streak
                   </div>
                 </div>
@@ -507,7 +507,7 @@ export default function DailyGoalsPage() {
                           }}
                         >
                           {g.current}{' '}
-                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--sp-fg-dim)' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sp-fg-dim)' }}>
                             / {g.target}
                             {g.type === 'percent' ? '%' : ''}
                           </span>
@@ -546,7 +546,7 @@ export default function DailyGoalsPage() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: 700,
                             color: g.color,
                             marginTop: 8,

@@ -50,7 +50,7 @@ export default function TournamentLifecycle() {
             style={{ padding: '8px 4px', borderRadius: 8, border: stageIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: stageIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: stageIdx === i ? s.color : '#64748b' }}>{s.stage.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: stageIdx === i ? s.color : '#64748b' }}>{s.stage.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -63,20 +63,20 @@ export default function TournamentLifecycle() {
             <span style={{ fontSize: 15, fontWeight: 800, color: stage.color }}>{stage.stage}</span>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '3px 8px' }}>
-            <span style={{ fontSize: 9, color: '#94a3b8' }}>{stage.blinds}</span>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>{stage.blinds}</span>
           </div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Strategy</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Strategy</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stage.strategy}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Avoid</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Avoid</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stage.avoid}</div>
           </div>
           <div style={{ background: `${stage.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${stage.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: stage.color }}>Key Insight</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: stage.color }}>Key Insight</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stage.key}</div>
           </div>
         </div>

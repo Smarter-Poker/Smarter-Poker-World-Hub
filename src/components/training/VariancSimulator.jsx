@@ -107,7 +107,7 @@ function VarianceSimulator() {
             { label: 'Simulations', value: simCount, set: setSimCount, min: 2, max: 20, step: 1 },
           ].map(c => (
             <div key={c.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{c.label}</div>
               <input
                 type="range" min={c.min} max={c.max} step={c.step} value={c.value}
                 onChange={e => c.set(parseFloat(e.target.value))}
@@ -140,7 +140,7 @@ function VarianceSimulator() {
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>

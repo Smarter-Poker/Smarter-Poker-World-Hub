@@ -63,7 +63,9 @@ const FIXED_FILES = [
   'pages/hub/video-library.js',
   'pages/hub/news.js',
   'pages/hub/messenger.js',
-  'pages/hub/poker-tools.js',
+  // pages/hub/poker-tools.js left this list on 2026-09-14 (mobile phase 10):
+  // its page-owned settings sheet, the only fixed overlay it had, was replaced
+  // by the shared HamburgerMenu, which carries its own safe-area handling.
   'pages/hub/lives.js',
   'pages/hub/home-games.js',
 ];
@@ -104,8 +106,25 @@ test('the shared overlay utilities exist in the globally imported tokens sheet',
   assert.match(css, /\.sp-overlay-close--left\s*\{/);
 });
 
+/**
+ * A component whose styling lives in its own CSS module carries the inset
+ * THERE, not inline: DiamondWalletModal moved its dialog rule into
+ * DiamondWalletModal.module.css on 2026-09-13 when its inline styles were
+ * extracted. So the file is read together with every `./*.module.css` it
+ * imports. An overlay with the inset in neither place still fails.
+ */
+const readWithOwnModules = (rel) => {
+  const src = read(rel);
+  const dir = path.dirname(rel);
+  const modules = [...src.matchAll(/from\s+['"](\.\/[^'"]+\.module\.css)['"]/g)]
+    .map((m) => path.join(dir, m[1]))
+    .filter((p) => fs.existsSync(path.join(ROOT, p)))
+    .map(read);
+  return [src, ...modules].join('\n');
+};
+
 test('every fixed full-screen overlay pushes its top chrome below the status bar', () => {
-  const missing = FIXED_FILES.filter((f) => !read(f).includes('safe-area-inset-top'));
+  const missing = FIXED_FILES.filter((f) => !readWithOwnModules(f).includes('safe-area-inset-top'));
   assert.deepEqual(
     missing,
     [],

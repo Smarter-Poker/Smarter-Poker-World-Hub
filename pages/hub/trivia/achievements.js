@@ -275,7 +275,7 @@ export default function TriviaAchievements() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -285,7 +285,8 @@ export default function TriviaAchievements() {
                                 background: 'rgba(35, 116, 225, 0.1)',
                                 border: '1px solid rgba(35, 116, 225, 0.3)',
                                 color: '#2374e1',
-                                padding: '8px 16px',
+                                padding: '10px 16px',
+                                minHeight: 44,
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
@@ -443,12 +444,12 @@ export default function TriviaAchievements() {
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
                                                     {rarity && (
-                                                        <span style={{ color: rarity.color, fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                                                        <span style={{ color: rarity.color, fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                                                             {rarity.label}
                                                         </span>
                                                     )}
                                                     {achievement.reward?.diamonds > 0 && (
-                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#00d4ff', fontSize: '11px' }}>
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#00d4ff', fontSize: '12px' }}>
                                                             <Gem size={12} />{achievement.reward.diamonds}
                                                         </span>
                                                     )}
@@ -467,7 +468,7 @@ export default function TriviaAchievements() {
                                                                 transition: 'width 0.6s ease-out'
                                                             }} />
                                                         </div>
-                                                        <div style={{ color: '#65676b', fontSize: '11px', marginTop: '4px' }}>
+                                                        <div style={{ color: '#65676b', fontSize: '12px', marginTop: '4px' }}>
                                                             {achievement.prog.current.toLocaleString()} / {achievement.prog.target.toLocaleString()}
                                                         </div>
                                                     </div>

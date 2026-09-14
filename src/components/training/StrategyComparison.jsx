@@ -132,7 +132,7 @@ function StrategyGrid({ grid, label, mode, otherGrid, showLabels }) {
       <div style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>
         {label}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(13, 1fr)`, gap: 1 }}>
+      <div data-allow-small="true" style={{ display: 'grid', gridTemplateColumns: `repeat(13, 1fr)`, gap: 1 }}>
         {grid.map((row, r) => row.map((cell, c) => {
           const isDiff = mode === 'diff' && otherGrid;
           const diff = isDiff ? Math.abs(cell.bet - otherGrid[r][c].bet) : 0;
@@ -181,10 +181,10 @@ function StrategyGrid({ grid, label, mode, otherGrid, showLabels }) {
           grid.forEach(row => row.forEach(cell => { totalBet += cell.bet; totalCheck += cell.check; count++; }));
           return (
             <>
-              <span style={{ color: '#ef4444', fontSize: 10, fontWeight: 600 }}>
+              <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}>
                 Bet/Raise: {Math.round(totalBet / count)}%
               </span>
-              <span style={{ color: '#3b82f6', fontSize: 10, fontWeight: 600 }}>
+              <span style={{ color: '#3b82f6', fontSize: 12, fontWeight: 600 }}>
                 Check/Call: {Math.round(totalCheck / count)}%
               </span>
             </>
@@ -218,24 +218,24 @@ function DiffSummary({ leftGrid, rightGrid }) {
       </div>
       <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
         <div>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Avg Diff</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Avg Diff</div>
           <div style={{ color: '#f59e0b', fontSize: 18, fontWeight: 800 }}>{avgDiff}%</div>
         </div>
         <div>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Max Diff</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Max Diff</div>
           <div style={{ color: '#ef4444', fontSize: 18, fontWeight: 800 }}>{maxDiff}%</div>
         </div>
         <div>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Max Hand</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Max Hand</div>
           <div style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 800 }}>{maxHand}</div>
         </div>
         <div>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Big Diffs (20%+)</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Big Diffs (20%+)</div>
           <div style={{ color: '#a78bfa', fontSize: 18, fontWeight: 800 }}>{bigDiffs}</div>
         </div>
       </div>
 
-      <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
         Biggest Differences
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -244,7 +244,7 @@ function DiffSummary({ leftGrid, rightGrid }) {
             padding: '4px 8px', borderRadius: 4,
             background: d.diff > 30 ? 'rgba(239,68,68,0.15)' : d.diff > 15 ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.1)',
             color: d.diff > 30 ? '#ef4444' : d.diff > 15 ? '#f59e0b' : '#22c55e',
-            fontSize: 11, fontWeight: 700,
+            fontSize: 12, fontWeight: 700,
           }}>
             {d.hand}: {d.diff}%
           </div>
@@ -261,7 +261,7 @@ function DiffSummary({ leftGrid, rightGrid }) {
         ].map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 2, background: l.color }} />
-            <span style={{ color: '#64748b', fontSize: 9 }}>{l.label}</span>
+            <span style={{ color: '#64748b', fontSize: 12 }}>{l.label}</span>
           </div>
         ))}
       </div>
@@ -288,7 +288,7 @@ export default function StrategyComparison() {
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>
               Strategy Comparison
             </h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
               {preset?.desc}
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function StrategyComparison() {
                 padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: viewMode === m ? '#3b82f6' : 'rgba(255,255,255,0.06)',
                 color: viewMode === m ? '#fff' : '#94a3b8',
-                fontSize: 11, fontWeight: 600, textTransform: 'capitalize',
+                fontSize: 12, fontWeight: 600, textTransform: 'capitalize',
               }}>
                 {m === 'side' ? 'Side by Side' : 'Diff View'}
               </button>
@@ -307,7 +307,7 @@ export default function StrategyComparison() {
               padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
               background: showLabels ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)',
               color: showLabels ? '#f59e0b' : '#94a3b8',
-              fontSize: 11, fontWeight: 600,
+              fontSize: 12, fontWeight: 600,
             }}>
               {showLabels ? 'Hands' : '%'}
             </button>
@@ -321,7 +321,7 @@ export default function StrategyComparison() {
               padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
               background: selectedPreset === p.id ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
               color: selectedPreset === p.id ? '#3b82f6' : '#94a3b8',
-              fontSize: 11, fontWeight: 600,
+              fontSize: 12, fontWeight: 600,
               border: selectedPreset === p.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
             }}>
               {p.label}
@@ -352,10 +352,10 @@ export default function StrategyComparison() {
 
         {/* Key Insights */}
         <div style={{ marginTop: 12, background: 'rgba(0,0,0,0.1)', borderRadius: 6, padding: 10 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
             Key Insights
           </div>
-          <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.6 }}>
+          <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.6 }}>
             {selectedPreset === 'ip_vs_oop' && 'IP has a significant betting advantage - BTN c-bets at high frequency while BB must defend carefully. Premium pairs and top pair+ hands see the largest strategic divergence.'}
             {selectedPreset === 'srp_vs_3bp' && 'In 3-bet pots, ranges are narrower and aggression increases. Marginal hands that check in SRPs become bets in 3BPs. Nut advantage shifts significantly.'}
             {selectedPreset === 'btn_vs_co' && 'BTN opens wider than CO, especially suited connectors and small pairs. CO compensates with tighter ranges and more aggression with premium holdings.'}

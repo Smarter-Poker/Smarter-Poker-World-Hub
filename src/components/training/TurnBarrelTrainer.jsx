@@ -116,17 +116,17 @@ function TurnBarrelTrainer() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, borderRadius: 8, textAlign: 'center', background: spot.correct === 'barrel' ? 'rgba(96,165,250,0.1)' : 'rgba(255,255,255,0.03)', border: spot.correct === 'barrel' ? '1px solid rgba(96,165,250,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#60a5fa' }}>{spot.evBarrel}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Barrel</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Barrel</div>
               </div>
               <div style={{ flex: 1, padding: 10, borderRadius: 8, textAlign: 'center', background: spot.correct === 'check' ? 'rgba(107,114,128,0.1)' : 'rgba(255,255,255,0.03)', border: spot.correct === 'check' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#9ca3af' }}>{spot.evCheck}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Check</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Check</div>
               </div>
             </div>
 
             <div style={{ display: 'flex', height: 20, borderRadius: 6, overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ width: `${spot.barrelFreq}%`, background: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Barrel {spot.barrelFreq}%</div>
-              <div style={{ width: `${spot.checkFreq}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Check {spot.checkFreq}%</div>
+              <div style={{ width: `${spot.barrelFreq}%`, background: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Barrel {spot.barrelFreq}%</div>
+              <div style={{ width: `${spot.checkFreq}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Check {spot.checkFreq}%</div>
             </div>
 
             <div style={{ padding: 12, background: 'rgba(96,165,250,0.06)', borderRadius: 8, border: '1px solid rgba(96,165,250,0.12)', marginBottom: 12 }}>

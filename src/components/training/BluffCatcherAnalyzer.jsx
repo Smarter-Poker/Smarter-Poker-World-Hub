@@ -149,16 +149,16 @@ function RangePie({ valueCombos, bluffCombos }) {
           strokeDasharray={`${(bPct / 100) * 175.9} 175.9`}
           strokeDashoffset={`-${(vPct / 100) * 175.9}`}
           transform="rotate(-90 30 30)" strokeLinecap="round" />
-        <text x="30" y="30" textAnchor="middle" dominantBaseline="middle" fill="#f1f5f9" fontSize="10" fontWeight="800">{total}</text>
+        <text x="30" y="30" textAnchor="middle" dominantBaseline="middle" fill="#f1f5f9" fontSize='12px' fontWeight="800">{total}</text>
       </svg>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
-          <span style={{ color: '#ef4444', fontSize: 10, fontWeight: 700 }}>Value: {valueCombos} ({vPct.toFixed(0)}%)</span>
+          <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 700 }}>Value: {valueCombos} ({vPct.toFixed(0)}%)</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-          <span style={{ color: '#22c55e', fontSize: 10, fontWeight: 700 }}>Bluffs: {bluffCombos} ({bPct.toFixed(0)}%)</span>
+          <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>Bluffs: {bluffCombos} ({bPct.toFixed(0)}%)</span>
         </div>
       </div>
     </div>
@@ -174,7 +174,7 @@ export default function BluffCatcherAnalyzer() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Bluff Catcher Analyzer</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Should You Call Or Fold With Bluff Catchers?</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Should You Call Or Fold With Bluff Catchers?</div>
         </div>
 
         {/* Scenario selector */}
@@ -184,10 +184,10 @@ export default function BluffCatcherAnalyzer() {
               padding: '6px 10px', borderRadius: 5, cursor: 'pointer', whiteSpace: 'nowrap',
               background: selectedScenario.id === s.id ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.15)',
               border: selectedScenario.id === s.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-              color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 10, fontWeight: 600,
+              color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               <div>{s.name}</div>
-              <div style={{ color: '#64748b', fontSize: 8, marginTop: 1 }}>{s.heroHandName}</div>
+              <div style={{ color: '#64748b', fontSize: 12, marginTop: 1 }}>{s.heroHandName}</div>
             </button>
           ))}
         </div>
@@ -195,18 +195,18 @@ export default function BluffCatcherAnalyzer() {
         {/* Board + Hero Hand */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, flex: 1 }}>
-            <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Board</div>
             <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800, letterSpacing: 1 }}>{selectedScenario.board}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
-            <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Hero Hand</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Hero Hand</div>
             <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 800 }}>{selectedScenario.heroHand}</div>
-            <div style={{ color: '#94a3b8', fontSize: 9 }}>{selectedScenario.heroHandName}</div>
+            <div style={{ color: '#94a3b8', fontSize: 12 }}>{selectedScenario.heroHandName}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10 }}>
-            <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Pot / Bet</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Pot / Bet</div>
             <div style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800 }}>{selectedScenario.pot} / {selectedScenario.bet}</div>
-            <div style={{ color: '#94a3b8', fontSize: 9 }}>{((selectedScenario.bet / selectedScenario.pot) * 100).toFixed(0)}% Of Pot</div>
+            <div style={{ color: '#94a3b8', fontSize: 12 }}>{((selectedScenario.bet / selectedScenario.pot) * 100).toFixed(0)}% Of Pot</div>
           </div>
         </div>
 
@@ -219,9 +219,9 @@ export default function BluffCatcherAnalyzer() {
             { label: 'EV of Call', value: `${selectedScenario.evCall >= 0 ? '+' : ''}${selectedScenario.evCall.toFixed(1)}`, color: selectedScenario.evCall >= 0 ? '#22c55e' : '#ef4444', desc: 'vs fold = 0' },
           ].map((m, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>{m.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{m.label}</div>
               <div style={{ color: m.color, fontSize: 18, fontWeight: 800 }}>{m.value}</div>
-              <div style={{ color: '#475569', fontSize: 7 }}>{m.desc}</div>
+              <div style={{ color: '#475569', fontSize: 12 }}>{m.desc}</div>
             </div>
           ))}
         </div>
@@ -229,15 +229,15 @@ export default function BluffCatcherAnalyzer() {
         {/* Villain range breakdown */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-            <div style={{ color: '#ef4444', fontSize: 9, fontWeight: 700, marginBottom: 6 }}>VALUE HANDS ({selectedScenario.villainRange.valueCombos})</div>
+            <div style={{ color: '#ef4444', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>VALUE HANDS ({selectedScenario.villainRange.valueCombos})</div>
             {selectedScenario.villainRange.value.map((v, i) => (
-              <div key={i} style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>• {v}</div>
+              <div key={i} style={{ color: '#94a3b8', fontSize: 12, marginBottom: 2 }}>• {v}</div>
             ))}
           </div>
           <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-            <div style={{ color: '#22c55e', fontSize: 9, fontWeight: 700, marginBottom: 6 }}>BLUFFS ({selectedScenario.villainRange.bluffCombos})</div>
+            <div style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>BLUFFS ({selectedScenario.villainRange.bluffCombos})</div>
             {selectedScenario.villainRange.bluffs.map((b, i) => (
-              <div key={i} style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>• {b}</div>
+              <div key={i} style={{ color: '#94a3b8', fontSize: 12, marginBottom: 2 }}>• {b}</div>
             ))}
           </div>
         </div>
@@ -260,7 +260,7 @@ export default function BluffCatcherAnalyzer() {
               color: getRecColor(selectedScenario.recommendation),
             }}>{selectedScenario.recommendation}</span>
           </div>
-          <div style={{ color: '#cbd5e1', fontSize: 11, lineHeight: 1.6 }}>{selectedScenario.reasoning}</div>
+          <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.6 }}>{selectedScenario.reasoning}</div>
         </div>
       </div>
     );

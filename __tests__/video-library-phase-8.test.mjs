@@ -59,7 +59,11 @@ test('loading, broken-media, featured, and mobile rail treatments are explicit',
   assert.match(CSS, /\.vl-video-card\.is-featured/);
   assert.match(CSS, /\.vl-video-skeleton/);
   assert.match(CSS, /Preview unavailable/);
-  assert.match(CSS, /mask-image: linear-gradient/);
+  // PIN MOVED (mobile phase 9, 2026-09-14): the edge fade mask was the
+  // rail's (it faded the last chip to hint at more off screen). Every
+  // control wraps on screen now, so there is nothing to hint at.
+  assert.doesNotMatch(CSS, /mask-image: linear-gradient/);
+  assert.match(CSS, /\.vl-type-toggle-row \{\s*display: grid !important;/);
   assert.match(CSS, /\.vl-empty-state button,[\s\S]*min-height: 44px/);
 });
 

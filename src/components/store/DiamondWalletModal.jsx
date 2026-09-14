@@ -85,6 +85,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
+  Gem,
 } from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
@@ -171,7 +172,56 @@ const TX_TYPES = {
   // Other
   refund: { Icon: RotateCcw, label: 'Refund', color: '#94a3b8' },
   adjustment: { Icon: Settings, label: 'Adjustment', color: '#94a3b8' },
+
+  /* ── ADDED 2026-09-13, read from the writers and the live ledger ──────────
+     THE DIAMOND ARENA IS DIAMONDS ONLY (Dan). A buy-in moves diamonds into
+     custody (fn_poker_diamond_buyin writes `arena_deposit`), a cash-out moves
+     them back (`arena_withdraw`). Neither is a chip and neither is labelled
+     as one. The rest are the highest-volume kinds of the last 30 days that
+     had no entry here and rendered as "Adjustment" - daily_challenge_claim
+     alone is 55,183 of the 57,000 rows written in that window. Same labels
+     as Club Arena's DiamondWalletModal.tsx, so one ledger reads one way. */
+  arena_deposit: { Icon: Gem, label: 'Diamond Arena Buy-In', color: '#00a8e8' },
+  arena_withdraw: { Icon: Gem, label: 'Diamond Arena Cash-Out', color: '#00a8e8' },
+  live_gift_sent: { Icon: Send, label: 'Live Gift Sent', color: '#ffffff' },
+  live_gift_received: { Icon: Gift, label: 'Live Gift Received', color: '#00a8e8' },
+  debt_settlement: { Icon: Settings, label: 'Owed Diamonds Settled', color: '#94a3b8' },
+  daily_challenge_claim: { Icon: Target, label: 'Daily Challenge', color: '#06b6d4' },
+  daily_challenge_reroll: { Icon: RotateCcw, label: 'Challenge Reroll', color: '#ef4444' },
+  daily_mission_milestone: { Icon: Medal, label: 'Mission Milestone', color: '#06b6d4' },
+  training_reward: { Icon: Brain, label: 'Training Reward', color: '#7395a8' },
+  easter_egg: { Icon: Sparkles, label: 'Easter Egg', color: '#f59e0b' },
+  pvp_stake: { Icon: Swords, label: 'PvP Stake', color: '#ef4444' },
+  plinko_drop: { Icon: Gamepad2, label: 'Plinko Drop', color: '#ef4444' },
+  crash_bet: { Icon: Gamepad2, label: 'Crash Bet', color: '#ef4444' },
+  wheel_spin: { Icon: Gamepad2, label: 'Wheel Spin', color: '#ef4444' },
+  wheel_prize: { Icon: Trophy, label: 'Wheel Prize', color: '#eab308' },
+  chip_mint: { Icon: Settings, label: 'Chip Mint', color: '#ef4444' },
+  reconciliation: { Icon: Settings, label: 'Balance Reconciliation', color: '#94a3b8' },
+  transfer: { Icon: Send, label: 'Transfer', color: '#94a3b8' },
+  credit: { Icon: Gem, label: 'Diamond Credit', color: '#00a8e8' },
 };
+
+/**
+ * A kind nobody has taught the map about must still read like English - never
+ * a confident "Adjustment" that claims an admin touched the account when
+ * nobody did (2026-09-13: that is what every daily challenge claim said here).
+ * Underscores become spaces and each word takes a capital, so a
+ * `weekly_streak_bonus` added server-side tomorrow reads "Weekly Streak Bonus"
+ * on the day it appears. Same rule as Club Arena's diamondTxLabel.
+ */
+function txConfigFor(rawType) {
+  const known = rawType ? TX_TYPES[rawType] : undefined;
+  if (known) return known;
+  const text = String(rawType || '').replace(/[_-]+/g, ' ').trim();
+  if (!text) return { Icon: Gem, label: 'Diamond Movement', color: '#94a3b8' };
+  const label = text
+    .split(/\s+/)
+    .map((w) => (w === w.toUpperCase() ? w.toLowerCase() : w))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return { Icon: Gem, label, color: '#94a3b8' };
+}
 
 const FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -274,7 +324,7 @@ const WalletDescription = ({ value }) => {
 
 async function copyReceiptToClipboard(tx) {
   const txType = tx.transaction_type || tx.type;
-  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+  const config = txConfigFor(txType);
   const dt = new Date(tx.created_at);
   const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
   try {
@@ -313,7 +363,7 @@ const EmptyStateDiamond = () => (
     height="80"
     viewBox="0 0 80 80"
     fill="none"
-    style={{ opacity: 0.6, filter: 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.4))' }}
+    className={styles.emptyDiamond}
   >
     <defs>
       <linearGradient
@@ -414,8 +464,8 @@ const DonutChart = ({ data }) => {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+    <div className={styles.donut}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={styles.donutRing}>
         {/* Background ring */}
         <circle
           cx={cx}
@@ -442,34 +492,13 @@ const DonutChart = ({ data }) => {
           Total
         </text>
       </svg>
-      <div style={{ flex: 1 }}>
+      <div className={styles.donutLegend}>
         {data.slice(0, 5).map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-            <div
-              style={{ width: 8, height: 8, borderRadius: 2, background: d.color, flexShrink: 0 }}
-            />
-            <span
-              style={{
-                fontSize: 10,
-                color: 'rgba(255,255,255,0.5)',
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {marketplaceCopy(d.label)}
-            </span>
-            <span
-              style={{
-                fontSize: 10,
-                color: 'rgba(255,255,255,0.4)',
-                fontFamily: 'Rajdhani, monospace',
-                fontWeight: 600,
-              }}
-            >
-              {d.value.toLocaleString()}
-            </span>
+          <div key={i} className={styles.donutLegendRow}>
+            {/* The slice colour is data; it rides in as a custom property. */}
+            <div className={styles.donutSwatch} style={{ '--swatch': d.color }} />
+            <span className={styles.donutLegendLabel}>{marketplaceCopy(d.label)}</span>
+            <span className={styles.donutLegendValue}>{d.value.toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -589,58 +618,13 @@ function getSkeletonCount() {
 
 // ── Skeleton shimmer row ──
 const SkeletonRow = () => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: '12px 16px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-    }}
-  >
-    <div
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: 'rgba(255, 255, 255, 0.06)',
-        animation: 'walletShimmer 1.2s ease-in-out infinite',
-        flexShrink: 0,
-      }}
-    />
-    <div style={{ flex: 1 }}>
-      <div
-        style={{
-          width: '60%',
-          height: 12,
-          borderRadius: 4,
-          background: 'rgba(255, 255, 255, 0.06)',
-          animation: 'walletShimmer 1.2s ease-in-out infinite',
-          marginBottom: 6,
-        }}
-      />
-      <div
-        style={{
-          width: '40%',
-          height: 10,
-          borderRadius: 4,
-          background: 'rgba(255, 255, 255, 0.04)',
-          animation: 'walletShimmer 1.2s ease-in-out infinite',
-          animationDelay: '0.2s',
-        }}
-      />
+  <div className={styles.skeletonRow}>
+    <div className={`${styles.skeletonBone} ${styles.skeletonIcon}`} />
+    <div className={styles.skeletonBody}>
+      <div className={`${styles.skeletonBone} ${styles.skeletonTitle}`} />
+      <div className={`${styles.skeletonBone} ${styles.skeletonSub}`} />
     </div>
-    <div
-      style={{
-        width: 48,
-        height: 14,
-        borderRadius: 4,
-        background: 'rgba(255, 255, 255, 0.06)',
-        animation: 'walletShimmer 1.2s ease-in-out infinite',
-        animationDelay: '0.4s',
-        flexShrink: 0,
-      }}
-    />
+    <div className={`${styles.skeletonBone} ${styles.skeletonAmount}`} />
   </div>
 );
 
@@ -743,6 +727,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
        by the API. Sent only with a first page, so it is not overwritten with
        `null` by a Load More. */
   const [lifetime, setLifetime] = useState(null);
+  /* on_hand / sendable / collateral / in_arena from the same first-page read.
+     null until read, and null when the API could not read it - the Send
+     panel then falls back to the balance check and says nothing it does not
+     know (10.86). THE DIAMOND ARENA IS DIAMONDS ONLY. */
+  const [walletSummary, setWalletSummary] = useState(null);
   /* The tab the in-flight request belongs to. A ref, not the state value,
        because `fetchTransactions` must keep one identity: it is what the
        balance-event subscriptions and the pull-to-refresh are built from, and
@@ -1005,6 +994,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           if (data.counts) setServerCounts(data.counts);
           // Only a first page carries it; never clear it on a Load More.
           if (data.lifetime) setLifetime(data.lifetime);
+          if (offset === 0) setWalletSummary(data.summary ?? null);
 
           if (offset === 0) {
             // Merge the fresh first page into any already-loaded pages so
@@ -1119,14 +1109,28 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   }, [transactions]);
 
   // ── ENH-D: Keyboard accessibility: Escape to close ──
+  /* ESCAPE BACKS OUT ONE LAYER, NOT ALL OF THEM (2026-09-13). With the
+     Confirm Transfer dialog or a gate popup open, Escape used to close the
+     whole wallet - so a keyboard user backing out of "Send 500 Diamonds?"
+     lost the modal, the recipient and the amount together. The innermost
+     surface is what Escape dismisses; the wallet closes on the next press. */
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (popupData) {
+        setPopupData(null);
+        return;
+      }
+      if (confirmTransfer) {
+        setConfirmTransfer(null);
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, popupData, confirmTransfer]);
 
   // ── ENH-F: Persist filter selection ──
   const handleFilterChange = useCallback(
@@ -1233,6 +1237,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     }
     if (amount > (balance ?? 0)) {
       setTransferError('Insufficient diamond balance');
+      return;
+    }
+    /* The server refuses purchased diamonds still inside the refund window
+       (insufficient_transferable_diamonds). Say so here, in the player's own
+       terms, before the round trip. Only when the figure was read. */
+    if (walletSummary && amount > walletSummary.sendable) {
+      setTransferError(
+        `Only ${walletSummary.sendable.toLocaleString()} Diamonds Can Be Sent Right Now. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
+      );
       return;
     }
     // #5: Show confirmation dialog first
@@ -1519,7 +1532,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       const q = searchQuery.trim().toLowerCase();
       result = result.filter((tx) => {
         const txType = tx.transaction_type || tx.type;
-        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+        const config = txConfigFor(txType);
         return (
           config.label.toLowerCase().includes(q) ||
           (tx.description || '').toLowerCase().includes(q) ||
@@ -1606,11 +1619,13 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
    * wallet displaying 50, that lifetime headline was built from 12% of the
    * ledger, and it moved every time the player pressed Load More.
    *
-   * `lifetime` is summed over the whole ledger by
-   * /api/store/diamond-transactions, by the sign of the amount, with the same
-   * 5,000 ceiling Club Arena uses - so the two wallets cannot report
-   * different lifetimes for the same ledger. `null` means it could not be
-   * computed, and the panel says so rather than showing zeros.
+   * `lifetime.earned` / `.spent` are summed IN SQL over the whole ledger by
+   * /api/store/diamond-transactions (`fn_diamond_lifetime_totals`, the same
+   * RPC the Club Arena wallet reads, so one ledger cannot report two
+   * lifetimes); `lifetime.exact` says the SQL sum answered. The week, month
+   * and gift breakdowns still come from the API's 5,000 most recent rows, and
+   * `lifetime.truncated` says when that window was full. `null` means none of
+   * it could be computed, and the panel says so rather than showing zeros.
    */
   const stats = useMemo(() => {
     if (!lifetime) return null;
@@ -1622,7 +1637,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // Server keys the sources by raw kind; render them by their label.
     const sourceMap = {};
     for (const [kind, value] of Object.entries(lifetime.bySource || {})) {
-      const label = (TX_TYPES[kind] || TX_TYPES.adjustment).label;
+      const label = txConfigFor(kind).label;
       sourceMap[label] = (sourceMap[label] || 0) + value;
     }
 
@@ -1686,53 +1701,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     <>
       <CapHitPopup open={!!popupData} data={popupData} onClose={() => setPopupData(null)} />
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 89,
-          background: 'rgba(0, 0, 0, 0.6)',
-          backdropFilter: 'blur(4px)',
-          animation: 'walletFadeIn 0.2s ease',
-        }}
-      />
+      <div onClick={onClose} className={styles.backdrop} />
 
       {/* Modal: Full Screen */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Diamond Wallet"
-        className={styles.preserveIdentityScope}
-        style={{
-          position: 'fixed',
-          // 60 is the UniversalHeader height; the header itself grows by
-          // the status-bar inset, so the modal must too (mobile phase 0b).
-          top: 'calc(env(safe-area-inset-top, 0px) + 60px)',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 90,
-          background: `radial-gradient(ellipse at 50% -10%, rgba(0,100,220,0.25) 0%, rgba(2,8,20,0.4) 100%), url('/images/diamond-wallet-bg-new.png') center/cover no-repeat`,
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'walletFadeScale 0.3s cubic-bezier(0.16,1,0.3,1)',
-          fontFamily: "'Inter', -apple-system, sans-serif",
-          textTransform: 'capitalize',
-          overflow: 'hidden',
-        }}
+        className={`${styles.preserveIdentityScope} ${styles.wallet} ${styles.dialog}`}
       >
         {/* Close button */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            padding: '12px 16px 0',
-            maxWidth: 600,
-            margin: '0 auto',
-            width: '100%',
-          }}
-        >
+        <div className={styles.closeBar}>
           {/* Close button */}
           <button onClick={onClose} aria-label="Close" className={`sp-icon-btn ${styles.closeBtn}`}>
             <X size={16} aria-hidden="true" />
@@ -1746,14 +1725,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchCancel}
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            maxWidth: 600,
-            margin: '0 auto',
-            width: '100%',
-          }}
+          className={styles.scrollBody}
         >
           {/* ═══════════════════════════════════════════════
                      PREMIUM HEADER : Image-Backed Layout
@@ -1833,8 +1805,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     */}
             <button
               type="button"
-              className={styles.artHitbox}
-              style={{ left: '10%' }}
+              className={`${styles.artHitbox} ${styles.artHitboxBuy}`}
               onClick={() => {
                 onClose();
                 onBuyClick?.();
@@ -1845,8 +1816,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
             <button
               type="button"
-              className={styles.artHitbox}
-              style={{ right: '10%' }}
+              className={`${styles.artHitbox} ${styles.artHitboxSend}`}
               onClick={() => {
                 setShowTransfer((value) => !value);
                 fetchFriends();
@@ -1919,7 +1889,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 <option
                   key={opt.value}
                   value={opt.value}
-                  style={{ background: '#0a1628', color: '#fff' }}
+                  className={styles.rangeOption}
                 >
                   {opt.label}
                 </option>
@@ -2003,71 +1973,40 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 </div>
               )}
               {/* Friend search + Amount: side by side on larger screens, stacked on mobile */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className={styles.sendForm}>
                 {/* Friend type-to-search input with autocomplete dropdown */}
-                <div style={{ position: 'relative' }}>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: 'rgba(255,255,255,0.35)',
-                      marginBottom: 4,
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.3px',
-                    }}
-                  >
-                    Recipient
-                  </div>
+                <div className={styles.sendRecipient}>
+                  <div className={styles.sendFieldLabel}>Recipient</div>
                   {transferRecipient ? (
                     /* Selected friend display */
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '8px 12px',
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: 10,
-                      }}
-                    >
+                    <div className={styles.sendChosen}>
                       {transferRecipient.avatar_url && (
                         <img
                           src={transferRecipient.avatar_url}
                           alt=""
-                          style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }}
+                          className={styles.sendChosenAvatar}
                         />
                       )}
                       <span
                         data-user-content="true"
                         data-preserve-case="true"
-                        style={{ color: '#ffffff', fontSize: 13, fontWeight: 600, flex: 1 }}
+                        className={styles.sendChosenName}
                       >
                         {transferRecipient.display_name || transferRecipient.username}
                       </span>
                       {transferRecipient.is_vip && <Crown size={12} color="#eab308" />}
                       <button
+                        type="button"
+                        aria-label="Choose A Different Friend"
                         onClick={() => {
                           setTransferRecipient(null);
                           setFriendSearch('');
                           setTransferAmount('');
                           setConfirmTransfer(null);
                         }}
-                        style={{
-                          background: 'rgba(255,255,255,0.1)',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: 20,
-                          height: 20,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'rgba(255,255,255,0.5)',
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                        }}
+                        className={styles.sendClear}
                       >
-                        <X size={10} />
+                        <X size={10} aria-hidden="true" />
                       </button>
                     </div>
                   ) : (
@@ -2075,123 +2014,54 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <>
                       {/* R8-I2: Recent recipients: one-tap re-send chips */}
                       {recentRecipients.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                        <div className={styles.sendRecent}>
                           {recentRecipients.map((r) => (
                             <button
                               key={r.id}
+                              type="button"
                               onClick={() => {
                                 setTransferRecipient(r);
                                 setFriendSearch('');
                               }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                padding: '4px 10px',
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 12,
-                                color: 'rgba(255,255,255,0.7)',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
+                              className={styles.sendRecentChip}
                             >
                               <span data-user-content="true" data-preserve-case="true">
                                 {r.display_name || r.username}
                               </span>
                               {r.lastAmount != null && (
-                                <span style={{ color: 'rgba(0,212,255,0.6)', fontSize: 10 }}>
-                                  {r.lastAmount}
-                                </span>
+                                <span className={styles.sendRecentAmount}>{r.lastAmount}</span>
                               )}
                             </button>
                           ))}
                         </div>
                       )}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: 10,
-                          padding: '8px 12px',
-                        }}
-                      >
-                        <Search
-                          size={14}
-                          style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}
-                        />
+                      <div className={styles.sendField}>
+                        <Search size={14} className={styles.sendFieldIcon} aria-hidden="true" />
                         <input
                           type="text"
                           value={friendSearch}
                           onChange={(e) => setFriendSearch(e.target.value)}
                           placeholder="Type A Friend's Name..."
+                          aria-label="Search Your Friends"
                           autoFocus
-                          style={{
-                            flex: 1,
-                            background: 'transparent',
-                            border: 'none',
-                            outline: 'none',
-                            boxShadow: 'none',
-                            textTransform: 'capitalize',
-                            color: '#e2e8f0',
-                            fontSize: 13,
-                            fontFamily: "'Inter', sans-serif",
-                          }}
+                          className={styles.sendInput}
                         />
                         {friendSearch && (
                           <button
+                            type="button"
+                            aria-label="Clear Search"
                             onClick={() => setFriendSearch('')}
-                            style={{
-                              background: 'rgba(255,255,255,0.1)',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: 18,
-                              height: 18,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'rgba(255,255,255,0.5)',
-                              cursor: 'pointer',
-                              flexShrink: 0,
-                              fontSize: 10,
-                            }}
+                            className={`${styles.sendClear} ${styles.sendClearSmall}`}
                           >
-                            <X size={10} />
+                            <X size={10} aria-hidden="true" />
                           </button>
                         )}
                       </div>
                       {/* Autocomplete dropdown: shows after 3 chars typed */}
                       {friendSearch.trim().length >= 3 && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            top: '100%',
-                            zIndex: 10,
-                            marginTop: 4,
-                            background: 'rgba(10, 22, 40, 0.98)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            borderRadius: 10,
-                            maxHeight: 180,
-                            overflowY: 'auto',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                          }}
-                        >
+                        <div className={styles.sendDropdown}>
                           {friendsLoading ? (
-                            <div
-                              style={{
-                                padding: '12px 14px',
-                                fontSize: 12,
-                                color: 'rgba(255,255,255,0.4)',
-                              }}
-                            >
-                              Loading Friends...
-                            </div>
+                            <div className={styles.sendDropdownNote}>Loading Friends...</div>
                           ) : (
                             (() => {
                               const q = friendSearch.trim().toLowerCase();
@@ -2202,13 +2072,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               );
                               if (matches.length === 0) {
                                 return (
-                                  <div
-                                    style={{
-                                      padding: '12px 14px',
-                                      fontSize: 12,
-                                      color: 'rgba(255,255,255,0.4)',
-                                    }}
-                                  >
+                                  <div className={styles.sendDropdownNote}>
                                     No Matching Friends Found
                                   </div>
                                 );
@@ -2216,63 +2080,25 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               return matches.slice(0, 10).map((f) => (
                                 <button
                                   key={f.id}
+                                  type="button"
                                   onClick={() => {
                                     setTransferRecipient(f);
                                     setFriendSearch('');
                                   }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                    color: '#e2e8f0',
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    textAlign: 'left',
-                                    transition: 'background 0.1s',
-                                  }}
+                                  className={styles.sendMatch}
                                 >
                                   {f.avatar_url ? (
-                                    <img
-                                      src={f.avatar_url}
-                                      alt=""
-                                      style={{
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: '50%',
-                                        objectFit: 'cover',
-                                        flexShrink: 0,
-                                      }}
-                                    />
+                                    <img src={f.avatar_url} alt="" className={styles.sendMatchAvatar} />
                                   ) : (
-                                    <div
-                                      style={{
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.1)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 12,
-                                        color: '#ffffff',
-                                        fontWeight: 700,
-                                        flexShrink: 0,
-                                      }}
-                                    >
+                                    <div className={styles.sendMatchInitial} aria-hidden="true">
                                       {(f.display_name || f.username || '?')[0].toUpperCase()}
                                     </div>
                                   )}
-                                  <div style={{ flex: 1 }}>
+                                  <div className={styles.sendMatchBody}>
                                     <div
                                       data-user-content="true"
                                       data-preserve-case="true"
-                                      style={{ fontWeight: 600, fontSize: 13 }}
+                                      className={styles.sendMatchName}
                                     >
                                       {f.display_name || f.username}
                                     </div>
@@ -2280,7 +2106,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                       <div
                                         data-user-content="true"
                                         data-preserve-case="true"
-                                        style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}
+                                        className={styles.sendMatchHandle}
                                       >
                                         @{f.username}
                                       </div>
@@ -2295,16 +2121,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       )}
                       {/* Hint text when less than 3 chars */}
                       {friendSearch.trim().length > 0 && friendSearch.trim().length < 3 && (
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: 'rgba(255,255,255,0.25)',
-                            marginTop: 4,
-                            paddingLeft: 4,
-                          }}
-                        >
-                          Type At Least 3 Characters To Search...
-                        </div>
+                        <div className={styles.sendHint}>Type At Least 3 Characters To Search...</div>
                       )}
                     </>
                   )}
@@ -2313,31 +2130,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 {/* Amount input: only shown when recipient selected */}
                 {transferRecipient && (
                   <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: 'rgba(255,255,255,0.35)',
-                        marginBottom: 4,
-                        fontWeight: 600,
-                        letterSpacing: '0.3px',
-                      }}
-                    >
-                      Amount
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          background: 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: 10,
-                          padding: '8px 12px',
-                        }}
-                      >
-                        <Sparkles size={14} color="#00d4ff" />
+                    <div className={styles.sendFieldLabel}>Amount</div>
+                    {walletSummary && (
+                      <div className={styles.sendHint} role="status">
+                        {`Sendable: ${walletSummary.sendable.toLocaleString()} Diamonds`}
+                        {walletSummary.collateral > 0
+                          ? `. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
+                          : ''}
+                      </div>
+                    )}
+                    <div className={styles.sendAmountRow}>
+                      <div className={`${styles.sendField} ${styles.sendFieldGrow}`}>
+                        <Sparkles size={14} className={styles.sendAmountIcon} aria-hidden="true" />
                         <input
                           type="number"
                           min="1"
@@ -2345,55 +2149,24 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                           value={transferAmount}
                           onChange={(e) => setTransferAmount(e.target.value)}
                           placeholder="Enter Diamond Amount..."
+                          aria-label="Diamonds To Send"
                           autoFocus
-                          style={{
-                            flex: 1,
-                            background: 'transparent',
-                            border: 'none',
-                            outline: 'none',
-                            boxShadow: 'none',
-                            color: '#e2e8f0',
-                            fontSize: 14,
-                            fontWeight: 600,
-                            fontFamily: "'Inter', sans-serif",
-                          }}
+                          className={styles.sendAmountInput}
                         />
                       </div>
                       <button
+                        type="button"
                         onClick={handleTransfer}
                         /* Disabled while the confirm dialog is open: otherwise a second
-                                               click on Send executes the transfer (confirmTransfer is truthy
-                                               in handleTransfer) without the user ever pressing Confirm */
+                           click on Send executes the transfer (confirmTransfer is truthy
+                           in handleTransfer) without the user ever pressing Confirm */
                         disabled={
                           transferLoading ||
                           !transferAmount ||
                           cooldownSeconds > 0 ||
                           !!confirmTransfer
                         }
-                        style={{
-                          padding: '9px 18px',
-                          background: transferLoading
-                            ? 'rgba(255,255,255,0.04)'
-                            : 'rgba(255, 255, 255, 0.08)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          borderRadius: 10,
-                          color: '#ffffff',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor:
-                            transferLoading || cooldownSeconds > 0 || confirmTransfer
-                              ? 'default'
-                              : 'pointer',
-                          opacity:
-                            transferLoading ||
-                            !transferAmount ||
-                            cooldownSeconds > 0 ||
-                            confirmTransfer
-                              ? 0.5
-                              : 1,
-                          transition: 'all 0.15s',
-                          whiteSpace: 'nowrap',
-                        }}
+                        className={styles.sendGo}
                       >
                         {transferLoading
                           ? 'Sending...'
@@ -2408,36 +2181,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
               {/* Error / Success feedback */}
               {transferError && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 11,
-                    color: '#f87171',
-                    padding: '6px 10px',
-                    background: 'rgba(248,113,113,0.08)',
-                    borderRadius: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  {cooldownSeconds > 0 && <Clock size={12} color="#f87171" />}
+                <div className={`${styles.sendNote} ${styles.sendNoteError}`} role="alert">
+                  {cooldownSeconds > 0 && <Clock size={12} aria-hidden="true" />}
                   {cooldownSeconds > 0
                     ? `Cooldown: ${cooldownSeconds}s Remaining`
                     : marketplaceCopy(transferError)}
                 </div>
               )}
               {transferSuccess && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 11,
-                    color: '#58d9ff',
-                    padding: '6px 10px',
-                    background: 'rgba(0,212,255,0.08)',
-                    borderRadius: 6,
-                  }}
-                >
+                <div className={`${styles.sendNote} ${styles.sendNoteOk}`} role="status">
                   <span data-user-content="true" data-preserve-case="true">
                     {transferSuccess}
                   </span>
@@ -2445,72 +2197,37 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               )}
               {/* #5: Confirmation dialog */}
               {confirmTransfer && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: '12px 14px',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    borderRadius: 10,
-                    animation: 'walletFadeIn 0.15s ease',
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff', marginBottom: 8 }}>
-                    Confirm Transfer
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: 'rgba(255,255,255,0.7)',
-                      marginBottom: 10,
-                      lineHeight: 1.4,
-                    }}
-                  >
+                <div className={styles.sendConfirm} role="group" aria-label="Confirm Transfer">
+                  <div className={styles.sendConfirmTitle}>Confirm Transfer</div>
+                  <div className={styles.sendConfirmText}>
                     Send{' '}
-                    <strong style={{ color: '#00d4ff' }}>{confirmTransfer.amount} Diamonds</strong>{' '}
+                    <strong className={styles.sendConfirmAmount}>
+                      {confirmTransfer.amount} Diamonds
+                    </strong>{' '}
                     To{' '}
                     <strong
                       data-user-content="true"
                       data-preserve-case="true"
-                      style={{ color: '#ffffff' }}
+                      className={styles.sendConfirmWho}
                     >
                       {confirmTransfer.recipient?.display_name ||
                         confirmTransfer.recipient?.username}
                     </strong>
                     ? This Cannot Be Undone.
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div className={styles.sendConfirmActions}>
                     <button
+                      type="button"
                       onClick={() => setConfirmTransfer(null)}
-                      style={{
-                        flex: 1,
-                        padding: '7px 0',
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 8,
-                        color: 'rgba(255,255,255,0.5)',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
+                      className={styles.sendConfirmCancel}
                     >
                       Cancel
                     </button>
                     <button
+                      type="button"
                       onClick={handleTransfer}
                       disabled={transferLoading || cooldownSeconds > 0}
-                      style={{
-                        flex: 1,
-                        padding: '7px 0',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        borderRadius: 8,
-                        color: '#ffffff',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: transferLoading || cooldownSeconds > 0 ? 'default' : 'pointer',
-                        opacity: transferLoading || cooldownSeconds > 0 ? 0.5 : 1,
-                      }}
+                      className={styles.sendConfirmGo}
                     >
                       {transferLoading
                         ? 'Sending...'
@@ -2524,260 +2241,118 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
           {/* H5: Stats skeleton when loading */}
           {showStats && !stats && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                background: 'rgba(0,212,255,0.04)',
-              }}
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    borderRadius: 8,
-                    height: 60,
-                    animation: 'walletShimmer 1.2s ease-in-out infinite',
-                  }}
-                />
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    borderRadius: 8,
-                    height: 60,
-                    animation: 'walletShimmer 1.2s ease-in-out infinite',
-                    animationDelay: '0.2s',
-                  }}
-                />
+            <div className={styles.statsPanel} aria-busy="true">
+              <div className={`${styles.statsGrid2} ${styles.statsGridTight}`}>
+                <div className={styles.statsSkeletonPlate} />
+                <div className={`${styles.statsSkeletonPlate} ${styles.statsSkeletonPlateLate}`} />
               </div>
             </div>
           )}
           {/* ENH-G: Analytics Stats Panel */}
           {showStats && stats && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                background: 'rgba(0, 212, 255, 0.04)',
-                animation: 'walletFadeIn 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 10,
-                  marginBottom: 10,
-                }}
-              >
-                <div
-                  style={{
-                    background: 'rgba(0, 212, 255, 0.08)',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                  }}
-                >
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>
-                    Total Earned
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: '#58d9ff',
-                      fontFamily: 'Rajdhani, monospace',
-                    }}
-                  >
+            <div className={styles.statsPanel}>
+              <div className={styles.statsGrid2}>
+                <div className={`${styles.statsPlate} ${styles.statsPlateIn}`}>
+                  <div className={styles.statsLabel}>Total Earned</div>
+                  <div className={`${styles.statsFigure} ${styles.statsFigureIn}`}>
                     +{stats.totalEarned.toLocaleString()}
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                  <div className={styles.statsFoot}>
                     This Week: +{stats.weekEarned.toLocaleString()}
                   </div>
                 </div>
-                <div
-                  style={{
-                    background: 'rgba(248, 113, 113, 0.08)',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                  }}
-                >
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>
-                    Total Spent
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: '#f87171',
-                      fontFamily: 'Rajdhani, monospace',
-                    }}
-                  >
+                <div className={`${styles.statsPlate} ${styles.statsPlateOut}`}>
+                  <div className={styles.statsLabel}>Total Spent</div>
+                  <div className={`${styles.statsFigure} ${styles.statsFigureOut}`}>
                     -{stats.totalSpent.toLocaleString()}
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                  <div className={styles.statsFoot}>
                     This Week: -{stats.weekSpent.toLocaleString()}
                   </div>
                 </div>
               </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>
-                Top Sources
-              </div>
+              <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>Top Sources</div>
               {stats.topSources.map(([name, amount], i) => (
-                <div
-                  key={name}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}
-                >
-                  <div
-                    style={{
-                      flex: 1,
-                      height: 4,
-                      borderRadius: 2,
-                      background: 'rgba(255,255,255,0.06)',
-                      overflow: 'hidden',
-                    }}
-                  >
+                <div key={name} className={styles.statsBarRow}>
+                  <div className={styles.statsBarTrack}>
                     <div
+                      className={styles.statsBarFill}
                       style={{
-                        width: `${(amount / stats.topSources[0][1]) * 100}%`,
-                        height: '100%',
-                        borderRadius: 2,
-                        background:
+                        '--bar-width': `${(amount / stats.topSources[0][1]) * 100}%`,
+                        '--bar-color':
                           MARKETPLACE_ANALYTICS_COLORS[i % MARKETPLACE_ANALYTICS_COLORS.length],
                       }}
                     />
                   </div>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: 'rgba(255,255,255,0.5)',
-                      whiteSpace: 'nowrap',
-                      minWidth: 80,
-                    }}
-                  >
+                  <span className={styles.statsBarLabel}>
                     {marketplaceCopy(name)}: {amount.toLocaleString()}
                   </span>
                 </div>
               ))}
               {/* R8-I6: Donut Chart: Category Breakdown */}
               {stats.donutData?.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    padding: '8px 0',
-                    borderTop: '1px solid rgba(255,255,255,0.04)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: 'rgba(255,255,255,0.35)',
-                      marginBottom: 8,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    Category Breakdown
-                  </div>
+                <div className={styles.statsSub}>
+                  <div className={styles.statsHeading}>Category Breakdown</div>
                   <DonutChart data={stats.donutData} />
                 </div>
               )}
 
               {/* R8-I5: Monthly Trends */}
               {stats.monthlyTrend && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    padding: '8px 0',
-                    borderTop: '1px solid rgba(255,255,255,0.04)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: 'rgba(255,255,255,0.35)',
-                      marginBottom: 8,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    Monthly Comparison
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div className={styles.statsSub}>
+                  <div className={styles.statsHeading}>Monthly Comparison</div>
+                  <div className={`${styles.statsGrid2} ${styles.statsGridTight}`}>
                     <div
-                      style={{
-                        background: 'rgba(0,212,255,0.06)',
-                        borderRadius: 8,
-                        padding: '6px 10px',
-                      }}
+                      className={`${styles.statsPlate} ${styles.statsPlateIn} ${styles.statsPlateSmall}`}
                     >
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>
+                      <div className={`${styles.statsLabel} ${styles.statsLabelSmall}`}>
                         This Month Earned
                       </div>
                       <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: '#58d9ff',
-                          fontFamily: 'Rajdhani, monospace',
-                        }}
+                        className={`${styles.statsFigure} ${styles.statsFigureSmall} ${styles.statsFigureIn}`}
                       >
                         +{stats.monthlyTrend.thisMonthEarned.toLocaleString()}
                       </div>
                       {stats.monthlyTrend.earnedChange !== 0 && (
                         <div
-                          style={{
-                            fontSize: 9,
-                            color: stats.monthlyTrend.earnedChange >= 0 ? '#58d9ff' : '#f87171',
-                            marginTop: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                          }}
+                          className={`${styles.statsTrend} ${
+                            stats.monthlyTrend.earnedChange >= 0
+                              ? styles.statsTrendUp
+                              : styles.statsTrendDown
+                          }`}
                         >
                           {stats.monthlyTrend.earnedChange >= 0 ? (
-                            <ArrowUpRight size={10} />
+                            <ArrowUpRight size={10} aria-hidden="true" />
                           ) : (
-                            <ArrowDownRight size={10} />
+                            <ArrowDownRight size={10} aria-hidden="true" />
                           )}
                           {Math.abs(stats.monthlyTrend.earnedChange).toFixed(0)}% Vs Last Month
                         </div>
                       )}
                     </div>
                     <div
-                      style={{
-                        background: 'rgba(0,212,255,0.06)',
-                        borderRadius: 8,
-                        padding: '6px 10px',
-                      }}
+                      className={`${styles.statsPlate} ${styles.statsPlateOut} ${styles.statsPlateSmall}`}
                     >
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>
+                      <div className={`${styles.statsLabel} ${styles.statsLabelSmall}`}>
                         This Month Spent
                       </div>
                       <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: '#f87171',
-                          fontFamily: 'Rajdhani, monospace',
-                        }}
+                        className={`${styles.statsFigure} ${styles.statsFigureSmall} ${styles.statsFigureOut}`}
                       >
                         -{stats.monthlyTrend.thisMonthSpent.toLocaleString()}
                       </div>
                       {stats.monthlyTrend.spentChange !== 0 && (
                         <div
-                          style={{
-                            fontSize: 9,
-                            color: stats.monthlyTrend.spentChange <= 0 ? '#58d9ff' : '#f87171',
-                            marginTop: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                          }}
+                          className={`${styles.statsTrend} ${
+                            stats.monthlyTrend.spentChange <= 0
+                              ? styles.statsTrendUp
+                              : styles.statsTrendDown
+                          }`}
                         >
                           {stats.monthlyTrend.spentChange >= 0 ? (
-                            <ArrowUpRight size={10} />
+                            <ArrowUpRight size={10} aria-hidden="true" />
                           ) : (
-                            <ArrowDownRight size={10} />
+                            <ArrowDownRight size={10} aria-hidden="true" />
                           )}
                           {Math.abs(stats.monthlyTrend.spentChange).toFixed(0)}% Vs Last Month
                         </div>
@@ -2790,88 +2365,33 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           )}
           {/* P2-2: Gift Analytics (shown when stats are open and gifts exist) */}
           {showStats && stats && (stats.giftsSent > 0 || stats.giftsReceived > 0) && (
-            <div
-              style={{
-                padding: '8px 16px 12px',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                background: 'rgba(255, 255, 255, 0.02)',
-                animation: 'walletFadeIn 0.2s ease',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  color: 'rgba(255,255,255,0.35)',
-                  marginBottom: 6,
-                  letterSpacing: '0.5px',
-                }}
-              >
-                Gift Activity
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: 8,
-                    padding: '6px 8px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Sent</div>
+            <div className={`${styles.statsPanel} ${styles.statsPanelGifts}`}>
+              <div className={styles.statsHeading}>Gift Activity</div>
+              <div className={styles.statsGrid3}>
+                <div className={`${styles.statsPlate} ${styles.statsPlateCenter}`}>
+                  <div className={`${styles.statsLabel} ${styles.statsLabelSmall}`}>Sent</div>
                   <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: '#ffffff',
-                      fontFamily: 'Rajdhani, monospace',
-                    }}
+                    className={`${styles.statsFigure} ${styles.statsFigureSmall} ${styles.statsFigureOut}`}
                   >
                     {stats.giftsSent.toLocaleString()}
                   </div>
                 </div>
                 <div
-                  style={{
-                    background: 'rgba(0,212,255,0.08)',
-                    borderRadius: 8,
-                    padding: '6px 8px',
-                    textAlign: 'center',
-                  }}
+                  className={`${styles.statsPlate} ${styles.statsPlateIn} ${styles.statsPlateCenter}`}
                 >
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Received</div>
+                  <div className={`${styles.statsLabel} ${styles.statsLabelSmall}`}>Received</div>
                   <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: '#58d9ff',
-                      fontFamily: 'Rajdhani, monospace',
-                    }}
+                    className={`${styles.statsFigure} ${styles.statsFigureSmall} ${styles.statsFigureIn}`}
                   >
                     {stats.giftsReceived.toLocaleString()}
                   </div>
                 </div>
                 <div
-                  style={{
-                    background: 'rgba(0,212,255,0.08)',
-                    borderRadius: 8,
-                    padding: '6px 8px',
-                    textAlign: 'center',
-                  }}
+                  className={`${styles.statsPlate} ${styles.statsPlateIn} ${styles.statsPlateCenter}`}
                 >
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Gifts</div>
+                  <div className={`${styles.statsLabel} ${styles.statsLabelSmall}`}>Gifts</div>
                   <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: '#00d4ff',
-                      fontFamily: 'Rajdhani, monospace',
-                    }}
+                    className={`${styles.statsFigure} ${styles.statsFigureSmall} ${styles.statsFigureIn}`}
                   >
                     {stats.giftCount}
                   </div>
@@ -2879,29 +2399,17 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               </div>
               {stats.topRecipients.length > 0 && (
                 <>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginBottom: 3 }}>
+                  <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>
                     Top Recipients
                   </div>
                   {stats.topRecipients.map(([name, amount], i) => (
-                    <div
-                      key={name}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}
-                    >
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 3,
-                          borderRadius: 2,
-                          background: 'rgba(255,255,255,0.06)',
-                          overflow: 'hidden',
-                        }}
-                      >
+                    <div key={name} className={`${styles.statsBarRow} ${styles.statsBarRowTight}`}>
+                      <div className={`${styles.statsBarTrack} ${styles.statsBarTrackThin}`}>
                         <div
+                          className={styles.statsBarFill}
                           style={{
-                            width: `${(amount / stats.topRecipients[0][1]) * 100}%`,
-                            height: '100%',
-                            borderRadius: 2,
-                            background:
+                            '--bar-width': `${(amount / stats.topRecipients[0][1]) * 100}%`,
+                            '--bar-color':
                               MARKETPLACE_ANALYTICS_COLORS[
                                 (i + 4) % MARKETPLACE_ANALYTICS_COLORS.length
                               ],
@@ -2911,12 +2419,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       <span
                         data-user-content="true"
                         data-preserve-case="true"
-                        style={{
-                          fontSize: 9,
-                          color: 'rgba(255,255,255,0.45)',
-                          whiteSpace: 'nowrap',
-                          minWidth: 70,
-                        }}
+                        className={`${styles.statsBarLabel} ${styles.statsBarLabelSmall}`}
                       >
                         {name}: {amount.toLocaleString()}
                       </span>
@@ -2930,57 +2433,30 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           {/* ENH-E: Pull-to-refresh indicator */}
           {pullDistance > 0 && (
             <div
-              style={{
-                textAlign: 'center',
-                padding: `${Math.min(pullDistance / 2, 30)}px 0`,
-                color: pullDistance > 60 ? '#00d4ff' : 'rgba(255,255,255,0.3)',
-                fontSize: 11,
-                fontWeight: 600,
-                transition: pullDistance === 0 ? 'all 0.2s' : 'none',
-              }}
+              className={`${styles.pullBanner} ${pullDistance > 60 ? styles.pullBannerArmed : ''} ${
+                pullDistance === 0 ? styles.pullBannerSettling : ''
+              }`}
+              style={{ '--pull-pad': `${Math.min(pullDistance / 2, 30)}px` }}
+              aria-live="polite"
             >
               {isRefreshing
                 ? 'Refreshing...'
                 : pullDistance > 60
-                  ? 'Release to refresh'
-                  : 'Pull down to refresh'}
+                  ? 'Release To Refresh'
+                  : 'Pull Down To Refresh'}
             </div>
           )}
 
           {/* Transaction List */}
-          <div
-            role="list"
-            aria-label="Diamond Transactions"
-            style={{
-              padding: '4px 0 24px 0',
-            }}
-          >
+          <div role="list" aria-label="Diamond Transactions" className={styles.list}>
             {/* ── BUG-3: Error state with retry button ── */}
             {error ? (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: 40,
-                  color: 'rgba(255, 255, 255, 0.4)',
-                }}
-              >
-                <div style={{ fontSize: 28, marginBottom: 10, opacity: 0.5 }}>&#X26A0;&#XFE0F;</div>
-                <div style={{ fontSize: 13, marginBottom: 14, color: 'rgba(255, 255, 255, 0.45)' }}>
-                  {marketplaceCopy(error)}
+              <div className={styles.stateBox} role="alert">
+                <div className={styles.stateGlyph} aria-hidden="true">
+                  &#X26A0;&#XFE0F;
                 </div>
-                <button
-                  onClick={() => fetchTransactions()}
-                  style={{
-                    padding: '8px 20px',
-                    background: 'rgba(0, 212, 255, 0.15)',
-                    border: '1px solid rgba(0, 212, 255, 0.4)',
-                    borderRadius: 16,
-                    color: '#00d4ff',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
+                <div className={styles.stateText}>{marketplaceCopy(error)}</div>
+                <button type="button" onClick={() => fetchTransactions()} className={styles.litKey}>
                   Retry
                 </button>
               </div>
@@ -2992,13 +2468,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 ))}
               </>
             ) : groupedTx.length === 0 ? (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '30px 40px',
-                  color: 'rgba(255, 255, 255, 0.3)',
-                }}
-              >
+              <div className={`${styles.stateBox} ${styles.stateBoxEmpty}`}>
                 {/* R8-I1: Inline SVG diamond (replaces broken PNG) */}
                 <EmptyStateDiamond />
                 {/*
@@ -3012,7 +2482,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     earn their first diamonds. Every branch below now says which
                     narrowing produced the blank, and offers to undo it.
                 */}
-                <div style={{ fontSize: 13, fontWeight: 500 }}>
+                <div className={styles.stateTitle}>
                   {searchQuery
                     ? `No Loaded Transactions Match "${searchQuery}"`
                     : dateRange !== 'all'
@@ -3041,30 +2511,18 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 )}
                 {filter === 'all' && !searchQuery && dateRange === 'all' && (
                   <>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>
+                    <div className={styles.stateHint}>
                       Earn Diamonds Through Daily Logins, Trivia, And More
                     </div>
                     {/* H3: Enhanced empty state CTA */}
                     {(balance ?? 0) === 0 && (
                       <button
+                        type="button"
                         onClick={() => {
                           onClose();
                           onBuyClick?.();
                         }}
-                        style={{
-                          marginTop: 16,
-                          padding: '10px 28px',
-                          background:
-                            'linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(0, 150, 255, 0.25))',
-                          border: '1px solid rgba(0, 212, 255, 0.6)',
-                          borderRadius: 20,
-                          color: '#00d4ff',
-                          fontSize: 14,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          textShadow: '0 0 10px rgba(0,212,255,0.3)',
-                        }}
+                        className={`${styles.litKey} ${styles.litKeyLarge}`}
                       >
                         Get Your First Diamonds
                       </button>
@@ -3080,15 +2538,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     return (
                       <div
                         key={`header-${idx}`}
-                        style={{
-                          padding: '10px 16px 4px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: 'rgba(0, 212, 255, 0.5)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '1px',
-                          borderTop: idx > 0 ? '1px solid rgba(255, 255, 255, 0.04)' : 'none',
-                        }}
+                        className={`${styles.groupHeader} ${idx > 0 ? styles.groupHeaderRuled : ''}`}
                       >
                         {item.label}
                       </div>
@@ -3098,7 +2548,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   // Transaction row
                   const tx = item.data;
                   const txType = tx.transaction_type || tx.type;
-                  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+                  const config = txConfigFor(txType);
                   const isPositive = tx.amount >= 0;
                   const dt = new Date(tx.created_at);
 
@@ -3164,22 +2614,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {(tx.amount ?? 0).toLocaleString()}
                           </span>
                           {tx.balance_after != null && (
-                            <span
-                              style={{
-                                fontSize: 12,
-                                color: 'rgba(255, 255, 255, 0.35)',
-                              }}
-                            >
+                            <span className={styles.txAfter}>
                               Bal: {tx.balance_after.toLocaleString()}
                             </span>
                           )}
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: 'rgba(255, 255, 255, 0.3)',
-                              marginTop: 4,
-                            }}
-                          >
+                          <span className={styles.txWhen}>
                             {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{' '}
                             {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
@@ -3188,50 +2627,26 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
                       {/* ENH-B: Expanded transaction details */}
                       {isExpanded && (
-                        <div
-                          style={{
-                            padding: '0 16px 12px 64px',
-                            animation: 'walletFadeIn 0.15s ease',
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: '1fr 1fr',
-                              gap: '4px 16px',
-                              fontSize: 11,
-                            }}
-                          >
+                        <div className={styles.txDetail}>
+                          <div className={styles.txDetailGrid}>
                             <div>
-                              <span style={{ color: 'rgba(255,255,255,0.3)' }}>Type: </span>
-                              <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                {toTitleCase(txType)}
-                              </span>
+                              <span className={styles.txDetailKey}>Type: </span>
+                              <span className={styles.txDetailValue}>{toTitleCase(txType)}</span>
                             </div>
                             <div>
-                              <span style={{ color: 'rgba(255,255,255,0.3)' }}>Date: </span>
-                              <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                {dt.toLocaleString()}
-                              </span>
+                              <span className={styles.txDetailKey}>Date: </span>
+                              <span className={styles.txDetailValue}>{dt.toLocaleString()}</span>
                             </div>
                             {tx.reference_id && (
-                              <div style={{ gridColumn: '1 / -1' }}>
-                                <span style={{ color: 'rgba(255,255,255,0.3)' }}>Ref: </span>
-                                <span
-                                  style={{
-                                    color: 'rgba(255,255,255,0.5)',
-                                    fontFamily: 'monospace',
-                                    fontSize: 10,
-                                  }}
-                                >
-                                  {tx.reference_id}
-                                </span>
+                              <div className={styles.txDetailWide}>
+                                <span className={styles.txDetailKey}>Ref: </span>
+                                <span className={styles.txDetailRef}>{tx.reference_id}</span>
                               </div>
                             )}
                             {tx.description && tx.description !== config.label && (
-                              <div style={{ gridColumn: '1 / -1' }}>
-                                <span style={{ color: 'rgba(255,255,255,0.3)' }}>Details: </span>
-                                <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+                              <div className={styles.txDetailWide}>
+                                <span className={styles.txDetailKey}>Details: </span>
+                                <span className={styles.txDetailValue}>
                                   <WalletDescription value={tx.description} />
                                 </span>
                               </div>
@@ -3239,6 +2654,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                           </div>
                           {/* H1: Copy receipt button */}
                           <button
+                            type="button"
                             onClick={async (e) => {
                               e.stopPropagation();
                               if (await copyReceiptToClipboard(tx)) {
@@ -3247,21 +2663,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                 copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);
                               }
                             }}
-                            style={{
-                              marginTop: 6,
-                              padding: '3px 10px',
-                              background:
-                                copiedTxId === tx.id
-                                  ? 'rgba(0,212,255,0.15)'
-                                  : 'rgba(255,255,255,0.04)',
-                              border: `1px solid ${copiedTxId === tx.id ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                              borderRadius: 6,
-                              color: copiedTxId === tx.id ? '#58d9ff' : 'rgba(255,255,255,0.4)',
-                              fontSize: 10,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s',
-                            }}
+                            className={`${styles.copyKey} ${copiedTxId === tx.id ? styles.copyKeyDone : ''}`}
                           >
                             {copiedTxId === tx.id ? 'Copied!' : 'Copy Receipt'}
                           </button>
@@ -3273,24 +2675,12 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
                 {/* ENH-3: Load More button */}
                 {canLoadMore && (
-                  <div style={{ textAlign: 'center', padding: '12px 16px' }}>
+                  <div className={styles.loadMore}>
                     <button
+                      type="button"
                       onClick={() => fetchTransactions(transactions.length)}
                       disabled={loadingMore}
-                      style={{
-                        padding: '8px 24px',
-                        background: loadingMore
-                          ? 'rgba(255, 255, 255, 0.04)'
-                          : 'rgba(0, 212, 255, 0.1)',
-                        border: '1px solid rgba(0, 212, 255, 0.3)',
-                        borderRadius: 16,
-                        color: '#00d4ff',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: loadingMore ? 'default' : 'pointer',
-                        transition: 'all 0.15s',
-                        opacity: loadingMore ? 0.5 : 1,
-                      }}
+                      className={styles.litKey}
                     >
                       {loadingMore
                         ? 'Loading...'
@@ -3305,18 +2695,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         {/* End Scrollable Modal Content */}
         {/* Footer */}
         {!loading && total > 0 && (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '8px 16px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-              fontSize: 11,
-              color: 'rgba(255, 255, 255, 0.3)',
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 12,
-            }}
-          >
+          <div className={styles.footer}>
             <span>{total.toLocaleString()} Total Transactions</span>
             {filteredTx.length !== transactions.length && <span>| {filteredTx.length} Shown</span>}
           </div>

@@ -217,8 +217,8 @@ const styles = {
     },
     barFill: { height: '100%', borderRadius: 4 },
     posStats: { width: 36, fontSize: 12, textAlign: 'right' },
-    posEV: { width: 42, fontSize: 10, textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: '#64748b' },
-    posCount: { width: 22, fontSize: 10, color: '#475569', textAlign: 'right' },
+    posEV: { width: 42, fontSize: 12, textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: '#64748b' },
+    posCount: { width: 22, fontSize: 12, color: '#475569', textAlign: 'right' },
     microGrid: {
         marginBottom: 12, borderRadius: 8,
         background: 'rgba(0,0,0,0.15)', padding: '6px 8px',
@@ -229,10 +229,10 @@ const styles = {
     },
     microRow: { display: 'flex', gap: 4, padding: '2px 0' },
     microLabel: {
-        width: 30, fontSize: 10, color: '#64748b', fontWeight: 600, textAlign: 'center',
+        width: 30, fontSize: 12, color: '#64748b', fontWeight: 600, textAlign: 'center',
     },
     microCell: {
-        flex: 1, fontSize: 10, color: '#94a3b8', fontWeight: 600, textAlign: 'center',
+        flex: 1, fontSize: 12, color: '#94a3b8', fontWeight: 600, textAlign: 'center',
     },
     extremes: { display: 'flex', gap: 12, justifyContent: 'center' },
     extremeItem: {
@@ -240,5 +240,5 @@ const styles = {
         padding: '6px 14px', borderRadius: 8,
         background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
     },
-    extremeLabel: { fontSize: 9, color: '#64748b', fontWeight: 600 },
+    extremeLabel: { fontSize: 12, color: '#64748b', fontWeight: 600 },
 };

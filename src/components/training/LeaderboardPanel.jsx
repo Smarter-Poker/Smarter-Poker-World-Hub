@@ -63,7 +63,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: rank <= 3 ? `${rankColor}20` : 'rgba(255,255,255,0.04)',
                 color: rank <= 3 ? rankColor : '#64748b',
-                fontSize: 11, fontWeight: 800,
+                fontSize: 12, fontWeight: 800,
                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
             }}>
                 {rank}
@@ -74,12 +74,12 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                 <div style={{
                     fontSize: 12, fontWeight: 700,
                     color: isCurrentUser ? '#00d4ff' : '#e2e8f0',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    whiteSpace: 'normal', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                     {entry.username || `Player ${rank}`}
-                    {isCurrentUser && <span style={{ fontSize: 9, color: '#00d4ff', marginLeft: 4, fontWeight: 600 }}>You</span>}
+                    {isCurrentUser && <span style={{ fontSize: 12, color: '#00d4ff', marginLeft: 4, fontWeight: 600 }}>You</span>}
                 </div>
-                <div style={{ fontSize: 9, color: '#475569' }}>
+                <div style={{ fontSize: 12, color: '#475569' }}>
                     {sessionsCompleted} Session{sessionsCompleted !== 1 ? 's' : ''} • {questionsCorrect} Correct • {bestStreak} Best Streak
                 </div>
             </div>
@@ -93,7 +93,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                 }}>
                     {accuracy}%
                 </div>
-                <div style={{ fontSize: 8, color: '#475569', fontWeight: 600 }}>
+                <div style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
                     GTOW {gtowScoreAvg.toFixed(1)}
                 </div>
             </div>
@@ -167,13 +167,13 @@ export default function LeaderboardPanel({ userId, gameId }) {
             )}
 
             {!loading && error && (
-                <div style={{ color: '#ef4444', fontSize: 11, textAlign: 'center', padding: 12 }}>
+                <div style={{ color: '#ef4444', fontSize: 12, textAlign: 'center', padding: 12 }}>
                     {error}
                 </div>
             )}
 
             {!loading && !error && entries.length === 0 && (
-                <div style={{ color: '#475569', fontSize: 11, textAlign: 'center', padding: 16 }}>
+                <div style={{ color: '#475569', fontSize: 12, textAlign: 'center', padding: 16 }}>
                     No Entries Yet For This Period. Be The First!
                 </div>
             )}
@@ -217,7 +217,7 @@ const styles = {
         flex: 1, padding: '6px 0', borderRadius: 6,
         border: '1px solid rgba(255,255,255,0.06)',
         background: 'transparent',
-        color: '#64748b', fontSize: 10, fontWeight: 700,
+        color: '#64748b', fontSize: 12, fontWeight: 700,
         cursor: 'pointer', transition: 'all 0.15s',
     },
     periodBtnActive: {
@@ -226,6 +226,6 @@ const styles = {
         color: '#ffd700',
     },
     loadingText: {
-        color: '#64748b', fontSize: 11, textAlign: 'center', padding: 12,
+        color: '#64748b', fontSize: 12, textAlign: 'center', padding: 12,
     },
 };

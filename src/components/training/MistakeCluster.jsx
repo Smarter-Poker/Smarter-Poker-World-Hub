@@ -114,7 +114,7 @@ const styles = {
         fontFamily: "var(--font-rajdhani), 'Rajdhani', sans-serif",
     },
     badge: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         background: 'rgba(239, 68, 68, 0.15)',
         color: '#ef4444',
@@ -158,7 +158,7 @@ const styles = {
         color: '#ef4444',
     },
     accLabel: {
-        fontSize: 8,
+        fontSize: 12,
         color: 'rgba(255,255,255,0.4)',
         fontWeight: 700,
         letterSpacing: 0.5,
@@ -177,7 +177,7 @@ const styles = {
         overflow: 'hidden',
     },
     mistakeLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.4)',
         fontWeight: 500,
     },

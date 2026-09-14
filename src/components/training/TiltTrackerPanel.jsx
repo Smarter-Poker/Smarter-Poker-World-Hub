@@ -54,7 +54,7 @@ function TiltMeter({ score }) {
     <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 16, textAlign: 'center', marginBottom: 16 }}>
       <div style={{ color: level.color, fontSize: 32, fontWeight: 800 }}>{score}</div>
       <div style={{ color: level.color, fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{level.name}</div>
-      <div style={{ color: '#94a3b8', fontSize: 10, marginBottom: 10 }}>{level.desc}</div>
+      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 10 }}>{level.desc}</div>
       <div style={{ height: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, overflow: 'hidden', position: 'relative' }}>
         <div style={{
           width: `${Math.min(100, score)}%`, height: '100%', borderRadius: 5,
@@ -70,7 +70,7 @@ function TiltMeter({ score }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
         {TILT_LEVELS.map(l => (
-          <span key={l.name} style={{ color: l.color, fontSize: 7, fontWeight: 600 }}>{l.name}</span>
+          <span key={l.name} style={{ color: l.color, fontSize: 12, fontWeight: 600 }}>{l.name}</span>
         ))}
       </div>
     </div>
@@ -138,7 +138,7 @@ export default function TiltTrackerPanel() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Tilt Tracker</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Monitor Your Emotional State And Stay In Control</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Monitor Your Emotional State And Stay In Control</div>
         </div>
 
         {/* Tilt Meter */}
@@ -146,7 +146,7 @@ export default function TiltTrackerPanel() {
 
         {/* Trigger buttons */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Log A Trigger</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Log A Trigger</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {TRIGGERS.map(t => {
               const isActive = activeTriggers.includes(t.id);
@@ -155,10 +155,10 @@ export default function TiltTrackerPanel() {
                   padding: '5px 8px', borderRadius: 5, cursor: 'pointer',
                   background: isActive ? 'rgba(239,68,68,0.15)' : 'rgba(0,0,0,0.15)',
                   border: isActive ? '1px solid rgba(239,68,68,0.3)' : '1px solid transparent',
-                  color: isActive ? '#ef4444' : '#94a3b8', fontSize: 9, fontWeight: 600,
+                  color: isActive ? '#ef4444' : '#94a3b8', fontSize: 12, fontWeight: 600,
                 }}>
                   <span style={{ marginRight: 3 }}>{t.icon}</span>{t.label}
-                  <span style={{ color: '#64748b', fontSize: 7, marginLeft: 3 }}>+{t.weight}</span>
+                  <span style={{ color: '#64748b', fontSize: 12, marginLeft: 3 }}>+{t.weight}</span>
                 </button>
               );
             })}
@@ -178,14 +178,14 @@ export default function TiltTrackerPanel() {
 
           {showCoolDown && (
             <div style={{ marginTop: 8, background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 12, border: '1px solid rgba(34,197,94,0.15)' }}>
-              <div style={{ color: '#22c55e', fontSize: 9, fontWeight: 700, marginBottom: 4 }}>COOL-DOWN TIP</div>
-              <div style={{ color: '#cbd5e1', fontSize: 11, lineHeight: 1.6 }}>{COOL_DOWN_TIPS[currentTip]}</div>
+              <div style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>COOL-DOWN TIP</div>
+              <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.6 }}>{COOL_DOWN_TIPS[currentTip]}</div>
               <button onClick={() => {
                 setCurrentTip((currentTip + 1) % COOL_DOWN_TIPS.length);
               }} style={{
                 marginTop: 6, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                 background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)',
-                color: '#22c55e', fontSize: 9, fontWeight: 600,
+                color: '#22c55e', fontSize: 12, fontWeight: 600,
               }}>Next Tip</button>
             </div>
           )}
@@ -194,8 +194,8 @@ export default function TiltTrackerPanel() {
         {/* Manual slider override */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }}>Manual Override</span>
-            <span style={{ color: level.color, fontSize: 10, fontWeight: 800 }}>{tiltScore}</span>
+            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Manual Override</span>
+            <span style={{ color: level.color, fontSize: 12, fontWeight: 800 }}>{tiltScore}</span>
           </div>
           <input type="range" min={0} max={100} value={tiltScore}
             onChange={e => setTiltScore(Number(e.target.value))}
@@ -204,7 +204,7 @@ export default function TiltTrackerPanel() {
 
         {/* Emotion log */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Session Emotion Log</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Session Emotion Log</div>
           <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {emotionLog.map((entry, i) => {
               const entryLevel = getTiltLevel(entry.score);
@@ -214,13 +214,13 @@ export default function TiltTrackerPanel() {
                   display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0',
                   borderBottom: i < emotionLog.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
                 }}>
-                  <span style={{ color: '#64748b', fontSize: 9, width: 50, flexShrink: 0 }}>{entry.time}</span>
+                  <span style={{ color: '#64748b', fontSize: 12, width: 50, flexShrink: 0 }}>{entry.time}</span>
                   <span style={{
                     width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                     background: isCooldown ? '#22c55e' : entryLevel.color,
                   }} />
-                  <span style={{ color: isCooldown ? '#22c55e' : '#94a3b8', fontSize: 10, flex: 1 }}>{entry.note}</span>
-                  <span style={{ color: entryLevel.color, fontSize: 10, fontWeight: 700, width: 24, textAlign: 'right' }}>{entry.score}</span>
+                  <span style={{ color: isCooldown ? '#22c55e' : '#94a3b8', fontSize: 12, flex: 1 }}>{entry.note}</span>
+                  <span style={{ color: entryLevel.color, fontSize: 12, fontWeight: 700, width: 24, textAlign: 'right' }}>{entry.score}</span>
                 </div>
               );
             })}

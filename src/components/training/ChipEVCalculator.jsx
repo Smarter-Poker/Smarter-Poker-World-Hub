@@ -103,15 +103,15 @@ function StackBar({ player, maxChips, isHero }) {
   const pct = (player.chips / maxChips) * 100;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-      <span style={{ color: isHero ? '#f59e0b' : '#94a3b8', fontSize: 10, width: 100, fontWeight: isHero ? 700 : 400 }}>{player.name}</span>
+      <span style={{ color: isHero ? '#f59e0b' : '#94a3b8', fontSize: 12, width: 100, fontWeight: isHero ? 700 : 400 }}>{player.name}</span>
       <div style={{ flex: 1, height: 14, background: 'rgba(0,0,0,0.2)', borderRadius: 3, overflow: 'hidden' }}>
         <div style={{
           width: `${pct}%`, height: '100%', borderRadius: 3, transition: 'width 0.3s',
           background: isHero ? 'rgba(245,158,11,0.6)' : 'rgba(59,130,246,0.4)',
         }} />
       </div>
-      <span style={{ color: isHero ? '#f59e0b' : '#f1f5f9', fontSize: 10, fontWeight: 700, width: 50, textAlign: 'right' }}>{(player.chips / 1000).toFixed(1)}k</span>
-      <span style={{ color: '#64748b', fontSize: 9, width: 28 }}>{player.position}</span>
+      <span style={{ color: isHero ? '#f59e0b' : '#f1f5f9', fontSize: 12, fontWeight: 700, width: 50, textAlign: 'right' }}>{(player.chips / 1000).toFixed(1)}k</span>
+      <span style={{ color: '#64748b', fontSize: 12, width: 28 }}>{player.position}</span>
     </div>
   );
 }
@@ -123,7 +123,7 @@ function EVComparisonBar({ chipEV, dollarEV }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-        <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Chip EV</div>
+        <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Chip EV</div>
         <div style={{ color: chipEV >= 0 ? '#22c55e' : '#ef4444', fontSize: 24, fontWeight: 800 }}>
           {chipEV >= 0 ? '+' : ''}{chipEV}
         </div>
@@ -135,7 +135,7 @@ function EVComparisonBar({ chipEV, dollarEV }) {
         </div>
       </div>
       <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-        <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Dollar $EV</div>
+        <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Dollar $EV</div>
         <div style={{ color: dollarEV >= 0 ? '#22c55e' : '#ef4444', fontSize: 24, fontWeight: 800 }}>
           {dollarEV >= 0 ? '+' : ''}${Math.abs(dollarEV)}
         </div>
@@ -161,7 +161,7 @@ export default function ChipEVCalculator() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Chip EV Calculator</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Compare Chip EV Vs $EV In Tournament Spots</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Compare Chip EV Vs $EV In Tournament Spots</div>
         </div>
 
         {/* Scenario selector */}
@@ -171,30 +171,30 @@ export default function ChipEVCalculator() {
               padding: '6px 10px', borderRadius: 5, cursor: 'pointer', whiteSpace: 'nowrap',
               background: selectedScenario.id === s.id ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.15)',
               border: selectedScenario.id === s.id ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
-              color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 10, fontWeight: 600,
+              color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               <div>{s.name}</div>
-              <div style={{ color: '#64748b', fontSize: 8, marginTop: 1 }}>{s.desc}</div>
+              <div style={{ color: '#64748b', fontSize: 12, marginTop: 1 }}>{s.desc}</div>
             </button>
           ))}
         </div>
 
         {/* Blinds & Info */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 9, fontWeight: 600 }}>
+          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 12, fontWeight: 600 }}>
             Blinds: {selectedScenario.blinds.sb}/{selectedScenario.blinds.bb} + {selectedScenario.blinds.ante}a
           </span>
-          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>
+          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>
             Payouts: {selectedScenario.payouts.filter(p => p > 0).map(p => `${p}%`).join(' / ')}
           </span>
-          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 9, fontWeight: 600 }}>
+          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 12, fontWeight: 600 }}>
             Action: {selectedScenario.heroAction}
           </span>
         </div>
 
         {/* Stack visualization */}
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 10, marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Stack Distribution</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Stack Distribution</div>
           {selectedScenario.stacks.map(p => (
             <StackBar key={p.seat} player={p} maxChips={maxChips} isHero={p.seat === 1} />
           ))}
@@ -208,29 +208,29 @@ export default function ChipEVCalculator() {
         {/* ICM Metrics */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-            <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>Bubble Factor</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Bubble Factor</div>
             <div style={{ color: selectedScenario.bubbleFactor > 1.5 ? '#ef4444' : selectedScenario.bubbleFactor > 1.2 ? '#f59e0b' : '#22c55e', fontSize: 22, fontWeight: 800 }}>
               {selectedScenario.bubbleFactor.toFixed(2)}x
             </div>
-            <div style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
               {selectedScenario.bubbleFactor > 1.5 ? 'Extreme pressure' : selectedScenario.bubbleFactor > 1.2 ? 'Moderate pressure' : 'Low pressure'}
             </div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-            <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>Risk Premium</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Risk Premium</div>
             <div style={{ color: selectedScenario.riskPremium > 25 ? '#ef4444' : selectedScenario.riskPremium > 12 ? '#f59e0b' : '#22c55e', fontSize: 22, fontWeight: 800 }}>
               {selectedScenario.riskPremium}%
             </div>
-            <div style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
               ICM Tax On Aggressive Plays
             </div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-            <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>EV Divergence</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>EV Divergence</div>
             <div style={{ color: Math.abs(selectedScenario.chipEV - selectedScenario.dollarEV) > 1000 ? '#ef4444' : '#f59e0b', fontSize: 22, fontWeight: 800 }}>
               {Math.abs(selectedScenario.chipEV - selectedScenario.dollarEV)}
             </div>
-            <div style={{ color: '#64748b', fontSize: 8, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
               Chip EV Vs $EV Gap
             </div>
           </div>
@@ -242,10 +242,10 @@ export default function ChipEVCalculator() {
           borderRadius: 8, padding: 12,
           border: selectedScenario.dollarEV >= 0 ? '1px solid rgba(34,197,94,0.15)' : '1px solid rgba(239,68,68,0.15)',
         }}>
-          <div style={{ color: selectedScenario.dollarEV >= 0 ? '#22c55e' : '#ef4444', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
+          <div style={{ color: selectedScenario.dollarEV >= 0 ? '#22c55e' : '#ef4444', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
             Optimal Play
           </div>
-          <div style={{ color: '#cbd5e1', fontSize: 11, lineHeight: 1.6 }}>{selectedScenario.optimalPlay}</div>
+          <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.6 }}>{selectedScenario.optimalPlay}</div>
         </div>
       </div>
     );

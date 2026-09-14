@@ -149,7 +149,7 @@ const styles = {
     },
 
     challengeLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 600,
         letterSpacing: 2,
         color: 'rgba(255,255,255,0.6)',

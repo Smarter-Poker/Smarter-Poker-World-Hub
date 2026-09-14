@@ -118,6 +118,35 @@ export default async function handler(req, res) {
               .limit(5000)
           : Promise.resolve({ data: null, error: null });
 
+      /*
+       * THE HEADLINE IS SUMMED IN SQL (2026-09-13). The 5,000-row window above
+       * still feeds the week/month/gift breakdowns, which need the rows, but
+       * lifetime earned and spent no longer depend on the window at all:
+       * `fn_diamond_lifetime_totals` (Club Arena migration 20260913171905)
+       * sums the WHOLE ledger where it lives. So the headline stays exact past
+       * 5,000 rows, and `truncated` below describes only the breakdowns.
+       * Same RPC the Club Arena wallet reads, so one ledger cannot report two
+       * lifetimes.
+       */
+      const totalsPromise =
+        offset === 0
+          ? getSupabase().rpc('fn_diamond_lifetime_totals', { p_user_id: userId })
+          : Promise.resolve({ data: null, error: null });
+
+      /*
+       * THE THREE DIAMOND FIGURES (phase 2, 2026-09-14). fn_diamond_wallet_summary
+       * (Club Arena migration 20260914015457) returns on_hand, collateral,
+       * sendable and in_arena in one read. The Send panel used to check only
+       * `balance` and say "Insufficient diamond balance" while the server's
+       * real refusal was refund-window collateral - a sentence about a rule
+       * the player had never been shown. First page only, like the totals.
+       * THE DIAMOND ARENA IS DIAMONDS ONLY: nothing in this read is a chip.
+       */
+      const summaryPromise =
+        offset === 0
+          ? getSupabase().rpc('fn_diamond_wallet_summary', { p_user_id: userId })
+          : Promise.resolve({ data: null, error: null });
+
       const { data, count, error } = await query;
 
       if (error) {
@@ -210,9 +239,32 @@ export default async function handler(req, res) {
             }
           }
 
+          /* Prefer the SQL sum for the two headline figures. If the RPC
+             could not answer, the window sum stands and `exact` says so. */
+          let exact = false;
+          try {
+            const { data: totals, error: totalsErr } = await totalsPromise;
+            if (totalsErr) throw totalsErr;
+            const row = Array.isArray(totals) ? totals[0] : totals;
+            const e = Number(row?.lifetime_earned);
+            const sp = Number(row?.lifetime_spent);
+            if (Number.isFinite(e) && Number.isFinite(sp)) {
+              earned = e;
+              spent = sp;
+              exact = true;
+            }
+          } catch (totalsErr) {
+            console.warn(
+              '[diamond-transactions] fn_diamond_lifetime_totals unavailable, headline is the window sum:',
+              totalsErr?.message || totalsErr
+            );
+          }
+
           lifetime = {
             earned,
             spent,
+            // true when earned/spent came from the whole-ledger SQL sum.
+            exact,
             weekEarned,
             weekSpent,
             thisMonthEarned,
@@ -237,9 +289,44 @@ export default async function handler(req, res) {
         );
       }
 
+      /* null = could not read (10.86); the client keeps the balance-only
+         check and the server stays the final word. Never a fabricated zero. */
+      let summary = null;
+      try {
+        const { data: summaryRow, error: summaryErr } = await summaryPromise;
+        if (summaryErr) throw summaryErr;
+        const row = Array.isArray(summaryRow) ? summaryRow[0] : summaryRow;
+        if (row && typeof row === 'object') {
+          const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+          const sendable = n(row.sendable);
+          const collateral = n(row.collateral);
+          const inArena = n(row.in_arena);
+          if (sendable !== null && collateral !== null && inArena !== null) {
+            summary = {
+              onHand: n(row.on_hand),
+              sendable,
+              collateral,
+              inArena,
+              arenaOpen:
+                row.arena?.cash_games_enabled === true || row.arena?.tournaments_enabled === true,
+            };
+          }
+        }
+      } catch (summaryErr) {
+        if (offset === 0) {
+          console.warn(
+            '[diamond-transactions] fn_diamond_wallet_summary unavailable:',
+            summaryErr?.message || summaryErr
+          );
+        }
+      }
+
       return res.status(200).json({
         success: true,
         transactions: data || [],
+        // on_hand / sendable / collateral / in_arena, first page only; null
+        // when the read failed.
+        summary,
         // The size of the ACTIVE filter's set, so Load More pages that
         // set rather than the raw ledger.
         total: count || 0,

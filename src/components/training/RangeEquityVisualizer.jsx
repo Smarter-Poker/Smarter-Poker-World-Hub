@@ -177,7 +177,7 @@ const EquityDistribution = memo(({ equityData }) => {
 
     return (
         <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6 }}>
                 Equity Distribution
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 50 }}>
@@ -196,7 +196,7 @@ const EquityDistribution = memo(({ equityData }) => {
                                     minHeight: count > 0 ? 3 : 0,
                                 }}
                             />
-                            <div style={{ fontSize: 7, color: '#64748b', marginTop: 2 }}>
+                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                                 {pct}%
                             </div>
                         </div>
@@ -230,7 +230,7 @@ const BoardTextureSummary = memo(({ board }) => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
             {tags.map((t, i) => (
                 <span key={i} style={{
-                    fontSize: 9, padding: '2px 6px', borderRadius: 3,
+                    fontSize: 12, padding: '2px 6px', borderRadius: 3,
                     background: `${t.color}15`, color: t.color,
                     fontWeight: 600, border: `1px solid ${t.color}22`,
                 }}>
@@ -332,7 +332,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                     </div>
                     {stats && (
                         <div style={{
-                            fontSize: 11, fontWeight: 700, color: stats.avgEquity >= 0.55 ? '#22c55e' : stats.avgEquity >= 0.45 ? '#f59e0b' : '#ef4444',
+                            fontSize: 12, fontWeight: 700, color: stats.avgEquity >= 0.55 ? '#22c55e' : stats.avgEquity >= 0.45 ? '#f59e0b' : '#ef4444',
                             fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             Avg: {(stats.avgEquity * 100).toFixed(1)}%
@@ -363,11 +363,11 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                     border: '1px solid rgba(0,0,0,0.12)',
                                     display: 'flex', flexDirection: 'column',
                                     alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 10, fontWeight: 'bold',
+                                    fontSize: 12, fontWeight: 'bold',
                                     color: SuitColor[c[1]?.toLowerCase()] || '#1e293b',
                                 }}>
                                     <span>{c[0]}</span>
-                                    <span style={{ fontSize: 8 }}>{SuitSymbol[c[1]?.toLowerCase()] || ''}</span>
+                                    <span style={{ fontSize: 12 }}>{SuitSymbol[c[1]?.toLowerCase()] || ''}</span>
                                 </div>
                             ))}
                         </div>
@@ -383,19 +383,19 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                     borderBottom: '1px solid rgba(100,116,139,0.08)',
                     display: 'flex', gap: 16,
                 }}>
-                    <div style={{ fontSize: 10 }}>
+                    <div style={{ fontSize: 12 }}>
                         <span style={{ color: '#64748b' }}>Combos: </span>
                         <span style={{ color: '#e2e8f0', fontWeight: 700 }}>{stats.combos}</span>
                     </div>
-                    <div style={{ fontSize: 10 }}>
+                    <div style={{ fontSize: 12 }}>
                         <span style={{ color: '#22c55e' }}>Strong: </span>
                         <span style={{ color: '#22c55e', fontWeight: 700 }}>{stats.crushers}</span>
                     </div>
-                    <div style={{ fontSize: 10 }}>
+                    <div style={{ fontSize: 12 }}>
                         <span style={{ color: '#f59e0b' }}>Marginal: </span>
                         <span style={{ color: '#f59e0b', fontWeight: 700 }}>{stats.marginal}</span>
                     </div>
-                    <div style={{ fontSize: 10 }}>
+                    <div style={{ fontSize: 12 }}>
                         <span style={{ color: '#ef4444' }}>Weak: </span>
                         <span style={{ color: '#ef4444', fontWeight: 700 }}>{stats.weak}</span>
                     </div>
@@ -406,7 +406,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
             <div style={{ padding: 12, display: 'flex', gap: 12 }}>
                 {/* 13x13 Equity Grid */}
                 <div style={{ flex: 1 }}>
-                    <div style={{
+                    <div data-allow-small="true" style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(13, 1fr)',
                         gap: 1,
@@ -446,7 +446,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                     background: `${l.color}55`,
                                     border: `1px solid ${l.color}33`,
                                 }} />
-                                <span style={{ fontSize: 8, color: '#64748b' }}>{l.label}</span>
+                                <span style={{ fontSize: 12, color: '#64748b' }}>{l.label}</span>
                             </div>
                         ))}
                     </div>
@@ -475,7 +475,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                 <>
                                     {/* Equity gauge */}
                                     <div style={{ marginBottom: 10 }}>
-                                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>
+                                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>
                                             EQUITY VS RANGE
                                         </div>
                                         <div style={{
@@ -511,14 +511,14 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                             const draws = boardCards.length < 5 ? classifyDraws(cards, boardCards) : null;
                                             return (
                                                 <div style={{ marginBottom: 8 }}>
-                                                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 3 }}>
+                                                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 3 }}>
                                                         HAND STRENGTH
                                                     </div>
-                                                    <div style={{ fontSize: 11, color: '#a5b4fc', fontWeight: 600 }}>
+                                                    <div style={{ fontSize: 12, color: '#a5b4fc', fontWeight: 600 }}>
                                                         {made.description || made.rank || 'Unknown'}
                                                     </div>
                                                     {draws && draws.outs > 0 && (
-                                                        <div style={{ fontSize: 10, color: '#818cf8', marginTop: 2 }}>
+                                                        <div style={{ fontSize: 12, color: '#818cf8', marginTop: 2 }}>
                                                             +{draws.outs} Outs ({(draws.equity * 100).toFixed(0)}% Draw Equity)
                                                         </div>
                                                     )}
@@ -529,18 +529,18 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
 
                                     {/* Range weights */}
                                     <div style={{ marginBottom: 6 }}>
-                                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 3 }}>
+                                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 3 }}>
                                             RANGE WEIGHT
                                         </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <div>
-                                                <div style={{ fontSize: 8, color: '#3b82f6' }}>Hero</div>
+                                                <div style={{ fontSize: 12, color: '#3b82f6' }}>Hero</div>
                                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa' }}>
                                                     {((selectedDetail.inHero || 0) * 100).toFixed(0)}%
                                                 </div>
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: 8, color: '#ef4444' }}>Villain</div>
+                                                <div style={{ fontSize: 12, color: '#ef4444' }}>Villain</div>
                                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171' }}>
                                                     {((selectedDetail.inVil || 0) * 100).toFixed(0)}%
                                                 </div>
@@ -549,7 +549,7 @@ export default function RangeEquityVisualizer({ board: propBoard, heroRange: pro
                                     </div>
                                 </>
                             ) : (
-                                <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+                                <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
                                     {boardCards.length < 3
                                         ? 'Enter a board to see equity'
                                         : 'Not in hero\'s range or blocked'}

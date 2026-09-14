@@ -72,27 +72,12 @@ SOURCE_TAG = 'llm_extraction'
 DB_ERRORS = 0
 
 def send_sms_alert(msg):
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN: return
-    if not ALERT_PHONE_TO:
-        print("    WARN: ALERT_PHONE_TO not set — skipping SMS alert.")
-        return
-    import base64
-    url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
-    data = urllib.parse.urlencode({
-        "To": ALERT_PHONE_TO,
-        "From": TWILIO_PHONE_FROM,
-        "Body": f"[Smarter.Poker FATAL] {msg}"
-    }).encode('utf-8')
-    auth = base64.b64encode(f"{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}".encode()).decode()
-    req = urllib.request.Request(url, data=data, method="POST", headers={
-        "Authorization": f"Basic {auth}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    })
-    try:
-        urllib.request.urlopen(req, timeout=10)
-        print("    📱 SMS Alert sent successfully.")
-    except Exception as e:
-        print(f"    ❌ Failed to send SMS: {e}")
+    """Legacy name: save this fault for investigation in the operational inbox."""
+    from operational_alerts import record_alert
+    receipt = record_alert('tour-scraper', msg, BATCH_ID, SUPABASE_URL, SERVICE_KEY)
+    print(f'Operational alert recorded: {receipt}')
+    return receipt
+
 
 def rest_call(method, path, payload=None):
     """Single Supabase REST call. Returns (status, error_text). Never raises."""

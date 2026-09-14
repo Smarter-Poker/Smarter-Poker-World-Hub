@@ -76,7 +76,7 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
     <div style={{ marginBottom: 16 }}>
       <div
         style={{
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 700,
           color: 'var(--sp-fg-dim)',
           textTransform: 'uppercase',
@@ -94,7 +94,7 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
           const suit = card ? ALL_CARD_SUITS.find((s) => s.s === card[1]) : null;
           return (
             <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', marginBottom: 2 }}>{label}</div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 2 }}>{label}</div>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => (card ? clearCard(i) : setSelectorOpen(isActive ? null : i))}
@@ -166,7 +166,7 @@ function BoardCardSelector({ boardCards, setBoardCards }) {
                         cursor: used ? 'not-allowed' : 'pointer',
                         background: used ? 'rgba(255,255,255,0.02)' : `${suit.color}15`,
                         color: used ? '#333' : suit.color,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         opacity: used ? 0.3 : 1,
                       }}
@@ -222,7 +222,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sp-fg)' }}>
             {isPreflopRfi ? `${heroPos} First-In RFI` : `${heroPos} Vs ${villainPos}`}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
             6-Max Cash · {config.stackDepth}BB · {isPreflopRfi ? 'Authored First-In Reference' : 'Board Reference Query'}
           </div>
         </div>
@@ -232,7 +232,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             borderRadius: 6,
             background: 'rgba(34,197,94,0.08)',
             border: '1px solid rgba(34,197,94,0.2)',
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             color: 'var(--sp-accent-green)',
           }}
@@ -242,7 +242,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
       </div>
 
       {result.message && (
-        <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.5, marginBottom: 12 }}>
           {result.message}
         </div>
       )}
@@ -251,7 +251,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
       <div style={{ marginBottom: 12 }}>
         <div
           style={{
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             color: 'var(--sp-fg-dim)',
             textTransform: 'uppercase',
@@ -318,7 +318,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
             </div>
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-muted)',
                 minWidth: 36,
@@ -344,7 +344,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
         >
           <div
             style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--sp-fg-dim)',
               marginBottom: 4,
@@ -356,7 +356,7 @@ function SolveResult({ heroPos, villainPos, config, result }) {
           </div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: 'var(--sp-fg-muted)',
               lineHeight: 1.5,
               fontFamily: "'Courier New', monospace",
@@ -501,7 +501,7 @@ export default function CustomSolvePage() {
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -537,7 +537,7 @@ export default function CustomSolvePage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Custom Solve</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Query Authored Preflop And Audited Root-Node Data
             </div>
           </div>
@@ -548,7 +548,7 @@ export default function CustomSolvePage() {
           <div style={{ marginBottom: 16, padding: '12px 14px', border: '1px solid rgba(0,212,255,.16)', background: 'rgba(0,212,255,.04)' }}>
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
@@ -560,7 +560,7 @@ export default function CustomSolvePage() {
               Supported Corpus
             </div>
             <div style={{ color: 'var(--sp-fg)', fontSize: 13, fontWeight: 800 }}>6-Max Cash</div>
-            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 10, marginTop: 3 }}>
+            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 3 }}>
               {isPreflopRfi
                 ? 'Before A Complete Flop Is Selected, This Tool Queries Only The Authored 100BB First-In RFI Reference. No Opponent Exists In A First-In Decision.'
                 : 'Postflop Requests Apply Hero, Opponent, Effective Stack, And Every Concrete Board Card. Only An Audited Exact Root Decision Is Displayed. If No Exact Match Exists, The Request Fails Closed And No Modeled Result Is Shown.'}
@@ -574,7 +574,7 @@ export default function CustomSolvePage() {
             <div>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -599,7 +599,7 @@ export default function CustomSolvePage() {
                       border: `1px solid ${heroPos === p ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
                       background: heroPos === p ? 'rgba(34,197,94,0.08)' : 'rgba(0,0,0,0.2)',
                       color: heroPos === p ? 'var(--sp-accent-green)' : 'var(--sp-fg-dim)',
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
                       textAlign: 'center',
@@ -613,7 +613,7 @@ export default function CustomSolvePage() {
             <div>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -636,7 +636,7 @@ export default function CustomSolvePage() {
                     borderRadius: 6,
                     color: 'var(--sp-fg-dim)',
                     background: 'rgba(15,23,42,0.34)',
-                    fontSize: 10,
+                    fontSize: 12,
                     lineHeight: 1.35,
                   }}
                 >
@@ -657,7 +657,7 @@ export default function CustomSolvePage() {
                         border: `1px solid ${villainPos === p ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
                         background: villainPos === p ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.2)',
                         color: villainPos === p ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
                         textAlign: 'center',
@@ -675,7 +675,7 @@ export default function CustomSolvePage() {
           <div style={{ marginBottom: 16 }}>
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
@@ -703,7 +703,7 @@ export default function CustomSolvePage() {
                     background: stackDepth === sd ? 'rgba(0,212,255,0.06)' : 'rgba(0,0,0,0.2)',
                     color: stackDepth === sd ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
                     opacity: isPreflopRfi && sd !== 100 ? 0.35 : 1,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: isPreflopRfi && sd !== 100 ? 'not-allowed' : 'pointer',
                   }}

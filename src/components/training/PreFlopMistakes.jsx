@@ -50,7 +50,7 @@ export default function PreFlopMistakes() {
             style={{ padding: '8px 4px', borderRadius: 8, border: mistakeIdx === i ? `2px solid ${mk.color}` : '1px solid rgba(255,255,255,0.06)',
               background: mistakeIdx === i ? `${mk.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{mk.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: mistakeIdx === i ? mk.color : '#64748b' }}>{mk.mistake.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: mistakeIdx === i ? mk.color : '#64748b' }}>{mk.mistake.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -63,12 +63,12 @@ export default function PreFlopMistakes() {
             <span style={{ fontSize: 16, fontWeight: 800, color: m.color }}>{m.mistake}</span>
           </div>
           <div style={{ background: `${m.color}20`, borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: m.color }}>{m.severity}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: m.color }}>{m.severity}</span>
           </div>
         </div>
 
         <div style={{ background: 'rgba(239,68,68,0.08)', borderRadius: 8, padding: 8, marginBottom: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Estimated Cost</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Estimated Cost</div>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#ef4444' }}>{m.cost}</div>
         </div>
 
@@ -76,11 +76,11 @@ export default function PreFlopMistakes() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Fix</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Fix</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.fix}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Exception</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Exception</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.exception}</div>
           </div>
         </div>

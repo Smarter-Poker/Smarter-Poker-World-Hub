@@ -272,7 +272,7 @@ export default function ChallengesPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -347,7 +347,7 @@ const styles = {
     padding: '4px 10px',
     background: 'rgba(255,255,255,0.1)',
     borderRadius: '8px',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 600,
     color: 'var(--sp-fg-muted)',
     marginBottom: '12px',
