@@ -319,7 +319,7 @@ export default function SessionSetupModal({
           className="sp-cta sp-cta-ghost sp-setup-close"
           style={{
             position: 'absolute', top: 8, right: 8,
-            padding: '6px 10px', fontSize: 11,
+            padding: '6px 10px', fontSize: 12,
             minHeight: 36,
           }}
         >

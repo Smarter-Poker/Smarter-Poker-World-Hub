@@ -1359,7 +1359,7 @@ export default function TriviaGame({
                     letter-spacing: 1px;
                 }
                 .difficulty {
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 700;
                     letter-spacing: 1px;
                     padding: 4px 10px;
@@ -1534,7 +1534,7 @@ export default function TriviaGame({
                 }
 
                 /* ═══ MOBILE ═══ (component previously shipped zero responsive rules) */
-                @media (max-width: 480px) {
+                @media (max-width: 600px) {
                     .trivia-game { padding: 12px; }
                     .question-card { padding: 20px; border-radius: 12px; }
                     .question-text { font-size: 18px; margin-bottom: 20px; }

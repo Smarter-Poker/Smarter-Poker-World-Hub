@@ -26,20 +26,20 @@ export default function HandRankingsReference() {
           return (
             <div key={hand.rank} role="button" tabIndex={0} aria-expanded={expanded} onClick={toggle} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } }} style={{ padding: 10, background: expanded ? `${hand.color}18` : 'rgba(255,255,255,0.035)', cursor: 'pointer', border: expanded ? `1px solid ${hand.color}55` : '1px solid rgba(124,219,255,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: `${hand.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: hand.color }}>{hand.rank}</div>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: `${hand.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: hand.color }}>{hand.rank}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: hand.color }}>{hand.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(233,248,255,0.72)', letterSpacing: 1 }}>{hand.example}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(233,248,255,0.72)', letterSpacing: 1 }}>{hand.example}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{hand.probability}</div>
-                  <div style={{ fontSize: 9, color: 'rgba(213,235,245,0.62)' }}>{hand.odds}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{hand.probability}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(213,235,245,0.62)' }}>{hand.odds}</div>
                 </div>
               </div>
               {expanded && (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(124,219,255,0.12)' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(236,248,255,0.78)', lineHeight: 1.5, marginBottom: 4 }}>{hand.description}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(192,220,233,0.64)' }}>Combos: {hand.combos.toLocaleString()}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(236,248,255,0.78)', lineHeight: 1.5, marginBottom: 4 }}>{hand.description}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(192,220,233,0.64)' }}>Combos: {hand.combos.toLocaleString()}</div>
                 </div>
               )}
             </div>

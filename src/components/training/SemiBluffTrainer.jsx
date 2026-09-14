@@ -80,15 +80,15 @@ export default function SemiBluffTrainer() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 12 }}>
               <div style={{ background: 'rgba(236,72,153,0.1)', borderRadius: 8, padding: '6px 12px' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Outs</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Outs</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#ec4899' }}>{spot.outs}</div>
               </div>
               <div style={{ background: 'rgba(59,130,246,0.1)', borderRadius: 8, padding: '6px 12px' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Equity</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Equity</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#3b82f6' }}>{spot.equity}%</div>
               </div>
               <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: '6px 12px' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Sizing</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Sizing</div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b' }}>{spot.sizing}</div>
               </div>
             </div>

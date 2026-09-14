@@ -183,7 +183,7 @@ const BottomSheet = React.memo(function BottomSheet({
     color: 'var(--sp-text-primary, #f1f5f9)',
   };
   const subStyle = {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--sp-text-tertiary, #94a3b8)',
     margin: 0,
   };

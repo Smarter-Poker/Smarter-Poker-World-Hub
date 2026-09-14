@@ -273,12 +273,12 @@ export default function TrainingAchievements() {
                         <span style={styles.unlocked} role="img" aria-label="Historical achievement snapshot">
                           <CheckIcon size={18} />
                         </span>
-                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 9, fontWeight: 700 }}>
+                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12, fontWeight: 700 }}>
                           Historical Snapshot
                         </span>
                       </div>
                     ) : (
-                      <span style={{ color: 'var(--sp-fg-dim)', fontSize: 9, fontWeight: 700 }}>
+                      <span style={{ color: 'var(--sp-fg-dim)', fontSize: 12, fontWeight: 700 }}>
                         Earning Paused
                       </span>
                     )}
@@ -305,7 +305,7 @@ export default function TrainingAchievements() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -404,7 +404,7 @@ const styles = {
     marginTop: '4px',
   },
   achRarity: {
-    fontSize: '10px',
+    fontSize: '12px',
     fontWeight: 700,
     marginTop: '4px',
   },

@@ -74,7 +74,7 @@ export default function TrainingQuestionReport({ gameId, question }) {
                     border: '1px solid rgba(255,255,255,0.1)',
                     background: 'rgba(255,255,255,0.03)',
                     color: state.sent ? '#53f2a0' : '#9db0bb',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                 }}
@@ -105,7 +105,7 @@ export default function TrainingQuestionReport({ gameId, question }) {
                                 border: '1px solid rgba(248,113,113,.3)',
                                 background: 'rgba(127,29,29,.2)',
                                 color: '#fecaca',
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 cursor: state.submitting ? 'wait' : 'pointer',
                             }}
@@ -116,7 +116,7 @@ export default function TrainingQuestionReport({ gameId, question }) {
                     {state.error && (
                         <span
                             role="alert"
-                            style={{ flexBasis: '100%', color: '#fecaca', fontSize: 10 }}
+                            style={{ flexBasis: '100%', color: '#fecaca', fontSize: 12 }}
                         >
                             {state.error}
                         </span>

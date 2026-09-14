@@ -48,7 +48,7 @@ export default function SmallBlindComplete() {
             style={{ padding: '10px 6px', borderRadius: 8, border: stratIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: stratIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 18 }}>{s.icon}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: stratIdx === i ? s.color : '#64748b' }}>{s.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: stratIdx === i ? s.color : '#64748b' }}>{s.title}</div>
           </button>
         ))}
       </div>
@@ -59,7 +59,7 @@ export default function SmallBlindComplete() {
 
         {strat.ranges.map((r, i) => (
           <div key={i} style={{ background: `${r.color}08`, borderLeft: `3px solid ${r.color}`, borderRadius: 8, padding: 10, marginBottom: 6 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: r.color }}>{r.label}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{r.label}</div>
             <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{r.hands}</div>
           </div>
         ))}

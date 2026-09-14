@@ -85,7 +85,7 @@ const styles = {
         right: 8,
         background: 'rgba(0,0,0,0.8)',
         color: '#0f0',
-        fontSize: 10,
+        fontSize: 12,
         fontFamily: 'monospace',
         padding: '4px 8px',
         borderRadius: 4,

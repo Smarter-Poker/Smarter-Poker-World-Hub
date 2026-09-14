@@ -355,7 +355,7 @@ export default function GlossaryPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -394,7 +394,7 @@ export default function GlossaryPage() {
           <div>
             {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Glossary</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               {TERMS.length} Terms · {favorites.size} Saved
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function GlossaryPage() {
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
                   color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -449,7 +449,7 @@ export default function GlossaryPage() {
 
           {/* Results count */}
           {/* TRAIN-GLOSSARY-A11Y-1: live region for filtered count */}
-          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
+          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
             {filtered.length} Terms
           </div>
 
@@ -480,7 +480,7 @@ export default function GlossaryPage() {
                     borderRadius: 3,
                     background: `${CAT_COLORS[t.cat]}12`,
                     color: CAT_COLORS[t.cat],
-                    fontSize: 8,
+                    fontSize: 12,
                     fontWeight: 700,
                   }}
                 >
@@ -521,13 +521,13 @@ export default function GlossaryPage() {
               ) : (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: 'var(--sp-fg-faint)',
                     lineHeight: 1.4,
                     marginTop: 4,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    whiteSpace: 'normal',
                   }}
                 >
                   {t.def}

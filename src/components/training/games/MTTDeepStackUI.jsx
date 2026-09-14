@@ -262,7 +262,7 @@ export default function MTTDeepStackUI({
 const styles = {
     container: {
         width: '100%',
-        height: '100vh',
+        height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         background: 'transparent',
@@ -350,7 +350,7 @@ const styles = {
         background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 50%, #1a1a24 100%)',
         padding: '6px 12px',
         borderRadius: 6,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 'bold',
         color: '#00d4ff',
         fontFamily: "var(--font-rajdhani), 'Rajdhani', 'Courier New', monospace",
@@ -362,12 +362,12 @@ const styles = {
     },
 
     badgeLabel: {
-        fontSize: 10,
+        fontSize: 12,
         opacity: 0.9,
     },
 
     badgeStack: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 'bold',
     },
 
@@ -433,7 +433,7 @@ const styles = {
     },
 
     tournamentSmall: {
-        fontSize: 11,
+        fontSize: 12,
         marginTop: 4,
         opacity: 0.4,
     },

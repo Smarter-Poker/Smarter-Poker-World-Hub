@@ -32,7 +32,7 @@ const PokerCard = memo(({ card, size = 'md', faceDown = false, isNew = false }) 
     const suit = card[1].toLowerCase();
     const dims = size === 'lg' ? { w: 48, h: 66, fs: 18 }
         : size === 'md' ? { w: 38, h: 52, fs: 14 }
-        : { w: 28, h: 38, fs: 11 };
+        : { w: 28, h: 38, fs: 12 };
 
     if (faceDown) {
         return (
@@ -63,7 +63,7 @@ const PokerCard = memo(({ card, size = 'md', faceDown = false, isNew = false }) 
             }}
         >
             <span>{rank}</span>
-            <span style={{ fontSize: dims.fs - 3 }}>{SuitSymbol[suit] || suit}</span>
+            <span style={{ fontSize: Math.max(12, dims.fs - 3) }}>{SuitSymbol[suit] || suit}</span>
         </motion.div>
     );
 });
@@ -88,7 +88,7 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
             opacity: frequency < 0.01 && !isPlayerAction ? 0.4 : 1,
         }}>
             <div style={{
-                width: 70, fontSize: 11, fontWeight: isPlayerAction || isOptimal ? 700 : 500,
+                width: 70, fontSize: 12, fontWeight: isPlayerAction || isOptimal ? 700 : 500,
                 color: isPlayerAction ? '#f59e0b' : isOptimal ? '#22c55e' : '#94a3b8',
                 textAlign: 'right',
             }}>
@@ -113,14 +113,14 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
                 {frequency > 0.01 && (
                     <div style={{
                         position: 'absolute', right: 4, top: 1,
-                        fontSize: 9, color: '#94a3b8', fontWeight: 600,
+                        fontSize: 12, color: '#94a3b8', fontWeight: 600,
                     }}>
                         {(frequency * 100).toFixed(0)}%
                     </div>
                 )}
             </div>
             <div style={{
-                width: 55, fontSize: 11, fontWeight: 700, textAlign: 'right',
+                width: 55, fontSize: 12, fontWeight: 700, textAlign: 'right',
                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 color: ev >= 0 ? '#22c55e' : '#ef4444',
             }}>
@@ -129,14 +129,14 @@ const EVBar = memo(({ action, ev, frequency, bestEV, isPlayerAction, isOptimal }
             {/* Markers */}
             {isPlayerAction && (
                 <div style={{
-                    fontSize: 9, fontWeight: 700, color: '#f59e0b',
+                    fontSize: 12, fontWeight: 700, color: '#f59e0b',
                     background: 'rgba(245,158,11,0.1)', padding: '1px 4px',
                     borderRadius: 3, border: '1px solid rgba(245,158,11,0.2)',
                 }}>YOU</div>
             )}
             {isOptimal && (
                 <div style={{
-                    fontSize: 9, fontWeight: 700, color: '#22c55e',
+                    fontSize: 12, fontWeight: 700, color: '#22c55e',
                     background: 'rgba(34,197,94,0.1)', padding: '1px 4px',
                     borderRadius: 3, border: '1px solid rgba(34,197,94,0.2)',
                 }}>LOCAL PICK</div>
@@ -246,7 +246,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{
-                        padding: '3px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700,
+                        padding: '3px 10px', borderRadius: 4, fontSize: 12, fontWeight: 700,
                         textTransform: 'uppercase', letterSpacing: '0.05em',
                         background: streetStyle.bg, color: streetStyle.color,
                         border: `1px solid ${streetStyle.border}`,
@@ -255,7 +255,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     </div>
                     {handData.heroPosition && (
                         <div style={{
-                            fontSize: 10, fontWeight: 600, color: '#64748b',
+                            fontSize: 12, fontWeight: 600, color: '#64748b',
                             padding: '2px 6px', background: 'rgba(100,116,139,0.1)',
                             borderRadius: 3,
                         }}>
@@ -264,7 +264,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     )}
                     {handStrength?.made && (
                         <div style={{
-                            fontSize: 10, fontWeight: 600, color: '#818cf8',
+                            fontSize: 12, fontWeight: 600, color: '#818cf8',
                             fontStyle: 'italic',
                         }}>
                             {handStrength.made.description || handStrength.made.rank}
@@ -284,7 +284,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
             <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
                 {boardCards.length > 0 && (
                     <div>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             Board
                         </div>
                         <div style={{ display: 'flex', gap: 3 }}>
@@ -293,7 +293,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     </div>
                 )}
                 <div>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                         Hero
                     </div>
                     <div style={{ display: 'flex', gap: 3 }}>
@@ -302,7 +302,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                 </div>
                 {handData.potSize && (
                     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {handData.potSize} BB
                         </div>
@@ -321,7 +321,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`,
                     borderRadius: 8, padding: 10,
                 }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                         Your Action
                     </div>
                     <div style={{
@@ -337,14 +337,14 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     border: '1px solid rgba(34,197,94,0.15)',
                     borderRadius: 8, padding: 10,
                 }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                         Verified Answer / Local Estimate
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e' }}>
                         {handData.correctAction || evAnalysis?.bestAction || '-'}
                     </div>
                     {evAnalysis?.bestAction && (
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                             Illustrative Estimate: +{(evAnalysis.bestEV || 0).toFixed(2)} BB
                         </div>
                     )}
@@ -357,7 +357,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 10,
                     marginBottom: 10,
                 }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.08em' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.08em' }}>
                         Illustrative Local Estimates - Not Solved EV
                     </div>
                     {sortedActions.map(([action, data]) => (
@@ -381,7 +381,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                     border: '1px solid rgba(99,102,241,0.12)',
                     borderRadius: 6, padding: 10,
                 }}>
-                    <div style={{ fontSize: 9, color: '#818cf8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.08em' }}>
+                    <div style={{ fontSize: 12, color: '#818cf8', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.08em' }}>
                         Why? - {explanation.strategicConcept || 'Strategy Insight'}
                     </div>
                     <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
@@ -391,7 +391,7 @@ const DecisionNode = memo(({ hand, streetIndex, totalStreets }) => {
                         <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                             {explanation.keyFactors.map((f, i) => (
                                 <span key={i} style={{
-                                    fontSize: 9, padding: '2px 6px', borderRadius: 3,
+                                    fontSize: 12, padding: '2px 6px', borderRadius: 3,
                                     background: 'rgba(129,140,248,0.1)',
                                     color: '#a5b4fc', fontWeight: 600,
                                 }}>
@@ -485,7 +485,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                         Hand Comparison
                     </div>
                     <div style={{
-                        fontSize: 10, padding: '2px 8px', borderRadius: 10,
+                        fontSize: 12, padding: '2px 8px', borderRadius: 10,
                         background: 'rgba(239,68,68,0.1)', color: '#f87171',
                         fontWeight: 600,
                     }}>
@@ -498,7 +498,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                             key={mode}
                             onClick={() => setViewMode(mode)}
                             style={{
-                                padding: '4px 10px', fontSize: 10, fontWeight: 600,
+                                padding: '4px 10px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 4, border: '1px solid',
                                 cursor: 'pointer', textTransform: 'capitalize',
                                 background: viewMode === mode ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -544,8 +544,8 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                         );
                     })()}
                     {/* Labels */}
-                    <text x="15" y="12" fontSize="8" fill="#64748b" fontWeight="600">Cumulative EV Loss</text>
-                    <text x="385" y="12" fontSize="8" fill="#ef4444" fontWeight="700" textAnchor="end">
+                    <text x="15" y="12" fontSize='12px' fill="#64748b" fontWeight="600">Cumulative EV Loss</text>
+                    <text x="385" y="12" fontSize='12px' fill="#ef4444" fontWeight="700" textAnchor="end">
                         -{totalEVLoss.toFixed(1)} BB
                     </text>
                 </svg>
@@ -560,7 +560,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                 <button
                     onClick={() => { setShowOnlyMistakes(false); setCurrentHandIndex(0); }}
                     style={{
-                        padding: '3px 8px', fontSize: 10, fontWeight: 600,
+                        padding: '3px 8px', fontSize: 12, fontWeight: 600,
                         borderRadius: 4, border: '1px solid',
                         cursor: 'pointer',
                         background: !showOnlyMistakes ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -573,7 +573,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                 <button
                     onClick={() => { setShowOnlyMistakes(true); setCurrentHandIndex(0); }}
                     style={{
-                        padding: '3px 8px', fontSize: 10, fontWeight: 600,
+                        padding: '3px 8px', fontSize: 12, fontWeight: 600,
                         borderRadius: 4, border: '1px solid',
                         cursor: 'pointer',
                         background: showOnlyMistakes ? 'rgba(239,68,68,0.1)' : 'transparent',
@@ -599,7 +599,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                                 onClick={handlePrev}
                                 disabled={currentHandIndex === 0}
                                 style={{
-                                    padding: '6px 14px', fontSize: 11, fontWeight: 600,
+                                    padding: '6px 14px', fontSize: 12, fontWeight: 600,
                                     borderRadius: 5, border: '1px solid rgba(100,116,139,0.15)',
                                     background: 'rgba(0,0,0,0.2)', color: currentHandIndex === 0 ? '#334155' : '#94a3b8',
                                     cursor: currentHandIndex === 0 ? 'default' : 'pointer',
@@ -614,7 +614,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                                 onClick={handleNext}
                                 disabled={currentHandIndex >= filteredHands.length - 1}
                                 style={{
-                                    padding: '6px 14px', fontSize: 11, fontWeight: 600,
+                                    padding: '6px 14px', fontSize: 12, fontWeight: 600,
                                     borderRadius: 5, border: '1px solid rgba(100,116,139,0.15)',
                                     background: 'rgba(0,0,0,0.2)',
                                     color: currentHandIndex >= filteredHands.length - 1 ? '#334155' : '#94a3b8',
@@ -643,7 +643,7 @@ export default function SolverComparisonReplay({ handHistory = [] }) {
                                                 : isMistake ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.08)',
                                             color: i === currentHandIndex ? '#00d4ff'
                                                 : isMistake ? '#f87171' : '#22c55e',
-                                            fontSize: 8, fontWeight: 700, cursor: 'pointer',
+                                            fontSize: 12, fontWeight: 700, cursor: 'pointer',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         }}
                                     >

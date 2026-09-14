@@ -41,7 +41,7 @@ export default function ButtonPlayGuide() {
             style={{ padding: '8px 4px', borderRadius: 8, border: sectionIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: sectionIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 16 }}>{s.icon}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: sectionIdx === i ? s.color : '#64748b' }}>{s.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: sectionIdx === i ? s.color : '#64748b' }}>{s.title}</div>
           </button>
         ))}
       </div>
@@ -55,12 +55,12 @@ export default function ButtonPlayGuide() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{section.desc}</p>
 
         <div style={{ background: `${section.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${section.color}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: section.color }}>HANDS</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: section.color }}>HANDS</div>
           <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{section.hands}</div>
         </div>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>SIZING</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>SIZING</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{section.sizing}</div>
         </div>
       </motion.div>
@@ -76,11 +76,11 @@ export default function ButtonPlayGuide() {
           { pos: 'BB', rate: '-35 bb/100', width: '0%', color: '#ef4444' },
         ].map((p, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', minWidth: 30 }}>{p.pos}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', minWidth: 30 }}>{p.pos}</span>
             <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
               <div style={{ height: '100%', width: p.width, background: p.color, borderRadius: 4 }} />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: p.color, minWidth: 70, textAlign: 'right' }}>{p.rate}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: p.color, minWidth: 70, textAlign: 'right' }}>{p.rate}</span>
           </div>
         ))}
       </div>

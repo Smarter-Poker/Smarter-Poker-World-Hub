@@ -56,7 +56,7 @@ export default function BoardPairingStrategy() {
 
         {/* PFR advantage bar */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 4 }}>
             <span>BB</span><span>PFR Advantage: {board.pfr_adv}%</span><span>PFR</span>
           </div>
           <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>

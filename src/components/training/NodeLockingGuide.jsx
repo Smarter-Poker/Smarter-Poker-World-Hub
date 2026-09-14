@@ -37,7 +37,7 @@ export default function NodeLockingGuide() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {CONCEPTS.map((c, i) => (
           <button key={i} onClick={() => setConceptIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: conceptIdx === i ? `linear-gradient(135deg, ${c.color}, ${c.color}cc)` : 'rgba(255,255,255,0.06)',
               color: conceptIdx === i ? '#fff' : '#94a3b8' }}>
             {c.icon} {c.title.substring(0, 15)}

@@ -50,7 +50,7 @@ export default function FieldSizeStrategy() {
             style={{ padding: '8px 4px', borderRadius: 8, border: sizeIdx === i ? `2px solid ${f.color}` : '1px solid rgba(255,255,255,0.06)',
               background: sizeIdx === i ? `${f.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{f.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: sizeIdx === i ? f.color : '#64748b' }}>{f.size.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: sizeIdx === i ? f.color : '#64748b' }}>{f.size.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -69,7 +69,7 @@ export default function FieldSizeStrategy() {
             { label: 'Edge Factor', text: field.edge, color: field.color },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.text}</div>
             </div>
           ))}

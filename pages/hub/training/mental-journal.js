@@ -224,7 +224,7 @@ export default function MentalJournalPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -265,7 +265,7 @@ export default function MentalJournalPage() {
             <div>
               {/* TRAIN-JOURNAL-A11Y-1: semantic h1 */}
               <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Mental Journal</h1>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Tilt & Trigger Tracking</div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Tilt & Trigger Tracking</div>
             </div>
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function MentalJournalPage() {
                             <span
                               key={t}
                               style={{
-                                fontSize: 10,
+                                fontSize: 12,
                                 padding: '2px 6px',
                                 background: 'rgba(239,68,68,0.1)',
                                 color: 'var(--sp-accent-red)',

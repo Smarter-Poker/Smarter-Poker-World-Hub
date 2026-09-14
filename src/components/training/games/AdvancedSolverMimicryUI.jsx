@@ -127,7 +127,7 @@ const styles = {
         background: 'rgba(168, 85, 247, 0.2)',
         border: '1px solid #a78bfa',
         borderRadius: 12,
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 800,
         color: '#a78bfa',
         letterSpacing: 0.5,
@@ -149,7 +149,7 @@ const styles = {
     },
 
     metricLabel: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 600,
         color: '#94a3b8',
         textTransform: 'uppercase',

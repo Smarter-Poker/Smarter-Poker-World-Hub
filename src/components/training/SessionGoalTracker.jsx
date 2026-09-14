@@ -73,7 +73,7 @@ function GoalCard({ goal, onUpdate }) {
           <span style={{ fontSize: 18 }}>{goal.icon}</span>
           <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{goal.label}</span>
         </div>
-        {isComplete && <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 8px', borderRadius: 4 }}>DONE</span>}
+        {isComplete && <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 8px', borderRadius: 4 }}>DONE</span>}
       </div>
 
       <ProgressBar current={goal.current} target={goal.target} color={goal.color} inverted={goal.inverted} />
@@ -168,8 +168,8 @@ function SessionGoalTracker() {
             <div style={{ height: '100%', width: `${totalPct}%`, background: totalPct >= 100 ? '#10b981' : 'linear-gradient(90deg, #8b5cf6, #a78bfa)', borderRadius: 5, transition: 'width 0.3s ease' }} />
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Current Streak: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{currentStreak} Days</span></span>
-            {activePreset && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Preset: <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{activePreset}</span></span>}
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Current Streak: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{currentStreak} Days</span></span>
+            {activePreset && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Preset: <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{activePreset}</span></span>}
           </div>
         </div>
 
@@ -180,7 +180,7 @@ function SessionGoalTracker() {
               key={p.name}
               onClick={() => applyPreset(p)}
               style={{
-                padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 background: activePreset === p.name ? '#8b5cf6' : 'rgba(255,255,255,0.06)',
                 color: activePreset === p.name ? '#fff' : 'rgba(255,255,255,0.6)',
                 border: 'none',
@@ -205,8 +205,8 @@ function SessionGoalTracker() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{s.duration}</span>
-                  {s.streak && <span style={{ fontSize: 11, color: '#f59e0b'}}>▲</span>}
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.duration}</span>
+                  {s.streak && <span style={{ fontSize: 12, color: '#f59e0b'}}>▲</span>}
                 </div>
               </div>
             ))}

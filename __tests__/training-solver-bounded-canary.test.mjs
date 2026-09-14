@@ -14,6 +14,12 @@ const WINDOWS_SETUP = fs.readFileSync('scripts/windows-setup.bat', 'utf8');
 const WINDOWS_DEPLOYMENT = fs.readFileSync('scripts/WINDOWS_DEPLOYMENT.txt', 'utf8');
 const VERCEL_IGNORE = fs.readFileSync('.vercelignore', 'utf8');
 
+test('controller-delivered solver release rejects tampering without network or Pio', () => {
+  execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['test_release_bundle.py'], {
+    cwd: 'scripts/preflop-deep', encoding: 'utf8', stdio: 'pipe',
+  });
+});
+
 
 test('Vercel packages the exact bounded-canary runbook without uploading other agent artifacts', () => {
   const lines = VERCEL_IGNORE.split(/\r?\n/).map((line) => line.trim());

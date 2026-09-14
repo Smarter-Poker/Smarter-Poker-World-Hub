@@ -64,7 +64,7 @@ function HeadsUpStrategyGuide() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {SECTIONS.map((s, i) => (
             <button key={i} onClick={() => setActiveSection(i)} style={{
-              flex: 1, padding: '6px 4px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              flex: 1, padding: '6px 4px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: activeSection === i ? s.color : 'rgba(255,255,255,0.06)',
               color: activeSection === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{s.title}</button>
@@ -79,7 +79,7 @@ function HeadsUpStrategyGuide() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{item.detail}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{item.detail}</div>
               </div>
             </div>
           ))}
@@ -87,17 +87,17 @@ function HeadsUpStrategyGuide() {
 
         {/* HU Ranges summary */}
         <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>HU Range Summary</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 8 }}>HU Range Summary</div>
           {RANGES_HU.map(r => (
             <div key={r.position} style={{ marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: r.color }}>{r.position}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{r.pct}%</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: r.color }}>{r.position}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{r.pct}%</span>
               </div>
               <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 2 }}>
                 <div style={{ height: '100%', width: `${r.pct}%`, borderRadius: 3, background: r.color }} />
               </div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>{r.hands}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{r.hands}</div>
             </div>
           ))}
         </div>

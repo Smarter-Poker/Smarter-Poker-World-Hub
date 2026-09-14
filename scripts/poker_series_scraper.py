@@ -1301,6 +1301,7 @@ STOP_REQUESTED = False
 
 def create_session():
     """Create a new StealthySession with network pre-check."""
+    global CURRENT_SESSION
     if not network_ok():
         raise ConnectionError("Network unavailable — cannot start StealthySession")
     # Self-heal a missing Playwright browser before launching a session.
@@ -1327,6 +1328,12 @@ def create_session():
     from scrapling.fetchers import StealthySession
     session = StealthySession(headless=True, solve_cloudflare=True)
     session.start()
+    # Publish at the factory boundary after a successful start. The six-hour
+    # and drift paths previously replaced only their local handle. The next
+    # fetch then adopted the CLOSED global handle, and its retry tried to
+    # start another sync Playwright driver while this new one was still live.
+    # Every caller, including a stale source fallback, must see this session.
+    CURRENT_SESSION = session
     return session
 
 def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:

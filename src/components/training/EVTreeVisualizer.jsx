@@ -188,7 +188,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
       >
         {/* Expand icon */}
         {hasChildren ? (
-          <span style={{ color: '#64748b', fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
+          <span style={{ color: '#64748b', fontSize: 12, width: 12, textAlign: 'center', flexShrink: 0 }}>
             {isExpanded ? '●' : '▶'}
           </span>
         ) : (
@@ -197,7 +197,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
 
         {/* Player badge */}
         <span style={{
-          padding: '2px 6px', borderRadius: 3, fontSize: 9, fontWeight: 700,
+          padding: '2px 6px', borderRadius: 3, fontSize: 12, fontWeight: 700,
           background: node.player === 'BTN' ? 'rgba(59,130,246,0.15)' : 'rgba(239,68,68,0.15)',
           color: node.player === 'BTN' ? '#3b82f6' : '#ef4444',
           flexShrink: 0,
@@ -220,7 +220,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
               background: getActionColor(node.action), opacity: 0.6,
             }} />
           </div>
-          <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>{node.freq}%</span>
+          <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{node.freq}%</span>
         </div>
 
         {/* EV */}
@@ -234,7 +234,7 @@ function TreeNodeView({ node, depth, expanded, toggleExpand }) {
         {/* Optimal marker */}
         {node.optimal && (
           <span style={{
-            padding: '1px 5px', borderRadius: 3, fontSize: 8, fontWeight: 700,
+            padding: '1px 5px', borderRadius: 3, fontSize: 12, fontWeight: 700,
             background: 'rgba(34,197,94,0.15)', color: '#22c55e',
           }}>
             GTO
@@ -282,9 +282,9 @@ function NodeStats({ tree }) {
         { label: 'Worst Action', value: worstAction, sub: `${worstEV.toFixed(2)}bb`, color: '#ef4444' },
       ].map((s, i) => (
         <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-          <div style={{ color: '#64748b', fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
           <div style={{ color: s.color, fontSize: 14, fontWeight: 800 }}>{s.value}</div>
-          {s.sub && <div style={{ color: s.color, fontSize: 10, opacity: 0.7 }}>{s.sub}</div>}
+          {s.sub && <div style={{ color: s.color, fontSize: 12, opacity: 0.7 }}>{s.sub}</div>}
         </div>
       ))}
     </div>
@@ -323,18 +323,18 @@ export default function EVTreeVisualizer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>EV Decision Tree</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
               {scenario.board} - Pot: {scenario.pot}bb
             </div>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={expandAll} style={{
               padding: '4px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
-              background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 10, fontWeight: 600,
+              background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>Expand All</button>
             <button onClick={collapseAll} style={{
               padding: '4px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
-              background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 10, fontWeight: 600,
+              background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>Collapse</button>
           </div>
         </div>
@@ -346,7 +346,7 @@ export default function EVTreeVisualizer() {
               padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
               background: selectedScenario === i ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
               color: selectedScenario === i ? '#3b82f6' : '#94a3b8',
-              fontSize: 11, fontWeight: 600,
+              fontSize: 12, fontWeight: 600,
               border: selectedScenario === i ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
             }}>{s.label}</button>
           ))}
@@ -365,12 +365,12 @@ export default function EVTreeVisualizer() {
           ].map((l, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-              <span style={{ color: '#64748b', fontSize: 9 }}>{l.label}</span>
+              <span style={{ color: '#64748b', fontSize: 12 }}>{l.label}</span>
             </div>
           ))}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ padding: '1px 4px', borderRadius: 2, fontSize: 7, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>GTO</span>
-            <span style={{ color: '#64748b', fontSize: 9 }}>= Optimal Path</span>
+            <span style={{ padding: '1px 4px', borderRadius: 2, fontSize: 12, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>GTO</span>
+            <span style={{ color: '#64748b', fontSize: 12 }}>= Optimal Path</span>
           </div>
         </div>
 

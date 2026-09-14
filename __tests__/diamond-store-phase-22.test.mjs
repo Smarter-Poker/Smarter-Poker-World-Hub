@@ -203,8 +203,15 @@ test('wallet and toast dynamic prose enforce the copy contract at their render b
     read('src/components/store/StoreToast.jsx'),
   ]);
 
-  assert.match(wallet, /textTransform:\s*'capitalize'/);
-  assert.match(wallet, /className=\{styles\.preserveIdentityScope\}/);
+  // The copy contract is applied at the dialog root, in the stylesheet since
+  // 2026-09-13 (the wallet's inline styles were extracted to its module): the
+  // dialog class capitalizes, and the same root carries preserveIdentityScope
+  // so identities inside it opt back out.
+  assert.match(walletCss, /\.dialog \{[^}]*text-transform:\s*capitalize;/);
+  assert.match(
+    wallet,
+    /role="dialog"[\s\S]{0,400}?className=\{`\$\{styles\.preserveIdentityScope\} \$\{styles\.wallet\} \$\{styles\.dialog\}`\}/
+  );
   assert.match(
     walletCss,
     /\.preserveIdentityScope \[data-preserve-case='true'\][\s\S]*?text-transform:\s*none !important;/

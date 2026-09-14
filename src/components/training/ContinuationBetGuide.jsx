@@ -59,7 +59,7 @@ function ContinuationBetGuide() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
           {BOARDS.map((b, i) => (
             <button key={i} onClick={() => setSelected(i)} style={{
-              padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '5px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? b.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{b.type}</button>
@@ -84,11 +84,11 @@ function ContinuationBetGuide() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>C-Bet Frequency</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>C-Bet Frequency</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: board.color }}>{data.freq}</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Bet Size</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Bet Size</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#3b82f6' }}>{data.size}</div>
           </div>
         </div>
@@ -98,7 +98,7 @@ function ContinuationBetGuide() {
         </div>
 
         <div style={{ padding: 10, background: `${board.color}09`, borderRadius: 8, border: `1px solid ${board.color}22` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: board.color, marginBottom: 2 }}>Key Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: board.color, marginBottom: 2 }}>Key Insight</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{board.tip}</div>
         </div>
       </div>

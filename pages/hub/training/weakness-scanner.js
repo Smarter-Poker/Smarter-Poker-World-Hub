@@ -105,7 +105,7 @@ export default function WeaknessScannerPage() {
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-weakness"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -145,7 +145,7 @@ export default function WeaknessScannerPage() {
           <div>
             {/* TRAIN-WEAKNESS-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Weakness Scanner</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Verified Session Analysis</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Verified Session Analysis</div>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export default function WeaknessScannerPage() {
                   border: `1px solid ${timeFilter === f.id ? 'rgba(248,113,113,0.2)' : 'transparent'}`,
                   background: timeFilter === f.id ? 'rgba(248,113,113,0.06)' : 'transparent',
                   color: timeFilter === f.id ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -203,7 +203,7 @@ export default function WeaknessScannerPage() {
                   <div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--sp-accent-red)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
@@ -231,7 +231,7 @@ export default function WeaknessScannerPage() {
                     >
                       {data.overallAcc === null ? '-' : `${Math.round(data.overallAcc)}%`}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>Overall Acc</div>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>Overall Acc</div>
                   </div>
                 </div>
                 <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sp-fg)', lineHeight: 1.6 }}>
@@ -267,7 +267,7 @@ export default function WeaknessScannerPage() {
                         <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-red)' }}>
                           {highCount}
                         </div>
-                        <div style={{ fontSize: 8, color: 'var(--sp-accent-red)', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', textTransform: 'uppercase' }}>
                           High
                         </div>
                       </div>
@@ -286,7 +286,7 @@ export default function WeaknessScannerPage() {
                         <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-accent-amber)' }}>
                           {medCount}
                         </div>
-                        <div style={{ fontSize: 8, color: 'var(--sp-accent-amber)', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-accent-amber)', textTransform: 'uppercase' }}>
                           Medium
                         </div>
                       </div>
@@ -305,7 +305,7 @@ export default function WeaknessScannerPage() {
                         <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-fg-muted)' }}>
                           {lowCount}
                         </div>
-                        <div style={{ fontSize: 8, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                           Low
                         </div>
                       </div>
@@ -345,7 +345,7 @@ export default function WeaknessScannerPage() {
               {/* Leaks List */}
               {data.leaks.length > 0 && <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -399,7 +399,7 @@ export default function WeaknessScannerPage() {
                                   : leak.sev === 'Medium'
                                     ? 'var(--sp-accent-amber)'
                                     : 'var(--sp-fg-muted)',
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               textTransform: 'uppercase',
                             }}
@@ -407,7 +407,7 @@ export default function WeaknessScannerPage() {
                             {leak.sev} Severity
                           </span>
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
                           Category: {leak.cat} • {leak.sample} Hand Sample
                         </div>
                       </div>
@@ -422,7 +422,7 @@ export default function WeaknessScannerPage() {
                         >
                           {leak.acc}%
                         </div>
-                        <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>Accuracy</div>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Accuracy</div>
                       </div>
                     </div>
 
@@ -431,7 +431,7 @@ export default function WeaknessScannerPage() {
                     >
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: 'var(--sp-accent-cyan)',
                           textTransform: 'uppercase',

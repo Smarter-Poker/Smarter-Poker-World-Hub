@@ -70,6 +70,7 @@ if not defined APPROVED_PIO_BINARY_CHECKSUM goto :missing_gateway_setting
 if not defined PIPELINE_COMMIT goto :missing_gateway_setting
 if not defined APPROVED_MANIFEST_CHECKSUM goto :missing_gateway_setting
 if not defined RANGE_DIRECTORY goto :missing_gateway_setting
+if not defined SOLVER_RELEASE_BUNDLE_DIRECTORY goto :missing_gateway_setting
 
 echo Signed worker environment is present for %SP_MACHINE_ID%.
 echo This check did not print secrets, connect to a database, or start a solver.

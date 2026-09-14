@@ -98,7 +98,7 @@ function SceneCards({
 }
 
 const CARD_SIZES = {
-    small: { width: 32, height: 46, fontSize: 11 },
+    small: { width: 32, height: 46, fontSize: 12 },
     medium: { width: 42, height: 60, fontSize: 13 },
     large: { width: 48, height: 68, fontSize: 14 },     // Board cards - fit 5 in table
     xlarge: { width: 64, height: 92, fontSize: 18 },    // Hero cards - largest

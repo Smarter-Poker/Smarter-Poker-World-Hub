@@ -142,7 +142,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                                 {/* Pattern info */}
                                 <div style={styles.patternInfo}>
                                     <div style={styles.patternName}>
-                                        <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 11 }}>{spot}</span>
+                                        <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 12 }}>{spot}</span>
                                         <span style={styles.patternMeta}>{pattern.position} · {street}</span>
                                     </div>
 
@@ -232,7 +232,7 @@ export default function MistakePatternPanel({ mistakePatterns }) {
                                     <span style={{ fontWeight: 600, color: '#94a3b8' }}>
                                         {SPOT_TYPE_LABELS[spot] || spot}
                                     </span>
-                                    <span style={{ color: '#ef4444', fontSize: 9 }}>
+                                    <span style={{ color: '#ef4444', fontSize: 12 }}>
                                         {data.count}× / {data.measured > 0 ? `-${data.evLoss.toFixed(1)} EV` : 'EV Not Measured'}
                                     </span>
                                 </div>
@@ -261,7 +261,7 @@ const styles = {
         textTransform: 'uppercase', letterSpacing: 1,
     },
     headerStats: { display: 'flex', gap: 10 },
-    headerStat: { fontSize: 10, color: '#64748b', fontWeight: 600 },
+    headerStat: { fontSize: 12, color: '#64748b', fontWeight: 600 },
     topInsight: {
         display: 'flex', gap: 8, alignItems: 'flex-start',
         padding: '10px 12px', marginBottom: 10,
@@ -270,18 +270,18 @@ const styles = {
         borderRadius: 10,
     },
     insightIcon: { fontSize: 16, lineHeight: 1 },
-    insightText: { fontSize: 11, color: '#e2e8f0', lineHeight: 1.4 },
-    insightMeta: { color: '#64748b', fontSize: 10 },
+    insightText: { fontSize: 12, color: '#e2e8f0', lineHeight: 1.4 },
+    insightMeta: { color: '#64748b', fontSize: 12 },
     patternList: { display: 'flex', flexDirection: 'column', gap: 4 },
     patternRow: {
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 10px', borderRadius: 8,
         border: '1px solid',
     },
-    rank: { width: 22, fontSize: 10, fontWeight: 'bold', textAlign: 'center' },
+    rank: { width: 22, fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
     patternInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: 3 },
     patternName: { display: 'flex', alignItems: 'center', gap: 8 },
-    patternMeta: { fontSize: 9, color: '#64748b' },
+    patternMeta: { fontSize: 12, color: '#64748b' },
     miniClsBar: {
         height: 4, borderRadius: 2, overflow: 'hidden',
         display: 'flex', background: 'rgba(255,255,255,0.05)',
@@ -291,10 +291,10 @@ const styles = {
         display: 'flex', flexDirection: 'column', gap: 1,
     },
     evLossValue: {
-        fontSize: 9, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
+        fontSize: 12, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
     severityBadge: {
-        fontSize: 8, fontWeight: 700,
+        fontSize: 12, fontWeight: 700,
         padding: '2px 6px', borderRadius: 4,
         border: '1px solid', letterSpacing: 0.5,
     },
@@ -303,7 +303,7 @@ const styles = {
         padding: '6px', borderRadius: 6,
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.06)',
-        color: '#64748b', fontSize: 10, fontWeight: 600,
+        color: '#64748b', fontSize: 12, fontWeight: 600,
         cursor: 'pointer', transition: 'all 0.15s',
     },
     spotSummary: {
@@ -315,6 +315,6 @@ const styles = {
         padding: '5px 10px', borderRadius: 6,
         background: 'rgba(0,0,0,0.15)',
         border: '1px solid rgba(255,255,255,0.04)',
-        fontSize: 10,
+        fontSize: 12,
     },
 };

@@ -97,6 +97,33 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
         run: npm ci --ignore-scripts
 
+      - name: Operational Alert Delivery Contracts
+        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
+
+      - name: Messenger Club And Invoice Separation
+        run: node --test __tests__/messenger-workspace.test.mjs __tests__/messenger-accounting-ui.test.mjs
+
+      - name: Local Scraper Runtime Integrity And Delivery
+        run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
+
+      - name: Series Scraper Session And Data Contracts
+        run: python3 -m unittest discover -s scripts -p test_poker_series_scraper.py -v
+
+      - name: Series Enrichment Startup Contracts
+        run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+
+      - name: Series Date Provenance And Existing Row Receipts
+        run: python3 -m unittest discover -s scripts -p test_series_date_provenance.py -v
+
+      - name: Series Discovery Source Handoff Contracts
+        run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
+
+      - name: Video Scraper Failure And Receipt Contracts
+        run: python3 -m unittest discover -s scripts -p test_video_library_scraper.py -v
+
+      - name: Stats Maintenance Reports Its Actual Outcome Over HTTP
+        run: node --experimental-vm-modules --test __tests__/club-stats-maintenance-http.test.mjs __tests__/club-stats-maintenance-runtime-budget.test.mjs
+
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
 
@@ -159,6 +186,17 @@ jobs:
 
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
+
+      - name: Engine Alert Receipt PostgreSQL Contracts
+        run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
+      - name: One Reaction Invokes One Notification Handler
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+      - name: Integrity Hand Search PostgreSQL Continuation
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-integrity-hands-continuation.py
+      - name: Operator Approval PostgreSQL Concurrency
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-approval-concurrency.py
+      - name: Fleet policy and exact audit commit together
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-fleet-policy-audit.py
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
@@ -949,6 +987,8 @@ jobs:
           node --experimental-vm-modules --test \
             __tests__/_test-guards-exist.test.mjs \
             __tests__/auth-routes-exist.test.mjs \
+            __tests__/gdpr-financial-refusal.test.mjs \
+            tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
             __tests__/sentry-coverage.test.mjs \

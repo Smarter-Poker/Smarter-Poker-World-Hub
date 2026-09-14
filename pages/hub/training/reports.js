@@ -64,10 +64,10 @@ function MetricCard({ label, value, detail, accent = '#45e6ff' }) {
       <div style={{ color: accent, fontSize: 22, fontWeight: 900, fontFamily: "var(--font-orbitron), 'Orbitron', monospace", overflowWrap: 'anywhere' }}>
         {value}
       </div>
-      <div style={{ color: 'var(--sp-fg)', fontSize: 10, fontWeight: 800, letterSpacing: 1.1, textTransform: 'uppercase', marginTop: 5 }}>
+      <div style={{ color: 'var(--sp-fg)', fontSize: 12, fontWeight: 800, letterSpacing: 1.1, textTransform: 'uppercase', marginTop: 5 }}>
         {label}
       </div>
-      {detail && <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, marginTop: 4 }}>{detail}</div>}
+      {detail && <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 4 }}>{detail}</div>}
     </div>
   );
 }
@@ -101,7 +101,7 @@ function ClassificationStrip({ classifications = {} }) {
         {CLASSIFICATIONS.map(([key, label, color]) => (
           <div key={key} style={{ borderLeft: `2px solid ${color}`, paddingLeft: 8 }}>
             <div style={{ color: 'var(--sp-fg)', fontWeight: 800, fontSize: 13 }}>{Number(classifications[key]) || 0}</div>
-            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9 }}>{label}</div>
+            <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12 }}>{label}</div>
           </div>
         ))}
       </div>
@@ -172,7 +172,7 @@ export default function VerifiedTrainingReports() {
         <title>Verified Training Reports | Smarter.Poker</title>
         <meta name="description" content="Review sealed Training results and measured solver evidence without inferred or simulated player statistics." />
       </Head>
-      <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', paddingBottom: 76, background: 'radial-gradient(circle at 50% -10%, rgba(0,155,255,.18), transparent 34%), linear-gradient(180deg, #071018, #03070b 64%, #071019)', color: 'var(--sp-fg)' }}>
+      <div className="sp-training-intelligence sp-training-intelligence--reports" style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', paddingBottom: 76, background: 'radial-gradient(circle at 50% -10%, rgba(0,155,255,.18), transparent 34%), linear-gradient(180deg, #071018, #03070b 64%, #071019)', color: 'var(--sp-fg)' }}>
         <header className="sp-intelligence-header" style={{ padding: '22px clamp(16px, 4vw, 40px) 18px', borderBottom: '1px solid rgba(91,221,255,.32)', background: 'linear-gradient(180deg, rgba(28,44,58,.96), rgba(4,10,15,.96))', boxShadow: '0 8px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.16)' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 14 }}>
             <button type="button" onClick={() => router.push('/hub/training')} style={{ ...panelStyle(), display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--sp-fg)', padding: '9px 13px', cursor: 'pointer', fontWeight: 800 }} aria-label="Return To Training Hub">
@@ -180,7 +180,7 @@ export default function VerifiedTrainingReports() {
               <span>Training</span>
             </button>
             <div>
-              <div style={{ color: '#75e9ff', fontSize: 9, letterSpacing: 2.1, textTransform: 'uppercase', fontWeight: 800 }}>Sealed Attempt Intelligence</div>
+              <div style={{ color: '#75e9ff', fontSize: 12, letterSpacing: 2.1, textTransform: 'uppercase', fontWeight: 800 }}>Sealed Attempt Intelligence</div>
               <h1 style={{ margin: '3px 0 0', fontSize: 'clamp(21px, 4vw, 34px)', fontFamily: "var(--font-orbitron), 'Orbitron', monospace", color: '#f4fbff', textShadow: '0 2px 0 #000, 0 0 20px rgba(69,230,255,.35)' }}>
                 Verified Training Reports
               </h1>
@@ -195,7 +195,7 @@ export default function VerifiedTrainingReports() {
                 {option.label}
               </button>
             ))}
-            <label style={{ marginLeft: 'auto', color: 'var(--sp-fg-muted)', fontSize: 10, fontWeight: 800 }}>
+            <label style={{ marginLeft: 'auto', color: 'var(--sp-fg-muted)', fontSize: 12, fontWeight: 800 }}>
               Training Game{' '}
               <select value={gameId} onChange={(event) => setGameId(event.target.value)} style={{ marginLeft: 6, color: '#f4fbff', background: '#071018', border: '1px solid rgba(69,230,255,.35)', borderRadius: 0, padding: '8px 10px' }}>
                 <option value="">All Games</option>
@@ -224,7 +224,7 @@ export default function VerifiedTrainingReports() {
                 <MetricCard label="Measured EV Loss" value={formatEv(report.totalMeasuredEvLoss)} detail={`${report.measuredEvDecisions || 0} Solver-Measured Decisions`} accent="#ffca5c" />
               </section>
 
-              <aside style={{ ...panelStyle('rgba(255,202,92,.38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 11, lineHeight: 1.55 }}>
+              <aside style={{ ...panelStyle('rgba(255,202,92,.38)'), padding: 14, marginBottom: 14, color: 'var(--sp-fg-muted)', fontSize: 12, lineHeight: 1.55 }}>
                 <strong style={{ color: '#ffdb83' }}>Evidence Boundary:</strong>{' '}
                 Accuracy And Classifications Come From Completed, Non-Practice Server Attempts. EV Appears Only For Solver-Verified Decisions With Measured Loss. Frequency-Based VPIP, PFR, Three-Bet, And “GTO Proximity” Scores Are Not Inferred From Quiz Accuracy.
               </aside>
@@ -234,7 +234,7 @@ export default function VerifiedTrainingReports() {
               <section style={{ ...panelStyle(), padding: 16, marginTop: 14 }} aria-labelledby="position-performance-title">
                 <h2 id="position-performance-title" style={{ margin: '0 0 13px', fontSize: 13, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>Performance By Position</h2>
                 {orderedPositions.length === 0 ? (
-                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 11 }}>No Position-Tagged Decisions Are Available.</div>
+                  <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12 }}>No Position-Tagged Decisions Are Available.</div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 9 }}>
                     {orderedPositions.map(([position, data]) => (
@@ -244,7 +244,7 @@ export default function VerifiedTrainingReports() {
                           <span style={{ color: 'var(--sp-fg)', fontWeight: 900 }}>{formatMetric(data.accuracy, '%')}</span>
                         </div>
                         <AccuracyBar value={data.accuracy} />
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8, color: 'var(--sp-fg-dim)', fontSize: 9 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 8, color: 'var(--sp-fg-dim)', fontSize: 12 }}>
                           <span>{data.correct}/{data.total} Correct</span>
                           <span>{data.measuredEvDecisions > 0 ? `${formatEv(data.avgMeasuredEvLoss)} Avg` : 'EV Unmeasured'}</span>
                         </div>
@@ -261,10 +261,10 @@ export default function VerifiedTrainingReports() {
                     {formatRows.map((format) => (
                       <div key={format.gameId} style={{ display: 'grid', gridTemplateColumns: 'minmax(130px, 1.5fr) repeat(4, minmax(64px, .7fr))', gap: 9, alignItems: 'center', padding: '10px 11px', border: '1px solid rgba(255,255,255,.08)', overflowX: 'auto' }}>
                         <strong style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{format.gameName}</strong>
-                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 10 }}>{format.sessions} Sessions</span>
+                        <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12 }}>{format.sessions} Sessions</span>
                         <span style={{ color: '#3ce78b', fontWeight: 800 }}>{formatMetric(format.accuracy, '%')}</span>
                         <span style={{ color: '#c593ff', fontWeight: 800 }}>{formatMetric(format.verifiedScoreAverage)}</span>
-                        <span style={{ color: '#ffca5c', fontSize: 10 }}>{format.measuredEvDecisions > 0 ? formatEv(format.avgMeasuredEvLoss) : 'EV Unmeasured'}</span>
+                        <span style={{ color: '#ffca5c', fontSize: 12 }}>{format.measuredEvDecisions > 0 ? formatEv(format.avgMeasuredEvLoss) : 'EV Unmeasured'}</span>
                       </div>
                     ))}
                   </div>
@@ -276,7 +276,7 @@ export default function VerifiedTrainingReports() {
                   <h2 id="daily-performance-title" style={{ margin: '0 0 13px', fontSize: 13, fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}>Recent Daily Evidence</h2>
                   <div style={{ display: 'grid', gap: 7 }}>
                     {dailyRows.map((day) => (
-                      <div key={day.date} style={{ display: 'grid', gridTemplateColumns: '96px 1fr auto auto', gap: 10, alignItems: 'center', color: 'var(--sp-fg-muted)', fontSize: 10 }}>
+                      <div key={day.date} style={{ display: 'grid', gridTemplateColumns: '96px 1fr auto auto', gap: 10, alignItems: 'center', color: 'var(--sp-fg-muted)', fontSize: 12 }}>
                         <span>{day.date}</span>
                         <AccuracyBar value={day.accuracy} color="#3ce78b" />
                         <strong style={{ color: 'var(--sp-fg)' }}>{formatMetric(day.accuracy, '%')}</strong>
