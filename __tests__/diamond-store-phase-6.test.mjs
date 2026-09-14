@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const STORE = read('pages/hub/diamond-store.js');
 const MERCH = read('src/components/store/MerchStore.jsx');
+const MERCH_CSS = read('src/components/store/MerchStore.module.css');
 const DIALOG = read('src/components/store/MerchPurchaseDialog.jsx');
 const DIALOG_CSS = read('src/components/store/MerchPurchaseDialog.module.css');
 const STATUS_PANEL = read('src/components/diamond-store/CheckoutStatusPanel.jsx');
@@ -77,7 +78,11 @@ test('mobile purchase rails are labelled, focusable, and keyboard scrollable', (
 });
 
 test('VIP headings no longer skip level two and store corners stay sharp without touching the header', () => {
-  assert.match(STORE, /<h2 style=\{styles\.benefitsTitle\}>Everything Included With VIP<\/h2>/);
+  assert.match(
+    STORE,
+    /<h2 style=\{styles\.benefitsTitle\}>[\s\S]{0,100}Everything Included With[\s\S]{0,100}<\/h2>/
+  );
+  assert.match(STORE, /lifetimeSelected \? 'Lifetime VIP' : 'VIP'/);
   assert.doesNotMatch(STORE, /<h3 style=\{styles\.benefitsTitle\}>/);
   assert.match(SHELL_CSS, /\.root :is\(article, button, a\[href\]/);
   assert.match(SHELL_CSS, /border-radius:\s*0 !important/);
@@ -89,12 +94,13 @@ test('wide merchandise purchase controls preserve an accessibility-safe height',
     MERCH.indexOf('{/* Purchase buttons */}'),
     MERCH.indexOf('{/* Honest, specific reason instead of a silently dead button */}')
   );
-  assert.equal((purchaseArea.match(/minHeight:\s*46/g) || []).length, 2);
+  assert.equal((purchaseArea.match(/merchStyles\.actionControl/g) || []).length, 4);
+  assert.match(MERCH_CSS, /\.actionControl\s*\{[\s\S]*?min-height:\s*48px;/);
   const fallbackArea = MERCH.slice(
     MERCH.indexOf('{usingFallback && loadError && ('),
     MERCH.indexOf('{loading && (')
   );
-  assert.match(fallbackArea, /minHeight:\s*46/);
+  assert.match(fallbackArea, /merchStyles\.actionControl/);
 });
 
 test('authenticated Club Shop controls preserve the 44-pixel target at every viewport', () => {
@@ -143,7 +149,9 @@ test('physical merch and Club Shop items expose both card and diamond purchase p
   assert.match(STORE, /handleClubCardCheckout/);
   assert.match(STORE, /redemptionIntent:\s*\{[\s\S]{0,80}?kind: 'club_shop'/);
   assert.doesNotMatch(STORE, /smarter_poker_pending_club_card_purchase/);
-  assert.match(STORE, /<CreditCard size=\{12\}/);
+  assert.match(STORE, /'Buy With Diamonds'/);
+  assert.match(STORE, /`Card \$\$\{cardCharge\.toFixed\(2\)\}`/);
+  assert.doesNotMatch(STORE, /<CreditCard\b|<Gem\b/);
 });
 
 test('Club Shop currency, authoritative availability, refresh, and atomic purchase match the API contract', () => {

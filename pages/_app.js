@@ -35,7 +35,15 @@ import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-machined.css';
 import '../src/styles/worlds/poker-near-me-command-surfaces.css';
-import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
+import {
+  Orbitron,
+  Inter,
+  Plus_Jakarta_Sans,
+  Space_Grotesk,
+  Rajdhani,
+  Roboto_Condensed,
+  IBM_Plex_Mono,
+} from 'next/font/google';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -73,6 +81,22 @@ const rajdhani = Rajdhani({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-rajdhani',
+  display: 'swap',
+  preload: false,
+});
+
+const robotoCondensed = Roboto_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-roboto-condensed',
+  display: 'swap',
+  preload: false,
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-ibm-plex-mono',
   display: 'swap',
   preload: false,
 });
@@ -986,7 +1010,7 @@ export default function App({ Component, pageProps }) {
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
       <div
-        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
+        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${robotoCondensed.variable} ${ibmPlexMono.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
         style={{ minHeight: '100vh' }}
       >
         <>

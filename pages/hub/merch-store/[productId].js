@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ShoppingCart } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
@@ -221,9 +220,7 @@ export default function MerchProductDetail({ product }) {
       status={inventoryStatus}
       actions={
         <>
-          <Link href="#purchase-console">
-            <ShoppingCart size={16} aria-hidden="true" /> Open Purchase Console
-          </Link>
+          <Link href="#purchase-console">Open Purchase Console</Link>
           <Link href="/hub/diamond-store/cart">Open Shared Cart</Link>
         </>
       }

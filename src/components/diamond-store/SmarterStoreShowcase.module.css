@@ -8,49 +8,56 @@
   padding: 24px 26px 14px;
   overflow-x: clip;
   color: #eef8ff;
-  font-family:
-    Inter,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   text-transform: capitalize;
 }
 .tabs {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
   margin-bottom: 26px;
-  border: 1px solid #718b9e;
-  background: linear-gradient(180deg, #2b3944 0, #060b10 18%, #020407 76%, #19242c 100%);
-  box-shadow:
-    inset 0 1px 0 #fff8,
-    inset 0 -3px 5px #000,
-    0 8px 20px #000;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: none;
 }
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .tab {
   display: grid;
+  min-width: 0;
+  min-height: 48px;
   place-items: center;
-  min-height: 54px;
+  padding: 8px 12px;
   border: 0;
-  border-right: 1px solid #293c49;
-  background: transparent;
-  color: #aebdc7;
-  font-weight: 700;
-  cursor: pointer;
+  color: #e4e7ec;
+  background-color: transparent;
+  background-image: url('/images/marketplace-console-v1/navigation/nav-shell.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  font:
+    800 13px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.03em;
   text-align: center;
   text-decoration: none;
-  text-transform: capitalize;
 }
-.tab:last-child {
-  border-right: 0;
-}
-.tab:hover,
+
 .activeTab {
-  color: #fff;
-  background: linear-gradient(180deg, #3b5364, #0d1b26 24%, #06101a 76%, #1f3544);
-  box-shadow:
-    inset 0 2px 0 #d8fbff,
-    inset 0 -3px 0 #078ed6,
-    0 0 18px #008cff55;
+  color: #45adff;
 }
+
+.tab:active {
+  opacity: 0.82;
+}
+
 .tab:focus-visible,
 .packageCard button:focus-visible {
   outline: 2px solid #9bf4ff;
@@ -123,7 +130,7 @@
 }
 .heroCopy span {
   font:
-    500 11px 'IBM Plex Mono',
+    500 11px var(--font-ibm-plex-mono), 'IBM Plex Mono',
     monospace;
   letter-spacing: 0.2em;
   color: #a9bbc7;
@@ -131,15 +138,17 @@
 .heroCopy h1 {
   margin: 14px 0 22px;
   font:
-    400 clamp(42px, 5vw, 76px)/1.05 Michroma,
-    Rajdhani,
+    800 clamp(42px, 5vw, 76px)/1.05 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
     sans-serif;
-  letter-spacing: -0.05em;
-  background: linear-gradient(180deg, #fff, #9dafba 40%, #fff 50%, #607686 63%, #effcff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 4px 2px #000);
+  color: #e8f0f5;
+  letter-spacing: -0.035em;
+  text-shadow:
+    0 2px 0 #15242e,
+    0 4px 2px #000,
+    0 0 18px rgba(99, 231, 255, 0.18);
 }
 .heroCopy p {
   max-width: 560px;
@@ -177,13 +186,15 @@
 .sectionBar h2 {
   margin: 0;
   font:
-    400 22px Michroma,
-    Rajdhani,
+    800 22px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
     sans-serif;
 }
 .sectionBar span {
   font:
-    500 10px 'IBM Plex Mono',
+    500 10px var(--font-ibm-plex-mono), 'IBM Plex Mono',
     monospace;
   letter-spacing: 0.12em;
   color: #a9b9c4;
@@ -205,9 +216,13 @@
   padding: 0 18px;
   border: 1px solid #506b7c;
   background: linear-gradient(180deg, #22343f, #050a0f 28%, #121f27);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 -3px 5px #000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -3px 5px #000;
   color: #afc2ce;
-  font: 600 10px 'IBM Plex Mono', monospace;
+  font:
+    600 10px var(--font-ibm-plex-mono), 'IBM Plex Mono',
+    monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -233,22 +248,32 @@
 }
 .starterPack span {
   color: #9fb2bf;
-  font: 600 9px 'IBM Plex Mono', monospace;
+  font:
+    600 9px var(--font-ibm-plex-mono), 'IBM Plex Mono',
+    monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .starterPack strong {
   color: #f2fbff;
-  font: 500 15px Michroma, Rajdhani, sans-serif;
+  font:
+    800 15px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
 }
 .starterPack button {
   min-width: 96px;
   min-height: 46px;
-  border: 1px solid #a9eaf7;
-  background: linear-gradient(180deg, #728d9e, #122635 14%, #06111a 78%, #5f7e91);
-  box-shadow: inset 0 1px 0 #fff, inset 0 -3px 5px #000, 0 0 10px #00aaff3d;
+  border: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
+    center / 100% 100% no-repeat;
+  box-shadow: none;
   color: #fff;
-  font: 800 12px 'IBM Plex Mono', monospace;
+  font:
+    800 12px var(--font-ibm-plex-mono), 'IBM Plex Mono',
+    monospace;
   cursor: pointer;
 }
 .starterPack button:disabled {
@@ -326,7 +351,7 @@
   justify-content: space-between;
   color: #c9d8e1;
   font:
-    500 10px 'IBM Plex Mono',
+    500 10px var(--font-ibm-plex-mono), 'IBM Plex Mono',
     monospace;
   letter-spacing: 0.12em;
 }
@@ -337,21 +362,23 @@
 .packageValue h3 {
   margin: 0;
   font:
-    400 clamp(32px, 3vw, 46px) Michroma,
-    Rajdhani,
+    800 clamp(32px, 3vw, 46px) var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
     sans-serif;
-  background: linear-gradient(180deg, #fff, #90a5b4 40%, #fff 50%, #657c8c 64%, #e8faff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 3px 1px #000);
+  color: #edf4f7;
+  text-shadow:
+    0 2px 0 #14232d,
+    0 3px 1px #000,
+    0 0 12px rgba(99, 231, 255, 0.16);
 }
 .packageUnit {
   display: block;
   margin-top: 2px;
   color: #c5d4dd;
   font:
-    600 11px 'IBM Plex Mono',
+    600 11px var(--font-ibm-plex-mono), 'IBM Plex Mono',
     monospace;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -372,50 +399,20 @@
   border-top: 1px solid #61798a;
 }
 .packageCard footer strong {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-ibm-plex-mono), 'IBM Plex Mono', monospace;
 }
 .packageCard button {
   min-height: 46px;
   padding: 0 20px;
-  border: 1px solid #d8f6ff;
+  border: 0;
   border-radius: 0;
   color: #fff;
-  background: linear-gradient(
-    180deg,
-    #7e9aac,
-    #253c4d 9%,
-    #0b1722 48%,
-    #1f3d50 51%,
-    #0b1721 88%,
-    #68869a
-  );
-  box-shadow:
-    inset 0 1px 0 #fff,
-    inset 0 -3px 5px #000,
-    0 4px 8px #000,
-    0 0 9px #009dff55;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
+    center / 100% 100% no-repeat;
+  box-shadow: none;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
   font-weight: 800;
   cursor: pointer;
-  transition:
-    transform 120ms ease,
-    box-shadow 120ms ease,
-    filter 120ms ease;
-}
-.packageCard button:hover:not(:disabled) {
-  background: linear-gradient(
-    180deg,
-    #a5f2ff,
-    #197fb7 12%,
-    #063b60 48%,
-    #0499de 52%,
-    #07334d 88%,
-    #9cefff
-  );
-  box-shadow:
-    inset 0 1px 0 #fff,
-    inset 0 -3px 6px #001529,
-    0 4px 9px #000,
-    0 0 18px #00bfff;
 }
 .packageCard button:disabled {
   cursor: wait;
@@ -458,45 +455,24 @@
     padding: 10px 10px calc(20px + env(safe-area-inset-bottom));
   }
   .tabs {
-    position: relative;
-    overflow-x: auto;
-    display: flex;
-    gap: 0;
-    margin: 0 -10px 14px;
-    padding: 0 10px 8px;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    grid-auto-columns: minmax(166px, 46vw);
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    gap: 8px;
+    margin-right: -10px;
+    margin-left: -10px;
+    padding: 4px 10px 14px;
     scroll-padding-inline: 10px;
     scroll-snap-type: x mandatory;
-    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
-  .tabs::-webkit-scrollbar,
+  .tab {
+    min-height: 48px;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
   .packageGrid::-webkit-scrollbar {
     display: none;
-  }
-  .tab {
-    flex: 0 0 auto;
-    min-width: 126px;
-    min-height: 48px;
-    padding: 0 15px;
-    border-top: 1px solid #718b9e;
-    border-bottom: 1px solid #718b9e;
-    border-right: 1px solid #293c49;
-    background: linear-gradient(180deg, #263641, #060b10 23%, #020407 76%, #18232b);
-    box-shadow: inset 0 1px 0 #ffffff50;
-    font-size: 12px;
-    scroll-snap-align: center;
-  }
-  .tab:first-child {
-    border-left: 1px solid #718b9e;
-  }
-  .activeTab {
-    box-shadow:
-      inset 0 2px 0 #d8fbff,
-      inset 0 -3px 0 #078ed6,
-      0 0 14px #008cff55;
   }
   .hero {
     min-height: 558px;
@@ -664,7 +640,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tabs,
   .packageGrid {
     scroll-behavior: auto;
   }

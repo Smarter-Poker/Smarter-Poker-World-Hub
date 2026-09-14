@@ -27,12 +27,20 @@
   outline: 2px solid #9bf4ff;
   outline-offset: 4px;
 }
-.complete { --seal: #75eaff; }
+.complete {
+  --seal: #75eaff;
+}
 .pending,
-.verifying { --seal: #8defff; }
-.canceled { --seal: #b8c4cc; }
+.verifying {
+  --seal: #8defff;
+}
+.canceled {
+  --seal: #b8c4cc;
+}
 .review,
-.failed { --seal: #ff9a9f; }
+.failed {
+  --seal: #ff9a9f;
+}
 
 .seal {
   position: relative;
@@ -48,6 +56,15 @@
     inset 0 -5px 8px #000,
     0 0 18px color-mix(in srgb, var(--seal) 38%, transparent);
   color: var(--seal);
+  font:
+    800 10px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .copy {
@@ -56,10 +73,14 @@
   min-width: 0;
 }
 
-.copy > span,
-.receipt dt {
+.copy > span {
   color: #afc5d3;
-  font: 600 11px 'IBM Plex Mono', monospace;
+  font:
+    700 11px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -67,7 +88,12 @@
 .copy h2 {
   margin: 5px 0 7px;
   color: #f5fcff;
-  font: 500 clamp(18px, 2.1vw, 26px) Michroma, Rajdhani, sans-serif;
+  font:
+    700 clamp(18px, 2.1vw, 26px) var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   letter-spacing: -0.03em;
 }
 
@@ -77,6 +103,18 @@
   color: #c6d6df;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.receipt dt {
+  color: #afc5d3;
+  font:
+    700 10px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .receipt {
@@ -96,7 +134,9 @@
 .receipt dd {
   margin: 3px 0 0;
   color: var(--seal);
-  font: 700 12px 'IBM Plex Mono', monospace;
+  font:
+    700 12px var(--font-ibm-plex-mono), 'IBM Plex Mono',
+    monospace;
   text-transform: capitalize;
 }
 
@@ -115,7 +155,12 @@
   justify-content: center;
   padding: 0 16px;
   border-radius: 0;
-  font: 700 11px 'IBM Plex Mono', monospace;
+  font:
+    800 12px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   letter-spacing: 0.04em;
   text-decoration: none;
   text-transform: capitalize;
@@ -124,14 +169,18 @@
 
 .primaryAction {
   border: 1px solid #8defff;
-  background: linear-gradient(180deg, #1b7692, #04121b 34%, #0d4256);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -4px 7px #000;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-primary.png') center /
+    100% 100% no-repeat;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -4px 7px #000;
   color: #f3fcff;
 }
 
 .secondaryAction {
   border: 1px solid #718b9e;
-  background: linear-gradient(180deg, #324754, #08111a 28%, #15242d);
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
   color: #e7f7ff;
 }
 
@@ -146,28 +195,28 @@
   z-index: 2;
   display: grid;
   place-items: center;
-  width: 44px;
+  min-width: 70px;
   height: 44px;
   border: 1px solid #718b9e;
   border-radius: 0;
-  background: linear-gradient(180deg, #324754, #08111a 28%, #15242d);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -3px 4px #000;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 4px #000;
   color: #e7f7ff;
+  font:
+    800 11px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   cursor: pointer;
 }
 
 .dismiss:focus-visible {
   outline: 2px solid #9bf4ff;
   outline-offset: 3px;
-}
-
-.watermark {
-  position: absolute;
-  right: 72px;
-  color: var(--seal);
-  opacity: 0.055;
-  transform: rotate(-8deg);
-  pointer-events: none;
 }
 
 @media (max-width: 640px) {
@@ -197,9 +246,5 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-  }
-
-  .watermark {
-    right: 34px;
   }
 }

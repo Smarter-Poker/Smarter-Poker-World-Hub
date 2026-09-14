@@ -82,3 +82,22 @@ test('phase 12 surfaces preserve the cyan steel palette and accessible controls'
   assert.match(sources, /:focus-visible/);
   assert.match(sources, /prefers-reduced-motion/);
 });
+
+test('VIP and reward console controls use the approved painted shells without Lucide glyphs', () => {
+  const compare = read('pages/hub/vip-membership/compare.js');
+  const manage = read('pages/hub/vip-membership/manage.js');
+  const rewards = read('src/components/store/RewardTelemetryConsole.jsx');
+  const controlStyles = [
+    read('pages/hub/vip-membership/compare.module.css'),
+    read('src/components/store/VipMembershipConsole.module.css'),
+    read('src/components/store/RewardTelemetryConsole.module.css'),
+  ].join('\n');
+
+  assert.doesNotMatch(`${compare}\n${manage}\n${rewards}`, /lucide-react|<(?:Activity|CalendarClock|CreditCard|Crown|Gauge|Gem|RefreshCw|ShieldCheck|Sparkles|WalletCards|X)\b/);
+  assert.match(compare, /compare\.module\.css/);
+  assert.match(controlStyles, /shark-panel\/button-primary\.png/);
+  assert.match(controlStyles, /shark-panel\/button-secondary\.png/);
+  assert.match(controlStyles, /navigation\/nav-shell\.png/);
+  assert.match(controlStyles, /Roboto Condensed/);
+  assert.doesNotMatch(controlStyles, /Rajdhani|border-radius|\bgreen\b|\bpurple\b/i);
+});

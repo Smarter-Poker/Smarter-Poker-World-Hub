@@ -44,6 +44,30 @@ test('Club Shop admin mutations refresh both operator and shopper views without 
   assert.match(api, /error reporting failed/);
 });
 
+test('both Club Shop admin APIs enforce the one platform-owned all-throwables offer', async () => {
+  const [rules, manageShop, shopItems] = await Promise.all([
+    read('src/lib/club-arena/shopItemRules.js'),
+    read('pages/api/club-arena/manage-shop.js'),
+    read('pages/api/club-arena/shop-items.js'),
+  ]);
+
+  assert.match(rules, /ALL_THROWABLES_NAME\s*=\s*'All Throwables Pack \(10\)'/);
+  assert.match(rules, /ALL_THROWABLES_GRANT_SPEC\s*=\s*Object\.freeze\(\{ type: 'throwable', qty: 10 \}\)/);
+  assert.match(rules, /function enforceAllThrowablesMutation/);
+  assert.match(rules, /action === 'create' && requestedAsThrowable/);
+  assert.match(rules, /action === 'toggle' \|\| action === 'delete'/);
+
+  for (const route of [manageShop, shopItems]) {
+    assert.match(route, /enforceAllThrowablesMutation/);
+    assert.match(route, /enforceAllThrowablesMutation\('create', req\.body\)/);
+    assert.match(route, /enforceAllThrowablesMutation\('update', req\.body, existingItem\)/);
+    assert.match(route, /enforceAllThrowablesMutation\('toggle', req\.body,/);
+    assert.match(route, /enforceAllThrowablesMutation\('delete', req\.body,/);
+    assert.match(route, /code: throwableGuard\.code/);
+    assert.match(route, /select\('name, description, category, item_type, grant_spec, image_url, is_active, stackable, per_user_limit, price, sale_price'\)/);
+  }
+});
+
 test('Phase 20 is part of the compact Vercel marketplace release contract', async () => {
   const [pkg, ignore, e2e] = await Promise.all([
     read('package.json'),

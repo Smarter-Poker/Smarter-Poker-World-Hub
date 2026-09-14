@@ -9,20 +9,27 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 const showcase = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const page = read('pages/hub/diamond-store.js');
 const cards = read('src/components/store/StoreCards.js');
+const consoleControls = read('src/components/marketplace-console/MarketplaceConsole.jsx');
 const merch = read('src/components/store/MerchStore.jsx');
 const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
 
 test('announces active store navigation and complete package purchase names', () => {
-  assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(showcase, /import Link from 'next\/link'/);
+  assert.match(showcase, /className=\{`\$\{styles\.tab\}/);
+  assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
+  assert.match(showcase, /href=\{TAB_ROUTES\[id\]\}/);
+  assert.doesNotMatch(showcase, /MarketplaceConsoleSelectorGrid|MARKETPLACE_SELECTOR_ART/);
   assert.doesNotMatch(showcase, /target=["']_blank["']|Opens In New Tab/);
+  assert.doesNotMatch(consoleControls, /target=["']_blank["']|window\.open/);
   assert.match(showcase, /className=\{styles\.packageUnit\}>Diamonds/);
   assert.match(showcase, /Diamonds For \$\$\{Number\(pkg\.price/);
 });
 
 test('makes VIP plan selection and checkout native keyboard controls', () => {
-  assert.match(cards, /export function VIPCard[\s\S]*<button/);
+  assert.match(cards, /export function VIPCard[\s\S]*?<button/);
   assert.match(cards, /aria-pressed=\{isSelected\}/);
+  assert.match(cards, /src="\/images\/vip-card\.webp"/);
+  assert.doesNotMatch(cards, /MarketplaceConsoleVipPlanCard|<Gem[^>]*vip/i);
   assert.doesNotMatch(
     cards,
     /export function VIPCard[\s\S]*?<div\s+onClick=\{\(\) => onSelect\(plan\.id\)\}/

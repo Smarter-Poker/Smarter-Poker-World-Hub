@@ -1,0 +1,72 @@
+.cartTrigger:focus-visible,
+.closeButton:focus-visible,
+.quantityButton:focus-visible,
+.primaryAction:focus-visible,
+.secondaryAction:focus-visible,
+.removeLabel:focus-visible {
+  outline: 2px solid #8defff;
+  outline-offset: 3px;
+}
+
+.drawerTitle {
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.closeButton {
+  min-width: 64px !important;
+  min-height: 40px !important;
+  border: 1px solid #718b9e !important;
+  border-radius: 0 !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat !important;
+  color: #e7f7ff !important;
+  font:
+    800 11px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.removeLabel {
+  color: #ff9a9f;
+  font:
+    800 11px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.quantityButton,
+.primaryAction,
+.secondaryAction {
+  border-radius: 0 !important;
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.primaryAction,
+.secondaryAction {
+  border: 1px solid #8defff !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-primary.png') center /
+    100% 100% no-repeat !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -4px 7px #001529;
+}
+
+.secondaryAction {
+  border-color: #c8a65b !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat !important;
+  color: #fff7dd !important;
+}
