@@ -6,6 +6,7 @@ Aggressively sweeps 164 "empty shell" series without start_date/end_date.
 from __future__ import annotations
 import urllib.request
 import json
+import os
 import time
 import re
 import sys
@@ -13,15 +14,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from dateutil.parser import parse as dparse
 
-try:
-    from scrapling.fetchers import StealthySession
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'scrapling', 'camoufox', '-q'])
-    from scrapling.fetchers import StealthySession
+from scrapling.fetchers import StealthySession
 
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+if not SUPABASE_KEY:
+    raise SystemExit("SUPABASE_SERVICE_ROLE_KEY is required")
 
 SB_HEADERS = {
     'apikey':        SUPABASE_KEY,
