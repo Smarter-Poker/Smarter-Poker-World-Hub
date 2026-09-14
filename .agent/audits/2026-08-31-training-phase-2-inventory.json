@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 338,
+    "dependencyFiles": 339,
     "componentFiles": 50,
     "hookFiles": 14,
     "ctas": 343,
@@ -4649,6 +4649,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -4827,7 +4828,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -5879,6 +5881,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -6016,7 +6019,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
@@ -6265,6 +6269,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -6411,7 +6416,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs"
@@ -6501,6 +6507,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -6680,7 +6687,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -6786,6 +6794,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -6911,7 +6920,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": []
         },
@@ -8192,6 +8202,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -8320,7 +8331,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": []
         },
@@ -9422,6 +9434,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -9564,7 +9577,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "e2e/020-hamburger.spec.ts"
@@ -9927,6 +9941,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -10074,7 +10089,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-legacy-consumer-authority.test.mjs"
@@ -10165,6 +10181,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -10351,7 +10368,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -10451,6 +10469,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -10576,7 +10595,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": []
         },
@@ -11770,6 +11790,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -11946,7 +11967,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
@@ -12540,6 +12562,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -12772,7 +12795,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-arena-review-gateway-authority.test.mjs",
@@ -12897,6 +12921,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -13034,7 +13059,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs"
@@ -15494,6 +15520,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -15655,7 +15682,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-projection-authority-package-c.test.mjs",
@@ -15749,6 +15777,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -15908,7 +15937,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -16260,6 +16290,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -16385,7 +16416,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": []
         },
@@ -16651,6 +16683,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -16796,7 +16829,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -16891,6 +16925,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -17032,7 +17067,8 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs"
@@ -17121,6 +17157,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -17291,7 +17328,8 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx"
+            "src/contexts/AvatarContext.jsx",
+            "src/tutorials/poker-tools.js"
           ],
           "tests": [
             "__tests__/poker-near-me-phase-6.test.mjs",
@@ -56106,6 +56144,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -56149,7 +56188,7 @@
       "functions": [
         {
           "name": "normalisePath",
-          "line": 67,
+          "line": 69,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56157,7 +56196,7 @@
         },
         {
           "name": "getTutorialForPath",
-          "line": 74,
+          "line": 76,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56165,7 +56204,7 @@
         },
         {
           "name": "read",
-          "line": 86,
+          "line": 88,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -56173,7 +56212,7 @@
         },
         {
           "name": "write",
-          "line": 95,
+          "line": 97,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56181,7 +56220,7 @@
         },
         {
           "name": "hasSeenTutorial",
-          "line": 104,
+          "line": 106,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56189,7 +56228,7 @@
         },
         {
           "name": "markTutorialSeen",
-          "line": 108,
+          "line": 110,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56197,7 +56236,7 @@
         },
         {
           "name": "promptKey",
-          "line": 112,
+          "line": 114,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56205,7 +56244,7 @@
         },
         {
           "name": "hasSeenPrompt",
-          "line": 116,
+          "line": 118,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56213,7 +56252,7 @@
         },
         {
           "name": "markPromptSeen",
-          "line": 120,
+          "line": 122,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56221,7 +56260,7 @@
         },
         {
           "name": "requestPageTutorial",
-          "line": 128,
+          "line": 130,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56335,6 +56374,46 @@
         "error": false,
         "retry": false,
         "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/tutorials/poker-tools.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": true,
         "stale": false,
         "success": false,
         "authExpiry": false
@@ -61181,6 +61260,10 @@
     {
       "from": "src/tutorials/index.js",
       "to": "src/tutorials/poker-near-me.js"
+    },
+    {
+      "from": "src/tutorials/index.js",
+      "to": "src/tutorials/poker-tools.js"
     },
     {
       "from": "src/tutorials/index.js",
@@ -69384,6 +69467,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -70223,6 +70307,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -70570,6 +70655,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -70901,6 +70987,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -71219,6 +71306,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -71902,6 +71990,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -72510,6 +72599,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -72938,6 +73028,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -73259,6 +73350,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -73588,6 +73680,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -74356,6 +74449,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -74906,6 +75000,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -75228,6 +75323,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -76511,6 +76607,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -76878,6 +76975,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -77249,6 +77347,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -77622,6 +77721,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -77940,6 +78040,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -78260,6 +78361,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -80177,6 +80279,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -80446,6 +80549,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -83604,6 +83708,7 @@
         "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
+        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
         "src/tutorials/training.js",
         "src/tutorials/trivia.js",
@@ -83667,6 +83772,19 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/page-tutorials.test.mjs"
+      ]
+    },
+    {
+      "file": "src/tutorials/poker-tools.js",
+      "reachableFiles": [
+        "src/tutorials/poker-tools.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/no-slide-to-see.law.test.mjs",
         "__tests__/page-tutorials.test.mjs"
       ]
     },
@@ -92011,7 +92129,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 104,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92026,7 +92144,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 108,
+        "line": 110,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92041,7 +92159,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 116,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92056,7 +92174,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 120,
+        "line": 122,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92071,7 +92189,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 128,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100587,7 +100705,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 104,
+        "line": 106,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100602,7 +100720,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 108,
+        "line": 110,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100617,7 +100735,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 116,
+        "line": 118,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100632,7 +100750,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 120,
+        "line": 122,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100647,7 +100765,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 128,
+        "line": 130,
         "references": 1,
         "exported": true,
         "defaultExport": false,

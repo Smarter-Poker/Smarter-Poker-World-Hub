@@ -249,6 +249,17 @@ hydration guards; `paddingBottom:70` boilerplate.
 Work: standard shell; card picker grid `repeat(auto-fill, minmax(44px,1fr))`;
 results as stacked cards at <=768; verify at 375.
 
+**Shipped 2026-09-14** (`docs/changelog/2026-09-14-mobile-phase10-odds-calculator.md`):
+the picker an auto-fill grid at 44px (52 cards from 22px targets to 44px),
+the equity as one stacked card per seat under the picker, the page-owned
+header and settings sheet replaced by the shared header and hamburger (so
+the Page Tutorial row exists), haptics on cards and Calculate, 100dvh, no
+page-owned bottom pad, every control 44px, the 10px badges and 8px
+watermark floor to 12px, an eight-step tutorial. The failsafe, pull to
+refresh and offline guard are deliberately not wired: the calculator has no
+network. With this phase every surviving route of the rollout is converted
+(`CONVERTED = [1, 2, 3, 4, 5, 6, 7, 9, 10]`; 8 retired).
+
 ## Every phase, in addition to its page work (added 2026-09-03)
 
 1. Build on the Phase 0 foundation: `HubPageShell`, `useLoadFailsafe` +

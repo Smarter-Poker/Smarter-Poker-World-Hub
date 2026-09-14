@@ -57,6 +57,7 @@ const LANDED = [
   { phase: 6, route: '/hub/news', page: 'pages/hub/news.js', tutorial: 'src/tutorials/news.js' },
   { phase: 7, route: '/hub/trivia', page: 'pages/hub/trivia/index.js', tutorial: 'src/tutorials/trivia.js', also: ['src/components/trivia/TriviaLobby.jsx'] },
   { phase: 9, route: '/hub/video-library', page: 'pages/hub/video-library.js', tutorial: 'src/tutorials/video-library.js', also: ['src/components/video-library/VideoLibraryCommandRail.jsx'] },
+  { phase: 10, route: '/hub/poker-tools', page: 'pages/hub/poker-tools.js', tutorial: 'src/tutorials/poker-tools.js' },
 ];
 
 test('the tutorial system is built and mounted once', () => {
