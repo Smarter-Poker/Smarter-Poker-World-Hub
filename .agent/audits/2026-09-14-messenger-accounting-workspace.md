@@ -17,3 +17,6 @@ Receipt visibility follow-up: production build d907420c2edc4d9127786b6384884fd6d
 
 
 Authenticated invoice opening also exposed a second social identity card inside the message history, separate from the corrected header. It linked a synthetic accounting conversation to `/hub/user/undefined`. Accounting histories now render their own document introduction, and social profile links require a real username. The empty accounting state also describes documents and discussions. The additional rendered regression assertion brings the native total to 37.
+
+
+The authenticated notification click selected the correct invoice, but the native notification overlay obscured the destination. The global overlay now dismisses only after successful route completion while notifications are open; failed navigation retains it, and other overlays do not subscribe. This preserves the existing no-navigation behavior when merely opening notifications. Two additional interaction checks bring the native total to 39.

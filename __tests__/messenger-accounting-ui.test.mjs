@@ -6,10 +6,10 @@ const require=createRequire(import.meta.url);
 const React=require('react');
 const {renderToStaticMarkup}=require('react-dom/server');
 const ts=require('typescript');
-function component(path) {
+function component(path, load=require) {
  const code=ts.transpileModule(fs.readFileSync(new URL(path,import.meta.url),'utf8'),{fileName:'component.jsx',compilerOptions:{jsx:ts.JsxEmit.React,module:ts.ModuleKind.CommonJS,esModuleInterop:true,target:ts.ScriptTarget.ES2022}}).outputText;
  const module={exports:{}};
- new Function('require','module','exports',code)(require,module,module.exports);
+ new Function('require','module','exports',code)(load,module,module.exports);
  return module.exports.default;
 }
 const Widget=component('../src/components/messenger/ClubArenaWorkspace.js');
@@ -55,4 +55,29 @@ test('accounting conversation introduction identifies documents without a synthe
  const html=renderToStaticMarkup(React.createElement(AccountingIntroduction,{title:'Midway Union Statements',theme}));
  assert.match(html,/Accounting Conversation/);assert.match(html,/Midway Union Statements/);assert.match(html,/Invoices, Statements And Related Discussions/);
  assert.doesNotMatch(html,/href=|View Profile|Smarter.Poker Member|undefined/);
+});
+
+
+function overlayFixture(page='notifications') {
+ const handlers=new Map(),cleanups=[];let closed=0;
+ const state={overlayPage:page,overlayUrl:'/hub/notifications',overlayTitle:'Notifications',closeOverlay:()=>closed++,setNotifClearedCount:noop};
+ const mockReact={...React,useEffect:effect=>{const cleanup=effect();if(cleanup)cleanups.push(cleanup);},useCallback:fn=>fn};
+ const events={on:(event,fn)=>handlers.set(event,fn),off:(event,fn)=>{if(handlers.get(event)===fn)handlers.delete(event);}};
+ const Overlay=component('../src/components/ui/GlobalPageOverlay.jsx',name=>{
+  if(name==='react')return mockReact;if(name==='next/router')return {useRouter:()=>({events})};
+  if(name==='next/dynamic')return ()=>()=>null;if(name==='./FullScreenPageOverlay')return props=>props.children;
+  if(name.endsWith('pageOverlayStore'))return {usePageOverlayStore:selector=>selector(state)};throw Error(name);
+ });
+ const rendered=Overlay();
+ return {handlers,cleanups,rendered,closed:()=>closed};
+}
+
+test('notification popup reveals the invoice after successful same-page navigation',()=>{
+ const fixture=overlayFixture();assert.equal(fixture.rendered.props.isOpen,true);assert.equal(fixture.closed(),0);
+ fixture.handlers.get('routeChangeComplete')('/hub/messenger?conversation=invoice');assert.equal(fixture.closed(),1);
+ fixture.cleanups.forEach(cleanup=>cleanup());assert.equal(fixture.handlers.size,0);
+});
+test('failed navigation retains the notification popup and unrelated overlays do not subscribe',()=>{
+ const fixture=overlayFixture();fixture.handlers.get('routeChangeError')?.(new Error('failed'));assert.equal(fixture.closed(),0);
+ const settings=overlayFixture('settings');assert.equal(settings.handlers.size,0);assert.equal(settings.closed(),0);
 });
