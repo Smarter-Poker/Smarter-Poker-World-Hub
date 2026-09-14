@@ -52,8 +52,11 @@ and category on the page, and the tutorial prompt on all five.
   375px phone, which made each day a 15px tap target, and only the ONE month
   you expanded got the real 44px grid. There is now one grid, always the full
   one, every day a `<button>` at least 44px tall, one month per row on a
-  phone and two or three across on a desktop
-  (`repeat(auto-fill, minmax(280px, 1fr))`). Twelve full months is 3,000px of
+  phone and two across on a desktop
+  (`repeat(auto-fill, minmax(350px, 1fr))`, and Venue Intel's column widened
+  to 960 to fit two of them: 350 is the arithmetic minimum for seven 44px day
+  columns, and at 280 every day measured 38px wide at 1280). Twelve full
+  months is 3,000px of
   empty calendar on a phone, so the year is bounded the way phase 9 bounds
   the Video Library's rows: three months from today plus every month that
   holds an event, then a 44px `Show All Twelve Months Of 2026` button. The
@@ -87,7 +90,8 @@ element is on another page still reads.
 
 ## 3. Tests, laws, budget
 
-- `__tests__/toke-tracker-mobile-upgrades.test.mjs` (new, 8 tests): the
+- `__tests__/toke-tracker-mobile-upgrades.test.mjs` (new, 12 tests; the last
+  three came from the sweep in section 4): the
   foundation on all five pages and the shared prefs hook; no 100vh, bottom
   pad or page-owned header; every chart and every category on the page; the
   calendar's 44px grid and its Show All button; the back gesture on every
@@ -106,3 +110,47 @@ element is on another page still reads.
 - `scripts/ci/mobile-budget.json`: `/hub/toke-tracker` added as
   `converted: true`, 900KB / 2500ms.
 - Training surface inventory regenerated.
+
+## 4. The sweep afterwards (same day)
+
+The probe above measures what is ON the page, so it could not see a control
+that only exists once a modal is open, and it counts only buttons, so it
+could not see a control that is not one. Both gaps hid real defects, found by
+reading the surface rather than rendering it.
+
+- **The Add Down modal's controls were 36px and 40px.** It is painted art
+  with transparent hit zones positioned over it in percentages, and a
+  percentage of a 399px-tall card at 375 is not 44px: Start Down and Cancel
+  came out 36px, the two input rows 40px. Worse, the first draft of
+  `toke-tracker.css` had exempted `.toke-img-map-element` from the 44px rule
+  altogether, which is how they stayed that size through a green test run.
+  The exemption is gone, the four zones carry `minHeight: 44` (they are
+  absolutely positioned, so the hit area grows down into the artwork's lower
+  bezel, where there is nothing to overlap), and the only thing still exempt
+  is the painted fields' 18px type, which is above the iOS zoom threshold
+  anyway - and that exemption had to be written as a `:not()` on the 16px
+  rule rather than an override after it, because the 16px rule is (0,4,1)
+  specific and a (0,2,0) selector loses to it even with `!important`. The
+  first attempt did it the wrong way round and the fields computed to 16px;
+  a browser said so, the file did not. The six unlabelled zones are painted art with no text, so they now
+  carry `aria-label`s.
+- **Four controls were bare `<div>`s with an `onClick`.** Three of them are
+  primary: Tap To Scan Document, the file drop zone, and a document
+  thumbnail; the fourth is the completed event card. None could be reached by
+  a keyboard or named by a screen reader, and none was counted by the 44px
+  budget, which only measures buttons. All four are buttons now, each with a
+  name. The file input moved out of the drop zone's button, because a click
+  that reaches both opens the picker twice.
+- **The load failsafe guarded a skeleton that did not exist.** Phase 11 added
+  `useLoadFailsafe(gigsLoading, setGigsLoading)` to the vault and Venue Intel
+  and then rendered nothing from `gigsLoading` - a guard with no reader,
+  which is the shape this estate keeps being bitten by. Both pages now render
+  a real skeleton in the space the content will occupy (one `.toke-skel`
+  class, one keyframe, `prefers-reduced-motion` honoured).
+- **Dead data removed.** `TABS` carried an `icon` field that only ever fed the
+  deleted tab strip, and was an empty string in all four rows.
+
+Three new pins in `__tests__/toke-tracker-mobile-upgrades.test.mjs` (12 tests
+now): no bare clickable div anywhere on the surface, the Add Down zones at
+44px with names and no stylesheet exemption, and the failsafe rendering a
+skeleton that exists.
