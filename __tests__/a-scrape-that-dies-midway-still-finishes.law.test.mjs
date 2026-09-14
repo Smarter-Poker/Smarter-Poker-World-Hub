@@ -306,6 +306,55 @@ test('but the crash this script exists for is still forgiven when productive', (
     assert.ok(!/faults of ours/.test(r.out), 'a crash is not a fault of ours');
 });
 
+test('a pass reports the cohort it started from AND what it left', () => {
+    // The scraper prints its cohort twice: when it builds it, and again at the
+    // end. Reporting only the last one and calling it "at start" hid the one
+    // thing this script is judged on.
+    //
+    // MEASURED, scheduled run 34833374303: pass 1 really went 214 -> 180 (34
+    // series finished, 959 events) and pass 2 really started at 180. Both
+    // reported "cohort at start: 180", so the run read as "the cohort never
+    // shrinks, the wrapper achieves nothing" - which is the conclusion I drew
+    // from that line before checking the scraper's own log.
+    const stub = withStub(`#!/usr/bin/env bash
+state="$STUB_DIR/n"; [ -f "$state" ] || echo 0 > "$state"
+n=$(cat "$state"); n=$((n+1)); echo $n > "$state"
+if [ "$n" = "1" ]; then
+  echo "  Skipping 99 fresh (<24h) \u2192 214 to scrape/refresh"
+  echo "  [FLUSH] 34 series \u2192 34 with events \u2192 959/959 events confirmed written, avg_completeness=71"
+  echo "  Skipping 133 fresh (<24h) \u2192 180 to scrape/refresh"
+  echo "    RuntimeError: cannot start sync Playwright inside a running event loop"
+  exit 1
+fi
+echo "  Skipping 133 fresh (<24h) \u2192 180 to scrape/refresh"
+echo "  Skipping 133 fresh (<24h) \u2192 180 to scrape/refresh"
+exit 1
+`);
+    const r = runWrapper({ BUDGET_MIN: '145', MIN_PASS_MIN: '1' }, stub);
+    assert.match(r.out, /pass 1: .*cohort 214 -> 180/,
+        `pass 1 moved the cohort 214 -> 180 and the line must say so:\n${r.out}`);
+    assert.match(r.out, /pass 2: .*cohort 180 -> 180/,
+        `pass 2 moved nothing, which is why it was the last one:\n${r.out}`);
+    assert.ok(!/cohort at start/.test(r.out),
+        'the old label named one number and printed the other');
+});
+
+test('the empty-cohort stop still reads what the pass LEFT, not what it found', () => {
+    // Drained during the pass: starts at 12, ends at 0. That must stop the loop
+    // even though the first reading was non-zero.
+    const stub = withStub(`#!/usr/bin/env bash
+echo "  Skipping 0 fresh (<24h) \u2192 12 to scrape/refresh"
+echo "  [FLUSH] 12 series \u2192 12 with events \u2192 200/200 events confirmed written, avg_completeness=71"
+echo "  Skipping 12 fresh (<24h) \u2192 0 to scrape/refresh"
+exit 0
+`);
+    const r = runWrapper({ BUDGET_MIN: '145', MIN_PASS_MIN: '1' }, stub);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /multi-pass scrape: 1 pass\(es\)/,
+        `a drained cohort must not buy another pass:\n${r.out}`);
+    assert.match(r.out, /the cohort is empty/, r.out);
+});
+
 test('MAX_PASSES is a spin guard the budget can never exceed', () => {
     const r = runWrapper(
         { BUDGET_MIN: '140', MIN_PASS_MIN: '1', MAX_PASSES: '2' }, withStub());

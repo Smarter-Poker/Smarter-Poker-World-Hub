@@ -145,6 +145,20 @@ for pass in $(seq 1 "$MAX_PASSES"); do
 
   wrote=$(grep -oE "$EVENTS_RE" "$log" 2>/dev/null | cut -d/ -f1 \
           | awk '{s+=$1} END {print s+0}')
+  # THE PASS PRINTS ITS COHORT TWICE: once when it builds it, and again at the
+  # end when it re-reads what is left. Taking only the last one and calling it
+  # "at start" hid the very thing this script is judged on.
+  #
+  # MEASURED, scheduled run 34833374303: pass 1 really went 214 -> 180 (34
+  # series finished, 959 events), and pass 2 really started at 180. Both passes
+  # reported "cohort at start: 180", so the run read as "the cohort never
+  # shrinks, the wrapper is achieving nothing" - a conclusion I drew myself
+  # from this line before checking the scraper's own log.
+  #
+  # So: FIRST reading is the start, LAST reading is what is left. The
+  # empty-cohort stop still tests the last one, which is the only one that can
+  # answer "is there anything remaining".
+  cohort_start=$(grep -oE "$COHORT_RE" "$log" 2>/dev/null | head -1 | cut -d' ' -f1)
   cohort=$(grep -oE "$COHORT_RE" "$log" 2>/dev/null | tail -1 | cut -d' ' -f1)
   total_events=$(( total_events + wrote ))
   if grep -qE "$OURS_RE" "$log" 2>/dev/null; then
@@ -153,7 +167,7 @@ for pass in $(seq 1 "$MAX_PASSES"); do
   fi
 
   echo "---- pass $pass: exit $last_rc, ${wrote} event(s) written" \
-       "(total $total_events), cohort at start: ${cohort:-unknown} ----"
+       "(total $total_events), cohort ${cohort_start:-unknown} -> ${cohort:-unknown} ----"
 
   # An empty cohort is the end of the work, not progress toward it. Tested:
   # without this, a shrink from 69 to 0 reads as progress and buys one more
