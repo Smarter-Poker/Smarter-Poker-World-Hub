@@ -112,6 +112,9 @@ jobs:
       - name: Series Enrichment Startup Contracts
         run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
 
+      - name: Series Date Provenance And Existing Row Receipts
+        run: python3 -m unittest discover -s scripts -p test_series_date_provenance.py -v
+
       - name: Series Discovery Source Handoff Contracts
         run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
 
