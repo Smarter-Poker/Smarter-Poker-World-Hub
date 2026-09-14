@@ -727,6 +727,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
        by the API. Sent only with a first page, so it is not overwritten with
        `null` by a Load More. */
   const [lifetime, setLifetime] = useState(null);
+  /* on_hand / sendable / collateral / in_arena from the same first-page read.
+     null until read, and null when the API could not read it - the Send
+     panel then falls back to the balance check and says nothing it does not
+     know (10.86). THE DIAMOND ARENA IS DIAMONDS ONLY. */
+  const [walletSummary, setWalletSummary] = useState(null);
   /* The tab the in-flight request belongs to. A ref, not the state value,
        because `fetchTransactions` must keep one identity: it is what the
        balance-event subscriptions and the pull-to-refresh are built from, and
@@ -989,6 +994,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           if (data.counts) setServerCounts(data.counts);
           // Only a first page carries it; never clear it on a Load More.
           if (data.lifetime) setLifetime(data.lifetime);
+          if (offset === 0) setWalletSummary(data.summary ?? null);
 
           if (offset === 0) {
             // Merge the fresh first page into any already-loaded pages so
@@ -1231,6 +1237,15 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     }
     if (amount > (balance ?? 0)) {
       setTransferError('Insufficient diamond balance');
+      return;
+    }
+    /* The server refuses purchased diamonds still inside the refund window
+       (insufficient_transferable_diamonds). Say so here, in the player's own
+       terms, before the round trip. Only when the figure was read. */
+    if (walletSummary && amount > walletSummary.sendable) {
+      setTransferError(
+        `Only ${walletSummary.sendable.toLocaleString()} Diamonds Can Be Sent Right Now. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
+      );
       return;
     }
     // #5: Show confirmation dialog first
@@ -2116,6 +2131,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 {transferRecipient && (
                   <div>
                     <div className={styles.sendFieldLabel}>Amount</div>
+                    {walletSummary && (
+                      <div className={styles.sendHint} role="status">
+                        {`Sendable: ${walletSummary.sendable.toLocaleString()} Diamonds`}
+                        {walletSummary.collateral > 0
+                          ? `. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
+                          : ''}
+                      </div>
+                    )}
                     <div className={styles.sendAmountRow}>
                       <div className={`${styles.sendField} ${styles.sendFieldGrow}`}>
                         <Sparkles size={14} className={styles.sendAmountIcon} aria-hidden="true" />

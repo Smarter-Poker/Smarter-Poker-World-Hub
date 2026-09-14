@@ -101,3 +101,28 @@ test('the transactions API takes the headline from the whole-ledger RPC', async 
   assert.match(src, /earned = e;\s*spent = sp;\s*exact = true;/);
   assert.match(src, /lifetime = \{\s*earned,\s*spent,[\s\S]*?exact,/);
 });
+
+test('the three diamond figures reach the World Hub Send panel (phase 2)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const api = await readFile(
+    new URL('../pages/api/store/diamond-transactions.js', import.meta.url),
+    'utf8'
+  );
+  const modal = await readFile(
+    new URL('../src/components/store/DiamondWalletModal.jsx', import.meta.url),
+    'utf8'
+  );
+  // The API reads the same RPC Club Arena reads, first page only, null on failure.
+  assert.match(api, /rpc\('fn_diamond_wallet_summary', \{ p_user_id: userId \}\)/);
+  assert.match(api, /let summary = null;/);
+  assert.match(api, /summary,\n/);
+  // The panel prints Sendable, explains collateral, and checks against it -
+  // only when the figure was read.
+  assert.match(modal, /if \(offset === 0\) setWalletSummary\(data\.summary \?\? null\);/);
+  assert.match(modal, /if \(walletSummary && amount > walletSummary\.sendable\)/);
+  assert.match(modal, /Sendable: \$\{walletSummary\.sendable\.toLocaleString\(\)\} Diamonds/);
+  assert.match(modal, /Bought Recently Are Held Until The Refund Window Closes/);
+  // Diamonds only: no chip on the send panel's new copy.
+  const panel = modal.slice(modal.indexOf('Sendable: ${walletSummary'), modal.indexOf('Sendable: ${walletSummary') + 600);
+  assert.doesNotMatch(panel, /chip/i);
+});

@@ -55,3 +55,15 @@ dismisses now; the wallet closes on the next press. Pinned in the same test.
 `p_reference_id` matching `^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$`; the route
 refuses a request without `X-Idempotency-Key`. The Club Arena wallet had never
 sent one (fixed in its companion branch), and carried an invented floor of 10.
+
+## 4. The three diamond figures reach the Send panel (phase 2, 2026-09-14)
+
+`/api/store/diamond-transactions` returns `summary` on its first page -
+on_hand, sendable, collateral, in_arena, arenaOpen - from
+`fn_diamond_wallet_summary` (Club Arena migration 20260914015457, service
+role), null when the read failed. The Send panel prints "Sendable: N", explains
+refund-window collateral, and checks the amount against it before the round
+trip; without the figure it keeps the balance check and says nothing it does
+not know. THE DIAMOND ARENA IS DIAMONDS ONLY: nothing in this read is a chip.
+The modal's existing "In Play" figure (`fn_poker_diamond_custody_balance`) is
+the same arithmetic as the summary's `in_arena`; verified on the definition.
