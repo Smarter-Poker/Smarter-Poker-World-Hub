@@ -30,6 +30,7 @@ import { TRAINING_TUTORIAL } from './training';
 import { NEWS_TUTORIAL } from './news';
 import { TRIVIA_TUTORIAL } from './trivia';
 import { VIDEO_LIBRARY_TUTORIAL } from './video-library';
+import { POKER_TOOLS_TUTORIAL } from './poker-tools';
 
 // Longest prefix wins. Keep re-exported aliases (preflop-charts -> memory-games)
 // as their own rows so the URL the player sees maps to a tour.
@@ -60,6 +61,7 @@ const REGISTRY = [
   { prefix: '/hub/news', tutorial: NEWS_TUTORIAL },
   { prefix: '/hub/trivia', tutorial: TRIVIA_TUTORIAL },
   { prefix: '/hub/video-library', tutorial: VIDEO_LIBRARY_TUTORIAL },
+  { prefix: '/hub/poker-tools', tutorial: POKER_TOOLS_TUTORIAL, exact: true },
 ];
 
 export const TUTORIAL_PROMPT_MS = 3000;

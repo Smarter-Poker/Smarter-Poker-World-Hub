@@ -242,7 +242,6 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/my-tournaments',
   '/hub/poker-brain',
   '/hub/poker-near-me',
-  '/hub/poker-tools',
   '/hub/poker/table/[tableId]',
   '/hub/post/[id]',
   '/hub/profile',
