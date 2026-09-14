@@ -430,14 +430,31 @@ def extract_pa_series_listing(page_html: str) -> list[dict]:
     return entries
 
 
+def series_uid_value(value: object) -> str:
+    """A missing database UID is not a source slug named None or null."""
+    if value is None or isinstance(value, bool):
+        return ""
+    uid = str(value).strip()
+    return "" if uid.lower() in ("", "none", "null") else uid
+
+
+def series_catalog_key(row: dict) -> tuple:
+    uid = series_uid_value(row.get("id"))
+    if uid:
+        return ("uid", uid)
+    if row.get("database_id") is not None:
+        return ("database", row.get("table"), row["database_id"])
+    return ("unaddressed", row.get("table"), row.get("name"), row.get("source_url"))
+
+
 def merge_series_catalog(master: list[dict], discovered: list[dict]) -> list[dict]:
     """Put live discoveries first, then retain unique legacy/master entries."""
-    master_by_id = {str(row.get("id", "")): row for row in master}
+    master_by_id = {series_catalog_key(row): row for row in master}
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple] = set()
     for live in discovered:
-        sid = str(live.get("id", ""))
-        if not sid or sid in seen:
+        sid = series_catalog_key(live)
+        if sid in seen:
             continue
         # Retain curated metadata while making the current canonical URL/name
         # authoritative for this run.
@@ -445,8 +462,8 @@ def merge_series_catalog(master: list[dict], discovered: list[dict]) -> list[dic
         merged.append(row)
         seen.add(sid)
     for row in master:
-        sid = str(row.get("id", ""))
-        if sid and sid not in seen:
+        sid = series_catalog_key(row)
+        if sid not in seen:
             merged.append(row)
             seen.add(sid)
     return merged
@@ -1085,6 +1102,78 @@ def sb_patch_series(series_uid: str, patch: dict) -> bool:
     except Exception as e:
         log(f"  [PATCH ERR] poker_series {series_uid[:40]}: {e}")
         RUN_ERRORS["patch_failed"] += 1
+        return False
+
+
+def sb_record_unresolved_series(series: dict, result: dict, batch_id: str) -> bool:
+    """Persist the attempt even when discovery has no publishable parent yet.
+
+    Failed attempts own operational status, never the source provenance of a
+    successful scrape or a curator. A parent is updated only by exact identity.
+    """
+    uid = series_uid_value(series.get("id")) or None
+    database_id = series.get("_db_id")
+    if database_id is None:
+        database_id = series.get("database_id")
+    if not isinstance(database_id, int) or isinstance(database_id, bool):
+        database_id = None
+    audit = {
+        "table_name": "poker_series", "action": "series_scrape_unresolved",
+        "record_id": f"series-attempt:{uuid.uuid4()}", "batch_id": batch_id,
+        "agent_id": "poker_series_scraper.py",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "new_data": {"series_uid": uid, "database_id": database_id,
+                     "catalog": series, "flags": result.get("flags", []),
+                     "primary_url": result.get("primary_url"),
+                     "resolved_url": result.get("resolved_url"),
+                     "found": False, "events_written": 0},
+    }
+    headers = {**SB_HDRS, "Prefer": "return=representation"}
+    try:
+        request = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/data_audit_log", method="POST",
+            data=json.dumps(audit).encode(), headers=headers,
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:
+            receipt = json.loads(response.read() or b"[]")
+        if (not isinstance(receipt, list) or len(receipt) != 1
+                or any(receipt[0].get(k) != audit[k]
+                       for k in ("record_id", "action", "table_name", "new_data"))):
+            raise RuntimeError("unresolved attempt was not acknowledged exactly")
+        uid_filter = ("is.null" if uid is None
+                      else "eq." + urllib.parse.quote(uid, safe=""))
+        if database_id is None and uid is not None:
+            request = urllib.request.Request(
+                f"{SUPABASE_URL}/rest/v1/poker_series?series_uid={uid_filter}"
+                "&select=id,series_uid&limit=2", headers=SB_HDRS,
+            )
+            with urllib.request.urlopen(request, timeout=20) as response:
+                parents = json.loads(response.read() or b"[]")
+            if not isinstance(parents, list) or len(parents) > 1:
+                raise RuntimeError("ambiguous unresolved parent lookup")
+            if parents:
+                if parents[0].get("series_uid") != uid:
+                    raise RuntimeError("unresolved parent identity changed")
+                database_id = parents[0].get("id")
+                if not isinstance(database_id, int) or isinstance(database_id, bool):
+                    raise RuntimeError("unresolved parent has no primary identity")
+        if database_id is None:
+            log(f"  [ATTEMPT] {series.get('name', '?')}: evidence saved; no parent row to update")
+            return True
+        request = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/poker_series?id=eq.{database_id}"
+            f"&series_uid={uid_filter}&is_suppressed=not.is.true&select=id,series_uid",
+            method="PATCH", data=json.dumps({"scrape_status": "failed"}).encode(),
+            headers=headers,
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:
+            changed = json.loads(response.read() or b"[]")
+        if changed != [{"id": database_id, "series_uid": uid}]:
+            raise RuntimeError("unresolved parent update did not match its exact identity")
+        return True
+    except Exception as exc:
+        RUN_ERRORS["patch_failed"] += 1
+        log(f"  [ATTEMPT ERR] {series.get('name', '?')}: {str(exc)[:180]}")
         return False
 
 
@@ -2494,7 +2583,7 @@ def _try_hendonmob(series_uid, series_name, batch_id, session, series_state=""):
 def scrape_series(series: dict, session, batch_id: str,
                   enrich_mode: bool = False) -> dict:
     """Scrape all tournament events for a single poker series."""
-    series_uid  = str(series.get("id", ""))
+    series_uid  = series_uid_value(series.get("id"))
     series_name = series.get("name", "Unknown")
     missing_fields = series.get("_missing_fields", [])
     # Series-level state, used ONLY as the STATE_TZ fallback when an extracted
@@ -2505,6 +2594,10 @@ def scrape_series(series: dict, session, batch_id: str,
 
     # Build PA slug and URL — SOURCE OF TRUTH for re-scraping
     # Handle numeric IDs (some series don't have PA slugs)
+    if not series_uid:
+        return dict(series_uid="", series_name=series_name, found=False, events=[],
+                    skipped=False, primary_url="", resolved_url="", source="",
+                    flags=["missing_series_uid"], scrape_fail_count=0)
     if series_uid.startswith("pa_"):
         slug = series_uid.replace("pa_", "")
         pa_url = f"https://www.pokeratlas.com/poker-tournament-series/{slug}"
@@ -2944,17 +3037,24 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
 
     # Get DB state for filtering
     db_series = sb_get_paged("poker_series",
-        "?select=series_uid,state,events_scraped,events_count,scrape_url,source_url,"
+        "?select=id,series_uid,state,events_scraped,events_count,scrape_url,source_url,"
         "last_scraped,start_date,end_date,is_suppressed")
     if db_series is None:
         log("  [SERIES LOAD ERR] poker_series cohort could not be verified")
         return None
-    db_map = {r["series_uid"]: r for r in db_series}
+    db_map = {series_uid_value(r.get("series_uid")): r for r in db_series
+              if series_uid_value(r.get("series_uid"))}
+    db_by_id = {r["id"]: r for r in db_series if r.get("id") is not None}
+
+    def parent_row(series):
+        if series.get("database_id") is not None:
+            return db_by_id.get(series["database_id"], {})
+        return db_map.get(series_uid_value(series.get("id")), {})
 
     before_suppressed = len(all_series)
     all_series = [
         series for series in all_series
-        if not db_map.get(str(series.get("id", "")), {}).get("is_suppressed")
+        if not parent_row(series).get("is_suppressed")
     ]
     if before_suppressed != len(all_series):
         log(
@@ -2964,8 +3064,8 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
 
     # Enrich master list with DB data (state, source_url, scrape_url)
     for s in all_series:
-        sid = str(s.get("id", ""))
-        db_row = db_map.get(sid, {})
+        db_row = parent_row(s)
+        s["_db_id"] = db_row.get("id")
         s["_db_state"] = db_row.get("state", "")
         # Prefer master list source_url, fallback to DB
         if not s.get("source_url"):
@@ -3334,10 +3434,7 @@ def main():
                     log(f"      ❌ No events found")
                     # Update status in DB
                     if not args.dry_run:
-                        if not sb_patch_series(series_uid, {
-                            "scrape_status": "failed",
-                            "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
-                        }):
+                        if not sb_record_unresolved_series(series, sr, batch_id):
                             log(f"      failed to persist unresolved status for {series_uid}")
             except CODE_DEFECTS as e:
                 # A bug in the scraper is NOT "this series had no events".

@@ -118,6 +118,9 @@ jobs:
       - name: Series Discovery Source Handoff Contracts
         run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
 
+      - name: Unresolved Series Attempts Keep Their Exact Identity
+        run: python3 -m unittest discover -s scripts -p test_series_attempt_identity.py -v
+
       - name: Video Scraper Failure And Receipt Contracts
         run: python3 -m unittest discover -s scripts -p test_video_library_scraper.py -v
 

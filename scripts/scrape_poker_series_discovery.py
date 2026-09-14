@@ -467,7 +467,7 @@ def fetch_db_known_series() -> tuple[set, list]:
     # Pull from poker_series table if it exists
     try:
         rows = sb_get_paged(
-            "poker_series", "series_uid,series_name,source_url,scrape_url,source", ""
+            "poker_series", "id,series_uid,series_name,source_url,scrape_url,source", ""
         )
         for r in rows:
             name = (r.get("series_name") or "").strip()
@@ -477,6 +477,7 @@ def fetch_db_known_series() -> tuple[set, list]:
                 # identity; names alone cannot reconstruct either one.
                 db_records.append({
                     "id": r.get("series_uid"), "name": name, "table": "poker_series",
+                    "database_id": r.get("id"),
                     "source_url": r.get("source_url") or r.get("scrape_url") or "",
                     "scrape_source": r.get("source") or "",
                 })
@@ -1062,6 +1063,7 @@ def build_master_list_and_dedup(db_records: list, new_records: list,
             "name": canonical["name"],
             "table": canonical.get("table", "unknown"),
             "id": canonical.get("id"),
+            "database_id": canonical.get("database_id"),
             "source_url": canonical.get("source_url", ""),
             "scrape_source": canonical.get("scrape_source", ""),
         })
