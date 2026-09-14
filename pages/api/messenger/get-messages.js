@@ -45,7 +45,7 @@ export default async function handler(req, res) {
 
       // Pagination: cap limit at 200
       const pageLimit = Math.max(1, Math.min(parseInt(reqLimit) || 100, 200));
-      if (before && (typeof before !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(before) || !Number.isFinite(Date.parse(before)) || (beforeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId)))) {
+      if ((beforeId && !before) || (before && (typeof before !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(before) || !Number.isFinite(Date.parse(before)) || (beforeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId))))) {
           return res.status(400).json({ success: false, error: 'Invalid Message Cursor' });
       }
 
@@ -62,38 +62,12 @@ export default async function handler(req, res) {
               return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
           }
 
-          // Fetch messages with sender profiles (with pagination support)
-          let query = getSupabase()
-              .from('social_messages')
-              .select(`
-                  id,
-                  content,
-                  message_type,
-                  media_metadata,
-                  created_at,
-                  updated_at,
-                  sender_id,
-                  is_deleted,
-                  is_edited,
-                  profiles:sender_id (id, username, avatar_url, is_vip)
-              `)
-              .eq('conversation_id', conversationId)
-              .eq('is_deleted', false);
-
-          // Pagination: load messages before a given timestamp
-          if (before) {
-              // Backward pagination: descending to get the N most recent before cursor
-              const cursorTime = before; // Preserve PostgreSQL microseconds across equal-time pages.
-              query = (beforeId ? query.or(`created_at.lt.${cursorTime},and(created_at.eq.${cursorTime},id.lt.${beforeId})`) : query.lt('created_at', cursorTime))
-                  .order('created_at', { ascending: false }).order('id', { ascending: false })
-                  .limit(pageLimit);
-          } else {
-              // Initial load: descending to get newest N, then reverse for display
-              query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
-                  .limit(pageLimit);
-          }
-
-          const { data: messages, error } = await query;
+          // The database verifies participation, joins actual invoice receipts,
+          // and excludes archived club copies BEFORE applying the page limit.
+          const { data: messages, error } = await getSupabase().rpc('fn_messenger_message_page', {
+              p_user_id: userId, p_conversation_id: conversationId,
+              p_before: before || null, p_before_id: beforeId || null, p_limit: pageLimit,
+          });
 
           if (error) {
               console.warn('[ANTIGRAVITY] Error fetching messages:', error);
@@ -102,28 +76,6 @@ export default async function handler(req, res) {
 
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
-          // Issued content stays immutable. Display the current payment state
-          // from the linked invoice, never from an old message snapshot.
-          const liveInvoices = new Map();
-          const invoiceMessages = sorted.filter(m => m.message_type === 'invoice').map(m => m.id);
-          if (invoiceMessages.length) {
-              const { data: links, error: linksError } = await getSupabase().from('accounting_invoice_deliveries')
-                  .select('message_id,invoice_id').in('message_id', invoiceMessages);
-              if (linksError) throw linksError;
-              const invoiceIds = [...new Set((links || []).map(link => link.invoice_id))];
-              if (invoiceIds.length) {
-                  const { data: invoices, error: invoiceError } = await getSupabase().from('settlement_invoices')
-                      .select('id,status,chips_transferred').in('id', invoiceIds);
-                  if (invoiceError) throw invoiceError;
-                  const byId = new Map((invoices || []).map(invoice => [invoice.id, invoice]));
-                  for (const link of links || []) {
-                      const invoice = byId.get(link.invoice_id);
-                      if (!invoice) throw new Error('Invoice Status Unavailable');
-                      liveInvoices.set(link.message_id, invoice);
-                  }
-              }
-          }
-
           // Reactions, in ONE query for the whole page.
           //
           // This route never returned reactions, and the get_message_reactions
@@ -150,7 +102,10 @@ export default async function handler(req, res) {
           }
 
           const normalized = sorted.map(m => {
-              m = verifyAccountingMessage(m, liveInvoices.get(m.id));
+              m = verifyAccountingMessage(m, m.media_metadata?.accounting_verified === true ? {
+                  id: m.media_metadata.invoice_id, status: m.media_metadata.status,
+                  chips_transferred: m.media_metadata.chips_transferred,
+              } : null);
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
                   prof = {

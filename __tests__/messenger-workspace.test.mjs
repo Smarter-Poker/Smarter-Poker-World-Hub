@@ -14,10 +14,10 @@ function fixture({ member=true, role='player', broken=null, cap=200, page=true }
     };
     const calls=[];
     const db={ from(table) {
-        let data=[...(tables[table] || [])], limit=Infinity, order=null;
-        const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},order(k){order=k;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>a[order].localeCompare(b[order]));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
+        let data=[...(tables[table] || [])], limit=Infinity, order=null, ascending=true;
+        const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},not(k,op,v){data=data.filter(r=>r[k]!==v);return q;},lte(k,v){data=data.filter(r=>r[k]<=v);return q;},order(k,options={}){order=k;ascending=options.ascending!==false;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>String(a[order]).localeCompare(String(b[order]))*(ascending?1:-1));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
         return q;
-    },async rpc(name,args){calls.push(args);if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
+    },async rpc(name,args){calls.push(args);if(name==='fn_club_weekly_accounting_summary')return {data:tables.report,error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
     return {db,tables,calls};
 }
 
@@ -51,4 +51,38 @@ test('current invoice status is read from its real delivery link while issued st
  const message={id:'real',message_type:'invoice',media_metadata:{kind:'accounting_invoice',invoice_id:'forged',status:'pending'}};
  const result=verifyAccountingMessage(message,{id:'real-invoice',status:'paid',chips_transferred:true});
  assert.equal(result.media_metadata.accounting_verified,true);assert.equal(result.media_metadata.invoice_id,'real-invoice');assert.equal(result.media_metadata.status,'paid');assert.equal(result.media_metadata.issued_status,'pending');
+});
+
+
+test('human invoice questions appear for the issuer and resolve in the invoice tab',async()=>{
+ const {db,tables}=fixture({role:'owner'});
+ tables.accounting_conversations[1].last_discussion_at='2026-09-14T12:00:00Z';
+ tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});
+ const result=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.deepEqual(result.conversations.map(c=>c.id),[ids.invoice,ids.agentInvoice]);
+ const resolved=await getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.agentInvoice});
+ assert.equal(resolved.folder,'invoices'); assert.equal(resolved.conversation.id,ids.agentInvoice);
+});
+test('an unanswered issuer thread cannot be reopened through a forged link',async()=>{
+ const {db,tables}=fixture({role:'owner'});tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});
+ await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.agentInvoice}),e=>e.status===403);
+});
+function reportFixture(options={}) {
+ const f=fixture({role:'owner',...options});f.tables.settlement_periods=[{id:'period',club_id:ids.club,union_id:ids.second,end_at:'2026-09-07T07:00:00Z'}];
+ f.tables.report={club_id:ids.club,status:'needs_reconciliation',rake_received:'100.29',source_ledger_ids:['private-source']};return f;
+}
+test('club manager receives one unresolved weekly preview without individual transfer IDs',async()=>{
+ const {db}=reportFixture();const result=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(result.weeklySummary.rake_received,'100.29');assert.equal(result.weeklySummary.source_ledger_ids,undefined);
+});
+test('ordinary players and social entry never receive club totals',async()=>{
+ const {db,calls}=reportFixture({role:'player'});const player=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.equal(player.weeklySummary,null);assert.ok(!calls.includes('settlement_periods'));
+ const owner=reportFixture();const social=await getMessengerWorkspace(owner.db,ids.user,{workspace:'social'});assert.equal(social.weeklySummary,null);assert.ok(!owner.calls.includes('settlement_periods'));
+});
+test('a failed or wrongly scoped summary does not display a false total',async()=>{
+ const f=reportFixture({broken:'summary'});await assert.rejects(getMessengerWorkspace(f.db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+ const g=reportFixture();g.tables.report.club_id=ids.second;await assert.rejects(getMessengerWorkspace(g.db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+});
+test('an already complete weekly statement does not duplicate the delivered invoice',async()=>{
+ const {db,tables}=reportFixture();tables.report.status='complete';const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.equal(r.weeklySummary,null);
 });
