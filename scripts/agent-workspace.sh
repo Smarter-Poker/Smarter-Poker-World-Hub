@@ -80,6 +80,10 @@ git -C "$ROOT" fetch origin main --quiet 2>/dev/null || true
 if [ -z "${AGENT_WORKSPACE_REEXEC:-}" ] && [ -r "$0" ]; then
   _MAIN_COPY=$(git -C "$ROOT" show origin/main:scripts/agent-workspace.sh 2>/dev/null || true)
   if [ -n "$_MAIN_COPY" ] && [ "$_MAIN_COPY" != "$(cat "$0")" ]; then
+    if [ "$(uname -s)" = Darwin ] && [[ "$_MAIN_COPY" != *'# MAC_DEPENDENCIES_CI_ONLY_V1'* ]]; then
+      echo "# refusing an older Mac dependency provisioner; install dependencies in CI" >&2
+      exit 1
+    fi
     _MAIN_SCRIPT=$(mktemp "${TMPDIR:-/tmp}/agent-workspace.XXXXXX")
     printf '%s\n' "$_MAIN_COPY" > "$_MAIN_SCRIPT"
     echo "# this copy of agent-workspace.sh differs from origin/main - running main's copy instead" >&2
@@ -162,8 +166,7 @@ run_repo_script() {
 #
 # `cp -Rc` is an APFS clone: about five seconds, and copy-on-write, so it costs
 # no real disk until something modifies it. Each tree now owns its node_modules
-# outright, which means `npm ci` in a worktree is simply SAFE - the thing agents
-# were doing all along.
+# outright on Linux. Mac copies and installs are prohibited, including repairs.
 #
 # 2026-08-25: EVERY PACKAGE ROOT, AND ON EVERY ENTRY - NOT JUST AT CREATION.
 #
@@ -189,7 +192,13 @@ run_repo_script() {
 # what is missing rather than assuming creation succeeded. Cloning is a no-op
 # when the directory is already there, so the steady-state cost is one `[ -e ]`
 # per package root.
+# MAC_DEPENDENCIES_CI_ONLY_V1
+# Mac worktrees read existing dependencies only; CI installs their exact lockfile.
 provision_node_modules() {
+  if [ "$(uname -s)" = Darwin ]; then
+    echo "# ${1:-.}/node_modules: Mac provisioning disabled; run dependency checks in CI" >&2
+    return 0
+  fi
   # $1 = package dir relative to the repo root ("" for the root itself)
   local rel="$1"
   local src="$ROOT${rel:+/$rel}"
@@ -398,6 +407,7 @@ EOF_PKGS
 # So verify the payload, not the path. Repair from whichever copy in this
 # repository actually has the binary.
 verify_native_deps() {
+  [ "$(uname -s)" = Darwin ] && return 0
   local dst="$1"
   [ -d "$dst/node_modules" ] || return 0
 
