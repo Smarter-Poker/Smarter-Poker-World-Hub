@@ -3,7 +3,7 @@ import { recordSendFailure } from './push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount } from './push-gate.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_AGE_MS = 60 * 60 * 1000;
+const PREFERENCE_RETRY_MS = 15 * 60 * 1000;
 export const isAccountingPush = row => row.event === 'accounting_invoice' || row.accounting_notification_id != null;
 
 // Only the typed, foreign-key-backed receipt establishes accounting provenance.
@@ -52,11 +52,20 @@ export async function releaseAccountingPush(db, row) {
 export async function deliverAccountingPush(db, row, options = {}) {
     const send = options.send || sendPush;
     const now = options.now || Date.now;
-    const out = { sent: 0, skipped: 0, failed: 0, deactivated: 0, uncertain: 0 };
+    const out = { sent: 0, skipped: 0, failed: 0, deactivated: 0, uncertain: 0, deferred: 0 };
     let providerStarted = false;
     const skip = async reason => {
         await updateClaim(db, row, { status: 'skipped', failure_reason: reason });
         return { ...out, skipped: 1, reason };
+    };
+    const defer = async reason => {
+        // No provider was called. Preserve this receipt and refund the unused
+        // attempt; claim eligibility keeps it from starving other recipients.
+        await updateClaim(db, row, { status: 'pending', claimed_at: null,
+            attempts: Math.max(0, row.attempts - 1),
+            next_attempt_at: new Date(now() + PREFERENCE_RETRY_MS).toISOString(),
+            failure_reason: `accounting_deferred:${reason}` });
+        return { ...out, deferred: 1, reason };
     };
     try {
         const payload = accountingPushPayload(row);
@@ -64,7 +73,9 @@ export async function deliverAccountingPush(db, row, options = {}) {
         if (!await ownsClaim(db, row)) return { ...out, uncertain: 1, reason: 'claim_lost' };
         const createdAt = Date.parse(row.created_at);
         if (!Number.isFinite(createdAt)) throw new Error('Accounting push creation time is unknown');
-        if (now() - createdAt > MAX_AGE_MS) return await skip('too_stale_to_deliver');
+        // A verified invoice does not expire because dispatch was unavailable.
+        // Archived/historical source suppressions are already terminal queue
+        // rows and can never enter this claimed delivery path.
         const context = await loadGateContext(db, [row.recipient_user_id], { strict: true });
         const entry = context.get(row.recipient_user_id) || {};
         const gateOptions = { now: new Date(now()) };
@@ -77,7 +88,10 @@ export async function deliverAccountingPush(db, row, options = {}) {
             gateOptions.sentToday = count;
         }
         const gate = gateDecision(entry, row.event, gateOptions);
-        if (!gate.allowed) return await skip(gate.reason);
+        if (!gate.allowed) {
+            if (gate.reason === 'quiet_hours' || gate.reason.startsWith('daily_cap_reached:')) return await defer(gate.reason);
+            return await skip(gate.reason);
+        }
         const { data: subscriptions, error } = await db.from('push_subscriptions')
             .select(SUBSCRIPTION_COLUMNS).eq('user_id', row.recipient_user_id).eq('is_active', true);
         if (error || !Array.isArray(subscriptions)) throw new Error('Accounting push subscription lookup failed');
@@ -112,7 +126,7 @@ export async function deliverAccountingPush(db, row, options = {}) {
             // The existing queue acknowledges recipient delivery after one device
             // accepts. Do not resend accepted devices to retry another endpoint.
             await updateClaim(db, row, { status: 'sent', sent_at: new Date(now()).toISOString(),
-                failure_reason: refused ? `accounting_partial_device_failure:${refused}` : null });
+                next_attempt_at: null, failure_reason: refused ? `accounting_partial_device_failure:${refused}` : null });
             return { ...out, sent: 1, failed: refused ? 1 : 0 };
         }
         await updateClaim(db, row, { status: row.attempts >= 5 ? 'failed' : 'pending', claimed_at: null,

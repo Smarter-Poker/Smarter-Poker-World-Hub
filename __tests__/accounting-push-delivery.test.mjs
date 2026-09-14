@@ -60,7 +60,8 @@ function fixture(count = 1) {
     const db = { from, async rpc(name) {
         if (name === 'requeue_stuck_push_outbox') return { data: 0, error: null };
         assert.equal(name, 'claim_push_outbox_batch');
-        const claimed = state.rows.filter(r => r.status === 'pending' && r.attempts < 5);
+        const claimed = state.rows.filter(r => r.status === 'pending' && r.attempts < 5
+            && (r.next_attempt_at == null || Date.parse(r.next_attempt_at) <= Date.now()));
         for (const row of claimed) Object.assign(row, { status: 'processing', claimed_at: new Date(now + row.attempts).toISOString(), attempts: row.attempts + 1 });
         return { data: claimed.map(row => ({ ...row })), error: null };
     }};
@@ -145,13 +146,17 @@ for (const [label, prefs, reason] of [
         f.state.prefs[0].quiet_hours_start = hour;
         f.state.prefs[0].quiet_hours_end = (hour + 1) % 24;
     }
-    const r = await f.deliver(); assert.equal(r.skipped, 1); assert.equal(f.rows[0].failure_reason, reason);
+    const r = await f.deliver();
+    if (label === 'quiet hours') {
+        assert.equal(r.deferred, 1); assert.equal(f.rows[0].status, 'pending');
+        assert.equal(f.rows[0].failure_reason, `accounting_deferred:${reason}`); assert.equal(f.rows[0].attempts, 0);
+    } else { assert.equal(r.skipped, 1); assert.equal(f.rows[0].failure_reason, reason); }
     assert.equal(f.state.calls.length, 0);
 });
 
 test('the exact daily aggregate enforces a cap above a default returned-row limit', async () => {
     const f = fixture(); f.state.sentToday = 2200; f.state.prefs = [{ user_id: 'recipient', daily_push_cap: 2000 }];
-    assert.equal((await f.deliver()).skipped, 1); assert.equal(f.rows[0].failure_reason, 'daily_cap_reached:2000');
+    assert.equal((await f.deliver()).deferred, 1); assert.equal(f.rows[0].failure_reason, 'accounting_deferred:daily_cap_reached:2000');
     assert.equal(f.state.exactCounts, 1); assert.equal(f.state.calls.length, 0);
 });
 
@@ -227,12 +232,41 @@ test('partial device refusal remains visible without resending the accepted devi
     await f.deliver(); assert.equal(f.state.calls.length, 2);
 });
 
-test('terminal failures and historical notices retain explicit receipts', async () => {
+test('real provider failures remain bounded while a verified invoice survives a long dispatch outage', async () => {
     const f = fixture(); f.rows[0].attempts = 5; f.state.provider = () => ({ ok: false, error: 'refused' });
     assert.equal((await f.deliver()).failed, 1); assert.equal(f.rows[0].status, 'failed');
-    const g = fixture(); g.rows[0].created_at = new Date(Date.now() - 7200_000).toISOString();
-    assert.equal((await g.deliver()).skipped, 1); assert.equal(g.rows[0].failure_reason, 'too_stale_to_deliver');
-    assert.equal(g.state.calls.length, 0);
+    const g = fixture(); g.rows[0].created_at = new Date(Date.now() - 7 * 86400_000).toISOString();
+    assert.equal((await g.deliver()).sent, 1); assert.equal(g.rows[0].failure_reason, null);
+    assert.equal(g.state.calls.length, 1);
+});
+
+test('preference deferrals preserve the receipt beyond five cycles and eventually send exactly that receipt', async () => {
+    const f = fixture(); f.pending(); f.state.sentToday = 20;
+    f.state.prefs = [{ user_id: 'recipient', daily_push_cap: 20 }];
+    for (let i = 0; i < 7; i++) {
+        f.state.slotClaimed = false; f.rows[0].next_attempt_at = new Date(Date.now() - 1000).toISOString();
+        const response = await f.run();
+        assert.equal(response.body.deferred, 1); assert.equal(response.body.skipped, 0); assert.equal(response.code, 200);
+        assert.equal(f.rows[0].attempts, 0); assert.equal(f.rows[0].status, 'pending');
+        assert.ok(Date.parse(f.rows[0].next_attempt_at) > Date.now());
+        f.state.slotClaimed = false;
+        assert.equal((await f.run()).body.claimed, 0, 'future retries do not occupy a claim batch');
+    }
+    assert.equal(f.state.calls.length, 0); assert.equal(f.rows.length, 1);
+    f.state.sentToday = 0; f.rows[0].next_attempt_at = new Date(Date.now() - 1000).toISOString(); f.state.slotClaimed = false;
+    const delivered = await f.run(); assert.equal(delivered.body.sent, 1); assert.equal(f.rows[0].attempts, 1);
+    assert.equal(f.state.calls.length, 1); assert.equal(f.state.calls[0].payload.data.outboxId, 'outbox-0');
+    assert.equal(f.rows[0].next_attempt_at, null);
+});
+
+test('archived and historical skipped receipts stay skipped while a delayed valid invoice sends', async () => {
+    const f = fixture(3); f.pending();
+    f.rows[0].status = 'skipped'; f.rows[0].failure_reason = 'accounting_archived_detail';
+    f.rows[1].status = 'skipped'; f.rows[1].failure_reason = 'historical_gap_receipt';
+    for (const row of f.rows) row.created_at = new Date(Date.now() - 7 * 86400_000).toISOString();
+    assert.equal((await f.run()).body.sent, 1);
+    assert.deepEqual(f.rows.map(r => r.status), ['skipped', 'skipped', 'sent']);
+    assert.deepEqual(f.state.calls.map(c => c.payload.data.outboxId), ['outbox-2']);
 });
 
 test('budget release returns only the current claim and never changes a newer owner', async () => {

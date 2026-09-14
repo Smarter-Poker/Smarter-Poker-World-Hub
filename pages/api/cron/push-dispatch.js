@@ -175,7 +175,7 @@ async function handler(req, res) {
     }
     const runId = runRow?.id || null;
 
-    const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0, digested: 0 };
+    const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0, digested: 0, deferred: 0 };
     let accountingFailures = 0;
 
     const finish = async (note) => {
@@ -424,7 +424,7 @@ async function handler(req, res) {
 
             if (isAccountingPush(row)) {
                 const outcome = await deliverAccountingPush(supabase, row);
-                for (const key of ['sent', 'skipped', 'failed', 'deactivated']) stats[key] += outcome[key];
+                for (const key of ['sent', 'skipped', 'failed', 'deactivated', 'deferred']) stats[key] += outcome[key];
                 if (outcome.uncertain) stats.failed += outcome.uncertain;
                 accountingFailures += outcome.failed + outcome.uncertain;
                 continue;
@@ -542,7 +542,8 @@ async function handler(req, res) {
             }
         }
 
-        const note = [ranOutOfTime && 'time_budget_exhausted', accountingFailures > 0 && `accounting_delivery_incomplete:${accountingFailures}`].filter(Boolean).join(' ');
+        const note = [ranOutOfTime && 'time_budget_exhausted', accountingFailures > 0 && `accounting_delivery_incomplete:${accountingFailures}`,
+            stats.deferred > 0 && `accounting_deferred:${stats.deferred}`].filter(Boolean).join(' ');
         await finish(note || null);
         // Cron health records HTTP status. An uncertain accounting delivery must
         // not look healthy just because the dispatcher finished its loop.
