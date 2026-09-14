@@ -71,7 +71,7 @@ function readerFixture() {
   if(name.endsWith('/supabase'))return {supabase:{auth:{onAuthStateChange:cb=>{authCallback=cb;return {data:{subscription:{unsubscribe(){unsubscribed=true;}}}};}}}};
   if(name.endsWith('pushHealthSnapshot.mjs'))return {isPushHealthSnapshot};throw Error(name);
  },React,{fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve})),window:{addEventListener:(event,fn)=>events.set(event,fn),removeEventListener:event=>events.delete(event)}});
- return {requests,render:()=>useReader(),mount(){useReader();cleanup=effect();},unmount(){cleanup();},switch(id,event='SIGNED_IN'){actor=id?{id}:null;authCallback(event,id?{user:actor,access_token:id+'-token'}:null);},storageSwitch(id){actor=id?{id}:null;events.get('storage')({key:'smarter-poker-auth'});},setActor(id){actor=id?{id}:null;},cleaned:()=>unsubscribed&&events.size===0,writes:()=>writes};
+ return {requests,render:()=>useReader(),mount(){useReader();cleanup=effect();},unmount(){cleanup();},switch(id,event='SIGNED_IN'){actor=id?{id}:null;authCallback(event,id?{user:actor,access_token:id+'-token'}:null);},storageSwitch(id){actor=id?{id}:null;events.get('storage')({key:'smarter-poker-auth'});},setActor(id){actor=id?{id}:null;},hydrating(){authCallback('INITIAL_SESSION',null);},cleaned:()=>unsubscribed&&events.size===0,writes:()=>writes};
 }
 const goodResponse=()=>({ok:true,status:200,json:async()=>({...snapshot(),config:{configured:true,keyMatches:true}})});
 test('push health hides the prior account before a listener callback and ignores delayed old requests',async()=>{
@@ -91,4 +91,8 @@ test('sign-out clears metrics immediately and ignores an in-flight receipt',asyn
 });
 test('unmount unsubscribes auth and storage and prevents a delayed state update',async()=>{
  const f=readerFixture();f.mount();f.unmount();const writes=f.writes();assert.equal(f.cleaned(),true);f.requests[0].resolve(goodResponse());await pause(1);assert.equal(f.writes(),writes);
+});
+
+test('SDK hydration without a session does not cancel the existing authenticated health read',async()=>{
+ const f=readerFixture();f.mount();f.hydrating();assert.equal(f.requests.length,1);f.requests[0].resolve(goodResponse());await pause(1);assert.ok(f.render().data);f.unmount();
 });

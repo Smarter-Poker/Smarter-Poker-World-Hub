@@ -39,7 +39,8 @@ export default function usePushHealth() {
             if (!event.key || event.key === 'smarter-poker-auth' || (event.key.startsWith('sb-') && event.key.endsWith('-auth-token'))) sync();
         };
         const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-            load(event === 'SIGNED_OUT' ? null : session?.user?.id || null, session?.access_token);
+            if (event === 'SIGNED_OUT') load(null, null);
+            else load(session?.user?.id || getAuthUser()?.id || null, session?.access_token || getAccessToken());
         });
         window.addEventListener('storage', onStorage);
         sync();
