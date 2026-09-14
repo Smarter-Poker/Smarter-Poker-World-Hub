@@ -26,3 +26,6 @@ Notification visibility was also enforced at the browser boundary. Legacy cache 
 
 
 The retained Messenger shell no longer labels a loading or failed inbox as empty or shows a stale weekly preview during that request. The explicit loading/error status remains visible until the requested inbox is authoritative.
+
+
+Search visibility follow-up: both search endpoints previously read social_messages directly, allowing archived individual invoice content to escape the invoice-page filter. Both now use the same authenticated workspace resolver and the installed fn_messenger_search_messages reader. A request without a workspace searches social messages only. Conversation search rechecks active club membership and visible receipt/discussion access. The database excludes archived rows before the result cap, preserves literal percent/underscore searches, and verifies invoice identity and current status from the receipt link. Migration 20260914132940_invoice_search_only_returns_visible_verified_messages is installed; 18 new native PostgreSQL assertions passed alongside the prior 32. Forty-seven focused WH tests, including both real API handler auth/refusal wiring, pass; the existing 51 notification and overlay checks also pass. Search deployment and live verification follow this commit.

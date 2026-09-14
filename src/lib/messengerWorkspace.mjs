@@ -180,3 +180,21 @@ export async function getMessengerWorkspace(db, userId, request) {
     return { success: true, clubs, conversations: selected, conversation, weeklySummary,
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
 }
+
+
+export async function searchMessengerWorkspace(db, userId, request, limit = 50) {
+    if (typeof request.query !== 'string' || request.query.trim().length < 2 || request.query.length > 500 ||
+        !Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid Message Search');
+    const selection = request.conversationId
+        ? { workspace: 'resolve', conversationId: request.conversationId }
+        : { workspace: request.workspace || 'social', clubId: request.clubId, folder: request.folder };
+    const workspace = await getMessengerWorkspace(db, userId, selection);
+    const ids = request.conversationId ? [workspace.conversation.id] : workspace.conversations.map(conversation => conversation.id);
+    if (!ids.length) return [];
+    if (ids.length > 500) fail(503, 'Choose A Smaller Search Scope');
+    const { data, error } = await db.rpc('fn_messenger_search_messages', {
+        p_user_id: userId, p_conversation_ids: ids, p_query: request.query.trim(), p_limit: limit,
+    });
+    if (error || !Array.isArray(data)) fail(error?.code === '42501' ? 403 : 503, 'Message Search Unavailable');
+    return data;
+}
