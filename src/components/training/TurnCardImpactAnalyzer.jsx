@@ -88,7 +88,7 @@ function TurnCardImpactAnalyzer() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {TURN_CATEGORIES.map((t, i) => (
             <button key={t.name} onClick={() => setSelected(i)} style={{
-              padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selected === i ? t.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{t.icon} {t.name}</button>
@@ -103,26 +103,26 @@ function TurnCardImpactAnalyzer() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: cat.color }}>{cat.equityShift}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Equity Shift</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Equity Shift</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: cat.color }}>{cat.barrelFreq}</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Barrel Frequency</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Barrel Frequency</div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 12, borderRadius: 8, borderLeft: '4px solid #10b981', background: cat.forIP.change === 'Positive' ? 'rgba(16,185,129,0.06)' : cat.forIP.change === 'Negative' ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.03)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: cat.forIP.change === 'Positive' ? '#10b981' : cat.forIP.change === 'Negative' ? '#ef4444' : '#f59e0b', marginBottom: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cat.forIP.change === 'Positive' ? '#10b981' : cat.forIP.change === 'Negative' ? '#ef4444' : '#f59e0b', marginBottom: 4 }}>
               For Aggressor (IP): {cat.forIP.change}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{cat.forIP.detail}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{cat.forIP.detail}</div>
           </div>
           <div style={{ padding: 12, borderRadius: 8, borderLeft: '4px solid #3b82f6', background: cat.forOOP.change === 'Positive' ? 'rgba(16,185,129,0.06)' : cat.forOOP.change === 'Negative' ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.03)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: cat.forOOP.change === 'Positive' ? '#10b981' : cat.forOOP.change === 'Negative' ? '#ef4444' : '#f59e0b', marginBottom: 4 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: cat.forOOP.change === 'Positive' ? '#10b981' : cat.forOOP.change === 'Negative' ? '#ef4444' : '#f59e0b', marginBottom: 4 }}>
               For Defender (OOP): {cat.forOOP.change}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{cat.forOOP.detail}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{cat.forOOP.detail}</div>
           </div>
         </div>
       </div>

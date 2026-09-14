@@ -168,7 +168,7 @@ export default function SolverLineSummary({ gridData = {}, classificationGroups 
             <div style={{
                 padding: '12px 14px', background: 'rgba(255,255,255,0.02)',
                 borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)',
-                fontSize: 11, color: '#475569', fontStyle: 'italic',
+                fontSize: 12, color: '#475569', fontStyle: 'italic',
             }}>
                 Select A Spot To See The Solver Line Summary.
             </div>
@@ -191,7 +191,7 @@ export default function SolverLineSummary({ gridData = {}, classificationGroups 
             }}>
                 <span style={{ fontSize: 12 }}>AI</span>
                 <span style={{
-                    fontSize: 9, fontWeight: 800, color: '#00d4ff',
+                    fontSize: 12, fontWeight: 800, color: '#00d4ff',
                     textTransform: 'uppercase', letterSpacing: 1,
                     fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                 }}>

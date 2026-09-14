@@ -285,7 +285,7 @@ export default function StudyGroupRoom() {
                       >
                         <div
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             color: 'var(--sp-fg-muted)',
                             marginBottom: 4,
                             display: 'flex',
@@ -327,7 +327,7 @@ export default function StudyGroupRoom() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #05050A 0%, #0A0A15 100%)',
     padding: '24px 4vw 80px',
     color: '#fff',
@@ -508,7 +508,7 @@ const styles = {
     padding: '0 20px',
   },
   playerLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'var(--sp-fg-muted)',
     fontWeight: 700,
     letterSpacing: 2,

@@ -27,7 +27,7 @@ const GodModeArena = dynamic(() => import('../../../../src/components/training/G
     ssr: false,
     loading: () => (
         <div style={{
-            minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+            minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
             background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
             display: 'flex',
             alignItems: 'center',
@@ -67,7 +67,7 @@ class ArenaErrorBoundary extends React.Component {
             const err = this.state.error;
             return (
                 <div style={{
-                    minHeight: '100vh',
+                    minHeight: '100dvh',
                     background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#94a3b8', fontFamily: "'Inter', sans-serif", padding: 24,
@@ -84,11 +84,11 @@ class ArenaErrorBoundary extends React.Component {
                             <div style={{ color: '#ef4444', fontWeight: 'bold', marginBottom: 8 }}>
                                 {err?.message || 'Unknown error'}
                             </div>
-                            <div style={{ color: '#64748b', fontSize: 11 }}>
+                            <div style={{ color: '#64748b', fontSize: 12 }}>
                                 {err?.stack?.substring(0, 800) || 'No stack trace'}
                             </div>
                             {this.state.errorInfo?.componentStack && (
-                                <div style={{ color: '#475569', fontSize: 11, marginTop: 8 }}>
+                                <div style={{ color: '#475569', fontSize: 12, marginTop: 8 }}>
                                     {this.state.errorInfo.componentStack.substring(0, 500)}
                                 </div>
                             )}
@@ -194,7 +194,7 @@ export default function TrainingArenaPage() {
     if (router.isReady && gameId && (!game || customLaunch.error)) {
         return (
             <main style={{
-                minHeight: '100vh',
+                minHeight: '100dvh',
                 background: 'linear-gradient(180deg, #07111b 0%, #020609 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#cbd5e1', fontFamily: "'Inter', sans-serif", padding: 24,
@@ -233,7 +233,7 @@ export default function TrainingArenaPage() {
     if (!router.isReady || !gameId || !ready || !resolvedSessionId) {
         return (
             <div style={{
-                minHeight: '100vh',
+                minHeight: '100dvh',
                 background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: "'Inter', -apple-system, sans-serif",

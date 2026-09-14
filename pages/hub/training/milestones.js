@@ -472,7 +472,7 @@ export default function MilestonesPage() {
       <div
         className="sp-training-journey sp-training-journey--milestones"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -514,7 +514,7 @@ export default function MilestonesPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Milestones</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Verified Session Thresholds</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Verified Session Thresholds</div>
           </div>
           <div
             style={{
@@ -527,7 +527,7 @@ export default function MilestonesPage() {
           >
             {/* TRAIN-MILESTONES-A11Y-1: status role for the reached counter */}
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-amber)' }} role="status" aria-label={`${reached.length} of ${MILESTONE_DEFS.length} thresholds reached`}>{reached.length}</span>
-            <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
+            <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>/{MILESTONE_DEFS.length}</span>
           </div>
         </div>
 
@@ -587,7 +587,7 @@ export default function MilestonesPage() {
                   </div>
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: 800,
                       color: 'var(--sp-accent-cyan)',
                       textTransform: 'uppercase',
@@ -619,7 +619,7 @@ export default function MilestonesPage() {
                         {nextMilestone.name}{' '}
                         <span
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             padding: '2px 6px',
                             borderRadius: 4,
                             background: TIERS[nextMilestone.tier].bg,
@@ -641,7 +641,7 @@ export default function MilestonesPage() {
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        fontSize: 11,
+                        fontSize: 12,
                         marginBottom: 6,
                         fontWeight: 700,
                       }}
@@ -680,7 +680,7 @@ export default function MilestonesPage() {
                   <div
                     style={{
                       marginTop: 12,
-                      fontSize: 11,
+                      fontSize: 12,
                       color: 'var(--sp-fg-muted)',
                       fontWeight: 600,
                       lineHeight: 1.5,
@@ -698,7 +698,7 @@ export default function MilestonesPage() {
                 <div style={{ marginBottom: 24 }}>
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -749,7 +749,7 @@ export default function MilestonesPage() {
                           </div>
                           <div
                             style={{
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: 'var(--sp-fg-dim)',
                               textTransform: 'uppercase',
@@ -758,7 +758,7 @@ export default function MilestonesPage() {
                             {m.tier}
                           </div>
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--sp-fg)', marginTop: 2 }}>{m.desc}</div>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg)', marginTop: 2 }}>{m.desc}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 14, color: 'var(--sp-accent-green)', display: 'inline-flex', justifyContent: 'flex-end' }} aria-hidden>
@@ -766,12 +766,12 @@ export default function MilestonesPage() {
                           <CheckIcon size={14} />
                         </div>
                         <div
-                          style={{ fontSize: 9, color: 'var(--sp-accent-green)', marginTop: 4, fontWeight: 700 }}
+                          style={{ fontSize: 12, color: 'var(--sp-accent-green)', marginTop: 4, fontWeight: 700 }}
                         >
                           Threshold Reached
                         </div>
                         <div
-                          style={{ fontSize: 8, color: 'var(--sp-fg-dim)', marginTop: 2 }}
+                          style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}
                         >
                           Reward Unverified
                         </div>
@@ -786,7 +786,7 @@ export default function MilestonesPage() {
                 <div>
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -836,7 +836,7 @@ export default function MilestonesPage() {
                             </div>
                             <div
                               style={{
-                                fontSize: 9,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 color: TIERS[m.tier].color,
                                 opacity: 0.5,
@@ -845,7 +845,7 @@ export default function MilestonesPage() {
                               {m.tier}
                             </div>
                           </div>
-                          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
+                          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>
                             {m.desc}
                           </div>
 
@@ -873,7 +873,7 @@ export default function MilestonesPage() {
                             </div>
                             <div
                               style={{
-                                fontSize: 9,
+                                fontSize: 12,
                                 color: 'var(--sp-fg-faint)',
                                 minWidth: 30,
                                 textAlign: 'right',

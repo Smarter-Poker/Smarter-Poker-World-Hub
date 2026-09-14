@@ -403,7 +403,7 @@ export default function TournamentsPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #07141f 0%, #020910 44%, #01060b 100%)',
     color: '#FFFFFF',
   },
@@ -499,7 +499,7 @@ const styles = {
   badge: {
     padding: '4px 10px',
     borderRadius: '12px',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 600,
     color: '#fff',
   },

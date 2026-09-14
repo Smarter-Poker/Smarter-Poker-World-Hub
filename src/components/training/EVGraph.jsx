@@ -28,7 +28,7 @@ function Tooltip({ children, content, visible }) {
                 padding: '8px 12px',
                 background: 'rgba(0,0,0,0.95)',
                 color: '#fff',
-                fontSize: 10,
+                fontSize: 12,
                 borderRadius: 6,
                 whiteSpace: 'nowrap',
                 pointerEvents: 'none',
@@ -66,7 +66,7 @@ function TrendArrow({ current, previous }) {
 
     return (
         <span style={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 'bold',
             color: isPositive ? '#22c55e' : '#ef4444',
             marginLeft: 4
@@ -178,7 +178,7 @@ export default function EVGraph({ handHistory = [], title = 'EV by Street', prev
         <div style={styles.container}>
             <div style={{ ...styles.header, justifyContent: 'space-between' }}>
                 <span>{title}</span>
-                <span style={{ fontSize: 10, color: '#64748b', fontWeight: 'normal', textTransform: 'none', letterSpacing: 0 }}>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 'normal', textTransform: 'none', letterSpacing: 0 }}>
                     Session Avg: {sessionAvgEV >= 0 ? '+' : ''}{sessionAvgEV.toFixed(2)} EV
                 </span>
             </div>
@@ -347,7 +347,7 @@ const styles = {
         gap: 2,
     },
     valueLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         height: 16,
@@ -378,14 +378,14 @@ const styles = {
         marginTop: 6,
     },
     streetText: {
-        fontSize: 8,
+        fontSize: 12,
         fontWeight: 700,
         color: '#475569',
         letterSpacing: 0.5,
         marginTop: 2,
     },
     decisionCount: {
-        fontSize: 8,
+        fontSize: 12,
         color: '#334155',
         marginTop: 2,
     },

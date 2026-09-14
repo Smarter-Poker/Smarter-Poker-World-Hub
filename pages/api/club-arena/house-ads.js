@@ -219,7 +219,11 @@ export default async function handler(req, res) {
             const { data: ads, error: adsErr, count: adsTotal } = await getSupabase()
                 .from('ad_catalog')
                 .select(
-                    'id, ad_key, category, headline, body, glyph, target_url, cta_label, is_active, starts_at, ends_at, weight, created_at',
+                    /* image_url, poster_url and experiment_key (2026-09-13):
+                       the composer loads an advert into its form from this
+                       read, and a column the read omits comes back as an
+                       empty field that "Save" then writes as NULL. */
+                    'id, ad_key, category, headline, body, glyph, target_url, cta_label, image_url, poster_url, experiment_key, is_active, starts_at, ends_at, weight, created_at',
                     { count: 'exact' }
                 )
                 .order('weight', { ascending: false })
@@ -781,6 +785,15 @@ export default async function handler(req, res) {
                     error: `Not A Site Path: ${clean(b.image_url, 60)}`,
                 });
             }
+            /* poster_url (2026-09-13): the 3:4 picture the full-screen popup
+               shows when the advert is tapped. Same lock as every ad URL. */
+            const posterUrl = readSitePath(b.poster_url);
+            if (posterUrl === false) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Not A Site Path: ${clean(b.poster_url, 60)}`,
+                });
+            }
 
             /* THE PLACEMENT IS VALIDATED BEFORE THE AD IS WRITTEN.
                Absent means "use the default" and is fine - an ad with no
@@ -819,6 +832,7 @@ export default async function handler(req, res) {
                     target_url: targetUrl,
                     cta_label: stripEmoji(clean(b.cta_label, 40)),
                     image_url: imageUrl,
+                    poster_url: posterUrl,
                     experiment_key: clean(b.experiment_key, 64),
                     is_active: b.is_active !== false,
                     starts_at: b.starts_at || null,
@@ -923,6 +937,16 @@ export default async function handler(req, res) {
                     });
                 }
                 patch.image_url = img;
+            }
+            if (b.poster_url !== undefined) {
+                const poster = readSitePath(b.poster_url);
+                if (poster === false) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Not A Site Path: ${clean(b.poster_url, 60)}`,
+                    });
+                }
+                patch.poster_url = poster;
             }
             if (b.experiment_key !== undefined) patch.experiment_key = clean(b.experiment_key, 64);
             if (!patch.headline && Object.keys(patch).length === 1) {

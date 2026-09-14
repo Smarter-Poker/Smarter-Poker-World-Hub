@@ -218,7 +218,7 @@ export default function ICMCalculatorPage() {
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-icm"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -263,7 +263,7 @@ export default function ICMCalculatorPage() {
             </h1>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-accent-purple)',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
@@ -283,7 +283,7 @@ export default function ICMCalculatorPage() {
           <div style={{ marginBottom: 14 }}>
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
@@ -302,7 +302,7 @@ export default function ICMCalculatorPage() {
                   style={{
                     padding: '5px 10px',
                     borderRadius: 6,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
@@ -337,7 +337,7 @@ export default function ICMCalculatorPage() {
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -394,7 +394,7 @@ export default function ICMCalculatorPage() {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 800,
                       color: PLAYER_COLORS[i],
                       width: 14,
@@ -422,7 +422,7 @@ export default function ICMCalculatorPage() {
                       fontFamily: "'Inter', sans-serif",
                     }}
                   />
-                  <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600, minWidth: 36 }}>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600, minWidth: 36 }}>
                     {totalChips > 0 ? `${Math.round((stack / totalChips) * 1000) / 10}%` : '0%'}
                   </span>
                 </div>
@@ -450,7 +450,7 @@ export default function ICMCalculatorPage() {
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -507,7 +507,7 @@ export default function ICMCalculatorPage() {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-accent-amber)',
                       width: 20,
@@ -535,7 +535,7 @@ export default function ICMCalculatorPage() {
                       fontFamily: "'Inter', sans-serif",
                     }}
                   />
-                  <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>%</span>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>%</span>
                 </div>
               ))}
             </div>
@@ -553,7 +553,7 @@ export default function ICMCalculatorPage() {
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-accent-amber)',
                   fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -679,7 +679,7 @@ export default function ICMCalculatorPage() {
                       </div>
                       <div
                         style={{
-                          fontSize: 9,
+                          fontSize: 12,
                           color: 'var(--sp-fg-dim)',
                           fontWeight: 700,
                           textTransform: 'uppercase',
@@ -710,7 +710,7 @@ export default function ICMCalculatorPage() {
                       padding: '8px 12px',
                       background: 'rgba(255,255,255,0.04)',
                       borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -742,7 +742,7 @@ export default function ICMCalculatorPage() {
                     >
                       <span
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 900,
                           color: PLAYER_COLORS[i],
                           fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -755,7 +755,7 @@ export default function ICMCalculatorPage() {
                       </span>
                       <span
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 600,
                           color: 'var(--sp-fg-muted)',
                           textAlign: 'right',
@@ -775,7 +775,7 @@ export default function ICMCalculatorPage() {
                       </span>
                       <span
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 600,
                           textAlign: 'right',
                           color: 'var(--sp-accent-purple)',
@@ -785,7 +785,7 @@ export default function ICMCalculatorPage() {
                       </span>
                       <span
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 700,
                           textAlign: 'right',
                           color: r.difference >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
@@ -809,7 +809,7 @@ export default function ICMCalculatorPage() {
                 >
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -827,7 +827,7 @@ export default function ICMCalculatorPage() {
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 700,
                           marginBottom: 3,
                         }}
@@ -886,7 +886,7 @@ export default function ICMCalculatorPage() {
                       display: 'flex',
                       gap: 16,
                       marginTop: 8,
-                      fontSize: 9,
+                      fontSize: 12,
                       color: 'var(--sp-fg-dim)',
                       fontWeight: 600,
                     }}
@@ -969,7 +969,7 @@ export default function ICMCalculatorPage() {
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',

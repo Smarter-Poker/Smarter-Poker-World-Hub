@@ -49,7 +49,7 @@ export default function PLODrawMath() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.name}
           </button>
         ))}
@@ -62,19 +62,19 @@ export default function PLODrawMath() {
           <span style={{ padding: '4px 10px', borderRadius: 20, background: `${d.color}20`, fontSize: 13, fontWeight: 800, color: d.color }}>{d.outs} Outs</span>
         </div>
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 11, color: d.color }}>{d.example}</div>
+          <div style={{ fontSize: 12, color: d.color }}>{d.example}</div>
         </div>
         <div style={{ background: `${d.color}06`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace', borderLeft: `3px solid ${d.color}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: d.color }}>MATH</div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{d.math}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: d.color }}>MATH</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.math}</div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>EQUITY</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>EQUITY</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.equity}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>HOW TO PLAY</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>HOW TO PLAY</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{d.play}</div>
           </div>
         </div>

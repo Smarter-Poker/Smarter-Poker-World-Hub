@@ -20,6 +20,10 @@ const WORKER_INGEST_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260907204100_training_solver_worker_signed_ingestion.sql',
 );
+const BOUNDED_CANARY_MIGRATION = path.join(
+  ROOT,
+  'supabase/migrations/20260910120000_training_solver_bounded_canary_authority.sql',
+);
 
 const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
@@ -204,6 +208,24 @@ INSERT INTO public.solved_spots_gold (
 ), (
   'a2000000-0000-4000-8000-0000000000a2',
   'hu_cash_BB_100bb_2c3d4h', 'hu_cash', 100, 'flop', NULL
+), (
+  'c1000000-0000-4000-8000-000000000001',
+  'hu_cash_BB_100bb_AsKd2c', 'hu_cash', 100, 'flop', NULL
+), (
+  'c2000000-0000-4000-8000-000000000002',
+  'turn_hu_cash_BB_100bb_AsKd2cAh', 'hu_cash', 100, 'turn', NULL
+), (
+  'c3000000-0000-4000-8000-000000000003',
+  'hu_cash_BB_100bb_9s8h7d', 'hu_cash', 100, 'flop', NULL
+), (
+  'c4000000-0000-4000-8000-000000000004',
+  'turn_hu_cash_BB_100bb_9s8h7d2c', 'hu_cash', 100, 'turn', NULL
+), (
+  'd2000000-0000-4000-8000-000000000002',
+  'hu_cash_BTN_100bb_5s6h7d', 'hu_cash', 100, 'flop', NULL
+), (
+  'd3000000-0000-4000-8000-000000000003',
+  'hu_cash_BTN_100bb_8sThQc', 'hu_cash', 100, 'flop', NULL
 );
 `;
 
@@ -356,6 +378,7 @@ AS $$
   )
 $$;
 
+BEGIN;
 INSERT INTO public.training_solver_provenance_authority (
   machine_id, solver_version, solver_binary_checksum, pipeline_commit,
   manifest_version, manifest_checksum, source_combo_order_sha256,
@@ -385,6 +408,17 @@ INSERT INTO public.training_solver_provenance_authority (
     'tree_geometry', 'srp_parameterized_v2', 'streets', jsonb_build_array('flop', 'turn', 'river')
   )), 'phase6-disposable-postgres-verifier'
 );
+UPDATE public.training_solver_ingest_scopes
+SET admission_mode = 'backlog', configured_at = now(),
+    configured_by = 'phase6-disposable-postgres-verifier'
+WHERE machine_id = 'M1'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2'
+  AND manifest_checksum = repeat('c', 64)
+  AND admission_mode = 'held';
+COMMIT;
 
 -- This is the byte shape emitted above by the real Python harvester, not a
 -- hand-authored SQL fixture. It must survive jsonb parsing and enter the same
@@ -1180,6 +1214,8 @@ BEGIN
         AND state.game_type = 'hu_cash'
         AND state.stack_depth = 100
         AND state.street = 'flop'
+        AND state.node = 'r:0'
+        AND state.hero_position = 'BB'
         AND state.admitted) <> 1 THEN
     RAISE EXCEPTION 'worker resume state did not bind relational identity to active admission';
   END IF;
@@ -1307,6 +1343,687 @@ BEGIN
 END;
 $worker_ingest_behavior$;
 
+CREATE OR REPLACE FUNCTION pg_temp.backlog_worker_artifact(
+  p_id uuid,
+  p_scenario_hash text,
+  p_matrix jsonb,
+  p_signed_at timestamptz
+)
+RETURNS jsonb
+LANGUAGE sql
+AS $$
+  SELECT jsonb_build_object(
+    'audited_at', p_signed_at,
+    'game_type', 'hu_cash',
+    'id', p_id,
+    'machine_id', 'M1',
+    'manifest_checksum', repeat('c', 64),
+    'manifest_version', 'training-v2',
+    'pipeline_commit', repeat('b', 40),
+    'quality_status', 'validated',
+    'scenario_hash', p_scenario_hash,
+    'solved_v2_at', p_signed_at,
+    'solver_binary_checksum', repeat('a', 64),
+    'solver_version', 'PioSOLVER 3.0',
+    'source_artifact_checksum', pg_temp.solver_checksum(p_scenario_hash, p_matrix),
+    'stack_depth', 100,
+    'strategy_matrix_v2', p_matrix,
+    'street', p_matrix ->> 'street'
+  )
+$$;
+
+DO $backlog_scope_behavior$
+DECLARE
+  first_matrix jsonb;
+  second_matrix jsonb;
+  signed_at timestamptz := clock_timestamp();
+BEGIN
+  first_matrix := pg_temp.complete_solver_matrix(
+    'BTN', 'flop', '["5s","6h","7d"]'::jsonb,
+    'r:0:c', 'IP', 'BB', 'BTN', 100
+  );
+  second_matrix := pg_temp.complete_solver_matrix(
+    'BTN', 'flop', '["8s","Th","Qc"]'::jsonb,
+    'r:0:c', 'IP', 'BB', 'BTN', 100
+  );
+  PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+    'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2', repeat('c', 64),
+    '93500000-0000-4000-8000-000000000001', signed_at, repeat('1', 64),
+    pg_temp.backlog_worker_artifact(
+      'd2000000-0000-4000-8000-000000000002',
+      'hu_cash_BTN_100bb_5s6h7d', first_matrix, signed_at
+    )
+  );
+  PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+    'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2', repeat('c', 64),
+    '93500000-0000-4000-8000-000000000002', signed_at, repeat('2', 64),
+    pg_temp.backlog_worker_artifact(
+      'd3000000-0000-4000-8000-000000000003',
+      'hu_cash_BTN_100bb_8sThQc', second_matrix, signed_at
+    )
+  );
+  IF (SELECT count(*) FROM public.training_solver_artifact_catalog
+      WHERE artifact_id IN (
+        '90000000-0000-4000-8000-000000000009',
+        'd2000000-0000-4000-8000-000000000002',
+        'd3000000-0000-4000-8000-000000000003'
+      )) <> 3 THEN
+    RAISE EXCEPTION 'backlog scope stopped after two signed artifacts';
+  END IF;
+END;
+$backlog_scope_behavior$;
+
+CREATE OR REPLACE FUNCTION pg_temp.worker_artifact(
+  p_id uuid,
+  p_scenario_hash text,
+  p_matrix jsonb,
+  p_signed_at timestamptz
+)
+RETURNS jsonb
+LANGUAGE sql
+AS $$
+  SELECT jsonb_build_object(
+    'audited_at', p_signed_at,
+    'game_type', 'hu_cash',
+    'id', p_id,
+    'machine_id', 'M2',
+    'manifest_checksum', repeat('e', 64),
+    'manifest_version', 'training-v2-canary',
+    'pipeline_commit', repeat('b', 40),
+    'quality_status', 'validated',
+    'scenario_hash', p_scenario_hash,
+    'solved_v2_at', p_signed_at,
+    'solver_binary_checksum', repeat('a', 64),
+    'solver_version', 'PioSOLVER 3.0',
+    'source_artifact_checksum', pg_temp.solver_checksum(p_scenario_hash, p_matrix),
+    'stack_depth', 100,
+    'strategy_matrix_v2', p_matrix,
+    'street', p_matrix ->> 'street'
+  )
+$$;
+
+-- M1 already owns the migration-preserved backlog scope. A second valid M1
+-- tuple may be prepared while held, but activation must fail even though its
+-- target pair is otherwise complete. This is the exact stale-backlog bypass
+-- that could let one machine ingest beyond a bounded canary.
+BEGIN;
+INSERT INTO public.training_solver_provenance_authority (
+  machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+  manifest_version, manifest_checksum, source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts, approved_by
+)
+SELECT
+  'M1', solver_version, solver_binary_checksum, pipeline_commit,
+  'training-v2-conflict', repeat('d', 64), source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts,
+  'phase6-disposable-postgres-verifier'
+FROM public.training_solver_provenance_authority
+WHERE machine_id = 'M1'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2'
+  AND manifest_checksum = repeat('c', 64);
+INSERT INTO public.training_solver_bounded_canary_targets (
+  machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+  manifest_version, manifest_checksum, target_role, artifact_id,
+  scenario_hash, street, node, hero_position, approved_by
+) VALUES (
+  'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+  'training-v2-conflict', repeat('d', 64), 'parent',
+  'c1000000-0000-4000-8000-000000000001',
+  'hu_cash_BB_100bb_AsKd2c', 'flop', 'r:0', 'BB',
+  'phase6-disposable-postgres-verifier'
+), (
+  'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+  'training-v2-conflict', repeat('d', 64), 'child',
+  'c2000000-0000-4000-8000-000000000002',
+  'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
+  'r:0:c:b412:c:Ah', 'BB', 'phase6-disposable-postgres-verifier'
+);
+DO $same_machine_active_scope_conflict$
+DECLARE
+  activation_blocked boolean := false;
+BEGIN
+  BEGIN
+    UPDATE public.training_solver_ingest_scopes
+    SET admission_mode = 'bounded_canary', partition_count = 2,
+        partition_index = 0
+    WHERE machine_id = 'M1'
+      AND manifest_version = 'training-v2-conflict'
+      AND manifest_checksum = repeat('d', 64);
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    activation_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_MACHINE_INGEST_SCOPE_ALREADY_ACTIVE';
+  END;
+  IF NOT activation_blocked OR NOT EXISTS (
+    SELECT 1 FROM public.training_solver_ingest_scopes
+    WHERE machine_id = 'M1'
+      AND manifest_version = 'training-v2-conflict'
+      AND manifest_checksum = repeat('d', 64)
+      AND admission_mode = 'held'
+  ) THEN
+    RAISE EXCEPTION 'same-machine active scope did not block canary activation';
+  END IF;
+END;
+$same_machine_active_scope_conflict$;
+COMMIT;
+
+-- M1's backlog does not block M2: activation is serialized and capped per
+-- physical machine, not globally across the independent workers.
+BEGIN;
+INSERT INTO public.training_solver_provenance_authority (
+  machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+  manifest_version, manifest_checksum, source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts, approved_by
+)
+SELECT
+  'M2', solver_version, solver_binary_checksum, pipeline_commit,
+  'training-v2-canary', repeat('e', 64), source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts,
+  'phase6-disposable-postgres-verifier'
+FROM public.training_solver_provenance_authority
+WHERE machine_id = 'M1'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2'
+  AND manifest_checksum = repeat('c', 64);
+INSERT INTO public.training_solver_bounded_canary_targets (
+  machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+  manifest_version, manifest_checksum, target_role, artifact_id,
+  scenario_hash, street, node, hero_position, approved_by
+) VALUES (
+  'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+  'training-v2-canary', repeat('e', 64), 'parent',
+  'c1000000-0000-4000-8000-000000000001',
+  'hu_cash_BB_100bb_AsKd2c', 'flop', 'r:0', 'BB',
+  'phase6-disposable-postgres-verifier'
+), (
+  'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+  'training-v2-canary', repeat('e', 64), 'child',
+  'c2000000-0000-4000-8000-000000000002',
+  'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
+  'r:0:c:b412:c:Ah', 'BB', 'phase6-disposable-postgres-verifier'
+);
+UPDATE public.training_solver_ingest_scopes
+SET admission_mode = 'bounded_canary',
+    partition_count = 2,
+    partition_index = 1,
+    configured_at = now(),
+    configured_by = 'phase6-disposable-postgres-verifier'
+WHERE machine_id = 'M2'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2-canary'
+  AND manifest_checksum = repeat('e', 64)
+  AND admission_mode = 'held';
+COMMIT;
+
+DO $bounded_canary_ingest_behavior$
+DECLARE
+  parent_matrix jsonb;
+  child_matrix jsonb;
+  third_matrix jsonb;
+  signed_at timestamptz := clock_timestamp();
+  third_blocked boolean := false;
+  wrong_node_blocked boolean := false;
+  wrong_position_blocked boolean := false;
+  wrong_uuid_blocked boolean := false;
+  wrong_scenario_blocked boolean := false;
+  wrong_street_blocked boolean := false;
+  wrong_machine_blocked boolean := false;
+  scope_downgrade_blocked boolean := false;
+  target_mutation_blocked boolean := false;
+  target_move_blocked boolean := false;
+BEGIN
+  IF (SELECT count(*)
+      FROM public.training_solver_worker_row_states_v2(
+        'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+        'training-v2-canary', repeat('e', 64),
+        ARRAY[
+          'hu_cash_BB_100bb_AsKd2c',
+          'turn_hu_cash_BB_100bb_AsKd2cAh'
+        ]
+      ) state
+      WHERE state.admission_mode = 'bounded_canary'
+        AND state.partition_count = 2
+        AND state.partition_index = 1
+        AND state.canary_authorized
+        AND state.canary_target_role IN ('parent', 'child')
+        AND state.authorized_node IS NOT NULL
+        AND state.authorized_hero_position = 'BB') <> 2 THEN
+    RAISE EXCEPTION 'caller-bound canary authority was not provable before solve';
+  END IF;
+  parent_matrix := pg_temp.complete_solver_matrix(
+    'BB', 'flop', '["As","Kd","2c"]'::jsonb,
+    'r:0', 'OOP', 'BB', 'BTN', 100
+  );
+  child_matrix := pg_temp.complete_solver_matrix(
+    'BB', 'turn', '["As","Kd","2c","Ah"]'::jsonb,
+    'r:0:c:b412:c:Ah', 'OOP', 'BB', 'BTN', 100
+  );
+  child_matrix := jsonb_set(child_matrix, '{actions}', jsonb_build_array(
+    jsonb_build_object('code', 'c', 'key', 'check', 'size_pct', 0),
+    jsonb_build_object(
+      'code', 'b1442', 'key', 'bet_chips_1442', 'size_chips', 1442,
+      'size_semantics', 'cumulative_postflop_contribution_target'
+    )
+  ));
+  child_matrix := jsonb_set(child_matrix, '{frequencies}', jsonb_build_object(
+    'c', child_matrix -> 'frequencies' -> 'c',
+    'b1442', child_matrix -> 'frequencies' -> 'b525'
+  ));
+  third_matrix := pg_temp.complete_solver_matrix(
+    'BB', 'flop', '["9s","8h","7d"]'::jsonb,
+    'r:0', 'OOP', 'BB', 'BTN', 100
+  );
+
+  PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+    'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2-canary', repeat('e', 64),
+    '94000000-0000-4000-8000-000000000001', signed_at, repeat('5', 64),
+    pg_temp.worker_artifact(
+      'c1000000-0000-4000-8000-000000000001',
+      'hu_cash_BB_100bb_AsKd2c', parent_matrix, signed_at
+    )
+  );
+  PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+    'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2-canary', repeat('e', 64),
+    '94000000-0000-4000-8000-000000000002', signed_at, repeat('6', 64),
+    pg_temp.worker_artifact(
+      'c2000000-0000-4000-8000-000000000002',
+      'turn_hu_cash_BB_100bb_AsKd2cAh', child_matrix, signed_at
+    )
+  );
+
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000003', signed_at, repeat('7', 64),
+      pg_temp.worker_artifact(
+        'c3000000-0000-4000-8000-000000000003',
+        'hu_cash_BB_100bb_9s8h7d', third_matrix, signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    third_blocked := SQLERRM = 'SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED';
+  END;
+
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000004', signed_at, repeat('8', 64),
+      pg_temp.worker_artifact(
+        'c1000000-0000-4000-8000-000000000001',
+        'hu_cash_BB_100bb_AsKd2c',
+        jsonb_set(parent_matrix, '{node}', '"r:0:c"'::jsonb), signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    wrong_node_blocked := SQLERRM = 'SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED';
+  END;
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000005', signed_at, repeat('9', 64),
+      pg_temp.worker_artifact(
+        'c1000000-0000-4000-8000-000000000001',
+        'hu_cash_BB_100bb_AsKd2c',
+        jsonb_set(parent_matrix, '{position}', '"CO"'::jsonb), signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    wrong_position_blocked :=
+      SQLERRM = 'SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED';
+  END;
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000006', signed_at, repeat('a', 64),
+      pg_temp.worker_artifact(
+        'c3000000-0000-4000-8000-000000000003',
+        'hu_cash_BB_100bb_AsKd2c', parent_matrix, signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    wrong_uuid_blocked :=
+      SQLERRM = 'SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED';
+  END;
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000007', signed_at, repeat('b', 64),
+      pg_temp.worker_artifact(
+        'c1000000-0000-4000-8000-000000000001',
+        'hu_cash_BB_100bb_9s8h7d', third_matrix, signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    wrong_scenario_blocked :=
+      SQLERRM = 'SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED';
+  END;
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000008', signed_at, repeat('c', 64),
+      pg_temp.worker_artifact(
+        'c1000000-0000-4000-8000-000000000001',
+        'hu_cash_BB_100bb_AsKd2c',
+        jsonb_set(parent_matrix, '{street}', '"turn"'::jsonb), signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    wrong_street_blocked :=
+      SQLERRM = 'SOLVER_WORKER_CANARY_TARGET_NOT_AUTHORIZED';
+  END;
+  BEGIN
+    PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
+      'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      '94000000-0000-4000-8000-000000000009', signed_at, repeat('d', 64),
+      pg_temp.worker_artifact(
+        'c1000000-0000-4000-8000-000000000001',
+        'hu_cash_BB_100bb_AsKd2c', parent_matrix, signed_at
+      )
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    wrong_machine_blocked := SQLERRM = 'SOLVER_WORKER_INGEST_SCOPE_MISSING';
+  END;
+
+  BEGIN
+    UPDATE public.training_solver_ingest_scopes
+    SET admission_mode = 'backlog', partition_count = NULL,
+        partition_index = NULL
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-canary'
+      AND manifest_checksum = repeat('e', 64);
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    scope_downgrade_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_INGEST_SCOPE_IMMUTABLE';
+  END;
+  BEGIN
+    UPDATE public.training_solver_bounded_canary_targets
+    SET node = 'r:0:c'
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-canary'
+      AND target_role = 'parent';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    target_mutation_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_CANARY_TARGETS_IMMUTABLE';
+  END;
+  BEGIN
+    UPDATE public.training_solver_bounded_canary_targets
+    SET machine_id = 'M1',
+        manifest_version = 'training-v2-conflict',
+        manifest_checksum = repeat('d', 64)
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-canary'
+      AND manifest_checksum = repeat('e', 64)
+      AND target_role = 'parent';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    target_move_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_CANARY_TARGETS_IMMUTABLE';
+  END;
+
+  IF NOT third_blocked OR NOT wrong_node_blocked OR NOT wrong_position_blocked
+     OR NOT wrong_uuid_blocked OR NOT wrong_scenario_blocked
+     OR NOT wrong_street_blocked OR NOT wrong_machine_blocked
+     OR NOT scope_downgrade_blocked OR NOT target_mutation_blocked
+     OR NOT target_move_blocked
+     OR (SELECT count(*)
+         FROM public.training_solver_artifact_catalog
+         WHERE artifact_id IN (
+           'c1000000-0000-4000-8000-000000000001',
+           'c2000000-0000-4000-8000-000000000002'
+         )) <> 2
+     OR EXISTS (
+       SELECT 1 FROM public.solved_spots_gold
+       WHERE id = 'c3000000-0000-4000-8000-000000000003'
+         AND strategy_matrix_v2 IS NOT NULL
+     )
+     OR EXISTS (
+       SELECT 1 FROM public.training_solver_worker_receipts
+       WHERE machine_id = 'M2'
+         AND request_nonce = '94000000-0000-4000-8000-000000000003'
+     )
+     OR EXISTS (
+       SELECT 1 FROM public.training_solver_worker_receipts
+       WHERE machine_id = 'M2'
+         AND request_nonce IN (
+           '94000000-0000-4000-8000-000000000004',
+           '94000000-0000-4000-8000-000000000005',
+           '94000000-0000-4000-8000-000000000006',
+           '94000000-0000-4000-8000-000000000007',
+           '94000000-0000-4000-8000-000000000008',
+           '94000000-0000-4000-8000-000000000009'
+         )
+     )
+     OR (SELECT count(*)
+         FROM public.training_solver_worker_row_states_v2(
+           'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+           'training-v2-canary', repeat('e', 64),
+           ARRAY[
+             'hu_cash_BB_100bb_AsKd2c',
+             'turn_hu_cash_BB_100bb_AsKd2cAh'
+           ]
+         ) state
+         WHERE state.canary_authorized
+           AND state.admitted
+           AND state.node = state.authorized_node
+           AND state.hero_position = state.authorized_hero_position) <> 2
+     THEN
+    RAISE EXCEPTION 'bounded canary authority admitted an unauthorized third artifact';
+  END IF;
+END;
+$bounded_canary_ingest_behavior$;
+
+UPDATE public.training_solver_provenance_authority
+SET retired_at = clock_timestamp()
+WHERE machine_id = 'M2'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2-canary'
+  AND manifest_checksum = repeat('e', 64)
+  AND retired_at IS NULL;
+DO $bounded_canary_retirement_behavior$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM public.training_solver_worker_row_states_v2(
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-canary', repeat('e', 64),
+      ARRAY[
+        'hu_cash_BB_100bb_AsKd2c',
+        'turn_hu_cash_BB_100bb_AsKd2cAh'
+      ]
+    ) state
+    WHERE state.admitted OR state.canary_authorized
+  ) OR EXISTS (
+    SELECT 1 FROM public.training_solver_artifact_catalog
+    WHERE artifact_id IN (
+      'c1000000-0000-4000-8000-000000000001',
+      'c2000000-0000-4000-8000-000000000002'
+    )
+  ) THEN
+    RAISE EXCEPTION 'retired canary authority remained authorized or admitted';
+  END IF;
+END;
+$bounded_canary_retirement_behavior$;
+
+DO $retired_scope_cannot_reactivate$
+DECLARE
+  reactivation_blocked boolean := false;
+BEGIN
+  BEGIN
+    UPDATE public.training_solver_provenance_authority
+    SET retired_at = NULL
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-canary'
+      AND manifest_checksum = repeat('e', 64);
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    reactivation_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_PROVENANCE_RETIREMENT_IMMUTABLE';
+  END;
+  IF NOT reactivation_blocked THEN
+    RAISE EXCEPTION 'retired bounded canary could be reactivated';
+  END IF;
+END;
+$retired_scope_cannot_reactivate$;
+
+-- A future incomplete authority remains held. It cannot activate without two
+-- targets and a migration rerun must never silently broaden it to backlog.
+INSERT INTO public.training_solver_provenance_authority (
+  machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+  manifest_version, manifest_checksum, source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts, approved_by
+)
+SELECT
+  'M2', solver_version, solver_binary_checksum, pipeline_commit,
+  'training-v2-held', repeat('f', 64), source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts,
+  'phase6-disposable-postgres-verifier'
+FROM public.training_solver_provenance_authority
+WHERE machine_id = 'M1'
+  AND manifest_version = 'training-v2'
+  AND manifest_checksum = repeat('c', 64);
+DO $incomplete_scope_behavior$
+DECLARE
+  zero_target_activation_blocked boolean := false;
+  one_target_activation_blocked boolean := false;
+  invalid_lineage_activation_blocked boolean := false;
+  third_target_blocked boolean := false;
+  nonpreexisting_target_blocked boolean := false;
+BEGIN
+  BEGIN
+    INSERT INTO public.training_solver_bounded_canary_targets (
+      machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+      manifest_version, manifest_checksum, target_role, artifact_id,
+      scenario_hash, street, node, hero_position, approved_by
+    ) VALUES (
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-held', repeat('f', 64), 'parent',
+      'd1000000-0000-4000-8000-000000000001',
+      'hu_cash_BB_100bb_5s6s7s', 'flop', 'r:0', 'BB',
+      'phase6-disposable-postgres-verifier'
+    );
+  EXCEPTION WHEN foreign_key_violation THEN
+    nonpreexisting_target_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_CANARY_TARGET_NOT_PREEXISTING';
+  END;
+  BEGIN
+    UPDATE public.training_solver_ingest_scopes
+    SET admission_mode = 'bounded_canary', partition_count = 2,
+        partition_index = 1
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-held'
+      AND manifest_checksum = repeat('f', 64);
+  EXCEPTION WHEN check_violation THEN
+    zero_target_activation_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_INGEST_SCOPE_TARGET_SET_INVALID';
+  END;
+  INSERT INTO public.training_solver_bounded_canary_targets (
+    machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+    manifest_version, manifest_checksum, target_role, artifact_id,
+    scenario_hash, street, node, hero_position, approved_by
+  ) VALUES (
+    'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2-held', repeat('f', 64), 'parent',
+    'c3000000-0000-4000-8000-000000000003',
+    'hu_cash_BB_100bb_9s8h7d', 'flop', 'r:0', 'BB',
+    'phase6-disposable-postgres-verifier'
+  );
+  BEGIN
+    UPDATE public.training_solver_ingest_scopes
+    SET admission_mode = 'bounded_canary', partition_count = 2,
+        partition_index = 1
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-held'
+      AND manifest_checksum = repeat('f', 64);
+  EXCEPTION WHEN check_violation THEN
+    one_target_activation_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_INGEST_SCOPE_TARGET_SET_INVALID';
+  END;
+  INSERT INTO public.training_solver_bounded_canary_targets (
+    machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+    manifest_version, manifest_checksum, target_role, artifact_id,
+    scenario_hash, street, node, hero_position, approved_by
+  ) VALUES (
+    'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2-held', repeat('f', 64), 'child',
+    'c2000000-0000-4000-8000-000000000002',
+    'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
+    'r:0:c:b412:c:Ah', 'BB', 'phase6-disposable-postgres-verifier'
+  );
+  BEGIN
+    UPDATE public.training_solver_ingest_scopes
+    SET admission_mode = 'bounded_canary', partition_count = 2,
+        partition_index = 1
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-held'
+      AND manifest_checksum = repeat('f', 64);
+  EXCEPTION WHEN check_violation THEN
+    invalid_lineage_activation_blocked :=
+      SQLERRM = 'TRAINING_SOLVER_CANARY_LINEAGE_INVALID';
+  END;
+  DELETE FROM public.training_solver_bounded_canary_targets
+  WHERE machine_id = 'M2'
+    AND manifest_version = 'training-v2-held'
+    AND manifest_checksum = repeat('f', 64)
+    AND target_role = 'child';
+  INSERT INTO public.training_solver_bounded_canary_targets (
+    machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+    manifest_version, manifest_checksum, target_role, artifact_id,
+    scenario_hash, street, node, hero_position, approved_by
+  ) VALUES (
+    'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+    'training-v2-held', repeat('f', 64), 'child',
+    'c4000000-0000-4000-8000-000000000004',
+    'turn_hu_cash_BB_100bb_9s8h7d2c', 'turn',
+    'r:0:c:b412:c:2c', 'BB', 'phase6-disposable-postgres-verifier'
+  );
+  BEGIN
+    INSERT INTO public.training_solver_bounded_canary_targets (
+      machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+      manifest_version, manifest_checksum, target_role, artifact_id,
+      scenario_hash, street, node, hero_position, approved_by
+    ) VALUES (
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-held', repeat('f', 64), 'parent',
+      'c3000000-0000-4000-8000-000000000003',
+      'hu_cash_BB_100bb_9s8h7d', 'flop', 'r:0', 'BB',
+      'phase6-disposable-postgres-verifier'
+    );
+  EXCEPTION WHEN unique_violation THEN third_target_blocked := true;
+  END;
+  IF NOT nonpreexisting_target_blocked
+     OR NOT zero_target_activation_blocked
+     OR NOT one_target_activation_blocked
+     OR NOT invalid_lineage_activation_blocked
+     OR NOT third_target_blocked
+     OR NOT EXISTS (
+    SELECT 1 FROM public.training_solver_ingest_scopes
+    WHERE machine_id = 'M2'
+      AND manifest_version = 'training-v2-held'
+      AND manifest_checksum = repeat('f', 64)
+      AND admission_mode = 'held'
+  ) THEN
+    RAISE EXCEPTION 'incomplete canary scope did not remain fail-closed';
+  END IF;
+END;
+$incomplete_scope_behavior$;
+
 SET ROLE authenticated;
 DO $$
 DECLARE
@@ -1321,6 +2038,7 @@ DECLARE
   worker_claim_execute_blocked boolean := false;
   worker_ingest_execute_blocked boolean := false;
   worker_row_states_execute_blocked boolean := false;
+  worker_row_states_v2_execute_blocked boolean := false;
 BEGIN
   BEGIN
     PERFORM 1 FROM public.training_solver_artifact_catalog LIMIT 1;
@@ -1383,6 +2101,15 @@ BEGIN
     );
   EXCEPTION WHEN insufficient_privilege THEN worker_row_states_execute_blocked := true;
   END;
+  BEGIN
+    PERFORM 1 FROM public.training_solver_worker_row_states_v2(
+      'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2', repeat('c', 64),
+      ARRAY['hu_cash_BB_100bb_KhQd2s']
+    );
+  EXCEPTION WHEN insufficient_privilege THEN
+    worker_row_states_v2_execute_blocked := true;
+  END;
   IF NOT read_blocked THEN RAISE EXCEPTION 'authenticated could read the solver registry'; END IF;
   IF NOT authority_read_blocked THEN
     RAISE EXCEPTION 'authenticated could read the solver provenance authority';
@@ -1397,7 +2124,8 @@ BEGIN
     RAISE EXCEPTION 'authenticated retained solver warehouse write access';
   END IF;
   IF NOT worker_receipt_read_blocked OR NOT worker_claim_execute_blocked
-     OR NOT worker_ingest_execute_blocked OR NOT worker_row_states_execute_blocked THEN
+     OR NOT worker_ingest_execute_blocked OR NOT worker_row_states_execute_blocked
+     OR NOT worker_row_states_v2_execute_blocked THEN
     RAISE EXCEPTION 'authenticated crossed the private solver worker ingress boundary';
   END IF;
 END;
@@ -1514,6 +2242,39 @@ END;
 $$;
 RESET ROLE;
 
+-- Exercise the retirement/read TOCTOU boundary on a dedicated authority. The
+-- canonical M1 training-v2 authority must stay active for every later verifier
+-- probe; production retirement is one-way and must never need fixture reset.
+BEGIN;
+INSERT INTO public.training_solver_provenance_authority (
+  machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+  manifest_version, manifest_checksum, source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts, approved_by
+)
+SELECT
+  'M2', solver_version, solver_binary_checksum, pipeline_commit,
+  'training-v2-toctou', repeat('6', 64), source_combo_order_sha256,
+  training_game_contracts_sha256, manifest_contracts,
+  'phase6-disposable-postgres-toctou-verifier'
+FROM public.training_solver_provenance_authority
+WHERE machine_id = 'M1'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2'
+  AND manifest_checksum = repeat('c', 64);
+UPDATE public.training_solver_ingest_scopes
+SET admission_mode = 'backlog', configured_at = now(),
+    configured_by = 'phase6-disposable-postgres-toctou-verifier'
+WHERE machine_id = 'M2'
+  AND solver_version = 'PioSOLVER 3.0'
+  AND solver_binary_checksum = repeat('a', 64)
+  AND pipeline_commit = repeat('b', 40)
+  AND manifest_version = 'training-v2-toctou'
+  AND manifest_checksum = repeat('6', 64)
+  AND admission_mode = 'held';
+COMMIT;
+
 INSERT INTO public.solved_spots_gold (
   id, scenario_hash, game_type, stack_depth, street, strategy_matrix_v2,
   solver_version, solver_binary_checksum, machine_id, pipeline_commit,
@@ -1523,8 +2284,8 @@ INSERT INTO public.solved_spots_gold (
 SELECT
   '80000000-0000-4000-8000-000000000008',
   'hu_cash_BB_100bb_8h9hTh', 'hu_cash', 100, 'flop', matrix.value,
-  'PioSOLVER 3.0', repeat('a', 64), 'M1', repeat('b', 40),
-  'training-v2', repeat('c', 64),
+  'PioSOLVER 3.0', repeat('a', 64), 'M2', repeat('b', 40),
+  'training-v2-toctou', repeat('6', 64),
   pg_temp.solver_checksum('hu_cash_BB_100bb_8h9hTh', matrix.value),
   'validated', now()
 FROM (
@@ -1544,12 +2305,12 @@ ALTER TABLE public.training_solver_provenance_authority
   DISABLE TRIGGER training_solver_provenance_authority_invalidate_v1;
 UPDATE public.training_solver_provenance_authority
 SET retired_at = now()
-WHERE machine_id = 'M1'
+WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2'
-  AND manifest_checksum = repeat('c', 64);
+  AND manifest_version = 'training-v2-toctou'
+  AND manifest_checksum = repeat('6', 64);
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM public.training_solver_artifact_catalog
@@ -1580,12 +2341,12 @@ ALTER TABLE public.training_solver_provenance_authority
   ENABLE TRIGGER training_solver_provenance_authority_invalidate_v1;
 UPDATE public.training_solver_provenance_authority
 SET retired_at = retired_at
-WHERE machine_id = 'M1'
+WHERE machine_id = 'M2'
   AND solver_version = 'PioSOLVER 3.0'
   AND solver_binary_checksum = repeat('a', 64)
   AND pipeline_commit = repeat('b', 40)
-  AND manifest_version = 'training-v2'
-  AND manifest_checksum = repeat('c', 64);
+  AND manifest_version = 'training-v2-toctou'
+  AND manifest_checksum = repeat('6', 64);
 DO $$ BEGIN
   IF EXISTS (
     SELECT 1 FROM public.training_solver_artifact_catalog
@@ -1600,12 +2361,12 @@ DECLARE blocked boolean := false;
 BEGIN
   BEGIN
     PERFORM 1 FROM public.training_ingest_solver_artifact_v1(
-      'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-      'training-v2', repeat('c', 64),
+      'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+      'training-v2-toctou', repeat('6', 64),
       '91000000-0000-4000-8000-000000000001', now(), repeat('d', 64), '{}'::jsonb
     );
-  EXCEPTION WHEN invalid_parameter_value THEN
-    blocked := SQLERRM = 'SOLVER_WORKER_INGEST_AUTHORITY_INVALID';
+  EXCEPTION WHEN insufficient_privilege THEN
+    blocked := SQLERRM = 'SOLVER_WORKER_INGEST_SCOPE_MISSING';
   END;
   IF NOT blocked THEN
     RAISE EXCEPTION 'retired worker authority could replay an ingest receipt';
@@ -1637,6 +2398,29 @@ SELECT jsonb_build_object(
   'workerReceiptRetentionBounded', true,
   'workerFailedWriteReceiptRolledBack', true,
   'workerRetiredAuthorityReplayBlocked', true,
+  'workerUnscopedLegacyAclOwnerOnly', NOT (
+    has_function_privilege(
+      'solver_unscoped_acl_probe',
+      'public.training_ingest_solver_artifact_unscoped_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
+      'EXECUTE'
+    )
+    OR has_function_privilege(
+      'solver_unscoped_acl_delegate',
+      'public.training_ingest_solver_artifact_unscoped_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
+      'EXECUTE'
+    )
+  ),
+  'workerBoundedCanaryExactPairPassed', true,
+  'workerBacklogScopeRemainsUnbounded', true,
+  'workerBoundedCanaryThirdBlocked', true,
+  'workerBoundedCanarySameMachineConflictBlocked', true,
+  'workerBoundedCanaryCrossMachineIndependent', true,
+  'workerRetiredScopeReactivationBlocked', true,
+  'workerBoundedCanaryNodePositionBound', true,
+  'workerBoundedCanaryTargetMoveBlocked', true,
+  'workerBoundedCanaryTransitionsImmutable', true,
+  'workerBoundedCanaryPreSpawnAuthorityPassed', true,
+  'workerFutureHeldScopeReapplySafe', true,
   'retirementSnapshotJoinBlocked', true,
   'provenanceAllowlistRequired', true,
   'provenanceRetirementInvalidates', true,
@@ -1716,6 +2500,52 @@ try {
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', WORKER_INGEST_MIGRATION], {
     quiet: true,
   });
+  // ALTER FUNCTION RENAME preserves ACLs. Seed a custom historical executor
+  // before the bounded-canary migration renames the worker ingest RPC, then
+  // require the migration to make the internal implementation owner-only.
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`
+      CREATE ROLE solver_unscoped_acl_probe NOLOGIN;
+      CREATE ROLE solver_unscoped_acl_delegate NOLOGIN;
+      GRANT EXECUTE ON FUNCTION public.training_ingest_solver_artifact_v1(
+        text, text, text, text, text, text, uuid, timestamptz, text, jsonb
+      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
+      SET ROLE solver_unscoped_acl_probe;
+      GRANT EXECUTE ON FUNCTION public.training_ingest_solver_artifact_v1(
+        text, text, text, text, text, text, uuid, timestamptz, text, jsonb
+      ) TO solver_unscoped_acl_delegate;
+      RESET ROLE;
+    `,
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION], {
+    quiet: true,
+  });
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION], {
+    quiet: true,
+  });
+  const unscopedAclOwnerOnly = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`
+      SELECT NOT (
+        has_function_privilege(
+          'solver_unscoped_acl_probe',
+          'public.training_ingest_solver_artifact_unscoped_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
+          'EXECUTE'
+        )
+        OR has_function_privilege(
+          'solver_unscoped_acl_delegate',
+          'public.training_ingest_solver_artifact_unscoped_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
+          'EXECUTE'
+        )
+      );
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (unscopedAclOwnerOnly !== 't') {
+    throw new Error('Bounded-canary migration preserved a custom-role unscoped ingest grant.');
+  }
   // The fixture's standalone scenario-hash index is intentionally cheaper on
   // the tiny disposable table. Temporarily hide it so the plan assertion
   // proves the production board-page keyset can use its required four-key
@@ -1763,6 +2593,8 @@ try {
   }).stdout.trim().split('\n').filter(Boolean);
   const expectedBoardPageRows = [
     'hu_cash_BB_100bb_2c3d4h',
+    'hu_cash_BB_100bb_9s8h7d',
+    'hu_cash_BB_100bb_AsKd2c',
     'hu_cash_BB_100bb_KhQd2s',
   ];
   if (JSON.stringify(boardPageRows) !== JSON.stringify(expectedBoardPageRows)) {
@@ -1785,16 +2617,24 @@ try {
     `,
     quiet: true,
   }).stdout.trim().split('\n').filter(Boolean);
-  const firstBoardPage = readBoardPage(null);
-  const secondBoardPage = readBoardPage(firstBoardPage[0]);
-  const terminalBoardPage = readBoardPage(secondBoardPage[0]);
-  if (JSON.stringify([...firstBoardPage, ...secondBoardPage])
+  const traversedBoardPageRows = [];
+  let afterBoardScenario = null;
+  let terminalBoardPage = [];
+  for (let page = 0; page <= expectedBoardPageRows.length; page += 1) {
+    const rows = readBoardPage(afterBoardScenario);
+    if (rows.length === 0) {
+      terminalBoardPage = rows;
+      break;
+    }
+    traversedBoardPageRows.push(...rows);
+    afterBoardScenario = rows.at(-1);
+  }
+  if (JSON.stringify(traversedBoardPageRows)
         !== JSON.stringify(expectedBoardPageRows)
       || terminalBoardPage.length !== 0) {
     throw new Error([
       'Board-page keyset traversal skipped or duplicated a canonical hash.',
-      `Page 1: ${firstBoardPage.join(', ')}`,
-      `Page 2: ${secondBoardPage.join(', ')}`,
+      `Rows: ${traversedBoardPageRows.join(', ')}`,
       `Terminal page: ${terminalBoardPage.join(', ')}`,
     ].join('\n'));
   }
@@ -1823,16 +2663,154 @@ try {
     input: BEHAVIOR_SQL,
     quiet: true,
   });
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION,
+  ], { quiet: true });
+  const heldAfterReapply = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`
+      SELECT admission_mode || '|' || count(*)::text
+      FROM public.training_solver_ingest_scopes scope
+      JOIN public.training_solver_bounded_canary_targets target
+        USING (machine_id, solver_version, solver_binary_checksum,
+               pipeline_commit, manifest_version, manifest_checksum)
+      WHERE scope.machine_id = 'M2'
+        AND scope.manifest_version = 'training-v2-held'
+        AND scope.manifest_checksum = repeat('f', 64)
+      GROUP BY admission_mode;
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (heldAfterReapply !== 'held|2') {
+    throw new Error(`Bounded-canary migration rerun broadened a future held scope: ${heldAfterReapply}`);
+  }
+
+  // Prove the advisory lock closes the check-then-activate race. Prepare two
+  // valid held tuples for M2 while its earlier canary authority is retired.
+  // Transaction A activates and holds the per-machine lock; transaction B
+  // began while A was uncommitted and must re-check after the lock is released,
+  // then remain held rather than creating a second ingest-capable scope.
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`
+      INSERT INTO public.training_solver_provenance_authority (
+        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+        manifest_version, manifest_checksum, source_combo_order_sha256,
+        training_game_contracts_sha256, manifest_contracts, approved_by
+      )
+      SELECT
+        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+        'training-v2-race-2', repeat('9', 64), source_combo_order_sha256,
+        training_game_contracts_sha256, manifest_contracts,
+        'phase6-disposable-postgres-race-verifier'
+      FROM public.training_solver_provenance_authority
+      WHERE machine_id = 'M2'
+        AND manifest_version = 'training-v2-held'
+        AND manifest_checksum = repeat('f', 64);
+
+      INSERT INTO public.training_solver_bounded_canary_targets (
+        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+        manifest_version, manifest_checksum, target_role, artifact_id,
+        scenario_hash, street, node, hero_position, approved_by
+      )
+      SELECT
+        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+        'training-v2-race-2', repeat('9', 64), target_role, artifact_id,
+        scenario_hash, street, node, hero_position,
+        'phase6-disposable-postgres-race-verifier'
+      FROM public.training_solver_bounded_canary_targets
+      WHERE machine_id = 'M2'
+        AND manifest_version = 'training-v2-held'
+        AND manifest_checksum = repeat('f', 64);
+    `,
+    quiet: true,
+  });
+  const firstScopeActivation = commandAsync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
+  ], {
+    input: String.raw`
+      BEGIN;
+      SET LOCAL statement_timeout = '5s';
+      UPDATE public.training_solver_ingest_scopes
+      SET admission_mode = 'bounded_canary', partition_count = 2,
+          partition_index = 1
+      WHERE machine_id = 'M2'
+        AND manifest_version = 'training-v2-held'
+        AND manifest_checksum = repeat('f', 64)
+        AND admission_mode = 'held';
+      SELECT pg_sleep(1);
+      COMMIT;
+    `,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  const racingScopeActivation = commandAsync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
+  ], {
+    input: String.raw`
+      SET statement_timeout = '5s';
+      DO $racing_scope_activation$
+      DECLARE blocked boolean := false;
+      BEGIN
+        BEGIN
+          UPDATE public.training_solver_ingest_scopes
+          SET admission_mode = 'bounded_canary', partition_count = 2,
+              partition_index = 1
+          WHERE machine_id = 'M2'
+            AND manifest_version = 'training-v2-race-2'
+            AND manifest_checksum = repeat('9', 64)
+            AND admission_mode = 'held';
+        EXCEPTION WHEN object_not_in_prerequisite_state THEN
+          blocked :=
+            SQLERRM = 'TRAINING_SOLVER_MACHINE_INGEST_SCOPE_ALREADY_ACTIVE';
+        END;
+        IF NOT blocked THEN
+          RAISE EXCEPTION 'concurrent same-machine activation was not blocked';
+        END IF;
+      END;
+      $racing_scope_activation$;
+    `,
+  });
+  await Promise.all([firstScopeActivation, racingScopeActivation]);
+  const serializedScopeState = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`
+      SELECT
+        count(*) FILTER (
+          WHERE scope.admission_mode IN ('backlog', 'bounded_canary')
+            AND authority.retired_at IS NULL
+        )::text || '|' ||
+        count(*) FILTER (
+          WHERE scope.manifest_version = 'training-v2-race-2'
+            AND scope.admission_mode = 'held'
+        )::text
+      FROM public.training_solver_ingest_scopes scope
+      JOIN public.training_solver_provenance_authority authority
+        USING (
+          machine_id, solver_version, solver_binary_checksum, pipeline_commit,
+          manifest_version, manifest_checksum
+        )
+      WHERE scope.machine_id = 'M2';
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (serializedScopeState !== '1|1') {
+    throw new Error(`Concurrent same-machine scope activation escaped its hard cap: ${serializedScopeState}`);
+  }
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: String.raw`
       UPDATE public.training_solver_provenance_authority
-      SET retired_at = NULL
-      WHERE machine_id = 'M1'
-        AND solver_version = 'PioSOLVER 3.0'
-        AND solver_binary_checksum = repeat('a', 64)
-        AND pipeline_commit = repeat('b', 40)
-        AND manifest_version = 'training-v2'
-        AND manifest_checksum = repeat('c', 64);
+      SET retired_at = clock_timestamp()
+      WHERE machine_id = 'M2'
+        AND manifest_version = 'training-v2-held'
+        AND manifest_checksum = repeat('f', 64)
+        AND retired_at IS NULL;
+    `,
+    quiet: true,
+  });
+
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: String.raw`
       UPDATE public.solved_spots_gold
       SET quality_status = quality_status
       WHERE id = '90000000-0000-4000-8000-000000000009';
@@ -2032,6 +3010,116 @@ try {
       input: probe.repair,
       quiet: true,
     });
+  }
+
+  // Each bounded-canary CREATE TABLE IF NOT EXISTS object must reject subtle
+  // same-name drift on reapply. Exercise one semantic contract defect on every
+  // private table, repair it explicitly, and prove the migration is idempotent
+  // again before moving to the next probe.
+  const boundedScopeShapeProbes = [
+    {
+      mutate: `
+        ALTER TABLE public.training_solver_ingest_scopes
+          DROP CONSTRAINT training_solver_ingest_scopes_mode_check;
+        ALTER TABLE public.training_solver_ingest_scopes
+          ADD CONSTRAINT training_solver_ingest_scopes_mode_check
+          CHECK (char_length(admission_mode) > 0);
+      `,
+      repair: `
+        ALTER TABLE public.training_solver_ingest_scopes
+          DROP CONSTRAINT training_solver_ingest_scopes_mode_check;
+        ALTER TABLE public.training_solver_ingest_scopes
+          ADD CONSTRAINT training_solver_ingest_scopes_mode_check
+          CHECK (admission_mode IN ('held', 'backlog', 'bounded_canary'));
+      `,
+      expected: 'TRAINING_SOLVER_INGEST_SCOPES_CONTRACT_INCOMPLETE',
+    },
+    {
+      mutate: `
+        ALTER TABLE public.training_solver_bounded_canary_targets
+          DROP CONSTRAINT training_solver_canary_targets_role_street_check;
+        ALTER TABLE public.training_solver_bounded_canary_targets
+          ADD CONSTRAINT training_solver_canary_targets_role_street_check
+          CHECK (target_role IN ('parent', 'child'));
+      `,
+      repair: `
+        ALTER TABLE public.training_solver_bounded_canary_targets
+          DROP CONSTRAINT training_solver_canary_targets_role_street_check;
+        ALTER TABLE public.training_solver_bounded_canary_targets
+          ADD CONSTRAINT training_solver_canary_targets_role_street_check CHECK (
+            (target_role = 'parent' AND street = 'flop')
+            OR (target_role = 'child' AND street = 'turn')
+          );
+      `,
+      expected: 'TRAINING_SOLVER_CANARY_TARGETS_CONTRACT_INCOMPLETE',
+    },
+    {
+      mutate: `ALTER TABLE public.training_solver_scope_migration_state
+        ALTER COLUMN completed_at SET DEFAULT clock_timestamp();`,
+      repair: `ALTER TABLE public.training_solver_scope_migration_state
+        ALTER COLUMN completed_at SET DEFAULT now();`,
+      expected: 'TRAINING_SOLVER_SCOPE_MIGRATION_STATE_CONTRACT_INCOMPLETE',
+    },
+  ];
+  for (const probe of boundedScopeShapeProbes) {
+    command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+      input: probe.mutate,
+      quiet: true,
+    });
+    commandExpectFailure(
+      tool('psql'),
+      ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION],
+      { expected: probe.expected },
+    );
+    command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+      input: probe.repair,
+      quiet: true,
+    });
+    command(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION,
+    ], { quiet: true });
+  }
+
+  // Table-level REVOKE does not clear PostgreSQL column grants. Seed a leak on
+  // every private table, reapply the migration, and require its column-ACL
+  // normalizer plus postcondition assertion to remove all three.
+  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
+    input: `
+      GRANT SELECT (machine_id)
+        ON public.training_solver_ingest_scopes TO service_role;
+      GRANT UPDATE (target_role)
+        ON public.training_solver_bounded_canary_targets TO authenticated;
+      GRANT REFERENCES (migration_id)
+        ON public.training_solver_scope_migration_state TO anon;
+    `,
+    quiet: true,
+  });
+  command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION,
+  ], { quiet: true });
+  const boundedScopeAclClosed = command(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
+  ], {
+    input: String.raw`
+      SELECT NOT (
+        has_any_column_privilege(
+          'service_role', 'public.training_solver_ingest_scopes',
+          'SELECT,INSERT,UPDATE,REFERENCES'
+        )
+        OR has_any_column_privilege(
+          'authenticated', 'public.training_solver_bounded_canary_targets',
+          'SELECT,INSERT,UPDATE,REFERENCES'
+        )
+        OR has_any_column_privilege(
+          'anon', 'public.training_solver_scope_migration_state',
+          'SELECT,INSERT,UPDATE,REFERENCES'
+        )
+      );
+    `,
+    quiet: true,
+  }).stdout.trim();
+  if (boundedScopeAclClosed !== 't') {
+    throw new Error('Bounded-canary migration left a private column ACL grant in place.');
   }
 
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {

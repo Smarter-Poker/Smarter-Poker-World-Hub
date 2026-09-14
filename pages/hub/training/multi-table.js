@@ -377,7 +377,7 @@ export default function MultiTablePage() {
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -454,7 +454,7 @@ export default function MultiTablePage() {
                     {/* Save Status Indicator */}
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 600,
                         marginBottom: 12,
                         color:
@@ -527,7 +527,7 @@ export default function MultiTablePage() {
                           </div>
                           <div
                             style={{
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: 'var(--sp-fg-dim)',
                               textTransform: 'uppercase',
@@ -643,7 +643,7 @@ export default function MultiTablePage() {
             <div style={{ marginBottom: 28 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   letterSpacing: 1.5,
@@ -689,7 +689,7 @@ export default function MultiTablePage() {
             <div style={{ marginBottom: 28 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   letterSpacing: 1.5,
@@ -718,7 +718,7 @@ export default function MultiTablePage() {
                         borderRadius: 8,
                         border: 'none',
                         cursor: 'pointer',
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 600,
                         textAlign: 'left',
                         background: isSelected ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)',
@@ -812,7 +812,7 @@ export default function MultiTablePage() {
                   padding: '4px 10px',
                   color: 'var(--sp-fg-muted)',
                   cursor: 'pointer',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                 }}
               >
@@ -828,7 +828,7 @@ export default function MultiTablePage() {
               >
                 {tableCount}-TABLE MODE
               </span>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 10 }}>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, fontSize: 12 }}>
                 <span style={{ color: 'var(--sp-accent-green)' }}>Hands: {combinedStats.totalHands}</span>
                 <span style={{ color: 'var(--sp-accent-amber)' }}>Correct: {combinedStats.totalCorrect}</span>
                 <span style={{ color: 'var(--sp-accent-red)' }}>
@@ -907,7 +907,7 @@ export default function MultiTablePage() {
                 display: 'grid',
                 gridTemplateColumns: gridCols,
                 gridTemplateRows: gridRows,
-                height: `calc(100vh - ${isPhone && visibleGames.length > 1 ? 92 : 45}px)`,
+                height: `calc(100dvh - ${isPhone && visibleGames.length > 1 ? 92 : 45}px)`,
                 gap: 2,
               }}
             >
@@ -953,7 +953,7 @@ export default function MultiTablePage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 800,
                       color: 'var(--sp-accent-cyan)',
                       fontFamily: "var(--font-orbitron), 'Orbitron', monospace",

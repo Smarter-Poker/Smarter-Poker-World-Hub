@@ -115,7 +115,7 @@ function getProfileForBB(bb) {
 function SPRGauge({ spr, color }) {
   return (
     <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-      <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>Typical SPR</div>
+      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Typical SPR</div>
       <div style={{ color, fontSize: 28, fontWeight: 800 }}>{spr}</div>
       <div style={{ height: 6, background: 'rgba(0,0,0,0.2)', borderRadius: 3, marginTop: 6, overflow: 'hidden' }}>
         <div style={{
@@ -134,17 +134,17 @@ function PositionRanges({ ranges, color }) {
   const maxRange = Math.max(...Object.values(ranges || {}));
   return (
     <div>
-      <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range By Position</div>
+      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Open-Raise Range By Position</div>
       {positions.map(pos => (
         <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ color: '#94a3b8', fontSize: 10, width: 28, fontWeight: 600 }}>{labels[pos]}</span>
+          <span style={{ color: '#94a3b8', fontSize: 12, width: 28, fontWeight: 600 }}>{labels[pos]}</span>
           <div style={{ flex: 1, height: 12, background: 'rgba(0,0,0,0.2)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{
               width: `${(ranges[pos] / maxRange) * 100}%`, height: '100%',
               background: color, opacity: 0.5, borderRadius: 3, transition: 'width 0.3s',
             }} />
           </div>
-          <span style={{ color, fontSize: 10, fontWeight: 700, width: 32, textAlign: 'right' }}>{ranges[pos]}%</span>
+          <span style={{ color, fontSize: 12, fontWeight: 700, width: 32, textAlign: 'right' }}>{ranges[pos]}%</span>
         </div>
       ))}
     </div>
@@ -166,23 +166,23 @@ export default function StackDepthAdvisor() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Stack Depth Advisor</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Adjust Your Strategy Based On Effective Stack Depth</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Adjust Your Strategy Based On Effective Stack Depth</div>
         </div>
 
         {/* BB Slider */}
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }}>Effective Stack</span>
+            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Effective Stack</span>
             <span style={{ color: activeProfile.color, fontSize: 16, fontWeight: 800 }}>{bbSlider} BB</span>
           </div>
           <input type="range" min={5} max={200} value={bbSlider}
             onChange={e => { setBbSlider(Number(e.target.value)); setSelectedProfile(null); }}
             style={{ width: '100%', accentColor: activeProfile.color, height: 6, cursor: 'pointer' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ color: '#ef4444', fontSize: 7 }}>5 BB</span>
-            <span style={{ color: '#f59e0b', fontSize: 7 }}>50 BB</span>
-            <span style={{ color: '#22c55e', fontSize: 7 }}>100 BB</span>
-            <span style={{ color: '#3b82f6', fontSize: 7 }}>200 BB</span>
+            <span style={{ color: '#ef4444', fontSize: 12 }}>5 BB</span>
+            <span style={{ color: '#f59e0b', fontSize: 12 }}>50 BB</span>
+            <span style={{ color: '#22c55e', fontSize: 12 }}>100 BB</span>
+            <span style={{ color: '#3b82f6', fontSize: 12 }}>200 BB</span>
           </div>
         </div>
 
@@ -193,10 +193,10 @@ export default function StackDepthAdvisor() {
               padding: '5px 10px', borderRadius: 5, cursor: 'pointer', whiteSpace: 'nowrap',
               background: activeProfile.id === p.id ? `${p.color}15` : 'rgba(0,0,0,0.15)',
               border: activeProfile.id === p.id ? `1px solid ${p.color}40` : '1px solid transparent',
-              color: activeProfile.id === p.id ? p.color : '#94a3b8', fontSize: 10, fontWeight: 600,
+              color: activeProfile.id === p.id ? p.color : '#94a3b8', fontSize: 12, fontWeight: 600,
             }}>
               <div>{p.name}</div>
-              <div style={{ color: '#64748b', fontSize: 8, marginTop: 1 }}>{p.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, marginTop: 1 }}>{p.label}</div>
             </button>
           ))}
         </div>
@@ -204,10 +204,10 @@ export default function StackDepthAdvisor() {
         {/* Active profile header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
           <div style={{ color: activeProfile.color, fontSize: 22, fontWeight: 800 }}>{activeProfile.name}</div>
-          <span style={{ padding: '3px 8px', borderRadius: 4, background: `${activeProfile.color}15`, color: activeProfile.color, fontSize: 10, fontWeight: 700 }}>
+          <span style={{ padding: '3px 8px', borderRadius: 4, background: `${activeProfile.color}15`, color: activeProfile.color, fontSize: 12, fontWeight: 700 }}>
             {activeProfile.label}
           </span>
-          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 10, fontWeight: 600 }}>
+          <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 12, fontWeight: 600 }}>
             SPR: {activeProfile.spr}
           </span>
         </div>
@@ -216,7 +216,7 @@ export default function StackDepthAdvisor() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <SPRGauge spr={activeProfile.spr} color={activeProfile.color} />
           <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-            <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>Commitment Threshold</div>
+            <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Commitment Threshold</div>
             <div style={{ color: activeProfile.color, fontSize: 12, fontWeight: 700, marginTop: 6, lineHeight: 1.4 }}>
               {activeProfile.commitThreshold}
             </div>
@@ -226,22 +226,22 @@ export default function StackDepthAdvisor() {
         {/* Preflop & Postflop */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-            <div style={{ color: '#3b82f6', fontSize: 9, fontWeight: 700, marginBottom: 4 }}>PREFLOP</div>
-            <div style={{ color: '#cbd5e1', fontSize: 10, lineHeight: 1.5 }}>{activeProfile.preflop}</div>
+            <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>PREFLOP</div>
+            <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5 }}>{activeProfile.preflop}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10 }}>
-            <div style={{ color: '#22c55e', fontSize: 9, fontWeight: 700, marginBottom: 4 }}>POSTFLOP</div>
-            <div style={{ color: '#cbd5e1', fontSize: 10, lineHeight: 1.5 }}>{activeProfile.postflop}</div>
+            <div style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>POSTFLOP</div>
+            <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5 }}>{activeProfile.postflop}</div>
           </div>
         </div>
 
         {/* Key Adjustments */}
         <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: 8, padding: 10, marginBottom: 16 }}>
-          <div style={{ color: '#f59e0b', fontSize: 9, fontWeight: 700, marginBottom: 6 }}>KEY ADJUSTMENTS</div>
+          <div style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>KEY ADJUSTMENTS</div>
           {activeProfile.keyAdjustments.map((adj, i) => (
             <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'flex-start' }}>
-              <span style={{ color: activeProfile.color, fontSize: 10, flexShrink: 0, marginTop: 1 }}>•</span>
-              <span style={{ color: '#94a3b8', fontSize: 10, lineHeight: 1.4 }}>{adj}</span>
+              <span style={{ color: activeProfile.color, fontSize: 12, flexShrink: 0, marginTop: 1 }}>•</span>
+              <span style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.4 }}>{adj}</span>
             </div>
           ))}
         </div>

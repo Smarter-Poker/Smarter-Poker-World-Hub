@@ -181,7 +181,7 @@ export default function StudyGroupFinderPage() {
       <div
         className="sp-training-command sp-training-command--group-finder"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -218,7 +218,7 @@ export default function StudyGroupFinderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Study Group Finder</div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                 {groups.length} Live {groups.length === 1 ? 'Group' : 'Groups'}
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function StudyGroupFinderPage() {
                     Create New Study Group
                   </div>
                   <div
-                    style={{ fontSize: 11, color: 'var(--sp-fg-dim)', lineHeight: 1.5, marginBottom: 12 }}
+                    style={{ fontSize: 12, color: 'var(--sp-fg-dim)', lineHeight: 1.5, marginBottom: 12 }}
                   >
                     Create A Persistent Smarter.Poker Room. Members Can Join From This Finder And
                     Participate In The Room Discussion.
@@ -411,7 +411,7 @@ export default function StudyGroupFinderPage() {
                   border: `1px solid ${filterFmt === f ? 'var(--sp-accent-blue)' : 'rgba(255,255,255,0.08)'}`,
                   background: filterFmt === f ? 'rgba(59,130,246,0.08)' : 'transparent',
                   color: filterFmt === f ? 'var(--sp-accent-blue)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -423,7 +423,7 @@ export default function StudyGroupFinderPage() {
 
           {/* Level + Sort */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
-            <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>Level:</span>
+            <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)', fontWeight: 600 }}>Level:</span>
             {LEVELS.map((l) => (
               <button
                 key={l}
@@ -434,7 +434,7 @@ export default function StudyGroupFinderPage() {
                   border: `1px solid ${filterLevel === l ? 'var(--sp-accent-purple)' : 'transparent'}`,
                   background: filterLevel === l ? 'rgba(168,85,247,0.06)' : 'transparent',
                   color: filterLevel === l ? 'var(--sp-accent-purple)' : 'var(--sp-fg-faint)',
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -457,7 +457,7 @@ export default function StudyGroupFinderPage() {
                     background: sortBy === s.k ? 'rgba(255,255,255,0.06)' : 'transparent',
                     border: 'none',
                     color: sortBy === s.k ? 'var(--sp-fg-muted)' : 'var(--sp-fg-faint)',
-                    fontSize: 9,
+                    fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
                   }}
@@ -512,14 +512,14 @@ export default function StudyGroupFinderPage() {
                           <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>
                             {g.name}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>{g.focus}</div>
+                          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{g.focus}</div>
                         </div>
                       </div>
                       <div
                         style={{
                           display: 'flex',
                           gap: 12,
-                          fontSize: 11,
+                          fontSize: 12,
                           color: 'var(--sp-fg-muted)',
                           flexWrap: 'wrap',
                           marginTop: 8,
@@ -555,7 +555,7 @@ export default function StudyGroupFinderPage() {
                         >
                           {g.members}/{g.max}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
                           {slotsLeft} {slotsLeft === 1 ? 'slot' : 'slots'} Left
                         </div>
                       </div>

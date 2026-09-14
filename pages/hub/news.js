@@ -42,6 +42,13 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
 import LiveWireStyles from '../../src/components/news/LiveWireStyles';
+import HubPageShell from '../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../src/components/ui/PullToRefresh';
+import toast from '../../src/stores/toastStore';
+import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
+import { useHaptics } from '../../src/hooks/useHaptics';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
+import { useModalHistory } from '../../src/hooks/useModalHistory';
 import {
     getReadLater,
     addToReadLater,
@@ -118,6 +125,7 @@ const VALID_SOURCES = ['PokerNews', 'MSPT', 'Card Player', 'WSOP', 'Poker.org', 
 // are reached via ?filter= instead and are handled separately.
 const SECTION_TABS = ['news', 'reels', 'videos', 'events'];
 const NAV_SECTION_TABS = [...SECTION_TABS, 'later'];
+const INITIAL_VISIBLE = 8;
 
 // Source accent colors for color-coded borders
 const SOURCE_COLORS = {
@@ -170,6 +178,14 @@ export default function NewsHub() {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
+    // Mobile phase 6 foundation (docs/mobile-standard/ROLLOUT-PLAN.md).
+    const haptic = useHaptics();
+    const online = useOnlineStatus();
+    const requireOnline = useCallback(() => {
+        if (online) return true;
+        toast.error(OFFLINE_TOAST);
+        return false;
+    }, [online]);
 
 
 
@@ -182,7 +198,6 @@ export default function NewsHub() {
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [scrollProgress, setScrollProgress] = useState(0);
     const [newArticleCount, setNewArticleCount] = useState(0);
-    const reelsCarouselRef = useRef(null);
 
     // Phase 3 State
     // NOTE: initialize to the server-rendered default and hydrate from localStorage in an
@@ -246,7 +261,35 @@ export default function NewsHub() {
     // Bookmarks is a filtered News view, not a sixth rail destination.
     const navActiveSection = NAV_SECTION_TABS.includes(activeSection) ? activeSection : 'news';
     const setActiveTab = (val) => setFilter('activeTab', val);
-    const sectionTabRefs = useRef({});
+
+    /* MOBILE PHASE 6. pages/_app.js scrolls to the top on routeChangeComplete,
+       and the shallow replace in selectSection fires that event, so a scroll
+       made before the replace was undone a frame later (measured: Events sat
+       at 12,223px after its anchor was tapped). The scroll runs immediately
+       (covers a replace that changes nothing and emits no event) AND again
+       once the route settles, two frames after asPath changes, which is after
+       the shell has done its scroll-to-top. */
+    const pendingScrollRef = useRef(null);
+    const scrollToSection = useCallback((section) => {
+        if (typeof document === 'undefined') return;
+        const target = document.getElementById(`news-section-${section}`);
+        if (!target) return;
+        const reduce = typeof window !== 'undefined'
+            && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }, []);
+    useEffect(() => {
+        const section = pendingScrollRef.current;
+        if (!section) return undefined;
+        pendingScrollRef.current = null;
+        let raf2 = 0;
+        const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => scrollToSection(section)); });
+        return () => { cancelAnimationFrame(raf1); if (raf2) cancelAnimationFrame(raf2); };
+    }, [router.asPath, scrollToSection]);
+    // Reels and videos show eight at first with Show More, so five stacked
+    // feeds do not make a 17,000px page (mobile phase 3 set the same cap).
+    const [reelsVisible, setReelsVisible] = useState(INITIAL_VISIBLE);
+    const [videosVisible, setVideosVisible] = useState(INITIAL_VISIBLE);
 
     // Keep the visible section, persisted preference, and address bar in sync.
     // A selected section is therefore reload-safe, shareable, and compatible
@@ -261,22 +304,14 @@ export default function NewsHub() {
         else if (section !== 'news') query.tab = section;
 
         router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
-    };
 
-    const handleSectionKeyDown = (event, section) => {
-        const currentIndex = NAV_SECTION_TABS.indexOf(section);
-        let nextIndex = currentIndex;
-
-        if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % NAV_SECTION_TABS.length;
-        else if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + NAV_SECTION_TABS.length) % NAV_SECTION_TABS.length;
-        else if (event.key === 'Home') nextIndex = 0;
-        else if (event.key === 'End') nextIndex = NAV_SECTION_TABS.length - 1;
-        else return;
-
-        event.preventDefault();
-        const nextSection = NAV_SECTION_TABS[nextIndex];
-        selectSection(nextSection);
-        requestAnimationFrame(() => sectionTabRefs.current[nextSection]?.focus());
+        /* MOBILE PHASE 6 (docs/mobile-standard). Every section is on the page
+           at once, so choosing one SCROLLS to it rather than swapping it in.
+           The persisted preference and the ?tab= / ?filter= query keep their
+           contract: a deep link lands on that section, and the row highlights
+           whichever one the player chose. */
+        pendingScrollRef.current = section;
+        scrollToSection(section);
     };
 
     // The category-tab UI no longer exists, so a stale persisted category would
@@ -395,7 +430,7 @@ export default function NewsHub() {
     // ── News feed pagination (shared contract 1) ──────────────────────────────
     // /api/news/articles now answers { data, pagination: { limit, offset, total,
     // hasMore } }. We ask for ONE page at a time and accumulate the results; the
-    // infinite-scroll sentinel below advances `offset` instead of slicing a
+    // Load More button below advances `offset` instead of slicing a
     // client-side array. category + search stay server-side (the API filters on
     // both). Source filtering is server-side too, with Card Player expanded to
     // both stored spellings so pagination never burns through unrelated pages.
@@ -409,7 +444,7 @@ export default function NewsHub() {
     // Accumulated pages. `key` travels with the items so a page that arrives after
     // the filters changed can never be merged into the wrong list.
     const [newsPages, setNewsPages] = useState({ key: '', items: [], total: 0, hasMore: false });
-    // Keeps the sentinel from firing twice for the same page while a request is in
+    // Keeps Load More from asking twice for the same page while a request is in
     // flight. Mutated outside the state updater so the updater stays pure.
     const loadingMoreRef = useRef(false);
 
@@ -423,7 +458,17 @@ export default function NewsHub() {
         ));
         newsParams.set('source', serverSources.join(','));
     }
-    const { data: newsData, error: newsError, isLoading: loading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, fetchNewsJson);
+    const { data: newsData, error: newsError, isLoading: swrLoading, mutate: refreshNews } = useSWR(`/api/news/articles?${newsParams}`, fetchNewsJson);
+    /* LOAD FAILSAFE (mobile phase 0a). SWR's isLoading is true until the request
+       settles; a request that never settles used to leave the feed on its
+       skeleton with no way out. Capped at eight seconds; a late answer still
+       lands because the SWR hook itself is untouched. */
+    const [feedLoading, setFeedLoading] = useState(true);
+    useEffect(() => { if (!swrLoading) setFeedLoading(false); }, [swrLoading]);
+    useLoadFailsafe(feedLoading, setFeedLoading);
+    const loading = swrLoading && feedLoading;
+    // A page past the first is in flight: the Load More button shows it.
+    const newsLoadingMore = swrLoading && newsOffset > 0;
 
     // Merge the arriving page into the accumulated list: de-duped by id and kept in
     // published_at order, so revalidating page 0 (realtime INSERT / Refresh) can't
@@ -470,8 +515,8 @@ export default function NewsHub() {
         });
     }, [newsData, newsFilterKey, storySort]);
 
-    // The in-flight page settled (success OR error) — release the sentinel guard so
-    // a failed request can't permanently freeze infinite scroll.
+    // The in-flight page settled (success OR error): release the guard so
+    // a failed request can't permanently freeze Load More.
     useEffect(() => {
         if (newsData || newsError) loadingMoreRef.current = false;
     }, [newsData, newsError]);
@@ -492,9 +537,21 @@ export default function NewsHub() {
     // Refresh = revalidate AND go back to page 0, so newly published articles land
     // in the accumulated list (merge above re-sorts them to the top).
     const refreshNewsFeed = useCallback(() => {
+        if (!requireOnline()) return Promise.resolve();
+        haptic('light');
         setNewsPage({ key: newsFilterKey, offset: 0 });
         return refreshNews();
-    }, [newsFilterKey, refreshNews]);
+    }, [newsFilterKey, refreshNews, requireOnline, haptic]);
+    // Pull down at the top: every feed on the page re-reads together.
+    const refreshEverything = useCallback(async () => {
+        if (!requireOnline()) return;
+        setFeedLoading(true);
+        try {
+            await Promise.allSettled([refreshNewsFeed(), refreshReels(), refreshVideos(), refreshEvents()]);
+        } finally {
+            setFeedLoading(false);
+        }
+    }, [requireOnline, refreshNewsFeed, refreshReels, refreshVideos, refreshEvents]);
 
     const newsFeedFailed = !!newsError || (!!newsData && newsData.success !== true);
     // A successful empty result is a real empty result. Samples are reserved for an
@@ -672,6 +729,12 @@ export default function NewsHub() {
     const [readLaterRows, setReadLaterRows] = useState([]);
     const [readArticles, setReadArticles] = useState([]);
     const [shareArticle, setShareArticle] = useState(null);
+    const closeShare = useCallback(() => setShareArticle(null), []);
+    const closeReelViewer = useCallback(() => setReelViewerOpen(false), []);
+    const closeReader = useCallback(() => setArticleReader({ open: false, url: '', title: '' }), []);
+    useModalHistory(Boolean(shareArticle), closeShare);
+    useModalHistory(reelViewerOpen, closeReelViewer);
+    useModalHistory(Boolean(articleReader.open), closeReader);
     const shareModalRef = useRef(null);
     const shareReturnFocusRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -1259,26 +1322,19 @@ export default function NewsHub() {
         return () => window.removeEventListener('keydown', handleKeyNav);
     }, []);
 
-    // Phase 6: IntersectionObserver for infinite scroll.
-    // The sentinel only renders while the API reports hasMore, so reaching it asks
-    // for the next OFFSET page (shared contract 1) rather than revealing more of an
-    // already-downloaded array. loadMoreNews is self-guarding against re-entry.
-    const loadMoreRef = useRef(null);
-    useEffect(() => {
-        if (!loadMoreRef.current) return;
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) loadMoreNews();
-            },
-            { rootMargin: '200px' }
-        );
-        observer.observe(loadMoreRef.current);
-        return () => observer.disconnect();
-        // `newsData` is a dependency on purpose: an IntersectionObserver only reports
-        // CHANGES, so when a freshly loaded page adds no visible rows (every row
-        // filtered out client-side) the sentinel never leaves the viewport and would
-        // never fire again. Re-observing on each settled page re-arms it.
-    }, [loadMoreNews, newsHasMore, newsData]);
+    /* MOBILE PHASE 6: the news feed no longer loads itself as you scroll.
+       It used to: an IntersectionObserver sentinel under the feed asked for
+       the next OFFSET page whenever it came within 200px of the viewport.
+       That was fine while News was the only thing on the page. Now Reels,
+       Videos, Events and Read Later are stacked UNDER the feed, so a thumb
+       heading for Events dragged the sentinel through the viewport and the
+       feed grew under it (measured at 375: 13,931px to 20,807px during one
+       anchor scroll, and the Events section landed 7,000px lower than the
+       tap had asked). An infinite feed above four sections starves them.
+       The next page is a 44px Load More button instead, the same control as
+       the Show All caps on Reels and Videos: the page has a bounded height
+       and every section is reachable. loadMoreNews keeps its contract (next
+       offset page, self-guarded against re-entry). */
 
     // Phase 6: Time-grouped article helpers
     const getTimeGroup = (publishedAt) => {
@@ -1349,11 +1405,12 @@ export default function NewsHub() {
                     canonical="/hub/news"
                 />
 
+                <HubPageShell className="news" maxWidth={1280} header={<UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />}>
+                <PullToRefresh onRefresh={refreshEverything} disabled={menuOpen || reelViewerOpen || Boolean(shareArticle) || Boolean(articleReader.open)}>
                 <div className="news-hub live-wire">
                     <LiveWireStyles />
                     {/* Scroll Progress Bar */}
                     <div className="scroll-progress" style={{ width: `${scrollProgress}%` }} />
-                    <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
                     {/* Hamburger Menu */}
                     <HamburgerMenu
@@ -1414,7 +1471,7 @@ export default function NewsHub() {
                         to true on every new search. Unmounting the layout there would destroy
                         the search input (and the filters/sidebar) mid-typing.
                         `!hasLoadedNews` scopes it to the FIRST page: with offset pagination
-                        `loading` also flips on every infinite-scroll page, and the skeleton
+                        `loading` also flips on every Load More page, and the skeleton
                         must not reappear above an already-populated feed. */}
                     {loading && !hasLoadedNews && (
                         <div className="skeleton-grid" aria-hidden="true">
@@ -1454,63 +1511,48 @@ export default function NewsHub() {
                             </div>
 
                             {/* Existing sections, surfaced in the approved Live Wire tab rail. */}
-                            <div className="section-tabs" role="tablist" aria-label="News sections">
+                            <nav className="section-tabs" aria-label="News sections" data-tutorial="sections">
                                 <button
-                                    role="tab"
-                                    ref={(node) => { sectionTabRefs.current.news = node; }}
-                                    aria-selected={navActiveSection === 'news'}
-                                    tabIndex={navActiveSection === 'news' ? 0 : -1}
+                                    type="button"
+                                    aria-current={navActiveSection === 'news' ? 'true' : undefined}
                                     className={`section-tab ${navActiveSection === 'news' ? 'active' : ''}`}
                                     onClick={() => selectSection('news')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'news')}
                                 >
                                     <Newspaper size={14} /> News
                                 </button>
                                 <button
-                                    role="tab"
-                                    ref={(node) => { sectionTabRefs.current.reels = node; }}
-                                    aria-selected={navActiveSection === 'reels'}
-                                    tabIndex={navActiveSection === 'reels' ? 0 : -1}
+                                    type="button"
+                                    aria-current={navActiveSection === 'reels' ? 'true' : undefined}
                                     className={`section-tab ${navActiveSection === 'reels' ? 'active' : ''}`}
                                     onClick={() => selectSection('reels')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'reels')}
                                 >
                                     <Film size={14} /> Reels
                                 </button>
                                 <button
-                                    role="tab"
-                                    ref={(node) => { sectionTabRefs.current.videos = node; }}
-                                    aria-selected={navActiveSection === 'videos'}
-                                    tabIndex={navActiveSection === 'videos' ? 0 : -1}
+                                    type="button"
+                                    aria-current={navActiveSection === 'videos' ? 'true' : undefined}
                                     className={`section-tab ${navActiveSection === 'videos' ? 'active' : ''}`}
                                     onClick={() => selectSection('videos')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'videos')}
                                 >
                                     <PlayCircle size={14} /> Videos
                                 </button>
                                 <button
-                                    role="tab"
-                                    ref={(node) => { sectionTabRefs.current.events = node; }}
-                                    aria-selected={navActiveSection === 'events'}
-                                    tabIndex={navActiveSection === 'events' ? 0 : -1}
+                                    type="button"
+                                    aria-current={navActiveSection === 'events' ? 'true' : undefined}
                                     className={`section-tab ${navActiveSection === 'events' ? 'active' : ''}`}
                                     onClick={() => selectSection('events')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'events')}
                                 >
                                     <Calendar size={14} /> Events
                                 </button>
                                 <button
-                                    role="tab"
-                                    ref={(node) => { sectionTabRefs.current.later = node; }}
-                                    aria-selected={navActiveSection === 'later'}
-                                    tabIndex={navActiveSection === 'later' ? 0 : -1}
+                                    type="button"
+                                    aria-current={navActiveSection === 'later' ? 'true' : undefined}
                                     className={`section-tab ${navActiveSection === 'later' ? 'active' : ''}`}
                                     onClick={() => selectSection('later')}
-                                    onKeyDown={(event) => handleSectionKeyDown(event, 'later')}
                                 >
                                     <Clock size={14} /> Read Later
                                 </button>
-                            </div>
+                            </nav>
 
                             {/* Breaking News Ticker */}
                             {breakingNews && (
@@ -1701,10 +1743,10 @@ export default function NewsHub() {
                                 </div>
                             )}
 
-                            {activeSection === 'news' && (
+                            {/* MOBILE PHASE 6: always rendered; the tab row is an anchor list. */ (
                                 <>
                                     {/* News Grid - source-specific intelligence boxes */}
-                                    <section className="news-section">
+                                    <section className="news-section" id="news-section-news" data-tutorial="news">
                                         {feedFilter === 'bookmarks' && topArticles.length === 0 && remainingStories.length === 0 ? (
                                             <div className="no-results">
                                                 <BookmarkCheck size={48} />
@@ -1864,69 +1906,39 @@ export default function NewsHub() {
                                             </div>
                                         )}
 
-                                        {/* Phase 6: IntersectionObserver sentinel replaces Load More.
-                                            Deliberately a SIBLING of the more-stories block: source
+                                        {/* Load More (mobile phase 6 put the button back; see the note
+                                            above loadMoreNews). Deliberately a SIBLING of the more-stories block: source
                                             filters are applied client-side, so a page whose rows all
                                             get filtered out must still be able to request the next
                                             one — nesting this inside `remainingStories.length > 0`
                                             would dead-end pagination there. */}
                                         {newsHasMore && (
-                                            <div ref={loadMoreRef} className="load-more-sentinel">
-                                                <div className="loading-spinner" />
-                                                <span>Loading More Stories...</span>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                className="see-all-btn sp-show-more"
+                                                disabled={newsLoadingMore}
+                                                aria-busy={newsLoadingMore ? 'true' : undefined}
+                                                onClick={() => { haptic('light'); loadMoreNews(); }}
+                                            >
+                                                {newsLoadingMore ? (
+                                                    <span className="load-more-sentinel"><span className="loading-spinner" />Loading More Stories</span>
+                                                ) : (newsPages.total > loadedNews.length
+                                                    ? `Load More Stories (${newsPages.total - loadedNews.length} Waiting)`
+                                                    : 'Load More Stories')}
+                                            </button>
                                         )}
                                     </section>
 
-                                    {/* Reels Preview Section - Shows on News tab */}
-                                    <section className="reels-preview-section">
-                                        <div className="section-header-row">
-                                            <h2 className="section-title">
-                                                <Film size={18} /> Poker Reels
-                                            </h2>
-                                            <button
-                                                className="see-all-btn"
-                                                onClick={() => selectSection('reels')}
-                                            >
-                                                See All <ChevronRight size={13} style={{ verticalAlign: '-2px' }} />
-                                            </button>
-                                        </div>
-                                        {reels.length > 0 ? (
-                                            <div className="reels-carousel-wrapper">
-                                                <button className="carousel-arrow carousel-left" aria-label="Scroll reels left" onClick={() => reelsCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}>
-                                                    <ChevronLeft size={20} />
-                                                </button>
-                                                <div className="reels-carousel" ref={reelsCarouselRef}>
-                                                    {reels.slice(0, 10).map((reel, idx) => (
-                                                        <ReelCard key={reel.id} reel={reel} onClick={() => openReelViewer(idx)} />
-                                                    ))}
-                                                </div>
-                                                <button className="carousel-arrow carousel-right" aria-label="Scroll reels right" onClick={() => reelsCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' })}>
-                                                    <ChevronRight size={20} />
-                                                </button>
-                                            </div>
-                                        ) : reelsLoading ? (
-                                            <div className="reels-empty-state">
-                                                <div className="loading-spinner" />
-                                                <span>Loading Reels...</span>
-                                            </div>
-                                        ) : reelsError ? (
-                                            <div className="reels-empty-state">
-                                                <span>Could Not Load Reels.</span>
-                                                <button onClick={() => refreshReels()}>Retry</button>
-                                            </div>
-                                        ) : (
-                                            <div className="reels-empty-state">
-                                                <span>No Reels Yet - Check Back Soon.</span>
-                                            </div>
-                                        )}
-                                    </section>
+                                    {/* MOBILE PHASE 6: the reels preview carousel that lived here (ten cards,
+                                        arrows, a scroll strip) is gone. The full Poker Reels section is on
+                                        the page directly below, so the strip was the same content twice and
+                                        the only part of it that scrolled sideways. */}
                                 </>
                             )}
                             
-                            {activeSection === 'reels' && (
+                            {/* MOBILE PHASE 6: always rendered; the tab row is an anchor list. */ (
                                 /* Reels Section - Full View */
-                                <section className="reels-section">
+                                <section className="reels-section" id="news-section-reels" data-tutorial="reels">
                                     <h2 className="section-title">
                                         <Film size={18} /> Poker Reels
                                     </h2>
@@ -1951,8 +1963,9 @@ export default function NewsHub() {
                                             <p>No Reels Available Yet. Check Back Soon!</p>
                                         </div>
                                     ) : (
+                                        <>
                                         <div className="reels-grid">
-                                            {reels.map((reel, idx) => (
+                                            {reels.slice(0, reelsVisible).map((reel, idx) => (
                                                 <ReelCard
                                                     key={reel.id || reel.youtube_id}
                                                     reel={reel}
@@ -1960,12 +1973,18 @@ export default function NewsHub() {
                                                 />
                                             ))}
                                         </div>
+                                        {reels.length > reelsVisible && (
+                                            <button type="button" className="see-all-btn sp-show-more" onClick={() => { haptic('light'); setReelsVisible(reels.length); }}>
+                                                Show All {reels.length} Reels
+                                            </button>
+                                        )}
+                                        </>
                                     )}
                                 </section>
                             )}
 
-                            {activeSection === 'videos' && (
-                                <section className="videos-section" style={{ padding: '20px 0' }}>
+                            {/* MOBILE PHASE 6: always rendered; the tab row is an anchor list. */ (
+                                <section className="videos-section" id="news-section-videos" data-tutorial="videos" style={{ padding: '20px 0' }}>
                                     <h2 className="section-title">
                                         <PlayCircle size={18} /> Poker Videos
                                     </h2>
@@ -1989,8 +2008,9 @@ export default function NewsHub() {
                                             <p>No Videos Available Yet.</p>
                                         </div>
                                     ) : (
+                                        <>
                                         <div className="videos-grid">
-                                            {videos.map(video => (
+                                            {videos.slice(0, videosVisible).map(video => (
                                                 <VideoCard
                                                     key={video.id || video.youtube_id}
                                                     video={video}
@@ -1998,12 +2018,18 @@ export default function NewsHub() {
                                                 />
                                             ))}
                                         </div>
+                                        {videos.length > videosVisible && (
+                                            <button type="button" className="see-all-btn sp-show-more" onClick={() => { haptic('light'); setVideosVisible(videos.length); }}>
+                                                Show All {videos.length} Videos
+                                            </button>
+                                        )}
+                                        </>
                                     )}
                                 </section>
                             )}
 
-                            {activeSection === 'events' && (
-                                <section className="events-section" style={{ padding: '20px 0' }}>
+                            {/* MOBILE PHASE 6: always rendered; the tab row is an anchor list. */ (
+                                <section className="events-section" id="news-section-events" data-tutorial="events" style={{ padding: '20px 0' }}>
                                     <h2 className="section-title">
                                         <Calendar size={18} /> Upcoming Events
                                     </h2>
@@ -2056,8 +2082,8 @@ export default function NewsHub() {
                                 </section>
                             )}
 
-                            {(activeSection === 'bookmarks' || activeSection === 'later') && (
-                                <section className="news-section">
+                            {/* MOBILE PHASE 6: always rendered (Read Later, or Bookmarks when that filter is on). */ (
+                                <section className="news-section" id="news-section-later" data-tutorial="later">
                                     <h2 className="section-title" style={{ padding: '0 20px', marginBottom: '20px' }}>
                                         {activeSection === 'bookmarks' ? <BookmarkCheck size={18} /> : <Clock size={18} />}
                                         {activeSection === 'bookmarks' ? ' Bookmarked Articles' : ' Read Later'}
@@ -2317,12 +2343,12 @@ export default function NewsHub() {
 
                     <style>{`
                     .news-hub {
-                        min-height: 100vh; padding-bottom: 70px;
+                        min-height: 100dvh; /* MOBILE PHASE 6: BottomNavSpacer owns the bottom clearance */
                         background: #18191A;
                         color: #E4E6EB;
                         font-family: 'Inter', -apple-system, sans-serif;
                         max-width: 100%;
-                        overflow-x: hidden;
+                        overflow-x: clip; /* MOBILE PHASE 6: clip, never hidden (WebKit fixed-child law) */
                         box-sizing: border-box;
                         padding-top: env(safe-area-inset-top, 0px); /* Mobile notch */
                         padding-left: env(safe-area-inset-left, 0px);
@@ -2339,7 +2365,7 @@ export default function NewsHub() {
                             max-width: 100vw !important;
                             padding: 0 !important;
                             margin: 0 !important;
-                            overflow-x: hidden !important;
+                            overflow-x: clip !important;
                         }
 
                         .layout {
@@ -2381,7 +2407,7 @@ export default function NewsHub() {
                         .sidebar {
                             display: grid !important;
                             grid-template-columns: minmax(0, 1fr) !important;
-                            order: -1 !important;
+                            order: 1 !important; /* MOBILE PHASE 6: under the main column, not above it */
                             width: 100% !important;
                             padding: 0 12px 4px !important;
                             gap: 12px !important;
@@ -2450,7 +2476,7 @@ export default function NewsHub() {
                         border: none;
                         border-radius: 6px;
                         color: #fff;
-                        font-size: 11px;
+                        font-size: 12px;
                         cursor: pointer;
                         transition: background 0.15s;
                     }
@@ -2540,9 +2566,9 @@ export default function NewsHub() {
                         padding: 2px 8px;
                         background: #e53935;
                         color: #fff;
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 800;
-                        letter-spacing: 1px;
+                        letter-spacing: 0.5px;
                         border-radius: 4px;
                         animation: pulse-badge 2s ease-in-out infinite;
                     }
@@ -2577,7 +2603,7 @@ export default function NewsHub() {
                         border: 1px solid rgba(255, 255, 255, 0.1);
                         border-radius: 16px;
                         color: rgba(255, 255, 255, 0.55);
-                        font-size: 11px;
+                        font-size: 12px;
                         cursor: pointer;
                         transition: all 0.2s;
                     }
@@ -2605,7 +2631,7 @@ export default function NewsHub() {
                         background: rgba(255,255,255,0.08);
                         padding: 0 5px;
                         border-radius: 8px;
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 600;
                         color: rgba(255,255,255,0.5);
                         margin-left: 2px;
@@ -2621,10 +2647,11 @@ export default function NewsHub() {
                         background: rgba(94,245,240,0.05);
                         border-radius: 8px;
                         margin-bottom: 8px;
-                        font-size: 11px;
+                        font-size: 12px;
                         color: rgba(255,255,255,0.45);
                         align-items: center;
                         justify-content: center;
+                        flex-wrap: wrap;
                         border: 1px solid rgba(94,245,240,0.08);
                     }
                     .new-badge {
@@ -2633,18 +2660,18 @@ export default function NewsHub() {
                         left: 6px;
                         background: linear-gradient(135deg, #00d4ff, #5ef5f0);
                         color: #000;
-                        font-size: 8px;
+                        font-size: 12px;
                         font-weight: 800;
                         padding: 2px 6px;
                         border-radius: 4px;
-                        letter-spacing: 1px;
+                        letter-spacing: 0.5px;
                         z-index: 5;
                         text-transform: uppercase;
                     }
                     .category-pill {
                         padding: 1px 6px;
                         border-radius: 6px;
-                        font-size: 9px;
+                        font-size: 12px;
                         font-weight: 600;
                         text-transform: capitalize;
                         letter-spacing: 0.3px;
@@ -2729,10 +2756,10 @@ export default function NewsHub() {
                         opacity: 1;
                     }
                     .time-group-header {
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 1.5px;
+                        letter-spacing: 1px;
                         color: rgba(94,245,240,0.6);
                         padding: 10px 0 4px;
                         margin-top: 6px;
@@ -2743,13 +2770,12 @@ export default function NewsHub() {
                         margin-top: 0;
                     }
                     .load-more-sentinel {
-                        display: flex;
+                        display: inline-flex;
                         align-items: center;
                         justify-content: center;
                         gap: 8px;
-                        padding: 16px;
-                        color: rgba(255,255,255,0.55);
-                        font-size: 12px;
+                        color: rgba(255,255,255,0.75);
+                        font-size: 13px;
                     }
                     .loading-spinner {
                         width: 16px;
@@ -2848,7 +2874,7 @@ export default function NewsHub() {
                         background: rgba(0, 0, 0, 0.75);
                         backdrop-filter: blur(4px);
                         border-radius: 6px;
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 500;
                         color: rgba(255, 255, 255, 0.8);
                         z-index: 10;
@@ -2858,7 +2884,7 @@ export default function NewsHub() {
                     /* PHASE 2: ARTICLE EXCERPT */
                     /* ═══════════════════════════════════════════════ */
                     .box-excerpt {
-                        font-size: 11px;
+                        font-size: 12px;
                         color: rgba(255, 255, 255, 0.45);
                         margin: 2px 0 4px;
                         line-height: 1.4;
@@ -2872,7 +2898,7 @@ export default function NewsHub() {
                     /* PHASE 2: NEW ARTICLE NOTIFICATION DOT */
                     /* ═══════════════════════════════════════════════ */
                     .new-article-dot {
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 700;
                         padding: 2px 8px;
                         background: #e53935;
@@ -2887,31 +2913,6 @@ export default function NewsHub() {
                     /* ═══════════════════════════════════════════════ */
                     /* PHASE 2: REELS CAROUSEL ARROWS */
                     /* ═══════════════════════════════════════════════ */
-                    .reels-carousel-wrapper {
-                        position: relative;
-                    }
-                    .carousel-arrow {
-                        position: absolute;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        width: 36px;
-                        height: 36px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        background: rgba(0, 0, 0, 0.7);
-                        backdrop-filter: blur(8px);
-                        border: 1px solid rgba(255, 255, 255, 0.15);
-                        border-radius: 50%;
-                        color: #fff;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        z-index: 10;
-                    }
-                    .carousel-arrow:hover {
-                        background: rgba(94, 245, 240, 0.3);
-                        border-color: #5ef5f0;
-                    }
                     .carousel-left { left: -12px; }
                     .carousel-right { right: -12px; }
 
@@ -2922,10 +2923,10 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        width: 20px;
-                        height: 20px;
+                        width: 22px;
+                        height: 22px;
                         border-radius: 50%;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 800;
                         flex-shrink: 0;
                     }
@@ -3010,7 +3011,7 @@ export default function NewsHub() {
                         background: rgba(94, 245, 240, 0.08);
                     }
                     .suggestion-source {
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 700;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
@@ -3122,7 +3123,7 @@ export default function NewsHub() {
                         align-items: center;
                         gap: 4px;
                         padding: 4px 8px;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 600;
                         color: #5ef5f0;
                         background: rgba(94, 245, 240, 0.08);
@@ -3163,19 +3164,18 @@ export default function NewsHub() {
                         margin: 0 auto;
                     }
 
-                    @media (max-width: 1000px) {
+                    @media (max-width: 900px) {
                         .layout {
                             grid-template-columns: 1fr;
                         }
                         .sidebar {
                             display: grid;
-                            grid-template-columns: repeat(3, minmax(0, 1fr));
-                            order: -1;
+                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                            order: 1; /* MOBILE PHASE 6: under the main column */
                             align-items: stretch;
                         }
-                        .sidebar > .widget:not(.leaderboard):not(.events):not(.newsletter) {
-                            display: none;
-                        }
+                        /* MOBILE PHASE 6: every sidebar widget stays on a phone. The rule
+                           here culled all but three of them with display: none. */
                     }
 
                     /* News Section */
@@ -3337,29 +3337,12 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        font-size: 11px;
+                        font-size: 12px;
                         color: rgba(255, 255, 255, 0.55);
                     }
 
                     /* Reels Preview Section (on News tab) */
-                    .reels-preview-section {
-                        position: relative;
-                        margin-top: 32px;
-                        padding: 24px;
-                        border: none;
-                        border-radius: 16px;
-                        background:
-                            linear-gradient(135deg, rgba(30, 32, 38, 0.95) 0%, rgba(20, 22, 28, 0.98) 100%);
-                        box-shadow:
-                            inset 0 0 0 2px rgba(180, 195, 220, 0.35),
-                            inset 0 0 0 4px rgba(100, 115, 140, 0.15),
-                            0 8px 32px rgba(0, 0, 0, 0.6);
-                        overflow: hidden;
-                    }
 
-                    .reels-preview-section::before {
-                        display: none;
-                    }
 
                     .reels-empty-state {
                         display: flex;
@@ -3418,61 +3401,32 @@ export default function NewsHub() {
 
                     .see-all-btn:hover {
                         transform: translateY(-1px);
-                        box-shadow: 
+                        box-shadow:
                             inset 0 0 0 2px rgba(0, 212, 255, 0.5),
                             inset 0 0 0 4px rgba(0, 212, 255, 0.2),
                             0 6px 24px rgba(0, 212, 255, 0.3);
                         color: #00D4FF;
                     }
 
-                    .reels-carousel {
-                        display: flex;
-                        gap: 16px;
-                        overflow-x: auto;
-                        width: 0;
-                        min-width: 100%;
-                        padding-bottom: 8px;
-                        scrollbar-width: thin;
-                        scrollbar-color: rgba(255,255,255,0.2) transparent;
+                    /* MOBILE PHASE 6: the Show All button under a capped grid.
+                       Full width so it is one obvious 44px target, never a
+                       small pill lost under two columns of cards. */
+                    .sp-show-more {
+                        display: block;
+                        width: 100%;
+                        min-height: 44px;
+                        margin-top: 14px;
+                        font-size: 13px;
                     }
 
-                    .reels-carousel::-webkit-scrollbar {
-                        height: 6px;
-                    }
 
-                    .reels-carousel::-webkit-scrollbar-track {
-                        background: transparent;
-                    }
 
-                    .reels-carousel::-webkit-scrollbar-thumb {
-                        background: rgba(255,255,255,0.2);
-                        border-radius: 3px;
-                    }
+
 
                     /* NOTE: this is a plain global <style> tag (not styled-jsx), so child
                        component classes are targeted directly — :global() is not valid here */
-                    .reels-carousel .reel-card {
-                        flex-shrink: 0 !important;
-                        width: 220px !important;
-                        max-width: 220px !important;
-                    }
 
-                    .reels-carousel .reel-thumbnail {
-                        width: 100% !important;
-                        height: 391px !important;
-                        aspect-ratio: auto !important;
-                        overflow: hidden !important;
-                        position: relative !important;
-                    }
 
-                    .reels-carousel .reel-thumbnail img {
-                        position: absolute !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        object-fit: cover !important;
-                    }
 
                     /* Reels Section */
                     .reels-section {
@@ -3554,7 +3508,7 @@ export default function NewsHub() {
                         background: rgba(94, 245, 240, 0.12);
                         border: 1px solid rgba(94, 245, 240, 0.28);
                         border-radius: 6px;
-                        font-size: 9px;
+                        font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.5px;
                         text-transform: uppercase;
@@ -3575,14 +3529,15 @@ export default function NewsHub() {
                         gap: 5px;
                         margin-top: 10px;
                         color: #5ef5f0;
-                        font-size: 10px;
+                        font-size: 12px;
+                        min-height: 44px;
                         text-decoration: none;
                     }
 
                     .newsletter-promise {
                         margin: 0 0 12px;
                         color: #91a5bb;
-                        font-size: 11px;
+                        font-size: 12px;
                         line-height: 1.45;
                     }
 
@@ -3626,7 +3581,7 @@ export default function NewsHub() {
 
                     .error {
                         color: #ef4444;
-                        font-size: 11px;
+                        font-size: 12px;
                         margin-top: 8px;
                     }
 
@@ -3727,7 +3682,7 @@ export default function NewsHub() {
                         align-items: center;
                         justify-content: center;
                         border-radius: 50%;
-                        font-size: 10px;
+                        font-size: 12px;
                         font-weight: 700;
                     }
 
@@ -3813,7 +3768,8 @@ export default function NewsHub() {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        font-size: 10px;
+                        flex-wrap: wrap;
+                        font-size: 12px;
                     }
 
                     .mspt-time {
@@ -3899,7 +3855,7 @@ export default function NewsHub() {
                         display: block;
                         margin-top: 3px;
                         color: #7f93a8;
-                        font-size: 9px;
+                        font-size: 12px;
                     }
 
                     .location-enable {
@@ -3914,7 +3870,7 @@ export default function NewsHub() {
                         border-radius: 8px;
                         background: rgba(94, 245, 240, 0.07);
                         color: #5ef5f0;
-                        font-size: 11px;
+                        font-size: 12px;
                         font-weight: 700;
                         cursor: pointer;
                     }
@@ -3927,7 +3883,7 @@ export default function NewsHub() {
                     .location-note {
                         margin: 0 0 8px;
                         color: #8fa3b8;
-                        font-size: 10px;
+                        font-size: 12px;
                         line-height: 1.4;
                     }
 
@@ -3937,7 +3893,7 @@ export default function NewsHub() {
                          padding: 4px 8px;
                          border-radius: 6px;
                          font-weight: 600;
-                         font-size: 11px;
+                         font-size: 12px;
                     }
 
                     .view-all {
@@ -4044,7 +4000,6 @@ export default function NewsHub() {
                     .source-chip:focus-visible,
                     .view-toggle button:focus-visible,
                     .see-all-btn:focus-visible,
-                    .carousel-arrow:focus-visible,
                     .scroll-to-top-fab:focus-visible,
                     .news-list-item:focus-visible,
                     .breaking-ticker:focus-visible,
@@ -4068,6 +4023,25 @@ export default function NewsHub() {
                             padding: 10px 8px;
                             font-size: 12px;
                         }
+
+                        /* Every tappable row and chip is 44px tall on a phone. */
+                        .history-list li,
+                        .trending-list li,
+                        .mspt-list li {
+                            min-height: 44px;
+                            align-items: center;
+                        }
+
+                        .feed-filter-chip button {
+                            min-height: 44px;
+                            padding: 0 14px;
+                        }
+
+                        .readlater-overlay-btn {
+                            width: 44px;
+                            height: 44px;
+                            right: 112px;
+                        }
                     }
                 `}</style>
 
@@ -4089,8 +4063,8 @@ export default function NewsHub() {
                             padding: 0 !important;
                             padding-top: 60px !important; /* Make room for Fixed Header */
                             margin: 0 !important;
-                            overflow-x: hidden !important;
-                            min-height: 100vh !important;
+                            overflow-x: clip !important;
+                            min-height: 100dvh !important;
                         }
 
                         /* === LAYOUT === */
@@ -4127,7 +4101,7 @@ export default function NewsHub() {
                         .sidebar {
                             display: grid !important;
                             grid-template-columns: minmax(0, 1fr) !important;
-                            order: -1 !important;
+                            order: 1 !important; /* MOBILE PHASE 6: under the main column, not above it */
                             width: 100% !important;
                             padding: 0 12px 4px !important;
                             gap: 12px !important;
@@ -4175,30 +4149,19 @@ export default function NewsHub() {
                             z-index: 10 !important;
                         }
 
-                        /* === REELS FIX === */
-                        .reels-carousel {
-                             display: flex !important;
-                             overflow-x: auto !important;
-                             gap: 12px !important;
-                             padding-bottom: 12px !important;
-                             scroll-snap-type: x mandatory !important;
-                             -webkit-overflow-scrolling: touch !important;
+                        /* === REELS === MOBILE PHASE 6: the sideways carousel is gone;
+                           the reels grid is two columns at phone width. */
+                        .reels-grid {
+                             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                             gap: 10px !important;
                         }
-                        
-                        .reel-card,
-                        .reels-carousel .reel-card {
-                             min-width: 180px !important;
-                             width: 180px !important;
-                             max-width: 180px !important;
+                        .reel-card {
+                             width: 100% !important;
+                             max-width: 100% !important;
+                             min-width: 0 !important;
                              height: auto !important;
-                             flex-shrink: 0 !important;
-                             scroll-snap-align: start !important;
-                             margin-right: 0 !important;
                         }
-
-                        /* Match the desktop carousel selector's specificity so the phone
-                           sizing wins (media queries add none of their own) */
-                        .reels-carousel .reel-thumbnail {
+                        .reel-thumbnail {
                              height: auto !important;
                              aspect-ratio: 9 / 16 !important;
                         }
@@ -4242,6 +4205,8 @@ export default function NewsHub() {
                     }
                 `}</style>
                 </div>
+                </PullToRefresh>
+                </HubPageShell>
     </PageTransition>
 
 

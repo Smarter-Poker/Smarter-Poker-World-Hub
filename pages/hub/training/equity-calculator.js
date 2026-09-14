@@ -81,7 +81,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
     <div style={{ position: 'relative' }}>
       <div
         style={{
-          fontSize: 9,
+          fontSize: 12,
           color: 'var(--sp-fg-dim)',
           fontWeight: 700,
           textTransform: 'uppercase',
@@ -163,7 +163,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 800,
                       cursor: 'pointer',
                     }}
@@ -210,7 +210,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-accent-cyan)',
                   fontWeight: 700,
                   fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -246,7 +246,7 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                         height: 28,
                         borderRadius: 3,
                         border: 'none',
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         cursor: used ? 'not-allowed' : 'pointer',
                         background: used ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
@@ -261,8 +261,8 @@ function CardPicker({ selectedCards, onSelect, usedCards, label }) {
                         padding: 0,
                       }}
                     >
-                      <span style={{ fontSize: 10 }}>{rank}</span>
-                      <span style={{ fontSize: 8 }}>{suit.symbol}</span>
+                      <span style={{ fontSize: 12 }}>{rank}</span>
+                      <span style={{ fontSize: 12 }}>{suit.symbol}</span>
                     </button>
                   );
                 })}
@@ -301,7 +301,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
     <div style={{ position: 'relative' }}>
       <div
         style={{
-          fontSize: 9,
+          fontSize: 12,
           color: 'var(--sp-fg-dim)',
           fontWeight: 700,
           textTransform: 'uppercase',
@@ -357,7 +357,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   </span>
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       color: SUITS.find((s) => s.char === card[1])?.color || '#fff',
                     }}
                   >
@@ -384,7 +384,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 8,
+                      fontSize: 12,
                       fontWeight: 800,
                       cursor: 'pointer',
                     }}
@@ -393,7 +393,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                   </div>
                 </>
               ) : (
-                <span style={{ fontSize: 10, color: '#333' }}>{label || '?'}</span>
+                <span style={{ fontSize: 12, color: '#333' }}>{label || '?'}</span>
               )}
             </div>
           );
@@ -431,7 +431,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-accent-cyan)',
                   fontWeight: 700,
                   fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -467,7 +467,7 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                         height: 28,
                         borderRadius: 3,
                         border: 'none',
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         cursor: used ? 'not-allowed' : 'pointer',
                         background: used ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
@@ -482,8 +482,8 @@ function BoardPicker({ boardCards, onUpdate, usedCards }) {
                         padding: 0,
                       }}
                     >
-                      <span style={{ fontSize: 10 }}>{rank}</span>
-                      <span style={{ fontSize: 8 }}>{suit.symbol}</span>
+                      <span style={{ fontSize: 12 }}>{rank}</span>
+                      <span style={{ fontSize: 12 }}>{suit.symbol}</span>
                     </button>
                   );
                 })}
@@ -527,7 +527,7 @@ function EquityBar({ results }) {
             >
               {r.equity}%
             </div>
-            <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600, marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600, marginTop: 2 }}>
               {formatHand(r.hand)}
             </div>
           </div>
@@ -563,7 +563,7 @@ function EquityBar({ results }) {
             {r.equity > 10 && (
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: '#fff',
                   textShadow: '0 1px 2px rgba(0,0,0,0.4)',
@@ -599,7 +599,7 @@ function EquityBar({ results }) {
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: PLAYER_COLORS[i],
                 fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -608,7 +608,7 @@ function EquityBar({ results }) {
             >
               {formatHand(r.hand)}
             </div>
-            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: 'var(--sp-fg-muted)' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--sp-fg-muted)' }}>
               <span>
                 Win: <strong style={{ color: 'var(--sp-fg)' }}>{r.wins}</strong>
               </span>
@@ -759,7 +759,7 @@ export default function EquityCalculatorPage() {
       <div
         className="sp-training-tool sp-training-tool--analysis sp-analysis-equity"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -804,7 +804,7 @@ export default function EquityCalculatorPage() {
             </h1>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-accent-purple)',
                 background: 'rgba(168,85,247,0.1)',
                 padding: '3px 8px',
@@ -825,7 +825,7 @@ export default function EquityCalculatorPage() {
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 16 }}>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-fg-dim)',
                 fontWeight: 700,
                 textTransform: 'uppercase',
@@ -884,7 +884,7 @@ export default function EquityCalculatorPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 800,
                     color: PLAYER_COLORS[idx],
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -993,7 +993,7 @@ export default function EquityCalculatorPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 800,
                     color: 'var(--sp-accent-purple)',
                     fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -1020,7 +1020,7 @@ export default function EquityCalculatorPage() {
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',
@@ -1039,7 +1039,7 @@ export default function EquityCalculatorPage() {
                   style={{
                     padding: '6px 12px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -1066,7 +1066,7 @@ export default function EquityCalculatorPage() {
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',

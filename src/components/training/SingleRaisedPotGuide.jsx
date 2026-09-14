@@ -46,7 +46,7 @@ export default function SingleRaisedPotGuide() {
             style={{ padding: '10px 6px', borderRadius: 10, border: spotIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: spotIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 18 }}>{s.icon}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.title}</div>
           </button>
         ))}
       </div>
@@ -58,8 +58,8 @@ export default function SingleRaisedPotGuide() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{s.board}</span>
               <div style={{ display: 'flex', gap: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: spot.color, background: `${spot.color}15`, padding: '2px 8px', borderRadius: 4 }}>{s.cbet}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.size}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: spot.color, background: `${spot.color}15`, padding: '2px 8px', borderRadius: 4 }}>{s.cbet}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.size}</span>
               </div>
             </div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.note}</div>

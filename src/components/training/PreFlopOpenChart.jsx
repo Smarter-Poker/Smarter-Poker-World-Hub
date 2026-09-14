@@ -54,7 +54,7 @@ function PreFlopOpenChart() {
         </div>
 
         {/* 13x13 Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, marginBottom: 16 }}>
+        <div data-allow-small="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, marginBottom: 16 }}>
           {RANKS.map((_, r) =>
             RANKS.map((_, c) => {
               const hand = getHandName(r, c);
@@ -76,7 +76,7 @@ function PreFlopOpenChart() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
           <span>Pairs: Diagonal</span>
           <span>Suited: Above Diagonal</span>
           <span>Offsuit: Below Diagonal</span>

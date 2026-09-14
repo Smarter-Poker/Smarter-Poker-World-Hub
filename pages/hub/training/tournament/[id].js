@@ -101,7 +101,7 @@ export default function TrainingTournamentDetail() {
                   display: 'inline-block',
                   padding: '3px 9px',
                   borderRadius: 999,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                   background: isLive
@@ -150,7 +150,7 @@ export default function TrainingTournamentDetail() {
                     border: '1px solid rgba(255,255,255,0.09)',
                   }}
                 >
-                  <div style={{ fontSize: 11, opacity: 0.6, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  <div style={{ fontSize: 12, opacity: 0.6, textTransform: 'uppercase', letterSpacing: 1 }}>
                     {label}
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{value}</div>

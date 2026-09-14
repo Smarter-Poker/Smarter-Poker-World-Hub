@@ -156,12 +156,18 @@ export default async function handler(req, res) {
     }
 
     if (action === 'activate') {
-      const seed = Number(req.body.seedAmount);
+      const rawSeed = req.body.seedAmount;
+      // Accept explicit numbers and existing numeric strings, never coercible
+      // missing/blank values, booleans or containers as a zero contribution.
+      const validSeedInput =
+        typeof rawSeed === 'number' ||
+        (typeof rawSeed === 'string' && rawSeed.trim() !== '');
+      const seed = validSeedInput ? Number(rawSeed) : NaN;
       const maxStake = Number(req.body.offeredMaxStake);
       const wallet = req.body.sourceWallet;
 
-      if (!Number.isFinite(seed) || seed <= 0) {
-        return res.status(400).json({ success: false, error: 'Seed must be a positive number' });
+      if (!Number.isFinite(seed) || seed < 0) {
+        return res.status(400).json({ success: false, error: 'Seed must be a non-negative number' });
       }
       // Whole chips only. The estate's buy-in rules are whole-dollar and a
       // fractional seed would round its way into the ledger.

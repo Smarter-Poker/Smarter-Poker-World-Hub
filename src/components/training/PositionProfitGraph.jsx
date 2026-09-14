@@ -69,7 +69,7 @@ function PositionProfitGraph() {
           <div style={{ display: 'flex', gap: 8 }}>
             {['profit', 'bbWon'].map(m => (
               <button key={m} onClick={() => setMetric(m)} style={{
-                padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 background: metric === m ? '#22d3ee' : 'rgba(255,255,255,0.06)',
                 color: metric === m ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
               }}>{m === 'profit' ? '$ Profit' : 'bb/100'}</button>
@@ -92,15 +92,15 @@ function PositionProfitGraph() {
         <div style={{ display: 'flex', gap: 16, marginBottom: 16, padding: 10, background: 'rgba(34,211,238,0.06)', borderRadius: 8, border: '1px solid rgba(34,211,238,0.12)' }}>
           <div style={{ textAlign: 'center', flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: totalProfit >= 0 ? '#10b981' : '#ef4444' }}>{totalProfit >= 0 ? '+' : ''}${totalProfit}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Total P&L</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Total P&L</div>
           </div>
           <div style={{ textAlign: 'center', flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{totalHands.toLocaleString()}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Total Hands</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Total Hands</div>
           </div>
           <div style={{ textAlign: 'center', flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#22d3ee' }}>{((totalProfit / totalHands) * 100).toFixed(1)}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>BB/100 Overall</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>BB/100 Overall</div>
           </div>
         </div>
 
@@ -113,7 +113,7 @@ function PositionProfitGraph() {
             return (
               <div key={pos} role="button" tabIndex={0} aria-pressed={selectedPos === pos} onClick={() => setSelectedPos(selectedPos === pos ? null : pos)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedPos(selectedPos === pos ? null : pos); } }}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: isPositive ? '#10b981' : '#ef4444', marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: isPositive ? '#10b981' : '#ef4444', marginBottom: 4 }}>
                   {metric === 'profit' ? `${isPositive ? '+' : ''}$${val}` : `${isPositive ? '+' : ''}${val}`}
                 </div>
                 <div style={{
@@ -145,7 +145,7 @@ function PositionProfitGraph() {
               ].map(s => (
                 <div key={s.label} style={{ padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, textAlign: 'center' }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
                 </div>
               ))}
             </div>

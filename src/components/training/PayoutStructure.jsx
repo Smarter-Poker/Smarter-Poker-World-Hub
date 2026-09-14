@@ -50,7 +50,7 @@ export default function PayoutStructure() {
             style={{ padding: '8px 4px', borderRadius: 8, border: structIdx === i ? `2px solid ${p.color}` : '1px solid rgba(255,255,255,0.06)',
               background: structIdx === i ? `${p.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{p.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: structIdx === i ? p.color : '#64748b' }}>{p.structure.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: structIdx === i ? p.color : '#64748b' }}>{p.structure.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -62,20 +62,20 @@ export default function PayoutStructure() {
           <span style={{ fontSize: 15, fontWeight: 800, color: struct.color }}>{struct.structure}</span>
         </div>
         <div style={{ background: `${struct.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Distribution</div>
-          <div style={{ fontSize: 11, color: struct.color }}>{struct.distribution}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Distribution</div>
+          <div style={{ fontSize: 12, color: struct.color }}>{struct.distribution}</div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Strategy</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Strategy</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{struct.strategy}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Key Adjustment</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Key Adjustment</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{struct.adjust}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Examples</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Examples</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{struct.examples}</div>
           </div>
         </div>

@@ -42,7 +42,7 @@ function PreFlopAllInEquity() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {CATEGORIES.map(c => (
             <button key={c} onClick={() => setFilter(c)} style={{
-              padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: filter === c ? '#e879f9' : 'rgba(255,255,255,0.06)',
               color: filter === c ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{c}</button>
@@ -63,10 +63,10 @@ function PreFlopAllInEquity() {
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{m.hand1}</span>
                   </div>
                   <div style={{ display: 'flex', height: 20, width: 200, borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ width: `${m.eq1}%`, background: h1Color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                    <div style={{ width: `${m.eq1}%`, background: h1Color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
                       {m.eq1}%
                     </div>
-                    <div style={{ width: `${m.eq2}%`, background: h2Color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+                    <div style={{ width: `${m.eq2}%`, background: h2Color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
                       {m.eq2}%
                     </div>
                   </div>
@@ -76,8 +76,8 @@ function PreFlopAllInEquity() {
                 </div>
                 {showDetail === i && (
                   <div style={{ marginTop: 8, textAlign: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', padding: '2px 8px', background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>{m.category}</span>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', padding: '2px 8px', background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>{m.category}</span>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
                       {m.eq1 > 80 ? 'Massive favorite - calling is always correct' :
                        m.eq1 > 60 ? 'Solid favorite - profitable all-in' :
                        m.eq1 > 52 ? 'Coin flip - small edge, high variance' :
@@ -91,8 +91,8 @@ function PreFlopAllInEquity() {
         </div>
 
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(232,121,249,0.06)', borderRadius: 8, border: '1px solid rgba(232,121,249,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Quick Rules</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Quick Rules</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
             Overpair Vs Underpair: ~80/20. Pair Vs Two Overcards: ~55/45 (Coin Flip). Dominated Hand (AK Vs AQ): ~70/30. Pair Vs Random Hand: ~82/18. The Closer In Rank, The Closer To 50/50.
           </div>
         </div>

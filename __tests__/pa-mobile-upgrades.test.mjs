@@ -231,6 +231,10 @@ test('the budget row for the route is converted', () => {
 
 test('the law allowlist counts phase 4 as converted', () => {
   const law = read('__tests__/no-slide-to-see.law.test.mjs');
-  assert.match(law, /const CONVERTED = \[1, 2, 3, 4\];/);
+  // PIN MOVED, NOT LOOSENED (mobile phase 5): the list is append-only, so
+  // what matters is that 4 is in it with 1..3 ahead. Phase 5's own test
+  // pins the full array.
+  const converted = JSON.parse(law.match(/const CONVERTED = (\[[^\]]*\]);/)[1]);
+  assert.deepEqual(converted.slice(0, 4), [1, 2, 3, 4], 'phases 1 to 4 lead CONVERTED in order');
   assert.match(law, /'src\/components\/personal-assistant',/, 'the component dir is in the phase 4 target list');
 });

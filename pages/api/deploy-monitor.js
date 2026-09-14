@@ -15,12 +15,12 @@
  *      This is the CORRECT Vercel webhook protocol. Use this in production.
  *   2. Legacy fallback: ?secret=XXX query string OR x-webhook-secret header
  *      For hand-rolled webhooks that don't use native Vercel signing.
- *   3. No secret configured: allow (dev-only; logs a warning).
+ *   3. No secret configured: reject (server misconfiguration).
  *
- * SILENT-FAILURE PROTECTION:
- *   Every auth rejection fires a GitHub Issue alert (rate-limited to 1/hour).
- *   A webhook that can't be authenticated is a pipeline-level outage — treat it
- *   like one. No more 401s vanishing into Vercel logs that nobody reads.
+ * DURABLE ALERT DELIVERY:
+ *   Authenticated failures and deployment-ready evidence are written to the
+ *   operational inbox before acknowledgment. Rejected requests cannot create
+ *   incidents, GitHub issues, or email. A fix commit alone is not recovery.
  *
  * CIRCUIT BREAKER (persistent):
  *   Counts [autofix] commits referencing the target SHA in git history.
@@ -36,6 +36,7 @@
 
 import crypto from 'crypto';
 import { reportApiError } from '../../src/lib/sentryWrap';
+import { alertEventKey, recordOperationalAlerts } from '../../src/lib/operationalAlerts.mjs';
 
 // Disable Next.js body parsing so we can HMAC-verify the raw request bytes.
 export const config = {
@@ -126,7 +127,26 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
 // ─────────────────────────────────────────────────────────────────────────────
 // GitHub Issue alerting (non-blocking, deduped against open autofix-failure)
 // ─────────────────────────────────────────────────────────────────────────────
-async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
+async function recordDeployEvidence(evidence, alertname, status, stage, details) {
+  if (!evidence || evidence.projectId !== PROJECT_ID || !evidence.deploymentId) {
+    throw new Error('Authenticated deployment context is required');
+  }
+  try {
+    return await recordOperationalAlerts([{
+      source: 'worldhub.deploy-monitor',
+      event_key: alertEventKey({ deploymentId: evidence.deploymentId, alertname, status, stage }),
+      alertname, status, severity: status === 'resolved' || alertname === 'DeploymentAutofixOutcome' ? 'info' : 'critical',
+      payload: { ...evidence, ...details },
+    }]);
+  } catch (error) {
+    error.operationalInboxDeliveryFailure = true;
+    throw error;
+  }
+}
+
+async function createAlertIssue(title, body, { alertKey, ghPat, evidence } = {}) {
+  await recordDeployEvidence(evidence, 'DeploymentWebhookProcessingFailed', 'firing',
+    alertKey || title, { summary: title, details: body });
   const token = ghPat || process.env.GH_PAT;
   if (!token) return;
 
@@ -184,13 +204,6 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
     console.warn('[deploy-monitor] Failed to create alert issue:', err.message);
   }
 
-  // Best-effort SMS alert.
-  try {
-    await sendSmsAlert(`🚨 Vercel Deploy Crash\n${title}`);
-  } catch (err) {
-    console.warn('[deploy-monitor] SMS alert failed (non-fatal):', err.message);
-  }
-
   // Best-effort parallel email. Never throws — monitor must keep running.
   try {
     await sendEmailAlert({
@@ -200,52 +213,6 @@ async function createAlertIssue(title, body, { alertKey, ghPat } = {}) {
     });
   } catch (err) {
     console.warn('[deploy-monitor] Email alert failed (non-fatal):', err.message);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SMS alerting via Twilio — non-blocking, never throws
-// ─────────────────────────────────────────────────────────────────────────────
-async function sendSmsAlert(message) {
-  return; // DISABLED per user request
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromPhone = process.env.TWILIO_PHONE_NUMBER;
-  const ownerPhone = '+17086775221';
-
-  if (!accountSid || !authToken || !fromPhone) {
-    console.warn('[deploy-monitor] Twilio credentials missing - skipping SMS');
-    return;
-  }
-
-  try {
-    const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-    const body = new URLSearchParams({
-      From: fromPhone,
-      To: ownerPhone,
-      Body: Array.from(message).slice(0, 1000).join('') // Safe unicode-aware truncation
-    });
-
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: body.toString()
-      }
-    );
-
-    if (res.ok) {
-      console.warn(`[deploy-monitor] SMS alert sent to ${ownerPhone}`);
-    } else {
-      const errData = await res.json().catch(() => ({}));
-      console.warn('[deploy-monitor] SMS API error:', res.status, errData);
-    }
-  } catch (err) {
-    console.warn('[deploy-monitor] Failed to dispatch SMS:', err.message);
   }
 }
 
@@ -465,6 +432,7 @@ async function countPersistentAttempts(commitSha, branchName, ghPat) {
 // Main handler
 // ─────────────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
+  let webhookEvidence;
   try {
 
   const startTime = Date.now();
@@ -475,7 +443,7 @@ export default async function handler(req, res) {
       service: 'deploy-monitor',
       version: 'v2',
       description: 'Self-healing deploy monitor. POST Vercel webhook events here.',
-      expectedEvents: ['deployment.error', 'deployment.canceled'],
+      expectedEvents: ['deployment.error', 'deployment.ready', 'deployment.succeeded'],
       project: PROJECT_ID,
       config: {
         hasVercelToken: !!process.env.VERCEL_TOKEN,
@@ -550,30 +518,6 @@ export default async function handler(req, res) {
         querySecret ? 'present(mismatch)' : 'absent',
         headerSecret ? 'present(mismatch)' : 'absent');
 
-      await createAlertIssue(
-        `Deploy webhook auth failing - ${new Date().toISOString().slice(0, 10)}`,
-        `## Webhook auth rejected
-
-The deploy-monitor webhook is rejecting incoming Vercel events because no valid auth is being provided.
-
-**What this means:** production failures will NOT be auto-fixed until this is resolved.
-
-**Diagnostics:**
-- \`x-vercel-signature\` header present: **${sigHeader ? 'yes (signature did not match)' : 'no'}**
-- \`?secret=\` query string: **${querySecret ? 'yes (did not match DEPLOY_WEBHOOK_SECRET)' : 'no'}**
-- \`x-webhook-secret\` header: **${headerSecret ? 'yes (did not match DEPLOY_WEBHOOK_SECRET)' : 'no'}**
-- \`DEPLOY_WEBHOOK_SECRET\` env var: **set**
-- Event type: \`${payload.type}\`
-- Timestamp: \`${new Date().toISOString()}\`
-
-**Fix:** Go to Vercel Dashboard → Team Settings → Webhooks → edit the webhook for \`https://smarter.poker/api/deploy-monitor\`. Either:
-1. (Preferred) Set the webhook "Secret" field to the same value as \`DEPLOY_WEBHOOK_SECRET\` in Vercel project env. Vercel will then sign each request with \`x-vercel-signature\` and we verify via HMAC-SHA1.
-2. (Fallback) Append \`?secret=<value>\` to the webhook URL, where \`<value>\` equals \`DEPLOY_WEBHOOK_SECRET\`.
-
-Alert is rate-limited to 1 issue/comment per hour.`,
-        { alertKey: 'webhook_auth_failed' }
-      );
-
       return res.status(401).json({ error: 'Invalid webhook auth', authMethods: ['hmac', 'shared_secret'] });
     }
   } else {
@@ -589,48 +533,39 @@ Alert is rate-limited to 1 issue/comment per hour.`,
   // ── From here on: the webhook is authenticated. Proceed with handling. ──
   const eventType = payload.type || '';
 
-  // Broad failure detection: catch ANY event that indicates a problem.
-  // This includes deployment.error, deployment.canceled, deployment.check-rerequested,
-  // as well as any event where the internal deployment state is ERROR/FAILED/CANCELED.
   const deployment = payload.payload?.deployment || payload.payload || {};
-  const deployState = (deployment.state || deployment.readyState || '').toUpperCase();
-  const isFailureEvent = (
-    eventType.includes('error') ||
-    eventType.includes('fail') ||
-    eventType.includes('cancel') ||
-    eventType.includes('timeout') ||
-    eventType.includes('check') ||
-    ['ERROR', 'FAILED', 'CANCELED', 'CANCELLED'].includes(deployState)
-  );
-
-  if (!isFailureEvent) {
-    return res.status(200).json({
-      action: 'ignored',
-      authMethod,
-      reason: `Event type '${eventType}' with state '${deployState}' is not a failure - no action needed`,
-    });
+  const deploymentId = deployment.id || deployment.uid;
+  // Vercel currently uses payload.project.id; older deliveries used projectId.
+  // Conflicting identities are refused instead of picking whichever is first.
+  const projectIds = [deployment.projectId, payload.payload?.projectId, payload.payload?.project?.id].filter(Boolean);
+  if (!projectIds.length || projectIds.some((id) => id !== PROJECT_ID)) {
+    return res.status(200).json({ action: 'ignored', authMethod, reason: 'Not the canonical World Hub project' });
+  }
+  if (typeof deploymentId !== 'string' || !deploymentId.trim()) {
+    return res.status(400).json({ error: 'Missing deployment identity' });
+  }
+  const deployState = String(deployment.state || deployment.readyState || '').toUpperCase();
+  const isFailureEvent = ['deployment.error', 'deployment.failed'].includes(eventType)
+    || ['ERROR', 'FAILED'].includes(deployState);
+  const isRecoveryEvent = !isFailureEvent && (['deployment.ready', 'deployment.succeeded'].includes(eventType)
+    || deployState === 'READY');
+  const commitSha = deployment.meta?.githubCommitSha || 'unknown';
+  const commitMsg = deployment.meta?.githubCommitMessage || '';
+  const state = deployState || eventType;
+  webhookEvidence = { deploymentId, projectId: PROJECT_ID, commitSha,
+    eventType, state, target: payload.payload?.target || deployment.target || null, webhook: payload };
+  if (!isFailureEvent && !isRecoveryEvent) {
+    return res.status(200).json({ action: 'ignored', authMethod, reason: 'No deployment failure or recovery' });
   }
 
   try {
-    const deploymentId = deployment.id || deployment.uid || 'unknown';
-    const projectId = deployment.projectId || payload.payload?.projectId || null;
-    const commitSha = deployment.meta?.githubCommitSha || 'unknown';
-    const commitMsg = deployment.meta?.githubCommitMessage || '';
-    const state = deployState || eventType;
-
-    console.warn(`[deploy-monitor] Received ${eventType}/${state} for deployment ${deploymentId} (project: ${projectId}, SHA: ${commitSha}, auth: ${authMethod})`);
-
-    // ── Project filter (HARDENED): require exact match ────────────────────
-    // Previous version allowed projectId === 'unknown' through. That meant any
-    // payload-shape change (Vercel webhook v1 vs v2) would cause ALL failures
-    // across ALL projects to be processed against the World Hub repo.
-    if (!projectId || projectId !== PROJECT_ID) {
-      console.warn(`[deploy-monitor] Ignoring deployment from project ${projectId} (not hub-vanguard)`);
-      return res.status(200).json({
-        action: 'ignored',
-        reason: `Deployment belongs to project ${projectId || 'unknown'}, not hub-vanguard (${PROJECT_ID})`,
-        authMethod,
+    const receipts = await recordDeployEvidence(webhookEvidence, 'VercelDeploymentFailed',
+      isRecoveryEvent ? 'resolved' : 'firing', 'deployment-state', {
+        summary: isRecoveryEvent ? 'Vercel reports this deployment is ready' : 'Vercel reports this deployment failed',
+        resolutionScope: 'deployment_only',
       });
+    if (isRecoveryEvent) {
+      return res.status(200).json({ action: 'recorded', status: 'resolved', receipts, sent: false, authMethod });
     }
 
     // ── Hard stop: never auto-fix an [autofix] commit ─────────────────────
@@ -647,7 +582,7 @@ An \`[autofix]\` commit itself failed to build. The AI-generated fix introduced 
 **Deployment:** ${deploymentId}
 
 Manual intervention required. The self-healing pipeline will NOT retry this commit.`,
-        { alertKey: `autofix_commit_failed_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
+        { alertKey: `autofix_commit_failed_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT, evidence: webhookEvidence }
       );
       return res.status(200).json({
         action: 'refused',
@@ -701,7 +636,7 @@ Autofix exhausted all ${MAX_FIX_ATTEMPTS} attempts for commit \`${commitSha}\` w
 
 Manual intervention required. Check Vercel build logs:
 https://vercel.com/smarter-poker/hub-vanguard/deployments`,
-        { alertKey: `circuit_breaker_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
+        { alertKey: `circuit_breaker_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT, evidence: webhookEvidence }
       );
       return res.status(200).json({
         action: 'circuit_breaker',
@@ -730,7 +665,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       await createAlertIssue(
         `Deploy monitor misconfigured - VERCEL_TOKEN missing`,
         `The deploy-monitor endpoint received a valid webhook but \`VERCEL_TOKEN\` is not set. Cannot fetch build logs. Set it in Vercel project env.`,
-        { alertKey: 'missing_vercel_token', ghPat: process.env.GH_PAT }
+        { alertKey: 'missing_vercel_token', ghPat: process.env.GH_PAT, evidence: webhookEvidence }
       );
       return res.status(500).json({ error: 'VERCEL_TOKEN not configured' });
     }
@@ -768,7 +703,7 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       await createAlertIssue(
         `Deploy failed - logs unavailable for ${commitSha.substring(0, 8)}`,
         `## Vercel Deployment Failed - Build Log Unavailable\n\n**Commit:** \`${commitSha}\`\n**Message:** ${commitMsg.substring(0, 200)}\n**Deployment:** ${deploymentId}\n**Auth:** ${authMethod}\n\nThe Vercel deployment failed, but the build log API returned no error lines to analyze.\nThis could mean:\n- The build log was empty (infrastructure failure)\n- The error happened before Next.js compilation (install/config phase)\n- The deployment ID is synthetic or expired\n\nManual investigation required: https://vercel.com/smarter-poker/hub-vanguard/deployments`,
-        { alertKey: `no_build_logs_${deploymentId}`, ghPat: process.env.GH_PAT }
+        { alertKey: `no_build_logs_${deploymentId}`, ghPat: process.env.GH_PAT, evidence: webhookEvidence }
       );
       return res.status(200).json({
         action: 'skipped',
@@ -804,6 +739,13 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
     let autofixResult = {};
     if (!autofixRes.ok) {
       const errText = await autofixRes.text().catch(() => '');
+      let failureBody;
+      try { failureBody = JSON.parse(errText); } catch { failureBody = null; }
+      if (autofixRes.status === 503 && failureBody?.action === 'alert_delivery_failed') {
+        const error = new Error('Autofix provider alert delivery needs retry');
+        error.operationalInboxDeliveryFailure = true;
+        throw error;
+      }
       autofixResult = {
         action: 'api_error',
         reason: `Autofix API returned ${autofixRes.status}: ${errText.substring(0, 200)}`,
@@ -830,6 +772,12 @@ https://vercel.com/smarter-poker/hub-vanguard/deployments`,
       filePath: autofixResult.filePath,
       newSha: autofixResult.newSha,
     });
+
+    await recordDeployEvidence(webhookEvidence, 'DeploymentAutofixOutcome', 'firing',
+      `autofix-outcome:${autofixResult.action || 'unknown'}`, {
+        summary: 'Deployment autofix outcome; deployment recovery still requires a ready event',
+        result: autofixResult, attempt: attempts + 1, durationMs: duration,
+      });
 
     // Success notification — you want to know when autofix ships code to main
     if (autofixResult.action === 'fixed') {
@@ -907,7 +855,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       await createAlertIssue(
         `Deploy autofix failed - ${commitSha.substring(0, 8)}`,
         markdownBody,
-        { alertKey: `autofix_failure_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT }
+        { alertKey: `autofix_failure_${commitSha.substring(0, 8)}`, ghPat: process.env.GH_PAT, evidence: webhookEvidence }
       );
     }
 
@@ -921,13 +869,16 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
       authMethod,
     });
   } catch (err) {
+    if (err.operationalInboxDeliveryFailure) {
+      return res.status(503).json({ error: 'Operational inbox unavailable; retry delivery', sent: false });
+    }
       try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[deploy-monitor] Error:', err);
     // Pipeline-level errors also deserve an alert
     await createAlertIssue(
       `deploy-monitor threw an exception - ${new Date().toISOString().slice(0, 10)}`,
       `The monitor handler threw during webhook processing. Check Vercel runtime logs.\n\nError: \`${err.message || 'unknown'}\`\nStack:\n\`\`\`\n${(err.stack || '').substring(0, 2000)}\n\`\`\``,
-      { alertKey: `monitor_exception_fallback`, ghPat: process.env.GH_PAT }
+      { alertKey: `monitor_exception_fallback`, ghPat: process.env.GH_PAT, evidence: webhookEvidence }
     );
     return res.status(500).json({
       error: 'Internal server error',

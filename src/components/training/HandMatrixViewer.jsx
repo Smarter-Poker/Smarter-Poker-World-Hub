@@ -111,7 +111,7 @@ export default function HandMatrixViewer() {
           <button key={i} onClick={() => setSpotIdx(i)}
             style={{ padding: '5px 10px', borderRadius: 6, border: spotIdx === i ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.06)',
               background: spotIdx === i ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 10, fontWeight: 700, color: spotIdx === i ? '#3b82f6' : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: spotIdx === i ? '#3b82f6' : '#64748b' }}>
             {s.name}
           </button>
         ))}
@@ -127,14 +127,14 @@ export default function HandMatrixViewer() {
           <button key={m.id} onClick={() => setColorMode(m.id)}
             style={{ padding: '4px 8px', borderRadius: 4, border: colorMode === m.id ? `1px solid ${m.color}` : '1px solid rgba(255,255,255,0.04)',
               background: colorMode === m.id ? `${m.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 9, fontWeight: 700, color: colorMode === m.id ? m.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: colorMode === m.id ? m.color : '#64748b' }}>
             {m.label}
           </button>
         ))}
       </div>
 
       {/* Matrix Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(13, 1fr)`, gap: 1, background: 'rgba(0,0,0,0.4)', borderRadius: 8, padding: 2, marginBottom: 10 }}>
+      <div data-allow-small="true" style={{ display: 'grid', gridTemplateColumns: `repeat(13, 1fr)`, gap: 1, background: 'rgba(0,0,0,0.4)', borderRadius: 8, padding: 2, marginBottom: 10 }}>
         {matrix.flat().map((cell, idx) => {
           const bg = getCellColor(cell, colorMode);
           const isHov = hovered && hovered.r === cell.ri && hovered.c === cell.ci;
@@ -171,7 +171,7 @@ export default function HandMatrixViewer() {
         ].map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 2, background: l.color }} />
-            <span style={{ fontSize: 9, color: '#94a3b8' }}>{l.label}</span>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>{l.label}</span>
           </div>
         ))}
       </div>
@@ -182,25 +182,25 @@ export default function HandMatrixViewer() {
           style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', fontFamily: 'monospace' }}>{hoveredCell.label}</span>
-            <span style={{ fontSize: 10, color: '#64748b' }}>{hoveredCell.isPair ? 'Pair (6 combos)' : hoveredCell.isSuited ? 'Suited (4 combos)' : 'Offsuit (12 combos)'}</span>
+            <span style={{ fontSize: 12, color: '#64748b' }}>{hoveredCell.isPair ? 'Pair (6 combos)' : hoveredCell.isSuited ? 'Suited (4 combos)' : 'Offsuit (12 combos)'}</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {hoveredCell.raise > 0 && (
               <div style={{ flex: hoveredCell.raise, background: '#ef4444', borderRadius: 4, padding: '4px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{hoveredCell.raise}%</div>
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.7)' }}>Raise</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Raise</div>
               </div>
             )}
             {hoveredCell.call > 0 && (
               <div style={{ flex: hoveredCell.call, background: '#22c55e', borderRadius: 4, padding: '4px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{hoveredCell.call}%</div>
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.7)' }}>Call</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Call</div>
               </div>
             )}
             {hoveredCell.fold > 0 && (
               <div style={{ flex: hoveredCell.fold, background: '#64748b', borderRadius: 4, padding: '4px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{hoveredCell.fold}%</div>
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.7)' }}>Fold</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Fold</div>
               </div>
             )}
           </div>

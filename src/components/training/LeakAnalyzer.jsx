@@ -45,7 +45,7 @@ export default function LeakAnalyzer() {
             style={{ padding: '8px 4px', borderRadius: 8, border: statIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: statIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: statIdx === i ? s.color : '#64748b' }}>{s.stat.substring(0, 6)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: statIdx === i ? s.color : '#64748b' }}>{s.stat.substring(0, 6)}</div>
           </button>
         ))}
       </div>
@@ -60,15 +60,15 @@ export default function LeakAnalyzer() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Too High</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Too High</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.tooHigh}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Too Low</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Too Low</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>How To Fix</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{stat.fix}</div>
           </div>
         </div>

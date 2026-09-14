@@ -158,9 +158,11 @@ exceptions:
 2. **Write and apply SQL.** If the work touched data, schema, RLS, RPCs, or
    anything in Supabase, save migrations under
    `supabase/migrations/<YYYYMMDD>_<description>.sql` AND apply them to
-   production via the Supabase MCP `apply_migration` tool. Confirm via
-   `list_migrations` that the migration appears. Never apply schema changes
-   via raw `execute_sql` — migrations only, so the change is auditable.
+   production via the Supabase MCP `apply_migration` tool, never inside the
+   break window below. Confirm the migration appears by reading
+   `supabase_migrations.schema_migrations` with `execute_sql` (a SELECT, not
+   `list_migrations`; see below). Never apply schema changes via raw
+   `execute_sql` — migrations only, so the change is auditable.
 
    For Tier-2+ migrations (anything beyond doc/comment changes), follow
    the four-step protocol in `.agent/workflows/migration-safety.md`:
@@ -170,6 +172,37 @@ exceptions:
    the migration aborts on its own assumption violations. Tier 3
    (DROP, ALTER COLUMN TYPE, RPC overload changes) MUST include a
    pasted ROLLBACK section.
+
+   **NO DDL IN THE HOURLY BREAK WINDOW, :50-:03 UTC (2026-09-10, BINDING).**
+   The database is shared with Club Arena, so its hourly maintenance break
+   binds here: :53 announce, :55 freeze, ~:57 engine restart, :00 thaw
+   (Club Arena CLAUDE.md section 13). A migration at 23:52 UTC on 2026-09-09
+   cancelled the 00:00 break, so the database now enforces the window
+   itself. Event triggers `ca_break_window_refuses_ddl` (ddl_command_end)
+   and `ca_break_window_refuses_drops` (sql_drop) roll back the whole
+   transaction of any non-temporary DDL run in the window from a `postgres`
+   login or a member of it - the Supabase MCP's `apply_migration` and
+   `execute_sql`, the CLI, psql, the dashboard. The window test is
+   `fn_ca_break_window_refuses_migrations(p_at)` (NULL outside it), the
+   session test `fn_ca_break_window_governs(role, app)`. pg_cron,
+   `supabase_admin` and Supabase's other internal roles, PostgREST
+   (`authenticator`/`service_role`) and temporary objects are not covered.
+   A refused migration applied nothing and wrote no history row: check
+   `date -u` and apply it ONCE after :03, never in a retry loop. An
+   emergency fix that cannot wait puts
+   `SET LOCAL ca.break_window_migration_override = '<why this cannot wait>';`
+   right after its `BEGIN;` - a reason, not a switch (blank, on/off,
+   true/false and the like are refused), honoured for that one transaction
+   and logged in `public.ca_break_window_migration_overrides`. Never disable
+   the triggers. Every MCP `list_migrations` and `apply_migration` call
+   first runs no-op `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on the
+   history table, which reloads PostgREST (~28 s) and is refused inside the
+   window. To see what is applied, at any minute, run this through
+   `execute_sql` instead:
+   `SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version DESC`.
+   A refusal's HINT cites Club Arena CLAUDE.md, Production DDL policy rule
+   8: it is this rule. Reasoning: Club Arena
+   `docs/changelog/2026-09-10-the-database-refuses-migrations-inside-the-break-window.md`.
 
 3. **Document substantive audits/incidents** under `.agent/audits/<YYYY-MM-DD>-<slug>.md`
    so future agents can read what was investigated, what was fixed, and what

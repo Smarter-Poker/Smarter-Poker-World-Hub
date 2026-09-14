@@ -248,7 +248,7 @@ function PositionFrequencyHeatmap() {
             { label: 'High (26-40%)', color: 'rgba(245,158,11,0.6)' },
             { label: 'Very High (40%+)', color: 'rgba(239,68,68,0.7)' },
           ].map(l => (
-            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
               <div style={{ width: 14, height: 14, borderRadius: 3, background: l.color }} />
               {l.label}
             </div>

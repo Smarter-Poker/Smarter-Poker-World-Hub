@@ -52,6 +52,101 @@ SAFE_AGENT=$(printf '%s' "$AGENT" | tr -c 'A-Za-z0-9._-' '-')
 BRANCH="agent/${SAFE_AGENT}/$(printf '%s' "$SLUG" | sed 's#^agent/[^/]*/##')"
 DIR="$TREES/$SAFE_AGENT"
 
+# ── THE COPY ON DISK IS NOT NECESSARILY THE ESTATE'S (2026-09-11) ───────────
+#
+# This script is invoked from the MAIN CLONE, and the main clone's working tree
+# is not kept current by anything. On 2026-09-11 the Club Arena clone was 624
+# commits behind origin/main with 408 staged entries left over from an
+# abandoned index, and two separate things followed from it in one morning:
+#
+#   1. `./scripts/agent-workspace.sh` was 100644 there and refused to run,
+#      while origin/main has had it 100755 all along.
+#   2. The copy that DID run was the pre-2026-09-10 provisioner, which judges
+#      node_modules against the MAIN CLONE's lockfile instead of the tree's -
+#      the exact bug fixed in #4205 and synced to the Hub in #1735. Every tree
+#      claimed from that clone would have come up short again.
+#
+# The worktree itself was never at risk: it is cut from origin/main a few lines
+# below. The risk is entirely that the LOGIC doing the cutting is old, and an
+# agent has no way to tell - the script prints a confident banner either way.
+#
+# So: fetch, compare this file against origin/main's, and if they differ, hand
+# over to main's copy. The guard variable is what stops that being a loop, and
+# it is set on the exec so a nested invocation inherits it.
+#
+# Deliberately NOT a warning. An agent reading a warning has to decide whether
+# a 624-commit-old provisioner matters, with no information to decide it with.
+git -C "$ROOT" fetch origin main --quiet 2>/dev/null || true
+if [ -z "${AGENT_WORKSPACE_REEXEC:-}" ] && [ -r "$0" ]; then
+  _MAIN_COPY=$(git -C "$ROOT" show origin/main:scripts/agent-workspace.sh 2>/dev/null || true)
+  if [ -n "$_MAIN_COPY" ] && [ "$_MAIN_COPY" != "$(cat "$0")" ]; then
+    _MAIN_SCRIPT=$(mktemp "${TMPDIR:-/tmp}/agent-workspace.XXXXXX")
+    printf '%s\n' "$_MAIN_COPY" > "$_MAIN_SCRIPT"
+    echo "# this copy of agent-workspace.sh differs from origin/main - running main's copy instead" >&2
+    echo "#   (the clone at $ROOT is $(git -C "$ROOT" rev-list --count HEAD..origin/main 2>/dev/null || echo '?') commit(s) behind)" >&2
+    AGENT_WORKSPACE_REEXEC=1 exec bash "$_MAIN_SCRIPT" "$@"
+  fi
+fi
+
+# ── AND NEITHER ARE THE HELPERS IT SHELLS OUT TO (2026-09-14) ───────────────
+#
+# The re-exec above fixes THIS script when the clone is stale. It does not fix
+# the scripts this script then runs by path, because $ROOT still points at that
+# same stale working tree. Two ways that bit, both measured on 2026-09-14 with
+# the Hub clone 334 commits behind and Club Arena 1,288:
+#
+#   1. `bash "$ROOT/scripts/check-node-modules.sh"` at the end of this file was
+#      called with no existence check. That helper is newer than the checkout,
+#      so the run ended in a bare
+#
+#        bash: .../scripts/check-node-modules.sh: No such file or directory
+#
+#      and the node_modules repair - the step that had something to repair -
+#      never happened. The same helper is guarded with `-x` 300 lines above,
+#      so the file already knew to check and did it in one place only.
+#
+#   2. WORSE, AND SILENT. SNAP is resolved from ${BASH_SOURCE[0]}. After a
+#      re-exec that is a file in $TMPDIR, so SNAP became
+#      /tmp/agent-trees-snapshot.sh, which does not exist, and the `[ -f ]`
+#      guard turned that into a no-op. agent-trees-snapshot.sh is what makes
+#      uncommitted work survive `git reset --hard`. It stopped running exactly
+#      when the clone was stale - which is exactly when a tree is most likely
+#      to be old, conflicted, and holding work nobody has pushed. On 2026-09-14
+#      the two shared clones between them held 899 modified tracked files and
+#      the snapshot had not run in either.
+#
+# So resolve a helper the same way this file resolves itself: prefer the copy
+# on disk when it matches origin/main, and otherwise run main's. Same reasoning
+# as the re-exec, and deliberately not a warning for the same reason - an agent
+# told "your helper is old" has nothing to do with that.
+run_repo_script() {
+  local rel="$1"; shift
+  local disk="$ROOT/$rel" main_copy tmp rc
+  main_copy=$(git -C "$ROOT" show "origin/main:$rel" 2>/dev/null || true)
+
+  if [ -n "$main_copy" ]; then
+    if [ -r "$disk" ] && [ "$main_copy" = "$(cat "$disk")" ]; then
+      ( cd "$ROOT" && bash "$disk" "$@" ); return $?
+    fi
+    tmp=$(mktemp "${TMPDIR:-/tmp}/$(basename "$rel").XXXXXX")
+    printf '%s\n' "$main_copy" > "$tmp"
+    if [ -r "$disk" ]; then
+      echo "# $rel: this clone's copy differs from origin/main - running main's" >&2
+    else
+      echo "# $rel: not in this checkout (the clone is $(git -C "$ROOT" rev-list --count HEAD..origin/main 2>/dev/null || echo '?') commit(s) behind) - running main's" >&2
+    fi
+    ( cd "$ROOT" && bash "$tmp" "$@" ); rc=$?
+    rm -f "$tmp"
+    return $rc
+  fi
+
+  # Not on main either: a helper that has been deleted, or a repo that does not
+  # have it. Say so once and carry on - every caller here is best-effort.
+  if [ -r "$disk" ]; then ( cd "$ROOT" && bash "$disk" "$@" ); return $?; fi
+  echo "# $rel: not in this checkout and not on origin/main - skipped" >&2
+  return 0
+}
+
 # Share the main clone's dependencies. The alternative is an npm install per
 # tree - minutes each, gigabytes across 47 trees - or a test gate that silently
 # skips, which is how a red test reaches main and blocks the bundle for all.
@@ -125,7 +220,7 @@ provision_node_modules() {
       src="${src%${rel:+/$rel}}"
     elif [ -z "$rel" ] && [ -x "$ROOT/scripts/check-node-modules.sh" ]; then
       echo "# $label: the main clone's copy is hollow and no sibling can donate; repairing the main clone" >&2
-      bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/#   /" >&2 || true
+      run_repo_script scripts/check-node-modules.sh 2>&1 | sed "s/^/#   /" >&2 || true
     fi
   fi
 
@@ -134,6 +229,29 @@ provision_node_modules() {
     # and nothing said so.
     echo "# $label: the main clone has none either - run 'npm ci' in ${rel:-the clone root}" >&2
     return 0
+  fi
+
+  # THE TREE'S OWN LOCKFILE IS THE JUDGE (2026-09-10). Usable is not current.
+  # The Club Arena main clone sat 25 commits behind origin/main with 400 dirty
+  # entries, and its install matched its OWN old lockfile perfectly - typescript,
+  # tsc, 319 packages, every test above green - while the tree being claimed was
+  # cut from origin/main and needed 430. Every tree cloned that day came up with
+  # `tsc` failing on a package that was not there, and every agent ran `npm ci`
+  # by hand after reading the same confusing error. The donor search could not
+  # help: it compared candidates against the MAIN CLONE's lockfile, which was
+  # the stale one. So the reference is the lockfile this tree will actually run
+  # with, for the source and for every donor alike.
+  if [ -f "$dst/package-lock.json" ] \
+     && ! node_modules_matches_lockfile "$src/node_modules" "$dst/package-lock.json"; then
+    local fresh
+    fresh="$(find_node_modules_donor "$rel")"
+    if [ -n "$fresh" ]; then
+      echo "# $label: the main clone's install is behind this tree's lockfile; cloning from $fresh instead" >&2
+      src="${fresh%/node_modules}"
+      src="${src%${rel:+/$rel}}"
+    else
+      echo "# $label: no install on this machine matches this tree's lockfile; npm ci runs here after the clone" >&2
+    fi
   fi
 
   # ATOMIC, because `[ -e ]` above is a presence test and not a completeness
@@ -157,6 +275,51 @@ provision_node_modules() {
   else
     rm -rf "$tmp" 2>/dev/null || true
     echo "# $label: could not be provisioned - run 'npm ci' in ${rel:-the tree root}" >&2
+    return 0
+  fi
+
+  # A clone that does not satisfy this tree's lockfile is finished by npm, in
+  # THIS tree, which the 2026-08-23 note above established is safe: the tree
+  # owns its node_modules outright. About a minute, and it is the minute every
+  # agent was already spending by hand, after a failed hook, without knowing why.
+  if [ -f "$dst/package-lock.json" ] \
+     && ! node_modules_matches_lockfile "$dst/node_modules" "$dst/package-lock.json"; then
+    if command -v npm >/dev/null 2>&1; then
+      echo "# $label: installing this tree's lockfile exactly (npm ci, about a minute)..." >&2
+      (cd "$dst" && npm ci --no-audit --no-fund 2>&1 | tail -3 | sed "s/^/#   /" >&2) || true
+      if node_modules_matches_lockfile "$dst/node_modules" "$dst/package-lock.json"; then
+        echo "# $label: now matches this tree's lockfile" >&2
+      else
+        echo "# $label: STILL does not match this tree's lockfile - run 'npm ci' in ${rel:-the tree root} and read its output" >&2
+      fi
+    else
+      echo "# $label: does not match this tree's lockfile and npm is not on PATH - run 'npm ci' in ${rel:-the tree root}" >&2
+    fi
+  fi
+}
+
+# Does an install satisfy a lockfile? npm records what it installed in
+# node_modules/.package-lock.json; every top-level, non-optional package the
+# lockfile names must be there at the lockfile's version. Optional packages are
+# skipped on purpose: npm populates exactly one platform binary per family and
+# leaves the other twenty-three directories empty by design. Without node the
+# only honest answer is the two lockfiles being the same bytes.
+node_modules_matches_lockfile() {
+  local nm="$1" lock="$2"
+  [ -f "$lock" ] || return 0
+  [ -f "$nm/.package-lock.json" ] || return 1
+  if command -v node >/dev/null 2>&1; then
+    node -e '
+      const fs = require("fs");
+      const have = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).packages || {};
+      const want = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).packages || {};
+      for (const [k, v] of Object.entries(want)) {
+        if (!k.startsWith("node_modules/") || k.indexOf("node_modules/", 13) !== -1 || v.optional) continue;
+        if (!have[k] || have[k].version !== v.version) process.exit(1);
+      }
+    ' "$nm/.package-lock.json" "$lock"
+  else
+    cmp -s "$(dirname "$nm")/package-lock.json" "$lock"
   fi
 }
 
@@ -178,16 +341,21 @@ node_modules_usable() {
 }
 
 # The freshest sibling tree with a usable node_modules AND a package-lock.json
-# byte-identical to the main clone's. Prints the node_modules path, or nothing.
+# byte-identical to THIS TREE's (2026-09-10: it used to be the main clone's,
+# which is the stale one whenever the main clone is behind), whose install
+# satisfies that lockfile. Prints the node_modules path, or nothing.
 find_node_modules_donor() {
   local rel="$1" cand nm best="" best_t=0 t
+  local lock="$DIR${rel:+/$rel}/package-lock.json"
+  [ -f "$lock" ] || lock="$ROOT${rel:+/$rel}/package-lock.json"
   [ -d "$TREES" ] || return 0
   for cand in "$TREES"/*/; do
     cand="${cand%/}"
     [ "$cand" = "$DIR" ] && continue
     nm="$cand${rel:+/$rel}/node_modules"
     node_modules_usable "$nm" "$rel" || continue
-    cmp -s "$cand${rel:+/$rel}/package-lock.json" "$ROOT${rel:+/$rel}/package-lock.json" || continue
+    cmp -s "$cand${rel:+/$rel}/package-lock.json" "$lock" || continue
+    node_modules_matches_lockfile "$nm" "$lock" || continue
     t=$(stat -f %m "$nm" 2>/dev/null || stat -c %Y "$nm" 2>/dev/null || echo 0)
     if [ "$t" -gt "$best_t" ]; then best="$nm"; best_t="$t"; fi
   done
@@ -298,8 +466,10 @@ git -C "$ROOT" fetch origin main --quiet
 # safety net must never be the reason a workspace claim fails. It costs about a
 # second. If you want to see what it captured:
 #   bash scripts/agent-trees-snapshot.sh --list
-SNAP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/agent-trees-snapshot.sh"
-[ -f "$SNAP" ] && (cd "$ROOT" && bash "$SNAP" >/dev/null 2>&1) || true
+# NOT ${BASH_SOURCE[0]}: after the re-exec above that is a file in $TMPDIR, so
+# this resolved to /tmp/agent-trees-snapshot.sh, did not exist, and the guard
+# silently skipped the one step that makes uncommitted work undestroyable.
+run_repo_script scripts/agent-trees-snapshot.sh >/dev/null 2>&1 || true
 
 if [ -d "$DIR" ] && git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
   # Reuse. Refuse to move an agent off work it has not committed - that is the
@@ -376,20 +546,20 @@ git -C "$DIR" config user.email "254329056+Smarter-Poker@users.noreply.github.co
 # 2026-08-23: a fresh worktree had neither, and both failures were silent.
 # core.hooksPath pointed at the gitignored .husky/_, so git ran no hooks here at
 # all; and with no node_modules the hooks that did run went to the network.
-bash "$ROOT/scripts/ensure-hooks.sh" 2>&1 | sed "s/^/# /" >&2 || true
+run_repo_script scripts/ensure-hooks.sh 2>&1 | sed "s/^/# /" >&2 || true
 
 # The link above is shared, and npm run inside ANY worktree writes through it.
 # Twice on 2026-08-23 that left ~285 package directories empty and broke the
 # hooks in every tree at once, with only an ERR_MODULE_NOT_FOUND to go on.
 # Probe it here - the one moment an agent is guaranteed to be looking - and
 # repair rather than report.
-bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/# /" >&2 || true
+run_repo_script scripts/check-node-modules.sh 2>&1 | sed "s/^/# /" >&2 || true
 
 # Every other guard in this estate queries GitHub, so all of them are blind to
 # work that never reached it. Ten commits sat in worktrees for nineteen hours on
 # 2026-08-23 and nothing noticed. An agent claiming a workspace is the most
 # frequent moment anybody looks at this machine, so the scan happens here.
-bash "$ROOT/scripts/check-unpushed-work.sh" --quiet 2>&1 | sed "s/^/# /" >&2 || true
+run_repo_script scripts/check-unpushed-work.sh --quiet 2>&1 | sed "s/^/# /" >&2 || true
 
 provision_all_package_roots
 verify_all_native_deps

@@ -50,7 +50,7 @@ export default function OnlineTimingTells() {
             style={{ padding: '8px 4px', borderRadius: 8, border: tellIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: tellIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{t.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: tellIdx === i ? t.color : '#64748b' }}>{t.tell.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tellIdx === i ? t.color : '#64748b' }}>{t.tell.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -64,14 +64,14 @@ export default function OnlineTimingTells() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{tell.meaning}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Exploit</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Exploit</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.exploit}</div>
           </div>
           <div style={{ background: `${tell.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${tell.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: tell.color }}>Reliability: {tell.reliability}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tell.color }}>Reliability: {tell.reliability}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Caveat</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Caveat</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.caveat}</div>
           </div>
         </div>

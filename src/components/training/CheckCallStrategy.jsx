@@ -45,7 +45,7 @@ export default function CheckCallStrategy() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {CC_SCENARIOS.map((s, i) => (
           <button key={i} onClick={() => setSpotIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? `linear-gradient(135deg, ${s.color}, ${s.color}cc)` : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.street}: {s.hand.substring(0, 12)}
@@ -56,13 +56,13 @@ export default function CheckCallStrategy() {
       <motion.div key={spotIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 4, background: `${spot.color}15`, color: spot.color }}>{spot.street}</span>
+          <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 4, background: `${spot.color}15`, color: spot.color }}>{spot.street}</span>
           <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: 2 }}>{spot.board}</span>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>{spot.hand}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{spot.why}</p>
         <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 8, borderLeft: `3px solid ${spot.color}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Best Against</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>Best Against</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.vs}</div>
         </div>
       </motion.div>

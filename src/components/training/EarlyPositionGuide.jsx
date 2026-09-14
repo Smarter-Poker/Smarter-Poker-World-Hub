@@ -69,7 +69,7 @@ function EarlyPositionGuide() {
           {range.hands.map((h, i) => (
             <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid ${h.color}` }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: h.color, marginBottom: 2 }}>{h.tier}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, letterSpacing: 0.3 }}>{h.hands}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, letterSpacing: 0.3 }}>{h.hands}</div>
             </div>
           ))}
         </div>
@@ -88,12 +88,12 @@ function EarlyPositionGuide() {
               <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                    fontSize: 12, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
                     background: `${sevColors[m.severity]}22`, color: sevColors[m.severity],
                   }}>{m.severity}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{m.mistake}</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{m.fix}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{m.fix}</div>
               </div>
             ))}
           </div>

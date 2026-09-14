@@ -1,8 +1,8 @@
 """
 SMARTER-POKER SOLVER ORCHESTRATOR  (launch once; runs until every phase is done)
 ================================================================================
-One command per machine. Self-tests, then works through phases.json (fetched live
-from the repo), auto-advancing with no re-prompt. Each phase carries its OWN
+One command per machine. Self-tests, then works through the immutable manifest
+verified and injected by the launcher. Each phase carries its OWN
 game config -> pot_chips (antes), eff_chips (blind depth), rake (cash vs
 tournament), ranges (format/depth) -> so cash and tournament and each stack solve
 completely different games. Per flop solve it also harvests the turn rows off the
@@ -25,6 +25,13 @@ if MID not in ("M1", "M2"):
     raise SystemExit("machine id must be M1 or M2")
 if NUM < 1 or IDX < 0 or IDX >= NUM:
     raise SystemExit("worker partition must satisfy NUM >= 1 and 0 <= IDX < NUM")
+extra_arguments = sys.argv[4:]
+if not extra_arguments:
+    RUN_MODE = "backlog"
+elif extra_arguments == ["--canary"]:
+    RUN_MODE = "canary"
+else:
+    raise SystemExit("usage: run_machine.py M1|M2 NUM IDX [--canary]")
 
 # Solver hosts are untrusted producers, not database clients. Any direct
 # Supabase/Postgres configuration creates an unsafe mixed mode, even if the
@@ -100,7 +107,7 @@ if len(APPROVED_MANIFEST_CHECKSUM) != 64 or any(c not in "0123456789abcdef" for 
     raise SystemExit("APPROVED_MANIFEST_CHECKSUM must pin the exact approved manifest bytes")
 if not RANGE_DIRECTORY:
     raise SystemExit("RANGE_DIRECTORY must point to the approved solver range artifacts")
-RAW = "https://raw.githubusercontent.com/Smarter-Poker/Smarter-Poker-World-Hub/%s/scripts/preflop-deep" % PIPELINE_COMMIT
+APPROVED_MANIFEST_BYTES = None  # Set only by the checksum-pinned launcher.
 
 # Injected only by the pinned run_machine.py launcher. Direct execution fails
 # before any solve or write, which prevents an ad-hoc transport from bypassing
@@ -197,12 +204,21 @@ def _worker_request(operation, payload, manifest_version, manifest_checksum):
     raise last_error or WorkerGatewayError("solver worker gateway request failed")
 
 def fetch_text(name):
-    with urllib.request.urlopen(RAW + "/" + name, timeout=60) as r:
-        return r.read().decode()
+    """Re-use the sealed manifest for canary and backlog revalidation."""
+    if name != "phases.json":
+        raise SystemExit("only the approved phases.json may be read")
+    if not isinstance(APPROVED_MANIFEST_BYTES, bytes):
+        raise SystemExit("approved manifest bytes must be supplied by the pinned launcher")
+    if hashlib.sha256(APPROVED_MANIFEST_BYTES).hexdigest() != APPROVED_MANIFEST_CHECKSUM:
+        raise SystemExit("manifest checksum does not match APPROVED_MANIFEST_CHECKSUM")
+    return APPROVED_MANIFEST_BYTES.decode("utf-8")
 
 SAFE_TOKEN = re.compile(r"^[A-Za-z0-9_]+$")
 CARD = re.compile(r"^[AKQJT98765432][cdhs]$")
 RAKE_CONTRACT = re.compile(r"^(?:0|1|0\.\d*[1-9]) (?:0|[1-9][0-9]*)$")
+UUID_V4 = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+)
 TRAINING_SOLVER_CONTRACTS = {
     "hu_cash": frozenset((40, 100, 200)),
     "mtt_3max_chipev": frozenset((20,)),
@@ -452,6 +468,176 @@ def training_game_contracts_checksum(contracts):
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+
+BOUNDED_CANARY_CONTRACT_SCHEMA = "training-solver-bounded-canary-contracts.v1"
+BOUNDED_CANARY_CONTRACT_FIELDS = (
+    "machine_id", "partition_count", "partition_index", "phase_id",
+    "parent_artifact_id", "parent_scenario_hash", "parent_node",
+    "child_artifact_id", "child_scenario_hash", "child_node",
+)
+BOUNDED_CANARY_PARTITIONS = {
+    "M1": (2, 0),
+    "M2": (2, 1),
+}
+
+
+def canonical_bounded_canary_contracts(contracts):
+    """Canonicalize only the fields the bounded runner is allowed to consume."""
+    if not isinstance(contracts, list) or not 1 <= len(contracts) <= 2:
+        raise ValueError("bounded canary contracts must contain one or two machine targets")
+    canonical = []
+    for contract in contracts:
+        if (not isinstance(contract, dict)
+                or set(contract) != set(BOUNDED_CANARY_CONTRACT_FIELDS)):
+            raise ValueError("bounded canary target must contain only its sealed fields")
+        canonical.append({field: contract[field] for field in BOUNDED_CANARY_CONTRACT_FIELDS})
+    return sorted(canonical, key=lambda contract: str(contract["machine_id"]))
+
+
+def bounded_canary_contracts_checksum(contracts):
+    payload = json.dumps(
+        canonical_bounded_canary_contracts(contracts),
+        sort_keys=True, separators=(",", ":"), allow_nan=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _canonical_uuid_v4(value, label):
+    if not isinstance(value, str) or not UUID_V4.fullmatch(value):
+        raise SystemExit("bounded canary %s must be one lowercase UUIDv4" % label)
+    try:
+        parsed = uuid.UUID(value)
+    except ValueError:
+        raise SystemExit("bounded canary %s must be one lowercase UUIDv4" % label)
+    if parsed.version != 4 or str(parsed) != value:
+        raise SystemExit("bounded canary %s must be one lowercase UUIDv4" % label)
+    return value
+
+
+def validate_bounded_canary_contracts(manifest):
+    """Validate the checksum-sealed one-parent/one-child target per machine."""
+    try:
+        contracts = canonical_bounded_canary_contracts(
+            manifest.get("bounded_canary_contracts")
+        )
+    except ValueError as error:
+        raise SystemExit(str(error))
+    declared_checksum = str(
+        manifest.get("bounded_canary_contracts_sha256") or ""
+    ).lower()
+    if (manifest.get("bounded_canary_contracts_schema")
+            != BOUNDED_CANARY_CONTRACT_SCHEMA
+            or not re.fullmatch(r"[0-9a-f]{64}", declared_checksum)
+            or declared_checksum == "0" * 64
+            or declared_checksum != bounded_canary_contracts_checksum(contracts)):
+        raise SystemExit(
+            "manifest must checksum-seal its machine-bound bounded canary contracts"
+        )
+
+    phases_by_id = {str(phase["id"]): phase for phase in manifest["phases"]}
+    seen_machines = set()
+    seen_artifact_ids = set()
+    seen_scenarios = set()
+    for contract in contracts:
+        machine_id = contract["machine_id"]
+        if machine_id not in ("M1", "M2") or machine_id in seen_machines:
+            raise SystemExit(
+                "bounded canary contracts require unique canonical machine identities"
+            )
+        seen_machines.add(machine_id)
+        partition_count = contract["partition_count"]
+        partition_index = contract["partition_index"]
+        if (not isinstance(partition_count, int) or isinstance(partition_count, bool)
+                or not isinstance(partition_index, int) or isinstance(partition_index, bool)
+                or (partition_count, partition_index)
+                != BOUNDED_CANARY_PARTITIONS[machine_id]):
+            raise SystemExit(
+                "bounded canary partition must bind M1 to 2/0 and M2 to 2/1"
+            )
+        phase = phases_by_id.get(str(contract["phase_id"]))
+        if phase is None:
+            raise SystemExit("bounded canary target references an unknown phase")
+        if "turn" not in phase["streets"]:
+            raise SystemExit("bounded canary phase must seal both Flop and Turn targets")
+
+        parent_id = _canonical_uuid_v4(
+            contract["parent_artifact_id"], "parent_artifact_id"
+        )
+        child_id = _canonical_uuid_v4(
+            contract["child_artifact_id"], "child_artifact_id"
+        )
+        if parent_id == child_id or parent_id in seen_artifact_ids or child_id in seen_artifact_ids:
+            raise SystemExit("bounded canary artifact UUIDs must be globally distinct")
+        seen_artifact_ids.update((parent_id, child_id))
+
+        if (not isinstance(contract["parent_scenario_hash"], str)
+                or not isinstance(contract["parent_node"], str)
+                or not isinstance(contract["child_scenario_hash"], str)
+                or not isinstance(contract["child_node"], str)):
+            raise SystemExit("bounded canary scenarios and nodes must be canonical strings")
+        matching_parent_targets = []
+        for target in phase["harvest"]:
+            prefix = "%s_%s_%dbb_" % (
+                phase["game_type"], target["position"], phase["stack"]
+            )
+            scenario_hash = contract["parent_scenario_hash"]
+            if (scenario_hash.startswith(prefix)
+                    and contract["parent_node"] == target["node"]):
+                matching_parent_targets.append((target, scenario_hash[len(prefix):]))
+        if len(matching_parent_targets) != 1:
+            raise SystemExit(
+                "bounded canary parent must match exactly one sealed phase harvest target"
+            )
+        target, parent_board = matching_parent_targets[0]
+        try:
+            validate_board(parent_board, 3)
+        except ValueError as error:
+            raise SystemExit("bounded canary parent %s" % error)
+
+        child_prefix = "turn_%s_%s_%dbb_" % (
+            phase["game_type"], target["position"], phase["stack"]
+        )
+        child_scenario = contract["child_scenario_hash"]
+        if not isinstance(child_scenario, str) or not child_scenario.startswith(child_prefix):
+            raise SystemExit("bounded canary child must preserve parent family/seat/stack")
+        child_board = child_scenario[len(child_prefix):]
+        try:
+            validate_board(child_board, 4)
+        except ValueError as error:
+            raise SystemExit("bounded canary child %s" % error)
+        if child_board[:6] != parent_board:
+            raise SystemExit("bounded canary child must be an exact Turn child of its parent")
+        turn_card = child_board[6:]
+        expected_child_node = node_templates(
+            phase["pot_chips"], phase["eff_chips"], phase["streets"]
+        )[target["hero"]]["turn"] % turn_card
+        if contract["child_node"] != expected_child_node:
+            raise SystemExit(
+                "bounded canary child node does not match sealed phase tree geometry"
+            )
+        if contract["parent_scenario_hash"] in seen_scenarios or child_scenario in seen_scenarios:
+            raise SystemExit("bounded canary scenarios must be globally distinct")
+        seen_scenarios.update((contract["parent_scenario_hash"], child_scenario))
+    return contracts
+
+
+def bounded_canary_for_machine(
+        manifest, machine_id=MID, partition_count=NUM, partition_index=IDX):
+    contracts = validate_bounded_canary_contracts(manifest)
+    matches = [contract for contract in contracts
+               if contract["machine_id"] == machine_id]
+    if len(matches) != 1:
+        raise SystemExit(
+            "approved manifest has no unique bounded canary target for %s" % machine_id
+        )
+    contract = matches[0]
+    if (contract["partition_count"] != partition_count
+            or contract["partition_index"] != partition_index):
+        raise SystemExit(
+            "bounded canary CLI partition does not match its sealed machine partition"
+        )
+    return contract
+
 def validate_board(board, expected_cards):
     cards = [board[index:index + 2] for index in range(0, len(board), 2)]
     if (len(board) != expected_cards * 2 or len(cards) != expected_cards
@@ -459,14 +645,21 @@ def validate_board(board, expected_cards):
         raise ValueError("board must contain %d unique canonical cards" % expected_cards)
     return cards
 
-def validate_manifest(manifest_text):
+def validate_manifest(manifest_text, run_mode="backlog"):
     checksum = hashlib.sha256(manifest_text.encode()).hexdigest()
     if checksum != APPROVED_MANIFEST_CHECKSUM:
         raise SystemExit("manifest checksum does not match APPROVED_MANIFEST_CHECKSUM")
     manifest = json.loads(manifest_text)
     gate = manifest.get("release_gate", {})
-    if gate.get("solver_ready") is not True:
+    if run_mode not in ("backlog", "canary"):
+        raise SystemExit("solver run mode must be backlog or canary")
+    if run_mode == "backlog" and gate.get("solver_ready") is not True:
         raise SystemExit("manifest release gate is closed: %s" % gate.get("reason", "unspecified"))
+    if run_mode == "canary" and gate.get("bounded_canary_ready") is not True:
+        raise SystemExit(
+            "manifest bounded canary gate is closed: %s"
+            % gate.get("bounded_canary_reason", "unspecified")
+        )
     if int(manifest.get("version", 0)) < 4 or not manifest.get("phases"):
         raise SystemExit("manifest must be version 4+ with at least one approved phase")
     expected_chip_ev = canonical_contract_pairs(TRAINING_SOLVER_CONTRACTS)
@@ -663,6 +856,15 @@ def validate_manifest(manifest_text):
         raise SystemExit("solver self-test %s" % error)
     if float(self_test["ev_oop_min_bb"]) > float(self_test["ev_oop_max_bb"]):
         raise SystemExit("solver self-test EV bounds are reversed")
+    canary_fields_present = any(
+        field in manifest for field in (
+            "bounded_canary_contracts_schema",
+            "bounded_canary_contracts",
+            "bounded_canary_contracts_sha256",
+        )
+    )
+    if run_mode == "canary" or canary_fields_present:
+        validate_bounded_canary_contracts(manifest)
     return manifest, checksum
 
 def load_range(name, expected_checksum):
@@ -833,6 +1035,185 @@ def row_states(hashes, manifest_version, manifest_checksum):
 
 def row_state(sh, manifest_version, manifest_checksum):
     return row_states([sh], manifest_version, manifest_checksum)[sh]
+
+
+def _bounded_canary_targets(manifest, contract):
+    """Materialize the already-validated exact Flop parent and Turn child."""
+    phase = next(
+        phase for phase in manifest["phases"]
+        if str(phase["id"]) == str(contract["phase_id"])
+    )
+    parent_target = next(
+        target for target in phase["harvest"]
+        if target["node"] == contract["parent_node"]
+        and contract["parent_scenario_hash"].startswith(
+            "%s_%s_%dbb_" % (
+                phase["game_type"], target["position"], phase["stack"]
+            )
+        )
+    )
+    parent_prefix = "%s_%s_%dbb_" % (
+        phase["game_type"], parent_target["position"], phase["stack"]
+    )
+    child_prefix = "turn_" + parent_prefix
+    parent_board = contract["parent_scenario_hash"][len(parent_prefix):]
+    child_board = contract["child_scenario_hash"][len(child_prefix):]
+    return phase, [
+        {
+            "role": "parent",
+            "artifact_id": contract["parent_artifact_id"],
+            "scenario_hash": contract["parent_scenario_hash"],
+            "node": contract["parent_node"],
+            "hero": parent_target["hero"],
+            "position": parent_target["position"],
+            "board": parent_board,
+            "street": "flop",
+        },
+        {
+            "role": "child",
+            "artifact_id": contract["child_artifact_id"],
+            "scenario_hash": contract["child_scenario_hash"],
+            "node": contract["child_node"],
+            "hero": parent_target["hero"],
+            "position": parent_target["position"],
+            "board": child_board,
+            "street": "turn",
+        },
+    ]
+
+
+def _read_exact_bounded_canary_rows(
+        targets, manifest_version, manifest_checksum, machine_id,
+        partition_count, partition_index):
+    hashes = [target["scenario_hash"] for target in targets]
+    response = _worker_request(
+        "row_states", {"scenario_hashes": hashes},
+        manifest_version, manifest_checksum,
+    )
+    rows = response.get("rows")
+    if not isinstance(rows, list) or len(rows) != 2:
+        raise SystemExit(
+            "bounded canary requires exactly two pre-existing warehouse identities"
+        )
+    by_scenario = {}
+    for row in rows:
+        scenario_hash = row.get("scenario_hash") if isinstance(row, dict) else None
+        if scenario_hash not in hashes or scenario_hash in by_scenario:
+            raise SystemExit(
+                "bounded canary warehouse identities are missing, duplicated, or unexpected"
+            )
+        by_scenario[scenario_hash] = row
+    if set(by_scenario) != set(hashes):
+        raise SystemExit(
+            "bounded canary warehouse identities are missing, duplicated, or unexpected"
+        )
+    for target in targets:
+        row = by_scenario[target["scenario_hash"]]
+        if (str(row.get("id")) != target["artifact_id"]
+                or row.get("street") != target["street"]
+                or not row_relational_identity_matches(
+                    row, target["scenario_hash"]
+                )):
+            raise SystemExit(
+                "bounded canary warehouse UUID or relational identity does not match its sealed target"
+            )
+        if (row.get("admission_mode") != "bounded_canary"
+                or row.get("partition_count") != partition_count
+                or row.get("partition_index") != partition_index
+                or row.get("canary_target_role") != target["role"]
+                or row.get("authorized_node") != target["node"]
+                or row.get("authorized_hero_position") != target["position"]
+                or row.get("canary_authorized") is not True):
+            raise SystemExit(
+                "bounded canary server authority does not match its sealed machine, partition, node, or position"
+            )
+    return by_scenario
+
+
+def prepare_bounded_canary_execution(
+        manifest, manifest_checksum, machine_id=MID,
+        partition_count=NUM, partition_index=IDX):
+    """Resolve both sealed UUIDs through the gateway before a solver is spawned."""
+    contract = bounded_canary_for_machine(
+        manifest, machine_id, partition_count, partition_index
+    )
+    phase, targets = _bounded_canary_targets(manifest, contract)
+    rows = _read_exact_bounded_canary_rows(
+        targets, manifest.get("version", "unversioned"), manifest_checksum,
+        machine_id, partition_count, partition_index,
+    )
+    pending_targets = []
+    certified_targets = []
+    for target in targets:
+        row = rows[target["scenario_hash"]]
+        if row.get("admitted") is not True:
+            pending_targets.append(target)
+            continue
+        if (row.get("node") != target["node"]
+                or row.get("hero_position") != target["position"]
+                or row.get("machine_id") != machine_id
+                or not certified_row(
+                    row, manifest.get("version", "unversioned"),
+                    manifest_checksum, target["scenario_hash"],
+                )):
+            raise SystemExit(
+                "bounded canary admitted target is foreign, stale, or ambiguously certified"
+            )
+        certified_targets.append(target)
+    return {
+        "manifest_checksum": manifest_checksum,
+        "manifest_version": manifest.get("version", "unversioned"),
+        "machine_id": machine_id,
+        "partition_count": partition_count,
+        "partition_index": partition_index,
+        "contract": contract,
+        "phase": phase,
+        "targets": targets,
+        "pending_targets": pending_targets,
+        "certified_targets": certified_targets,
+    }
+
+
+def verify_bounded_canary_admission(plan):
+    rows = _read_exact_bounded_canary_rows(
+        plan["targets"], plan["manifest_version"], plan["manifest_checksum"],
+        plan["machine_id"], plan["partition_count"], plan["partition_index"],
+    )
+    for target in plan["targets"]:
+        row = rows[target["scenario_hash"]]
+        if (row.get("node") != target["node"]
+                or row.get("hero_position") != target["position"]
+                or row.get("machine_id") != plan["machine_id"]
+                or not certified_row(
+                    row, plan["manifest_version"], plan["manifest_checksum"],
+                    target["scenario_hash"],
+                )):
+            raise SystemExit(
+                "bounded canary artifact was not admitted under the exact active machine tuple"
+            )
+    return rows
+
+
+def complete_bounded_canary_without_solver(plan):
+    """Verify an exactly completed retry and emit its terminal heartbeat."""
+    if (not isinstance(plan, dict)
+            or plan.get("machine_id") != MID
+            or plan.get("partition_count") != NUM
+            or plan.get("partition_index") != IDX
+            or len(plan.get("targets") or []) != 2
+            or plan.get("pending_targets") != []
+            or plan.get("certified_targets") != plan.get("targets")):
+        raise SystemExit("bounded canary no-op completion requires two certified targets")
+    verify_bounded_canary_admission(plan)
+    _worker_request("heartbeat", {
+        "phase": "bounded-canary-complete",
+        "board": plan["targets"][0]["board"],
+        "spots_done": 1,
+        "rows_written": 0,
+        "bad": 0,
+        "note": "sealed parent/child canary already certified; zero-write exit",
+    }, plan["manifest_version"], plan["manifest_checksum"])
+    print("[%s] bounded canary already complete; zero-write exit" % plan["machine_id"])
 
 def canonical_jsonb_text_v1(value):
     """Serialize the worker payload exactly as PostgreSQL jsonb canonicalization.
@@ -1007,7 +1388,180 @@ def self_test(contract, source_combo_order_sha256,
     if not ok:
         raise SystemExit("SELF-TEST FAILED - Pio output != verified value; aborting so no bad data is written.")
 
+
+PREPARED_BOUNDED_CANARY = None
+
+
+def run_bounded_canary(plan):
+    """Solve, validate, admit, and verify one sealed parent/child pair, then stop."""
+    if (not isinstance(plan, dict)
+            or plan.get("machine_id") != MID
+            or plan.get("partition_count") != NUM
+            or plan.get("partition_index") != IDX
+            or not isinstance(plan.get("targets"), list)
+            or len(plan["targets"]) != 2
+            or not isinstance(plan.get("pending_targets"), list)
+            or not 1 <= len(plan["pending_targets"]) <= 2):
+        raise SystemExit(
+            "bounded canary requires a launcher-prepared machine-bound execution plan"
+        )
+    target_identities = {
+        (target["artifact_id"], target["scenario_hash"])
+        for target in plan["targets"]
+    }
+    pending_identities = [
+        (target.get("artifact_id"), target.get("scenario_hash"))
+        for target in plan["pending_targets"]
+        if isinstance(target, dict)
+    ]
+    targets_by_identity = {
+        (target["artifact_id"], target["scenario_hash"]): target
+        for target in plan["targets"]
+    }
+    if (len(target_identities) != 2
+            or len(pending_identities) != len(plan["pending_targets"])
+            or len(set(pending_identities)) != len(pending_identities)
+            or not set(pending_identities).issubset(target_identities)
+            or any(
+                target != targets_by_identity.get(identity)
+                for target, identity in zip(
+                    plan["pending_targets"], pending_identities
+                )
+            )):
+        raise SystemExit("bounded canary execution plan contains unexpected target identities")
+
+    # Re-read the protected bytes after the Pio handshake and prove the exact
+    # target prepared before process creation is still the one being executed.
+    manifest_text = fetch_text("phases.json")
+    manifest, manifest_checksum = validate_manifest(manifest_text, "canary")
+    current_contract = bounded_canary_for_machine(manifest, MID, NUM, IDX)
+    current_phase, current_targets = _bounded_canary_targets(
+        manifest, current_contract
+    )
+    if (manifest_checksum != plan["manifest_checksum"]
+            or str(manifest.get("version", "unversioned"))
+            != str(plan["manifest_version"])
+            or current_contract != plan["contract"]
+            or current_phase != plan["phase"]
+            or current_targets != plan["targets"]):
+        raise SystemExit("bounded canary manifest or target changed after preflight")
+
+    _worker_request("heartbeat", {
+        "phase": "bounded-canary-startup", "board": "", "spots_done": 0,
+        "rows_written": 0, "bad": 0,
+        "note": "sealed parent/child canary starting",
+    }, plan["manifest_version"], plan["manifest_checksum"])
+    self_test(
+        manifest["self_test"],
+        manifest["source_combo_order_sha256"],
+        manifest["training_game_contracts_sha256"],
+    )
+
+    phase = plan["phase"]
+    parent = plan["targets"][0]
+    oop_weights = load_range(phase["oop_range"], phase["oop_range_checksum"])
+    ip_weights = load_range(phase["ip_range"], phase["ip_range_checksum"])
+    solve(
+        parent["board"], oop_weights, ip_weights,
+        phase["pot_chips"], phase["eff_chips"], phase["rake"],
+        phase["accuracy_fraction"],
+    )
+    ev_oop, ev_ip, exploitability_chips = read_results()
+
+    # A retry after a first-artifact admission only prepares and ingests the
+    # still-missing identity. Preflight proved any skipped identity was already
+    # certified under this exact machine and manifest tuple.
+    prepared_artifacts = []
+    for target in plan["pending_targets"]:
+        _, strategy_matrix = h.harvest_node(
+            pio, target["node"], target["hero"], target["board"],
+            target["position"], phase["oop_player"], phase["ip_player"],
+            ev_oop, ev_ip, exploitability_chips,
+            phase["pot_chips"], phase["eff_chips"], phase["rake"],
+            target["street"], phase["game_type"], phase["stack"],
+            phase["accuracy_fraction"], manifest["source_combo_order_sha256"],
+            phase["oop_range_checksum"], phase["ip_range_checksum"],
+            manifest["training_game_contracts_sha256"],
+        )
+        validation = h.validate_row(
+            strategy_matrix, target["scenario_hash"],
+            phase["game_type"], phase["stack"],
+        )
+        if (validation["bad_sum_hands"] != 0
+                or validation["live_hands"] == 0
+                or not validation["ev_ok"]):
+            raise SystemExit(
+                "bounded canary strict V2 validation failed before any ingest"
+            )
+        prepared_artifacts.append((target, strategy_matrix, validation))
+
+    os.makedirs("backup", exist_ok=True)
+    admitted = []
+    for target, strategy_matrix, validation in prepared_artifacts:
+        backup_path = os.path.join(
+            "backup", "bounded-canary-%s-%s.json" % (MID, target["scenario_hash"])
+        )
+        backup_payload = {
+            "scenario_hash": target["scenario_hash"],
+            "strategy_matrix_v2": strategy_matrix,
+            "_local_validation": validation,
+            "_bounded_canary": {
+                "machine_id": MID,
+                "partition_count": NUM,
+                "partition_index": IDX,
+                "role": target["role"],
+                "artifact_id": target["artifact_id"],
+                "manifest_checksum": plan["manifest_checksum"],
+            },
+            "_admission": {"status": "pending", "scope": "local_validation_only"},
+        }
+        write_backup(backup_path, backup_payload)
+        try:
+            receipt = patch_v2(
+                target["artifact_id"], target["scenario_hash"],
+                phase["game_type"], phase["stack"], target["street"],
+                strategy_matrix, plan["manifest_version"], plan["manifest_checksum"],
+            )
+        except Exception as error:
+            backup_payload["_admission"] = {
+                "status": "failed",
+                "scope": "gateway_rejected_or_unavailable",
+                "error_class": type(error).__name__,
+            }
+            write_backup(backup_path, backup_payload)
+            raise SystemExit(
+                "bounded canary gateway failed after %d of %d pending admissions: %s"
+                % (len(admitted), len(plan["pending_targets"]), type(error).__name__)
+            )
+        backup_payload["_admission"] = {
+            "status": "admitted",
+            "scope": "database_catalog_and_active_authority",
+            "receipt": receipt,
+        }
+        write_backup(backup_path, backup_payload)
+        admitted.append(receipt)
+
+    if len(admitted) != len(plan["pending_targets"]):
+        raise SystemExit("bounded canary did not ingest every pending artifact")
+    verify_bounded_canary_admission(plan)
+    _worker_request("heartbeat", {
+        "phase": "bounded-canary-complete", "board": parent["board"],
+        "spots_done": 1, "rows_written": len(admitted), "bad": 0,
+        "note": "sealed parent/child canary admitted or resumed and re-verified; exiting",
+    }, plan["manifest_version"], plan["manifest_checksum"])
+    print(
+        "[%s] bounded canary complete: parent=%s child=%s; exiting"
+        % (MID, plan["targets"][0]["artifact_id"], plan["targets"][1]["artifact_id"])
+    )
+    return admitted
+
 def main():
+    if RUN_MODE == "canary":
+        if PREPARED_BOUNDED_CANARY is None:
+            raise SystemExit(
+                "bounded canary must be preflight-resolved by the pinned launcher before Pio starts"
+            )
+        return run_bounded_canary(PREPARED_BOUNDED_CANARY)
     manifest_text = fetch_text("phases.json")
     manifest, manifest_checksum = validate_manifest(manifest_text)
     self_test_contract = manifest.get("self_test")
