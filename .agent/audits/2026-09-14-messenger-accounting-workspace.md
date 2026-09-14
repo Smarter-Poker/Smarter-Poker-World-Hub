@@ -34,3 +34,5 @@ Search visibility follow-up: both search endpoints previously read social_messag
 ### Search response lifecycle follow-up
 
 A conversation switch could retain previous search results, and failed sidebar searches were presented as zero matches. Both search views now use one scoped request hook. The current actor, workspace, conversation and query identify each result; a scope change hides old results in the first render and cancels late completion. Failed or malformed responses show an unavailable state. Conversation selection resets its search UI; sidebar hits also require a currently visible conversation. Five asynchronous lifecycle regression checks pass, bringing focused coverage to 52. This follow-up still requires merge, production revision and browser verification.
+
+Rendered production inspection also found invoice conversation titles inheriting the outer dark page text color on a light Messenger panel. The conversation header and accounting introduction now explicitly use the Messenger theme text color; both light and dark component variants are covered. Focused coverage is 53 passing checks.

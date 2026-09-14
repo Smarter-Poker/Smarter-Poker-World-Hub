@@ -117,3 +117,11 @@ for (const [route, limit] of [['global-search',30],['search-messages',50]]) {
   refusal=Object.assign(new Error('Search Permission Denied'),{status:403});await module.exports.default(req,res);assert.equal(status,403);assert.equal(payload.success,false);assert.equal(payload.results,undefined);
  });
 }
+
+
+test('accounting introduction uses its workspace text color against the page theme',()=>{
+ for(const color of ['#050505','#E4E6EB']){
+  const html=renderToStaticMarkup(React.createElement(AccountingIntroduction,{title:'Union Statements',theme:{...theme,text:color}}));
+  assert.match(html,new RegExp('color:'+color));assert.match(html,/Union Statements/);
+ }
+});
