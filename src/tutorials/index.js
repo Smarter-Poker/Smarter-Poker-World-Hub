@@ -31,6 +31,7 @@ import { NEWS_TUTORIAL } from './news';
 import { TRIVIA_TUTORIAL } from './trivia';
 import { VIDEO_LIBRARY_TUTORIAL } from './video-library';
 import { POKER_TOOLS_TUTORIAL } from './poker-tools';
+import { TOKE_TRACKER_TUTORIAL } from './toke-tracker';
 
 // Longest prefix wins. Keep re-exported aliases (preflop-charts -> memory-games)
 // as their own rows so the URL the player sees maps to a tour.
@@ -62,6 +63,10 @@ const REGISTRY = [
   { prefix: '/hub/trivia', tutorial: TRIVIA_TUTORIAL },
   { prefix: '/hub/video-library', tutorial: VIDEO_LIBRARY_TUTORIAL },
   { prefix: '/hub/poker-tools', tutorial: POKER_TOOLS_TUTORIAL, exact: true },
+  // Toke Tracker is a PREFIX row (mobile phase 11): the landing page and its
+  // four rooms (/shift, /analytics, /vault, /venues) are one product, and
+  // every step names alternative targets so the tour reads from any of them.
+  { prefix: '/hub/toke-tracker', tutorial: TOKE_TRACKER_TUTORIAL },
 ];
 
 export const TUTORIAL_PROMPT_MS = 3000;

@@ -1,50 +1,67 @@
 /**
- * TOKE TRACKER — Venue Intelligence Page
- * Venue performance analytics + shift calendar
+ * TOKE TRACKER - Venue Intel Page
+ *
+ * Mobile phase 11: HubPageShell + the phase 0a foundation. The year calendar
+ * is one month per row on a phone with 44px day buttons (it was three months
+ * across, which made every day a 15px target), and its two modals are bottom
+ * sheets the back gesture closes.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import HubPageShell from '../../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../../src/components/ui/PullToRefresh';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import PageTransition from '../../../src/components/transitions/PageTransition';
+import { useHaptics } from '../../../src/hooks/useHaptics';
+import { useLoadFailsafe, useInitialLoadRef } from '../../../src/hooks/useLoadFailsafe';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../../src/hooks/useOnlineStatus';
+import { useTokePrefs } from '../../../src/hooks/useTokePrefs';
 import VenueIntelligence from '../../../src/components/bankroll/VenueIntelligence';
 import TokeCalendar from '../../../src/components/bankroll/TokeCalendar';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { supabase } from '../../../src/lib/supabase';
+import toast from '../../../src/stores/toastStore';
+
+const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../../src/components/ui/HamburgerMenu'), { ssr: false });
 
 export default function VenueIntelPage() {
-    const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
-    const [mounted, setMounted] = useState(false);
     const [completedGigs, setCompletedGigs] = useState([]);
+    const [gigsLoading, setGigsLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [tokePrefs, setTokePrefs] = useState({});
+    const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
+    const haptic = useHaptics();
+    const online = useOnlineStatus();
+    const { tokePrefs, menuHandlers } = useTokePrefs(userId);
+    const isInitialLoad = useInitialLoadRef();
 
-    // SSR-safe: hydrate prefs + mount flag on client only
-    useEffect(() => {
-        setMounted(true);
-        try {
-            const stored = localStorage.getItem('toke-tracker-prefs');
-            if (stored) setTokePrefs(JSON.parse(stored));
-        } catch (e) { console.warn('[App] Handled exception:', e); }
-    }, []);
+    useLoadFailsafe(gigsLoading, setGigsLoading);
 
-    // Load completed gigs for VenueIntelligence
+    const requireOnline = useCallback(() => {
+        if (online) return true;
+        toast.error(OFFLINE_TOAST);
+        return false;
+    }, [online]);
+
     const loadGigs = useCallback(async () => {
-        if (!userId) return;
+        if (!userId) { setGigsLoading(false); return; }
+        if (isInitialLoad.current) setGigsLoading(true);
         try {
             const gigs = await fetchGigs(userId);
-            setCompletedGigs(gigs.filter(g => g.status === 'completed'));
+            setCompletedGigs(gigs.filter((g) => g.status === 'completed'));
         } catch (err) {
             console.warn('Error loading gigs:', err);
+        } finally {
+            isInitialLoad.current = false;
+            setGigsLoading(false);
         }
-    }, [userId]);
+    }, [userId, isInitialLoad]);
 
     useEffect(() => { loadGigs(); }, [loadGigs]);
 
@@ -57,7 +74,7 @@ export default function VenueIntelPage() {
         };
     }, [loadGigs]);
 
-    // Debounced refresh for realtime — prevents flooding during multi-row ops
+    // Debounced refresh for realtime - prevents flooding during multi-row ops
     const rtTimerRef = useRef(null);
     const debouncedLoadGigs = useCallback(() => {
         if (rtTimerRef.current) clearTimeout(rtTimerRef.current);
@@ -65,9 +82,8 @@ export default function VenueIntelPage() {
     }, [loadGigs]);
     useEffect(() => () => { if (rtTimerRef.current) clearTimeout(rtTimerRef.current); }, []);
 
-    // Supabase Real-time Sync for Cross-Device Support
     useEffect(() => {
-        if (!userId) return;
+        if (!userId) return undefined;
         const channel = supabase
             .channel(`toke-venues-sync-${userId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, debouncedLoadGigs)
@@ -75,138 +91,60 @@ export default function VenueIntelPage() {
         return () => supabase.removeChannel(channel);
     }, [userId, debouncedLoadGigs]);
 
-    const updatePref = useCallback(async (key, value) => {
-        let newPrefs;
-        setTokePrefs(prev => {
-            newPrefs = { ...prev, [key]: value };
-            return newPrefs;
-        });
-        await new Promise(r => setTimeout(r, 0));
-        if (!newPrefs) return;
-        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
-        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
-        if (!userId) return;
-        try {
-            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
-            const settings = profile?.settings || {};
-            settings.tokeTracker = newPrefs;
-            const { error: err_profiles_lbitw } = await supabase.from('profiles').update({ settings }).eq('id', userId);
-            if (err_profiles_lbitw) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_lbitw.message);
-        } catch (err) { console.warn('[TokeTracker] Pref save error:', err); }
-    }, [userId]);
+    const refreshVenues = useCallback(async () => {
+        if (!requireOnline()) return;
+        haptic('light');
+        await loadGigs();
+        window.dispatchEvent(new CustomEvent('toke-calendar-updated'));
+    }, [requireOnline, haptic, loadGigs]);
 
-    useEffect(() => {
-        const handler = (e) => { if (e.detail) setTokePrefs(e.detail); };
-        window.addEventListener('toke-settings-sync', handler);
-        return () => window.removeEventListener('toke-settings-sync', handler);
-    }, []);
-
-    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
-        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
-        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
-        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
-    });
-
-    if (!mounted) return null;
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, menuHandlers);
 
     return (
-        <PageTransition>
+        <>
             <SEOHead
                 title="Venue Intelligence - Performance Analytics"
                 description="Analyze your performance across different venues with earning comparisons and shift calendar."
                 canonical="/hub/toke-tracker/venues"
             />
-            <div style={s.page}>
-                <div style={s.bgGrid} />
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+            <HubPageShell
+                className="toke"
+                /* The year calendar needs the width: two month cards at 44px
+                   a day is 700px of grid (mobile phase 11). */
+                maxWidth={960}
+                background="#18191a"
+                header={<UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />}
+            >
+                <div className="toke-bg-grid" />
+                <PullToRefresh onRefresh={refreshVenues} disabled={menuOpen || calendarSheetOpen}>
+                    <div className="toke-page" data-tutorial="venues">
+                        <Link href="/hub/toke-tracker" className="toke-back-link">&larr; Toke Tracker</Link>
+                        <h1 className="toke-page-title" data-tutorial="title">Venue Intel</h1>
+                        <p className="toke-page-subtitle">Performance By Venue And Shift Calendar</p>
 
-                <HamburgerMenu
-                    isOpen={menuOpen}
-                    onClose={() => setMenuOpen(false)}
-                    direction="left"
-                    theme="dark"
-                    user={user}
-                    showProfile={true}
-                    menuItems={menuConfig.menuItems}
-                    bottomLinks={menuConfig.bottomLinks}
-                />
-
-                <div style={s.content}>
-                    <button onClick={() => router.push('/hub/toke-tracker')} style={s.backBtn}>
-                        ← Toke Tracker
-                    </button>
-
-                    <h1 style={s.title}>Venue Intel</h1>
-                    <p style={s.subtitle}>Performance By Venue + Shift Calendar</p>
-
-                    <HubErrorBoundary name="Venue Intelligence">
-                        <VenueIntelligence gigs={completedGigs} />
-                    </HubErrorBoundary>
-
-                    <div style={{ marginTop: 24 }}>
-                        <HubErrorBoundary name="Shift Calendar">
-                            <TokeCalendar userId={userId} />
+                        <HubErrorBoundary name="Venue Intelligence">
+                            <VenueIntelligence gigs={completedGigs} />
                         </HubErrorBoundary>
+
+                        <div style={{ marginTop: 24 }} data-tutorial="calendar">
+                            <HubErrorBoundary name="Shift Calendar">
+                                <TokeCalendar userId={userId} onSheetOpenChange={setCalendarSheetOpen} />
+                            </HubErrorBoundary>
+                        </div>
                     </div>
-                </div>
-            </div>
-    </PageTransition>
+                </PullToRefresh>
+            </HubPageShell>
+
+            <HamburgerMenu
+                isOpen={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                direction="left"
+                theme="dark"
+                user={user}
+                showProfile
+                menuItems={menuConfig.menuItems}
+                bottomLinks={menuConfig.bottomLinks}
+            />
+        </>
     );
 }
-
-const s = {
-    page: {
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-        background: '#18191a',
-        position: 'relative',
-    },
-    bgGrid: {
-        position: 'fixed',
-        inset: 0,
-        backgroundImage: `
-            linear-gradient(rgba(0,212,255,0.015) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,212,255,0.015) 1px, transparent 1px)
-        `,
-        backgroundSize: '24px 24px',
-        pointerEvents: 'none',
-        zIndex: 0,
-    },
-    content: {
-        position: 'relative',
-        zIndex: 1,
-        maxWidth: 640,
-        margin: '0 auto',
-        padding: '12px 16px 40px',
-    },
-    backBtn: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '8px 16px',
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 8,
-        color: '#b0b3b8',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: 'pointer',
-        marginBottom: 16,
-        transition: 'background 0.2s',
-    },
-    title: {
-        fontFamily: "var(--font-orbitron), 'Inter', sans-serif",
-        fontSize: 24,
-        fontWeight: 700,
-        letterSpacing: '0.08em',
-        color: '#e4e6eb',
-        margin: '0 0 4px',
-    },
-    subtitle: {
-        fontFamily: "'Rajdhani', 'Inter', sans-serif",
-        fontSize: 14,
-        color: '#b0b3b8',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        margin: '0 0 20px',
-    },
-};

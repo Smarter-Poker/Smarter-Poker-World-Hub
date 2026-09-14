@@ -24,9 +24,14 @@ const Tooltip = dynamic(() => import('recharts').then(m => m.Tooltip), { ssr: fa
 const ResponsiveContainer = dynamic(() => import('recharts').then(m => m.ResponsiveContainer), { ssr: false });
 const ReferenceLine = dynamic(() => import('recharts').then(m => m.ReferenceLine), { ssr: false });
 
-// ── Chart tab definitions ──────────────────────────────────────
-const CHART_TABS = [
-    { id: 'trend', label: 'Trend' },
+// ── Charts, all four of them, stacked ──────────────────────────
+//
+// ALWAYS-DISPLAYED (mobile phase 11). These four used to sit behind a
+// four-button tab strip that unmounted three charts at a time, which is
+// "slide to see" with extra steps (docs/mobile-standard, rule 2). They now
+// render one under another, each under its own heading, in this order.
+const CHART_SECTIONS = [
+    { id: 'trend', label: 'Cumulative Trend' },
     { id: 'events', label: 'Per Event' },
     { id: 'monthly', label: 'Monthly' },
     { id: 'types', label: 'Down Types' },
@@ -76,8 +81,7 @@ function KpiTile({ icon, label, value, sub, color = '#f59e0b' }) {
 function TokeDashboard({ userId, refreshTrigger }) {
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeChart, setActiveChart] = useState('trend');
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
 
     const load = useCallback(async () => {
         if (!userId) return;
@@ -317,8 +321,8 @@ function TokeDashboard({ userId, refreshTrigger }) {
         );
     };
 
-    const renderChart = () => {
-        switch (activeChart) {
+    const renderChart = (id) => {
+        switch (id) {
             case 'trend': return renderTrend();
             case 'events': return renderEvents();
             case 'monthly': return renderMonthly();
@@ -391,26 +395,15 @@ function TokeDashboard({ userId, refreshTrigger }) {
                                 />
                             </div>
 
-                            {/* ── Chart Tabs ── */}
-                            <div style={S.tabRow}>
-                                {CHART_TABS.map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveChart(tab.id)}
-                                        style={{
-                                            ...S.tab,
-                                            ...(activeChart === tab.id ? S.tabActive : {}),
-                                        }}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* ── Chart Area ── */}
-                            <div style={S.chartArea}>
-                                {renderChart()}
-                            </div>
+                            {/* ── Every Chart, Stacked (mobile phase 11) ── */}
+                            {CHART_SECTIONS.map(section => (
+                                <section key={section.id} style={S.chartSection}>
+                                    <h4 className="toke-chart-heading" style={S.chartHeading}>{section.label}</h4>
+                                    <div style={S.chartArea}>
+                                        {renderChart(section.id)}
+                                    </div>
+                                </section>
+                            ))}
 
                             {/* ── Export Buttons ── */}
                             {hasData && (
@@ -558,23 +551,14 @@ const S = {
     kpiLabel: { fontSize: 12, color: '#64748b', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 },
     kpiSub: { fontSize: 12, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 
-    tabRow: {
-        display: 'flex', gap: 6, flexWrap: 'wrap',
-        marginBottom: 12,
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        paddingBottom: 12,
+    chartSection: {
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        paddingTop: 4,
     },
-    tab: {
-        fontSize: 12, fontWeight: 600, padding: '5px 12px',
-        borderRadius: 20, cursor: 'pointer',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: '#94a3b8', transition: 'all 0.15s',
-    },
-    tabActive: {
-        background: 'rgba(245,158,11,0.12)',
-        border: '1px solid rgba(245,158,11,0.4)',
-        color: '#f59e0b',
+    chartHeading: {
+        fontSize: 13, fontWeight: 700, color: '#f59e0b',
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+        margin: '14px 0 6px',
     },
 
     chartArea: {

@@ -62,10 +62,22 @@ const PHASES = {
   // Diamond now uses Poker Arena's shared selector; its old standalone pages are retired.
   9: ['pages/hub/video-library.js', 'src/styles/worlds/video-library.css', 'src/components/video-library'],
   10: ['pages/hub/poker-tools.js'],
+  11: [
+    'pages/hub/toke-tracker',
+    'src/styles/worlds/toke-tracker.css',
+    // The Toke components live under components/bankroll and are already
+    // walked by phase 1; they are named here too so this phase fails on its
+    // own terms if one of them grows a rail.
+    'src/components/bankroll/TokeTracker.jsx',
+    'src/components/bankroll/TokeDashboard.jsx',
+    'src/components/bankroll/TokeCalendar.jsx',
+    'src/components/bankroll/DealerVault.jsx',
+    'src/components/bankroll/VenueIntelligence.jsx',
+  ],
 };
 
 // Phases already merged. Append the phase number in that phase's PR.
-const CONVERTED = [1, 2, 3, 4, 5, 6, 7, 9, 10];
+const CONVERTED = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11];
 
 function walk(target) {
   const full = path.join(ROOT, target);
@@ -93,7 +105,7 @@ for (const phase of CONVERTED) {
 }
 
 test('every active rollout phase is declared', () => {
-  assert.deepEqual(Object.keys(PHASES).map(Number), [1, 2, 3, 4, 5, 6, 7, 9, 10]);
+  assert.deepEqual(Object.keys(PHASES).map(Number), [1, 2, 3, 4, 5, 6, 7, 9, 10, 11]);
   for (const p of CONVERTED) assert.ok(PHASES[p], `phase ${p} exists`);
 });
 
