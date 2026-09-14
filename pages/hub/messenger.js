@@ -40,10 +40,11 @@ import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
-import { createMultiDeviceAuthListener, withRetry, getCircuit, isOnline } from '../../src/utils/authGuard';
+import { createMultiDeviceAuthListener, isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
+import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
 
 // Default light theme (overridden at component level)
@@ -98,7 +99,7 @@ function formatDateHeader(timestamp) {
 // 📱 smarter-poker-style SVG ICONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Phone, Video, Search, Info, Home, Building, Crown } from 'lucide-react';
+import { Phone, Video, Search, Info } from 'lucide-react';
 import { spKeyActivate } from '../../src/lib/keyboardActivate';
 
 const PhoneIcon = ({ size = 24, color = '#0084FF' }) => (
@@ -251,15 +252,10 @@ function updateFaviconBadge(count) {
 
 function MessengerPage() {
     // Zustand Global State (replaces UI-related useState)
-    const selectedConversation = useMessengerStore((s) => s.selectedConversation);
-    const setSelectedConversation = useMessengerStore((s) => s.setSelectedConversation);
     const showNewChat = useMessengerStore((s) => s.showNewChat);
     const setShowNewChat = useMessengerStore((s) => s.setShowNewChat);
     const showSearch = useMessengerStore((s) => s.showSearch);
     const setShowSearch = useMessengerStore((s) => s.setShowSearch);
-    const cachedConversations = useMessengerStore((s) => s.conversations);
-    const setCachedConversations = useMessengerStore((s) => s.setConversations);
-    const hasCachedConversations = useMessengerStore((s) => s.hasCachedConversations);
 
     // 🚌 EventBus session tracking + DATA_MUTATED listener
     useTrainingBus('messenger');
@@ -287,7 +283,13 @@ function MessengerPage() {
     }, []);
 
     // Identity switching
-    const { isClubMode, clubPage, hasClubPage, ownedPages, switchToPersonal, switchToClub, identityLoaded, refreshUnreadCounts } = useActiveIdentity();
+    const { ownedPages, switchToPersonal, switchToClub } = useActiveIdentity();
+    const [clubAccess, setClubAccess] = useState({ userId: null, clubs: [] });
+    const [workspaceSelection, setWorkspaceSelection] = useState({ clubId: null, folder: 'messages' });
+    const [inboxError, setInboxError] = useState(null);
+    const [pendingConversationId, setPendingConversationId] = useState(null);
+    const clubDrawerOpen = !!workspaceSelection.clubId;
+
 
     const getClubMetadata = () => {
         if (isClubMode && clubPage) {
@@ -318,8 +320,23 @@ function MessengerPage() {
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
-    const [loading, setLoading] = useState(!hasCachedConversations());
-    const [conversations, setConversations] = useState(cachedConversations);
+    // The old global cache could paint another account or club before auth.
+    const [loading, setLoading] = useState(true);
+    const [conversations, setConversations] = useState([]);
+    const joinedClubs = clubAccess.userId === user?.id ? clubAccess.clubs : [];
+    const selectedClub = joinedClubs.find(c => c.id === workspaceSelection.clubId);
+    // Entering a club does not make an ordinary member its representative.
+    const clubPage = selectedClub?.canManage ? ownedPages.find(p => p.id === selectedClub.pageId) : null;
+    const isClubMode = !!clubPage;
+    const hasClubPage = !!clubPage;
+    const workspaceBase = `${user?.id || ''}:${workspaceSelection.clubId || 'social'}:${workspaceSelection.folder}`;
+    const workspaceEpochRef = useRef({ key: null, generation: 0 });
+    if (workspaceEpochRef.current.key !== workspaceBase) {
+        workspaceEpochRef.current = { key: workspaceBase, generation: workspaceEpochRef.current.generation + 1 };
+    }
+    const workspaceKey = `${workspaceBase}:${workspaceEpochRef.current.generation}`;
+    const workspaceRef = useRef(workspaceKey);
+    workspaceRef.current = workspaceKey;
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
@@ -348,11 +365,6 @@ function MessengerPage() {
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
 
-    // CLUB ARENA widget: the club inboxes live inside this messenger rather than
-    // in a second app. Collapsed by default for someone who is here for personal
-    // messages; opened automatically when the messenger is entered from Club
-    // Arena (?clubId=), which is the only time we know the user came for a club.
-    const [clubDrawerOpen, setClubDrawerOpen] = useState(false);
     const [pushPromptHandled, setPushPromptHandled] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('messenger_push_prompt_handled') === '1';
@@ -561,28 +573,25 @@ function MessengerPage() {
     // pollInbox() all call it on mount. Holds { key, promise } so overlapping
     // callers for the same (user, identity context) share one round-trip.
     const loadConvInFlightRef = useRef(null);
-
-    // Reload conversations and clear active chat when switching identity contexts (Personal <-> Club)
-    // MUST be placed AFTER loadConversationsRef declaration so the ref exists when the effect fires.
     useEffect(() => {
-        if (!user?.id) return;
+        setWorkspaceSelection({ clubId: null, folder: 'messages' });
+        setClubAccess({ userId: null, clubs: [] });
+        setPendingConversationId(null);
+    }, [user?.id]);
+
+
+    useEffect(() => {
+        activeConversationRef.current = null;
         setActiveConversation(null);
         setMessages([]);
-        // PERF 2026-08-24: do NOT blank the list here. This effect also fires on
-        // the ordinary null->id transition of user?.id at mount, and clearing
-        // threw away the localStorage-cached conversations written on the last
-        // visit - so the sidebar went empty and the user stared at a skeleton
-        // until the slowest in-flight request returned. loadConversations()
-        // below replaces the list wholesale when it resolves, and it is keyed on
-        // the identity context, so a real Personal <-> Club switch still swaps
-        // the contents; it just no longer flashes empty on a plain reload.
-        if (!Array.isArray(conversationsRef.current) || conversationsRef.current.length === 0) {
-            setConversations([]);
-        }
-        // loadConversationsRef.current is set later in the render body (line ~3694)
-        // but effects fire post-render, so by the time this callback executes the ref is populated.
-        loadConversationsRef.current?.(user.id);
-    }, [isClubMode, clubPage?.id, user?.id]);
+        messageCacheRef.current.clear();
+        setConversations([]);
+        setSearchQuery('');
+        setShowMessageSearch(false);
+        setShowUserInfo(false);
+        setInboxError(null);
+        if (user?.id) { setLoading(true); loadConversationsRef.current?.(user.id); }
+    }, [workspaceKey]);
     useEffect(() => { goOnlineUserRef.current = user; }, [user]);
     useEffect(() => {
         const goOnline = () => {
@@ -721,62 +730,55 @@ function MessengerPage() {
         openCompose();
     }, [user?.id, router.query]);
 
-    // ── Handle ?conversation=convId&draft=text deep-link (from Message Host button) ──
+    const resolveConversationRef = useRef(null);
+    resolveConversationRef.current = async (conversationId, draftText = '') => {
+        const accountId = user?.id;
+        const requestScope = workspaceRef.current;
+        try {
+            const token = getAccessToken();
+            const response = await authedFetch('/api/messenger/get-conversations', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ workspace: 'resolve', conversationId }),
+            });
+            const result = await response.json();
+            if (workspaceRef.current !== requestScope) return;
+            if (!response.ok || !result.success) throw new Error(result.error || 'Conversation Unavailable');
+            setClubAccess({ userId: accountId, clubs: result.clubs });
+            setWorkspaceSelection({ clubId: result.clubId, folder: result.folder });
+            setConversations(result.conversations);
+            setPendingConversationId(result.conversation.id);
+            if (draftText) setConversationDraft(draftText);
+        } catch (error) {
+            if (workspaceRef.current === requestScope) setToast({ type: 'error', message: error.message });
+        }
+    };
     const lastHandledConvLink = useRef(null);
     useEffect(() => {
         if (!user?.id) return;
-        const { conversation: convIdParam, recipientId, draft } = router.query;
-        const linkKey = convIdParam || recipientId;
-        // BUG-FIX: do NOT guard on conversations.length here.
-        // If we do, lastHandledConvLink.current gets set to linkKey on the first
-        // render (before conversations load), and the effect never re-runs for
-        // the same linkKey once conversations are available.
-        if (!linkKey || lastHandledConvLink.current === linkKey) return;
-        lastHandledConvLink.current = linkKey;
-
-        const draftText = draft ? decodeURIComponent(draft) : '';
-
-        if (convIdParam) {
-            // Find the conversation in our list and open it
-            const found = conversations.find(c => c.id === convIdParam);
-            if (found) {
-                setActiveConversation(found);
-                // BUG-FIX: set draft only for THIS conversation; cleared after mount
-                // via the useEffect below that watches activeConversation.id changes.
-                if (draftText) setConversationDraft(draftText);
-                setComposeFocus(true);
-                if (isMobile) setShowSidebar(false);
-            } else {
-                // Conversation not found. This covers two sub-cases:
-                //  (a) conversations.length > 0 but convId not in the list (genuine 404)
-                //  (b) conversations.length === 0 (still loading)
-                // In both cases we MUST reset the ref so the effect can retry
-                // once conversations arrive via Realtime subscription.
-                // BUG-FIX: previously kept the ref set when length===0, which blocked
-                // the retry — the early-return guard (line 2733) would fire first.
-                lastHandledConvLink.current = null;
-            }
-        } else if (recipientId) {
-            // Recipient-based — look up profile and start conversation
+        const { conversation, recipientId, draft } = router.query;
+        const key = `${user.id}:${conversation || recipientId || ''}`;
+        if ((!conversation && !recipientId) || lastHandledConvLink.current === key) return;
+        lastHandledConvLink.current = key;
+        if (conversation) resolveConversationRef.current(conversation, typeof draft === 'string' ? draft : '');
+        else if (recipientId) {
             (async () => {
-                try {
-                    const { data: targetProfile } = await supabase
-                        .from('profiles')
-                        .select('id, username, full_name, avatar_url')
-                        .eq('id', recipientId)
-                        .maybeSingle();
-                    if (targetProfile) {
-                        await handleStartConversation(targetProfile);
-                        if (draftText) setConversationDraft(draftText);
-                        setComposeFocus(true);
-                    }
-                } catch (e) {
-                    console.warn('[Messenger] recipientId deep-link error:', e?.message || e);
-                }
+                const { data } = await supabase.from('profiles').select('id,username,full_name,avatar_url').eq('id', recipientId).maybeSingle();
+                if (data) await handleStartConversation(data);
             })();
         }
-        window.history.replaceState(null, '', '/hub/messenger');
-    }, [user?.id, router.query, conversations]);
+    }, [user?.id, router.query]);
+    useEffect(() => {
+        if (!pendingConversationId) return;
+        const found = conversations.find(c => c.id === pendingConversationId);
+        if (!found) return;
+        handleSelectConversation(found);
+        setPendingConversationId(null);
+        // Remove only consumed parameters; retain the embedded host's context.
+        const url = new URL(window.location.href);
+        url.searchParams.delete('conversation');
+        url.searchParams.delete('draft');
+        window.history.replaceState(null, '', url.pathname + url.search);
+    }, [pendingConversationId, conversations, workspaceKey]);
 
     // BUG-FIX: Clear conversationDraft when the user switches to a different
     // conversation AFTER the initial deep-link draft has been consumed.
@@ -980,111 +982,12 @@ function MessengerPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-        // 📡 GLOBAL Background Poll: Refresh sidebar unread counts every 30s
-        // Replaces the unfiltered global-messenger postgres_changes channel that streamed ALL
-        // social_messages rows to every logged-in user - eliminating that Supabase Realtime MAU cost.
-        //
-        // 2026-08-20: THIS POLL WAS READING THE WRONG MESSENGER.
-        // It queried messenger_participants + messenger_messages, which belong
-        // to the in-game table messenger (LivePokerTable / useMessengerService).
-        // Every other path on this page reads the social_* family, so the
-        // conversation ids could never match the sidebar's and the .find() at
-        // the bottom always returned undefined. The poll was a no-op that cost
-        // two queries per user every 30 seconds, forever. The 2026-08-15 note
-        // below patched a 42703 on this same block without anyone noticing the
-        // table family itself was wrong.
-        //
-        // It now calls fn_get_user_conversations - the exact RPC behind
-        // /api/messenger/get-conversations - so the poll is one query instead
-        // of two AND can never disagree with the list it is updating. The
-        // context argument keeps it scoped to the identity currently selected
-        // in the Club Arena widget.
-        useEffect(() => {
-            if (!user?.id) return;
-            const pollInbox = async () => {
-                try {
-                    const { data: rows, error } = await supabase.rpc('fn_get_user_conversations', {
-                        p_user_id: user.id,
-                        p_context_entity_id: isClubMode && clubPage ? clubPage.id : null,
-                    });
-                    if (error) throw error;
-                    setConnectionStatus('connected');
-                    if (!rows?.length) return;
-                    const data = rows.map(r => ({
-                        conversation_id: r.conversation_id,
-                        unread_count: Number(r.unread_count) || 0,
-                    }));
-
-                    // A conversation that did not exist when the sidebar was
-                    // built could only ever be UPDATED below, never ADDED - the
-                    // map() walks `prev`, so an id that is not already in the
-                    // list stayed invisible until a full page reload. That is
-                    // exactly the shape of the weekly statement thread: the
-                    // union creates it, and a club owner sitting in the
-                    // messenger would never see it arrive.
-                    //
-                    // Rebuilding through loadConversations rather than
-                    // synthesising a row here keeps one definition of what a
-                    // sidebar row is, and costs a request only on the tick
-                    // where a genuinely new thread appeared. The global
-                    // postgres_changes subscription is deliberately NOT coming
-                    // back: it streamed every social_messages row to every
-                    // logged-in user, which is why it was removed.
-                    const knownIds = new Set(
-                        (conversationsRef.current || []).map(c => c && c.id).filter(Boolean)
-                    );
-                    const hasNewThread = knownIds.size > 0
-                        && data.some(d => d.conversation_id && !knownIds.has(d.conversation_id));
-
-                    if (hasNewThread) {
-                        try {
-                            await loadConversationsRef.current?.(user.id);
-                        } catch (e) {
-                            console.warn('[Messenger] New-thread refresh failed:', e?.message || e);
-                        }
-                    } else {
-                    setConversations(prev => {
-                        let anyChanged = false;
-                        const updated = prev.map(c => {
-                            const p = data.find(d => d.conversation_id === c.id);
-                            if (!p) return c;
-                            const newUnread = p.unread_count || 0;
-                            const oldUnread = c.unreadCount || 0;
-                            if (newUnread === oldUnread) return c;
-                            anyChanged = true;
-                            if (newUnread > oldUnread) {
-                                const currentActive = activeConversationRef.current;
-                                if (!currentActive || currentActive.id !== c.id) {
-                                    if (preferencesRef.current?.messageSounds !== false) playMessageSound();
-                                    if (typeof window !== 'undefined' && eventBus) {
-                                        eventBus.emit(EventType.MESSAGE_RECEIVED, { conversationId: c.id }, 'FullMessenger');
-                                    }
-                                }
-                            }
-                            return { ...c, unreadCount: newUnread };
-                        });
-                        if (!anyChanged) return prev;
-                        return updated.sort((a, b) => {
-                            const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-                            const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-                            return timeB - timeA;
-                        });
-                    });
-                    }
-                } catch (e) {
-                    setConnectionStatus('disconnected');
-                }
-                // Same tick refreshes the per-identity counts behind the Club
-                // Arena drawer badge, so it can no longer sit minutes behind
-                // the club rows it is summarising.
-                try { await refreshUnreadCounts?.(); } catch (_e) { /* non-fatal */ }
-            };
-            pollInbox();
-            const intervalId = setInterval(pollInbox, 30000);
-            return () => clearInterval(intervalId);
-            // identity is a dependency: switching to a club in the Club Arena
-            // widget changes which inbox this poll is counting.
-        }, [user?.id, isClubMode, clubPage?.id, refreshUnreadCounts]);
+    // Refresh the same authorized workspace used for initial loading.
+    useEffect(() => {
+        if (!user?.id) return;
+        const timer = setInterval(() => loadConversationsRef.current?.(user.id), 30000);
+        return () => clearInterval(timer);
+    }, [workspaceKey]);
 
     // Load this account's block list once, so the conversation menu can offer
     // Block or Unblock correctly rather than guessing.
@@ -1134,10 +1037,13 @@ function MessengerPage() {
                         'Content-Type': 'application/json',
                         ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
-                    body: JSON.stringify({ query: q }),
+                    body: JSON.stringify({ query: q, workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
                 });
                 const json = await resp.json();
-                if (!cancelled) setMessageHits(json?.success ? (json.results || []) : []);
+                if (!cancelled) {
+                    const visible = new Set(conversationsRef.current.map(c => c.id));
+                    setMessageHits(json?.success ? (json.results || []).filter(m => visible.has(m.conversation_id)) : []);
+                }
             } catch (e) {
                 console.warn('[Messenger] Message search failed:', e?.message || e);
                 if (!cancelled) setMessageHits([]);
@@ -1146,7 +1052,7 @@ function MessengerPage() {
             }
         }, 300);
         return () => { cancelled = true; clearTimeout(t); };
-    }, [searchQuery]);
+    }, [searchQuery, workspaceKey]);
 
     const handleToggleBlock = useCallback(async (targetUserId, shouldBlock) => {
         if (!targetUserId || !user?.id) return;
@@ -1637,7 +1543,7 @@ function MessengerPage() {
         // genuine context switch (Personal <-> Club) is never de-duplicated
         // against the previous context's request. The entry is cleared when the
         // request settles, so a LATER refresh always issues a fresh fetch.
-        const inFlightKey = `${userId}::${isClubMode && clubPage ? clubPage.id : 'personal'}`;
+        const inFlightKey = workspaceKey;
         const pending = loadConvInFlightRef.current;
         if (pending && pending.key === inFlightKey) return pending.promise;
 
@@ -1651,202 +1557,51 @@ function MessengerPage() {
     };
 
     const loadConversationsInner = async (userId) => {
-        //  HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
-        const circuit = getCircuit('messenger-conversations', { failureThreshold: 3, resetTimeout: 30000 });
-
-
-        // Check offline - return cached data if available
+        const requestKey = workspaceKey;
         if (!isOnline()) {
-            // Keep existing conversations if we have them
+            setInboxError('You Are Offline. Reconnect To Refresh This Inbox.');
+            setLoading(false);
             return;
         }
-
         try {
-            // PRIMARY: Use API with service_role + circuit breaker
-            const result = await circuit.execute(
-                async () => {
-                    const token = getAccessToken();
-                    const resp = await authedFetch('/api/messenger/get-conversations', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                        },
-                        body: JSON.stringify({ 
-                            userId,
-                            contextEntityId: isClubMode && clubPage ? clubPage.id : null
-                        }),
-                    });
-                    if (!resp.ok) throw new Error(`API returned ${resp.status}`);
-                    return await resp.json();
-                },
-                // Fallback when circuit is OPEN - use empty (don't crash)
-                async () => ({ success: true, conversations: conversations || [] })
-            );
-
-            if (result.success && Array.isArray(result.conversations)) {
-                setConversations(result.conversations);
-                setCachedConversations(result.conversations); // Persist to cache for instant load
-                return;
-            }
-        } catch (apiErr) {
-            console.warn('[Messenger] Conversation API fetch failed, falling back to Supabase direct query:', apiErr?.message || apiErr);
-        }
-
-        // FALLBACK 1: Try direct Supabase query with retry
-        try {
-            const { data, error } = await withRetry(
-                async () => {
-                    // The identity filter has to be applied here too. Without
-                    // it this fallback returned EVERY conversation the user
-                    // participates in - private personal DMs included -
-                    // rendered underneath the "MESSAGING AS: <CLUB>" header.
-                    // The API route's own fallback carries a long comment
-                    // about fixing exactly this; the client copy never got it.
-                    // IS NOT DISTINCT FROM semantics: null means the personal
-                    // inbox, and .eq() would never match a NULL column.
-                    const activeContextId = isClubMode && clubPage ? clubPage.id : null;
-                    let q = supabase
-                        .from('social_conversation_participants')
-                        .select(`
-                            conversation_id,
-                            last_read_at,
-                            social_conversations (
-                                id,
-                                last_message_at,
-                                last_message_preview,
-                                is_group,
-                                group_name,
-                                is_request,
-                                request_sender_id
-                            )
-                        `)
-                        .eq('user_id', userId);
-                    q = activeContextId
-                        ? q.eq('context_entity_id', activeContextId)
-                        : q.is('context_entity_id', null);
-                    const { data: participations, error: partError } = await q
-                        .order('social_conversations(last_message_at)', { ascending: false });
-
-                    if (partError) throw partError;
-                    return { data: participations, error: null };
-                },
-                { maxAttempts: 2, baseDelayMs: 500, circuitName: 'supabase-conversations' }
-            );
-
-            if (!data || data.length === 0) {
-                setConversations([]);
-                return;
-            }
-
-            // BATCHED ENRICHMENT: Fetch ALL other participants in ONE query (not per-conversation)
-            const conversationIds = data.map(p => p.conversation_id);
-
-            // Batch 1: All other participants across all conversations
-            const { data: allParticipants } = await supabase
-                .from('social_conversation_participants')
-                .select('conversation_id, user_id, profiles(id, username, display_name, full_name, avatar_url, is_vip)')
-                .in('conversation_id', conversationIds)
-                .neq('user_id', userId);
-
-            // Build lookup: conversationId → [participants]
-            const participantsByConvo = {};
-            (allParticipants || []).forEach(p => {
-                if (!participantsByConvo[p.conversation_id]) participantsByConvo[p.conversation_id] = [];
-                participantsByConvo[p.conversation_id].push(p);
+            const token = getAccessToken();
+            const resp = await authedFetch('/api/messenger/get-conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
             });
-
-            // Batch 2: Unread counts — single query for ALL candidate messages
-            const earliestRead = data.reduce((earliest, p) => {
-                const ts = p.last_read_at || '1970-01-01';
-                return ts < earliest ? ts : earliest;
-            }, data[0].last_read_at || '1970-01-01');
-
-            let unreadByConvo = {};
-            try {
-                const { data: unreadMsgs } = await supabase
-                    .from('social_messages')
-                    .select('conversation_id, created_at')
-                    .in('conversation_id', conversationIds)
-                    .neq('sender_id', userId)
-                    .eq('is_deleted', false)
-                    .gt('created_at', earliestRead)
-                    .limit(5000);
-
-                // Count per-conversation using per-conversation last_read_at
-                const readMap = new Map(data.map(p => [p.conversation_id, p.last_read_at || '1970-01-01']));
-                (unreadMsgs || []).forEach(msg => {
-                    const lastRead = readMap.get(msg.conversation_id);
-                    if (lastRead && msg.created_at > lastRead) {
-                        unreadByConvo[msg.conversation_id] = (unreadByConvo[msg.conversation_id] || 0) + 1;
-                    }
-                });
-            } catch (e) { console.warn('[messenger.js] Unread batch failed:', e); }
-
-            // Assemble enriched conversations
-            const enriched = data.map(p => {
-                const otherParticipants = participantsByConvo[p.conversation_id] || [];
-                let otherUser = null;
-
-                if (otherParticipants.length === 1) {
-                    otherUser = otherParticipants[0]?.profiles;
-                    if (!otherUser && otherParticipants[0]?.user_id) {
-                        otherUser = { id: otherParticipants[0].user_id, username: 'User', avatar_url: null };
-                    }
-                } else if (otherParticipants.length > 1) {
-                    otherUser = otherParticipants[0]?.profiles;
-                    if (otherUser) {
-                        otherUser = { ...otherUser, isGroupChat: true, participantCount: otherParticipants.length + 1 };
-                    }
-                }
-
-                return {
-                    id: p.conversation_id,
-                    ...p.social_conversations,
-                    otherUser,
-                    unreadCount: unreadByConvo[p.conversation_id] || 0,
-                    last_read_at: p.last_read_at,
-                    isRequest: p.social_conversations?.is_request || false,
-                };
-            });
-
-            // Sort and set.
-            //
-            // This used to be `.filter(c => c.otherUser)`, which silently threw
-            // away every GROUP conversation - a group has no single other
-            // party, so otherUser is null by definition. The union's weekly
-            // statement thread is exactly that shape, so on any request that
-            // fell through to this path the statements were fetched and then
-            // discarded before render. A group is kept if it says so or if it
-            // has a title to show.
-            // Requests where the user is the RECIPIENT stay filtered out.
-            const sorted = enriched
-                .filter(c => c.otherUser || c.is_group || c.title || c.group_name)
-                .filter(c => !(c.is_request && c.request_sender_id && c.request_sender_id !== userId))
-                .sort((a, b) => {
-                    const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-                    const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-                    return timeB - timeA;
-                });
-            setConversations(sorted);
-        } catch (e) {
-            console.warn('[MESSENGER] All fallbacks failed:', e);
-            // FINAL FALLBACK: Don't crash - keep existing conversations or set empty
-            if (!conversations || conversations.length === 0) {
-                setConversations([]);
+            const result = await resp.json();
+            if (workspaceRef.current !== requestKey) return;
+            if (!resp.ok || !result.success || !Array.isArray(result.conversations)) throw new Error(result.error || 'Inbox Unavailable');
+            const previous = new Map(conversationsRef.current.map(c => [c.id, c.unreadCount]));
+            if (result.conversations.some(c => previous.has(c.id) && c.unreadCount > previous.get(c.id) && c.id !== activeConversationRef.current?.id)) {
+                if (preferencesRef.current.messageSounds !== false) playMessageSound();
             }
+            setConnectionStatus('connected');
+            setClubAccess({ userId, clubs: result.clubs });
+            setConversations(result.conversations);
+            setInboxError(null);
+        } catch (error) {
+            if (workspaceRef.current !== requestKey) return;
+            setConversations([]);
+            setInboxError(error.message || 'Inbox Unavailable. Please Retry.');
+        } finally {
+            if (workspaceRef.current === requestKey) setLoading(false);
         }
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadConversationsRef.current = loadConversations;
 
     const loadMessages = async (conversationId) => {
+        const requestScope = workspaceKey;
+        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
         // Optimistic UI check for instant loading
         const cachedMessages = messageCacheRef.current.get(conversationId);
         if (cachedMessages) {
             setMessages(cachedMessages);
             setLoadingMessages(false);
         } else {
+            setMessages([]);
             setLoadingMessages(true);
         }
         setHasMoreMessages(true); // Reset on new conversation
@@ -1869,7 +1624,7 @@ function MessengerPage() {
             if (result.success && result.messages) {
                 // Staleness guard: if the user switched conversations while this fetch was in-flight,
                 // discard the response so we don't overwrite the current conversation's messages.
-                if (activeConversationRef.current?.id !== conversationId) return;
+                if (!current()) return;
 
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
@@ -1880,7 +1635,7 @@ function MessengerPage() {
                 setMessages(filtered);
                 setHasMoreMessages(result.messages.length >= 50);
             } else {
-                if (activeConversationRef.current?.id !== conversationId) return;
+                if (!current()) return;
                 setMessages([]);
                 setHasMoreMessages(false);
             }
@@ -1921,8 +1676,9 @@ function MessengerPage() {
 
         } catch (e) {
             console.warn('Load messages error:', e);
+            if (current()) setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' });
         }
-        setLoadingMessages(false);
+        if (current()) setLoadingMessages(false);
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadMessagesRef.current = loadMessages;
@@ -1942,6 +1698,7 @@ function MessengerPage() {
         setLoadingOlderMessages(true);
         // Capture conversation at pagination start — user may switch before fetch resolves
         const paginationConvId = activeConversation.id;
+        const requestScope = workspaceKey;
         try {
             const container = messagesContainerRef.current;
             const prevScrollHeight = container?.scrollHeight || 0;
@@ -1957,13 +1714,14 @@ function MessengerPage() {
                     conversationId: paginationConvId,
                     userId: user.id,
                     before: oldestMsg.created_at,
+                    beforeId: oldestMsg.id,
                     limit: 50,
                 }),
             });
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
             // Staleness guard: discard if user switched conversations while paginating
-            if (activeConversationRef.current?.id !== paginationConvId) return;
+            if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return;
             if (result.success && result.messages?.length > 0) {
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
@@ -1991,9 +1749,10 @@ function MessengerPage() {
         }
         setLoadingOlderMessages(false);
         paginationLockRef.current = false;
-    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user]);
+    }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user, workspaceKey]);
 
     const handleSelectConversation = async (conversation) => {
+        activeConversationRef.current = conversation;
         setActiveConversation(conversation);
         setComposeFocus(false); // Reset auto-focus so switching chats doesn't pop the mobile keyboard
         setShowScrollDown(false); // Phase 3 BUGFIX: Reset FAB when switching conversations
@@ -2877,8 +2636,8 @@ function MessengerPage() {
                     otherUserId: otherUser.id,
                     // Club mode: scope the new conversation to the club identity so it
                     // lands in the club inbox (personal inbox for the recipient).
-                    contextEntityId: isClubMode && clubPage ? clubPage.id : null,
-                    contextEntityType: isClubMode && clubPage ? 'club' : null,
+                    contextEntityId: selectedClub?.pageId || null,
+                    contextEntityType: selectedClub?.pageId ? 'club' : null,
                 }),
             });
             if (!resp.ok) {
@@ -3146,22 +2905,11 @@ function MessengerPage() {
             // Security: only accept messages from same origin
             if (event.origin !== window.location.origin) return;
             const { type, id } = event.data || {};
-            if (type === 'OPEN_CONVERSATION' && id && conversations.length > 0) {
-                const found = conversations.find(c => c.id === id);
-                if (found) setActiveConversation(found);
-            }
+            if (type === 'OPEN_CONVERSATION' && id) resolveConversationRef.current?.(id);
         };
         window.addEventListener('message', handleParentMessage);
         return () => window.removeEventListener('message', handleParentMessage);
     }, [conversations, router.query.hideHeader]);
-
-    // Sync local conversations state to Zustand/localStorage cache
-    // This ensures re-entry renders current data (RT updates, mark-read, sent messages)
-    useEffect(() => {
-        if (conversations.length > 0) {
-            setCachedConversations(conversations);
-        }
-    }, [conversations]);
 
     // 📲 Link OneSignal to user ID for push notifications
     useEffect(() => {
@@ -3255,10 +3003,27 @@ function MessengerPage() {
         setShowPushPrompt(false);
     }, [persistPushPromptHandled]);
 
-    // Opened from Club Arena -> the club inbox is what they came for.
+    const enterClubWorkspace = (club) => {
+        if (!club || !joinedClubs.some(c => c.id === club.id)) return;
+        setWorkspaceSelection({ clubId: club.id, folder: 'messages' });
+        const page = club.canManage && ownedPages.find(p => p.id === club.pageId);
+        if (page) switchToClub(page);
+        else switchToPersonal();
+    };
+    const leaveClubWorkspace = () => {
+        setWorkspaceSelection({ clubId: null, folder: 'messages' });
+        switchToPersonal();
+    };
+    // A URL selects only among clubs the server has confirmed this user joined.
+    const handledClubEntry = useRef(null);
     useEffect(() => {
-        if (router.query.clubId || router.query.forceIdentity) setClubDrawerOpen(true);
-    }, [router.query.clubId, router.query.forceIdentity]);
+        const requested = router.query.clubId || router.query.forceIdentity;
+        if (!requested || handledClubEntry.current === requested || router.query.conversation) return;
+        const club = joinedClubs.find(c => c.id === requested || c.pageId === requested);
+        if (!club) return;
+        handledClubEntry.current = requested;
+        enterClubWorkspace(club);
+    }, [joinedClubs, router.query.clubId, router.query.forceIdentity, router.query.conversation]);
 
     /*
      * ITEM 13 (2026-09-08): next.config.js redirects /hub/live-help to
@@ -3288,13 +3053,6 @@ function MessengerPage() {
             unreadCount: 0,
         });
     }, [router.query.chat]);
-
-    // Aggregate unread across every club the user holds a page for, so the
-    // collapsed widget can say whether opening it is worth the tap.
-    const clubUnreadTotal = (ownedPages || []).reduce(
-        (sum, p) => sum + (Number(p?.unread_count) || 0),
-        0
-    );
 
     // Start a Jitsi call - Now uses real-time signaling for instant popup
     const startCall = async (type) => {
@@ -4207,265 +3965,17 @@ function MessengerPage() {
                         theme={C}
                     />
 
-                    {/* ── CLUB ARENA widget ──────────────────────────────────
-                        The club inboxes are not a second messenger; they are a
-                        section of this one. Collapsed it is a labelled row with
-                        the aggregate club unread count. Opened it is the identity
-                        strip: Me, then one tile per club, each switching the
-                        inbox via context_entity_id — private DMs stay private,
-                        the club context only decides which inbox they land in.
-
-                        Gate note: hasClubPage is ownedPages.length > 0, which is
-                        false for the whole window between mount and the pages
-                        fetch resolving — and stays false forever if that fetch
-                        fails or the session is not readable yet. Gating on it
-                        alone meant the section silently did not exist on the one
-                        entry point it was built for. When we arrived from Club
-                        Arena (?clubId=) we know the user came for a club, so the
-                        section renders and says what it is waiting for. */}
-                    {(hasClubPage || router.query.clubId || router.query.forceIdentity) && (
-                        <div style={{ padding: '0 16px 12px 16px', borderBottom: `1px solid ${C.border}`, marginBottom: 8, flexShrink: 0 }}>
-                            <button
-                                type="button"
-                                onClick={() => setClubDrawerOpen((v) => !v)}
-                                aria-expanded={clubDrawerOpen}
-                                aria-controls="club-arena-inboxes"
-                                style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    padding: '10px 0',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    color: isClubMode ? C.blue : C.text,
-                                    font: 'inherit',
-                                    textAlign: 'left',
-                                }}
-                            >
-                                <span
-                                    aria-hidden="true"
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: 26,
-                                        height: 26,
-                                        borderRadius: 8,
-                                        background: isClubMode ? `${C.blue}22` : `${C.textSec}18`,
-                                        color: isClubMode ? C.blue : C.textSec,
-                                        fontSize: 13,
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    ♠
-                                </span>
-                                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em' }}>
-                                    CLUB ARENA
-                                </span>
-                                {!clubDrawerOpen && clubUnreadTotal > 0 && (
-                                    <span
-                                        style={{
-                                            background: '#ef4444',
-                                            color: 'white',
-                                            fontSize: 10,
-                                            fontWeight: 700,
-                                            borderRadius: 10,
-                                            minWidth: 18,
-                                            height: 18,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            padding: '0 5px',
-                                        }}
-                                    >
-                                        {clubUnreadTotal > 99 ? '99+' : clubUnreadTotal}
-                                    </span>
-                                )}
-                                <span
-                                    aria-hidden="true"
-                                    style={{
-                                        color: C.textSec,
-                                        fontSize: 11,
-                                        transform: clubDrawerOpen ? 'rotate(90deg)' : 'none',
-                                        transition: 'transform 0.2s ease',
-                                    }}
-                                >
-                                    ▶
-                                </span>
-                            </button>
-
-                            {/* "Loading" only while identity detection is still
-                                running. It used to render on !hasClubPage with
-                                no settled flag, so a user who owns no club page
-                                - or whose lookup failed, since both paths in
-                                ActiveIdentityContext swallow into console.warn
-                                - sat on "Loading your clubs..." permanently. */}
-                            {clubDrawerOpen && !hasClubPage && !identityLoaded && (
-                                <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec }}>
-                                    Loading Your Clubs...
-                                </div>
-                            )}
-
-                            {clubDrawerOpen && !hasClubPage && identityLoaded && (
-                                <div style={{ padding: '4px 0 10px 0', fontSize: 12, color: C.textSec, lineHeight: 1.5 }}>
-                                    No Club Inboxes Yet. Clubs You Own Or Help Run Show Up Here,
-                                    Each With Its Own Inbox.
-                                </div>
-                            )}
-
-                            {clubDrawerOpen && hasClubPage && (
-                            <div id="club-arena-inboxes">
-                            <div className="no-scrollbar" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '4px 0 8px 0' }}>
-                                {/* Personal Identity */}
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  onKeyDown={spKeyActivate} onClick={() => switchToPersonal()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
-                                    <div style={{ 
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: 60,
-                                        height: 60,
-                                        borderRadius: '50%', 
-                                        border: `2px solid ${!isClubMode ? C.blue : 'transparent'}`,
-                                        boxShadow: !isClubMode ? `0 0 10px ${C.blue}44` : 'none',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        overflow: 'hidden',
-                                        flexShrink: 0,
-                                        background: C.card,
-                                    }}>
-                                        <Avatar src={user?.avatar_url || user?.user_metadata?.avatar_url} name={user?.full_name || user?.user_metadata?.full_name || user?.username || 'Personal'} size={54} showOnline={false} />
-                                    </div>
-                                    <span style={{ fontSize: 11, fontWeight: !isClubMode ? 700 : 500, color: !isClubMode ? C.blue : C.textSec, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Me</span>
-                                    
-                                    {/* Personal Unread Count (Placeholder if needed, usually personal count is in header) */}
-                                    {!isClubMode && totalUnreadCount > 0 && (
-                                        <div style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: `2px solid ${C.bg}` }}>
-                                            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {ownedPages.map(page => (
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      onKeyDown={spKeyActivate} key={page.id} onClick={() => switchToClub(page)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
-                                        <div style={{ 
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: 60,
-                                            height: 60,
-                                            borderRadius: '50%', 
-                                            border: `2px solid ${isClubMode && clubPage?.id === page.id ? C.blue : 'transparent'}`,
-                                            boxShadow: isClubMode && clubPage?.id === page.id ? `0 0 12px ${C.blue}66` : 'none',
-                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            overflow: 'hidden',
-                                            flexShrink: 0,
-                                            background: C.card,
-                                            transform: isClubMode && clubPage?.id === page.id ? 'scale(1.05)' : 'scale(1)',
-                                        }}>
-                                            <Avatar src={page.avatar_url} name={page.name} size={54} showOnline={false} />
-                                        </div>
-                                        
-                                        {/* Entity Type Badge */}
-                                        <div style={{ 
-                                            position: 'absolute', 
-                                            bottom: 18, 
-                                            right: 0, 
-                                            background: C.bg, 
-                                            borderRadius: '50%', 
-                                            width: 18, 
-                                            height: 18, 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            border: `1px solid ${C.border}`,
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                                            color: page.page_type === 'home_game' ? '#10b981' : (page.page_type === 'casino' ? '#f59e0b' : C.blue),
-                                        }}>
-                                            {page.page_type === 'home_game' ? <Home size={10} /> : (page.page_type === 'casino' ? <Building size={10} /> : <Crown size={10} />)}
-                                        </div>
-
-                                        <span title={page.name} style={{ 
-                                            fontSize: 11, 
-                                            fontWeight: isClubMode && clubPage?.id === page.id ? 700 : 500, 
-                                            color: isClubMode && clubPage?.id === page.id ? C.blue : C.textSec,
-                                            whiteSpace: 'nowrap',
-                                            maxWidth: 64,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            textAlign: 'center'
-                                        }}>
-                                            {page.name}
-                                        </span>
-
-                                        {/* Unread Badge */}
-                                        {page.unread_count > 0 && (
-                                            <div style={{ position: 'absolute', top: -2, right: -2, background: '#ef4444', color: 'white', fontSize: 10, fontWeight: 700, borderRadius: 10, minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: `2px solid ${C.bg}` }}>
-                                                {page.unread_count > 99 ? '99+' : page.unread_count}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Messaging As Banner */}
-                            <div style={{ 
-                                marginTop: 8, 
-                                padding: '6px 12px', 
-                                background: isClubMode ? `${C.blue}15` : `${C.textSec}10`, 
-                                borderRadius: 8, 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: 8,
-                                border: `1px dashed ${isClubMode ? `${C.blue}44` : 'transparent'}`,
-                                transition: 'all 0.3s ease'
-                            }}>
-                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: isClubMode ? C.blue : C.textSec, boxShadow: isClubMode ? `0 0 6px ${C.blue}` : 'none' }} />
-                                <span style={{ fontSize: 11, color: isClubMode ? C.blue : C.textSec, fontWeight: 600, letterSpacing: '0.01em' }}>
-                                    {isClubMode ? `MESSAGING AS: ${clubPage?.name?.toUpperCase() || 'CLUB'}` : 'MESSAGING AS: PERSONAL ACCOUNT'}
-                                </span>
-                            </div>
-                            </div>
-                            )}
-
-                            {/* Collapsed but scoped to a club: say so, and give a
-                                one-tap way back. Otherwise the inbox looks empty
-                                for no visible reason. */}
-                            {!clubDrawerOpen && isClubMode && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
-                                    <span style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>
-                                        {clubPage?.name || 'Club'} Inbox
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => switchToPersonal()}
-                                        style={{
-                                            marginLeft: 'auto',
-                                            background: 'none',
-                                            border: `1px solid ${C.border}`,
-                                            borderRadius: 8,
-                                            color: C.textSec,
-                                            fontSize: 11,
-                                            padding: '3px 8px',
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        Back To Personal
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
+                    <ClubArenaWorkspace clubs={joinedClubs} open={clubDrawerOpen}
+                        clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
+                        onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
+                        onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
+                    {inboxError && <div role="alert" style={{ padding: 16, color: C.textSec }}>
+                        {inboxError}
+                        <button type="button" onClick={() => loadConversationsRef.current?.(user.id)}>Retry</button>
+                    </div>}
 
                     {/* Message Requests Banner — Facebook-style */}
-                    {messageRequestCount > 0 && (
+                    {!clubDrawerOpen && messageRequestCount > 0 && (
                         <Link href="/hub/messenger/requests" style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             padding: '12px 16px', margin: '0 12px 8px', borderRadius: 10,
@@ -4508,7 +4018,7 @@ function MessengerPage() {
                                     inbox is opened. */}
                                 <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>
                                     {isClubMode
-                                        ? `No messages in ${clubPage?.name || 'this club'} yet`
+                                        ? `No Messages In ${selectedClub?.name || 'This Club'} Yet`
                                         : 'No Conversations Yet'}
                                 </div>
                                 <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>
@@ -4856,14 +4366,14 @@ function MessengerPage() {
                                         </button>
                                     )}
 
-                                    <Link href={`/hub/user/${otherUser?.username}`}>
-                                        <Avatar src={otherUser?.avatar_url} name={activeTitle} size={40} online={!!otherUser && otherUserStatus === 'online'} />
-                                    </Link>
+                                    {activeConversation.isAccounting || !otherUser?.username
+                                        ? <Avatar name={activeTitle} size={40} showOnline={false} />
+                                        : <Link href={`/hub/user/${otherUser.username}`}><Avatar src={otherUser.avatar_url} name={activeTitle} size={40} online={otherUserStatus === 'online'} /></Link>}
 
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
                                         <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
-                                            {otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
+                                            {activeConversation.isAccounting ? 'Invoices And Accounting Discussions' : otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
                                                 const mins = Math.floor(diff / 60000);
                                                 if (mins < 1) return 'just now';
@@ -4887,7 +4397,7 @@ function MessengerPage() {
                                             title="Search Messages"
                                         ><SearchIcon size={20} /></button>
                                         {/* Hide call buttons for message request conversations */}
-                                        {!activeConversation?.isRequest && (
+                                        {!activeConversation?.isRequest && !activeConversation.isAccounting && (
                                             <>
                                         <button
                                             onClick={() => startCall('audio')}
@@ -4908,6 +4418,7 @@ function MessengerPage() {
                                             </>
                                         )}
                                         <button
+                                            hidden={activeConversation.isAccounting}
                                             onClick={() => setShowUserInfo(!showUserInfo)}
                                             title="User Info"
                                             style={{

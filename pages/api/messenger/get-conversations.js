@@ -21,6 +21,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -66,6 +67,14 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Auth required' });
         }
         const userId = localUser.id;
+
+        if (req.body?.workspace) {
+            try {
+                return res.status(200).json(await getMessengerWorkspace(getSupabase(), userId, req.body));
+            } catch (error) {
+                return res.status(error.status || 500).json({ success: false, error: error.status ? error.message : 'Messenger Is Temporarily Unavailable' });
+            }
+        }
 
         // ── PRIMARY: fn_get_user_conversations ──
         // contextEntityId: null = Personal inbox, UUID = Club page inbox

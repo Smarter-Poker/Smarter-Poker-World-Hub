@@ -36,14 +36,17 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
-      const { conversationId, before, limit: reqLimit } = req.body;
+      const { conversationId, before, beforeId, limit: reqLimit } = req.body;
 
       if (!conversationId) {
           return res.status(400).json({ success: false, error: 'Missing conversationId' });
       }
 
       // Pagination: cap limit at 200
-      const pageLimit = Math.min(parseInt(reqLimit) || 100, 200);
+      const pageLimit = Math.max(1, Math.min(parseInt(reqLimit) || 100, 200));
+      if (before && (typeof before !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(before) || !Number.isFinite(Date.parse(before)) || (beforeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId)))) {
+          return res.status(400).json({ success: false, error: 'Invalid Message Cursor' });
+      }
 
       try {
           // First verify user is a participant in this conversation (security check)
@@ -79,12 +82,13 @@ export default async function handler(req, res) {
           // Pagination: load messages before a given timestamp
           if (before) {
               // Backward pagination: descending to get the N most recent before cursor
-              query = query.lt('created_at', before)
-                  .order('created_at', { ascending: false })
+              const cursorTime = before; // Preserve PostgreSQL microseconds across equal-time pages.
+              query = (beforeId ? query.or(`created_at.lt.${cursorTime},and(created_at.eq.${cursorTime},id.lt.${beforeId})`) : query.lt('created_at', cursorTime))
+                  .order('created_at', { ascending: false }).order('id', { ascending: false })
                   .limit(pageLimit);
           } else {
               // Initial load: descending to get newest N, then reverse for display
-              query = query.order('created_at', { ascending: false })
+              query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
                   .limit(pageLimit);
           }
 
@@ -97,6 +101,27 @@ export default async function handler(req, res) {
 
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
+          // Issued content stays immutable. Display the current payment state
+          // from the linked invoice, never from an old message snapshot.
+          const liveInvoices = new Map();
+          const invoiceMessages = sorted.filter(m => m.message_type === 'invoice').map(m => m.id);
+          if (invoiceMessages.length) {
+              const { data: links, error: linksError } = await getSupabase().from('accounting_invoice_deliveries')
+                  .select('message_id,invoice_id').in('message_id', invoiceMessages);
+              if (linksError) throw linksError;
+              const invoiceIds = [...new Set((links || []).map(link => link.invoice_id))];
+              if (invoiceIds.length) {
+                  const { data: invoices, error: invoiceError } = await getSupabase().from('settlement_invoices')
+                      .select('id,status,chips_transferred').in('id', invoiceIds);
+                  if (invoiceError) throw invoiceError;
+                  const byId = new Map((invoices || []).map(invoice => [invoice.id, invoice]));
+                  for (const link of links || []) {
+                      const invoice = byId.get(link.invoice_id);
+                      if (!invoice) throw new Error('Invoice Status Unavailable');
+                      liveInvoices.set(link.message_id, invoice);
+                  }
+              }
+          }
 
           // Reactions, in ONE query for the whole page.
           //
@@ -124,6 +149,9 @@ export default async function handler(req, res) {
           }
 
           const normalized = sorted.map(m => {
+              const invoice = liveInvoices.get(m.id);
+              if (invoice) m = { ...m, media_metadata: { ...m.media_metadata, issued_status: m.media_metadata?.status,
+                  status: invoice.status, chips_transferred: invoice.chips_transferred } };
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
                   prof = {
