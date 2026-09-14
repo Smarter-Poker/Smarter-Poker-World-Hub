@@ -88,6 +88,65 @@ if [ -z "${AGENT_WORKSPACE_REEXEC:-}" ] && [ -r "$0" ]; then
   fi
 fi
 
+# ── AND NEITHER ARE THE HELPERS IT SHELLS OUT TO (2026-09-14) ───────────────
+#
+# The re-exec above fixes THIS script when the clone is stale. It does not fix
+# the scripts this script then runs by path, because $ROOT still points at that
+# same stale working tree. Two ways that bit, both measured on 2026-09-14 with
+# the Hub clone 334 commits behind and Club Arena 1,288:
+#
+#   1. `bash "$ROOT/scripts/check-node-modules.sh"` at the end of this file was
+#      called with no existence check. That helper is newer than the checkout,
+#      so the run ended in a bare
+#
+#        bash: .../scripts/check-node-modules.sh: No such file or directory
+#
+#      and the node_modules repair - the step that had something to repair -
+#      never happened. The same helper is guarded with `-x` 300 lines above,
+#      so the file already knew to check and did it in one place only.
+#
+#   2. WORSE, AND SILENT. SNAP is resolved from ${BASH_SOURCE[0]}. After a
+#      re-exec that is a file in $TMPDIR, so SNAP became
+#      /tmp/agent-trees-snapshot.sh, which does not exist, and the `[ -f ]`
+#      guard turned that into a no-op. agent-trees-snapshot.sh is what makes
+#      uncommitted work survive `git reset --hard`. It stopped running exactly
+#      when the clone was stale - which is exactly when a tree is most likely
+#      to be old, conflicted, and holding work nobody has pushed. On 2026-09-14
+#      the two shared clones between them held 899 modified tracked files and
+#      the snapshot had not run in either.
+#
+# So resolve a helper the same way this file resolves itself: prefer the copy
+# on disk when it matches origin/main, and otherwise run main's. Same reasoning
+# as the re-exec, and deliberately not a warning for the same reason - an agent
+# told "your helper is old" has nothing to do with that.
+run_repo_script() {
+  local rel="$1"; shift
+  local disk="$ROOT/$rel" main_copy tmp rc
+  main_copy=$(git -C "$ROOT" show "origin/main:$rel" 2>/dev/null || true)
+
+  if [ -n "$main_copy" ]; then
+    if [ -r "$disk" ] && [ "$main_copy" = "$(cat "$disk")" ]; then
+      ( cd "$ROOT" && bash "$disk" "$@" ); return $?
+    fi
+    tmp=$(mktemp "${TMPDIR:-/tmp}/$(basename "$rel").XXXXXX")
+    printf '%s\n' "$main_copy" > "$tmp"
+    if [ -r "$disk" ]; then
+      echo "# $rel: this clone's copy differs from origin/main - running main's" >&2
+    else
+      echo "# $rel: not in this checkout (the clone is $(git -C "$ROOT" rev-list --count HEAD..origin/main 2>/dev/null || echo '?') commit(s) behind) - running main's" >&2
+    fi
+    ( cd "$ROOT" && bash "$tmp" "$@" ); rc=$?
+    rm -f "$tmp"
+    return $rc
+  fi
+
+  # Not on main either: a helper that has been deleted, or a repo that does not
+  # have it. Say so once and carry on - every caller here is best-effort.
+  if [ -r "$disk" ]; then ( cd "$ROOT" && bash "$disk" "$@" ); return $?; fi
+  echo "# $rel: not in this checkout and not on origin/main - skipped" >&2
+  return 0
+}
+
 # Share the main clone's dependencies. The alternative is an npm install per
 # tree - minutes each, gigabytes across 47 trees - or a test gate that silently
 # skips, which is how a red test reaches main and blocks the bundle for all.
@@ -161,7 +220,7 @@ provision_node_modules() {
       src="${src%${rel:+/$rel}}"
     elif [ -z "$rel" ] && [ -x "$ROOT/scripts/check-node-modules.sh" ]; then
       echo "# $label: the main clone's copy is hollow and no sibling can donate; repairing the main clone" >&2
-      bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/#   /" >&2 || true
+      run_repo_script scripts/check-node-modules.sh 2>&1 | sed "s/^/#   /" >&2 || true
     fi
   fi
 
@@ -407,8 +466,10 @@ git -C "$ROOT" fetch origin main --quiet
 # safety net must never be the reason a workspace claim fails. It costs about a
 # second. If you want to see what it captured:
 #   bash scripts/agent-trees-snapshot.sh --list
-SNAP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/agent-trees-snapshot.sh"
-[ -f "$SNAP" ] && (cd "$ROOT" && bash "$SNAP" >/dev/null 2>&1) || true
+# NOT ${BASH_SOURCE[0]}: after the re-exec above that is a file in $TMPDIR, so
+# this resolved to /tmp/agent-trees-snapshot.sh, did not exist, and the guard
+# silently skipped the one step that makes uncommitted work undestroyable.
+run_repo_script scripts/agent-trees-snapshot.sh >/dev/null 2>&1 || true
 
 if [ -d "$DIR" ] && git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; then
   # Reuse. Refuse to move an agent off work it has not committed - that is the
@@ -485,20 +546,20 @@ git -C "$DIR" config user.email "254329056+Smarter-Poker@users.noreply.github.co
 # 2026-08-23: a fresh worktree had neither, and both failures were silent.
 # core.hooksPath pointed at the gitignored .husky/_, so git ran no hooks here at
 # all; and with no node_modules the hooks that did run went to the network.
-bash "$ROOT/scripts/ensure-hooks.sh" 2>&1 | sed "s/^/# /" >&2 || true
+run_repo_script scripts/ensure-hooks.sh 2>&1 | sed "s/^/# /" >&2 || true
 
 # The link above is shared, and npm run inside ANY worktree writes through it.
 # Twice on 2026-08-23 that left ~285 package directories empty and broke the
 # hooks in every tree at once, with only an ERR_MODULE_NOT_FOUND to go on.
 # Probe it here - the one moment an agent is guaranteed to be looking - and
 # repair rather than report.
-bash "$ROOT/scripts/check-node-modules.sh" 2>&1 | sed "s/^/# /" >&2 || true
+run_repo_script scripts/check-node-modules.sh 2>&1 | sed "s/^/# /" >&2 || true
 
 # Every other guard in this estate queries GitHub, so all of them are blind to
 # work that never reached it. Ten commits sat in worktrees for nineteen hours on
 # 2026-08-23 and nothing noticed. An agent claiming a workspace is the most
 # frequent moment anybody looks at this machine, so the scan happens here.
-bash "$ROOT/scripts/check-unpushed-work.sh" --quiet 2>&1 | sed "s/^/# /" >&2 || true
+run_repo_script scripts/check-unpushed-work.sh --quiet 2>&1 | sed "s/^/# /" >&2 || true
 
 provision_all_package_roots
 verify_all_native_deps

@@ -667,3 +667,11 @@ test('the catalog carries a poster, and the API reads and writes it by the same 
     assert.match(route, /if \(b\.poster_url !== undefined\) \{/);
     assert.match(route, /patch\.poster_url = poster;/);
 });
+
+test('the popup carries the sponsor\'s door (2026-09-13)', () => {
+    // Everybody who sees an advert is a prospective advertiser. The door is
+    // the Club Arena advertise route, outside the Next router: a real link.
+    const rail = read(RAIL);
+    assert.match(rail, /href="\/hub\/club-arena\/advertise"/);
+    assert.match(rail, /Advertise With Us/);
+});

@@ -28,8 +28,8 @@
     },
     "/hub/news": {
       "jsKb": 900,
-      "lcpMs": 3500,
-      "converted": false
+      "lcpMs": 2500,
+      "converted": true
     },
     "/hub/trivia": {
       "jsKb": 900,

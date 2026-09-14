@@ -103,6 +103,9 @@ jobs:
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
+      - name: Stats Maintenance Reports Its Actual Outcome Over HTTP
+        run: node --experimental-vm-modules --test __tests__/club-stats-maintenance-http.test.mjs __tests__/club-stats-maintenance-runtime-budget.test.mjs
+
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
 
