@@ -9,6 +9,7 @@
     radial-gradient(circle at 78% 0, rgba(0, 200, 255, .15), transparent 30%),
     linear-gradient(160deg, #112530, #020508 58%);
   box-shadow: inset 0 0 0 5px #020609, inset 0 0 0 6px rgba(105, 148, 169, .42);
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
 .console::before {
@@ -23,32 +24,68 @@
 }
 
 .consoleHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
-.consoleHeader h2 { margin: 8px 0 0; font-size: clamp(28px, 4vw, 42px); }
+.consoleHeader h2 { margin: 8px 0 0; color: #effdff; font: 800 clamp(28px, 4vw, 42px)/.95 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; }
 .consoleHeader p { max-width: 650px; margin: 8px 0 0; }
-.kicker, .integrityBadge { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; color: #8befff; font: 800 10px 'IBM Plex Mono', monospace; letter-spacing: .11em; text-transform: uppercase; }
-.integrityBadge { padding: 8px 12px; border: 1px solid #547484; background: #03080c; color: #dffaff; white-space: nowrap; }
+
+.kicker,
+.integrityBadge {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  padding: 7px 14px;
+  color: #dffaff;
+  background: transparent url('/images/marketplace-console-v1/navigation/nav-shell.png') center / 100% 100% no-repeat;
+  font: 800 11px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.integrityBadge { min-height: 44px; padding-inline: 20px; white-space: nowrap; }
 
 .circuitGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
 .circuit { padding: 20px; border: 1px solid #355a6c; background: rgba(0, 5, 9, .82); }
 .circuitHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-.circuitHeader span, .signalGrid span, .rewardSignal span { display: block; color: #7594a3; font: 800 9px 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
-.circuitHeader strong { display: block; margin-top: 7px; color: #eaffff; font: 700 18px 'Rajdhani', sans-serif; text-transform: uppercase; }
-.circuitHeader b { color: #8befff; font: 700 25px 'Rajdhani', sans-serif; }
+.circuitHeader span, .signalGrid span, .rewardSignal span { display: block; color: #9db6c2; font: 800 10px/1.1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.circuitHeader strong { display: block; margin-top: 7px; color: #eaffff; font: 800 18px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
+.circuitHeader b { color: #8befff; font: 800 25px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; }
 .progressTrack { height: 12px; margin-top: 15px; overflow: hidden; border: 1px solid #325365; background: #000; }
 .progressTrack span { display: block; height: 100%; background: linear-gradient(90deg, #0a5f85, #00c8ff 70%, #dffaff); box-shadow: 0 0 16px rgba(0, 200, 255, .75); transition: width .35s ease; }
-.circuit small { display: block; margin-top: 10px; color: #8ca4af; font-size: 12px; }
+.circuit small { display: block; margin-top: 10px; color: #8ca4af; font: 700 10px/1.35 var(--font-ibm-plex-mono), 'IBM Plex Mono', ui-monospace, monospace; }
 
 .signalGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .signalGrid div { padding: 16px; border-top: 1px solid #00c8ff; background: #03080c; }
-.signalGrid strong { display: block; margin-top: 8px; color: #eaffff; font: 700 17px 'Rajdhani', sans-serif; text-transform: uppercase; }
+.signalGrid strong { display: block; margin-top: 8px; color: #eaffff; font: 800 17px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
 
 .rewardSignal { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(240px, 1.4fr) auto; gap: 18px; align-items: center; margin-top: 12px; padding: 18px; border: 1px solid #806c18; background: linear-gradient(90deg, rgba(255, 215, 0, .1), rgba(0, 0, 0, .72)); }
-.rewardSignal strong { display: block; margin-top: 7px; color: #ffe45e; font: 700 18px 'Rajdhani', sans-serif; text-transform: uppercase; }
+.rewardSignal strong { display: block; margin-top: 7px; color: #ffe45e; font: 800 18px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
 .rewardSignal p { margin: 0; }
-.rewardSignal button, .statePanel :is(button, a) { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: 1px solid #76bbce; background: linear-gradient(180deg, #dffaff, #6fa9bb 52%, #123b4d); color: #031218; font: 800 9px 'IBM Plex Mono', monospace; text-decoration: none; text-transform: uppercase; cursor: pointer; }
+
+.rewardSignal button,
+.statePanel :is(button, a) {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 26px;
+  border: 0;
+  background-color: transparent;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  color: #eafaff;
+  font: 800 13px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  letter-spacing: .025em;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 1px 2px #000;
+  cursor: pointer;
+}
+
+.statePanel :is(button, a) { background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png'); }
 
 .statePanel { display: flex; min-height: 170px; align-items: center; justify-content: center; gap: 16px; margin-top: 22px; padding: 28px; border: 1px solid #355a6c; background: rgba(0, 4, 8, .82); color: #b8d0da; }
-.statePanel strong { color: #effdff; font-family: 'Rajdhani', sans-serif; font-size: 20px; text-transform: uppercase; }
+.statePanel strong { color: #effdff; font: 800 20px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
 .statePanel p { margin: 5px 0 12px; }
 .console :is(button, a):focus-visible { outline: 2px solid #8befff; outline-offset: 3px; }
 

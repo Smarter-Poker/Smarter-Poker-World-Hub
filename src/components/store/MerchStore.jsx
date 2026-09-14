@@ -18,27 +18,16 @@
  *   slugs too; the checkout API resolves each id against the live catalog and
  *   rejects an unknown row instead of trusting browser-supplied pricing.
  *
- * Visual language matches src/components/diamond-store/diamondStoreStyles.js :
- * inline style objects, same dark/cyan palette. No CSS modules.
+ * Layout stays compatible with src/components/diamond-store/diamondStoreStyles.js.
+ * MerchStore.module.css upgrades the existing controls and cards with shared
+ * Marketplace console artwork while all product and commerce behavior remains here.
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import {
-  Gem,
-  Shirt,
-  Package,
-  CreditCard,
-  AlertTriangle,
-  Minus,
-  Plus,
-  RefreshCw,
-  Heart,
-  Search,
-  ShoppingCart,
-} from 'lucide-react';
 
 import styles from '../diamond-store/diamondStoreStyles';
+import merchStyles from './MerchStore.module.css';
 import { MERCHANDISE } from '../../data/diamondStoreData';
 import { getAccessToken } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
@@ -113,14 +102,6 @@ const UNSHIPPED_MERCH_IMAGES = new Set([
   '/merch/chip-set-100.jpg',
   '/merch/chip-set-500.jpg',
 ]);
-
-// ── Palette (same values the styles module uses) ──────────────────────────
-const CYAN = '#00D4FF';
-const TEXT = '#E4E6EB';
-const MUTED = 'rgba(255, 255, 255, 0.55)';
-const RED = '#ff5f6d';
-const CARD_BG = 'rgba(255, 255, 255, 0.05)';
-const CARD_BORDER = '1px solid rgba(255, 255, 255, 0.15)';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const usd = (n) => `$${(Number(n) || 0).toFixed(2)}`;
@@ -289,8 +270,8 @@ function normalizeProduct(raw, index, source) {
     fulfillmentProvider === 'printful' ||
     branded?.madeToOrder === true;
   const requiresShipping =
-    firstBoolean([raw.requires_shipping, raw.requiresShipping])
-    ?? (fulfillmentProvider !== 'digital');
+    firstBoolean([raw.requires_shipping, raw.requiresShipping]) ??
+    fulfillmentProvider !== 'digital';
 
   return {
     key: rawId || `${source}-${index}-${name}`,
@@ -300,10 +281,9 @@ function normalizeProduct(raw, index, source) {
     catalogId: isCatalogId(rawId) ? rawId.trim() : null,
     source,
     name: marketplaceCopy(branded?.name || name),
-    description:
-      marketplaceCopy(
-        branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || ''
-      ),
+    description: marketplaceCopy(
+      branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || ''
+    ),
     image: image && !UNSHIPPED_MERCH_IMAGES.has(image) ? image : null,
     atlasPosition: rawId ? LEGACY_TABLETOP_ATLAS[rawId] || null : null,
     category: (
@@ -462,38 +442,19 @@ function MerchProductCard({
       ? `You Need ${fmt(shortBy)} More Diamonds`
       : null;
 
-  const Icon = product.category === 'apparel' || product.category === 'headwear' ? Shirt : Package;
-
   return (
     <article
       id={productAnchorId(product.catalogId || product.key)}
       aria-labelledby={titleId}
+      className={`${merchStyles.productCard} ${soldOut ? merchStyles.productCardUnavailable : ''}`}
       style={{
         scrollMarginTop: 96,
-        background:
-          'linear-gradient(155deg, rgba(34,48,59,0.98) 0%, rgba(5,10,15,0.98) 28%, rgba(2,5,9,0.99) 100%)',
-        border: soldOut ? '1px solid rgba(255, 95, 109, 0.35)' : CARD_BORDER,
-        borderRadius: 0,
-        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        opacity: soldOut ? 0.72 : 1,
-        boxShadow:
-          'inset 0 1px 0 rgba(226,247,255,0.35), inset 0 0 0 4px rgba(2,7,12,0.72), 0 18px 38px rgba(0,0,0,0.42)',
       }}
     >
       {/* Image / placeholder */}
-      <div
-        style={{
-          position: 'relative',
-          height: 220,
-          background:
-            'radial-gradient(circle at 50% 35%, rgba(88,186,227,0.18), transparent 48%), linear-gradient(145deg, #1d2a33, #03070b 72%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <div className={merchStyles.mediaBay}>
         {product.image && !imageFailed ? (
           <img
             src={product.image}
@@ -501,17 +462,15 @@ function MerchProductCard({
             loading={mediaPriority ? 'eager' : 'lazy'}
             decoding="async"
             onError={() => setImageFailed(true)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            className={merchStyles.productImage}
           />
         ) : product.atlasPosition ? (
           <div
             role="img"
             aria-label={product.name}
+            className={merchStyles.productImage}
             style={{
-              width: '100%',
-              height: '100%',
-              backgroundImage:
-                "url('/images/merch/neural-steel/legacy-tabletop-atlas.webp')",
+              backgroundImage: "url('/images/merch/neural-steel/legacy-tabletop-atlas.webp')",
               backgroundPosition: product.atlasPosition,
               backgroundRepeat: 'no-repeat',
               backgroundSize: '400% 100%',
@@ -519,47 +478,20 @@ function MerchProductCard({
             }}
           />
         ) : (
-          <Icon size={44} color="#a8b2d1" />
+          <div
+            role="img"
+            aria-label={`${product.name} Image Pending`}
+            className={merchStyles.mediaPending}
+          >
+            Product Image Pending
+          </div>
         )}
         {soldOut && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              background: 'rgba(255, 95, 109, 0.9)',
-              color: '#12151c',
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: '0.6px',
-              padding: '4px 9px',
-              borderRadius: 0,
-              textTransform: 'uppercase',
-            }}
-          >
+          <div className={`${merchStyles.mediaBadge} ${merchStyles.mediaBadgeUnavailable}`}>
             {availabilityReason}
           </div>
         )}
-        {product.madeToOrder && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              background: 'linear-gradient(180deg, #d9f7ff, #7397aa)',
-              color: '#071017',
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: '0.6px',
-              padding: '5px 9px',
-              borderRadius: 0,
-              border: '1px solid rgba(240,252,255,0.8)',
-              boxShadow: '0 5px 18px rgba(0,0,0,0.45)',
-            }}
-          >
-            Made To Order
-          </div>
-        )}
+        {product.madeToOrder && <div className={merchStyles.mediaBadge}>Made To Order</div>}
         <button
           type="button"
           aria-label={
@@ -570,68 +502,34 @@ function MerchProductCard({
           aria-pressed={isWishlisted}
           disabled={wishlistBusyKey === product.key}
           onClick={() => onToggleWishlist(product)}
-          style={{
-            position: 'absolute',
-            right: 10,
-            bottom: 10,
-            display: 'inline-flex',
-            width: 44,
-            height: 44,
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: `1px solid ${isWishlisted ? '#ff7b87' : '#7695a6'}`,
-            borderRadius: 0,
-            background: isWishlisted
-              ? 'linear-gradient(180deg, #ff9da7, #8d2734)'
-              : 'linear-gradient(180deg, #dff9ff, #426d82)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7), 0 8px 20px rgba(0,0,0,0.55)',
-            color: isWishlisted ? '#24070a' : '#06131a',
-            cursor: wishlistBusyKey === product.key ? 'wait' : 'pointer',
-          }}
+          className={`${merchStyles.wishlistControl} ${isWishlisted ? merchStyles.wishlistControlSelected : ''}`}
         >
-          <Heart size={18} fill={isWishlisted ? 'currentColor' : 'none'} aria-hidden="true" />
+          {isWishlisted ? 'Saved' : 'Save'}
         </button>
       </div>
 
-      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+      <div className={merchStyles.cardBody}>
         <div>
-          <h4
-            id={titleId}
-            style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: '0 0 4px' }}
-          >
+          <h4 id={titleId} className={merchStyles.productTitle}>
             {product.name}
           </h4>
           {product.description && (
-            <div style={{ fontSize: 12, color: 'rgba(225,240,247,0.72)', lineHeight: 1.5 }}>
-              {product.description}
-            </div>
+            <div className={merchStyles.productDescription}>{product.description}</div>
           )}
         </div>
 
         {/* Card price; physical POD orders need a checkout address. */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 20, fontWeight: 800, color: CYAN }}>{usd(unitPriceUsd)}</span>
+        <div className={merchStyles.priceRow}>
+          <span className={merchStyles.price}>{usd(unitPriceUsd)}</span>
           {product.madeToOrder && (
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.52)', fontWeight: 700 }}>
-              Printed After Purchase
-            </span>
+            <span className={merchStyles.priceNote}>Printed After Purchase</span>
           )}
         </div>
 
         {/* Variant picker */}
         {needsVariant && (
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: MUTED,
-                marginBottom: 6,
-                fontWeight: 600,
-                letterSpacing: '0.4px',
-              }}
-            >
-              Size / Option
-            </div>
+            <div className={merchStyles.controlLabel}>Size / Option</div>
             <div
               role="group"
               aria-label={`Choose ${product.name} Size Or Option`}
@@ -656,24 +554,7 @@ function MerchProductCard({
                           : v.label
                     }
                     aria-pressed={active}
-                    style={{
-                      padding: '6px 11px',
-                      minWidth: 44,
-                      minHeight: 44,
-                      borderRadius: 0,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: v.inStock && v.fulfillmentReady ? 'pointer' : 'not-allowed',
-                      color:
-                        !v.inStock || !v.fulfillmentReady
-                          ? 'rgba(255,255,255,0.28)'
-                          : active
-                            ? '#0a1628'
-                            : TEXT,
-                      background: active ? CYAN : 'rgba(255,255,255,0.06)',
-                      border: active ? `1px solid ${CYAN}` : '1px solid rgba(255,255,255,0.15)',
-                      textDecoration: v.inStock && v.fulfillmentReady ? 'none' : 'line-through',
-                    }}
+                    className={`${merchStyles.optionControl} ${active ? merchStyles.optionControlSelected : ''}`}
                   >
                     {v.label}
                   </button>
@@ -684,50 +565,19 @@ function MerchProductCard({
         )}
 
         {/* Quantity */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: '0.4px' }}>
-            Quantity
-          </span>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 0,
-              overflow: 'hidden',
-            }}
-          >
+        <div className={merchStyles.quantityRow}>
+          <span className={merchStyles.controlLabel}>Quantity</span>
+          <div className={merchStyles.quantityControl}>
             <button
               type="button"
               aria-label={`Decrease quantity of ${product.name}`}
               onClick={() => setQty((q) => Math.max(1, Math.min(q, maxQty) - 1))}
               disabled={soldOut || clampedQty <= 1}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: TEXT,
-                width: 44,
-                minWidth: 44,
-                height: 44,
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: clampedQty <= 1 ? 'not-allowed' : 'pointer',
-              }}
+              className={merchStyles.quantityButton}
             >
-              <Minus size={12} />
+              <span aria-hidden="true">−</span>
             </button>
-            <output
-              aria-live="polite"
-              style={{
-                minWidth: 28,
-                textAlign: 'center',
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#fff',
-              }}
-            >
+            <output aria-live="polite" className={merchStyles.quantityValue}>
               {clampedQty}
             </output>
             <button
@@ -735,57 +585,25 @@ function MerchProductCard({
               aria-label={`Increase quantity of ${product.name}`}
               onClick={() => setQty((q) => Math.min(maxQty, Math.min(q, maxQty) + 1))}
               disabled={soldOut || clampedQty >= maxQty}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                color: TEXT,
-                width: 44,
-                minWidth: 44,
-                height: 44,
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: clampedQty >= maxQty ? 'not-allowed' : 'pointer',
-              }}
+              className={merchStyles.quantityButton}
             >
-              <Plus size={12} />
+              <span aria-hidden="true">+</span>
             </button>
           </div>
           {clampedQty > 1 && (
-            <span style={{ fontSize: 11, color: MUTED }}>
-              {usd(usdCost)} / {fmt(diamondCost)}{' '}
-              <Gem size={10} color={CYAN} style={{ verticalAlign: 'middle' }} />
+            <span className={merchStyles.quantityTotal}>
+              {usd(usdCost)} / {fmt(diamondCost)} Diamonds
             </span>
           )}
         </div>
 
         {/* Purchase buttons */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            marginTop: 'auto',
-            paddingTop: 4,
-          }}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div className={merchStyles.purchaseControls}>
+          <div className={merchStyles.purchasePair}>
             <Link
               href={`/hub/merch-store/${product.catalogId || product.key}`}
               aria-label={`View ${product.name} Details`}
-              style={{
-                minHeight: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(139,239,255,0.42)',
-                color: '#c8f5ff',
-                background: 'rgba(18,55,72,0.45)',
-                fontSize: 12,
-                fontWeight: 800,
-                textDecoration: 'none',
-              }}
+              className={`${merchStyles.actionControl} ${merchStyles.actionSecondary}`}
             >
               View Details
             </Link>
@@ -794,21 +612,9 @@ function MerchProductCard({
               onClick={() => onAddToCart(product, variant, clampedQty)}
               disabled={!cartReady || soldOut || busy}
               aria-label={`Add ${product.name} To Cart`}
-              style={{
-                minHeight: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                border: '1px solid rgba(255,215,0,0.54)',
-                color: !cartReady || soldOut || busy ? 'rgba(255,255,255,0.45)' : '#ffe87a',
-                background: 'rgba(95,75,0,0.2)',
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: !cartReady || soldOut || busy ? 'not-allowed' : 'pointer',
-              }}
+              className={`${merchStyles.actionControl} ${merchStyles.actionGold}`}
             >
-              <ShoppingCart size={15} aria-hidden="true" /> Add To Cart
+              Add To Cart
             </button>
           </div>
 
@@ -818,33 +624,9 @@ function MerchProductCard({
             disabled={soldOut || busy}
             title={soldOut ? availabilityReason : 'Pay By Card Through Stripe Checkout'}
             aria-label={`Buy ${product.name} With Card For ${usd(usdCost)}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              width: '100%',
-              minHeight: 46,
-              padding: '10px 12px',
-              borderRadius: 0,
-              border: soldOut || busy ? '1px solid rgba(255,255,255,0.08)' : '1px solid #c8f5ff',
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: '0.3px',
-              color: soldOut || busy ? 'rgba(255,255,255,0.4)' : '#0a1628',
-              background:
-                soldOut || busy
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'linear-gradient(180deg, #e7fbff 0%, #75bad2 42%, #2c667f 100%)',
-              boxShadow:
-                soldOut || busy
-                  ? 'none'
-                  : 'inset 0 1px 0 #fff, inset 0 -2px 0 rgba(0,0,0,0.35), 0 8px 18px rgba(0,0,0,0.35)',
-              cursor: soldOut || busy ? 'not-allowed' : 'pointer',
-            }}
+            className={`${merchStyles.actionControl} ${merchStyles.actionPrimary}`}
           >
-            <CreditCard size={15} />
-            {thisBusy ? 'Opening Checkout…' : soldOut ? availabilityReason : 'Buy With Card'}
+            {thisBusy ? 'Opening Checkout...' : soldOut ? availabilityReason : 'Buy With Card'}
           </button>
 
           <button
@@ -853,41 +635,15 @@ function MerchProductCard({
             disabled={diamondDisabled}
             title={diamondReason || `Pay ${fmt(diamondCost)} diamonds`}
             aria-label={`Buy ${product.name} With ${fmt(diamondCost)} Diamonds`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              width: '100%',
-              minHeight: 46,
-              padding: '10px 12px',
-              borderRadius: 0,
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: '0.3px',
-              color: diamondDisabled ? 'rgba(255,255,255,0.4)' : CYAN,
-              background: 'rgba(0, 212, 255, 0.1)',
-              border: `1px solid ${diamondDisabled ? 'rgba(255,255,255,0.12)' : 'rgba(0, 212, 255, 0.45)'}`,
-              cursor: diamondDisabled ? 'not-allowed' : 'pointer',
-            }}
+            className={`${merchStyles.actionControl} ${merchStyles.actionDiamond}`}
           >
-            <Gem size={15} />
-            {thisBusy ? 'Processing…' : `Pay With Diamonds: ${fmt(diamondCost)}`}
+            {thisBusy ? 'Processing...' : `Pay With Diamonds: ${fmt(diamondCost)}`}
           </button>
 
           {/* Honest, specific reason instead of a silently dead button */}
           {diamondReason && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 11,
-                color: cannotAfford ? '#FFD700' : RED,
-                fontWeight: 600,
-              }}
-            >
-              <AlertTriangle size={12} /> {diamondReason}
+            <div className={merchStyles.purchaseReason} data-shortfall={cannotAfford || undefined}>
+              {diamondReason}
             </div>
           )}
         </div>
@@ -908,9 +664,7 @@ export default function MerchStore({
   catalogCategory = null,
 }) {
   const initialProducts = useMemo(() => {
-    const normalized = initialProduct
-      ? normalizeProduct(initialProduct, 0, 'catalog')
-      : null;
+    const normalized = initialProduct ? normalizeProduct(initialProduct, 0, 'catalog') : null;
     return normalized ? [normalized] : STATIC_PRODUCTS;
   }, [initialProduct]);
   // Render the verified static lineup on the server and during the live
@@ -954,12 +708,24 @@ export default function MerchStore({
     let cancelled = false;
     if (!user?.id) {
       setIsOperator(false);
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }
-    supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()
-      .then(({ data }) => { if (!cancelled) setIsOperator(data?.is_admin === true); })
-      .catch(() => { if (!cancelled) setIsOperator(false); });
-    return () => { cancelled = true; };
+    supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setIsOperator(data?.is_admin === true);
+      })
+      .catch(() => {
+        if (!cancelled) setIsOperator(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   useEffect(() => {
@@ -1174,7 +940,9 @@ export default function MerchStore({
         price: firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0,
         diamonds:
           firstFiniteNumber([variant?.priceDiamonds, product.priceDiamonds]) ||
-          Math.ceil((firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0) * DIAMONDS_PER_DOLLAR),
+          Math.ceil(
+            (firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0) * DIAMONDS_PER_DOLLAR
+          ),
         image: product.image || null,
         variantId: variant?.id || null,
         variantLabel: variant?.label || null,
@@ -1476,7 +1244,14 @@ export default function MerchStore({
         if (mountedRef.current) setStoreBusy(null);
       }
     },
-    [pendingDiamondPurchase, requireSignedIn, buildLineItem, refreshBalance, setBalance, setStoreBusy]
+    [
+      pendingDiamondPurchase,
+      requireSignedIn,
+      buildLineItem,
+      refreshBalance,
+      setBalance,
+      setStoreBusy,
+    ]
   );
 
   // ── Render ────────────────────────────────────────────────────────────
@@ -1496,7 +1271,7 @@ export default function MerchStore({
           }
         }
         .merch-discovery-controls {
-          grid-template-columns: minmax(220px, 1fr) minmax(170px, .45fr);
+          grid-template-columns: minmax(220px, 1fr) minmax(170px, 0.45fr);
         }
         @media (max-width: 620px) {
           .merch-discovery-controls {
@@ -1510,40 +1285,26 @@ export default function MerchStore({
       <div
         id={detailMode ? 'purchase-console' : undefined}
         aria-label={detailMode ? 'Live Product Purchase Console' : undefined}
+        className={merchStyles.storefront}
         style={detailMode ? { scrollMarginTop: 96 } : undefined}
       >
         {!detailMode && (
-          <div style={styles.intro}>
-            <h2 style={styles.merchTitle}>Official Merch</h2>
-            <p style={styles.introText}>
+          <div style={styles.intro} className={merchStyles.intro}>
+            <h2 className={merchStyles.storeTitle}>Official Merch</h2>
+            <p className={merchStyles.storeIntro}>
               Neural Steel Apparel, Headwear, Table Gear, And Lifestyle Products Are Created After
-              Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or Ship
-              Inventory.
+              Purchase, Then Packed And Shipped Directly By A Fulfillment Partner. We Never Hold Or
+              Ship Inventory.
             </p>
 
             {user?.id && (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginTop: 14,
-                  background: 'rgba(0, 212, 255, 0.1)',
-                  border: '1px solid rgba(0, 212, 255, 0.3)',
-                  borderRadius: 0,
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: TEXT,
-                }}
-              >
-                <Gem size={15} color={CYAN} />
-                Your Balance: <span style={{ color: CYAN }}>{fmt(balance)}</span>
+              <div className={merchStyles.balanceReadout}>
+                Diamond Balance <strong>{fmt(balance)}</strong>
               </div>
             )}
             {isOperator && (
               <div style={{ marginTop: 12 }}>
-                <Link href="/hub/merch-store/fulfillment" style={{ color: CYAN, fontWeight: 800 }}>
+                <Link href="/hub/merch-store/fulfillment" className={merchStyles.operatorLink}>
                   Open Protected Fulfillment Command Vault
                 </Link>
               </div>
@@ -1552,252 +1313,138 @@ export default function MerchStore({
         )}
 
         {detailMode && (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 8,
-              marginBottom: 14,
-              background: 'linear-gradient(180deg, rgba(20,52,68,0.96), rgba(3,10,15,0.98))',
-              border: '1px solid rgba(139,239,255,0.42)',
-              borderRadius: 0,
-              padding: '14px 16px',
-              fontSize: 12,
-              fontWeight: 700,
-              color: TEXT,
-            }}
-          >
+          <div role="status" aria-live="polite" className={merchStyles.detailStatus}>
             <span>
               Live Price, Option, Stock, Wishlist, Cart, Card, And Diamond Controls Are Verified
               Below.
             </span>
-            <span style={{ color: CYAN }}>
+            <span className={merchStyles.detailWallet}>
               {user?.id ? `Wallet: ${fmt(balance)} Diamonds` : 'Sign In To Purchase'}
             </span>
           </div>
         )}
 
-      {!detailMode && (
-        <section
-          className="merch-discovery-controls"
-          aria-label="Browse Marketplace Gear"
-          style={{
-            display: 'grid',
-            gap: 10,
-            margin: '0 0 14px',
-            padding: 12,
-            border: '1px solid rgba(115,205,235,0.3)',
-            background: 'linear-gradient(180deg, rgba(16,39,53,0.92), rgba(3,10,15,0.96))',
-          }}
-        >
-        <label
-          style={{
-            minHeight: 48,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '0 12px',
-            border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(0,0,0,0.34)',
-          }}
-        >
-          <Search size={17} color={CYAN} aria-hidden="true" />
-          <span className="sr-only">Search Marketplace Gear</span>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search Marketplace Gear"
-            aria-label="Search Marketplace Gear"
-            style={{
-              width: '100%',
-              minHeight: 44,
-              border: 0,
-              outline: 0,
-              color: '#effbff',
-              background: 'transparent',
-              fontSize: 14,
-            }}
-          />
-        </label>
-        <label style={{ display: 'grid', gap: 5, color: '#b9d3dc', fontSize: 12 }}>
-          Sort Products
-          <select
-            value={sortMode}
-            onChange={(event) => setSortMode(event.target.value)}
-            aria-label="Sort Products"
-            style={{
-              minHeight: 44,
-              border: '1px solid rgba(115,205,235,0.36)',
-              color: '#effbff',
-              background: '#07121a',
-              padding: '0 10px',
-              fontSize: 13,
-            }}
+        {!detailMode && (
+          <section
+            className={`merch-discovery-controls ${merchStyles.discoveryControls}`}
+            aria-label="Browse Marketplace Gear"
+            data-console-surface="merch-discovery"
           >
-            <option value="featured">Featured</option>
-            <option value="price-low">Price: Low To High</option>
-            <option value="price-high">Price: High To Low</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
-        <div
-          role="group"
-          aria-label="All Categories"
-          style={{ gridColumn: '1 / -1', display: 'flex', gap: 7, flexWrap: 'wrap' }}
-        >
-          {['all', ...categories].map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setCategoryFilter(category)}
-              aria-pressed={categoryFilter === category}
-              style={{
-                minHeight: 44,
-                padding: '7px 12px',
-                border: `1px solid ${categoryFilter === category ? CYAN : 'rgba(255,255,255,0.2)'}`,
-                color: categoryFilter === category ? '#8befff' : '#c7d5da',
-                background:
-                  categoryFilter === category ? 'rgba(0,168,255,0.16)' : 'rgba(255,255,255,0.04)',
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              {category === 'all' ? 'All Categories' : categoryLabel(category)}
-            </button>
-          ))}
-        </div>
-        <div aria-live="polite" style={{ gridColumn: '1 / -1', color: '#a9c3cd', fontSize: 12 }}>
-          Showing {visibleProducts.length} Of {products.length} Products
-        </div>
-        </section>
-      )}
-
-      {usingFallback && loadError && (
-        <div
-          role="alert"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexWrap: 'wrap',
-            margin: '0 0 24px',
-            padding: '12px 16px',
-            borderRadius: 0,
-            background: 'rgba(255, 215, 0, 0.08)',
-            border: '1px solid rgba(255, 215, 0, 0.35)',
-            color: '#FFD700',
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          <AlertTriangle size={14} />
-          <span style={{ flex: 1 }}>
-            {marketplaceCopy(loadError)}: Showing The Standard Lineup. Live Fulfillment Options Are Required Before
-            Checkout.
-          </span>
-          <button
-            type="button"
-            onClick={() => setReloadToken((t) => t + 1)}
-            disabled={loading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              minHeight: 46,
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: TEXT,
-              borderRadius: 0,
-              padding: '5px 10px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCw size={12} /> {loading ? 'Retrying...' : 'Retry'}
-          </button>
-        </div>
-      )}
-
-      {loading && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{ textAlign: 'center', padding: '10px 0 18px', color: MUTED, fontSize: 13 }}
-        >
-          <RefreshCw
-            size={15}
-            color="#a8b2d1"
-            style={{ verticalAlign: 'middle', marginRight: 7 }}
-          />
-          Verifying Live Prices, Options, And Stock...
-        </div>
-      )}
-
-      {!loading && products.length === 0 && (
-        <div
-          role="status"
-          style={{
-            textAlign: 'center',
-            padding: '48px 20px',
-            background: CARD_BG,
-            border: CARD_BORDER,
-            borderRadius: 0,
-            color: MUTED,
-            fontSize: 14,
-          }}
-        >
-          <Package size={28} color="#a8b2d1" />
-          <div style={{ marginTop: 10, fontWeight: 700, color: TEXT }}>
-            No Merch Available Right Now
-          </div>
-          <div style={{ marginTop: 6 }}>New Gear Drops Regularly: Check Back Soon.</div>
-        </div>
-      )}
-
-      {!loading && products.length > 0 && visibleProducts.length === 0 && (
-        <div role="status" style={{ padding: 32, textAlign: 'center', color: '#c9d8de' }}>
-          No Products Match Those Filters. Clear The Search Or Choose All Categories.
-        </div>
-      )}
-
-      {sections.map((section) => (
-        <div key={section.key} style={styles.merchSection}>
-          {!detailMode && <h3 style={styles.merchCategoryTitle}>{section.label}</h3>}
-          <div style={styles.merchGrid}>
-            {section.items.map((product, productIndex) => (
-              <MerchProductCard
-                key={product.key}
-                product={product}
-                balance={balance}
-                hasUser={!!user?.id}
-                cartReady={authResolved}
-                busyKey={busyKey}
-                wishlistBusyKey={wishlistBusyKey}
-                isWishlisted={wishlistIds.has(product.catalogId || product.key)}
-                onToggleWishlist={toggleWishlist}
-                onAddToCart={handleAddToCart}
-                onBuyCard={handleBuyCard}
-                onBuyDiamonds={handleBuyDiamonds}
-                mediaPriority={section.key === sections[0]?.key && productIndex < 2}
+            <label className={merchStyles.searchControl}>
+              <span className="sr-only">Search Marketplace Gear</span>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search Marketplace Gear"
+                aria-label="Search Marketplace Gear"
+                className={merchStyles.searchInput}
               />
-            ))}
-          </div>
-        </div>
-      ))}
+            </label>
+            <label className={merchStyles.sortControl}>
+              Sort Products
+              <select
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value)}
+                aria-label="Sort Products"
+                className={merchStyles.sortSelect}
+              >
+                <option value="featured">Featured</option>
+                <option value="price-low">Price: Low To High</option>
+                <option value="price-high">Price: High To Low</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+            <div
+              role="group"
+              aria-label="All Categories"
+              style={{ gridColumn: '1 / -1', display: 'flex', gap: 7, flexWrap: 'wrap' }}
+            >
+              {['all', ...categories].map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setCategoryFilter(category)}
+                  aria-pressed={categoryFilter === category}
+                  className={`${merchStyles.categoryControl} ${categoryFilter === category ? merchStyles.categoryControlSelected : ''}`}
+                >
+                  {category === 'all' ? 'All Categories' : categoryLabel(category)}
+                </button>
+              ))}
+            </div>
+            <div aria-live="polite" className={merchStyles.resultCount}>
+              Showing {visibleProducts.length} Of {products.length} Products
+            </div>
+          </section>
+        )}
 
-      {!detailMode && products.length > 0 && (
-        <p style={{ ...styles.introText, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-          Card And Diamond Orders Ship To The United States And Canada. A Shipping Address Is
-          Collected Securely Before A Physical Order Is Placed.
-        </p>
-      )}
+        {usingFallback && loadError && (
+          <div role="alert" className={merchStyles.catalogAlert}>
+            <span style={{ flex: 1 }}>
+              {marketplaceCopy(loadError)}: Showing The Standard Lineup. Live Fulfillment Options
+              Are Required Before Checkout.
+            </span>
+            <button
+              type="button"
+              onClick={() => setReloadToken((t) => t + 1)}
+              disabled={loading}
+              className={`${merchStyles.actionControl} ${merchStyles.actionSecondary}`}
+            >
+              {loading ? 'Retrying...' : 'Retry'}
+            </button>
+          </div>
+        )}
+
+        {loading && (
+          <div role="status" aria-live="polite" className={merchStyles.loadingStatus}>
+            Verifying Live Prices, Options, And Stock...
+          </div>
+        )}
+
+        {!loading && products.length === 0 && (
+          <div role="status" className={merchStyles.emptyState}>
+            <div className={merchStyles.emptyStateTitle}>No Merch Available Right Now</div>
+            <div style={{ marginTop: 6 }}>New Gear Drops Regularly: Check Back Soon.</div>
+          </div>
+        )}
+
+        {!loading && products.length > 0 && visibleProducts.length === 0 && (
+          <div role="status" className={merchStyles.emptyState}>
+            No Products Match Those Filters. Clear The Search Or Choose All Categories.
+          </div>
+        )}
+
+        {sections.map((section) => (
+          <div key={section.key} style={styles.merchSection}>
+            {!detailMode && <h3 className={merchStyles.categoryTitle}>{section.label}</h3>}
+            <div style={styles.merchGrid}>
+              {section.items.map((product, productIndex) => (
+                <MerchProductCard
+                  key={product.key}
+                  product={product}
+                  balance={balance}
+                  hasUser={!!user?.id}
+                  cartReady={authResolved}
+                  busyKey={busyKey}
+                  wishlistBusyKey={wishlistBusyKey}
+                  isWishlisted={wishlistIds.has(product.catalogId || product.key)}
+                  onToggleWishlist={toggleWishlist}
+                  onAddToCart={handleAddToCart}
+                  onBuyCard={handleBuyCard}
+                  onBuyDiamonds={handleBuyDiamonds}
+                  mediaPriority={section.key === sections[0]?.key && productIndex < 2}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {!detailMode && products.length > 0 && (
+          <p className={merchStyles.legalCopy}>
+            Card And Diamond Orders Ship To The United States And Canada. A Shipping Address Is
+            Collected Securely Before A Physical Order Is Placed.
+          </p>
+        )}
       </div>
 
       <MerchPurchaseDialog

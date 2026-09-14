@@ -34,7 +34,12 @@ import {
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
-import { ensureAuthReady, getAccessToken, getAuthUser, getFreshAccessToken } from '../../src/lib/authUtils';
+import {
+  ensureAuthReady,
+  getAccessToken,
+  getAuthUser,
+  getFreshAccessToken,
+} from '../../src/lib/authUtils';
 import { acquireScrollLock } from '../../src/lib/scrollLock';
 import { showStoreToast } from '../../src/components/store/StoreToast';
 import { captureStoreEvent } from '../../src/lib/store/storeAnalytics';
@@ -58,23 +63,6 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
     />
   ),
 });
-import {
-  Gem,
-  Crown,
-  ShoppingBag,
-  Trophy,
-  Gamepad2,
-  Home,
-  Package,
-  Wrench,
-  Zap,
-  Gift,
-  ShoppingCart as CartIcon,
-  AlertTriangle,
-  CheckCircle,
-  Trash2,
-  CreditCard,
-} from 'lucide-react';
 const StoreToast = dynamic(() => import('../../src/components/store/StoreToast'), { ssr: false });
 import { VIPCard } from '../../src/components/store/StoreCards';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
@@ -93,7 +81,7 @@ import {
   STANDARD_REWARDS,
   EASTER_EGGS,
   VIP_MEMBERSHIP,
-  VIP_BENEFITS,
+  getVipBenefitsForPlan,
   MERCHANDISE,
   // Diamond Rewards Standard v2: every economy number below is derived from
   // src/config/diamondRewards.js. Never re-type a cap or a count by hand.
@@ -122,13 +110,6 @@ const CLUB_SHOP_LOAD_TIMEOUT_MS = 12000;
 const EGG_CATEGORY_COUNT = Object.keys(EGG_CATEGORY_LABELS).length;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 
-// Immutable Rule 7 forbids a bare emoji anywhere in a source file: the SWC
-// compiler chokes on one and the Vercel build dies. This page carried ten of
-// them in FAQ and cap copy. The compliant form is an escaped surrogate pair,
-// declared once here rather than repeated inline -- it renders identically and
-// keeps the copy readable.
-const GEM = '\uD83D\uDC8E';
-
 // ═══════════════════════════════════════════════════════════════════════════
 // STORE TAB ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -156,15 +137,15 @@ const CLUB_PRODUCT_ATLAS = {
   'VIP Rail Seat (7 days)': '0% 0%',
   'Time Bank +30s': '33.333% 0%',
   'Time Bank Bundle (5x)': '66.667% 0%',
-  'Snowball Pack (10)': '100% 0%',
-  'Tomato Pack (10)': '0% 50%',
-  'Golden Egg (3)': '33.333% 50%',
   'Midnight Felt Table Skin': '66.667% 50%',
   'Royal Gold Table Skin': '100% 50%',
   'Classic Emote Pack': '0% 100%',
   'Premium Emote Pack': '33.333% 100%',
   'Shark Avatar': '66.667% 100%',
   'Crown Avatar': '100% 100%',
+};
+const CLUB_PRODUCT_IMAGES = {
+  'All Throwables Pack (10)': '/images/marketplace/throwables/all-throwables-access-v1.png',
 };
 
 export const TAB_ROUTES = {
@@ -216,7 +197,8 @@ const LOWER_SECTION_META = {
   vip: {
     code: 'HIGH LIMIT ACCESS',
     title: 'The Membership Vault',
-    description: 'Choose an access tier, review every included system, and activate with card or diamonds.',
+    description:
+      'Choose an access tier, review every included system, and activate with card or diamonds.',
   },
   merch: {
     code: 'NEURAL STEEL COLLECTION',
@@ -226,7 +208,8 @@ const LOWER_SECTION_META = {
   rewards: {
     code: 'VERIFIED REWARD INTELLIGENCE',
     title: 'The Trophy Vault',
-    description: 'Live earning caps, streak multipliers, standard rewards, and hidden achievements.',
+    description:
+      'Live earning caps, streak multipliers, standard rewards, and hidden achievements.',
   },
   'club-shop': {
     code: 'CLUB EQUIPMENT BAY',
@@ -352,7 +335,7 @@ const VIP_FAQ = [
   },
   {
     q: 'Is Everything Truly Unlimited, Or Are There Caps?',
-    a: 'Most Of It Is Unlimited. Three Perks Carry An Honest Monthly Ceiling: 100 Free Rabbit Hunts, 500 Free Throwables, And 120 Extra Time Bank Seconds. Past Those You Pay The Normal Diamond Price. We List The Real Number Rather Than The Word Unlimited.',
+    a: 'Monthly And Yearly VIP Carry Three Honest Monthly Ceilings: 100 Free Rabbit Hunts, 500 Free Throwables, And 120 Extra Time Bank Seconds. Past Those You Pay The Normal Diamond Price. Lifetime VIP Makes Those Three Digital Gameplay Benefits Unlimited, While Every Time Bank Remains A Standard 20-Second Activation With No More Than Two Per Street.',
   },
   {
     q: 'How Much Higher Are My Diamond Earning Caps?',
@@ -497,7 +480,9 @@ export default function DiamondStorePage({
 
   useEffect(() => {
     if (!router.isReady || activeTab !== 'vip') return;
-    const requestedPlan = Array.isArray(router.query.plan) ? router.query.plan[0] : router.query.plan;
+    const requestedPlan = Array.isArray(router.query.plan)
+      ? router.query.plan[0]
+      : router.query.plan;
     if (['vip-monthly', 'vip-yearly', 'vip-lifetime'].includes(requestedPlan)) {
       setSelectedVIP(requestedPlan);
     }
@@ -526,9 +511,7 @@ export default function DiamondStorePage({
   const rawRouteClubId = Array.isArray(router.query.clubId)
     ? router.query.clubId[0]
     : router.query.clubId;
-  const routeClubId = CLUB_ID_RE.test(String(rawRouteClubId || ''))
-    ? String(rawRouteClubId)
-    : null;
+  const routeClubId = CLUB_ID_RE.test(String(rawRouteClubId || '')) ? String(rawRouteClubId) : null;
 
   useEffect(() => {
     if (!router.isReady || activeTab !== 'club-shop' || !routeClubId) return;
@@ -623,9 +606,10 @@ export default function DiamondStorePage({
     if (!router.isReady) return undefined;
 
     const clearCheckoutTransport = () => {
-      const cleanPath = activeTab === 'club-shop' && routeClubId
-        ? `${TAB_ROUTES[activeTab]}?clubId=${encodeURIComponent(routeClubId)}`
-        : TAB_ROUTES[activeTab];
+      const cleanPath =
+        activeTab === 'club-shop' && routeClubId
+          ? `${TAB_ROUTES[activeTab]}?clubId=${encodeURIComponent(routeClubId)}`
+          : TAB_ROUTES[activeTab];
       window.history.replaceState(
         { ...window.history.state, as: cleanPath, url: cleanPath },
         '',
@@ -714,28 +698,31 @@ export default function DiamondStorePage({
             ? body.data.status
             : 'pending';
           const needsRedemptionReview = body.data?.redemptionStatus === 'needs_review';
-          const displayStatus = status === 'complete' && needsRedemptionReview
-            ? 'review'
-            : status;
+          const displayStatus = status === 'complete' && needsRedemptionReview ? 'review' : status;
           const verifiedWalletBalance = Number(body.data?.walletBalance);
           if (Number.isFinite(verifiedWalletBalance)) {
             setClubDiamondBalance(verifiedWalletBalance);
-            window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
-              detail: {
-                balance: verifiedWalletBalance,
-                userId: getAuthUser()?.id,
-                source: 'checkout-status',
-              },
-            }));
+            window.dispatchEvent(
+              new CustomEvent('smarter-poker:diamond-balance', {
+                detail: {
+                  balance: verifiedWalletBalance,
+                  userId: getAuthUser()?.id,
+                  source: 'checkout-status',
+                },
+              })
+            );
             broadcastSync('smarter_poker_diamond_sync', 'refresh');
           }
           setCheckoutReturn({
             status: displayStatus,
             sessionId: rawSession,
             receipt: body.data,
-            ...(needsRedemptionReview ? {
-              message: 'Your Card Payment And Diamond Funding Are Recorded, But The Item Was Not Purchased. Review The Updated Wallet And Current Item Price Before Finishing With Diamonds. Do Not Pay By Card Again.',
-            } : {}),
+            ...(needsRedemptionReview
+              ? {
+                  message:
+                    'Your Card Payment And Diamond Funding Are Recorded, But The Item Was Not Purchased. Review The Updated Wallet And Current Item Price Before Finishing With Diamonds. Do Not Pay By Card Again.',
+                }
+              : {}),
           });
           if (status === 'complete') {
             captureStoreEvent('checkout_complete', {
@@ -804,12 +791,13 @@ export default function DiamondStorePage({
     const sessionId = checkoutReturn.receipt?.sessionId;
     const purchasedLines = checkoutReturn.receipt?.cartItems;
     if (
-      !sessionId
-      || !Array.isArray(purchasedLines)
-      || purchasedLines.length === 0
-      || cartOwnerId !== user.id
-      || reconciledCheckoutSessionsRef.current.has(sessionId)
-    ) return;
+      !sessionId ||
+      !Array.isArray(purchasedLines) ||
+      purchasedLines.length === 0 ||
+      cartOwnerId !== user.id ||
+      reconciledCheckoutSessionsRef.current.has(sessionId)
+    )
+      return;
 
     const cartStore = useCartStore.getState();
     const reconciled = reconcilePurchasedCart(cartStore.items, purchasedLines);
@@ -952,9 +940,11 @@ export default function DiamondStorePage({
         body?.error || 'Current Diamond Pricing Could Not Be Verified. Please Try Again.'
       );
     }
-    if (body.diamondCatalogSource !== 'database'
-      || !Array.isArray(body.diamondPackages)
-      || body.diamondPackages.length === 0) {
+    if (
+      body.diamondCatalogSource !== 'database' ||
+      !Array.isArray(body.diamondPackages) ||
+      body.diamondPackages.length === 0
+    ) {
       throw new Error('Current Diamond Pricing Could Not Be Verified. Please Try Again.');
     }
 
@@ -1001,7 +991,10 @@ export default function DiamondStorePage({
       const currentPackages = await refreshDiamondPackageCatalog();
       const currentPackage = currentPackages.find((entry) => entry.id === pkg.id);
       if (!sameDiamondStorefrontOffer(pkg, currentPackage)) {
-        showStoreToast('error', 'Package Details Changed. Review The Current Offer Before Purchasing.');
+        showStoreToast(
+          'error',
+          'Package Details Changed. Review The Current Offer Before Purchasing.'
+        );
         setStoreProcessing(false);
         return;
       }
@@ -1078,7 +1071,10 @@ export default function DiamondStorePage({
        settlement, refund, dispute, and cross-method lifecycle is not enabled. */
     if (plan?.cardCheckoutReady !== true) {
       if (plan?.interval !== 'lifetime') {
-        showStoreToast('error', 'Card Checkout Is Not Verified For This VIP Plan. Please Try Again.');
+        showStoreToast(
+          'error',
+          'Card Checkout Is Not Verified For This VIP Plan. Please Try Again.'
+        );
         return;
       }
       if (!user?.id) {
@@ -1097,8 +1093,7 @@ export default function DiamondStorePage({
         planKey: 'lifetime',
         title: 'Buy Lifetime VIP With Diamonds',
         cost,
-        detail:
-          `${cost.toLocaleString()} Diamonds, Once. Your Membership Stops Having An Expiry Date Rather Than Getting A Longer One, And It Never Renews.`,
+        detail: `${cost.toLocaleString()} Diamonds, Once. Your Membership Stops Having An Expiry Date Rather Than Getting A Longer One, And It Never Renews.`,
         commerceIntent,
         idempotencyKey: getOrCreateCommerceRequestId(commerceIntent),
       });
@@ -1378,8 +1373,10 @@ export default function DiamondStorePage({
       purchaseTarget.price,
       clubDiamondBalance
     );
-    if (Number(purchaseTarget.price) !== 0
-      && (!diamondProjection || diamondProjection.hasDebt || diamondProjection.shortfall > 0)) {
+    if (
+      Number(purchaseTarget.price) !== 0 &&
+      (!diamondProjection || diamondProjection.hasDebt || diamondProjection.shortfall > 0)
+    ) {
       showStoreToast('error', 'Your Verified Diamond Balance Cannot Fund This Purchase.');
       return;
     }
@@ -1516,9 +1513,7 @@ export default function DiamondStorePage({
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success || !data?.data?.url) {
-        const checkoutError = new Error(
-          data?.error?.message || 'Could Not Start Card Checkout.'
-        );
+        const checkoutError = new Error(data?.error?.message || 'Could Not Start Card Checkout.');
         checkoutError.code = data?.error?.code || null;
         throw checkoutError;
       }
@@ -1535,10 +1530,8 @@ export default function DiamondStorePage({
   };
 
   useEffect(() => {
-    if (
-      activeTab !== 'club-shop'
-      || !['complete', 'review'].includes(checkoutReturn?.status)
-    ) return;
+    if (activeTab !== 'club-shop' || !['complete', 'review'].includes(checkoutReturn?.status))
+      return;
     loadClubShop(true);
   }, [activeTab, checkoutReturn?.status, loadClubShop]);
 
@@ -1592,8 +1585,7 @@ export default function DiamondStorePage({
       setClubShopAdminItems(itemsWithCounts);
       setClubShopAdminReport(data.report || null);
       setClubShopMaximumCardFundedPrice(
-        Number.isSafeInteger(data.maximumCardFundedPrice)
-          && data.maximumCardFundedPrice > 0
+        Number.isSafeInteger(data.maximumCardFundedPrice) && data.maximumCardFundedPrice > 0
           ? data.maximumCardFundedPrice
           : null
       );
@@ -1683,11 +1675,13 @@ export default function DiamondStorePage({
   // activeTab is persisted, so a user can land directly on 'club-shop'
   // without ever clicking the tab button (which is the only other trigger).
   useEffect(() => {
-    if (activeTab === 'club-shop'
-      && user?.id
-      && (!routeClubId || clubShopClubId === routeClubId)
-      && !clubShopLoaded
-      && !clubShopLoadingRef.current) {
+    if (
+      activeTab === 'club-shop' &&
+      user?.id &&
+      (!routeClubId || clubShopClubId === routeClubId) &&
+      !clubShopLoaded &&
+      !clubShopLoadingRef.current
+    ) {
       loadClubShop();
     }
   }, [activeTab, clubShopClubId, clubShopLoaded, loadClubShop, routeClubId, user?.id]);
@@ -1768,6 +1762,7 @@ export default function DiamondStorePage({
         ? VIP_MEMBERSHIP.yearly
         : VIP_MEMBERSHIP.monthly;
   const lifetimeSelected = selectedVIPPlan?.interval === 'lifetime';
+  const displayedVipBenefits = getVipBenefitsForPlan(selectedVIPPlan?.interval);
   const vipCardReady = selectedVIPPlan?.cardCheckoutReady === true;
   const vipSubscribeLabel = vipCardReady
     ? lifetimeSelected
@@ -1950,7 +1945,7 @@ export default function DiamondStorePage({
                     payment from someone who already paid. */}
                   {isVip && (
                     <div
-                      className={shellStyles.rewardsBoostLayout}
+                      className={shellStyles.vipStatusBar}
                       style={{
                         background:
                           'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))',
@@ -1964,7 +1959,6 @@ export default function DiamondStorePage({
                         flexWrap: 'wrap',
                       }}
                     >
-                      <Crown size={22} color="#FFD700" style={{ flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ color: '#FFD700', fontWeight: 700, fontSize: 15 }}>
                           You Are Already A VIP Member
@@ -1980,6 +1974,7 @@ export default function DiamondStorePage({
                       </div>
                       <a
                         href="/hub/settings?section=billing"
+                        className={shellStyles.vipManageAction}
                         style={{
                           minHeight: 44,
                           display: 'inline-flex',
@@ -2025,17 +2020,46 @@ export default function DiamondStorePage({
 
                   <nav
                     aria-label="VIP Membership Tools"
-                    style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginTop: 14 }}
+                    className={shellStyles.vipTools}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                      marginTop: 14,
+                    }}
                   >
                     <Link
                       href="/hub/vip-membership/compare"
-                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '9px 15px', border: '1px solid #385D70', color: '#8FE8FF', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}
+                      className={shellStyles.vipToolLink}
+                      style={{
+                        display: 'inline-flex',
+                        minHeight: 44,
+                        alignItems: 'center',
+                        padding: '9px 15px',
+                        border: '1px solid #385D70',
+                        color: '#8FE8FF',
+                        textDecoration: 'none',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
                     >
                       Compare Every VIP Plan
                     </Link>
                     <Link
                       href="/hub/vip-membership/manage"
-                      style={{ display: 'inline-flex', minHeight: 44, alignItems: 'center', padding: '9px 15px', border: '1px solid #385D70', color: '#8FE8FF', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}
+                      className={shellStyles.vipToolLink}
+                      style={{
+                        display: 'inline-flex',
+                        minHeight: 44,
+                        alignItems: 'center',
+                        padding: '9px 15px',
+                        border: '1px solid #385D70',
+                        color: '#8FE8FF',
+                        textDecoration: 'none',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
                     >
                       Open VIP Command Center
                     </Link>
@@ -2066,7 +2090,11 @@ export default function DiamondStorePage({
                       aria-label={isProcessing ? 'Processing' : vipSubscribeLabel}
                       onClick={handleVIPSubscribe}
                       style={{
-                        cursor: isProcessing ? 'wait' : vipTier === 'lifetime' ? 'not-allowed' : 'pointer',
+                        cursor: isProcessing
+                          ? 'wait'
+                          : vipTier === 'lifetime'
+                            ? 'not-allowed'
+                            : 'pointer',
                         opacity: isProcessing || vipTier === 'lifetime' ? 0.6 : 1,
                         transition: 'transform 0.15s ease, filter 0.15s ease',
                         display: 'inline-block',
@@ -2089,6 +2117,7 @@ export default function DiamondStorePage({
                       ) : (
                         <span
                           aria-hidden="true"
+                          className={shellStyles.vipPrimaryFallback}
                           style={{
                             width: 'min(420px, 88vw)',
                             minHeight: 92,
@@ -2107,7 +2136,6 @@ export default function DiamondStorePage({
                             gap: 14,
                           }}
                         >
-                          <Gem size={30} color="#00D4FF" strokeWidth={2.2} />
                           <span style={{ display: 'grid', gap: 2, textAlign: 'left' }}>
                             <strong style={{ fontSize: 18, letterSpacing: '0.04em' }}>
                               Buy Lifetime VIP
@@ -2157,6 +2185,7 @@ export default function DiamondStorePage({
                           <>
                             <button
                               type="button"
+                              className={shellStyles.vipDiamondAction}
                               disabled={isProcessing || !canAfford}
                               onClick={() => {
                                 if (!user?.id) {
@@ -2198,7 +2227,6 @@ export default function DiamondStorePage({
                                 cursor: isProcessing || !canAfford ? 'not-allowed' : 'pointer',
                               }}
                             >
-                              <Gem size={16} />
                               Pay With Diamonds Instead: {Number(cost).toLocaleString()}
                             </button>
                             <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 8 }}>
@@ -2206,9 +2234,9 @@ export default function DiamondStorePage({
                                 ? 'Sign In To Pay With Diamonds.'
                                 : vipTier === 'lifetime'
                                   ? 'Lifetime VIP Already Includes This Membership.'
-                                : canAfford
-                                  ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
-                                  : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
+                                  : canAfford
+                                    ? `You Have ${Number(diamondBalance).toLocaleString()} Diamonds.`
+                                    : `You Have ${Number(diamondBalance).toLocaleString()} And Need ${Number(short).toLocaleString()} More.`}
                             </div>
                           </>
                         );
@@ -2282,7 +2310,6 @@ export default function DiamondStorePage({
                             color: '#00D4FF',
                           }}
                         >
-                          <Gem size={20} />
                           {Number(pendingSpend.cost).toLocaleString()} Diamonds
                         </div>
                         <div style={{ display: 'flex', gap: 10 }}>
@@ -2341,15 +2368,18 @@ export default function DiamondStorePage({
 
                   {/* VIP Benefits Table */}
                   <div className={shellStyles.vipBenefits} style={styles.benefitsSection}>
-                    <h2 style={styles.benefitsTitle}>Everything Included With VIP</h2>
+                    <h2 style={styles.benefitsTitle}>
+                      Everything Included With {lifetimeSelected ? 'Lifetime VIP' : 'VIP'}
+                    </h2>
 
                     {/* Smarter.Poker Platform */}
                     <div style={styles.benefitsCategoryHeader}>
                       <span style={styles.benefitsCategoryLabel}>Smarter.Poker Platform</span>
                     </div>
                     <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
-                      {VIP_BENEFITS.filter((b) => b.category === 'Smarter.Poker').map(
-                        (benefit, idx) => (
+                      {displayedVipBenefits
+                        .filter((b) => b.category === 'Smarter.Poker')
+                        .map((benefit, idx) => (
                           <div
                             key={idx}
                             className={shellStyles.premiumDataCard}
@@ -2361,8 +2391,7 @@ export default function DiamondStorePage({
                             </div>
                             <div style={styles.benefitValue}>{benefit.value}</div>
                           </div>
-                        )
-                      )}
+                        ))}
                     </div>
                     {/* Club & Diamond Arena Features */}
                     <div style={styles.benefitsCategoryHeader}>
@@ -2371,8 +2400,9 @@ export default function DiamondStorePage({
                       </span>
                     </div>
                     <div className={shellStyles.responsiveGrid} style={styles.benefitsGrid}>
-                      {VIP_BENEFITS.filter((b) => b.category === 'Club & Diamond Arena').map(
-                        (benefit, idx) => (
+                      {displayedVipBenefits
+                        .filter((b) => b.category === 'Club & Diamond Arena')
+                        .map((benefit, idx) => (
                           <div
                             key={idx}
                             className={shellStyles.premiumDataCard}
@@ -2384,8 +2414,7 @@ export default function DiamondStorePage({
                             </div>
                             <div style={styles.benefitValue}>{benefit.value}</div>
                           </div>
-                        )
-                      )}
+                        ))}
                     </div>
                   </div>
 
@@ -2417,7 +2446,7 @@ export default function DiamondStorePage({
                         e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
                       }}
                     >
-                      View In Marketplace <span style={{ fontSize: 18 }}>→</span>
+                      View In Marketplace
                     </a>
                   </div>
 
@@ -2468,17 +2497,6 @@ export default function DiamondStorePage({
                           }}
                         >
                           {faq.q}
-                          <span
-                            className="faq-chevron"
-                            style={{
-                              color: '#B0B3B8',
-                              fontSize: 18,
-                              marginLeft: 12,
-                              flexShrink: 0,
-                            }}
-                          >
-                            ▾
-                          </span>
                         </summary>
                         <p
                           style={{
@@ -2513,6 +2531,7 @@ export default function DiamondStorePage({
                 <section className={shellStyles.rewardsSurface} aria-label="Smarter Rewards Center">
                   {/* Active Diamond Multiplier Banner */}
                   <div
+                    className={shellStyles.rewardsBoostLayout}
                     style={{
                       margin: '12px 0 0',
                       padding: '14px 16px',
@@ -2537,27 +2556,9 @@ export default function DiamondStorePage({
                         className={shellStyles.rewardsBoostCopy}
                         style={{ display: 'flex', alignItems: 'center', gap: 10 }}
                       >
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 10,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background:
-                              diamondMultiplier > 1.0
-                                ? 'rgba(245,158,11,0.2)'
-                                : 'rgba(0,180,255,0.2)',
-                            fontSize: 20,
-                          }}
-                        >
-                          {diamondMultiplier > 1.0 ? (
-                            <Zap size={20} color="#f59e0b" />
-                          ) : (
-                            <Gem size={20} color="#83c9e2" />
-                          )}
-                        </div>
+                        <span className={shellStyles.rewardsBoostMarker} aria-hidden="true">
+                          {diamondMultiplier > 1.0 ? 'Boost' : 'Earn'}
+                        </span>
                         <div>
                           <div
                             style={{
@@ -2685,27 +2686,21 @@ export default function DiamondStorePage({
 
                       <div className={shellStyles.responsiveGrid} style={styles.overviewGrid}>
                         <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
-                          <div style={styles.overviewIcon}>
-                            <Gem size={40} color="#00D4FF" />
-                          </div>
                           <h3 style={styles.overviewCardTitle}>Diamond Rewards</h3>
                           <p style={styles.overviewCardText}>
                             Earn Diamonds Through Daily Logins, Training, Social Engagement, And
                             Referrals.
                             <strong style={{ color: '#00d4ff' }}>
                               {' '}
-                              Daily Cap: {DAILY_CAP.free} {GEM} ({DAILY_CAP.vip} VIP)
+                              Daily Cap: {DAILY_CAP.free} Diamonds ({DAILY_CAP.vip} VIP)
                             </strong>{' '}
-                            With Up To {fmt(MONTHLY_CAP.free)} {GEM} A Month Free,{' '}
-                            {fmt(MONTHLY_CAP.vip)} {GEM} VIP. Share Streak Multipliers Help You
+                            With Up To {fmt(MONTHLY_CAP.free)} Diamonds A Month Free,{' '}
+                            {fmt(MONTHLY_CAP.vip)} Diamonds VIP. Share Streak Multipliers Help You
                             Reach The Cap Faster: They Never Raise It.
                           </p>
                         </div>
 
                         <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
-                          <div style={styles.overviewIcon}>
-                            <Crown size={40} color="#FFD700" />
-                          </div>
                           <h3 style={styles.overviewCardTitle}>VIP Membership</h3>
                           <div style={{ marginTop: 12, marginBottom: 12 }}>
                             <img
@@ -2810,25 +2805,22 @@ export default function DiamondStorePage({
                               textDecoration: 'none',
                             }}
                           >
-                            View VIP Plans →
+                            View VIP Plans
                           </a>
                         </div>
 
                         <div className={shellStyles.casinoDataCard} style={styles.overviewCard}>
-                          <div style={styles.overviewIcon}>
-                            <Gift size={40} color="#00d4ff" />
-                          </div>
                           <h3 style={styles.overviewCardTitle}>Easter Eggs</h3>
                           <p style={styles.overviewCardText}>
                             Discover <strong>{TOTAL_EASTER_EGGS} Hidden Achievements</strong> Across{' '}
                             {EGG_CATEGORY_COUNT} Categories. From Performance To Legacy Milestones:
-                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On Top Of Your
+                            Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} Diamonds A Month On Top Of Your
                             Normal Cap. {EARNABLE_EGG_COUNT} Are Live Now.
                           </p>
                         </div>
                       </div>
 
-                      <div style={styles.quickStats}>
+                      <div className={shellStyles.rewardsQuickStats} style={styles.quickStats}>
                         <div style={styles.quickStat}>
                           <span style={styles.quickStatValue}>{DAILY_CAP.free}</span>
                           <span style={styles.quickStatLabel}>Daily Cap (Free)</span>
@@ -2896,11 +2888,11 @@ export default function DiamondStorePage({
                         </div>
                       </div>
                       <p style={styles.introText}>
-                        The Cap Is Measured After Your Share Streak Multiplier: Multipliers Help
-                        You Reach {DAILY_CAP.free} {GEM} A Day With Less Work, They Never Raise It.
-                        Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} {GEM} Per Month
-                        Budget On Top. 1 {GEM} = $0.01, So {fmt(MONTHLY_CAP.free)} {GEM} A Month = $
-                        {(MONTHLY_CAP.free / 100).toFixed(0)}.
+                        The Cap Is Measured After Your Share Streak Multiplier: Multipliers Help You
+                        Reach {DAILY_CAP.free} Diamonds A Day With Less Work, They Never Raise It.
+                        Easter Eggs Draw On A Separate {EASTER_EGG_MONTHLY_CAP} Diamonds Per Month
+                        Budget On Top. 1 Diamond = $0.01, So {fmt(MONTHLY_CAP.free)} Diamonds A
+                        Month = ${(MONTHLY_CAP.free / 100).toFixed(0)}.
                       </p>
 
                       {/* Standard Rewards List */}
@@ -2913,9 +2905,6 @@ export default function DiamondStorePage({
                               className={shellStyles.rewardRow}
                               style={styles.rewardItem}
                             >
-                              <span style={styles.rewardIcon}>
-                                {reward.icon && <reward.icon size={24} />}
-                              </span>
                               <div style={styles.rewardDetails}>
                                 <span style={styles.rewardName}>
                                   <RewardDetailLink reward={reward}>{reward.name}</RewardDetailLink>
@@ -2946,9 +2935,9 @@ export default function DiamondStorePage({
                       <p style={styles.introText}>
                         {TOTAL_EASTER_EGGS} Hidden Achievements Across {EGG_CATEGORY_COUNT}{' '}
                         Categories: {EARNABLE_EGG_COUNT} Are Unlockable Today, The Rest Arrive As
-                        Tracking Expands. Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} {GEM} A Month On
-                        Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays{' '}
-                        {biggestEggValue()} {GEM}.
+                        Tracking Expands. Eggs Pay Up To {EASTER_EGG_MONTHLY_CAP} Diamonds A Month
+                        On Top Of Your Normal Daily Cap, And The Biggest Single Egg Pays{' '}
+                        {biggestEggValue()} Diamonds.
                       </p>
 
                       {/* Performance Category */}
@@ -2964,8 +2953,9 @@ export default function DiamondStorePage({
                               className={shellStyles.casinoProductCard}
                               style={styles.eggCard}
                             >
-                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
+                              <h4 style={styles.eggName}>
+                                <RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink>
+                              </h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -2996,8 +2986,9 @@ export default function DiamondStorePage({
                               className={shellStyles.casinoProductCard}
                               style={styles.eggCard}
                             >
-                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
+                              <h4 style={styles.eggName}>
+                                <RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink>
+                              </h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -3028,8 +3019,9 @@ export default function DiamondStorePage({
                               className={shellStyles.casinoProductCard}
                               style={styles.eggCard}
                             >
-                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
+                              <h4 style={styles.eggName}>
+                                <RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink>
+                              </h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -3060,8 +3052,9 @@ export default function DiamondStorePage({
                               className={shellStyles.casinoProductCard}
                               style={styles.eggCard}
                             >
-                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
+                              <h4 style={styles.eggName}>
+                                <RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink>
+                              </h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -3092,8 +3085,9 @@ export default function DiamondStorePage({
                               className={shellStyles.casinoProductCard}
                               style={styles.eggCard}
                             >
-                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
+                              <h4 style={styles.eggName}>
+                                <RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink>
+                              </h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -3124,8 +3118,9 @@ export default function DiamondStorePage({
                               className={shellStyles.casinoProductCard}
                               style={styles.eggCard}
                             >
-                              <div style={styles.eggIcon}>{egg.icon && <egg.icon size={32} />}</div>
-                              <h4 style={styles.eggName}><RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink></h4>
+                              <h4 style={styles.eggName}>
+                                <RewardDetailLink reward={egg}>{egg.name}</RewardDetailLink>
+                              </h4>
                               <div
                                 style={{
                                   ...styles.rarityBadge,
@@ -3173,10 +3168,6 @@ export default function DiamondStorePage({
                         animation: 'fadeIn 0.3s ease',
                       }}
                     >
-                      <CheckCircle
-                        size={16}
-                        style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                      />{' '}
                       {clubShopSuccess}
                     </div>
                   )}
@@ -3257,7 +3248,7 @@ export default function DiamondStorePage({
                                 }}
                               />
                             ) : (
-                              <CartIcon size={28} color="#8b8d91" />
+                              <span className={shellStyles.productFallback}>Smarter.Poker</span>
                             )}
                           </div>
                           <div>
@@ -3336,25 +3327,22 @@ export default function DiamondStorePage({
                             </div>
                           </div>
                         </div>
-                        {clubShopBuyTarget.price > 0
-                          && clubDiamondBalance < clubShopBuyTarget.price && (
-                          <div
-                            style={{
-                              color: '#ff6b6b',
-                              fontSize: 13,
-                              fontWeight: 600,
-                              marginBottom: 12,
-                              textAlign: 'center',
-                            }}
-                          >
-                            <AlertTriangle
-                              size={14}
-                              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                            />{' '}
-                            Insufficient Diamonds. You Need{' '}
-                            {(clubShopBuyTarget.price - clubDiamondBalance).toLocaleString()} More.
-                          </div>
-                        )}
+                        {clubShopBuyTarget.price > 0 &&
+                          clubDiamondBalance < clubShopBuyTarget.price && (
+                            <div
+                              style={{
+                                color: '#ff6b6b',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                marginBottom: 12,
+                                textAlign: 'center',
+                              }}
+                            >
+                              Insufficient Diamonds. You Need{' '}
+                              {(clubShopBuyTarget.price - clubDiamondBalance).toLocaleString()}{' '}
+                              More.
+                            </div>
+                          )}
                         <div style={{ display: 'flex', gap: 12 }}>
                           <button
                             onClick={() => setClubShopBuyTarget(null)}
@@ -3376,17 +3364,17 @@ export default function DiamondStorePage({
                           <button
                             onClick={handleClubPurchase}
                             disabled={
-                              clubShopProcessing
-                              || (clubShopBuyTarget.price > 0
-                                && clubDiamondBalance < clubShopBuyTarget.price)
+                              clubShopProcessing ||
+                              (clubShopBuyTarget.price > 0 &&
+                                clubDiamondBalance < clubShopBuyTarget.price)
                             }
                             style={{
                               flex: 1,
                               padding: '12px',
                               background:
-                                clubShopProcessing
-                                || (clubShopBuyTarget.price > 0
-                                  && clubDiamondBalance < clubShopBuyTarget.price)
+                                clubShopProcessing ||
+                                (clubShopBuyTarget.price > 0 &&
+                                  clubDiamondBalance < clubShopBuyTarget.price)
                                   ? 'rgba(255,255,255,0.1)'
                                   : 'linear-gradient(135deg, #1877F2, #4285F4)',
                               border: 'none',
@@ -3413,10 +3401,6 @@ export default function DiamondStorePage({
                         gap: 12,
                       }}
                     >
-                      <Gamepad2
-                        size={20}
-                        style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }}
-                      />{' '}
                       Club Shop
                       <span
                         style={{
@@ -3428,10 +3412,6 @@ export default function DiamondStorePage({
                           borderRadius: 20,
                         }}
                       >
-                        <Gem
-                          size={14}
-                          style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
-                        />{' '}
                         {clubDiamondBalance.toLocaleString()} Diamonds
                       </span>
                     </h2>
@@ -3443,7 +3423,6 @@ export default function DiamondStorePage({
 
                   {!user?.id ? (
                     <div style={{ textAlign: 'center', padding: 40 }}>
-                      <Home size={48} color="rgba(255,255,255,0.3)" />
                       <div
                         style={{
                           marginTop: 12,
@@ -3467,7 +3446,6 @@ export default function DiamondStorePage({
                         textAlign: 'center',
                       }}
                     >
-                      <AlertTriangle size={30} color="#FF6B6B" />
                       <div>{marketplaceCopy(clubShopError)}</div>
                       <button
                         type="button"
@@ -3497,9 +3475,6 @@ export default function DiamondStorePage({
                   ) : !clubShopClubId ? (
                     clubShopLoaded ? (
                       <div style={{ textAlign: 'center', padding: 40 }}>
-                        <div style={{ marginBottom: 12 }}>
-                          <Home size={48} color="rgba(255,255,255,0.3)" />
-                        </div>
                         <div
                           style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}
                         >
@@ -3530,16 +3505,12 @@ export default function DiamondStorePage({
                           {
                             key: 'store',
                             label: `Store (${clubShopItems.length})`,
-                            LIcon: ShoppingBag,
                           },
                           {
                             key: 'my-purchases',
                             label: `My Purchases (${clubShopPurchases.length})`,
-                            LIcon: Package,
                           },
-                          ...(clubShopIsAdmin
-                            ? [{ key: 'manage', label: 'Manage', LIcon: Wrench }]
-                            : []),
+                          ...(clubShopIsAdmin ? [{ key: 'manage', label: 'Manage' }] : []),
                         ].map((st) => (
                           <button
                             type="button"
@@ -3567,16 +3538,6 @@ export default function DiamondStorePage({
                               cursor: 'pointer',
                             }}
                           >
-                            {st.LIcon && (
-                              <st.LIcon
-                                size={13}
-                                style={{
-                                  display: 'inline',
-                                  verticalAlign: 'middle',
-                                  marginRight: 4,
-                                }}
-                              />
-                            )}
                             {st.label}
                           </button>
                         ))}
@@ -3667,8 +3628,8 @@ export default function DiamondStorePage({
                               }}
                             >
                               <option value="newest">Newest First</option>
-                              <option value="price-low">Price: Low → High</option>
-                              <option value="price-high">Price: High → Low</option>
+                              <option value="price-low">Price: Low To High</option>
+                              <option value="price-high">Price: High To Low</option>
                               <option value="popular">Most Popular</option>
                             </select>
                           </div>
@@ -3711,9 +3672,6 @@ export default function DiamondStorePage({
                             if (filtered.length === 0) {
                               return (
                                 <div style={{ textAlign: 'center', padding: 40 }}>
-                                  <div style={{ marginBottom: 12 }}>
-                                    <ShoppingBag size={48} color="rgba(255,255,255,0.3)" />
-                                  </div>
                                   <div
                                     style={{
                                       fontSize: 14,
@@ -3763,14 +3721,16 @@ export default function DiamondStorePage({
                                     diamondProjection?.remainingBalance ?? null;
                                   const diamondShortfall = diamondProjection?.shortfall ?? null;
                                   const hasDiamondDebt = diamondProjection?.hasDebt === true;
-                                  const cardPurchaseBalance = cardQuote?.cardPurchaseBalance ?? null;
-                                  const isFreeItem = item.available === true && Number(item.price) === 0;
-                                  const canPurchaseWithDiamonds = !blocked && (
-                                    isFreeItem
-                                    || (diamondProjection
-                                      && !diamondProjection.hasDebt
-                                      && diamondProjection.shortfall === 0)
-                                  );
+                                  const cardPurchaseBalance =
+                                    cardQuote?.cardPurchaseBalance ?? null;
+                                  const isFreeItem =
+                                    item.available === true && Number(item.price) === 0;
+                                  const canPurchaseWithDiamonds =
+                                    !blocked &&
+                                    (isFreeItem ||
+                                      (diamondProjection &&
+                                        !diamondProjection.hasDebt &&
+                                        diamondProjection.shortfall === 0));
                                   return (
                                     <article
                                       key={item.id}
@@ -3803,7 +3763,15 @@ export default function DiamondStorePage({
                                           position: 'relative',
                                         }}
                                       >
-                                        {CLUB_PRODUCT_ATLAS[item.name] ? (
+                                        {CLUB_PRODUCT_IMAGES[item.name] ? (
+                                          <img
+                                            src={CLUB_PRODUCT_IMAGES[item.name]}
+                                            alt={item.name}
+                                            loading="lazy"
+                                            decoding="async"
+                                            className={shellStyles.clubProductCutout}
+                                          />
+                                        ) : CLUB_PRODUCT_ATLAS[item.name] ? (
                                           <div
                                             role="img"
                                             aria-label={item.name}
@@ -3825,9 +3793,12 @@ export default function DiamondStorePage({
                                             }}
                                           />
                                         ) : (
-                                          <Gift size={40} color="#8b8d91" />
+                                          <span className={shellStyles.productFallback}>
+                                            Smarter.Poker
+                                          </span>
                                         )}
                                         <span
+                                          className={shellStyles.clubItemCategory}
                                           style={{
                                             position: 'absolute',
                                             top: 8,
@@ -3902,7 +3873,7 @@ export default function DiamondStorePage({
                                                 gap: 4,
                                               }}
                                             >
-                                              <Gem size={14} /> {item.price.toLocaleString()}
+                                              {item.price.toLocaleString()} Diamonds
                                             </span>
                                             {item.on_sale && (
                                               <span
@@ -3913,7 +3884,9 @@ export default function DiamondStorePage({
                                                   textDecoration: 'line-through',
                                                 }}
                                               >
-                                                Regular {Number(item.list_price || 0).toLocaleString()} Diamonds
+                                                Regular{' '}
+                                                {Number(item.list_price || 0).toLocaleString()}{' '}
+                                                Diamonds
                                               </span>
                                             )}
                                             <div className={shellStyles.cardEquivalent}>
@@ -3943,7 +3916,10 @@ export default function DiamondStorePage({
                                               onClick={() => {
                                                 if (blocked) return;
                                                 if (!user?.id) {
-                                                  showStoreToast('error', 'Please Sign In To Buy Club Shop Items.');
+                                                  showStoreToast(
+                                                    'error',
+                                                    'Please Sign In To Buy Club Shop Items.'
+                                                  );
                                                   return;
                                                 }
                                                 const commerceIntent = {
@@ -3964,32 +3940,26 @@ export default function DiamondStorePage({
                                                 });
                                               }}
                                               disabled={
-                                                !canPurchaseWithDiamonds
-                                                || clubShopCardProcessingId === item.id
+                                                !canPurchaseWithDiamonds ||
+                                                clubShopCardProcessingId === item.id
                                               }
                                             >
-                                              {blocked ? (
-                                                <>
-                                                  <CheckCircle size={12} /> {blockedLabel}
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Gem size={12} />
-                                                  {isFreeItem
-                                                    ? 'Claim Free'
-                                                    : canPurchaseWithDiamonds
-                                                      ? 'Diamonds'
-                                                      : 'More Diamonds Needed'}
-                                                </>
-                                              )}
+                                              {blocked
+                                                ? blockedLabel
+                                                : isFreeItem
+                                                  ? 'Claim Free'
+                                                  : canPurchaseWithDiamonds
+                                                    ? 'Buy With Diamonds'
+                                                    : 'More Diamonds Needed'}
                                             </button>
                                             {!blocked && (
                                               <button
                                                 type="button"
                                                 onClick={() => handleClubCardCheckout(item)}
-                                                disabled={Boolean(clubShopCardProcessingId) || !cardQuote}
+                                                disabled={
+                                                  Boolean(clubShopCardProcessingId) || !cardQuote
+                                                }
                                               >
-                                                <CreditCard size={12} />
                                                 {clubShopCardProcessingId === item.id
                                                   ? 'Opening...'
                                                   : cardCharge == null
@@ -4018,9 +3988,6 @@ export default function DiamondStorePage({
                         <>
                           {clubShopPurchases.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40 }}>
-                              <div style={{ marginBottom: 12 }}>
-                                <Package size={48} color="rgba(255,255,255,0.3)" />
-                              </div>
                               <div
                                 style={{
                                   fontSize: 14,
@@ -4234,14 +4201,7 @@ export default function DiamondStorePage({
                                 color: '#FFD2DA',
                               }}
                             >
-                              <span>
-                                <AlertTriangle
-                                  size={16}
-                                  aria-hidden="true"
-                                  style={{ verticalAlign: 'middle', marginRight: 8 }}
-                                />
-                                {marketplaceCopy(clubShopAdminError)}
-                              </span>
+                              <span>{marketplaceCopy(clubShopAdminError)}</span>
                               <button
                                 type="button"
                                 onClick={loadClubShopAdmin}
@@ -4283,80 +4243,92 @@ export default function DiamondStorePage({
                           )}
 
                           {/* Admin Stats */}
-                          {clubShopAdminReport && !clubShopAdminError && (() => {
-                            const total = clubShopAdminItems.length;
-                            const active = clubShopAdminItems.filter((i) => i.is_active).length;
-                            const diamondTotals = clubShopAdminReport?.diamondTotals || {};
-                            const legacyChipTotals = clubShopAdminReport?.legacyChipTotals || {};
-                            return (
-                              <>
-                                <div
-                                  style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                                    gap: 12,
-                                    marginBottom: 12,
-                                  }}
-                                >
-                                  {[
-                                    { label: 'Total Items', val: total },
-                                    { label: 'Active', val: active },
-                                    { label: 'Net Diamond Sales', val: fmt(diamondTotals.netSales) },
-                                    { label: 'Diamonds Burned', val: fmt(diamondTotals.net) },
-                                    { label: 'Diamond Refunds', val: fmt(diamondTotals.refunded) },
-                                  ].map((stat) => (
-                                    <div
-                                      key={stat.label}
-                                      style={{
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                        borderRadius: 12,
-                                        padding: '16px 14px',
-                                        textAlign: 'center',
-                                      }}
-                                    >
+                          {clubShopAdminReport &&
+                            !clubShopAdminError &&
+                            (() => {
+                              const total = clubShopAdminItems.length;
+                              const active = clubShopAdminItems.filter((i) => i.is_active).length;
+                              const diamondTotals = clubShopAdminReport?.diamondTotals || {};
+                              const legacyChipTotals = clubShopAdminReport?.legacyChipTotals || {};
+                              return (
+                                <>
+                                  <div
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                      gap: 12,
+                                      marginBottom: 12,
+                                    }}
+                                  >
+                                    {[
+                                      { label: 'Total Items', val: total },
+                                      { label: 'Active', val: active },
+                                      {
+                                        label: 'Net Diamond Sales',
+                                        val: fmt(diamondTotals.netSales),
+                                      },
+                                      { label: 'Diamonds Burned', val: fmt(diamondTotals.net) },
+                                      {
+                                        label: 'Diamond Refunds',
+                                        val: fmt(diamondTotals.refunded),
+                                      },
+                                    ].map((stat) => (
                                       <div
-                                        style={{ fontSize: 22, fontWeight: 800, color: '#00D4FF' }}
-                                      >
-                                        {stat.val}
-                                      </div>
-                                      <div
+                                        key={stat.label}
                                         style={{
-                                          fontSize: 11,
-                                          color: 'rgba(255,255,255,0.4)',
-                                          fontWeight: 600,
-                                          marginTop: 4,
+                                          background: 'rgba(255,255,255,0.05)',
+                                          border: '1px solid rgba(255,255,255,0.08)',
+                                          borderRadius: 12,
+                                          padding: '16px 14px',
+                                          textAlign: 'center',
                                         }}
                                       >
-                                        {stat.label}
+                                        <div
+                                          style={{
+                                            fontSize: 22,
+                                            fontWeight: 800,
+                                            color: '#00D4FF',
+                                          }}
+                                        >
+                                          {stat.val}
+                                        </div>
+                                        <div
+                                          style={{
+                                            fontSize: 11,
+                                            color: 'rgba(255,255,255,0.4)',
+                                            fontWeight: 600,
+                                            marginTop: 4,
+                                          }}
+                                        >
+                                          {stat.label}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
-                                </div>
-                                <div
-                                  style={{
-                                    marginBottom: 24,
-                                    padding: '10px 12px',
-                                    borderLeft: '3px solid #00D4FF',
-                                    background: 'rgba(0,118,168,0.09)',
-                                    color: 'rgba(255,255,255,0.68)',
-                                    fontSize: 11,
-                                    lineHeight: 1.6,
-                                  }}
-                                >
-                                  Club Shop Sales Are 100% Platform-Owned Diamond Burns. No Club,
-                                  Owner, Agent, Affiliate, Or Commission Ledger Is Credited.
-                                  {Number(legacyChipTotals.sales || 0) > 0 && (
-                                    <span style={{ display: 'block', color: '#FFE6A6' }}>
-                                      Legacy History: {fmt(legacyChipTotals.netSales)} Net Chip Sales /{' '}
-                                      {fmt(legacyChipTotals.net)} Chips. These Are Kept Separate From
-                                      Diamond Totals.
-                                    </span>
-                                  )}
-                                </div>
-                              </>
-                            );
-                          })()}
+                                    ))}
+                                  </div>
+                                  <div
+                                    style={{
+                                      marginBottom: 24,
+                                      padding: '10px 12px',
+                                      borderLeft: '3px solid #00D4FF',
+                                      background: 'rgba(0,118,168,0.09)',
+                                      color: 'rgba(255,255,255,0.68)',
+                                      fontSize: 11,
+                                      lineHeight: 1.6,
+                                    }}
+                                  >
+                                    Club Shop Sales Are 100% Platform-Owned Diamond Burns. No Club,
+                                    Owner, Agent, Affiliate, Or Commission Ledger Is Credited.
+                                    {Number(legacyChipTotals.sales || 0) > 0 && (
+                                      <span style={{ display: 'block', color: '#FFE6A6' }}>
+                                        Legacy History: {fmt(legacyChipTotals.netSales)} Net Chip
+                                        Sales / {fmt(legacyChipTotals.net)} Chips. These Are Kept
+                                        Separate From Diamond Totals.
+                                      </span>
+                                    )}
+                                  </div>
+                                </>
+                              );
+                            })()}
 
                           {/* Create Item Form */}
                           <div
@@ -4376,14 +4348,6 @@ export default function DiamondStorePage({
                                 marginBottom: 14,
                               }}
                             >
-                              <Wrench
-                                size={14}
-                                style={{
-                                  display: 'inline',
-                                  verticalAlign: 'middle',
-                                  marginRight: 6,
-                                }}
-                              />{' '}
                               Create Shop Item
                             </h3>
                             <div
@@ -4514,10 +4478,10 @@ export default function DiamondStorePage({
                             <button
                               type="button"
                               disabled={
-                                clubShopProcessing
-                                || !clubShopNewName.trim()
-                                || !clubShopNewPrice
-                                || !clubShopMaximumCardFundedPrice
+                                clubShopProcessing ||
+                                !clubShopNewName.trim() ||
+                                !clubShopNewPrice ||
+                                !clubShopMaximumCardFundedPrice
                               }
                               onClick={async () => {
                                 if (clubShopProcessingRef.current) return;
@@ -4597,9 +4561,9 @@ export default function DiamondStorePage({
                                 border: 'none',
                                 color: '#fff',
                                 opacity:
-                                  !clubShopNewName.trim()
-                                  || !clubShopNewPrice
-                                  || !clubShopMaximumCardFundedPrice
+                                  !clubShopNewName.trim() ||
+                                  !clubShopNewPrice ||
+                                  !clubShopMaximumCardFundedPrice
                                     ? 0.5
                                     : 1,
                               }}
@@ -4609,140 +4573,119 @@ export default function DiamondStorePage({
                           </div>
 
                           {/* Admin Item List */}
-                          {clubShopAdminReport && !clubShopAdminError && (clubShopAdminItems.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: 40 }}>
-                              <div style={{ marginBottom: 12 }}>
-                                <Wrench size={48} color="rgba(255,255,255,0.3)" />
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 14,
-                                  color: 'rgba(255,255,255,0.5)',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                No Shop Items Yet. Create One Above.
-                              </div>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {clubShopAdminItems.map((item) => (
+                          {clubShopAdminReport &&
+                            !clubShopAdminError &&
+                            (clubShopAdminItems.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: 40 }}>
                                 <div
-                                  key={item.id}
                                   style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
-                                    borderRadius: 10,
-                                    padding: '12px 16px',
+                                    fontSize: 14,
+                                    color: 'rgba(255,255,255,0.5)',
+                                    fontWeight: 600,
                                   }}
                                 >
-                                  <div>
-                                    <div
-                                      style={{
-                                        fontWeight: 700,
-                                        color: item.is_active ? '#E4E6EB' : '#6B7280',
-                                        fontSize: 14,
-                                      }}
-                                    >
-                                      {marketplaceCopy(item.name)}
-                                    </div>
-                                    <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
-                                      {item.price.toLocaleString()} Diamonds •{' '}
-                                      <span
+                                  No Shop Items Yet. Create One Above.
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {clubShopAdminItems.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      background: 'rgba(255,255,255,0.04)',
+                                      border: '1px solid rgba(255,255,255,0.06)',
+                                      borderRadius: 10,
+                                      padding: '12px 16px',
+                                    }}
+                                  >
+                                    <div>
+                                      <div
                                         style={{
-                                          padding: '2px 6px',
-                                          borderRadius: 4,
-                                          fontSize: 10,
-                                          background: 'rgba(255,255,255,0.06)',
-                                          color: 'rgba(255,255,255,0.4)',
+                                          fontWeight: 700,
+                                          color: item.is_active ? '#E4E6EB' : '#6B7280',
+                                          fontSize: 14,
                                         }}
                                       >
-                                        {marketplaceCopy(item.category || 'Time Banks')}
-                                      </span>{' '}
-                                      • {item.net_purchase_count || 0} Net Sold •{' '}
-                                      {fmt(item.revenue)} Diamonds Burned
-                                      {(item.refunded_purchase_count || 0) > 0 && (
-                                        <span style={{ color: '#FFB7C4' }}>
-                                          {' '}
-                                          • {item.refunded_purchase_count} Refunded
-                                        </span>
-                                      )}
+                                        {marketplaceCopy(item.name)}
+                                      </div>
+                                      <div style={{ fontSize: 12, color: '#8b8d91', marginTop: 2 }}>
+                                        {item.price.toLocaleString()} Diamonds •{' '}
+                                        <span
+                                          style={{
+                                            padding: '2px 6px',
+                                            borderRadius: 4,
+                                            fontSize: 10,
+                                            background: 'rgba(255,255,255,0.06)',
+                                            color: 'rgba(255,255,255,0.4)',
+                                          }}
+                                        >
+                                          {marketplaceCopy(item.category || 'Time Banks')}
+                                        </span>{' '}
+                                        • {item.net_purchase_count || 0} Net Sold •{' '}
+                                        {fmt(item.revenue)} Diamonds Burned
+                                        {(item.refunded_purchase_count || 0) > 0 && (
+                                          <span style={{ color: '#FFB7C4' }}>
+                                            {' '}
+                                            • {item.refunded_purchase_count} Refunded
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleClubShopAdminAction('toggle', item)}
+                                        disabled={!!clubShopAdminActionId}
+                                        aria-busy={clubShopAdminActionId === item.id}
+                                        style={{
+                                          padding: '6px 14px',
+                                          minHeight: 44,
+                                          borderRadius: 20,
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: clubShopAdminActionId ? 'not-allowed' : 'pointer',
+                                          background: item.is_active
+                                            ? 'rgba(0, 212, 255,0.1)'
+                                            : 'rgba(255,255,255,0.05)',
+                                          border: item.is_active
+                                            ? '1px solid rgba(0, 212, 255,0.3)'
+                                            : '1px solid rgba(255,255,255,0.1)',
+                                          color: item.is_active
+                                            ? '#00d4ff'
+                                            : 'rgba(255,255,255,0.4)',
+                                        }}
+                                      >
+                                        {item.is_active ? 'Active' : 'Hidden'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setClubShopDeleteTarget(item)}
+                                        disabled={!!clubShopAdminActionId}
+                                        aria-haspopup="dialog"
+                                        aria-expanded={clubShopDeleteTarget?.id === item.id}
+                                        style={{
+                                          padding: '6px 14px',
+                                          minHeight: 44,
+                                          borderRadius: 20,
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: clubShopAdminActionId ? 'not-allowed' : 'pointer',
+                                          background: 'rgba(255,59,48,0.1)',
+                                          border: '1px solid rgba(255,59,48,0.3)',
+                                          color: '#ff6b6b',
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
                                     </div>
                                   </div>
-                                  <div style={{ display: 'flex', gap: 8 }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleClubShopAdminAction('toggle', item)}
-                                      disabled={!!clubShopAdminActionId}
-                                      aria-busy={clubShopAdminActionId === item.id}
-                                      style={{
-                                        padding: '6px 14px',
-                                        minHeight: 44,
-                                        borderRadius: 20,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        cursor: clubShopAdminActionId ? 'not-allowed' : 'pointer',
-                                        background: item.is_active
-                                          ? 'rgba(0, 212, 255,0.1)'
-                                          : 'rgba(255,255,255,0.05)',
-                                        border: item.is_active
-                                          ? '1px solid rgba(0, 212, 255,0.3)'
-                                          : '1px solid rgba(255,255,255,0.1)',
-                                        color: item.is_active ? '#00d4ff' : 'rgba(255,255,255,0.4)',
-                                      }}
-                                    >
-                                      {item.is_active ? (
-                                        <>
-                                          <CheckCircle
-                                            size={12}
-                                            style={{
-                                              display: 'inline',
-                                              verticalAlign: 'middle',
-                                              marginRight: 3,
-                                            }}
-                                          />{' '}
-                                          Active
-                                        </>
-                                      ) : (
-                                        'Hidden'
-                                      )}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setClubShopDeleteTarget(item)}
-                                      disabled={!!clubShopAdminActionId}
-                                      aria-haspopup="dialog"
-                                      aria-expanded={clubShopDeleteTarget?.id === item.id}
-                                      style={{
-                                        padding: '6px 14px',
-                                        minHeight: 44,
-                                        borderRadius: 20,
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        cursor: clubShopAdminActionId ? 'not-allowed' : 'pointer',
-                                        background: 'rgba(255,59,48,0.1)',
-                                        border: '1px solid rgba(255,59,48,0.3)',
-                                        color: '#ff6b6b',
-                                      }}
-                                    >
-                                      <Trash2
-                                        size={12}
-                                        style={{
-                                          display: 'inline',
-                                          verticalAlign: 'middle',
-                                          marginRight: 4,
-                                        }}
-                                      />{' '}
-                                      Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ))}
+                                ))}
+                              </div>
+                            ))}
 
                           {clubShopDeleteTarget && (
                             <div
@@ -4788,8 +4731,8 @@ export default function DiamondStorePage({
                                   style={{ margin: '12px 0 0', color: '#C8D5DD', lineHeight: 1.65 }}
                                 >
                                   Remove “{clubShopDeleteTarget.name}” From This Club’s Inventory?
-                                  Items With Purchase History Cannot Be Deleted; Hide Them Instead To
-                                  Preserve The Audit Trail.
+                                  Items With Purchase History Cannot Be Deleted; Hide Them Instead
+                                  To Preserve The Audit Trail.
                                 </p>
                                 <div
                                   style={{
@@ -4845,8 +4788,8 @@ export default function DiamondStorePage({
 
               {/* Legal Note */}
               <p style={styles.legalNote}>
-                Diamonds Are Virtual Currency And Have No Real-World Cash Value.
-                All Purchases Are Final. See our{' '}
+                Diamonds Are Virtual Currency And Have No Real-World Cash Value. All Purchases Are
+                Final. See our{' '}
                 <a href="/terms" style={styles.link}>
                   Terms Of Service
                 </a>{' '}

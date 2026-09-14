@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { CreditCard, Gem } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
-import { VIP_BENEFITS, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
+import styles from './compare.module.css';
+import { getVipBenefitsForPlan, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 
 /* Monthly, Yearly, Lifetime (Dan 2026-09-05). Was daily/monthly/annual - with
    `.daily` deleted this array would have held an `undefined` and thrown on
@@ -36,8 +36,8 @@ export default function VipComparePage() {
       status="All Diamond Plans Live"
       actions={
         <>
-          <Link href="/hub/vip-membership"><CreditCard size={16} aria-hidden="true" /> Choose A Plan</Link>
-          <Link href="/hub/vip-membership/manage"><Gem size={16} aria-hidden="true" /> Manage Membership</Link>
+          <Link href="/hub/vip-membership">Choose A Plan</Link>
+          <Link href="/hub/vip-membership/manage">Manage Membership</Link>
         </>
       }
       structuredData={schema}
@@ -51,6 +51,7 @@ export default function VipComparePage() {
           const cardEquivalent = Number(plan.price).toFixed(2);
           const lifetime = plan.interval === 'lifetime';
           const cardReady = plan.cardCheckoutReady === true;
+          const benefits = getVipBenefitsForPlan(plan.interval);
           return (
             <section className={detailStyles.detailCard} key={plan.id}>
               <h2>{plan.name}</h2>
@@ -60,14 +61,17 @@ export default function VipComparePage() {
                 {cardReady ? '.' : ' With The Atomic Diamond Settlement Path.'}
               </p>
               <ul>
-                <li>{lifetime ? 'Permanent' : plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access</li>
+                <li>{lifetime ? 'Permanent Full VIP Access' : `${plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access`}</li>
                 {!lifetime && <li>Extends Existing Access Instead Of Replacing It</li>}
                 {lifetime && <li>Never Renews And Never Expires</li>}
                 {lifetime && <li>Lifetime Card Checkout Remains Safely Paused</li>}
-                <li>Includes All {VIP_BENEFITS.length} Currently Enforced VIP Benefits</li>
+                {lifetime && <li>Unlimited Throwables, Rabbit Hunts, And Standard Time Banks</li>}
+                {lifetime && <li>Every Cataloged Digital Table Skin, Background, Card Back, And Dealer Button Included</li>}
+                {lifetime && <li>Every VIP Avatar, Frame, Aura, And Safe Digital Feature Pack Included</li>}
+                <li>Includes All {benefits.length} Included Benefits For This Plan</li>
                 {plan.savings > 0 && <li>Saves ${Number(plan.savings).toFixed(2)} Against Monthly Billing</li>}
               </ul>
-              <Link href={`/hub/vip-membership?plan=${plan.id}`}>Select {plan.name}</Link>
+              <Link className={styles.planAction} href={`/hub/vip-membership?plan=${plan.id}`}>Select {plan.name}</Link>
             </section>
           );
         })}

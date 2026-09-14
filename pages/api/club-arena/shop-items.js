@@ -34,6 +34,7 @@ const {
     normalizeImageUrl,
     itemHasSales,
     HAS_SALES_ERROR,
+    enforceAllThrowablesMutation,
 } = require('../../../src/lib/club-arena/shopItemRules');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
@@ -95,6 +96,14 @@ export default async function handler(req, res) {
 
         // ─── CREATE ────────────────────────────────────────────────────
         if (action === 'create') {
+            const throwableGuard = enforceAllThrowablesMutation('create', req.body);
+            if (throwableGuard.error) {
+                return res.status(400).json({
+                    success: false,
+                    error: throwableGuard.error,
+                    code: throwableGuard.code,
+                });
+            }
             const { name, price, description, category, imageUrl } = req.body;
             if (!name || typeof name !== 'string' || !name.trim()) {
                 return res.status(400).json({ success: false, error: 'name required' });
@@ -162,11 +171,20 @@ export default async function handler(req, res) {
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
             const { data: existing } = await sb()
                 .from('club_shop_items')
-                .select('id, is_active, price')
+                .select('id, name, category, item_type, grant_spec, is_active, price')
                 .eq('id', itemId)
                 .eq('club_id', clubId)
                 .maybeSingle();
             if (!existing) return res.status(404).json({ success: false, error: 'item_not_found' });
+
+            const throwableGuard = enforceAllThrowablesMutation('toggle', req.body, existing);
+            if (throwableGuard.error) {
+                return res.status(400).json({
+                    success: false,
+                    error: throwableGuard.error,
+                    code: throwableGuard.code,
+                });
+            }
 
             const nextIsActive = !existing.is_active;
             if (nextIsActive) {
@@ -212,6 +230,24 @@ export default async function handler(req, res) {
         if (action === 'update') {
             const { itemId, name, description, price, category, imageUrl, isActive } = req.body;
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
+
+            const { data: existingItem, error: existingItemError } = await sb()
+                .from('club_shop_items')
+                .select('name, description, category, item_type, grant_spec, image_url, is_active, stackable, per_user_limit, price, sale_price')
+                .eq('id', itemId)
+                .eq('club_id', clubId)
+                .maybeSingle();
+            if (existingItemError) throw existingItemError;
+            if (!existingItem) return res.status(404).json({ success: false, error: 'item_not_found' });
+
+            const throwableGuard = enforceAllThrowablesMutation('update', req.body, existingItem);
+            if (throwableGuard.error) {
+                return res.status(400).json({
+                    success: false,
+                    error: throwableGuard.error,
+                    code: throwableGuard.code,
+                });
+            }
 
             const updates = {};
             if (name !== undefined) {
@@ -260,19 +296,11 @@ export default async function handler(req, res) {
                     updates.stock = n;
                 }
             }
+            if (throwableGuard.managed) Object.assign(updates, throwableGuard.updates);
 
             if (Object.keys(updates).length === 0) {
                 return res.status(400).json({ success: false, error: 'no fields to update' });
             }
-
-            const { data: existingItem, error: existingItemError } = await sb()
-                .from('club_shop_items')
-                .select('price, sale_price')
-                .eq('id', itemId)
-                .eq('club_id', clubId)
-                .maybeSingle();
-            if (existingItemError) throw existingItemError;
-            if (!existingItem) return res.status(404).json({ success: false, error: 'item_not_found' });
 
             const candidatePrice = updates.price ?? Number(existingItem.price);
             if (existingItem.sale_price !== null && Number(existingItem.sale_price) > candidatePrice) {
@@ -314,6 +342,24 @@ export default async function handler(req, res) {
         if (action === 'delete') {
             const { itemId } = req.body;
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
+
+            const { data: existing, error: existingError } = await sb()
+                .from('club_shop_items')
+                .select('id, name, category, item_type, grant_spec')
+                .eq('id', itemId)
+                .eq('club_id', clubId)
+                .maybeSingle();
+            if (existingError) throw existingError;
+            if (!existing) return res.status(404).json({ success: false, error: 'item_not_found' });
+
+            const throwableGuard = enforceAllThrowablesMutation('delete', req.body, existing);
+            if (throwableGuard.error) {
+                return res.status(400).json({
+                    success: false,
+                    error: throwableGuard.error,
+                    code: throwableGuard.code,
+                });
+            }
             if (await itemHasSales(sb(), clubId, itemId)) {
                 return res.status(400).json({ success: false, error: HAS_SALES_ERROR, hasSales: true });
             }

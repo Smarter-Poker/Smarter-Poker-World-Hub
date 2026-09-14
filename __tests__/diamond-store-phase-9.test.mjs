@@ -55,15 +55,24 @@ test('cart, orders, and wishlist keep same-surface navigation inside a cinematic
   assert.match(SUBPAGE_SHELL, /const BAY_META/);
   assert.match(SUBPAGE_SHELL, /data-active=\{active\}/);
   assert.match(SUBPAGE_SHELL, /operationsVisual/);
-  assert.match(SUBPAGE_CSS, /commerce-operations-atlas\.webp/);
-  assert.match(SUBPAGE_CSS, /background-position: 0 center/);
-  assert.match(SUBPAGE_CSS, /data-active='orders'/);
-  assert.match(SUBPAGE_CSS, /data-active='wishlist'/);
+  assert.match(SUBPAGE_CSS, /marketplace-console-v1\/navigation\/nav-shell\.png/);
+  assert.doesNotMatch(SUBPAGE_SHELL, /marketplace-console-v1\/selectors\//);
+  assert.doesNotMatch(SUBPAGE_SHELL, /<img src=\{bay\.image\}/);
   assert.doesNotMatch(SUBPAGE_SHELL, /target=|window\.open/);
 });
 
 test('marketplace visual language contains no legacy green or purple accent tokens', () => {
-  const scopedSource = [STORE_PAGE, STORE_CSS, LEGACY_STYLES, SUBPAGE_SHELL, SUBPAGE_CSS, TOAST, WALLET, MERCH, CART]
+  const scopedSource = [
+    STORE_PAGE,
+    STORE_CSS,
+    LEGACY_STYLES,
+    SUBPAGE_SHELL,
+    SUBPAGE_CSS,
+    TOAST,
+    WALLET,
+    MERCH,
+    CART,
+  ]
     .join('\n')
     .toLowerCase();
   for (const token of [
@@ -98,7 +107,7 @@ test('dual payment language remains visible after the realism pass', () => {
   assert.match(STORE_PAGE, /Pay With Diamonds Instead/);
   assert.match(STORE_PAGE, /All Major Credit And Debit Cards/);
   assert.match(STORE_PAGE, /handleClubCardCheckout/);
-  assert.match(STORE_PAGE, /<CreditCard size=\{12\}/);
-  assert.match(STORE_PAGE, /<Gem size=\{12\} \/>/);
-  assert.match(STORE_PAGE, /\? 'Diamonds'/);
+  assert.match(STORE_PAGE, /'Buy With Diamonds'/);
+  assert.match(STORE_PAGE, /`Card \$\$\{cardCharge\.toFixed\(2\)\}`/);
+  assert.doesNotMatch(STORE_PAGE, /<CreditCard\b|<Gem\b/);
 });

@@ -80,6 +80,26 @@ test('fulfillment pagination preserves the current queue and uses an in-page ope
   assert.match(css, /\.formGrid/);
 });
 
+test('fulfillment keeps semantic text controls inside the approved marketplace console art', async () => {
+  const [source, css] = await Promise.all([
+    read('pages/hub/merch-store/fulfillment.js'),
+    read('pages/hub/merch-store/fulfillment.module.css'),
+  ]);
+  assert.doesNotMatch(source, /lucide-react|<(?:CheckCircle2|Gem|PackageCheck|RefreshCw|ShieldCheck|Truck|X)\b/);
+  assert.match(source, />\s*Refresh Queue\s*</);
+  assert.match(source, />\s*Start Processing\s*</);
+  assert.match(source, />\s*Mark Shipped\s*</);
+  assert.match(source, />\s*Mark Delivered\s*</);
+  assert.match(source, />\s*Close\s*</);
+  assert.match(css, /font-family: var\(--font-roboto-condensed\), 'Roboto Condensed'/);
+  assert.match(css, /font-family: var\(--font-ibm-plex-mono\), 'IBM Plex Mono'/);
+  assert.match(css, /marketplace-console-v1\/navigation\/nav-shell\.png/);
+  assert.match(css, /marketplace-console-v1\/shark-panel\/button-primary\.png/);
+  assert.match(css, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
+  assert.match(css, /marketplace-console-v1\/shark-panel\/bay\.png/);
+  assert.doesNotMatch(css, /:hover|(?:linear|radial|conic)-gradient|border-radius|box-shadow/);
+});
+
 test('production verification exercises canonical cache behavior and ships Phase 19', async () => {
   const [verifier, pkg, ignore] = await Promise.all([
     read('scripts/verify-marketplace-deployment.mjs'),
