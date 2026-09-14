@@ -13,22 +13,26 @@ export default function AccountingInvoiceCard({ meta, content, theme: C }) {
         ['Rakeback Sent To Agents', lines.paid_agents],
         ['Rakeback Sent To Sub-Agents', lines.paid_sub_agents],
         ['Rakeback Sent To Players', lines.paid_players],
+        ['Rakeback Awaiting Role Reconciliation', lines.paid_unclassified],
         ['Total Paid By Club', lines.total_paid_by_club],
         ['Retained By Club', lines.retained_by_club],
+        ['Further Sent By Agents', lines.downstream_redistributed],
     ] : [['Amount', meta.amount]];
     return <article aria-label={weekly ? 'Weekly Club Statement' : 'Accounting Invoice'}
         style={{ background: C.card, color: C.text, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, width: 'min(320px, 65vw)', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <div style={{ fontSize: 12, color: C.textSec }}>{weekly ? 'Weekly Club Statement' : 'Invoice'} · {meta.invoice_number}</div>
+        <div style={{ fontSize: 12, color: C.textSec }}>{weekly ? 'Weekly Club Statement' : 'Invoice'}{meta.invoice_number ? ` · ${meta.invoice_number}` : ''}</div>
         {(lines.period_start || meta.period_start) && <div style={{ fontSize: 12, marginTop: 6, color: C.textSec }}>
             {String(lines.period_start || meta.period_start).slice(0, 10)} To {String(lines.period_end || meta.period_end || '').slice(0, 10)}
         </div>}
+        {meta.status === 'needs_reconciliation' && <p role="status" style={{ fontSize: 12, lineHeight: 1.5 }}>Needs Reconciliation · These Posted Amounts Are Not A Certified Settlement.</p>}
         <dl style={{ margin: '12px 0' }}>
             {rows.map(([label, value]) => <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '7px 0', borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
                 <dt>{label}</dt><dd style={{ margin: 0, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{amount(value)}</dd>
             </div>)}
         </dl>
         <div style={{ fontSize: 12, color: C.textSec }}>Chips · {String(meta.status || 'Status Unavailable').replace(/_/g, ' ')}</div>
-        <details style={{ marginTop: 12 }}><summary style={{ cursor: 'pointer', color: C.blue, fontSize: 13 }}>View Invoice Details</summary>
+        {weekly && <p style={{ fontSize: 12, lineHeight: 1.5 }}>{lines.note || 'Club Payments Are Counted Once. Further Payments By Agents Are Shown Separately.'}</p>}
+        <details style={{ marginTop: 12 }}><summary style={{ cursor: 'pointer', color: C.blue, fontSize: 13 }}>{meta.preview ? 'View Statement Details' : 'View Invoice Details'}</summary>
             <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: 12, lineHeight: 1.6, marginTop: 10 }}>{content}</div>
         </details>
     </article>;

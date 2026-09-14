@@ -57,7 +57,7 @@ async function accountingMap(db, ids) {
     // The mapping is unique by audience, not by a synthetic row id.
     for (let start = 0; start < ids.length; start += 100) {
         const records = await rows(db.from('accounting_conversations')
-            .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type')
+            .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,last_discussion_at')
             .in('conversation_id', ids.slice(start, start + 100)));
         for (const record of records) map.set(record.conversation_id, record);
     }
@@ -70,7 +70,7 @@ export function selectWorkspaceConversations(conversations, accounting, userId, 
         if (folder === 'invoices') {
             // An issuer's participation allows replies but must not turn every
             // agent's private invoice into a separate club inbox item.
-            return invoice?.scope_id === club?.id && invoice.recipient_id === userId;
+            return invoice?.scope_id === club?.id && (invoice.recipient_id === userId || (invoice.sender_id === userId && !!invoice.last_discussion_at));
         }
         return !invoice;
     }).map(c => ({ ...c, isAccounting: accounting.has(c.id), clubId: club?.id || null }));
@@ -94,7 +94,7 @@ export async function getMessengerWorkspace(db, userId, request) {
         club = clubs.find(c => mapping ? c.id === mapping.scope_id : c.pageId === contextId) || null;
         if ((mapping || contextId) && !club) fail(403, 'Active Club Membership Required');
         folder = mapping ? 'invoices' : 'messages';
-        if (mapping && mapping.recipient_id !== userId) fail(403, 'Open The Club Weekly Statement');
+        if (mapping && mapping.recipient_id !== userId && !(mapping.sender_id === userId && mapping.last_discussion_at)) fail(403, 'Open The Club Weekly Statement');
         resolvedId = request.conversationId;
     } else if (workspace === 'club') {
         if (!UUID.test(request.clubId || '')) fail(400, 'Choose A Club');
@@ -150,6 +150,22 @@ export async function getMessengerWorkspace(db, userId, request) {
         : selectWorkspaceConversations(conversations, accounting, userId, club, folder);
     const conversation = resolvedId ? selected.find(c => c.id === resolvedId) : null;
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
-    return { success: true, clubs, conversations: selected, conversation,
+    let weeklySummary = null;
+    if (club?.canManage && folder === 'invoices') {
+        const periods = await rows(db.from('settlement_periods').select('id,end_at')
+            .eq('club_id', club.id).not('union_id', 'is', null).lte('end_at', new Date().toISOString())
+            .order('end_at', { ascending: false }).limit(1));
+        if (periods.length) {
+            const { data: report, error: reportError } = await db.rpc('fn_club_weekly_accounting_summary', { p_period_id: periods[0].id });
+            if (reportError || !report || report.club_id !== club.id) fail(503, 'Weekly Statement Unavailable');
+            // Delivered complete statements are already in the invoice inbox.
+            // This preview keeps unresolved posted amounts visible without certifying them.
+            if (report.status === 'needs_reconciliation') {
+                const { source_ledger_ids: _sources, ...summary } = report;
+                weeklySummary = summary;
+            }
+        }
+    }
+    return { success: true, clubs, conversations: selected, conversation, weeklySummary,
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
 }

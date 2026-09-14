@@ -45,6 +45,7 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
 import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
+import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
 
 // Default light theme (overridden at component level)
@@ -287,6 +288,7 @@ function MessengerPage() {
     const [clubAccess, setClubAccess] = useState({ userId: null, clubs: [] });
     const [workspaceSelection, setWorkspaceSelection] = useState({ clubId: null, folder: 'messages' });
     const [inboxError, setInboxError] = useState(null);
+    const [weeklyPreview, setWeeklyPreview] = useState(null);
     const [pendingConversationId, setPendingConversationId] = useState(null);
     const clubDrawerOpen = !!workspaceSelection.clubId;
 
@@ -1590,6 +1592,7 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: result.clubs });
             setConversations(result.conversations);
+            setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
             if (workspaceRef.current !== requestKey) return;
@@ -4019,6 +4022,11 @@ function MessengerPage() {
 
                     {/* Conversations List - Only show actual conversations with messages */}
                     <div style={{ flex: 1, overflowY: 'auto' }}>
+                        {weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
+                            <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
+                                status: weeklyPreview.report.status, lines: weeklyPreview.report }}
+                                content={`${weeklyPreview.report.basis_source}. ${weeklyPreview.report.note}`} />
+                        </div>}
                         {conversations.length === 0 ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
                                 <div style={{ fontSize: 48, marginBottom: 12 }}></div>
@@ -4027,16 +4035,16 @@ function MessengerPage() {
                                     for both reads as a bug the first time a club
                                     inbox is opened. */}
                                 <div style={{ color: C.text, fontWeight: 500, marginBottom: 4 }}>
-                                    {isClubMode
+                                    {workspaceSelection.folder === 'invoices' ? 'No Issued Invoices Yet' : isClubMode
                                         ? `No Messages In ${selectedClub?.name || 'This Club'} Yet`
                                         : 'No Conversations Yet'}
                                 </div>
                                 <div style={{ fontSize: 13, color: C.textSec, marginBottom: 20 }}>
-                                    {isClubMode
+                                    {workspaceSelection.folder === 'invoices' ? 'Issued Invoices And Invoice Discussions Appear Here.' : isClubMode
                                         ? 'Conversations you start while messaging as this club appear here. Your personal messages stay in your own inbox.'
                                         : 'Search For People To Start Messaging!'}
                                 </div>
-                                <button
+                                {workspaceSelection.folder !== 'invoices' && <button
                                     onClick={() => {
                                         setComposing(true);
                                         setTimeout(() => searchInputRef.current?.focus(), 100);
@@ -4051,7 +4059,7 @@ function MessengerPage() {
                                         fontSize: 15,
                                         cursor: 'pointer',
                                         marginTop: 16,
-                                    }}>Search For People</button>
+                                    }}>Search For People</button>}
                             </div>
                         ) : (
                             <>                                {/* Regular Conversations */}
@@ -4061,7 +4069,7 @@ function MessengerPage() {
                                     // default inbox, because nothing here read the
                                     // param. Now it does.
                                     if (router.query.filter === 'unread'
-                                        && !(Number(conv.unread_count) > 0)) return false;
+                                        && !(Number(conv.unreadCount) > 0)) return false;
                                     if (!searchQuery) return true;
                                     const q = searchQuery.toLowerCase();
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
@@ -4427,15 +4435,14 @@ function MessengerPage() {
                                             }}><VideoIcon size={20} /></button>
                                             </>
                                         )}
-                                        <button
-                                            hidden={activeConversation.isAccounting}
+                                        {!activeConversation.isAccounting && <button
                                             onClick={() => setShowUserInfo(!showUserInfo)}
                                             title="User Info"
                                             style={{
                                                 width: 36, height: 36, borderRadius: '50%',
                                                 background: showUserInfo ? C.bg : 'transparent', border: 'none', cursor: 'pointer',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}><InfoIcon size={20} /></button>
+                                            }}><InfoIcon size={20} /></button>}
                                     </div>
                                 </div >
 

@@ -137,6 +137,7 @@ export default async function handler(req, res) {
                 .from('notifications')
                 .select('id, type, title, message, data, read, is_read, created_at, user_id, actor_id, action_url, link')
                 .eq('user_id', userId)
+                .or('type.is.null,type.neq.accounting_invoice_detail')
                 .order('created_at', { ascending: false })
                 .limit(limit),
 
