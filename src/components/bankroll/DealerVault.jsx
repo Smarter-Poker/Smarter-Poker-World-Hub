@@ -414,7 +414,10 @@ function DealerVault({ userId, completedGigs = [] }) {
                     <span style={s.headerIcon}></span>
                     <div>
                         <div style={s.headerTitle}>Dealer Vault</div>
-                        <div style={s.headerSub}>{docs.length} document{docs.length !== 1 ? 's' : ''} Stored</div>
+                        {/* ONE text node. Split across two, the page's Title
+                            Case pass capitalises each of them and the plural
+                            renders as "0 DocumentS Stored" (mobile phase 11). */}
+                        <div style={s.headerSub}>{`${docs.length} Document${docs.length !== 1 ? 's' : ''} Stored`}</div>
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
