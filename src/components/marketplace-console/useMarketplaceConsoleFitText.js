@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import * as React from 'react';
 
-const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+const useBrowserLayoutEffect =
+  typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect;
 
 /**
  * Fits one line of live text inside a measured painted zone.
@@ -8,7 +9,7 @@ const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLa
  * the zone or the loaded font changes size.
  */
 export function useMarketplaceConsoleFitText(text, minScale = 0.48) {
-  const textRef = useRef(null);
+  const textRef = React.useRef(null);
 
   useBrowserLayoutEffect(() => {
     const textElement = textRef.current;
