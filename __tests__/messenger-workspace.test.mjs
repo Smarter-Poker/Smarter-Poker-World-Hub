@@ -39,3 +39,16 @@ test('RPC outage does not fall back to unclassified messages',async()=>{const {d
 test('ordinary member access never grants club representative identity',async()=>{const {db}=fixture();const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});assert.equal(r.clubs[0].canManage,false);});
 test('a smaller server page cap still loads every joined club',async()=>{const {db,tables}=fixture({cap:1});tables.club_members.push({...tables.club_members[0],club_id:ids.second});tables.clubs.push({id:ids.second,name:'Second Club'});const r=await getMessengerWorkspace(db,ids.user,{workspace:'social'});assert.equal(r.clubs.length,2);});
 test('page-less club invoices never mix with personal messages',async()=>{const {db}=fixture({page:false});const social=await getMessengerWorkspace(db,ids.user,{workspace:'social'});assert.deepEqual(social.conversations.map(c=>c.id),[ids.social]);const club=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club});assert.deepEqual(club.conversations,[]);const invoice=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.deepEqual(invoice.conversations.map(c=>c.id),[ids.invoice]);});
+
+test('client metadata cannot forge an accounting receipt',async()=>{
+ const {verifyAccountingMessage}=await import('../src/lib/accountingMessage.mjs');
+ const message={id:'fake',message_type:'invoice',content:'Pay 1000',media_metadata:{kind:'accounting_invoice',accounting_verified:true,status:'paid'}};
+ const result=verifyAccountingMessage(message,null);
+ assert.equal(result.message_type,'text');assert.equal(result.media_metadata.accounting_verified,false);
+});
+test('current invoice status is read from its real delivery link while issued status remains recorded',async()=>{
+ const {verifyAccountingMessage}=await import('../src/lib/accountingMessage.mjs');
+ const message={id:'real',message_type:'invoice',media_metadata:{kind:'accounting_invoice',invoice_id:'forged',status:'pending'}};
+ const result=verifyAccountingMessage(message,{id:'real-invoice',status:'paid',chips_transferred:true});
+ assert.equal(result.media_metadata.accounting_verified,true);assert.equal(result.media_metadata.invoice_id,'real-invoice');assert.equal(result.media_metadata.status,'paid');assert.equal(result.media_metadata.issued_status,'pending');
+});

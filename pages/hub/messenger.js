@@ -1096,6 +1096,11 @@ function MessengerPage() {
                 filter: `conversation_id=eq.${activeConversation.id}`,
             }, async (payload) => {
                 const newMsg = payload.new;
+                if (newMsg.message_type === 'invoice') {
+                    // Realtime data is not proof of an issued financial record.
+                    if (activeConversationRef.current?.id === newMsg.conversation_id) loadMessagesRef.current?.(newMsg.conversation_id);
+                    return;
+                }
                 // Skip if this is our own message (already added via optimistic update)
                 if (newMsg.sender_id === user.id) return;
 
@@ -1121,6 +1126,7 @@ function MessengerPage() {
                     }
                 }
 
+                if (activeConversationRef.current?.id !== newMsg.conversation_id) return;
                 setMessages(prev => {
                     // Check for duplicates (defensive against null entries)
                     if (prev.some(m => m && m.id === newMsg.id)) return prev;
@@ -1161,6 +1167,10 @@ function MessengerPage() {
                 filter: `conversation_id=eq.${activeConversation.id}`,
             }, (payload) => {
                 const updatedMsg = payload.new;
+                if (updatedMsg.message_type === 'invoice') {
+                    if (activeConversationRef.current?.id === updatedMsg.conversation_id) loadMessagesRef.current?.(updatedMsg.conversation_id);
+                    return;
+                }
                 setMessages(prev => prev.map(m => {
                     if (!m) return m;
                     if (m.id !== updatedMsg.id) return m;

@@ -2,6 +2,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
+import { verifyAccountingMessage } from '../../../src/lib/accountingMessage.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -149,9 +150,7 @@ export default async function handler(req, res) {
           }
 
           const normalized = sorted.map(m => {
-              const invoice = liveInvoices.get(m.id);
-              if (invoice) m = { ...m, media_metadata: { ...m.media_metadata, issued_status: m.media_metadata?.status,
-                  status: invoice.status, chips_transferred: invoice.chips_transferred } };
+              m = verifyAccountingMessage(m, liveInvoices.get(m.id));
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
                   prof = {

@@ -842,10 +842,10 @@ export function MessageBubble({
 
                         // Union weekly square-up, delivered into the club inbox.
                         const meta = message.media_metadata || message.metadata;
-                        if (message.message_type === 'invoice' && meta?.kind === 'accounting_invoice') {
+                        if (message.message_type === 'invoice' && meta?.accounting_verified && meta?.kind === 'accounting_invoice') {
                             return <AccountingInvoiceCard meta={meta} content={content} theme={C} />;
                         }
-                        if (message.message_type === 'invoice' && meta?.kind === 'union_invoice') {
+                        if (message.message_type === 'invoice' && meta?.accounting_verified && meta?.kind === 'union_invoice') {
                             return <ClubStatementCard meta={meta} isOwn={isOwn} theme={C} />;
                         }
 
