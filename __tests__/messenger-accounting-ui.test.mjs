@@ -81,3 +81,22 @@ test('failed navigation retains the notification popup and unrelated overlays do
  const fixture=overlayFixture();fixture.handlers.get('routeChangeError')?.(new Error('failed'));assert.equal(fixture.closed(),0);
  const settings=overlayFixture('settings');assert.equal(settings.handlers.size,0);assert.equal(settings.closed(),0);
 });
+
+
+test('notification cache accepts only the current account and rejects legacy or expired snapshots',async()=>{
+ const {notificationCache,readNotificationCache}=await import('../src/lib/notificationVisibility.mjs');
+ const now=1_000_000,rows=[{id:'document',type:'accounting_invoice'}];
+ const cache=notificationCache(rows,'account-a',now);
+ assert.equal(readNotificationCache(cache,'account-a',now+1)[0].id,'document');
+ assert.equal(readNotificationCache(cache,'account-b',now+1),null);assert.equal(readNotificationCache(cache,null,now+1),null);
+ assert.equal(readNotificationCache(JSON.stringify([{...rows[0],_cache_ts:now}]),'account-a',now+1),null);
+ assert.equal(readNotificationCache(cache,'account-a',now+300_000),null);assert.equal(readNotificationCache(cache,'account-a',now-1),null);
+ assert.equal(readNotificationCache('not json','account-a',now),null);
+});
+test('archived club invoice copies stay out of notification caches and realtime eligibility',async()=>{
+ const {isVisibleNotification,notificationCache,readNotificationCache}=await import('../src/lib/notificationVisibility.mjs');
+ const rows=[{id:'archived',type:'accounting_invoice_detail'},{id:'recipient',type:'accounting_invoice'},{id:'social',type:null}];
+ assert.equal(isVisibleNotification(rows[0]),false);assert.equal(isVisibleNotification(null),false);
+ const cache=notificationCache(rows,'account',1000);assert.deepEqual(readNotificationCache(cache,'account',1001).map(row=>row.id),['recipient','social']);
+ const changed=JSON.parse(cache);changed[1].type='accounting_invoice_detail';assert.deepEqual(readNotificationCache(JSON.stringify(changed),'account',1001).map(row=>row.id),['recipient']);
+});

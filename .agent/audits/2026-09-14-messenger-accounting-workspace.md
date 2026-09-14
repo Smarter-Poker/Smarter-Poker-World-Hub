@@ -20,3 +20,6 @@ Authenticated invoice opening also exposed a second social identity card inside 
 
 
 The authenticated notification click selected the correct invoice, but the native notification overlay obscured the destination. The global overlay now dismisses only after successful route completion while notifications are open; failed navigation retains it, and other overlays do not subscribe. This preserves the existing no-navigation behavior when merely opening notifications. Two additional interaction checks bring the native total to 39.
+
+
+Notification visibility was also enforced at the browser boundary. Legacy cache arrays without the current version and authenticated owner are rejected; cache age cannot be extended by marking a row read. Late responses from a previous account cannot replace the current feed. Archived individual club copies are filtered from cache, fetch, live insertion and final render, while archive updates remove an already-open copy. These checks preserve ordinary social alerts and each payee's own invoice notification. The native accounting UI/workspace suite now has 41 passing checks.
