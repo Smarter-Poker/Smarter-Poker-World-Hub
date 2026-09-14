@@ -1,4 +1,5 @@
 import json
+import os
 import urllib.request
 import re
 import time
@@ -6,7 +7,9 @@ from bs4 import BeautifulSoup
 from scrapling import StealthyFetcher
 
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+if not SUPABASE_KEY:
+    raise SystemExit("SUPABASE_SERVICE_ROLE_KEY is required")
 h = {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'}
 read_h = {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
 

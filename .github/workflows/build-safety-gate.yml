@@ -106,6 +106,9 @@ jobs:
       - name: Series Scraper Session And Data Contracts
         run: python3 -m unittest discover -s scripts -p test_poker_series_scraper.py -v
 
+      - name: Series Enrichment Startup Contracts
+        run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+
       - name: Video Scraper Failure And Receipt Contracts
         run: python3 -m unittest discover -s scripts -p test_video_library_scraper.py -v
 

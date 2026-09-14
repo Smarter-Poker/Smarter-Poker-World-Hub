@@ -47,6 +47,18 @@ jobs:
           python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
 
+      - name: Verify Enrichment Startup Before Discovery
+        id: enrichment_startup
+        env:
+          SERIES_TEST_REAL_IMPORTS: '1'
+        run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+
+      - name: Record Enrichment Startup Failure
+        if: failure() && steps.enrichment_startup.outcome == 'failure'
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: python3 scripts/utils/send_sms_alert.py "Series Enrichment Startup Check Failed"
+
       # ---------------------------------------------------------
       # STEP 1: Discovery Phase (Hunt for NEW series on PokerAtlas/Others)
       # ---------------------------------------------------------
