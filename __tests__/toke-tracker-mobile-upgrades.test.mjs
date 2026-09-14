@@ -176,6 +176,70 @@ test('the tutorial is registered for the prefix with eight steps whose targets e
   }
 });
 
+test('every control is reachable: no bare div with an onClick on the surface', () => {
+  // Four of these shipped, and three were primary actions: Tap To Scan
+  // Document, the file drop zone, a document thumbnail, and the completed
+  // event card. A div with an onClick is invisible to a keyboard and to a
+  // screen reader, and it is not counted by the 44px budget either, because
+  // that only measures buttons (mobile phase 11 sweep).
+  const files = [...SURFACE,
+    'src/components/bankroll/toke/AddDownModal.jsx',
+    'src/components/bankroll/toke/AddExpenseModal.jsx',
+    'src/components/bankroll/toke/CompletedEventsList.jsx',
+    'src/components/bankroll/toke/DoubleDownPrompt.jsx',
+  ];
+  const hits = [];
+  for (const rel of files) {
+    read(rel).split('\n').forEach((line, i) => {
+      if (!/<div[^>]*\bonClick=/.test(line)) return;
+      // A scrim whose only job is "tap outside to close" is not a control:
+      // it is aria-hidden and every such layer also has a real close button.
+      if (/aria-hidden="true"/.test(line)) return;
+      // stopPropagation on a wrapper is not a control either.
+      if (/onClick=\{e => e\.stopPropagation\(\)\}/.test(line)) return;
+      hits.push(`${rel}:${i + 1} ${line.trim().slice(0, 90)}`);
+    });
+  }
+  assert.deepEqual(hits, [], `clickable <div> (make it a <button>):\n${hits.join('\n')}`);
+});
+
+test('the image-mapped Add Down controls are 44px and named', () => {
+  const modal = read('src/components/bankroll/toke/AddDownModal.jsx');
+  // 9% and 10% of a 399px-tall card at 375 is 36px and 40px. The zones are
+  // absolutely positioned, so a min-height grows the hit area downward into
+  // the artwork's lower bezel.
+  assert.equal((modal.match(/minHeight: 44/g) || []).length, 4, 'all four undersized zones carry minHeight 44');
+  for (const label of ['Cash Game', 'Tournament', 'On Break', 'Brush', 'Start Down', 'Cancel']) {
+    assert.match(modal, new RegExp(`aria-label="${label}"`), `the ${label} zone is painted art with no text: it needs a name`);
+  }
+  // And the stylesheet no longer exempts them from the 44px floor.
+  const css = read(CSS);
+  assert.doesNotMatch(css, /button:not\(\.universal-header \*\):not\(\.hamburger-menu \*\):not\(\.toke-img-map-element\)/,
+    'the image-mapped buttons are exempt from the 44px rule again');
+  // The 16px rule is (0,4,1) specific, so overriding it from a (0,2,0)
+  // selector loses even with !important and the painted fields rendered at
+  // 16px. Measured in a browser: they must be EXCLUDED from it, not
+  // overridden after it.
+  assert.match(css, /\.toke-page input[^,]*:not\(\.toke-img-map-element\),/,
+    'the painted fields must be excluded from the 16px rule, not overridden after it');
+  assert.match(css, /\.toke-page select:not\(\.toke-img-map-element\),/);
+  assert.match(css, /\.toke-page \.toke-img-map-element \{\s*font-size: 18px !important;\s*min-height: 44px;/,
+    'the painted fields keep their 18px and the 44px floor');
+});
+
+test('the load failsafe guards a skeleton that actually renders', () => {
+  // useLoadFailsafe clears a stuck flag after 8s. On both pages that flag was
+  // read by nothing, so the failsafe protected a skeleton that did not exist.
+  for (const rel of ['pages/hub/toke-tracker/vault.js', 'pages/hub/toke-tracker/venues.js']) {
+    const src = read(rel);
+    assert.match(src, /useLoadFailsafe\(gigsLoading, setGigsLoading\)/, `${rel} has the failsafe`);
+    assert.match(src, /gigsLoading[\s\S]{0,120}toke-skel/, `${rel} renders a skeleton from it`);
+  }
+  assert.match(read(CSS), /\.toke-skel \{/, 'one skeleton class');
+  assert.match(read(CSS), /@keyframes tokeShimmer/, 'one shimmer keyframe');
+  assert.match(read(CSS), /prefers-reduced-motion: reduce\) \{\s*\.toke-skel \{ animation: none; \}/);
+});
+
 test('the budget rows and the law count phase 11 as converted', () => {
   const budget = JSON.parse(read('scripts/ci/mobile-budget.json')).routes;
   assert.equal(budget['/hub/toke-tracker'].converted, true);

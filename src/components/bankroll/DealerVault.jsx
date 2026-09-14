@@ -21,11 +21,14 @@ import DocumentCropper from './DocumentCropper';
 
 // ── Constants ────────────────────────────────────────────────────
 
+// The four document categories. Each is a section of the vault, listed one
+// under another (mobile phase 11); the `icon` field these carried fed the tab
+// strip that is gone, and was an empty string in every row anyway.
 const TABS = [
-    { id: 'gaming_license', label: 'Gaming Licenses', icon: '' },
-    { id: 'tax', label: 'Tax Documents', icon: '' },
-    { id: 'employment', label: 'Employment', icon: '' },
-    { id: 'paystub', label: 'Pay Stubs', icon: '' },
+    { id: 'gaming_license', label: 'Gaming Licenses' },
+    { id: 'tax', label: 'Tax Documents' },
+    { id: 'employment', label: 'Employment' },
+    { id: 'paystub', label: 'Pay Stubs' },
 ];
 
 const TAX_SUB_TYPES = [
@@ -461,10 +464,12 @@ function DealerVault({ userId, completedGigs = [] }) {
                     {!showUploadForm && !showLiveCamera && (
                         <div>
                             {/* Camera Scan Button */}
-                            <div
+                            <button
+                                type="button"
+                                aria-label="Tap To Scan Document"
                                 style={{
                                     display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                    padding: '24px 0', cursor: 'pointer', background: METAL.mid,
+                                    width: '100%', padding: '24px 0', cursor: 'pointer', background: METAL.mid,
                                     borderRadius: 12, border: `1px solid ${METAL.highlight}`, marginBottom: 16
                                 }}
                                 onClick={() => setShowLiveCamera(true)}
@@ -478,11 +483,13 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 </div>
                                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.05em' }}>TAP TO SCAN DOCUMENT</div>
                                 <div style={{ color: METAL.textSecondary, fontSize: 13, marginTop: 4 }}>Auto-Detects And Extracts Data</div>
-                            </div>
+                            </button>
 
                             <div style={{ textAlign: 'center', color: METAL.textSecondary, margin: '8px 0', fontSize: 14 }}>Or Choose A File From Device</div>
 
-                            <div
+                            <button
+                                type="button"
+                                aria-label="Drop A Document Here Or Tap To Upload"
                                 style={{ ...s.dropZone, ...(isDragging ? s.dropZoneActive : {}) }}
                                 onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                                 onDragLeave={() => setIsDragging(false)}
@@ -492,14 +499,16 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 <div style={s.dropIcon}></div>
                                 <div style={s.dropText}>Drop A Document Here Or Tap To Upload</div>
                                 <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*,application/pdf"
-                                    style={{ display: 'none' }}
-                                    onChange={e => handleFileSelect(e.target.files?.[0])}
-                                />
-                            </div>
+                            </button>
+                            {/* Outside the button: a file input nested in a button
+                                is opened twice by the click that reaches both. */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,application/pdf"
+                                style={{ display: 'none' }}
+                                onChange={e => handleFileSelect(e.target.files?.[0])}
+                            />
                         </div>
                     )}
 
@@ -698,15 +707,17 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 return (
                                     <div key={doc.id} style={s.docCard}>
                                         {/* Thumbnail or PDF icon */}
-                                        <div
+                                        <button
+                                            type="button"
                                             style={s.docThumb}
                                             onClick={() => window.open(doc.file_url, '_blank')}
+                                            aria-label={`Open ${doc.label || doc.file_name}`}
                                         >
                                             {isImage
                                                 ? <img src={doc.file_url} alt={doc.label} style={s.thumbImg} />
-                                                : <div style={s.pdfIcon}>📄</div>
+                                                : <span style={s.pdfIcon}>PDF</span>
                                             }
-                                        </div>
+                                        </button>
 
                                         {/* Info */}
                                         <div style={s.docInfo}>
