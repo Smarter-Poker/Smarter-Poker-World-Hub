@@ -179,7 +179,9 @@ function heartbeatPayloadIsValid(payload) {
         && typeof payload.board === 'string' && payload.board.length <= 10
         && typeof payload.note === 'string' && payload.note.length <= 500
         && ['spots_done', 'rows_written', 'bad'].every((field) => (
-            Number.isSafeInteger(payload[field]) && payload[field] >= 0
+            Number.isSafeInteger(payload[field])
+            && payload[field] >= 0
+            && payload[field] <= 2_147_483_647
         ));
 }
 
@@ -199,6 +201,7 @@ function rpcIdentity(worker, nonce, signedAt, bodySha256) {
         p_pipeline_commit: worker.pipeline_commit,
         p_manifest_version: worker.manifest_version,
         p_manifest_checksum: worker.manifest_checksum,
+        p_expected_admission_mode: worker.admission_mode,
         p_nonce: nonce,
         p_signed_at: signedAt,
         p_body_sha256: bodySha256,
@@ -241,7 +244,7 @@ async function enforceDurableWorkerRateLimit(supabase, res, workerId) {
 }
 
 async function claimRequest(supabase, envelope, identity) {
-    const query = supabase.rpc('training_claim_solver_worker_request_v1', {
+    const query = supabase.rpc('training_claim_solver_worker_request_v2', {
         ...rpcIdentity(envelope.worker, identity.nonce, identity.signedAt, identity.bodySha256),
         p_operation: envelope.operation,
     });
@@ -252,7 +255,7 @@ async function claimRequest(supabase, envelope, identity) {
 
 async function ingestArtifact(supabase, envelope, identity) {
     const artifact = envelope.payload.artifact;
-    const query = supabase.rpc('training_ingest_solver_artifact_v1', {
+    const query = supabase.rpc('training_ingest_solver_artifact_v2', {
         ...rpcIdentity(envelope.worker, identity.nonce, identity.signedAt, identity.bodySha256),
         p_artifact: artifact,
     });
@@ -268,13 +271,14 @@ async function ingestArtifact(supabase, envelope, identity) {
 }
 
 async function rowStates(supabase, payload, worker) {
-    const query = supabase.rpc('training_solver_worker_row_states_v2', {
+    const query = supabase.rpc('training_solver_worker_row_states_v3', {
         p_machine_id: worker.machine_id,
         p_solver_version: worker.solver_version,
         p_solver_binary_checksum: worker.solver_binary_checksum,
         p_pipeline_commit: worker.pipeline_commit,
         p_manifest_version: worker.manifest_version,
         p_manifest_checksum: worker.manifest_checksum,
+        p_expected_admission_mode: worker.admission_mode,
         p_scenario_hashes: payload.scenario_hashes,
     });
     const { data, error } = await executeBoundedDatabaseOperation(query);
@@ -313,6 +317,7 @@ async function rowStates(supabase, payload, worker) {
                 || (row.admitted
                     && (persistedNode === null || persistedPosition === null))
                 || ![null, 'held', 'backlog', 'bounded_canary'].includes(admissionMode)
+                || admissionMode !== worker.admission_mode
                 || (row.partition_count !== null
                     && (!Number.isSafeInteger(row.partition_count)
                         || row.partition_count < 1))
@@ -340,13 +345,20 @@ async function rowStates(supabase, payload, worker) {
     return data;
 }
 
-async function boardPage(supabase, payload) {
+async function boardPage(supabase, payload, worker) {
     const prefix = `${payload.game_type}_${payload.position}_${payload.stack_depth}bb_`;
     // The worker must use this bounded RPC even while a temporary read-only
     // service grant exists for protected migration-first rollback. It enforces
     // the exact family/street/prefix/keyset contract against the required
     // physical btree in one database statement and permits no raw writes.
-    const query = supabase.rpc('training_solver_worker_board_page_v1', {
+    const query = supabase.rpc('training_solver_worker_board_page_v2', {
+        p_machine_id: worker.machine_id,
+        p_solver_version: worker.solver_version,
+        p_solver_binary_checksum: worker.solver_binary_checksum,
+        p_pipeline_commit: worker.pipeline_commit,
+        p_manifest_version: worker.manifest_version,
+        p_manifest_checksum: worker.manifest_checksum,
+        p_expected_admission_mode: worker.admission_mode,
         p_game_type: payload.game_type,
         p_stack_depth: payload.stack_depth,
         p_street: payload.street,
@@ -365,19 +377,25 @@ async function boardPage(supabase, payload) {
     return data.map((row) => row.scenario_hash);
 }
 
-async function heartbeat(supabase, workerId, payload) {
-    const query = supabase.from('solver_status').upsert({
-        machine_id: workerId,
-        phase: payload.phase,
-        board: payload.board,
-        spots_done: payload.spots_done,
-        rows_written: payload.rows_written,
-        bad: payload.bad,
-        note: payload.note,
-        updated_at: new Date().toISOString(),
-    }, { onConflict: 'machine_id' });
-    const { error } = await executeBoundedDatabaseOperation(query);
+async function heartbeat(supabase, worker, payload) {
+    const query = supabase.rpc('training_solver_worker_heartbeat_v1', {
+        p_machine_id: worker.machine_id,
+        p_solver_version: worker.solver_version,
+        p_solver_binary_checksum: worker.solver_binary_checksum,
+        p_pipeline_commit: worker.pipeline_commit,
+        p_manifest_version: worker.manifest_version,
+        p_manifest_checksum: worker.manifest_checksum,
+        p_expected_admission_mode: worker.admission_mode,
+        p_phase: payload.phase,
+        p_board: payload.board,
+        p_spots_done: payload.spots_done,
+        p_rows_written: payload.rows_written,
+        p_bad: payload.bad,
+        p_note: payload.note,
+    });
+    const { data, error } = await executeBoundedDatabaseOperation(query);
     if (error) throw error;
+    if (data !== true) throw new Error('Solver heartbeat returned an invalid receipt');
 }
 
 export default async function handler(req, res) {
@@ -447,21 +465,26 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, operation: envelope.operation, receipt });
         }
         if (!await claimRequest(supabase, envelope, identity)) {
-            return res.status(409).json({ success: false, error: 'Solver worker nonce already consumed' });
+            return res.status(409).json({
+                success: false,
+                error: 'Solver worker request is not authorized or nonce was consumed',
+            });
         }
         if (envelope.operation === 'row_states') {
             const rows = await rowStates(supabase, envelope.payload, envelope.worker);
             return res.status(200).json({ success: true, operation: envelope.operation, rows });
         }
         if (envelope.operation === 'board_page') {
-            const scenarioHashes = await boardPage(supabase, envelope.payload);
+            const scenarioHashes = await boardPage(
+                supabase, envelope.payload, envelope.worker,
+            );
             return res.status(200).json({
                 success: true,
                 operation: envelope.operation,
                 scenario_hashes: scenarioHashes,
             });
         }
-        await heartbeat(supabase, workerId, envelope.payload);
+        await heartbeat(supabase, envelope.worker, envelope.payload);
         return res.status(200).json({ success: true, operation: envelope.operation });
     } catch (error) {
         if (error instanceof RequestBodyError) {
