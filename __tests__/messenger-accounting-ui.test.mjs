@@ -14,6 +14,7 @@ function component(path) {
 }
 const Widget=component('../src/components/messenger/ClubArenaWorkspace.js');
 const Invoice=component('../src/components/messenger/AccountingInvoiceCard.js');
+const AccountingIntroduction=component('../src/components/messenger/AccountingConversationIntroduction.js');
 const theme={card:'#fff',text:'#111',border:'#ccc',textSec:'#555',blue:'#007bff'};
 const clubs=[{id:'a',name:'First Club',canManage:true},{id:'b',name:'Second Club',canManage:false}];
 function elements(element,result=[]) { if(!React.isValidElement(element))return result;result.push(element);for(const child of React.Children.toArray(element.props.children))elements(child,result);return result; }
@@ -47,4 +48,11 @@ test('message API uses the authenticated database page and preserves provenance 
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{userId:'forged',conversationId:'conversation',before:cursor,beforeId,limit:500}},res);
  assert.equal(status,200);assert.equal(calls[0].args.p_user_id,'verified-user');assert.equal(calls[0].args.p_before,cursor);assert.equal(calls[0].args.p_limit,200);assert.equal(payload.messages[0].media_metadata.issued_status,'pending');assert.equal(payload.messages[0].media_metadata.status,'paid');
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{conversationId:'conversation',beforeId}},res);assert.equal(status,400);
+});
+
+
+test('accounting conversation introduction identifies documents without a synthetic member profile',()=>{
+ const html=renderToStaticMarkup(React.createElement(AccountingIntroduction,{title:'Midway Union Statements',theme}));
+ assert.match(html,/Accounting Conversation/);assert.match(html,/Midway Union Statements/);assert.match(html,/Invoices, Statements And Related Discussions/);
+ assert.doesNotMatch(html,/href=|View Profile|Smarter.Poker Member|undefined/);
 });

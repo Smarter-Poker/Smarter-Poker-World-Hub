@@ -46,6 +46,7 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 import ClubArenaWorkspace from '../../src/components/messenger/ClubArenaWorkspace';
 import AccountingInvoiceCard from '../../src/components/messenger/AccountingInvoiceCard';
+import AccountingConversationIntroduction from '../../src/components/messenger/AccountingConversationIntroduction';
 import { getTheme } from '../../src/components/messenger/MessengerTheme';
 
 // Default light theme (overridden at component level)
@@ -4594,12 +4595,14 @@ function MessengerPage() {
                                             Loading Older Messages...
                                         </div>
                                     )}
-                                    {/* User info header */}
-                                    <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
+                                    {/* Accounting conversations describe documents, not a synthetic user. */}
+                                    {activeConversation.isAccounting ? (
+                                        <AccountingConversationIntroduction title={activeTitle} theme={C} />
+                                    ) : <div style={{ textAlign: 'center', marginBottom: 24, padding: '0 20px' }}>
                                         <Avatar src={otherUser?.avatar_url} name={activeTitle} size={80} showOnline={false} />
                                         <div style={{ marginTop: 12, fontWeight: 600, fontSize: 17 }}>{activeTitle}</div>
                                         <div style={{ color: C.textSec, fontSize: 13 }}>Smarter.Poker Member</div>
-                                        <Link href={`/hub/user/${otherUser?.username}`} style={{
+                                        {otherUser?.username && <Link href={`/hub/user/${otherUser.username}`} style={{
                                             display: 'inline-block',
                                             marginTop: 12,
                                             padding: '8px 16px',
@@ -4609,8 +4612,8 @@ function MessengerPage() {
                                             textDecoration: 'none',
                                             fontSize: 14,
                                             fontWeight: 500,
-                                        }}>View Profile</Link>
-                                    </div>
+                                        }}>View Profile</Link>}
+                                    </div>}
 
                                     {loadingMessages ? (
                                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
@@ -4618,8 +4621,10 @@ function MessengerPage() {
                                         </div>
                                     ) : messages.length === 0 ? (
                                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                                            <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
-                                            Say Hi To Start The Conversation!
+                                            {activeConversation.isAccounting ? 'No Accounting Documents Or Discussions Yet' : <>
+                                                <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+                                                Say Hi To Start The Conversation!
+                                            </>}
                                         </div>
                                     ) : (() => {
                                         const _today = new Date();
