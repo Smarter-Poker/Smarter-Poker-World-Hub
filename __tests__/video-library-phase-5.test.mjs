@@ -154,5 +154,10 @@ test('desktop actions, playlist wiring, touch controls, and safe-area layout rem
   assert.match(PAGE, /top: 0, bottom: 64/);
   assert.equal(BOTTOM_NAV_ROUTES['/hub/video-library']?.theme, 'dark');
   assert.doesNotMatch(PAGE, /<BottomNavBar/);
-  assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 2);
+  // PIN MOVED (mobile phase 9, 2026-09-14): the page's own bottom pad
+  // (82px + safe area) is gone; BottomNavSpacer in _app.js owns the bottom
+  // clearance for every route in bottom-nav-routes.json. The playlist sheet
+  // still pads its own bottom edge, which is the one env() that remains.
+  assert.ok((CSS.match(/env\(safe-area-inset-bottom/g) || []).length >= 1);
+  assert.doesNotMatch(CSS, /calc\(82px \+ env\(safe-area-inset-bottom/);
 });

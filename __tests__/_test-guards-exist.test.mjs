@@ -163,6 +163,7 @@ import './training-mobile-upgrades.test.mjs';
 // returned sidebar widgets and labels, the 12px floor and the tutorial.
 import './news-mobile-upgrades.test.mjs';
 import './trivia-mobile-upgrades.test.mjs';
+import './video-library-mobile-upgrades.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
 // Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,
