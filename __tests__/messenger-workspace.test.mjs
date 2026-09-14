@@ -17,7 +17,7 @@ function fixture({ member=true, role='player', broken=null, cap=200, page=true }
         let data=[...(tables[table] || [])], limit=Infinity, order=null, ascending=true;
         const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},not(k,op,v){data=data.filter(r=>r[k]!==v);return q;},lte(k,v){data=data.filter(r=>r[k]<=v);return q;},order(k,options={}){order=k;ascending=options.ascending!==false;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>String(a[order]).localeCompare(String(b[order]))*(ascending?1:-1));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
         return q;
-    },async rpc(name,args){calls.push(args);if(name==='fn_club_weekly_accounting_summary')return {data:tables.report,error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
+    },async rpc(name,args){calls.push(args);if(name==='fn_messenger_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_club_weekly_accounting_summary')return {data:tables.report,error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
     return {db,tables,calls};
 }
 
@@ -85,4 +85,17 @@ test('a failed or wrongly scoped summary does not display a false total',async()
 });
 test('an already complete weekly statement does not duplicate the delivered invoice',async()=>{
  const {db,tables}=reportFixture();tables.report.status='complete';const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.equal(r.weeklySummary,null);
+});
+
+test('archived club copies do not leave empty individual-payout threads in the invoice tab',async()=>{
+ const {db,tables}=fixture({role:'owner'});tables.accounting_conversations[0].recipient_visible=false;
+ const result=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.deepEqual(result.conversations,[]);
+ await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.invoice}),e=>e.status===403);
+});
+test('receipt visibility failure cannot restore archived invoice copies',async()=>{
+ const {db}=fixture({role:'owner',broken:'visibility'});await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+});
+test('accounting preview text comes from the latest visible message',async()=>{
+ const {db,tables}=fixture();tables.social_conversations.find(c=>c.id===ids.invoice).last_message_preview='Archived Individual Payout';
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.equal(r.conversations[0].last_message_preview,'Visible Document');
 });
