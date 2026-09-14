@@ -51,7 +51,9 @@ jobs:
         id: enrichment_startup
         env:
           SERIES_TEST_REAL_IMPORTS: '1'
-        run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+        run: |
+          python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
+          python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
 
       - name: Record Enrichment Startup Failure
         if: failure() && steps.enrichment_startup.outcome == 'failure'
