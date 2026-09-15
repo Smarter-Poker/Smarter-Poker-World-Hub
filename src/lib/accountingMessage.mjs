@@ -157,6 +157,59 @@ export function correctionInvoiceDisplay(meta) {
         amount: `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${fraction}` };
 }
 
+const CREDIT_CHANGE_DETAIL = 'This records a credit-capacity change. No chips were transferred and no payment is due.';
+const CREDIT_CHANGE_UNAVAILABLE = 'Credit change receipt unavailable.';
+const creditId = value => uuid(value) && value === value.toLowerCase() && value !== '00000000-0000-0000-0000-000000000000';
+const creditAmount = value => typeof value === 'string' && /^(0|[1-9][0-9]{0,12})\.[0-9]{2}$/.test(value)
+    ? BigInt(value.replace('.', '')) : null;
+const creditRevision = value => typeof value === 'string' && /^(0|[1-9][0-9]{0,18})$/.test(value) &&
+    BigInt(value) <= 9223372036854775807n ? BigInt(value) : null;
+const exactCreditTime = value => timestamp(value) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(value);
+const formatCreditAmount = value => value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+// A credit-limit record is neither a chip transfer nor a payable invoice. The
+// private reader supplies the immutable operation/document join separately.
+export function parseVerifiedCreditChangeReceipt(receipt) {
+    if (!object(receipt) || receipt.accounting_verified !== true || receipt.credit_change_verified !== true ||
+        receipt.invoice_type !== 'credit_limit_change' || receipt.status !== 'generated' ||
+        receipt.chips_transferred !== false || receipt.due_at !== null || receipt.transferred_at !== null ||
+        receipt.source_ledger_id !== null || !object(receipt.credit_change)) return null;
+    const c = receipt.credit_change;
+    const ids = ['document_id', 'invoice_id', 'operation_receipt_id', 'operation_id', 'assignment_id',
+        'club_id', 'agent_id', 'target_user_id', 'actor_user_id'];
+    if (c.contract_version !== 1 || !ids.every(key => creditId(c[key])) ||
+        new Set([c.document_id, c.invoice_id, c.assignment_id]).size !== 3 ||
+        c.invoice_id !== receipt.id || c.club_id !== receipt.club_id ||
+        c.event_kind !== 'credit_limit_reduced' || c.display_state !== 'recorded' ||
+        c.chip_movement_recorded !== false || c.payable !== false || c.amount_due !== '0.00' ||
+        c.before_prepaid !== false || typeof c.after_prepaid !== 'boolean' ||
+        c.amount !== c.applied_reduction || receipt.amount !== c.amount ||
+        !exactCreditTime(c.recorded_at) || !exactCreditTime(c.issued_at) || c.issued_at !== c.recorded_at) return null;
+    const before = creditAmount(c.before_limit), after = creditAmount(c.after_limit);
+    const requested = creditAmount(c.requested_reduction), applied = creditAmount(c.applied_reduction);
+    const beforeRevision = creditRevision(c.before_revision), afterRevision = creditRevision(c.after_revision);
+    if ([before, after, requested, applied, beforeRevision, afterRevision].some(value => value === null) ||
+        before === 0n || requested === 0n || requested > 100000000000n || applied === 0n ||
+        applied !== (requested < before ? requested : before) || after !== before - applied ||
+        c.after_prepaid !== (after === 0n) || afterRevision !== beforeRevision + 1n) return null;
+    const keys = ['contract_version', ...ids, 'event_kind', 'display_state', 'amount', 'requested_reduction',
+        'applied_reduction', 'before_limit', 'after_limit', 'before_prepaid', 'after_prepaid',
+        'before_revision', 'after_revision', 'recorded_at', 'issued_at', 'chip_movement_recorded', 'payable', 'amount_due'];
+    return Object.fromEntries(keys.map(key => [key, c[key]]));
+}
+
+export function creditChangeInvoiceDisplay(meta) {
+    if (!object(meta) || meta.invoice_type !== 'credit_limit_change' || meta.accounting_verified !== true) return null;
+    const credit = parseVerifiedCreditChangeReceipt({ ...meta, id: meta.invoice_id });
+    if (!credit) return { verified: false, label: 'Credit Change Record', status: 'Receipt Unavailable',
+        detail: CREDIT_CHANGE_UNAVAILABLE, rows: [['Credit reduction', 'Not Available']] };
+    return { verified: true, label: 'Credit Line Updated', status: 'Recorded', detail: CREDIT_CHANGE_DETAIL,
+        rows: [['Requested reduction', formatCreditAmount(credit.requested_reduction)],
+            ['Applied reduction', formatCreditAmount(credit.applied_reduction)],
+            ['Limit after this change', formatCreditAmount(credit.after_limit)],
+            ['Funding after this change', credit.after_prepaid ? 'Prepaid' : 'Credit']] };
+}
+
 // Only the server may supply receipt, from accounting_invoice_deliveries.
 export function verifyAccountingMessage(message, receipt) {
     const metadata = { ...message.media_metadata, accounting_verified: false };
@@ -166,6 +219,8 @@ export function verifyAccountingMessage(message, receipt) {
     delete metadata.correction_verified;
     delete metadata.invoice_identity_verified;
     delete metadata.correction_unverified;
+    delete metadata.credit_change;
+    delete metadata.credit_change_verified;
     const correctionIdentity = parseUnverifiedCorrectionIdentity(receipt);
     if (correctionIdentity) {
         return { ...message, content: CORRECTION_IDENTITY_UNAVAILABLE, text: CORRECTION_IDENTITY_UNAVAILABLE, media_metadata: {
@@ -181,6 +236,18 @@ export function verifyAccountingMessage(message, receipt) {
     const verified = object(receipt) && typeof receipt.id === 'string' && receipt.id.length > 0;
     if (verified) {
         const issuedStatus = message.media_metadata?.issued_status ?? message.media_metadata?.status;
+        if (receipt.invoice_type === 'credit_limit_change' ||
+            (receipt.invoice_type === undefined && metadata.invoice_type === 'credit_limit_change')) {
+            const credit = parseVerifiedCreditChangeReceipt(receipt);
+            const content = credit ? CREDIT_CHANGE_DETAIL : CREDIT_CHANGE_UNAVAILABLE;
+            return { ...message, content, text: content, media_metadata: {
+                kind: 'accounting_invoice', accounting_verified: true, invoice_type: 'credit_limit_change',
+                invoice_id: receipt.id, club_id: receipt.club_id, source_ledger_id: null,
+                status: credit ? 'generated' : null, chips_transferred: credit ? false : null,
+                due_at: null, transferred_at: null, amount: credit?.amount ?? null, currency: 'CHIPS',
+                credit_change_verified: credit !== null, credit_change: credit,
+            } };
+        }
         if (receipt.invoice_type === 'accounting_correction' ||
             (receipt.invoice_type === undefined && metadata.invoice_type === 'accounting_correction')) {
             const correction = parseVerifiedCorrectionReceipt(receipt);

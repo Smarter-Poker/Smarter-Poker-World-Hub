@@ -110,6 +110,8 @@ export default async function handler(req, res) {
                   // reader from the exact invoice and journal provenance.
                   correction_verified: m.media_metadata.correction_verified,
                   correction: m.media_metadata.correction,
+                  credit_change_verified: m.media_metadata.credit_change_verified,
+                  credit_change: m.media_metadata.credit_change,
               } : null);
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
