@@ -97,14 +97,103 @@ export function cashierInvoiceDisplay(meta) {
         amount: `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${fraction}` };
 }
 
+const CORRECTION_DETAIL = 'A correction was recorded in the accounting journal. This record does not establish a new chip payment.';
+const CORRECTION_UNAVAILABLE = 'Receipt unavailable.';
+const CORRECTION_IDENTITY_UNAVAILABLE = 'Correction receipt unavailable.';
+
+// Historical identity is a separate private-reader assertion, never accounting
+// or payment verification. Preserve the original stored invoice type.
+export function parseUnverifiedCorrectionIdentity(receipt) {
+    if (!object(receipt) || receipt.invoice_identity_verified !== true || receipt.correction_unverified !== true ||
+        receipt.accounting_verified !== false || receipt.correction_verified !== false ||
+        ['amount', 'status', 'chips_transferred', 'due_at', 'transferred_at', 'correction'].some(key => receipt[key] !== undefined) ||
+        !uuid(receipt.id) || !uuid(receipt.source_ledger_id) || !uuid(receipt.club_id) ||
+        !(receipt.union_id === null || uuid(receipt.union_id)) ||
+        typeof receipt.invoice_type !== 'string' || !/^[a-z][a-z0-9_]{0,63}$/.test(receipt.invoice_type)) return null;
+    return { invoice_id: receipt.id, invoice_type: receipt.invoice_type,
+        source_ledger_id: receipt.source_ledger_id, club_id: receipt.club_id, union_id: receipt.union_id };
+}
+
+export function isUnverifiedCorrectionPlaceholder(meta) {
+    return object(meta) && meta.kind === 'accounting_invoice' &&
+        parseUnverifiedCorrectionIdentity({ ...meta, id: meta.invoice_id }) !== null;
+}
+
+// Only the private reader's invoice + immutable correction-provenance join is
+// a receipt. Copied message metadata cannot establish journal or payment facts.
+export function parseVerifiedCorrectionReceipt(receipt) {
+    if (!object(receipt) || receipt.accounting_verified !== true ||
+        receipt.invoice_type !== 'accounting_correction' || receipt.correction_verified !== true ||
+        receipt.status !== 'generated' || receipt.chips_transferred !== false ||
+        receipt.due_at !== null || receipt.transferred_at !== null || !object(receipt.correction)) return null;
+    const c = receipt.correction;
+    const scope = value => value === null || uuid(value);
+    const utcTimestamp = value => timestamp(value) && /(?:Z|\+00:00)$/.test(value);
+    if (c.contract_version !== 1 || c.event_kind !== 'correction_recorded' || c.display_state !== 'recorded' ||
+        !['document_id', 'invoice_id', 'source_ledger_id'].every(key => uuid(c[key])) ||
+        !uuid(c.club_id) || !scope(c.union_id) ||
+        c.invoice_id !== receipt.id || c.source_ledger_id !== receipt.source_ledger_id ||
+        c.club_id !== receipt.club_id || c.union_id !== receipt.union_id ||
+        typeof c.amount !== 'string' || invoiceAmount(c.amount) !== c.amount || c.amount === '0.00' ||
+        typeof receipt.amount !== 'string' || receipt.amount !== c.amount ||
+        !utcTimestamp(c.recorded_at) || !utcTimestamp(c.issued_at) ||
+        c.payment_proven !== false || c.new_chip_movement_claimed !== false ||
+        c.original_payment_invoice_id !== null) return null;
+    const keys = ['contract_version', 'document_id', 'invoice_id', 'source_ledger_id', 'event_kind',
+        'display_state', 'amount', 'club_id', 'union_id', 'recorded_at', 'issued_at',
+        'payment_proven', 'new_chip_movement_claimed', 'original_payment_invoice_id'];
+    return Object.fromEntries(keys.map(key => [key, c[key]]));
+}
+
+export function correctionInvoiceDisplay(meta) {
+    if (isUnverifiedCorrectionPlaceholder(meta)) return { verified: false, label: 'Correction Record',
+        status: 'Receipt Unavailable', detail: CORRECTION_IDENTITY_UNAVAILABLE, amount: 'Not Available' };
+    if (!object(meta) || meta.invoice_type !== 'accounting_correction' || meta.accounting_verified !== true) return null;
+    const correction = parseVerifiedCorrectionReceipt({ ...meta, id: meta.invoice_id });
+    if (!correction) return { verified: false, label: 'Correction Record', status: 'Receipt Unavailable',
+        detail: CORRECTION_UNAVAILABLE, amount: 'Not Available' };
+    const [whole, fraction] = correction.amount.split('.');
+    return { verified: true, label: 'Correction Recorded', status: 'Recorded', detail: CORRECTION_DETAIL,
+        amount: `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${fraction}` };
+}
+
 // Only the server may supply receipt, from accounting_invoice_deliveries.
 export function verifyAccountingMessage(message, receipt) {
     const metadata = { ...message.media_metadata, accounting_verified: false };
     delete metadata.cashier;
     delete metadata.cashier_verified;
+    delete metadata.correction;
+    delete metadata.correction_verified;
+    delete metadata.invoice_identity_verified;
+    delete metadata.correction_unverified;
+    const correctionIdentity = parseUnverifiedCorrectionIdentity(receipt);
+    if (correctionIdentity) {
+        return { ...message, content: CORRECTION_IDENTITY_UNAVAILABLE, text: CORRECTION_IDENTITY_UNAVAILABLE, media_metadata: {
+            kind: 'accounting_invoice', ...correctionIdentity,
+            invoice_identity_verified: true, correction_unverified: true,
+            accounting_verified: false, correction_verified: false,
+        } };
+    }
+    // A malformed explicit identity-only proof must not fall through to the
+    // generic receipt path and acquire accounting verification from its ID.
+    if (object(receipt) && (receipt.correction_unverified !== undefined ||
+        receipt.invoice_identity_verified !== undefined)) receipt = null;
     const verified = object(receipt) && typeof receipt.id === 'string' && receipt.id.length > 0;
     if (verified) {
         const issuedStatus = message.media_metadata?.issued_status ?? message.media_metadata?.status;
+        if (receipt.invoice_type === 'accounting_correction' ||
+            (receipt.invoice_type === undefined && metadata.invoice_type === 'accounting_correction')) {
+            const correction = parseVerifiedCorrectionReceipt(receipt);
+            const content = correction ? CORRECTION_DETAIL : CORRECTION_UNAVAILABLE;
+            return { ...message, content, text: content, media_metadata: {
+                kind: 'accounting_invoice', accounting_verified: true, invoice_type: 'accounting_correction',
+                invoice_id: receipt.id, source_ledger_id: receipt.source_ledger_id,
+                club_id: receipt.club_id, union_id: receipt.union_id,
+                status: correction ? 'generated' : null, chips_transferred: correction ? false : null,
+                due_at: null, transferred_at: null, amount: correction?.amount ?? null, currency: 'CHIPS',
+                correction_verified: correction !== null, correction,
+            } };
+        }
         if (receipt.invoice_type === 'cashier_cashout' ||
             (receipt.invoice_type === undefined && metadata.invoice_type === 'cashier_cashout')) {
             const cashier = parseVerifiedCashierReceipt(receipt);

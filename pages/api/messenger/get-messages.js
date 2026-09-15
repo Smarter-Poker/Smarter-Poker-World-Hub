@@ -85,17 +85,31 @@ export default async function handler(req, res) {
           }
 
           const normalized = sorted.map(m => {
-              m = verifyAccountingMessage(m, m.media_metadata?.accounting_verified === true ? {
-                  accounting_verified: true,
+              // Both assertions originate from the private reader. Identity
+              // alone permits an unavailable placeholder, never a paid card.
+              const privateMeta = m.media_metadata;
+              const hasPrivateReceipt = privateMeta?.accounting_verified === true ||
+                  (privateMeta?.invoice_identity_verified === true && privateMeta?.correction_unverified === true &&
+                      privateMeta?.accounting_verified === false && privateMeta?.correction_verified === false);
+              m = verifyAccountingMessage(m, hasPrivateReceipt ? {
+                  accounting_verified: privateMeta.accounting_verified,
+                  invoice_identity_verified: privateMeta.invoice_identity_verified,
+                  correction_unverified: privateMeta.correction_unverified,
                   id: m.media_metadata.invoice_id, status: m.media_metadata.status,
                   chips_transferred: m.media_metadata.chips_transferred,
                   invoice_type: m.media_metadata.invoice_type,
                   source_ledger_id: m.media_metadata.source_ledger_id,
                   club_id: m.media_metadata.club_id, amount: m.media_metadata.amount,
+                  union_id: m.media_metadata.union_id,
+                  due_at: m.media_metadata.due_at, transferred_at: m.media_metadata.transferred_at,
                   // Only the private reader can attest these fields from the
                   // immutable cashier event joined to this exact invoice.
                   cashier_verified: m.media_metadata.cashier_verified,
                   cashier: m.media_metadata.cashier,
+                  // Correction proof is reconstructed by the same private
+                  // reader from the exact invoice and journal provenance.
+                  correction_verified: m.media_metadata.correction_verified,
+                  correction: m.media_metadata.correction,
               } : null);
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
