@@ -26,6 +26,26 @@ const exists = (rel) => fs.existsSync(path.join(REPO, rel));
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const sizeOf = (rel) => fs.statSync(path.join(REPO, rel)).size;
 
+// CHECK 8 already executes this file. Required checks must stay on local
+// compute even when repository variables are missing or changed.
+for (const [workflow, jobs] of Object.entries({
+    'build-safety-gate': 3,
+    'no-conflict-markers': 1,
+    'undefined-identifier-guard': 1,
+    'audit-marker-guard': 1,
+    'supabase-invariants': 3,
+})) {
+    test(`required workflow ${workflow} is confined to local ARM64 runners`, () => {
+        const src = read(`.github/workflows/${workflow}.yml`);
+        const selectors = [...src.matchAll(/^ +runs-on:[ \t]*(.+)$/gm)];
+        assert.equal(selectors.length, jobs, `${workflow}: preserve every existing job`);
+        for (const [, selector] of selectors) {
+            assert.equal(selector.trim(), '[self-hosted, smarter-local-linux-arm64]',
+                `${workflow}: no hosted fallback or variable-controlled runner selection`);
+        }
+    });
+}
+
 test('preview-signup-gate workflow exists and is non-trivial', () => {
     const p = '.github/workflows/preview-signup-gate.yml';
     assert.ok(exists(p), `${p} missing — preview-deploy gate disabled`);

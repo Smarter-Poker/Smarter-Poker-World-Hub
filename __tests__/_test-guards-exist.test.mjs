@@ -145,6 +145,7 @@ import './horses-routes-group-b.test.mjs';
 import './horses-subpages-phase1.test.mjs';
 import './login-painted-auth-state.test.mjs';
 import './messenger-prefs-sync.test.mjs';
+import './messenger-search-lifecycle.test.mjs';
 import './mobile-foundation.test.mjs';
 import './modal-history-core.test.mjs';
 import './news-intelligence-phase-7.test.mjs';
