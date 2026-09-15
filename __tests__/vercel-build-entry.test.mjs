@@ -101,3 +101,31 @@ test('an original command failure retains its exit status and stops the shell ch
   assert.equal(result.status, 17);
   assert.deepEqual(result.calls, expected.slice(0, 2));
 });
+
+
+test('pre-push webpack guard follows the actual entry and refuses missing or unsafe commands', () => {
+  const hook = readFileSync(new URL('../scripts/hooks/pre-push-js-safety.sh', import.meta.url), 'utf8');
+  const start = hook.indexOf('# 11a ');
+  const end = hook.indexOf('# 11b ', start);
+  assert.ok(start >= 0 && end > start);
+  const block = hook.slice(start, end);
+  const dir = mkdtempSync(join(tmpdir(), 'wh-prepush-entry-'));
+  try {
+    mkdirSync(join(dir, 'scripts'));
+    mkdirSync(join(dir, 'node_modules/next'), { recursive: true });
+    writeFileSync(join(dir, 'node_modules/next/package.json'), JSON.stringify({ version: '16.0.0' }));
+    writeFileSync(join(dir, 'vercel.json'), JSON.stringify({ buildCommand: 'node scripts/vercel-build.mjs' }));
+    for (const [command, valid] of [['next build --webpack', true], ['next build', false], [null, false]]) {
+      const module = join(dir, 'scripts/vercel-build.mjs');
+      if (command === null) rmSync(module);
+      else writeFileSync(module, `export const BUILD_COMMAND = ${JSON.stringify(command)};`);
+      const result = spawnSync('/bin/bash', ['-c', `ERRORS=0; NEXTJS_CONFIG_ERRORS=0;
+${block}
+exit "$ERRORS"`], {
+        cwd: dir, encoding: 'utf8', timeout: 5000,
+        env: { PATH: `${process.execPath.slice(0, process.execPath.lastIndexOf('/'))}:/usr/bin:/bin` },
+      });
+      assert.equal(result.status, valid ? 0 : 1, result.stdout + result.stderr);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
