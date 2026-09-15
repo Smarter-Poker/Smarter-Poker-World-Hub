@@ -32,6 +32,7 @@ const TRIGGER_EVENTS = [
   'credit_request',
   'credit_approved',
   'credit_denied',
+  'credit_cancelled',
   'settlement_dispute_filed',
   'dispute_resolved',
   // PRE-EXISTING cash-out notifiers, read out of pg_proc rather than guessed.
@@ -44,6 +45,12 @@ const TRIGGER_EVENTS = [
   'cashout_request_escrow', // fn_cashout_request
   'cashout_expired_refund', // fn_expire_stale_cashouts
 ];
+
+test('credit cancellation uses the existing cashier consent and quiet-hour category', () => {
+  const key = eventToTypeKey('credit_cancelled');
+  assert.equal(key, 'cashier');
+  assert.equal(isUrgentType(key), false);
+});
 
 test('every money-trigger event maps to a real preference key', () => {
   for (const event of TRIGGER_EVENTS) {

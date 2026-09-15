@@ -218,6 +218,7 @@ const EVENT_ALIASES = {
     credit_request: 'cashier',
     credit_approved: 'cashier',
     credit_denied: 'cashier',
+    credit_cancelled: 'cashier',
     settlement_dispute_filed: 'cashier',
     dispute_resolved: 'cashier',
     // Invoice and rakeback receipts honor the existing financial push toggle.
