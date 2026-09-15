@@ -40,9 +40,18 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// This law already runs in the maintained prebuild check. Keep the local
+// production-input regression reachable without changing the build command.
+import './local-production-build-env.test.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
+
+test('production installation consumes the committed lock without rewriting it', () => {
+  // 2026-09-15: the default npm install removed 65 libc metadata arrays from
+  // the release lock. A release must reject a stale lock, not rewrite it.
+  assert.equal(vercel.installCommand, 'npm ci --no-audit --no-fund');
+});
 
 // Vercel's route-object schema. Anything else is rejected at deploy time.
 const ALLOWED_HEADER_KEYS = new Set(['source', 'headers', 'has', 'missing']);
