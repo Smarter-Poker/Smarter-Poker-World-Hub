@@ -37,16 +37,17 @@ test('weekly preview states reconciliation and separates unknown roles and downs
 
 test('message API uses the authenticated database page and preserves provenance and cursor precision',async()=>{
  const {verifyAccountingMessage}=await import('../src/lib/accountingMessage.mjs');
- const calls=[];const db={from(table){assert.equal(table,'social_conversation_participants');return {select(){return this;},eq(){return this;},async maybeSingle(){return {data:{id:'participant'}};}};},async rpc(name,args){calls.push({name,args});return name==='fn_messenger_message_page'?{data:[{id:'message',sender_id:'issuer',content:'Issued Document',message_type:'invoice',media_metadata:{accounting_verified:true,invoice_id:'real',status:'paid',issued_status:'pending'},profiles:{id:'issuer'}}]}:{data:[]};}};
+ const calls=[];const db={async rpc(){return {data:[]};}};
+ const privateReader=async(receivedDb,userId,request)=>{assert.equal(receivedDb,db);calls.push({userId,...request});return [{id:'message',sender_id:'issuer',content:'Issued Document',message_type:'invoice',media_metadata:{accounting_verified:true,invoice_id:'real',status:'paid',issued_status:'pending'},profiles:{id:'issuer'}}];};
  const source=fs.readFileSync(new URL('../pages/api/messenger/get-messages.js',import.meta.url),'utf8');
  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const module={exports:{}};
- const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},sentryWrap:{reportApiError:()=>{}},'accountingMessage.mjs':{verifyAccountingMessage}};
+ const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},sentryWrap:{reportApiError:()=>{}},'accountingMessage.mjs':{verifyAccountingMessage},'messengerWorkspace.mjs':{readMessengerMessages:privateReader}};
  new Function('require','module','exports','process',code)(p=>mocks[p.split('/').at(-1)],module,module.exports,{env:{SUPABASE_SERVICE_ROLE_KEY:'fixture'}});
  let status=200,payload=null;const res={status(n){status=n;return this;},json(v){payload=v;return this;}};
  const cursor='2026-09-14T12:00:00.123456Z',beforeId='00000000-0000-4000-8000-000000000001';
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{userId:'forged',conversationId:'conversation',before:cursor,beforeId,limit:500}},res);
- assert.equal(status,200);assert.equal(calls[0].args.p_user_id,'verified-user');assert.equal(calls[0].args.p_before,cursor);assert.equal(calls[0].args.p_limit,200);assert.equal(payload.messages[0].media_metadata.issued_status,'pending');assert.equal(payload.messages[0].media_metadata.status,'paid');
+ assert.equal(status,200);assert.equal(calls[0].userId,'verified-user');assert.equal(calls[0].before,cursor);assert.equal(calls[0].limit,200);assert.equal(payload.messages[0].media_metadata.issued_status,'pending');assert.equal(payload.messages[0].media_metadata.status,'paid');
  await module.exports.default({method:'POST',headers:{authorization:'Bearer fixture'},body:{conversationId:'conversation',beforeId}},res);assert.equal(status,400);
 });
 

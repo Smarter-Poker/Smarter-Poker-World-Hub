@@ -60,7 +60,7 @@ async function accountingMap(db, ids, userId) {
             .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,last_discussion_at')
             .in('conversation_id', ids.slice(start, start + 100)));
         if (records.length) {
-            const { data: visibility, error } = await db.rpc('fn_messenger_accounting_threads', {
+            const { data: visibility, error } = await db.rpc('fn_messenger_private_accounting_threads', {
                 p_user_id: userId, p_conversation_ids: records.map(record => record.conversation_id),
             });
             if (error || !Array.isArray(visibility)) fail(503, 'Invoice Threads Unavailable');
@@ -182,6 +182,18 @@ export async function getMessengerWorkspace(db, userId, request) {
 }
 
 
+export async function readMessengerMessages(db, userId, request) {
+    await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: request.conversationId });
+    // The private reader name is an installation contract: an older database
+    // cannot silently supply the participant-only invoice reader.
+    const { data, error } = await db.rpc('fn_messenger_private_message_page', {
+        p_user_id: userId, p_conversation_id: request.conversationId,
+        p_before: request.before || null, p_before_id: request.beforeId || null, p_limit: request.limit,
+    });
+    if (error || !Array.isArray(data)) fail(error?.code === '42501' ? 403 : 503, 'Messages Unavailable');
+    return data;
+}
+
 export async function searchMessengerWorkspace(db, userId, request, limit = 50) {
     if (typeof request.query !== 'string' || request.query.trim().length < 2 || request.query.length > 500 ||
         !Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid Message Search');
@@ -192,7 +204,7 @@ export async function searchMessengerWorkspace(db, userId, request, limit = 50) 
     const ids = request.conversationId ? [workspace.conversation.id] : workspace.conversations.map(conversation => conversation.id);
     if (!ids.length) return [];
     if (ids.length > 500) fail(503, 'Choose A Smaller Search Scope');
-    const { data, error } = await db.rpc('fn_messenger_search_messages', {
+    const { data, error } = await db.rpc('fn_messenger_private_search_messages', {
         p_user_id: userId, p_conversation_ids: ids, p_query: request.query.trim(), p_limit: limit,
     });
     if (error || !Array.isArray(data)) fail(error?.code === '42501' ? 403 : 503, 'Message Search Unavailable');

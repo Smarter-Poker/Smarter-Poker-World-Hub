@@ -186,7 +186,9 @@ self.addEventListener('push', (event) => {
             .then(() => self.registration.showNotification(title, options))
             // A rejected showNotification means the OS refused these options.
             // Retry with the bare minimum rather than showing nothing at all.
-            .catch(() => self.registration.showNotification(title, { body: options.body }))
+            .catch(() => self.registration.showNotification(title, {
+                body: options.body, data: options.data, tag: options.tag, renotify: false,
+            }))
             .then(() => {
                 try {
                     if (self.navigator && self.navigator.setAppBadge) {
@@ -229,11 +231,13 @@ self.addEventListener('notificationclick', (event) => {
 
     const url = (event.notification.data && event.notification.data.url) || '/hub';
 
-    const samePath = (a, b) => {
+    const sameDestination = (a, b) => {
         try {
             const x = new URL(a, self.location.origin);
             const y = new URL(b, self.location.origin);
-            return x.pathname.replace(/\/+$/, '') === y.pathname.replace(/\/+$/, '');
+            return x.origin === y.origin &&
+                x.pathname.replace(/\/+$/, '') === y.pathname.replace(/\/+$/, '') &&
+                x.search === y.search && x.hash === y.hash;
         } catch (e) {
             return false;
         }
@@ -242,14 +246,19 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         self.clients
             .matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clients) => {
+            .then(async (clients) => {
                 for (const c of clients) {
                     if ('focus' in c) {
-                        c.focus();
-                        if ('navigate' in c && url && !samePath(c.url, url)) {
-                            try { c.navigate(url); } catch (e) { /* ignore */ }
+                        if (url && !sameDestination(c.url, url)) {
+                            if ('navigate' in c) {
+                                try {
+                                    const navigated = await c.navigate(url);
+                                    if (navigated) return navigated.focus();
+                                } catch (e) { /* open the exact destination below */ }
+                            }
+                            return self.clients.openWindow ? self.clients.openWindow(url) : null;
                         }
-                        return null;
+                        return c.focus();
                     }
                 }
                 return self.clients.openWindow ? self.clients.openWindow(url) : null;
