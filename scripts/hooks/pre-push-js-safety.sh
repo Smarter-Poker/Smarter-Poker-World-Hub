@@ -648,7 +648,21 @@ NEXTJS_CONFIG_ERRORS=0
 
 # 11a — vercel.json buildCommand must include --webpack for Next.js >= 15
 if [ -f "vercel.json" ]; then
-    BUILD_CMD=$(node -e "try{const d=require('./vercel.json');console.log(d.buildCommand||'')}catch(e){}" 2>/dev/null || echo "")
+    # Follow the maintained guarded entry; its exported command is what runs.
+    if ! BUILD_CMD=$(node --input-type=module -e '
+      import { readFileSync } from "node:fs";
+      const config = JSON.parse(readFileSync("vercel.json", "utf8"));
+      const command = config.buildCommand === "node scripts/vercel-build.mjs"
+        ? (await import("./scripts/vercel-build.mjs")).BUILD_COMMAND
+        : config.buildCommand;
+      if (typeof command !== "string" || !command.trim()) process.exit(1);
+      console.log(command);
+    ' 2>/dev/null); then
+        echo -e "${RED}  ✗ FATAL: Cannot read the actual Vercel build command${NC}"
+        ERRORS=$((ERRORS + 1))
+        NEXTJS_CONFIG_ERRORS=$((NEXTJS_CONFIG_ERRORS + 1))
+        BUILD_CMD=""
+    fi
     if [ -n "$BUILD_CMD" ]; then
         NEXT_VERSION=$(node -e "try{const p=require('./node_modules/next/package.json');console.log(p.version)}catch(e){console.log('0')}" 2>/dev/null || echo "0")
         NEXT_MAJOR=$(echo "$NEXT_VERSION" | cut -d. -f1)
@@ -658,7 +672,7 @@ if [ -f "vercel.json" ]; then
                 echo "    Command: $BUILD_CMD"
                 echo "    Next.js $NEXT_VERSION defaults to Turbopack (since v15)."
                 echo "    Our custom webpack config + named export mismatches WILL break Turbopack."
-                echo "    Fix: \"buildCommand\": \"NODE_OPTIONS='--max-old-space-size=7168' next build --webpack\""
+                echo "    Fix the maintained build command to retain next build --webpack."
                 echo ""
                 ERRORS=$((ERRORS + 1))
                 NEXTJS_CONFIG_ERRORS=$((NEXTJS_CONFIG_ERRORS + 1))

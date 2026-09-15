@@ -5,6 +5,9 @@ import './diamond-store-phase-9.test.mjs';
 // CHECK 8's reachability predicate requires direct imports. ESM deduplicates
 // the fixture imports also made by the deployability law.
 import './vercel-json-is-deployable.law.test.mjs';
+import './marketplace-operations.test.mjs';
+import './a-pdf-w2g-is-read.law.test.mjs';
+import './no-route-names-a-model-that-does-not-exist.law.test.mjs';
 import './local-production-build-env.test.mjs';
 import './vercel-build-entry.test.mjs';
 /**

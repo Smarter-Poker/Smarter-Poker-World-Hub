@@ -25,6 +25,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BUILD_COMMAND } from '../scripts/vercel-build.mjs';
 
 import { isPdf, PDFJS_VERSION } from '../src/lib/docscan/pdfText.mjs';
 import { VERSION as COPIED_VERSION, OUT_DIR } from '../scripts/copy-pdfjs-assets.mjs';
@@ -139,11 +140,12 @@ test('the worker is served immutable, like the OCR engine', () => {
     // 256-character limit and errored two production deploys.
     const runner = read('scripts/copy-reader-assets.mjs');
     assert.match(runner, /copy-pdfjs-assets\.mjs/, 'the runner must actually copy the worker');
-    assert.match(vercel.buildCommand, /copy-reader-assets\.mjs/);
+    assert.equal(vercel.buildCommand, 'node scripts/vercel-build.mjs');
+    assert.match(BUILD_COMMAND, /copy-reader-assets\.mjs/);
     const pkg = JSON.parse(read('package.json'));
     assert.match(pkg.scripts.prebuild, /copy-reader-assets\.mjs/);
-    const copyAt = vercel.buildCommand.indexOf('copy-reader-assets.mjs');
-    const buildAt = vercel.buildCommand.indexOf('next build');
+    const copyAt = BUILD_COMMAND.indexOf('copy-reader-assets.mjs');
+    const buildAt = BUILD_COMMAND.indexOf('next build');
     assert.ok(copyAt >= 0 && copyAt < buildAt, 'the copy must run BEFORE next build');
 });
 
