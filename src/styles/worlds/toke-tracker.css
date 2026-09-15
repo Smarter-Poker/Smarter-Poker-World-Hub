@@ -215,6 +215,26 @@
         grid-template-columns: 1fr;
     }
 
+    /* Seven 44px days plus six 2px gaps is 320px, and a phone is 375. So at
+       phone width the month grid takes the full width of whatever it is
+       mounted in, and every card between the page and the grid stops
+       charging it side padding. Measured on
+       /hub/bankroll-manager?view=toke-tracker, where four nested cards left
+       the grid 263px and every day came out 35px wide - below the 44px
+       target this stylesheet claims two rules up. These three classes are
+       deliberately unscoped: the same components render inside
+       .bankroll-page as well as .toke-page, and the defect was on the
+       bankroll one. */
+    .toke-cal-wrapper,
+    .toke-cal-month {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .toke-cal-grid {
+        gap: 2px !important;
+    }
+
     /* The Tax Summary is a fixed, centred card above 600px. On a phone it
        is a bottom sheet like every other bankroll modal. */
     .toke-tax-sheet {

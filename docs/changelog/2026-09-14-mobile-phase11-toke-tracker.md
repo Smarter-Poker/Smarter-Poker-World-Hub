@@ -154,3 +154,60 @@ Three new pins in `__tests__/toke-tracker-mobile-upgrades.test.mjs` (12 tests
 now): no bare clickable div anywhere on the surface, the Add Down zones at
 44px with names and no stylesheet exemption, and the failsafe rendering a
 skeleton that exists.
+
+## 5. The same components on the OTHER page that mounts them (2026-09-15)
+
+Every measurement above was taken on `/hub/toke-tracker` and its four rooms.
+The five components phase 11 changed also mount inside `.bankroll-page`:
+`SIDEBAR_SECTIONS` lists `toke-tracker` with no `action`, so
+`/hub/bankroll-manager?view=toke-tracker` sets that section and
+`bankroll-manager.js` renders `<TokeTracker />` inline. Nothing had looked at
+that surface since the conversion.
+
+- **The calendar days were 35px wide there.** Not a regression - the
+  pre-phase-11 mini grid was 15px on the same page - but a real defect on a
+  converted surface, and one `toke-tracker.css` itself contradicts, since it
+  declares a 44px floor for `.toke-cal-day`. The cause was arithmetic, not
+  styling: at 375 the page spends **104px, 28% of the screen, on nested
+  horizontal padding** before the grid - 12 on the main column, 20 plus a 2px
+  border on the section card, 12 plus a border on the calendar's own wrapper
+  card, 8 plus a border on the month card - which left the seven-column grid
+  263px when seven 44px days plus their gaps need 320.
+
+  Fixed by giving the width back rather than letting the days shrink. At
+  <=600 the two cards between the page and the grid stop charging it side
+  padding (`.toke-cal-wrapper`, `.toke-cal-month`, both unscoped on purpose:
+  the defect was on `.bankroll-page`, not `.toke-page`), the day gap goes
+  from 3px to 2px, and the bankroll page's own phone padding drops to 8 on
+  the main column and 10 on the section card - which gives that width back to
+  every section on the page, not only the calendar. **That block is appended
+  AFTER the 768 block on purpose**: it sets the same property, and two rules
+  of equal specificity are decided by order. The twelve activity sections
+  gained a real class (`bankroll-activity-section`) instead of being reachable
+  only through `div[style*="border-radius"]`.
+
+  Measured at 375 after: day buttons **46px** wide (from 35), month grid
+  333px, 0 overflow, 0 targets under 44px, 0 text under 12px, with the four
+  vault sections and all 91 day buttons mounted. `/hub/bankroll-manager`
+  itself and its other sections re-probed clean at the same width.
+
+- **Step four of the tutorial had no spotlight on the page the tour opens
+  on.** Driven by hand at 375, all eight steps render and the tour closes, but
+  step four targeted `event|shift` and neither exists on the landing page,
+  where every other step falls back to `cards` or `title`. Now
+  `event|shift|cards`.
+
+Driving the calendar by hand also confirmed what the load-time probe cannot
+see: tapping a future day opens a real bottom sheet (375 wide, flush to the
+bottom, 16px top corners only, grab handle, "New Calendar Event", no control
+under 44px, no input under 16px), and the phone back gesture closes that
+sheet and leaves you on `/hub/toke-tracker/venues` instead of navigating
+away. The three-second prompt shows once per tutorial per browser, so it does
+not reappear on the landing page after the venues page has already offered
+it - `localStorage`, working as designed.
+
+Pinned by a thirteenth test in
+`__tests__/toke-tracker-mobile-upgrades.test.mjs`, which asserts the classes
+are on the elements, that the phone block follows the 768 block, and that the
+arithmetic closes: 375 minus the measured paddings must leave room for seven
+44px days plus their gaps.

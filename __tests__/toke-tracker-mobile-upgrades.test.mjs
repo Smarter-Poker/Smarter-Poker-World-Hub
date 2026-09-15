@@ -240,6 +240,46 @@ test('the load failsafe guards a skeleton that actually renders', () => {
   assert.match(read(CSS), /prefers-reduced-motion: reduce\) \{\s*\.toke-skel \{ animation: none; \}/);
 });
 
+test('the month grid gets the whole phone width, so seven 44px days fit', () => {
+  // Measured 2026-09-15 at 375 on /hub/bankroll-manager?view=toke-tracker,
+  // where these same components mount inside .bankroll-page: the
+  // seven-column month grid had 263px and every day button came out 35px
+  // wide, against the 44px floor this stylesheet declares two tests up. The
+  // cause was 104px - 28% of the screen - of nested horizontal padding spent
+  // before the grid: the main column, the section card, the calendar's own
+  // wrapper card, the month card. Fixed by giving the width back, not by
+  // letting the days shrink.
+  const toke = read(CSS);
+  const bank = read('src/styles/worlds/bankroll.css');
+
+  // The classes have to be ON the elements or the rules select nothing.
+  assert.match(read(TRACKER), /className="toke-cal-wrapper" style=\{styles\.calendarWrapper\}/);
+  assert.match(read(CALENDAR), /className="toke-cal-grid" style=\{calStyles\.fullGrid\}/);
+  assert.match(read('pages/hub/bankroll-manager.js'), /className="bankroll-activity-section" style=\{styles\.activitySection\}/);
+
+  // Unscoped on purpose: the defect was on .bankroll-page, not .toke-page.
+  assert.match(toke, /\.toke-cal-wrapper,\s*\.toke-cal-month \{\s*padding-left: 0 !important;\s*padding-right: 0 !important;/);
+  assert.doesNotMatch(toke, /\.toke-page \.toke-cal-wrapper|\.toke-page \.toke-cal-month/);
+
+  // The phone block must come AFTER the 768 block, which sets the same
+  // property: equal specificity is decided by order, and the first draft of
+  // this fix was silently overridden by the later rule.
+  const at600 = bank.lastIndexOf('@media (max-width: 600px)');
+  assert.ok(at600 > bank.indexOf('@media (max-width: 768px)'),
+    'the phone padding block is overridden by the 768 block unless it comes after it');
+
+  // And the arithmetic has to close at 375.
+  const phone = bank.slice(at600);
+  const gap = Number(toke.match(/\.toke-cal-grid \{\s*gap: (\d+)px !important;/)[1]);
+  const mainPad = Number(phone.match(/\.bankroll-main-content \{\s*padding: (\d+)px !important;/)[1]);
+  const sectionPad = Number(phone.match(/\.bankroll-activity-section \{\s*padding: (\d+)px !important;/)[1]);
+  // +2 for the section card's 2px border, which is inline and not going away.
+  const available = 375 - 2 * mainPad - 2 * (sectionPad + 2);
+  const needed = 7 * 44 + 6 * gap;
+  assert.ok(available >= needed,
+    `a 375px phone leaves the month grid ${available}px and seven 44px days need ${needed}`);
+});
+
 test('the budget rows and the law count phase 11 as converted', () => {
   const budget = JSON.parse(read('scripts/ci/mobile-budget.json')).routes;
   assert.equal(budget['/hub/toke-tracker'].converted, true);
