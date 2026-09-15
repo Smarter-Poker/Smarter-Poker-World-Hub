@@ -86,8 +86,16 @@ export default async function handler(req, res) {
 
           const normalized = sorted.map(m => {
               m = verifyAccountingMessage(m, m.media_metadata?.accounting_verified === true ? {
+                  accounting_verified: true,
                   id: m.media_metadata.invoice_id, status: m.media_metadata.status,
                   chips_transferred: m.media_metadata.chips_transferred,
+                  invoice_type: m.media_metadata.invoice_type,
+                  source_ledger_id: m.media_metadata.source_ledger_id,
+                  club_id: m.media_metadata.club_id, amount: m.media_metadata.amount,
+                  // Only the private reader can attest these fields from the
+                  // immutable cashier event joined to this exact invoice.
+                  cashier_verified: m.media_metadata.cashier_verified,
+                  cashier: m.media_metadata.cashier,
               } : null);
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import * as accountingMessage from '../src/lib/accountingMessage.mjs';
 const require=createRequire(import.meta.url);
 const React=require('react');
 const {renderToStaticMarkup}=require('react-dom/server');
@@ -13,7 +14,7 @@ function component(path, load=require) {
  return module.exports.default;
 }
 const Widget=component('../src/components/messenger/ClubArenaWorkspace.js');
-const Invoice=component('../src/components/messenger/AccountingInvoiceCard.js');
+const Invoice=component('../src/components/messenger/AccountingInvoiceCard.js',name=>name==='../../lib/accountingMessage.mjs'?accountingMessage:require(name));
 const AccountingIntroduction=component('../src/components/messenger/AccountingConversationIntroduction.js');
 const theme={card:'#fff',text:'#111',border:'#ccc',textSec:'#555',blue:'#007bff'};
 const clubs=[{id:'a',name:'First Club',canManage:true},{id:'b',name:'Second Club',canManage:false}];
