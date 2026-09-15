@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { BUILD_COMMAND } from '../scripts/vercel-build.mjs';
 
 import {
   parseStrictInteger,
@@ -200,7 +201,8 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   );
 
   const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-  assert.match(vercel.buildCommand, /npm run test:training:phase6-authority/);
+  assert.equal(vercel.buildCommand, 'node scripts/vercel-build.mjs');
+  assert.match(BUILD_COMMAND, /npm run test:training:phase6-authority/);
   const vercelIgnore = readFileSync(join(ROOT, '.vercelignore'), 'utf8');
   const phase6BuildTests = [
     packageJson.scripts['test:training:legacy-windows-retirement'],
