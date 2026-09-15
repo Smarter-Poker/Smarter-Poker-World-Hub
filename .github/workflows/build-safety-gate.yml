@@ -88,7 +88,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-training-authority-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-training-authority-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('package-lock.json') }}
 
       - name: Install Dependencies For Training Authority
         if: steps.training-authority-nm-cache.outputs.cache-hit != 'true'
@@ -145,6 +145,11 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends postgresql-17 locales
+          # Debian locale-gen reads /etc/locale.gen; an argument alone does
+          # not enable this locale and can remove an earlier localedef result.
+          if ! grep -Eq '^[[:space:]]*en_US\.UTF-8[[:space:]]+UTF-8([[:space:]]|$)' /etc/locale.gen; then
+            printf '%s\n' 'en_US.UTF-8 UTF-8' | sudo tee -a /etc/locale.gen >/dev/null
+          fi
           sudo locale-gen en_US.UTF-8
 
       - name: Resolve Exact PostgreSQL 17 Training Test Binaries
@@ -936,7 +941,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/typescript
-          key: ts5-parser-${{ runner.os }}-v1
+          key: ts5-parser-${{ runner.os }}-${{ runner.arch }}-v1
 
       - name: "CHECK 20: Title Case on every player-facing page"
         run: |
@@ -970,7 +975,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/sharp
-          key: sharp-avatar-guard-${{ runner.os }}-v1
+          key: sharp-avatar-guard-${{ runner.os }}-${{ runner.arch }}-v1
 
       - name: "CHECK 8: Auth-critical files exist"
         run: |
@@ -1302,7 +1307,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-typecheck-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-typecheck-${{ runner.os }}-${{ runner.arch }}-node20-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.nm-cache.outputs.cache-hit != 'true'
