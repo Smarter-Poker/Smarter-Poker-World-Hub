@@ -17,7 +17,7 @@
  *
  * BUMP THIS when changing push behaviour so devices pick up the new worker.
  */
-const SP_SW_VERSION = 'sp-push-v4-accounting-privacy';
+const SP_SW_VERSION = 'sp-push-v5-authenticated-rotation';
 
 // ---------------------------------------------------------------------------
 // Activation. Claim clients so a fresh worker takes over without a reload.
@@ -315,15 +315,10 @@ self.addEventListener('notificationclick', (event) => {
 // ---------------------------------------------------------------------------
 // SUBSCRIPTION SELF-HEAL.
 //
-// Browsers rotate push subscriptions without warning -- after an OS update,
-// a storage purge, or a long idle period. When that happens the old endpoint
-// silently dies and the server never finds out, which is exactly the failure
-// where "the server shows all-success and the phone gets nothing" comes from.
-//
-// Re-subscribe immediately and re-register with the server. If the user is
-// signed out the POST 401s harmlessly and PushSubscriptionSync repairs it on
-// the next sign-in.
-// ---------------------------------------------------------------------------
+// Local subscription recovery does not authenticate an account. The rotation
+// route now refuses sessionless requests without writes. Foreground enrollment
+// remains recovery; client-held binding is required before background rotation
+// can safely become automatic again. Never describe a refused request as healed.
 self.addEventListener('pushsubscriptionchange', (event) => {
     event.waitUntil(
         (async () => {
@@ -339,16 +334,8 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                 });
 
                 const json = sub.toJSON();
-                // /api/push/subscribe needs a Bearer JWT from localStorage, which
-                // a service worker cannot read. /api/push/rotate is session-less
-                // instead -- see that route's header for the security argument.
-                //
-                // oldKeys is the PROOF OF POSSESSION. The old subscription's
-                // auth secret is known only to the browser that owns it and to
-                // the server, so echoing it proves this really is the same
-                // device rotating itself, rather than someone who merely learned
-                // the endpoint string. Without it the server quarantines the new
-                // row (is_active=false) until an authenticated re-enrolment.
+                // Old keys prove subscription possession, not the current account.
+                // No bearer is persisted in the worker. A 401 is a real refusal.
                 let oldKeys = null;
                 try {
                     if (event.oldSubscription && typeof event.oldSubscription.toJSON === 'function') {
@@ -356,7 +343,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                     }
                 } catch (e) { /* Safari may not populate oldSubscription */ }
 
-                await fetch('/api/push/rotate', {
+                const rotationResponse = await fetch('/api/push/rotate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -366,7 +353,20 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                         oldKeys,
                     }),
                 });
-                console.log(`[SW ${SP_SW_VERSION}] Push subscription self-healed.`);
+                if (!rotationResponse.ok) {
+                    console.warn('[push] Rotation unconfirmed; authenticated enrollment is required.');
+                    return;
+                }
+                const outcome = await rotationResponse.json();
+                const receipt = outcome && outcome.receipt;
+                if (outcome.ok !== true || outcome.rotated !== true || !receipt ||
+                    receipt.schema_version !== 1 || receipt.success !== true ||
+                    receipt.old_endpoint !== (event.oldSubscription && event.oldSubscription.endpoint) ||
+                    receipt.endpoint !== sub.endpoint || receipt.transport !== 'webpush') {
+                    console.warn('[push] Rotation receipt unconfirmed; authenticated enrollment is required.');
+                    return;
+                }
+                console.log('[push] Server confirmed subscription rotation.');
             } catch (e) {
                 console.warn(`[SW ${SP_SW_VERSION}] Self-heal failed:`, e && e.message);
             }

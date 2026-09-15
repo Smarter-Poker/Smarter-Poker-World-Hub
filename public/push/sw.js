@@ -29,7 +29,7 @@
  * still open any URL on the origin.
  */
 
-const SP_PUSH_SW = 'sp-push-dedicated-v1';
+const SP_PUSH_SW = 'sp-push-dedicated-v2-authenticated-rotation';
 
 self.addEventListener('install', () => {
     // Nothing to cache. Take over immediately rather than waiting for every
@@ -286,7 +286,8 @@ self.addEventListener('notificationclick', (event) => {
 
 /*
  * The browser can rotate a subscription without telling the page. Re-register
- * from here so the server learns the new endpoint even if the app is closed.
+ * locally here. Server rotation now requires authenticated account authority;
+ * a sessionless refusal waits for foreground authenticated enrollment.
  */
 self.addEventListener('pushsubscriptionchange', (event) => {
     event.waitUntil(
@@ -316,7 +317,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                     }
                 } catch (e) { /* ignore */ }
 
-                await fetch('/api/push/rotate', {
+                const rotationResponse = await fetch('/api/push/rotate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -326,7 +327,20 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                         oldKeys,
                     }),
                 });
-                console.log(`[${SP_PUSH_SW}] subscription self-healed`);
+                if (!rotationResponse.ok) {
+                    console.warn('[push] Rotation unconfirmed; authenticated enrollment is required.');
+                    return;
+                }
+                const outcome = await rotationResponse.json();
+                const receipt = outcome && outcome.receipt;
+                if (outcome.ok !== true || outcome.rotated !== true || !receipt ||
+                    receipt.schema_version !== 1 || receipt.success !== true ||
+                    receipt.old_endpoint !== (event.oldSubscription && event.oldSubscription.endpoint) ||
+                    receipt.endpoint !== sub.endpoint || receipt.transport !== 'webpush') {
+                    console.warn('[push] Rotation receipt unconfirmed; authenticated enrollment is required.');
+                    return;
+                }
+                console.log('[push] Server confirmed subscription rotation.');
             } catch (err) {
                 console.warn(`[${SP_PUSH_SW}] self-heal failed:`, err && err.message);
             }
