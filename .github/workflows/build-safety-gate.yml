@@ -1,10 +1,6 @@
-# RUNNER (2026-09-03): `vars.CI_RUNNER` routes this and eight other World Hub
-# workflows to the estate's Hetzner runners the moment the repository variable is
-# set (Club Arena uses `estate-linux`). Unset, every job is exactly
-# `ubuntu-latest` as before. Measured 2026-09-02: E2E Tests, Global Footer E2E,
-# this gate and Supabase Invariants were ~75% of World Hub's hosted minutes
-# ($53 on Sept 1, $10 on Sept 2). Playwright installs skip `--with-deps` on a
-# self-hosted runner, where the browser deps are installed once on the box.
+# RUNNER (2026-09-15): required checks use the local ARM64 Linux runner.
+# Fixed labels prevent an absent or changed repository variable from enabling
+# paid hosted compute. If the local runner is offline, these jobs wait.
 name: Build Safety Gate
 
 # Runs on pushes to main and PRs targeting main — NOT all branches
@@ -52,7 +48,7 @@ jobs:
     # ruleset enforces this check on the pull request; the merge commit is
     # the same tree. Club Arena made the same call on 2026-08-23.
     if: github.event_name == 'pull_request'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: [self-hosted, smarter-local-linux-arm64]
     timeout-minutes: 30
 
     steps:
@@ -1223,7 +1219,7 @@ jobs:
     name: Failure Notification
     needs: [safety-checks]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: [self-hosted, smarter-local-linux-arm64]
 
     steps:
       - name: Create GitHub Issue on Failure
@@ -1269,7 +1265,7 @@ jobs:
     # ruleset enforces this check on the pull request; the merge commit is
     # the same tree. Club Arena made the same call on 2026-08-23.
     if: github.event_name == 'pull_request'
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: [self-hosted, smarter-local-linux-arm64]
     timeout-minutes: 10
     
     steps:
