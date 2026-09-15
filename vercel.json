@@ -8,7 +8,7 @@
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
   "installCommand": "npm ci --no-audit --no-fund",
-  "buildCommand": "node scripts/copy-reader-assets.mjs && bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && npm run test:training:phase6-authority && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
+  "buildCommand": "node scripts/vercel-build.mjs",
   "headers": [
     {
       "source": "/(.*)",

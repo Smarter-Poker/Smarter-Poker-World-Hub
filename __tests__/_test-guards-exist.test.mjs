@@ -2,6 +2,11 @@ import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
 // Required CHECK 8 must catch wallet palette regressions before Vercel builds.
 import './diamond-store-phase-9.test.mjs';
+// CHECK 8's reachability predicate requires direct imports. ESM deduplicates
+// the fixture imports also made by the deployability law.
+import './vercel-json-is-deployable.law.test.mjs';
+import './local-production-build-env.test.mjs';
+import './vercel-build-entry.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────

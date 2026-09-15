@@ -43,6 +43,8 @@ import { fileURLToPath } from 'node:url';
 // This law already runs in the maintained prebuild check. Keep the local
 // production-input regression reachable without changing the build command.
 import './local-production-build-env.test.mjs';
+import './vercel-build-entry.test.mjs';
+import { BUILD_COMMAND } from '../scripts/vercel-build.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
@@ -163,14 +165,12 @@ test('no command in vercel.json is longer than the schema allows', () => {
 });
 
 test('the build command is kept short by a script, not by luck', () => {
-    // 239 of 256 is not much room. The next person to add a build step should
-    // add it to scripts/copy-reader-assets.mjs, or to whatever script the
-    // command already calls, rather than to the command.
     const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-    assert.match(config.buildCommand, /copy-reader-assets\.mjs/,
-        'the asset copies belong behind one script, which is what keeps this under the limit');
-    assert.doesNotMatch(config.buildCommand, /copy-tesseract-assets\.mjs/, 'chained directly, this overflowed');
-    assert.doesNotMatch(config.buildCommand, /copy-pdfjs-assets\.mjs/);
+    assert.equal(config.buildCommand, 'node scripts/vercel-build.mjs');
+    assert.match(BUILD_COMMAND, /copy-reader-assets\.mjs/,
+        'the guard must preserve the existing reader-copy command');
+    assert.doesNotMatch(BUILD_COMMAND, /copy-tesseract-assets\.mjs/);
+    assert.doesNotMatch(BUILD_COMMAND, /copy-pdfjs-assets\.mjs/);
 });
 
 test('the one script still runs both copies, before next build', () => {
@@ -181,9 +181,8 @@ test('the one script still runs both copies, before next build', () => {
     // fail the build rather than be skipped.
     assert.match(script, /process\.exit\(run\.status \|\| 1\)/);
 
-    const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-    const copyAt = config.buildCommand.indexOf('copy-reader-assets.mjs');
-    const buildAt = config.buildCommand.indexOf('next build');
+    const copyAt = BUILD_COMMAND.indexOf('copy-reader-assets.mjs');
+    const buildAt = BUILD_COMMAND.indexOf('next build');
     assert.ok(copyAt >= 0 && buildAt >= 0 && copyAt < buildAt);
 
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));

@@ -20,17 +20,28 @@ git diff --exit-code HEAD -- package-lock.json &&
 The `&&` chain stops before the build when the checker rejects. It also rejects
 pre-existing or build-time lock drift. Preserve a changed lock for diagnosis;
 do not bless it as the selected source or repair it with `npm install`.
-The checker alone does not start a build or change `npm run build` /
-`scripts/vercel-safe.sh`.
+The explicit check runs before the CLI's installation step. Vercel's maintained
+`buildCommand` also invokes `scripts/vercel-build.mjs`, which automatically runs
+the same guard for production before any original application build command.
+The checker alone does not start a build; `npm run build` and the macOS
+`scripts/vercel-safe.sh` credential wrapper are unchanged.
 Exit 0 checks presence and unresolved markers only; it does not authenticate
 credentials or certify the application.
 
 `vercel.json` pins `installCommand` to `npm ci --no-audit --no-fund`. The default
 `npm install` changed the first local release clone's lockfile (65 libc metadata
 arrays removed). `npm ci` must consume the committed lock and fail on dependency
-manifest disagreement. The application build command is unchanged. The existing
-`vercel-safe.sh` is a macOS credential wrapper, not this Linux publisher entry;
-this procedure does not change CLI authentication or hosted runtime settings.
+manifest disagreement. The new entry preserves the exact original shell chain,
+order, environment, stdio and failure status. It does not change CLI
+authentication or hosted runtime settings.
+
+The entry reads the CLI's `.vercel/output/builds.json` target, written before
+the custom build command, rather than relying on `VERCEL_ENV` exposure. A
+`production` target runs the guard; a `preview` target keeps the original chain
+without the production guard. Missing/malformed targets refuse before any
+command. Only the default `.vercel/output` and these two targets are supported;
+custom `--output` paths are refused. Do not invoke the entry outside the local
+Vercel build lifecycle or reuse another build's metadata.
 
 Vercel CLI's local `build --prod` and `build --target=production` select
 `.vercel/.env.production.local` under the resolved project root. A different
@@ -60,9 +71,10 @@ Run the dependency-free regression check explicitly:
 node --test __tests__/vercel-json-is-deployable.law.test.mjs
 ```
 
-That existing prebuild law imports the synthetic environment tests and also
-asserts the maintained install command. No package install or application build
-is needed to run these checks.
+That existing prebuild law imports the synthetic environment and actual-entry
+fixtures and asserts the maintained install command. Entry fixtures replace
+only the application commands with inert executables: no package install or
+application build is needed to run these checks.
 
 ## Upload the same local output, then verify the candidate
 
