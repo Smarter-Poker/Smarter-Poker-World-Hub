@@ -145,6 +145,22 @@ self.addEventListener('push', (event) => {
         }
     }
 
+    // Older in-flight accounting payloads can contain private invoice text.
+    // These markers only restrict presentation; they never establish access.
+    const details = data?.data && typeof data.data === 'object' ? data.data : {};
+    const accounting = data?.event === 'accounting_invoice' || details.event === 'accounting_invoice' ||
+        data?.accountingNotificationId != null || details.accountingNotificationId != null ||
+        (typeof data?.tag === 'string' && data.tag.startsWith('accounting:'));
+    if (accounting) {
+        data = {
+            title: 'New Accounting Notice', body: 'Open Smarter Poker To View',
+            url: data.url || '/hub/messenger', tag: data.tag || undefined, renotify: false,
+            icon: '/notification-icon.png', badge: '/notification-icon.png',
+            event: 'accounting_invoice', outboxId: details.outboxId ?? data.outboxId,
+            accountingNotificationId: details.accountingNotificationId ?? data.accountingNotificationId,
+        };
+    }
+
     const title = toTitleCase(data.title || 'Smarter Poker');
     const url = data.url || '/hub';
 
@@ -161,6 +177,7 @@ self.addEventListener('push', (event) => {
             url,
             event: data.event || null,
             outboxId: data.outboxId || null,
+            accountingNotificationId: data.accountingNotificationId || null,
             expiresAt: typeof data.expiresAt === 'number' ? data.expiresAt : null,
         },
         vibrate: data.vibrate || [120, 60, 120],

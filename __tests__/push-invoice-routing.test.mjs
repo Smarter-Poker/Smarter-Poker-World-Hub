@@ -4,30 +4,31 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
 const source = readFileSync(new URL('../public/push/sw.js', import.meta.url), 'utf8');
+const rootSource = readFileSync(new URL('../worker/index.js', import.meta.url), 'utf8');
 const invoice = '/hub/messenger?conversation=payee-invoice';
 
-function worker({ current = 'https://smarter.poker/hub/messenger', failNavigation = false, cold = false, rejectOptions = false } = {}) {
-    const listeners = new Map(), navigations = [], opened = [], shown = [];
+function worker({ current = 'https://smarter.poker/hub/messenger', failNavigation = false, cold = false, rejectOptions = false, root = false } = {}) {
+    const listeners = new Map(), navigations = [], opened = [], shown = [], badges = [];
     let focused = 0;
     const client = { url: current, async focus() { focused++; return client; }, async navigate(url) {
         navigations.push(url); if (failNavigation) throw Error('navigation refused'); client.url = url; return client;
     } };
     const self = {
-        location: { origin: 'https://smarter.poker' }, navigator: {},
+        location: { origin: 'https://smarter.poker' }, navigator: { async setAppBadge(...args) { badges.push(args); } },
         addEventListener(name, fn) { listeners.set(name, fn); }, skipWaiting() {},
-        registration: { async getNotifications() { return []; }, async showNotification(title, options) {
+        registration: { pushManager: { async getSubscription() { return null; } }, async getNotifications() { return []; }, async showNotification(title, options) {
             shown.push({ title, options });
             if (rejectOptions && shown.length === 1) throw Error('unsupported image option');
         } },
         clients: { async claim() {}, async matchAll() { return cold ? [] : [client]; }, async openWindow(url) { opened.push(url); } },
     };
-    runInNewContext(source, { self, URL, Date, console });
+    runInNewContext(root ? rootSource : source, { self, URL, Date, console });
     async function event(name, values) {
         const promises = [];
         listeners.get(name)({ ...values, waitUntil(p) { promises.push(p); } });
         await Promise.all(promises);
     }
-    return { navigations, opened, shown, focused: () => focused,
+    return { navigations, opened, shown, badges, focused: () => focused,
         click: url => event('notificationclick', { notification: { data: { url }, close() {} } }),
         push: data => event('push', { data: { json: () => data } }),
     };
@@ -60,4 +61,51 @@ test('notification fallback retains the invoice route and receipt tag for subseq
     const fallback = w.shown[1].options;
     assert.equal(fallback.data.url, invoice); assert.equal(fallback.tag, 'accounting:receipt-one'); assert.equal(fallback.renotify, false);
     await w.click(fallback.data.url); assert.deepEqual(w.navigations, [invoice]);
+});
+
+for (const root of [false, true]) {
+    const name = root ? 'root subscription worker' : 'Hub push worker';
+    test(`${name}: accounting banners and their fallback hide financial content and account badge counts`, async () => {
+        for (const rejectOptions of [false, true]) {
+            const w = worker({ root, rejectOptions });
+            const receipt = '00000000-0000-4000-8000-000000000008';
+            await w.push({ title: 'PRIVATE-CLUB CA-2026-87654', body: 'PRIVATE-PAYEE 985.76 Chips',
+                url: invoice, tag: `accounting:${receipt}`, renotify: true, badgeCount: 87654,
+                image: '/PRIVATE-INVOICE.png', icon: '/PRIVATE-CLUB.png', badge: '/PRIVATE-PAYEE.png',
+                actions: [{ title: 'PRIVATE-PAYEE 985.76', action: 'view' }],
+                data: { event: 'accounting_invoice', outboxId: 'outbox-8', accountingNotificationId: receipt } });
+            assert.equal(w.shown.length, rejectOptions ? 2 : 1);
+            for (const shown of w.shown) {
+                assert.equal(shown.title, 'New Accounting Notice'); assert.equal(shown.options.body, 'Open Smarter Poker To View');
+                assert.equal(shown.options.data.url, invoice); assert.equal(shown.options.tag, `accounting:${receipt}`);
+                assert.equal(shown.options.data.accountingNotificationId, receipt); assert.equal(shown.options.renotify, false);
+                assert.equal(shown.options.image, undefined); assert.equal(shown.options.actions, undefined);
+                assert.doesNotMatch(JSON.stringify(shown), /PRIVATE-|985\.76|CA-2026-87654/);
+            }
+            assert.ok(w.badges.every(args => args.length === 0));
+            await w.click(w.shown.at(-1).options.data.url); assert.deepEqual(w.navigations, [invoice]);
+        }
+    });
+    test(`${name}: legacy flat accounting events are generic even without a modern receipt marker`, async () => {
+        const w = worker({ root });
+        await w.push({ title: 'PRIVATE-CLUB', body: 'PRIVATE-PAYEE 985.76', event: 'accounting_invoice', url: invoice });
+        assert.equal(w.shown[0].title, 'New Accounting Notice'); assert.equal(w.shown[0].options.body, 'Open Smarter Poker To View');
+    });
+    test(`${name}: the receipt tag and quiet replacement survive repeated generic delivery`, async () => {
+        const w = worker({ root }), payload = { title: 'PRIVATE-CLUB', event: 'accounting_invoice', url: invoice, tag: 'accounting:one-receipt' };
+        await w.push(payload); await w.push(payload);
+        assert.equal(w.shown.length, 2); assert.equal(w.shown[0].options.tag, w.shown[1].options.tag);
+        assert.ok(w.shown.every(shown => shown.options.renotify === false));
+    });
+}
+test('the root subscription worker also handles query-only destinations and refused navigation', async () => {
+    const same = worker({ root: true, current: `https://smarter.poker${invoice}` }); await same.click(invoice);
+    assert.deepEqual(same.navigations, []); assert.equal(same.focused(), 1);
+    for (const options of [{ current: 'https://smarter.poker/hub/messenger?conversation=another' },
+        { current: 'https://smarter.poker/hub/messenger?clubId=club-a&folder=invoices' }]) {
+        const w = worker({ root: true, ...options }); await w.click(invoice); assert.deepEqual(w.navigations, [invoice]);
+    }
+    for (const options of [{ cold: true }, { failNavigation: true }]) {
+        const w = worker({ root: true, ...options }); await w.click(invoice); assert.deepEqual(w.opened, [invoice]);
+    }
 });

@@ -1,6 +1,7 @@
 import { sendPush, SUBSCRIPTION_COLUMNS } from './send-push';
 import { recordSendFailure } from './push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount } from './push-gate.js';
+import { accountingDisplayPayload } from './accounting-display.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PREFERENCE_RETRY_MS = 15 * 60 * 1000;
@@ -13,15 +14,13 @@ export function accountingPushPayload(row) {
     if (!UUID.test(id || '') || row.event !== 'accounting_invoice' || row.related_entity_id !== id) {
         throw new Error('Accounting push receipt is unverified');
     }
-    return {
-        title: row.title, body: row.body, url: row.url,
+    return accountingDisplayPayload({
+        url: row.url,
         // One banner per receipt, including receipts in the same conversation.
         // A retry replaces only that receipt, without another web-push alert.
         tag: `accounting:${id}`, renotify: false,
-        icon: row.icon_url || undefined, badge: row.badge_url || undefined,
-        image: row.image_url || undefined,
         data: { event: row.event, outboxId: row.id, accountingNotificationId: id },
-    };
+    });
 }
 
 async function updateClaim(db, row, patch) {

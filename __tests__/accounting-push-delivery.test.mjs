@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import * as gate from '../src/lib/push/push-gate.js';
 import { buildFcmMessage } from '../src/lib/push/fcm.js';
+import * as accountingDisplay from '../src/lib/push/accounting-display.mjs';
 
 function load(path, modules) {
     const source = readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -73,6 +74,7 @@ function fixture(count = 1) {
     const failure = { recordSendFailure: async () => false };
     const sender = load('../src/lib/push/accounting-delivery.js', {
         './send-push': sendModule, './push-deliver': failure, './push-gate.js': gate,
+        './accounting-display.mjs': accountingDisplay,
     });
     const cron = load('../pages/api/cron/push-dispatch.js', {
         '../../../src/lib/supabaseServerClient': { createClient: () => db },
@@ -102,13 +104,28 @@ test('three invoices in one conversation each reach the provider without digest 
     assert.equal(f.state.calls.length, 3); assert.equal(new Set(f.state.calls.map(c => c.payload.tag)).size, 3);
     for (const [i, row] of f.rows.entries()) {
         assert.equal(row.status, 'sent'); assert.equal(row.title, `Invoice ${i + 1}`);
-        assert.equal(f.state.calls[i].payload.body, row.body); assert.equal(f.state.calls[i].payload.url, row.url);
+        assert.equal(f.state.calls[i].payload.title, 'New Accounting Notice');
+        assert.equal(f.state.calls[i].payload.body, 'Open Smarter Poker To View'); assert.equal(f.state.calls[i].payload.url, row.url);
         assert.equal(f.state.calls[i].payload.data.outboxId, row.id);
         const native = buildFcmMessage('fixture-token', f.state.calls[i].payload).message;
         assert.equal(native.android.notification.tag, f.state.calls[i].payload.tag);
         assert.equal(native.apns.headers['apns-collapse-id'], f.state.calls[i].payload.tag);
         assert.ok(native.apns.headers['apns-collapse-id'].length <= 64);
     }
+});
+
+test('accounting delivery keeps financial text in storage and sends only a generic receipt banner', async () => {
+    const f = fixture();
+    Object.assign(f.rows[0], { title: 'PRIVATE-CLUB Invoice CA-2026-12345', body: 'PRIVATE-PAYEE received 985.76 Chips',
+        image_url: 'https://example.invalid/PRIVATE-INVOICE.png', icon_url: 'https://example.invalid/PRIVATE-CLUB.png',
+        badge_url: 'https://example.invalid/PRIVATE-PAYEE.png' });
+    const result = await f.deliver();
+    assert.equal(result.sent, 1); assert.equal(f.state.calls.length, 1);
+    const payload = f.state.calls[0].payload;
+    assert.equal(payload.tag, `accounting:${f.rows[0].accounting_notification_id}`);
+    assert.equal(payload.url, f.rows[0].url); assert.equal(payload.renotify, false);
+    assert.equal(payload.image, undefined); assert.doesNotMatch(JSON.stringify(payload), /PRIVATE-|985\.76|CA-2026-12345/);
+    assert.match(f.rows[0].body, /985\.76/); assert.match(f.rows[0].title, /PRIVATE-CLUB/);
 });
 
 test('a temporary refusal retries only its original receipt and never resends the completed invoices', async () => {
