@@ -63,3 +63,24 @@ node --test __tests__/vercel-json-is-deployable.law.test.mjs
 That existing prebuild law imports the synthetic environment tests and also
 asserts the maintained install command. No package install or application build
 is needed to run these checks.
+
+## Upload the same local output, then verify the candidate
+
+The verified local `54fd` output contained 34,902 files. A plain prebuilt upload
+was rejected before deployment with `missing_archive`: it exceeded the 15,000
+file request limit. Use the CLI's archive transport for this application's
+prebuilt output:
+
+```sh
+vercel deploy --prebuilt --archive=tgz --prod --skip-domain
+```
+
+Run from the same dedicated release clone containing the verified Mac-built
+`.vercel/output`. Archive transport packages that existing output; it is not
+permission to rebuild on Vercel or upload a different source revision. Retain
+the original build/source identity and the candidate URL returned by this
+upload. `--skip-domain` keeps production domains off the candidate while it is
+checked. Verify the candidate's exact served source identity, health and the
+release's required routes before the separate promotion step. After promotion,
+verify the public domain against that same identity. Upload success alone is
+not publication or runtime verification.
