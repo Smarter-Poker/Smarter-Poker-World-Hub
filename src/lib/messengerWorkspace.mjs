@@ -163,17 +163,36 @@ export async function getMessengerWorkspace(db, userId, request) {
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
     let weeklySummary = null;
     if (club?.canManage && folder === 'invoices') {
-        const periods = await rows(db.from('settlement_periods').select('id,end_at')
-            .eq('club_id', club.id).not('union_id', 'is', null).lte('end_at', new Date().toISOString())
-            .order('end_at', { ascending: false }).limit(1));
+        // The period's recorded book decides union versus standalone scope.
+        // Current membership does not decide where historical rake was earned.
+        const periods = await rows(db.from('settlement_periods').select('id,club_id,union_id,start_at,end_at')
+            .eq('club_id', club.id).lte('end_at', new Date().toISOString())
+            .order('end_at', { ascending: false }).limit(2));
         if (periods.length) {
-            const { data: report, error: reportError } = await db.rpc('fn_club_weekly_accounting_summary', { p_period_id: periods[0].id });
-            if (reportError || !report || report.club_id !== club.id) fail(503, 'Weekly Statement Unavailable');
+            const period = periods[0];
+            // Two recorded books ending together require a canonical combined
+            // statement. Do not pick one arbitrarily or add money in Messenger.
+            if (periods[1] && Date.parse(periods[1].end_at) === Date.parse(period.end_at)) fail(503, 'Weekly Statement Unavailable');
+            // Authorization and canonical summary run in one database snapshot.
+            // This trusted server must pass the JWT actor, not rely on its own
+            // service-role bypass or a prior membership query remaining current.
+            const { data: receipt, error: reportError } = await db.rpc('fn_messenger_private_weekly_summary', {
+                p_user_id: userId, p_club_id: club.id, p_period_id: period.id,
+            });
+            const report = receipt?.summary;
+            const sameTime = (left, right) => Number.isFinite(Date.parse(left)) && Date.parse(left) === Date.parse(right);
+            if (reportError || receipt?.contract_version !== 1 || receipt.user_id !== userId ||
+                receipt.club_id !== club.id || receipt.period_id !== period.id || !report ||
+                period.club_id !== club.id || report.period_id !== period.id || report.club_id !== club.id ||
+                report.union_id !== period.union_id || report.accounting_version !== 3 || report.currency !== 'CHIPS' ||
+                report.scope_kind !== (period.union_id === null ? 'club' : 'union') ||
+                report.scope_id !== (period.union_id === null ? club.id : period.union_id) ||
+                !sameTime(report.period_start, period.start_at) || !sameTime(report.period_end, period.end_at) ||
+                !['needs_reconciliation', 'complete'].includes(report.status)) fail(503, 'Weekly Statement Unavailable');
             // Delivered complete statements are already in the invoice inbox.
             // This preview keeps unresolved posted amounts visible without certifying them.
             if (report.status === 'needs_reconciliation') {
-                const { source_ledger_ids: _sources, ...summary } = report;
-                weeklySummary = summary;
+                weeklySummary = report;
             }
         }
     }
