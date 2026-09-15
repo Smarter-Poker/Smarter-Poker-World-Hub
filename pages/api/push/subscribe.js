@@ -38,23 +38,73 @@ function getSupabase() {
 }
 
 export default async function handler(req, res) {
-    if (!['POST', 'DELETE'].includes(req.method)) {
-        res.setHeader('Allow', 'POST, DELETE');
+    if (!['GET', 'POST', 'DELETE'].includes(req.method)) {
+        res.setHeader('Allow', 'GET, POST, DELETE');
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // 10 writes / 60s per caller. Enrollment retries are legitimate; a loop is not.
-    if (!applyRateLimit(req, res, { max: 10, windowMs: 60_000, scope: 'push-subscribe' })) return;
+    // 10 writes / 60s per caller. Enrollment retries are legitimate; a loop is
+    // not. GET is a read the client makes once per load, so it gets its own,
+    // looser bucket rather than spending the enrolment budget.
+    const limit = req.method === 'GET'
+        ? applyRateLimit(req, res, { max: 60, windowMs: 60_000, scope: 'push-subscribe-status' })
+        : applyRateLimit(req, res, { max: 10, windowMs: 60_000, scope: 'push-subscribe' });
+    if (!limit) return;
 
     const supabase = getSupabase();
     const { user } = await getServerUserWithFallback(req, supabase);
     if (!user?.id) return res.status(401).json({ error: 'Not authenticated' });
 
     const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
-    const endpoint = body?.endpoint;
+    const endpoint = req.method === 'GET'
+        ? (typeof req.query?.endpoint === 'string' ? req.query.endpoint : '')
+        : body?.endpoint;
 
     if (!endpoint || typeof endpoint !== 'string') {
         return res.status(400).json({ error: 'endpoint is required' });
+    }
+
+    /* ---- GET: does the SERVER still consider this endpoint live? ----------
+       WHY THIS EXISTS. The client decided whether push was on by asking the
+       BROWSER - hasLocalSubscription() reads pushManager.getSubscription() and
+       nothing ever compared that against the server. So the two could disagree
+       silently and for ever, and on 2026-09-15 they did: Dan's iPhone held a
+       perfectly good local subscription while its server row had accepted
+       twelve days of sends without once confirming one. The UI said
+       notifications were on. They had not worked since 09-03.
+
+       Returning the retirement REASON, not just a boolean, is the part that
+       makes the loop terminate. An endpoint the server merely does not know
+       about should be re-posted as-is. One retired as undeliverable must NOT
+       be re-posted - that just resurrects the dead row - so the client throws
+       the browser subscription away and mints a fresh one instead. */
+    if (req.method === 'GET') {
+        if (!validatePushEndpoint(endpoint).ok) {
+            return res.status(400).json({ error: 'endpoint is not a recognised push host' });
+        }
+        try {
+            const { data, error } = await supabase
+                .from('push_subscriptions')
+                .select('is_active, last_failure_reason')
+                .eq('user_id', user.id)
+                .eq('endpoint', endpoint)
+                .order('updated_at', { ascending: false })
+                .limit(1);
+            if (error) throw new Error(error.message);
+            const row = (data || [])[0] || null;
+            return res.status(200).json({
+                active: Boolean(row?.is_active),
+                known: Boolean(row),
+                // Only meaningful when active is false.
+                reason: row?.is_active ? null : (row?.last_failure_reason || null),
+            });
+        } catch (e) {
+            // A status read that fails must not be reported as "inactive" —
+            // that would make the client tear down a working subscription on a
+            // transient error. Unknown is its own answer.
+            console.warn('[push/subscribe] status read failed:', e?.message || e);
+            return res.status(503).json({ error: 'status unavailable' });
+        }
     }
 
     // ---- DELETE: deactivate ------------------------------------------------

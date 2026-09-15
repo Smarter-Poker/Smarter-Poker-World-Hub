@@ -90,6 +90,57 @@ export function deviceGroupKey(s) {
  * @param {Array} zombies  the matured, non-confirming subset of `all`
  * @param {number} zombieCutoffMs  epoch ms; a receipt at or after this is proof
  */
+/**
+ * PROVEN DEAD: sent to, accepted, and never once confirmed.
+ *
+ * selectRetirable() above deliberately spares a device that is the only live
+ * row it has - "Nothing here can silence a device that is the only live row it
+ * has". That was right as far as it went: a missing receipt can mean a dead
+ * device, a blocked beacon, or a phone nobody has unlocked, and switching off
+ * somebody's only device on that is a guess.
+ *
+ * But it leaves no way back. MEASURED 2026-09-15 on Dan's estate:
+ *
+ *   iPhone  active since 09-03, accepted sends through 09-15, receipts: NONE
+ *   iPad    active since 08-30, accepted sends through 09-15, last receipt 08-31
+ *
+ * Every Apple endpoint in the database stopped confirming on 2026-09-08 while
+ * every Chrome endpoint kept confirming to the minute. Apple answers 2xx for a
+ * subscription whose device is long gone and never 410s it, so nothing reaps
+ * it; the row has no confirming sibling, so nothing retires it; and the client
+ * asks the BROWSER whether push is on, never the server, so nothing
+ * re-registers it. Twelve days of silence that could not end.
+ *
+ * THE MISSING DISTINCTION IS SUSPICION VERSUS PROOF, and last_used_at carries
+ * it. That column advances ONLY when the push service ACCEPTED a message
+ * (push-dispatch sets it inside `if (result.ok)`). So a row whose last_used_at
+ * has run days past its last receipt is not a device we merely have not heard
+ * from - it is a device we have demonstrably been delivering to, repeatedly,
+ * with nothing ever painting a pixel.
+ *
+ * A device nobody has pushed to has a still last_used_at and is never touched
+ * by this, which is the conservatism the original guard was protecting.
+ */
+export const DEAD_AFTER_DAYS = 7;
+
+// No `now` parameter on purpose: the test is last_used_at against the last
+// proof of life, both of them recorded facts. Comparing against the clock
+// would retire a row for being OLD rather than for being UNDELIVERABLE.
+export function selectProvenDead(all, deadAfterDays = DEAD_AFTER_DAYS) {
+    const windowMs = deadAfterDays * 86400_000;
+    return (all || []).filter((s) => {
+        if (!s.last_used_at) return false;          // never sent to: proves nothing
+        const sentMs = Date.parse(s.last_used_at);
+        if (!Number.isFinite(sentMs)) return false;
+        // The clock starts at the last proof of life, or at enrolment if there
+        // has never been one. Never at "now", which would retire on age alone.
+        const ref = s.last_receipt_at || s.created_at;
+        const refMs = Date.parse(ref || 0);
+        if (!Number.isFinite(refMs) || refMs === 0) return false;
+        return sentMs - refMs >= windowMs;
+    });
+}
+
 export function selectRetirable(all, zombies, zombieCutoffMs) {
     const isConfirming = (s) =>
         Boolean(s.last_receipt_at) && Date.parse(s.last_receipt_at) >= zombieCutoffMs;
