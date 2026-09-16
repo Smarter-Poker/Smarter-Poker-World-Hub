@@ -1331,7 +1331,8 @@ jobs:
     # `needs` a skipped job is skipped too unless it says always(). This job
     # only polls the Vercel API for a GitHub-500 clone failure; it never
     # needed the checks' verdict, only their ordering.
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Owner restoration policy: Vercel Git publishes directly; no automatic repair loop.
+    if: ${{ false }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 

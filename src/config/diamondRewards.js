@@ -506,7 +506,7 @@ export const REWARDS = {
     description:
       'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 ◆ to you, 100 ◆ to them, up to 20 qualified referrals per month.',
     diamonds: 500,
-    maxPerDay: 20,
+    maxPerDay: null, // Preserve the existing live catalog; restoration does not roll back reward data.
     monthlyMax: 20,
     category: 'referral',
     countsTowardDailyCap: false,
