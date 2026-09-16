@@ -56,8 +56,66 @@ echo ""
 REMOTE="$1"
 URL="$2"
 
-# Get files changed in the commits being pushed
-CHANGED_FILES=$(git diff --name-only HEAD~5..HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null)
+# Git supplies every proposed ref update on stdin, not a fixed number of commits.
+# These checks read the checkout: never certify a different branch's files.
+# BEGIN PUSH UPDATE FILE SELECTION
+select_push_files() {
+    checked_head=$(git rev-parse --verify HEAD) || return 1
+    zero_oid=$(printf '%0*d' "${#checked_head}" 0)
+    saw_update=0
+    check_source=0
+    full_source=0
+    selected_files=''
+    while read -r local_ref local_oid remote_ref remote_oid extra; do
+        saw_update=1
+        if [ -z "$local_ref" ] || [ -z "$remote_ref" ] || [ -n "$extra" ] || \
+           [ "${#local_oid}" -ne "${#checked_head}" ] || [ "${#remote_oid}" -ne "${#checked_head}" ]; then
+            echo 'BLOCKED: malformed Git pre-push update.' >&2
+            return 1
+        fi
+        case "$local_oid$remote_oid" in *[!0-9a-f]*)
+            echo 'BLOCKED: malformed Git pre-push object ID.' >&2; return 1 ;;
+        esac
+        [ "$local_oid" = "$zero_oid" ] && continue # Ref deletion has no new source.
+        local_commit=$(git rev-parse --verify "$local_oid^{commit}" 2>/dev/null) || return 1
+        if [ "$local_commit" != "$checked_head" ]; then
+            echo 'BLOCKED: push each source commit from its matching checkout.' >&2
+            return 1
+        fi
+        check_source=1
+        if [ "$remote_oid" = "$zero_oid" ]; then
+            # A first push introduces this branch's changes, not all of main.
+            # Use only the actual remote's already-local baseline; never fetch.
+            if ! git check-ref-format "refs/remotes/$REMOTE/main" >/dev/null 2>&1 || \
+               ! main_commit=$(git rev-parse --verify "refs/remotes/$REMOTE/main^{commit}" 2>/dev/null) || \
+               ! remote_commit=$(git merge-base "$checked_head" "$main_commit" 2>/dev/null); then
+                full_source=1
+                continue
+            fi
+        elif ! remote_commit=$(git rev-parse --verify "$remote_oid^{commit}" 2>/dev/null); then
+            full_source=1 # An existing remote ref with an unavailable base.
+            continue
+        fi
+        update_files=$(git diff --name-only --no-renames "$remote_commit" "$checked_head" --) || return 1
+        selected_files="$selected_files
+$update_files"
+    done
+    [ "$saw_update" -ne 0 ] || full_source=1 # Direct invocation without Git's stdin.
+    if [ "$check_source" -eq 1 ] || [ "$full_source" -eq 1 ]; then
+        if ! git diff --quiet --no-ext-diff HEAD --; then
+            echo 'BLOCKED: checked source differs from the committed push source.' >&2
+            return 1
+        fi
+    fi
+    if [ "$full_source" -eq 1 ]; then
+        tracked_files=$(git ls-tree -r --name-only "$checked_head") || return 1
+        selected_files="$selected_files
+$tracked_files"
+    fi
+    printf '%s\n' "$selected_files" | sed '/^$/d' | LC_ALL=C sort -u
+}
+CHANGED_FILES=$(select_push_files) || exit 1
+# END PUSH UPDATE FILE SELECTION
 
 if [ -z "$CHANGED_FILES" ]; then
     echo -e "${GREEN}✓ No changed files detected. Push allowed.${NC}"
