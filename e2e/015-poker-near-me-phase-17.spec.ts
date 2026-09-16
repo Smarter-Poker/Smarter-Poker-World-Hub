@@ -17,25 +17,31 @@ async function expectPaintedFrame(locator: Locator, asset: string, dimensions: [
     const image = new Image();
     image.src = match[1];
     await image.decode();
-    const box = element.getBoundingClientRect();
     return {
       path: new URL(image.currentSrc || image.src).pathname,
       dimensions: [image.naturalWidth, image.naturalHeight],
       size: style.backgroundSize,
       repeat: style.backgroundRepeat,
-      left: box.left,
-      right: box.right,
-      width: box.width,
-      viewport: window.innerWidth,
     };
   });
   expect(frame.path).toBe(`/images/pnm-console/${asset}`);
   expect(frame.dimensions).toEqual(dimensions);
   expect(frame.size).toBe('100% auto');
   expect(frame.repeat).toBe(repeat);
-  expect(frame.width).toBeGreaterThan(0);
-  expect(frame.left).toBeGreaterThanOrEqual(0);
-  expect(frame.right).toBeLessThanOrEqual(frame.viewport);
+  // Visibility and decoded artwork do not mean the drawer's entry transition
+  // has finished. Re-read the same bounds using the configured expect timeout.
+  await expect.poll(() => locator.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return {
+      positiveWidth: box.width > 0,
+      leftInsideViewport: box.left >= 0,
+      rightInsideViewport: box.right <= window.innerWidth,
+    };
+  })).toEqual({
+    positiveWidth: true,
+    leftInsideViewport: true,
+    rightInsideViewport: true,
+  });
 }
 
 async function waitForDiscovery(page: Page) {
