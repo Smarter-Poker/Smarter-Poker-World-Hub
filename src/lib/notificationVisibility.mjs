@@ -1,4 +1,6 @@
-const CACHE_VERSION = 2;
+// A pre-destination feed can contain retained operational originals. Do not
+// paint that cached personal list after the destination cutover.
+const CACHE_VERSION = 3;
 const CACHE_MAX_AGE_MS = 300_000;
 
 export function isVisibleNotification(row) {
