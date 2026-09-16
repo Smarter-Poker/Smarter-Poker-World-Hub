@@ -1049,11 +1049,17 @@ def sb_ensure_series_parent(series_result: dict, batch_id: str) -> bool:
     RUN_ERRORS["upsert_failed"] += 1
     return False
 
-def sb_patch_series(series_uid: str, patch: dict) -> bool:
+def sb_patch_series(series_uid: str, patch: dict,
+                    require_existing: bool = True) -> bool:
     """Update poker_series metadata after scraping events. Returns True on success.
 
     A rejected patch used to be completely invisible; it now logs the response
     body and increments the run-level failure counter that drives the exit code.
+
+    ``require_existing=False`` says the caller is annotating a row that may not
+    have been created yet, so "no row matched" is nothing to do rather than a
+    write we lost. See the unresolved-status caller for why that distinction
+    had to exist.
     """
     try:
         encoded_uid = urllib.parse.quote(series_uid, safe='')
@@ -1068,12 +1074,30 @@ def sb_patch_series(series_uid: str, patch: dict) -> bool:
                 RUN_ERRORS["patch_failed"] += 1
                 return False
             returned = json.loads(r.read() or b"[]")
-            if not (
-                isinstance(returned, list)
-                and len(returned) == 1
-                and returned[0].get("series_uid") == series_uid
-            ):
+            rows = returned if isinstance(returned, list) else []
+            if not rows:
+                # NOTHING TO UPDATE IS NOT A WRITE WE LOST.
+                #
+                # patch_failed is an OURS-class counter: it fails the run
+                # unconditionally, and since the multi-pass wrapper stopped
+                # forgiving those, it fails the whole job. It must therefore
+                # mean what it says - data this repo had and did not store.
+                #
+                # A series discovered today has no poker_series row until a
+                # scrape succeeds and sb_ensure_series_parent creates one.
+                # Marking such a series "failed" patches nothing, because
+                # there is nothing yet to mark. Run 34849047697 counted three
+                # of those as our faults and failed on them.
+                if not require_existing:
+                    log(f"  [PATCH SKIP] poker_series {series_uid[:40]} has no "
+                        f"stored row yet — nothing to mark")
+                    return True
                 log(f"  [PATCH ERR] poker_series {series_uid[:40]} matched no exact row")
+                RUN_ERRORS["patch_failed"] += 1
+                return False
+            if len(rows) != 1 or rows[0].get("series_uid") != series_uid:
+                log(f"  [PATCH ERR] poker_series {series_uid[:40]} matched "
+                    f"{len(rows)} row(s), not its own")
                 RUN_ERRORS["patch_failed"] += 1
                 return False
         return True
@@ -3272,7 +3296,18 @@ def main():
                 break
 
             series_name = series.get("name", "Unknown")
-            series_uid  = str(series.get("id", "?"))
+            # dict.get's default applies only when the KEY IS ABSENT, so an
+            # entry carrying "id": null produced the literal string "None" and
+            # took it all the way to the database - run 34849047697 logged
+            # "[PATCH ERR] poker_series None matched no exact row" and counted
+            # it as a fault of ours. A series with no id cannot be scraped or
+            # stored, so it is reported and skipped.
+            series_uid  = str(series.get("id") or "").strip()
+            if not series_uid:
+                RUN_ERRORS["series_errors"] += 1
+                log(f"    ⚠️  Catalog entry with no id: "
+                    f"{str(series.get('name') or 'unnamed')[:60]} — skipped")
+                continue
             score_info = ""
             mf = series.get("_missing_fields", [])
             if mf: score_info = f" [needs: {', '.join(mf[:3])}]"
@@ -3334,10 +3369,13 @@ def main():
                     log(f"      ❌ No events found")
                     # Update status in DB
                     if not args.dry_run:
+                        # require_existing=False: a series with no events has
+                        # often never had a row created for it, and "there is
+                        # nothing to mark" is not a failed write.
                         if not sb_patch_series(series_uid, {
                             "scrape_status": "failed",
                             "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
-                        }):
+                        }, require_existing=False):
                             log(f"      failed to persist unresolved status for {series_uid}")
             except CODE_DEFECTS as e:
                 # A bug in the scraper is NOT "this series had no events".
