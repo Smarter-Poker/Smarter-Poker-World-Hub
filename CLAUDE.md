@@ -17,6 +17,12 @@ repair its cause with the relevant regression, and update its existing shared
 row (add one only for a new cause). Coordinate with the shared guide's current
 writer; do not copy its registry into this repository or treat an unrun check
 as passed. Use its small readiness template in the existing PR or handoff.
+For push and publication mechanics, use [AGENTS-PUSH-GUIDE.md](./AGENTS-PUSH-GUIDE.md).
+Its current route supersedes section 1.3 and older self-publish/agent-binding
+mechanics below. Ordinary authenticated Git/gh in an owned worktree is allowed;
+project environment files are not the push interface. World Hub currently has
+no automatic publisher trigger; do not claim that merging invokes Vercel.
+
 <!-- END CURRENT OWNER CATEGORY GUIDE 2026-09-16 -->
 
 # Smarter-Poker-World-Hub -- Agent Instructions

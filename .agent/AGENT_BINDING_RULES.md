@@ -1,3 +1,11 @@
+# Current delivery override (September 16, 2026)
+
+Read [AGENTS-PUSH-GUIDE.md](../AGENTS-PUSH-GUIDE.md) and the shared owner policy
+before this historical record. Their current protected submission and local
+prebuilt publication route supersedes the older mechanisms below, including
+protection-changing commands, temporary worktrees, token handling and release
+repair schedules. Never weaken repository protection to make a merge succeed.
+
 # AGENT BINDING RULES — push, publish, branch protection
 
 **Last updated:** 2026-05-10

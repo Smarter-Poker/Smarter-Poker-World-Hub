@@ -1,131 +1,57 @@
 #!/usr/bin/env bash
-# scripts/agent-push.sh — worktree-isolated push for agents.
-# See .agent/audits/2026-05-10-branch-protection-and-push-cascade.md
-#
-# Usage:
-#   bash scripts/agent-push.sh "commit message" path/to/file1 path/to/file2 ...
-#
-# Files must already be edited in your local working tree. Script copies
-# their current content into a fresh worktree off origin/main, commits ONLY
-# those paths, opens a PR, and squash-merges.
-#
-# Required env (one of):
-#   GITHUB_TOKEN | GH_TOKEN — PAT with repo + admin scope
-#
-# Exit codes: 0=landed, 1=push/merge failed, 2=env/arg error.
-
+# Submit the current owned worktree through the existing protected PR route.
+# Uses the host's Git/gh authentication; never reads project environment files.
 set -euo pipefail
-
 if [[ $# -lt 2 ]]; then
-  echo "usage: $0 \"commit message\" path1 [path2 ...]" >&2
+  echo 'usage: bash scripts/agent-push.sh "commit message" path1 [path2 ...]' >&2
   exit 2
 fi
-COMMIT_MSG="$1"; shift
-FILES=("$@")
-
-TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-if [[ -z "$TOKEN" ]] && command -v security >/dev/null 2>&1; then
-  TOKEN="$(security find-generic-password -a smarter-poker -s github-pat -w 2>/dev/null || true)"
-fi
-if [[ -z "$TOKEN" ]]; then
-  echo "[agent-push] no GITHUB_TOKEN/GH_TOKEN env, no Keychain entry 'github-pat'" >&2
-  exit 2
-fi
-
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-REPO_OWNER="Smarter-Poker"
-REMOTE_URL="$(git remote get-url origin)"
-REPO_NAME="$(basename "${REMOTE_URL%.git}")"
-BRANCH="agent/${USER:-cowork}-$(date +%s)"
-WT_PARENT="$(mktemp -d -t agent-push-XXXXXX)"
-WT="$WT_PARENT/wt"
-SNAP_DIR="$(mktemp -d -t agent-push-snap-XXXXXX)"
-
-echo "[agent-push] repo=$REPO_OWNER/$REPO_NAME branch=$BRANCH"
-echo "[agent-push] files: ${FILES[*]}"
-
-for f in "${FILES[@]}"; do
-  if [[ ! -f "$REPO_ROOT/$f" ]]; then
-    echo "[agent-push] file not found: $f" >&2; exit 2
+message="$1"; shift
+repo=Smarter-Poker/Smarter-Poker-World-Hub
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+case "$(pwd -P)/" in
+  */.agent-trees/*/) ;;
+  *) echo 'Submit from your owned .agent-trees worktree; shared clones are refused.' >&2; exit 2 ;;
+esac
+branch="$(git symbolic-ref --quiet --short HEAD)" || { echo 'Detached HEAD cannot be submitted.' >&2; exit 2; }
+case "$branch" in main|master) echo 'Use an owned feature branch.' >&2; exit 2 ;; esac
+case "$(git remote get-url origin)" in
+  git@github.com:Smarter-Poker/Smarter-Poker-World-Hub.git|https://github.com/Smarter-Poker/Smarter-Poker-World-Hub.git) ;;
+  *) echo 'origin must be the canonical World Hub repository without URL credentials.' >&2; exit 2 ;;
+esac
+# Refuse an existing index rather than including someone else's staged work.
+git diff --cached --quiet || { echo 'Existing staged changes: preserve/review the index before submitting.' >&2; exit 2; }
+for path in "$@"; do
+  case "$path" in
+    ''|/*|..|../*|*/../*|*/..|:*|.env|.env.*|*/.env|*/.env.*)
+      echo 'Only explicit repository-relative, non-secret file paths are accepted.' >&2; exit 2 ;;
+  esac
+  if [[ -d "$path" ]]; then echo 'Name individual files, not directories.' >&2; exit 2; fi
+  if [[ ! -f "$path" ]] && ! git ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+    echo "Unknown file: $path" >&2; exit 2
   fi
-  mkdir -p "$SNAP_DIR/$(dirname "$f")"
-  cp -a "$REPO_ROOT/$f" "$SNAP_DIR/$f"
 done
-
-cd "$REPO_ROOT"
-git fetch origin main --quiet
-ORIGIN_TIP="$(git rev-parse origin/main)"
-echo "[agent-push] origin/main: $ORIGIN_TIP"
-
-git worktree add -b "$BRANCH" "$WT" "$ORIGIN_TIP" >/dev/null
-trap 'cd "$REPO_ROOT" 2>/dev/null; git worktree remove --force "$WT" 2>/dev/null || true; rm -rf "$SNAP_DIR" "$WT_PARENT"' EXIT
-
-# The repository's pre-push hooks execute TypeScript-backed source checks.
-# Fresh worktrees intentionally do not contain ignored dependencies, so share
-# the caller's already-installed dependency tree without copying or staging it.
-if [[ -d "$REPO_ROOT/node_modules" && ! -e "$WT/node_modules" ]]; then
-  ln -s "$REPO_ROOT/node_modules" "$WT/node_modules"
+# Confirm existing host authentication before making a local commit.
+gh auth status --hostname github.com >/dev/null 2>&1 || {
+  echo 'The host gh login is unavailable; use its existing authenticated host session. Do not read a .env token.' >&2
+  exit 2
+}
+git fetch origin main
+# Merge/review conflicts deliberately in this same owned tree; never copy stale
+# whole files onto current main, rewrite tested commits, or silently discard work.
+git add -- "$@"
+if ! git diff --cached --quiet; then git commit -m "$message"; fi
+head="$(git rev-parse HEAD)"
+git push --set-upstream origin "$branch"
+pr="$(gh pr list --repo "$repo" --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
+if [[ -z "$pr" ]]; then
+  gh pr create --repo "$repo" --base main --head "$branch" --title "$message" \
+    --body 'Submitted from the existing owned worktree. Required checks and protected merge remain enforced. Publication is a separate stage; see docs/runbooks/local-production-build-env.md.'
+  pr="$(gh pr list --repo "$repo" --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
 fi
-
-cd "$WT"
-for f in "${FILES[@]}"; do
-  mkdir -p "$(dirname "$f")"
-  cp -a "$SNAP_DIR/$f" "$f"
-done
-
-git add -- "${FILES[@]}"
-
-DIFF_FILES="$(git diff --cached --name-only)"
-EXPECTED_FILES="$(printf "%s\n" "${FILES[@]}" | sort -u)"
-if [[ "$(printf "%s\n" "$DIFF_FILES" | sort -u)" != "$EXPECTED_FILES" ]]; then
-  echo "[agent-push] staged diff != expected files; aborting" >&2
-  echo "  staged:   $DIFF_FILES" >&2
-  echo "  expected: $EXPECTED_FILES" >&2
-  exit 1
-fi
-
-git -c user.name="Smarter-Poker" -c user.email="254329056+Smarter-Poker@users.noreply.github.com" \
-  commit -m "$COMMIT_MSG"
-echo "[agent-push] commit: $(git rev-parse HEAD)"
-
-git push -u "https://x-access-token:${TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git" "$BRANCH" 2>&1 | sed "s|${TOKEN}|REDACTED|g"
-
-PR_TITLE="$(printf "%s" "$COMMIT_MSG" | head -1)"
-PR_BODY="$(printf "%s\n\nAutomated push via scripts/agent-push.sh (worktree-isolation pattern).\n" "$COMMIT_MSG")"
-PR_PAYLOAD="$(node -e "console.log(JSON.stringify({title:process.argv[1],head:process.argv[2],base:'main',body:process.argv[3]}))" "$PR_TITLE" "$BRANCH" "$PR_BODY")"
-
-PR_RESP="$(curl -sS -X POST "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls" \
-  -H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" -d "$PR_PAYLOAD")"
-PR_NUM="$(node -e "try{console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).number||'')}catch(e){}" <<<"$PR_RESP")"
-if [[ -z "$PR_NUM" ]]; then
-  echo "[agent-push] PR creation failed:" >&2; echo "$PR_RESP" >&2; exit 1
-fi
-echo "[agent-push] PR #$PR_NUM"
-
-for i in $(seq 1 30); do
-  sleep 3
-  STATUS_RESP="$(curl -sS "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${PR_NUM}" -H "Authorization: Bearer ${TOKEN}")"
-  MS="$(node -e "try{console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).mergeable_state||'')}catch(e){}" <<<"$STATUS_RESP")"
-  if [[ "$MS" == "clean" || "$MS" == "unstable" ]]; then echo "[agent-push] mergeable_state=$MS"; break; fi
-done
-
-MERGE_RESP="$(curl -sS -X PUT "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${PR_NUM}/merge" \
-  -H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  -d "{\"merge_method\":\"squash\",\"commit_title\":\"$PR_TITLE (#${PR_NUM})\"}")"
-MERGED="$(node -e "try{console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).merged||'')}catch(e){}" <<<"$MERGE_RESP")"
-if [[ "$MERGED" != "true" ]]; then
-  echo "[agent-push] merge failed:" >&2; echo "$MERGE_RESP" >&2
-  echo "  PR is open at https://github.com/${REPO_OWNER}/${REPO_NAME}/pull/${PR_NUM}" >&2
-  echo "  If branch protection regressed: node scripts/check-branch-protection.mjs --fix" >&2
-  exit 1
-fi
-MERGE_SHA="$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(0,"utf8")).sha||"")}catch(e){}' <<<"$MERGE_RESP")"
-if [[ -z "$MERGE_SHA" ]]; then
-  echo "[agent-push] merge succeeded but the response did not include a merge SHA" >&2
-  exit 1
-fi
-echo "[agent-push] merged $MERGE_SHA"
-curl -sS -X DELETE "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${BRANCH}" -H "Authorization: Bearer ${TOKEN}" >/dev/null || true
-echo "[agent-push] DONE"
+[[ "$pr" =~ ^[0-9]+$ ]] || { echo 'No confirmed PR number; local work and branch are preserved.' >&2; exit 1; }
+gh pr merge "$pr" --repo "$repo" --auto --squash --match-head-commit "$head"
+printf 'SUBMITTED: https://github.com/%s/pull/%s\nHEAD: %s\n' "$repo" "$pr" "$head"
+echo 'Protected auto-merge requested. This does not certify merge or publication.'
+echo 'World Hub currently requires the existing local prebuilt publisher after merge; no automatic World Hub publisher is installed.'
