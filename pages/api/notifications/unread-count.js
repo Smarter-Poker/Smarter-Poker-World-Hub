@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         }
 
         const { count, error } = await getSupabase()
-            .from('notifications')
+            .from('personal_notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', uid)
             .or('type.is.null,type.neq.accounting_invoice_detail')

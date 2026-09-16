@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
           // Fetch notifications
           let query = getSupabase()
-              .from('notifications')
+              .from('personal_notifications')
               .select('*')
               .eq('user_id', userId)
               .or('type.is.null,type.neq.accounting_invoice_detail')
