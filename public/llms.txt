@@ -23,11 +23,22 @@ Test and expand poker knowledge with multiple game modes: Endless, Survival, Tim
 ### Diamond Store
 Premium poker merchandise and gear marketplace with cart, wishlist, and order management.
 
-### Club Arena
-Private online poker clubs with real-time gameplay, tournaments, hand histories, player stats, leaderboards, and club management.
+### Poker Arena (Club Arena)
+Private online poker clubs with real-time cash games (Hold'em, Omaha, Short Deck, Pineapple), multi-table tournaments, hand histories and replays, player statistics, leaderboards, unions between clubs, a club cashier and chip ledger, agent tools and full club management. Diamond Arena games run inside the same arena using the platform's Diamond currency.
+- Landing page: https://smarter.poker/hub/club-arena
+- Help Center: https://smarter.poker/hub/club-arena/help
+- Fair Gaming standards: https://smarter.poker/hub/club-arena/legal/fair-gaming
+- Terms, privacy and promotion rules: https://smarter.poker/hub/club-arena/legal
 
 ### Club Commander
-Enterprise poker room management suite for live venues with 62+ management tools including waitlist, tournaments, cashier, dealer rotation, floor management, analytics, and more.
+Live poker room management for venues and their players: remote waitlists with call notifications, live game boards, tournament registration and clocks, home games, season leagues, dealer rotation, cashier, player rewards and comps, and responsible gaming tools.
+- Player hub: https://smarter.poker/hub/commander
+- Live poker rooms and venues: https://smarter.poker/hub/commander/venues
+- Tournaments: https://smarter.poker/hub/commander/tournaments
+- Home games: https://smarter.poker/hub/commander/home-games
+- Leagues: https://smarter.poker/hub/commander/leagues
+- FAQ: https://smarter.poker/hub/commander/faq
+- Responsible gaming: https://smarter.poker/hub/commander/responsible-gaming
 
 ### Social Hub
 Full social platform with friends, messaging, social pages, reels, news feed, leaderboards, and community engagement features.

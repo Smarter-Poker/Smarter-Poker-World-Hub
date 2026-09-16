@@ -202,10 +202,10 @@ export default function ResponsibleGamingPage() {
     <CommanderPageShell>
     <>
       <SEOHead
-                title="Responsible Gaming"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+        title="Responsible Gaming"
+        description="Responsible Gaming Tools On Club Commander: Session Limits, Cooling Off Periods, Self Exclusion And Support Resources For Live Poker Players."
+        canonical="/hub/commander/responsible-gaming"
+      />
 
       <div className="cmd-page">
         {/* Save Message */}

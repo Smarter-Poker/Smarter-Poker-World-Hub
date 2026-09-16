@@ -157,10 +157,10 @@ export default function VenueDiscoveryPage() {
     <CommanderPageShell>
     <>
       <SEOHead
-                title="Venues"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+        title="Live Poker Rooms And Venues"
+        description="Browse Live Poker Rooms Running Club Commander, See Which Games Are Running And How Long The Wait Is, And Join A Waitlist Before You Leave The House."
+        canonical="/hub/commander/venues"
+      />
 
       <div className="cmd-page">
         {/* Header */}

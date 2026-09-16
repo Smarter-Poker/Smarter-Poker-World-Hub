@@ -350,6 +350,23 @@ This action cannot be undone.`,
   },
 ];
 
+/**
+ * Google's FAQPage rich result, built from the same questions the page renders
+ * so the schema can never say something the page does not. Markdown emphasis
+ * is stripped; line breaks and list markers are plain text and allowed.
+ */
+const FAQ_JSON_LD = {
+  '@type': 'FAQPage',
+  mainEntity: FAQ_CATEGORIES.flatMap((category) =>
+    category.faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: { '@type': 'Answer', text: faq.answer.replace(/\*\*/g, '').trim() },
+    }))
+  ),
+};
+
+
 export default function PlayerFAQPage() {
   const [activeCategory, setActiveCategory] = useState('waitlist');
   const [expandedFAQ, setExpandedFAQ] = useState(null);
@@ -379,10 +396,11 @@ export default function PlayerFAQPage() {
     <CommanderPageShell>
     <>
       <SEOHead
-                title="Commander FAQ"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+        title="Club Commander FAQ"
+        description="Answers About Club Commander: Joining Poker Room Waitlists Remotely, Call Notifications, Tournament Registration, Home Games, Rewards And Comps, And Responsible Gaming Tools."
+        canonical="/hub/commander/faq"
+        jsonLd={FAQ_JSON_LD}
+      />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}
