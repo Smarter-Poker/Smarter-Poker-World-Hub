@@ -63,9 +63,10 @@ else
 fi
 ```
 
-## Step 2: Check First-Party Error Logs
+## Step 2: Check Sentry for Errors (if Sentry MCP available)
 
-After deployment, inspect the existing application logs and first-party crash records for new errors.
+After deploy, wait 2-3 minutes then ask the agent:
+> "Check Sentry for any new errors in the last 5 minutes on the smarter-poker project"
 
 ## Step 3: Verify Live Data Freshness
 

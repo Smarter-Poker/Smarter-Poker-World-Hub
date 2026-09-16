@@ -16,7 +16,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -216,7 +216,7 @@ async function syncToSocialPageFollowers(userId, pageType, pageIdStr, action) {
             if (err_social_page_followers_toy5p) console.warn('[Supabase] Silent mutation failed in social_page_followers:', err_social_page_followers_toy5p.message);
         }
     } catch (e) {
-        try { reportApiError(e, null); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         // Silent - cross-sync is best-effort
         console.warn('[Follow API] Social page cross-sync error:', e.message);
     }

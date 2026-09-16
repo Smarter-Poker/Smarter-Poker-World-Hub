@@ -26,7 +26,6 @@ import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
-import '../src/styles/worlds/toke-tracker.css';
 import '../src/styles/tutorial.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
@@ -35,25 +34,7 @@ import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-machined.css';
 import '../src/styles/worlds/poker-near-me-command-surfaces.css';
-import '../src/styles/worlds/poker-near-me-console.css';
-import '../src/styles/worlds/poker-near-me-console-deep.css';
-import '../src/styles/worlds/poker-near-me-console-search.css';
-import '../src/styles/worlds/poker-near-me-console-nav.css';
-import '../src/styles/worlds/poker-near-me-console-dialogs.css';
-import '../src/styles/worlds/poker-near-me-console-surfaces.css';
-import '../src/styles/worlds/poker-near-me-console-map.css';
-import '../src/styles/worlds/poker-near-me-console-cards.css';
-import '../src/styles/worlds/poker-near-me-console-tools.css';
-import '../src/styles/worlds/poker-near-me-console-menu.css';
-import {
-  Orbitron,
-  Inter,
-  Plus_Jakarta_Sans,
-  Space_Grotesk,
-  Rajdhani,
-  Roboto_Condensed,
-  IBM_Plex_Mono,
-} from 'next/font/google';
+import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -91,22 +72,6 @@ const rajdhani = Rajdhani({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-rajdhani',
-  display: 'swap',
-  preload: false,
-});
-
-const robotoCondensed = Roboto_Condensed({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-roboto-condensed',
-  display: 'swap',
-  preload: false,
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-ibm-plex-mono',
   display: 'swap',
   preload: false,
 });
@@ -277,6 +242,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/my-tournaments',
   '/hub/poker-brain',
   '/hub/poker-near-me',
+  '/hub/poker-tools',
   '/hub/poker/table/[tableId]',
   '/hub/post/[id]',
   '/hub/profile',
@@ -713,29 +679,17 @@ function NavigationGuard({ children }) {
       setIsNavigating(true);
     };
 
-    const handleComplete = (_url, { shallow = false } = {}) => {
+    const handleComplete = () => {
       // Remove the hiding class
       document.body.classList.remove('page-transitioning');
       setIsNavigating(false);
-      // Scroll to the very top so the global header is always visible.
-      //
-      // Not on a SHALLOW change (mobile phase 6, 2026-09-13). A shallow
-      // replace is a page updating its own ?query in place, the same page,
-      // the same scroll position; Next's own router already declines to
-      // reset scroll for one (router.js: shouldScroll = options.scroll ??
-      // !isValidShallowRoute). This handler ignored that and yanked the
-      // reader to the top 100ms after every filter chip, search box and
-      // section anchor that records itself in the address bar. On /hub/news
-      // it undid the section scroll the tap had just made: the anchor row
-      // scrolled to Events, then the page went back to 0.
-      if (!shallow) {
-        window.scrollTo(0, 0);
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            window.scrollTo({ top: 0, behavior: 'instant' });
-          });
-        }, 100);
-      }
+      // Scroll to the very top so the global header is always visible
+      window.scrollTo(0, 0);
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        });
+      }, 100);
       // ═══════════════════════════════════════════════════════════════════
       // SCROLL SAFETY VALVE — Clear any stale overflow:hidden left by
       // modals, reels, or overlays that failed to restore body scroll
@@ -1020,7 +974,7 @@ export default function App({ Component, pageProps }) {
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
       <div
-        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${robotoCondensed.variable} ${ibmPlexMono.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
+        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
         style={{ minHeight: '100vh' }}
       >
         <>
@@ -1283,10 +1237,15 @@ export default function App({ Component, pageProps }) {
   );
 }
 
-// Keep local development Web Vitals and route-scoped first-party analytics.
+// Report Web Vitals to Sentry for performance monitoring
 export function reportWebVitals({ id, name, label, value }) {
   try {
-
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.metrics?.distribution(name, value, {
+        tags: { id, label },
+        unit: name === 'CLS' ? 'none' : 'millisecond',
+      });
+    }
     // Also log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);

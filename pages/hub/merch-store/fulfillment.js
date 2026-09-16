@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CheckCircle2, Gem, PackageCheck, RefreshCw, ShieldCheck, Truck, X } from 'lucide-react';
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -203,12 +204,12 @@ export default function MerchandiseFulfillmentConsole() {
       <UniversalHeader pageDepth={2} />
       <main className={styles.page} data-marketplace-route="/hub/merch-store/fulfillment">
         <header className={styles.hero}>
-          <div className={styles.eyebrow}>Protected Store Operations</div>
+          <div className={styles.eyebrow}><ShieldCheck size={16} /> Protected Store Operations</div>
           <h1>Fulfillment Command Vault</h1>
           <p>Paid Orders, Manual Handoff, Tracking, Delivery, And Atomic Diamond Refunds.</p>
           <div className={styles.actions}>
             <button type="button" onClick={() => void loadOrders()} disabled={state.kind === 'loading'}>
-              Refresh Queue
+              <RefreshCw size={16} /> Refresh Queue
             </button>
             <Link href="/hub/merch-store">Return To Merch Store</Link>
           </div>
@@ -231,7 +232,7 @@ export default function MerchandiseFulfillmentConsole() {
                 <h2>{itemLabel(order) || 'Merchandise Order'}</h2>
                 <p className={styles.money}>
                   {order.payment_method === 'diamonds'
-                    ? `${Number(order.diamonds_spent || 0).toLocaleString()} Diamonds`
+                    ? <><Gem size={15} /> {Number(order.diamonds_spent || 0).toLocaleString()} Diamonds</>
                     : `$${Number(order.total_usd || 0).toFixed(2)}`}
                 </p>
                 <address>
@@ -241,7 +242,7 @@ export default function MerchandiseFulfillmentConsole() {
                   {address.country_code || address.country || ''}
                 </address>
                 {order.tracking_number && (
-                  <p>{marketplaceCopy(order.carrier || 'Carrier')} · {order.tracking_number}</p>
+                  <p><Truck size={15} /> {marketplaceCopy(order.carrier || 'Carrier')} · {order.tracking_number}</p>
                 )}
                 {isQuarantined && (
                   <div className={styles.quarantine} role="status">
@@ -255,17 +256,17 @@ export default function MerchandiseFulfillmentConsole() {
                   <div className={styles.actions}>
                   {order.status === 'paid' && (
                     <button type="button" disabled={busy} onClick={() => void transition(order, 'mark_processing')}>
-                      Start Processing
+                      <PackageCheck size={15} /> Start Processing
                     </button>
                   )}
                   {['paid', 'processing'].includes(order.status) && (
                     <button type="button" disabled={busy} onClick={(event) => openOperation(event, order, 'mark_shipped')}>
-                      Mark Shipped
+                      <Truck size={15} /> Mark Shipped
                     </button>
                   )}
                   {order.status === 'shipped' && (
                     <button type="button" disabled={busy} onClick={() => void transition(order, 'mark_delivered')}>
-                      Mark Delivered
+                      <CheckCircle2 size={15} /> Mark Delivered
                     </button>
                   )}
                   {order.payment_method === 'diamonds' && !['shipped', 'delivered'].includes(order.status) && (
@@ -314,7 +315,7 @@ export default function MerchandiseFulfillmentConsole() {
                 disabled={Boolean(busyId)}
                 onClick={() => setOperation(null)}
               >
-                Close
+                <X size={18} aria-hidden="true" />
               </button>
               <span className={styles.eyebrow}>Verified Operator Action</span>
               <h2 id="fulfillment-operation-title" ref={operationTitleRef} tabIndex={-1}>

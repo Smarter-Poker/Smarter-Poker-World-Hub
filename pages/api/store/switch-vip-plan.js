@@ -53,7 +53,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { vipStripePriceMismatch } from '../../../src/lib/store/vipStripePrice.mjs';
 const {
     inspectStripeRuntime,

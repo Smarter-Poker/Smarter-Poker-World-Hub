@@ -23,16 +23,10 @@ test('sidebar never presents invented ranking or tournament records', () => {
   assert.doesNotMatch(LEADERBOARD, /fallback: true/);
 });
 
-test('mobile keeps every intelligence widget visible, under the feed', () => {
-  // PIN MOVED, NOT LOOSENED (mobile phase 6, 2026-09-13). This used to pin
-  // the sidebar ABOVE the feed (order: -1) with every widget but three culled
-  // by display: none. The always-displayed standard (docs/mobile-standard,
-  // Dan 2026-09-03) forbids the cull and ROLLOUT-PLAN phase 6 places the
-  // widgets UNDER the main column. What this still guards: the sidebar is a
-  // grid on a phone, it is never display: none, and no widget is culled.
+test('mobile keeps the critical intelligence widgets visible and ahead of the feed', () => {
   assert.match(PAGE, /aria-label="News intelligence"/);
-  assert.doesNotMatch(PAGE, /\.sidebar > \.widget:not\(\.leaderboard\):not\(\.events\):not\(\.newsletter\) \{\s*display: none/);
-  assert.match(PAGE, /\.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: 1 !important;/);
+  assert.match(PAGE, /\.sidebar > \.widget:not\(\.leaderboard\):not\(\.events\):not\(\.newsletter\)/);
+  assert.match(PAGE, /\.sidebar \{[\s\S]{0,180}display: grid !important;[\s\S]{0,180}order: -1 !important;/);
   assert.match(LIVE_WIRE_STYLES, /\.live-wire \.sidebar \{[\s\S]{0,180}display: grid !important;/);
   assert.doesNotMatch(LIVE_WIRE_STYLES, /\.live-wire \.sidebar \{[\s\S]{0,100}display: none !important;/);
 });

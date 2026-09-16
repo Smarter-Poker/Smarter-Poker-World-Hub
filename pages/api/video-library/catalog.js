@@ -1,6 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
     BLOCKED_VIDEO_LIBRARY_IDS,
     VIDEO_LIBRARY_ALLOWED_TYPES,

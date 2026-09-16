@@ -92,7 +92,7 @@ const BASELINE_DEAD = {
   //
   // pages/api/admin/cron-health.js listed local /api/cron/* endpoints for
   // eight jobs. Six of those handlers exist nowhere; daily-challenge and
-  // retired error provider-triage had moved to Open Claw / the workers repo. Investigating
+  // sentry-triage had moved to Open Claw / the workers repo. Investigating
   // turned up something larger: `cron_health_log` has ZERO rows and NO
   // WRITER anywhere, so that monitor could never report a healthy job and
   // had always answered "0/8_HEALTHY" — permanently crying wolf.

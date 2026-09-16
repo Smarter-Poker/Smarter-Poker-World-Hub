@@ -78,7 +78,7 @@ function loadReportModule(client = {}) {
       sanitizeParam: (value, max) => String(value || '').slice(0, max),
       withTiming() {},
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/lib/sentryWrap': { reportApiError() {} },
     '../../../src/lib/training/trainingPersistence.mjs': {
       runTrainingPersistenceQuery: async (queryFactory) => queryFactory(),
     },

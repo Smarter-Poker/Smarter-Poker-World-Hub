@@ -3,7 +3,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { requireMfaEnrolled } from '../../../src/lib/mfaGate';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { assessVenueLocation } from '../../../src/lib/poker-near-me/venueIntegrityServer';
 import { syncVenueIntegrityState } from '../../../src/lib/poker-near-me/venueIntegrityState';
 

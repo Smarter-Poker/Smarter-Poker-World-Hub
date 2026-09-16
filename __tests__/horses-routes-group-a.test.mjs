@@ -225,7 +225,7 @@ test('house rules: no .single(, no em dash, no emoji, no raw hex leakage', () =>
 });
 
 test('every route imports only pure shared libs at module scope', async () => {
-  // If any route reached for supabaseServerClient, serverAuth, apiErrorHandler or
+  // If any route reached for supabaseServerClient, serverAuth, sentryWrap or
   // the content engine at module scope, these imports would throw here:
   // node_modules is not installed in this environment.
   for (const file of ROUTES) {

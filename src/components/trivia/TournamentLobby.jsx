@@ -335,7 +335,7 @@ export default function TournamentLobby({
                 }
 
                 .stat-label {
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.5);
                     text-transform: uppercase;
                 }

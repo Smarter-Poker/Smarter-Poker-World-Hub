@@ -109,7 +109,7 @@ to the still-intact local files in `public/hub/club-arena/`. No data loss.
 
 ### Phase C — Prune local copies (only after Phase B is proven)
 
-After 48h of clean R2 serving + no 404s in application logs on CA asset paths:
+After 48h of clean R2 serving + no Sentry 404s on CA asset paths:
 
 ```bash
 git rm -r public/hub/club-arena/cards \

@@ -43,7 +43,7 @@ export default function SurvivalModeRedirectPage() {
                 noindex={true}
             />
             <div style={{
-                minHeight: '100dvh',
+                minHeight: '100vh',
                 background: '#000000',
                 display: 'flex',
                 flexDirection: 'column',

@@ -45,14 +45,13 @@ export default async function handler(req, res) {
         }
 
         const { count, error } = await getSupabase()
-            .from('personal_notifications')
+            .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', uid)
-            .or('type.is.null,type.neq.accounting_invoice_detail')
             // AUDIT-FIX: must check BOTH columns to match feed.js / useUnreadCount hook.
             // Legacy rows may have read=false with is_read=null, or vice-versa.
             // Treating "unread" as "neither flag is true" prevents badge desync.
-            .or('read.eq.false,read.is.null').or('is_read.eq.false,is_read.is.null');
+            .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null');
 
         if (error) {
             console.warn('[unread-count] DB error:', error.message);

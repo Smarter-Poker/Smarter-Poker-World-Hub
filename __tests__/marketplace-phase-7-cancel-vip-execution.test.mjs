@@ -220,7 +220,7 @@ async function loadHarness({
       applyRateLimit: () => true,
       LIMITS: { write: {} },
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({ user: { id: USER_ID }, error: null }),
     },

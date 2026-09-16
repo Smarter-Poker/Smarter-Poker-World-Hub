@@ -10,6 +10,7 @@
  * recognised it as database text, and replaced the WHOLE thing with a 500
  * "Request failed". A caller who picked a name that already exists was told the
  * server broke. Worse, the 500 branch of operatorRoute logs a stack and fires
+ * Sentry, so ordinary user-input collisions looked like outages.
  *
  * Here every failure a caller can actually cause becomes the status that
  * describes it - 409 for a duplicate, 400 for bad input, 403 for a denied

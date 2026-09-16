@@ -22,7 +22,7 @@
  * Response: { ok, user_id, previous_status, new_status }
  */
 import { createClient } from "../../../src/lib/supabaseServerClient";
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json(data);
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn("[kyc/webhook] unhandled:", err);
         return res
             .status(500)

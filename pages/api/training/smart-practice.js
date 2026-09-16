@@ -24,7 +24,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { runTrainingPersistenceQuery } from '../../../src/lib/training/trainingPersistence.mjs';
 
 // ●● Lazy Supabase getter (SSG-safe) ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -376,7 +376,7 @@ export default async function handler(req, res) {
         }
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[API Error]', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }

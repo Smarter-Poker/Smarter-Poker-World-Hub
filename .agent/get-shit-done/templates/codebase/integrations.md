@@ -68,9 +68,9 @@ Template for `.planning/codebase/INTEGRATIONS.md` - captures external service de
 ## Monitoring & Observability
 
 **Error Tracking:**
-- [Existing error storage] - [e.g., "first-party crash records"]
-  - Destination: [maintained log path or database table]
-  - Release tracking: [e.g., "deployed commit in the error record"]
+- [Service] - [e.g., "Sentry"]
+  - DSN: [e.g., "SENTRY_DSN env var"]
+  - Release tracking: [e.g., "via SENTRY_RELEASE"]
 
 **Analytics:**
 - [Service] - [e.g., "Mixpanel for product analytics"]
@@ -185,9 +185,9 @@ Template for `.planning/codebase/INTEGRATIONS.md` - captures external service de
 ## Monitoring & Observability
 
 **Error Tracking:**
-- First-party application logs - Server and client errors
-  - Destination: Maintained application logs and crash records
-  - Release tracking: Deployed Git commit recorded with the error
+- Sentry - Server and client errors
+  - DSN: SENTRY_DSN env var
+  - Release tracking: Git commit SHA via SENTRY_RELEASE
 
 **Analytics:**
 - None (planned: Mixpanel)

@@ -7,7 +7,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Trophy, BookOpen, GraduationCap, Gem, Heart, Infinity, Shuffle, Swords, Calendar, Target, Banknote, Calculator, Brain, Flame, ArrowUpRight, Timer } from 'lucide-react';
 import { acquireScrollLock } from '../../lib/scrollLock';
-import { useModalHistory } from '../../hooks/useModalHistory';
 // The lobby no longer bills, so supabase / EventBus / getAuthUser are gone with
 // deductDiamonds. Entry price now comes from the engine config only.
 import { getModeConfig } from '../../lib/trivia/triviaEngine';
@@ -83,13 +82,10 @@ export default function TriviaLobby({
     currentStreak = 0,
     onDiamondsChange,
     modeAvailability,
-    // Phase 0a foundation, supplied by pages/hub/trivia/index.js. Both default
-    // to no-ops so the component still renders anywhere else it is mounted.
-    requireOnline = () => true,
-    haptic = () => {},
 }) {
     const router = useRouter();
     const [activeFilter, setActiveFilter] = useState('all');
+    const filterRailRef = useRef(null);
     const filterButtonRefs = useRef([]);
     const modalRef = useRef(null);
     const modalCloseRef = useRef(null);
@@ -125,14 +121,25 @@ export default function TriviaLobby({
     const dailyAvailability = availabilityFor(TRIVIA_FEATURED_MODE.id);
     const quickStakesAvailability = availabilityFor(TRIVIA_QUICK_STAKES_MODE.id);
 
-    /* MOBILE PHASE 7 (docs/mobile-standard): the filter row wraps, so every
-       chip is on screen and nothing has to be scrolled into view. The only
-       thing left to do after a keyboard move is put focus on the chip. The
-       rail ref, its scrollWidth maths and its scrollTo are gone with the rail. */
     const revealFilter = (filterIndex, { focus = false } = {}) => {
-        if (!focus) return;
+        // Wait for React to apply the active state before measuring. Scrolling
+        // the rail directly keeps the page's vertical position untouched.
         requestAnimationFrame(() => {
-            filterButtonRefs.current[filterIndex]?.focus();
+            const rail = filterRailRef.current;
+            const button = filterButtonRefs.current[filterIndex];
+            if (!rail || !button) return;
+
+            if (focus) button.focus();
+
+            const maxLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+            if (maxLeft === 0) return;
+
+            const targetLeft = button.offsetLeft - ((rail.clientWidth - button.offsetWidth) / 2);
+            const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            rail.scrollTo({
+                left: Math.min(maxLeft, Math.max(0, targetLeft)),
+                behavior: reduceMotion ? 'auto' : 'smooth',
+            });
         });
     };
 
@@ -150,13 +157,6 @@ export default function TriviaLobby({
     // deliberately omitted because it is recreated during render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady, router.query.filter]);
-
-    const closeChargePopup = () => {
-        setShowChargePopup(false);
-        setPendingMode(null);
-    };
-    // Back closes the popup before it leaves the page (mobile phase 0a).
-    useModalHistory(showChargePopup, closeChargePopup);
 
     useEffect(() => {
         if (!showChargePopup) return undefined;
@@ -280,10 +280,6 @@ export default function TriviaLobby({
             setRouteError(availability.message);
             return;
         }
-        // Every mode page charges and loads over the network; say so now
-        // rather than routing into a page that cannot start.
-        if (!requireOnline()) return;
-        haptic('light');
 
         // Block daily if already completed
         if (modeId === 'daily' && dailyCompleted) return;
@@ -315,7 +311,6 @@ export default function TriviaLobby({
                 screen-reader users are served by the labelled inner button. */}
             <div
                 className="daily-trivia-banner"
-                data-tutorial="daily"
                 onClick={() => !dailyCompleted && dailyAvailability.enabled && startMode(TRIVIA_FEATURED_MODE.id)}
                 style={{ cursor: dailyCompleted || !dailyAvailability.enabled ? 'default' : 'pointer' }}
             >
@@ -362,7 +357,7 @@ export default function TriviaLobby({
 
             {/* Mode Cards Section */}
             <div className="modes-section">
-                <div className="modes-toolbar" data-tutorial="modes">
+                <div className="modes-toolbar">
                     <div>
                         <span className="modes-toolbar__eyebrow">GAME SELECT // TRIVIA NETWORK</span>
                         <h2>Choose Your Game</h2>
@@ -379,10 +374,10 @@ export default function TriviaLobby({
                 </div>
 
                 <div
+                    ref={filterRailRef}
                     className="mode-filters"
                     role="toolbar"
                     aria-label="Filter trivia modes"
-                    data-tutorial="filters"
                 >
                     {MODE_FILTERS.map((filter, filterIndex) => (
                         <button
@@ -403,7 +398,7 @@ export default function TriviaLobby({
                     ))}
                 </div>
 
-                <div className="modes-grid" id="trivia-mode-grid" data-tutorial="grid">
+                <div className="modes-grid" id="trivia-mode-grid">
                     {filteredModes.map((mode) => {
                         const Icon = MODE_ICONS[mode.icon] || Brain;
                         const availability = availabilityFor(mode.id);
@@ -487,7 +482,7 @@ export default function TriviaLobby({
             </div>
 
             {/* Quick Stakes Section - Landscape Banner */}
-            <div className="quick-stakes-section" data-tutorial="stakes">
+            <div className="quick-stakes-section">
                 <button
                     type="button"
                     className="quick-stakes-banner"
@@ -632,7 +627,7 @@ export default function TriviaLobby({
                     align-items: center;
                 }
 
-                @media (max-width: 768px) {
+                @media (max-width: 680px) {
                     .trivia-lobby {
                         padding: 0 8px 16px !important;
                     }
@@ -799,7 +794,7 @@ export default function TriviaLobby({
                     background: rgba(0, 0, 0, 0.6);
                     border: 1px solid rgba(35, 116, 225, 0.45);
                     color: #9ecbff;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 700;
                     letter-spacing: 0.04em;
                     pointer-events: none;
@@ -1125,7 +1120,7 @@ export default function TriviaLobby({
                 .mode-image-card__kicker {
                     display: block;
                     color: #8aaabd;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 600;
                     line-height: 1;
                     letter-spacing: 0.2em;
@@ -1148,7 +1143,7 @@ export default function TriviaLobby({
                     align-items: center;
                     gap: 7px;
                     color: #9fc9dc;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 700;
                     letter-spacing: 0.14em;
                     white-space: nowrap;
@@ -1164,29 +1159,32 @@ export default function TriviaLobby({
                     box-shadow: 0 0 9px rgba(51, 212, 123, 0.9);
                 }
 
-                /* MOBILE PHASE 7 (docs/mobile-standard): the filter row was a
-                   sideways rail (715px of chips in a 357px strip at 375, hidden
-                   scrollbar, snap points, and a scrollTo that centred the active
-                   chip). Every filter is on screen now: a grid that wraps. */
                 .mode-filters {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    display: flex;
+                    align-items: stretch;
                     gap: 0;
                     padding: 0 18px;
+                    overflow-x: auto;
+                    overscroll-behavior-x: contain;
+                    scroll-padding-inline: 18px;
+                    scroll-snap-type: x proximity;
+                    -webkit-overflow-scrolling: touch;
                     border-bottom: 1px solid rgba(111, 155, 176, 0.2);
+                    scrollbar-width: none;
                 }
+
+                .mode-filters::-webkit-scrollbar { display: none; }
 
                 .mode-filter {
                     position: relative;
-                    min-width: 0;
+                    min-width: max-content;
                     min-height: 48px;
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    padding: 0 12px;
+                    padding: 0 20px;
                     border: 0;
                     border-right: 1px solid rgba(111, 155, 176, 0.16);
-                    border-bottom: 1px solid rgba(111, 155, 176, 0.16);
                     background: transparent;
                     color: #7893a2;
                     font-family: inherit;
@@ -1195,6 +1193,7 @@ export default function TriviaLobby({
                     letter-spacing: 0.08em;
                     text-transform: uppercase;
                     cursor: pointer;
+                    scroll-snap-align: start;
                     transition: color 180ms ease, background 180ms ease;
                 }
 
@@ -1207,7 +1206,7 @@ export default function TriviaLobby({
                     border: 1px solid rgba(111, 155, 176, 0.28);
                     background: rgba(3, 10, 14, 0.72);
                     color: #9ab3bf;
-                    font-size: 12px;
+                    font-size: 9px;
                     line-height: 1;
                     letter-spacing: 0;
                 }
@@ -1342,7 +1341,7 @@ export default function TriviaLobby({
                     top: 10px;
                     left: 11px;
                     color: #d6e8f1;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 700;
                     letter-spacing: 0.18em;
                     text-shadow: 0 2px 8px #000;
@@ -1355,7 +1354,7 @@ export default function TriviaLobby({
                     border: 1px solid rgba(129, 185, 211, 0.32);
                     background: rgba(0, 5, 8, 0.72);
                     color: #c2dbe7;
-                    font-size: 12px;
+                    font-size: 8px;
                     backdrop-filter: blur(5px);
                 }
 
@@ -1386,7 +1385,7 @@ export default function TriviaLobby({
                 .mode-image-card__kicker {
                     overflow: hidden;
                     color: var(--mode-color);
-                    font-size: 12px;
+                    font-size: 9px;
                     text-overflow: ellipsis;
                     white-space: nowrap;
                 }
@@ -1406,7 +1405,7 @@ export default function TriviaLobby({
                     margin: 0 0 13px;
                     color: #8da4b0;
                     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                    font-size: 12px;
+                    font-size: 11px;
                     line-height: 1.45;
                 }
 
@@ -1439,14 +1438,14 @@ export default function TriviaLobby({
                 .mode-image-card__telemetry small {
                     margin-bottom: 3px;
                     color: #7895a3;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 700;
                     letter-spacing: 0.16em;
                 }
 
                 .mode-image-card__telemetry strong {
                     color: #cce1eb;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 700;
                     letter-spacing: 0.04em;
                 }
@@ -1458,7 +1457,7 @@ export default function TriviaLobby({
                     gap: 8px;
                     margin-top: 11px;
                     color: #91adbb;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 700;
                     letter-spacing: 0.12em;
                     text-transform: uppercase;
@@ -1483,14 +1482,20 @@ export default function TriviaLobby({
                     border-radius: 0;
                 }
 
-                @media (max-width: 900px) and (min-width: 769px) {
+                @media (max-width: 900px) and (min-width: 701px) {
                     .modes-grid {
                         grid-template-columns: repeat(2, minmax(0, 1fr));
                     }
 
+                    .mode-filters {
+                        position: sticky;
+                        top: calc(59px + env(safe-area-inset-top, 0px));
+                        z-index: 8;
+                        background: rgba(5, 14, 20, 0.97);
+                    }
                 }
 
-                @media (max-width: 768px) {
+                @media (max-width: 700px) {
                     .trivia-lobby {
                         padding: 0 8px 18px !important;
                     }
@@ -1506,20 +1511,25 @@ export default function TriviaLobby({
                         gap: 10px;
                     }
 
-                    .modes-toolbar__eyebrow { font-size: 12px; }
+                    .modes-toolbar__eyebrow { font-size: 8px; }
                     .modes-toolbar h2 { margin-top: 6px; font-size: 22px; }
-                    .modes-toolbar__count { font-size: 12px; }
+                    .modes-toolbar__count { font-size: 8px; }
 
                     .mode-filters {
-                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        position: sticky;
+                        top: calc(59px + env(safe-area-inset-top, 0px));
+                        z-index: 8;
                         padding: 0 10px;
+                        scroll-padding-inline: 10px;
                         background: linear-gradient(90deg, rgba(5, 14, 20, 0.98), rgba(8, 24, 33, 0.96), rgba(5, 14, 20, 0.98));
+                        box-shadow: 0 1px 0 rgba(25, 185, 255, 0.16), 0 10px 22px rgba(0, 0, 0, 0.34);
+                        backdrop-filter: blur(12px);
                     }
 
                     .mode-filter {
                         min-height: 44px;
                         padding: 0 15px;
-                        font-size: 12px;
+                        font-size: 10px;
                     }
 
                     .modes-grid {
@@ -1558,7 +1568,7 @@ export default function TriviaLobby({
                     .mode-image-card__code {
                         top: 7px;
                         left: 8px;
-                        font-size: 12px;
+                        font-size: 9px;
                     }
 
                     .mode-image-card__status {
@@ -1580,7 +1590,7 @@ export default function TriviaLobby({
                         padding: 14px 14px 13px;
                     }
 
-                    .mode-image-card__kicker { font-size: 12px; }
+                    .mode-image-card__kicker { font-size: 8px; }
 
                     .mode-image-card h3 {
                         margin: 7px 0 5px;
@@ -1601,12 +1611,12 @@ export default function TriviaLobby({
                         padding-bottom: 7px;
                     }
 
-                    .mode-image-card__telemetry small { font-size: 12px; }
-                    .mode-image-card__telemetry strong { font-size: 12px; }
+                    .mode-image-card__telemetry small { font-size: 10px; }
+                    .mode-image-card__telemetry strong { font-size: 10.5px; }
 
                     .mode-image-card__launch {
                         margin-top: 10px;
-                        font-size: 12px;
+                        font-size: 11px;
                     }
 
                     .quick-stakes-section {
@@ -1619,7 +1629,7 @@ export default function TriviaLobby({
                     }
                 }
 
-                @media (max-width: 600px) {
+                @media (max-width: 390px) {
                     .mode-image-card h3 { font-size: 20px; }
                     .mode-image-card__body { padding-left: 9px; padding-right: 9px; }
                 }

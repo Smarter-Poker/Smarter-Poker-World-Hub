@@ -5,7 +5,7 @@ import { applyDeterministicEnginePatches } from '../../../src/engines/determinis
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   authoritativeHandState,
   bindExactContinuationQuestion,

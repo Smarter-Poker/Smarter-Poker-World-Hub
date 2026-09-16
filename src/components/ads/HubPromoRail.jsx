@@ -341,12 +341,6 @@ function HubAdInterstitial({ ad, external, onProceed, onClose }) {
                     {ad.ctaLabel || 'Open'}
                     {external ? <span className="ad-interstitial__ext" aria-hidden="true">{'↗'}</span> : null}
                 </button>
-                {/* The sponsor's door (2026-09-13): everybody who sees an advert
-                    is a prospective advertiser. It lives in the Club Arena SPA,
-                    outside the Next router, so a real navigation. */}
-                <a className="ad-interstitial__advertise" href="/hub/club-arena/advertise">
-                    Advertise With Us
-                </a>
             </div>
 
             <style jsx>{`
@@ -470,19 +464,6 @@ function HubAdInterstitial({ ad, external, onProceed, onClose }) {
                 }
                 .ad-interstitial__ext {
                     font-size: 14px;
-                }
-                .ad-interstitial__advertise {
-                    margin-top: 4px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: 0.04em;
-                    color: rgba(226, 232, 240, 0.62);
-                    text-decoration: underline;
-                    text-underline-offset: 3px;
-                }
-                .ad-interstitial__advertise:focus-visible {
-                    outline: 2px solid #65c4ff;
-                    outline-offset: 2px;
                 }
             `}</style>
         </div>

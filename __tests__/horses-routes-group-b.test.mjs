@@ -14,7 +14,7 @@
  *      cache, and the admin-reviews / horse-launch handlers driven by a fake
  *      database.
  *
- * Nothing here touches Supabase, retired error provider or the network.
+ * Nothing here touches Supabase, Sentry or the network.
  */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';

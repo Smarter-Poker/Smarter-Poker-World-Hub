@@ -21,6 +21,13 @@ const { BETTING_STRUCTURES } = require('./ActionValidator');
 const HorsePokerBrain = require('./brain');
 const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
 
+// Lazy Sentry import for financial error reporting (must not crash engine if Sentry unavailable)
+let _Sentry = null;
+function getSentry() {
+  if (!_Sentry) try { _Sentry = require('@sentry/nextjs'); } catch { _Sentry = { captureException: () => {} }; }
+  return _Sentry;
+}
+
 /**
  * Map an arbitrary canonical hand id ("LOCA:H000016", "hand_<tableId>_42")
  * onto a stable RFC-4122 v5 uuid.
@@ -654,7 +661,7 @@ class LobbyManager {
           p_metadata: { coverage: data.amount, equity: data.trailerEquity },
         }).then(({ error }) => {
           if (error) console.warn('[LobbyManager] Insurance premium recording failed:', error.message);
-        }).catch(e => { console.warn('[LobbyManager] Insurance premium recording rejected:', e?.message || e); });
+        }).catch(e => { console.warn('[LobbyManager] Insurance premium recording rejected:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium_record' } }); });
 
         // [AUDIT LOG] Trace the chip movement leaving the player's account for the premium
         try {
@@ -667,8 +674,8 @@ class LobbyManager {
             p_details: { coverage: data.amount, equity: data.trailerEquity }
           })
             .then(({ error }) => { if (error) throw error; })
-            .catch(e => { console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e); });
-        } catch (e) { console.warn('[LobbyManager] Insurance premium error:', e?.message || e); }
+            .catch(e => { console.warn('[LobbyManager] Insurance premium audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'premium' } }); });
+        } catch (e) { console.warn('[LobbyManager] Insurance premium error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
       }
     });
 
@@ -690,8 +697,8 @@ class LobbyManager {
           p_type: 'payout',
           p_metadata: { premium: data.premium, netGain: data.netGain },
         }).then(({ error }) => {
-          if (error) { console.warn('[LobbyManager] Insurance payout recording failed:', error.message); }
-        }).catch(e => { console.warn('[LobbyManager] Insurance payout recording rejected:', e?.message || e); });
+          if (error) { console.warn('[LobbyManager] Insurance payout recording failed:', error.message); getSentry().captureException(new Error(error.message), { tags: { area: 'insurance', type: 'payout_record' } }); }
+        }).catch(e => { console.warn('[LobbyManager] Insurance payout recording rejected:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout_record' } }); });
 
         // [AUDIT LOG] Trace the chip movement entering the player's account from the insurance hit
         try {
@@ -704,8 +711,8 @@ class LobbyManager {
             p_details: { premium: data.premium, netGain: data.netGain }
           })
             .then(({ error }) => { if (error) throw error; })
-            .catch(e => { console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e); });
-        } catch (e) { console.warn('[LobbyManager] Insurance payout error:', e?.message || e); }
+            .catch(e => { console.warn('[LobbyManager] Insurance payout audit FAILED:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance', type: 'payout' } }); });
+        } catch (e) { console.warn('[LobbyManager] Insurance payout error:', e?.message || e); getSentry().captureException(e, { tags: { area: 'insurance' } }); }
       }
     });
 
@@ -957,12 +964,12 @@ class LobbyManager {
                 p_amount_wagered: invested,
               })
                 .then(({ error }) => { if (error) throw error; })
-                .catch(err => { console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err); });
+                .catch(err => { console.warn('[LobbyManager] Promo wagering RPC failed:', err?.message || err); getSentry().captureException(err, { tags: { area: 'promo_wagering' } }); });
             }
           }
         } catch (promoErr) {
           console.warn('[LobbyManager] Promo wagering tracking failed:', promoErr.message);
-
+          getSentry().captureException(promoErr, { tags: { area: 'promo_wagering', type: 'outer' } });
         }
       }
 

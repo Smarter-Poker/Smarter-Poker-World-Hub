@@ -64,8 +64,8 @@ test('Marketplace shells enforce first-letter capitalization for static and dyna
     read('src/lib/store/marketplaceCopy.js'),
   ]);
 
-  assert.doesNotMatch(detailCss, /text-transform\s*:/);
-  assert.doesNotMatch(subpageCss, /text-transform\s*:/);
+  assert.match(detailCss, /\.page\s*\{[\s\S]*?text-transform:\s*capitalize;/);
+  assert.match(subpageCss, /\.stage\s*\{[\s\S]*?text-transform:\s*capitalize;/);
   assert.match(storefrontCss, /\.root\s*\{[\s\S]*?text-transform:\s*capitalize;/);
   assert.match(fulfillmentCss, /\.page\s*\{[^}]*text-transform:\s*capitalize;/);
   assert.match(copy, /export function marketplaceCopy/);

@@ -23,7 +23,7 @@
  */
 
 import { validateCronAuth } from '../../../src/utils/cron-auth';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
 // States the geo-blocker treats as restricted. If any of these gets a

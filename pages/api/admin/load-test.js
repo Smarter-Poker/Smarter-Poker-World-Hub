@@ -8,7 +8,7 @@
  *   Returns default test suite configuration
  */
 import { runLoadTest, getDefaultTestSuite } from '../../../src/lib/loadTest';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 export default async function handler(req, res) {
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 
             return res.status(200).json({ success: true, results });
         } catch (error) {
-            try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+            try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
             return res.status(500).json({ error: error.message });
         }
     }

@@ -21,7 +21,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 const {

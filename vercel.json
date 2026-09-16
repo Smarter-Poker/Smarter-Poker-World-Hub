@@ -4,11 +4,16 @@
     "pdx1"
   ],
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "ci-marker/**": false,
+      "backup/**": false,
+      "build/**": false,
+      "agent/**": false,
+      "patch/**": false
+    }
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
-  "installCommand": "npm ci --no-audit --no-fund",
-  "buildCommand": "node scripts/vercel-build.mjs",
+  "buildCommand": "node scripts/copy-reader-assets.mjs && bash scripts/prune-platform-bins.sh && node scripts/patch-next.js && npm run test:marketplace && npm run test:training:phase6-authority && NODE_OPTIONS='--max-old-space-size=7168' next build --webpack",
   "headers": [
     {
       "source": "/(.*)",
@@ -683,6 +688,10 @@
     },
     {
       "path": "/api/cron/signup-probe-restricted",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/sentry-signup-bridge",
       "schedule": "*/15 * * * *"
     },
     {

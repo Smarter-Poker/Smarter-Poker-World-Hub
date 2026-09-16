@@ -10,7 +10,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 let _supabase = null;
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
 
         return res.json({ success: true, preview });
     } catch (e) {
-        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         if (e.name === 'AbortError') {
             return res.json({ success: false, error: 'Request timeout' });
         }

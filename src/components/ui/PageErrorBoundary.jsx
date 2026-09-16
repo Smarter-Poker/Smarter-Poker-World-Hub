@@ -14,6 +14,7 @@
  *   </PageErrorBoundary>
  */
 import React from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { reportClientCrash } from '../../lib/reportClientCrash';
 import { isChunkError, canAutoReload } from '../../lib/chunkRecovery';
 
@@ -32,7 +33,10 @@ export default class PageErrorBoundary extends React.Component {
 
         // Durable report. reportClientCrash does the console.warn and the
         // sessionStorage mirror this method used to do inline, AND POSTs to
-        // /api/client-crash, which writes public.client_crash_log.
+        // /api/client-crash, which writes public.client_crash_log. Sentry's
+        // browser SDK never initialises in production (no DSN in the bundle),
+        // so before this the only record of a crash was a sessionStorage entry
+        // that died with the tab.
         try {
             reportClientCrash({
                 boundary: 'page',
@@ -51,6 +55,21 @@ export default class PageErrorBoundary extends React.Component {
             }
         } catch (_) { console.warn('[PageErrorBoundary] chunk recovery failed:', _?.message || _); }
 
+        // Report to Sentry silently — never let reporting crash the boundary
+        try {
+            Sentry.captureException(error, {
+                extra: {
+                    boundaryType: 'PageErrorBoundary',
+                    componentStack: errorInfo?.componentStack,
+                    url: typeof window !== 'undefined' ? window.location.href : 'SSR',
+                    timestamp: new Date().toISOString(),
+                },
+                tags: {
+                    errorBoundary: 'page-level',
+                    crashedRoute: typeof window !== 'undefined' ? window.location.pathname : 'SSR',
+                },
+            });
+        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
     }
 
     handleRetry = () => {
@@ -140,7 +159,7 @@ export default class PageErrorBoundary extends React.Component {
 
                     {/* AUDIT-11: error details now visible in PRODUCTION too. Dan
                          has been seeing this fallback on his iPhone with no idea
-                         what threw, including the component stack,
+                         what threw — Sentry is server-side and unavailable to him,
                          dev-only made the actual error invisible. Show it directly
                          so the next time it fires he can read/screenshot the cause. */}
                     {this.state.error && (

@@ -2162,7 +2162,7 @@ export default function BankrollManagerPage() {
                   )}
 
                   {/* Recent Activity Section */}
-                  <div className="bankroll-activity-section" style={styles.activitySection}>
+                  <div style={styles.activitySection}>
                     <div
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}
                     >
@@ -2317,7 +2317,7 @@ export default function BankrollManagerPage() {
 
               {/* Leaks View */}
               {activeSection === 'leaks' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <h2 style={styles.sectionTitle}>Leak Analysis</h2>
                   {!leakAnalysis || leakAnalysis.topLeaks?.length === 0 ? (
                     <div style={{ padding: '40px 20px', textAlign: 'center' }}>
@@ -2350,7 +2350,7 @@ export default function BankrollManagerPage() {
 
               {/* Goals View (from hamburger menu) */}
               {activeSection === 'goals' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <h2 style={styles.sectionTitle}>Bankroll Goals</h2>
                   <BankrollGoals
                     userId={userId}
@@ -2367,7 +2367,7 @@ export default function BankrollManagerPage() {
 
               {/* Reports View */}
               {activeSection === 'reports' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <h2 style={styles.sectionTitle}>Performance Reports</h2>
 
                   {/* Quick Stats Summary */}
@@ -2538,7 +2538,7 @@ export default function BankrollManagerPage() {
 
               {/* Settings View */}
               {activeSection === 'settings' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <h2 style={styles.sectionTitle}>Bankroll Settings</h2>
                   <div style={{ padding: 16, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '2px solid rgba(255,255,255,0.15)', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px' }}>Preferences</h3>
@@ -2572,14 +2572,14 @@ export default function BankrollManagerPage() {
 
               {/* Bankroll Rules View */}
               {activeSection === 'rules' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <BankrollRulesCard userId={userId} />
                 </div>
               )}
 
               {/* Saved Receipts View */}
               {activeSection === 'receipts' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <SavedReceipts userId={userId} />
                 </div>
               )}
@@ -2634,7 +2634,7 @@ export default function BankrollManagerPage() {
 
               {/* Staking Tracker - dedicated standalone view */}
               {activeSection === 'staking' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Staking Tracker">
                       <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
@@ -2645,7 +2645,7 @@ export default function BankrollManagerPage() {
 
               {/* Toke Tracker - Dealer Income & Expense Tracking */}
               {activeSection === 'toke-tracker' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <TokeTracker userId={userId} refreshTrigger={refreshTrigger} />
                 </div>
               )}
@@ -2654,7 +2654,7 @@ export default function BankrollManagerPage() {
 
               {/* Phase 8: Advanced Tax Report - State-Level */}
               {activeSection === 'advanced-tax' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Advanced Tax Report">
                       <AdvancedTaxReport entries={entries} userId={userId} />
@@ -2665,7 +2665,7 @@ export default function BankrollManagerPage() {
 
               {/* Phase 8: Staking Profile - Public Performance Card */}
               {activeSection === 'staking-profile' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
                     <HubErrorBoundary name="Staking Profile">
                       <SocialStakingProfile entries={entries} stats={stats} user={user} />
@@ -2676,7 +2676,7 @@ export default function BankrollManagerPage() {
 
               {/* Phase 8: Tournament Calendar - Series Event Planner */}
               {activeSection === 'tournament-calendar' && (
-                <div className="bankroll-activity-section" style={styles.activitySection}>
+                <div style={styles.activitySection}>
                   <HubErrorBoundary name="Tournament Calendar">
                     <TournamentCalendar bankrollTotal={stats?.totalBankroll || 0} />
                   </HubErrorBoundary>

@@ -42,7 +42,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 /** Where a player lands when the advert they tapped is no longer live. */
 const FALLBACK = '/hub/club-arena';

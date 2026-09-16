@@ -1,6 +1,10 @@
-# RUNNER (2026-09-15): required checks use the local ARM64 Linux runner.
-# Fixed labels prevent an absent or changed repository variable from enabling
-# paid hosted compute. If the local runner is offline, these jobs wait.
+# RUNNER (2026-09-03): `vars.CI_RUNNER` routes this and eight other World Hub
+# workflows to the estate's Hetzner runners the moment the repository variable is
+# set (Club Arena uses `estate-linux`). Unset, every job is exactly
+# `ubuntu-latest` as before. Measured 2026-09-02: E2E Tests, Global Footer E2E,
+# this gate and Supabase Invariants were ~75% of World Hub's hosted minutes
+# ($53 on Sept 1, $10 on Sept 2). Playwright installs skip `--with-deps` on a
+# self-hosted runner, where the browser deps are installed once on the box.
 name: Build Safety Gate
 
 # Runs on pushes to main and PRs targeting main — NOT all branches
@@ -25,7 +29,7 @@ on:
 # CRITICAL FIX: Cancel older runs when a newer push arrives.
 # This prevents a queue of 15 stale builds piling up when pushing rapidly.
 # The LATEST push always wins — older ones are cancelled immediately.
-# Publication uses locally built artifacts; automatic Git deployments are disabled (vercel.json).
+# Vercel's own git integration handles the actual deploy (see vercel.json).
 concurrency:
   group: safety-gate-${{ github.ref }}
   cancel-in-progress: true
@@ -48,7 +52,7 @@ jobs:
     # ruleset enforces this check on the pull request; the merge commit is
     # the same tree. Club Arena made the same call on 2026-08-23.
     if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, smarter-local-linux-arm64]
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
 
     steps:
@@ -84,7 +88,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-training-authority-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-training-authority-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
 
       - name: Install Dependencies For Training Authority
         if: steps.training-authority-nm-cache.outputs.cache-hit != 'true'
@@ -94,36 +98,10 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Operational Alert Delivery Contracts
-        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
-
-      # The existing PNM entry point runs source/unit contracts only (including
-      # the three painted-console checks); npm also invokes pretest:pnm.
-      - name: Poker Near Me Source And Console Contracts
-        run: npm run test:pnm
-
-      - name: Messenger Club And Invoice Separation
-        run: node --test __tests__/messenger-workspace.test.mjs __tests__/messenger-accounting-ui.test.mjs
+        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
 
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
-
-      - name: Series Scraper Session And Data Contracts
-        run: python3 -m unittest discover -s scripts -p test_poker_series_scraper.py -v
-
-      - name: Series Enrichment Startup Contracts
-        run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
-
-      - name: Series Date Provenance And Existing Row Receipts
-        run: python3 -m unittest discover -s scripts -p test_series_date_provenance.py -v
-
-      - name: Series Discovery Source Handoff Contracts
-        run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
-
-      - name: Video Scraper Failure And Receipt Contracts
-        run: python3 -m unittest discover -s scripts -p test_video_library_scraper.py -v
-
-      - name: Stats Maintenance Reports Its Actual Outcome Over HTTP
-        run: node --experimental-vm-modules --test __tests__/club-stats-maintenance-http.test.mjs __tests__/club-stats-maintenance-runtime-budget.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -146,11 +124,6 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends postgresql-17 locales
-          # Debian locale-gen reads /etc/locale.gen; an argument alone does
-          # not enable this locale and can remove an earlier localedef result.
-          if ! grep -Eq '^[[:space:]]*en_US\.UTF-8[[:space:]]+UTF-8([[:space:]]|$)' /etc/locale.gen; then
-            printf '%s\n' 'en_US.UTF-8 UTF-8' | sudo tee -a /etc/locale.gen >/dev/null
-          fi
           sudo locale-gen en_US.UTF-8
 
       - name: Resolve Exact PostgreSQL 17 Training Test Binaries
@@ -190,14 +163,6 @@ jobs:
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
 
-      - name: Owner Operational Notification PostgreSQL Contracts
-        env:
-          OWNER_NOTIFICATION_PG17_PROVIDER_DIR: ${{ vars.OWNER_NOTIFICATION_PG17_PROVIDER_DIR }}
-          OWNER_NOTIFICATION_PG17_PROVIDER_SHA256: ${{ vars.OWNER_NOTIFICATION_PG17_PROVIDER_SHA256 }}
-        run: |
-          python3 scripts/ci/test-owner-operational-notification-postgres.py --self-test
-          PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
-
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 
@@ -205,12 +170,6 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
-      - name: Integrity Hand Search PostgreSQL Continuation
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-integrity-hands-continuation.py
-      - name: Operator Approval PostgreSQL Concurrency
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-approval-concurrency.py
-      - name: Fleet policy and exact audit commit together
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-fleet-policy-audit.py
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
@@ -950,7 +909,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/typescript
-          key: ts5-parser-${{ runner.os }}-${{ runner.arch }}-v1
+          key: ts5-parser-${{ runner.os }}-v1
 
       - name: "CHECK 20: Title Case on every player-facing page"
         run: |
@@ -984,7 +943,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules/sharp
-          key: sharp-avatar-guard-${{ runner.os }}-${{ runner.arch }}-v1
+          key: sharp-avatar-guard-${{ runner.os }}-v1
 
       - name: "CHECK 8: Auth-critical files exist"
         run: |
@@ -1005,7 +964,7 @@ jobs:
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
-            __tests__/retired-error-provider.test.mjs \
+            __tests__/sentry-coverage.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs \
@@ -1232,7 +1191,7 @@ jobs:
     name: Failure Notification
     needs: [safety-checks]
     if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, smarter-local-linux-arm64]
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
       - name: Create GitHub Issue on Failure
@@ -1278,7 +1237,7 @@ jobs:
     # ruleset enforces this check on the pull request; the merge commit is
     # the same tree. Club Arena made the same call on 2026-08-23.
     if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, smarter-local-linux-arm64]
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     
     steps:
@@ -1316,7 +1275,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-typecheck-${{ runner.os }}-${{ runner.arch }}-node20-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-typecheck-${{ runner.os }}-node20-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.nm-cache.outputs.cache-hit != 'true'
@@ -1348,4 +1307,158 @@ jobs:
             head -20 /tmp/ts-errors.txt
           else
             echo "✓ TypeScript compilation passed — zero errors"
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VERCEL DEPLOY RETRY — Automatically re-triggers any Vercel deploy
+  # that failed due to a transient GitHub HTTP 500 clone error.
+  #
+  # Pattern observed: GitHub occasionally returns HTTP 500 when Vercel
+  # tries to clone the repo, causing deployments to fail within 8–90s
+  # with "The git provider returned an HTTP 500 error." — even though the
+  # code itself is perfectly valid.
+  #
+  # This job runs AFTER safety-checks on every push to main. It polls
+  # the Vercel API for up to 5 minutes looking for any ERROR deployment
+  # whose error message matches the GitHub-500 pattern. When found, it
+  # immediately fires a new deployment for the same commit.
+  # ═══════════════════════════════════════════════════════════════════
+  vercel-deploy-retry:
+    name: Vercel Deploy Retry (GitHub-500 guard)
+    needs: [safety-checks]
+    # `always()`, not `success()`: safety-checks runs on pull requests only
+    # now (see its note), so on a push to main it is SKIPPED, and a job that
+    # `needs` a skipped job is skipped too unless it says always(). This job
+    # only polls the Vercel API for a GitHub-500 clone failure; it never
+    # needed the checks' verdict, only their ordering.
+    # Owner restoration policy: Vercel Git publishes directly; no automatic repair loop.
+    if: ${{ false }}
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Watch for GitHub-500 clone failures and auto-retry
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: team_SVD8r7AOPH065G3usBxVvrBc
+          VERCEL_PROJECT_ID: prj_op66GkZyZcygXQKm76iyycfVFAQx
+          VERCEL_REPO_ID: "1132365826"
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN secret not set — Vercel auto-retry is disabled."
+            echo "Add VERCEL_TOKEN in repo Settings → Secrets and variables → Actions to activate."
+            exit 0
+          fi
+
+          echo "Monitoring Vercel for GitHub-500 failures on commit ${COMMIT_SHA:0:7}..."
+          echo "Will poll for up to 5 minutes (10 attempts × 30s)."
+
+          RETRIED=false
+          for ATTEMPT in $(seq 1 10); do
+            sleep 30
+            echo ""
+            echo "--- Poll attempt $ATTEMPT/10 ---"
+
+            # Fetch the 20 most recent deployments for hub-vanguard
+            DEPLOYS=$(curl -s \
+              "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=20" \
+              -H "Authorization: Bearer $VERCEL_TOKEN")
+
+            # Find any deployment matching our commit SHA that is in ERROR state
+            FAILED_ID=$(echo "$DEPLOYS" | node -e "
+              let s=''; process.stdin.on('data',c=>s+=c);
+              process.stdin.on('end',()=>{
+                try {
+                  const sha = process.env.COMMIT_SHA;
+                  const ds = JSON.parse(s).deployments || [];
+                  const failed = ds.find(d =>
+                    d.state === 'ERROR' &&
+                    d.meta && (d.meta.githubCommitSha === sha || (d.meta.githubCommitSha||'').startsWith(sha.substring(0,7)))
+                  );
+                  console.log(failed ? failed.uid : '');
+                } catch(e) { console.log(''); }
+              });
+            " 2>/dev/null || true)
+
+            if [ -z "$FAILED_ID" ]; then
+              # Also check if there's already a READY or BUILDING deploy — success, bail early
+              GOOD=$(echo "$DEPLOYS" | node -e "
+                let s=''; process.stdin.on('data',c=>s+=c);
+                process.stdin.on('end',()=>{
+                  try {
+                    const sha = process.env.COMMIT_SHA;
+                    const ds = JSON.parse(s).deployments || [];
+                    const ok = ds.find(d =>
+                      (d.state === 'READY' || d.state === 'BUILDING' || d.state === 'QUEUED') &&
+                      d.meta && (d.meta.githubCommitSha === sha || (d.meta.githubCommitSha||'').startsWith(sha.substring(0,7)))
+                    );
+                    console.log(ok ? ok.uid : '');
+                  } catch(e) { console.log(''); }
+                });
+              " 2>/dev/null || true)
+              if [ -n "$GOOD" ]; then
+                echo "✓ Deployment already READY/BUILDING/QUEUED ($GOOD) — no retry needed."
+                exit 0
+              fi
+              echo "  No matching ERROR deployment found yet, continuing to poll..."
+              continue
+            fi
+
+            echo "::warning::Found failed deployment $FAILED_ID for commit ${COMMIT_SHA:0:7}"
+
+            # Confirm the failure is GitHub-500 (not a real code error)
+            BUILD_LOGS=$(curl -s \
+              "https://api.vercel.com/v3/deployments/${FAILED_ID}/events?teamId=${VERCEL_TEAM_ID}&limit=50" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" 2>/dev/null || true)
+
+            IS_GH500=$(echo "$BUILD_LOGS" | grep -c "HTTP 500" 2>/dev/null || echo "0")
+            IS_PERM_CLONE=$(echo "$BUILD_LOGS" | grep -c "permanent problem cloning" 2>/dev/null || echo "0")
+
+            if [ "$IS_GH500" -eq 0 ] && [ "$IS_PERM_CLONE" -eq 0 ]; then
+              echo "::error::Deployment $FAILED_ID is in ERROR but NOT due to a GitHub-500 clone failure."
+              echo "This is a real code error — NOT auto-retrying. Check the Vercel dashboard."
+              exit 1
+            fi
+
+            echo "Confirmed GitHub-500 transient clone error. Firing retry deployment..."
+
+            RETRY_RESP=$(curl -s -X POST \
+              "https://api.vercel.com/v13/deployments?teamId=${VERCEL_TEAM_ID}&forceNew=1" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\": \"hub-vanguard\",
+                \"project\": \"hub-vanguard\",
+                \"target\": \"production\",
+                \"gitSource\": {
+                  \"type\": \"github\",
+                  \"repoId\": ${VERCEL_REPO_ID},
+                  \"ref\": \"main\",
+                  \"sha\": \"${COMMIT_SHA}\"
+                }
+              }")
+
+            RETRY_ID=$(echo "$RETRY_RESP" | node -e "
+              let s=''; process.stdin.on('data',c=>s+=c);
+              process.stdin.on('end',()=>{
+                try { const d=JSON.parse(s); console.log(d.id||''); }
+                catch(e){ console.log(''); }
+              });
+            " 2>/dev/null || true)
+
+            if [ -n "$RETRY_ID" ]; then
+              echo "✅ Retry deployment triggered: $RETRY_ID"
+              echo "   URL: https://vercel.com/smarter-poker/hub-vanguard/$RETRY_ID"
+              RETRIED=true
+              break
+            else
+              echo "::error::Failed to trigger retry deployment."
+              echo "$RETRY_RESP"
+              exit 1
+            fi
+          done
+
+          if [ "$RETRIED" = false ]; then
+            echo "No GitHub-500 failure detected within 5 minutes — deployment was healthy."
           fi

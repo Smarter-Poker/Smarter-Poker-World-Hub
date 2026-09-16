@@ -127,7 +127,7 @@ export function ConfettiExplosion({ duration = 3000, onComplete }) {
                         opacity: 1;
                     }
                     100% {
-                        transform: translate(calc(var(--vx) * 10px), calc(100dvh + var(--vy) * -30px)) 
+                        transform: translate(calc(var(--vx) * 10px), calc(100vh + var(--vy) * -30px)) 
                                    rotate(calc(var(--rotation) + var(--rotation-speed) * 360deg));
                         opacity: 0;
                     }
@@ -279,7 +279,7 @@ export function AchievementToast({
                 }
                 
                 .toast-label {
-                    font-size: 12px;
+                    font-size: 10px;
                     text-transform: uppercase;
                     letter-spacing: 0.1em;
                     color: rgba(255, 255, 255, 0.5);

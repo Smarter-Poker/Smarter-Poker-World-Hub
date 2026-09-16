@@ -8,7 +8,7 @@
 
 import { createClient as supabaseServerClient } from '../../../src/lib/supabaseServerClient';
 import { rateLimit as apiRateLimit } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 /**
@@ -31,7 +31,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * cries wolf permanently and therefore gets ignored.
  *
  * The `endpoint` values were also stale. Six of the eight handlers exist
- * nowhere at all; `daily-challenge` moved to Open Claw /
+ * nowhere at all; `daily-challenge` and `sentry-triage` moved to Open Claw /
  * the workers repo during the Phase 2 migration (CLAUDE.md §11). `location`
  * now records where each job actually lives, so the registry stops implying
  * a local route that was deleted.
@@ -51,6 +51,7 @@ const CRON_REGISTRY = [
     // scripts/openclaw-cron-dispatcher.py for the other 9.
     { name: 'signup-probe',               location: 'vercel',    intervalMin: 1440,  description: 'Signup flow probe' },
     { name: 'signup-probe-restricted',    location: 'vercel',    intervalMin: 15,    description: 'Restricted signup probe' },
+    { name: 'sentry-signup-bridge',       location: 'vercel',    intervalMin: 15,    description: 'Bridge Sentry signup errors' },
     { name: 'trigger-audit',              location: 'vercel',    intervalMin: 1440,  description: 'DB trigger audit' },
     { name: 'email-deliverability-check', location: 'vercel',    intervalMin: 1440,  description: 'Email deliverability check' },
     { name: 'archive-signup-errors',      location: 'vercel',    intervalMin: 1440,  description: 'Archive signup error rows' },
@@ -74,6 +75,7 @@ const CRON_REGISTRY = [
 
     // ── Remote jobs (no local handler; telemetry must come from THEIR side) ──
     { name: 'daily-challenge',            location: 'open-claw', intervalMin: 1440,  remote: true, description: 'Generate daily trivia challenge (workers repo)' },
+    { name: 'sentry-triage',              location: 'workers',   intervalMin: 60,    remote: true, description: 'OpenClaw Sentry error triage (workers repo)' },
 
     // REMOVED 2026-08-14: tournament-alerts, content-grinder,
     // diamond-daily-rewards, venue-data-refresh, vip-expiration-check,
@@ -201,7 +203,7 @@ export default async function handler(req, res) {
             checkedAt: new Date().toISOString(),
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[CronHealth] Error:', err);
         return res.status(500).json({ error: 'Failed to check cron health' });
     }

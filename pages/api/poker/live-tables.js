@@ -29,7 +29,7 @@ import {
   normalizeVenueName,
   resolveVenueName,
 } from '../../../src/lib/poker-near-me/venueMatching';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   PNM_TRUTH_CONTRACT_VERSION,
   activityRowBasis,
@@ -708,7 +708,7 @@ export default async function handler(req, res) {
       venues,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Live tables API error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }

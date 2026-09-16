@@ -18,7 +18,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionApplication } from '../../../src/contracts/orb4_syndicate';
 import { checkIdempotency } from '../../../src/lib/club-arena/idempotency';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
 import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
@@ -716,7 +716,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[union-application]', err);
     return res.status(500).json({ success: false, error: 'Server error' });
   }

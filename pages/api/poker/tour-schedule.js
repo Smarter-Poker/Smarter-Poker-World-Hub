@@ -13,7 +13,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { decodeScrapedTournamentText } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
   SERVABLE_TOUR_EVENT_QUALITIES,
@@ -293,8 +293,8 @@ export default async function handler(req, res) {
 
       const { data: pdfRaw, error: pdfError } = await pdfQuery;
       if (pdfError) {
-        try { reportApiError(pdfError, req); } catch (_reportError) {
-          console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+        try { reportApiError(pdfError, req); } catch (_sentryErr) {
+          console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
         }
         res.setHeader('Cache-Control', 'private, no-store');
         return res.status(503).json({
@@ -478,8 +478,8 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.warn('[tour-schedule] Error:', err);
-    try { reportApiError(err, req); } catch (_reportError) {
-      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+    try { reportApiError(err, req); } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
     }
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(503).json({

@@ -99,6 +99,7 @@ export function UnreadProvider({ children }) {
             }
 
             // Batch: fetch ALL unread messages across all conversations in a single query
+            // instead of N separate queries (fixes Sentry N+1 API Call)
             const conversationIds = participations.map(p => p.conversation_id);
 
             // Find the earliest last_read_at to use as a floor filter

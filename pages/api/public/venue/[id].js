@@ -4,7 +4,8 @@
  * No authentication required - returns only public data
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { canonicalPublicUrl } from '../../../../src/lib/publicOrigin.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -137,7 +138,11 @@ export default async function handler(req, res) {
         let linkedVenue = null;
         let linkedVenueId = socialPage.linked_venue_id || meta.linked_venue_id || null;
 
-
+        addBreadcrumb({
+          category: 'venue-detail',
+          message: `Social page lookup: ${socialPage.name} (${socialPage.page_type}), linked_venue_id=${linkedVenueId}`,
+          data: { page_id: socialPage.id, linked_venue_id: linkedVenueId },
+        });
 
         // Try metadata.linked_venue_id first, then name match.
         // NOTE: keep this column list to columns that actually exist on
@@ -214,7 +219,7 @@ export default async function handler(req, res) {
               return games || [];
             } catch (cmdErr) {
               console.warn('[venue-detail] Commander live games query failed:', cmdErr.message);
-              reportApiError(cmdErr, req);
+              captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-live-games', venue_id: String(venueIdForCommander) } });
               return [];
             }
           })(),
@@ -231,7 +236,7 @@ export default async function handler(req, res) {
               return tourneys || [];
             } catch (cmdErr) {
               console.warn('[venue-detail] Commander tournaments query failed:', cmdErr.message);
-              reportApiError(cmdErr, req);
+              captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'commander-tournaments', venue_id: String(venueIdForCommander) } });
               return [];
             }
           })(),
@@ -247,7 +252,7 @@ export default async function handler(req, res) {
               return count || 0;
             } catch (cmdErr) {
               console.warn('[venue-detail] Waitlist query failed (sp path):', cmdErr.message);
-              reportApiError(cmdErr, req);
+              captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'sp-waitlist', venue_id: String(venueIdForCommander) } });
               return 0;
             }
           })(),
@@ -301,7 +306,7 @@ export default async function handler(req, res) {
             }
           } catch (clubErr) {
             console.warn('[venue-detail] Club Arena tournament fallback failed:', clubErr.message);
-            reportApiError(clubErr, req);
+            captureError(clubErr, { tags: { api: 'venue-detail', stage: 'club-arena-tournament-fallback', page_id: socialPage.id } });
           }
         }
 
@@ -442,7 +447,7 @@ export default async function handler(req, res) {
             return games || [];
           } catch (cmdErr) {
             console.warn('[venue-detail] Commander live games query failed (pv path):', cmdErr.message);
-            reportApiError(cmdErr, req);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-live-games', venue_id: String(id) } });
             return [];
           }
         })(),
@@ -472,7 +477,7 @@ export default async function handler(req, res) {
             return tourneysData || [];
           } catch (cmdErr) {
             console.warn('[venue-detail] Commander tournaments query failed (pv path):', cmdErr.message);
-            reportApiError(cmdErr, req);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-commander-tournaments', venue_id: String(id) } });
             return [];
           }
         })(),
@@ -496,7 +501,7 @@ export default async function handler(req, res) {
             return dtData || [];
           } catch (cmdErr) {
             console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
-            reportApiError(cmdErr, req);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-daily-schedule', venue_id: String(id) } });
             return [];
           }
         })(),
@@ -530,7 +535,7 @@ export default async function handler(req, res) {
             return (promosData || []).map((p) => ({ ...p, promo_type: p.promotion_type }));
           } catch (cmdErr) {
             console.warn('[venue-detail] Promotions query failed (pv path):', cmdErr.message);
-            reportApiError(cmdErr, req);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-promotions', venue_id: String(id) } });
             return [];
           }
         })(),
@@ -566,7 +571,7 @@ export default async function handler(req, res) {
             return count || 0;
           } catch (cmdErr) {
             console.warn('[venue-detail] Waitlist stats query failed (pv path):', cmdErr.message);
-            reportApiError(cmdErr, req);
+            captureError(cmdErr, { tags: { api: 'venue-detail', stage: 'pv-waitlist', venue_id: String(id) } });
             // Still return partial stats from the live games we already have
             return 0;
           }
@@ -599,7 +604,10 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       console.warn('Public venue API error:', error);
-      reportApiError(error, req);
+      captureError(error, {
+        tags: { api: 'venue-detail' },
+        extra: { venue_id: req.query?.id },
+      });
       return res.status(500).json({
         success: false,
         error: { code: 'SERVER_ERROR', message: 'Failed to fetch venue' }
@@ -607,7 +615,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

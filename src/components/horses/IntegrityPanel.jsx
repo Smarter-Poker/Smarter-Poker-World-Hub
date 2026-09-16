@@ -31,7 +31,6 @@ import {
   decideBody,
   flagsUrl,
   handsUrl,
-  handSearchCoverage,
   healthOf,
   healthUrl,
   listMeta,
@@ -660,7 +659,6 @@ export default function IntegrityPanel({
   const timingRows = timingRowsOf(timing.data);
   const timingCoverage = first(payloadOf(timing.data), 'coverage') || {};
   const handRows = rowsOf(hands.data, 'hands');
-  const handCoverage = handSearchCoverage(hands.data, handRows.length, handBack.length);
   const liveHealth = healthOf(health.data);
 
   return (
@@ -1170,23 +1168,10 @@ export default function IntegrityPanel({
               <strong>No Hand Search Has Run. </strong>Enter A Player ID To Begin.
             </div>
           )}
-          {handFilters && renderListState(hands, handRows, handCoverage)}
+          {handFilters && renderListState(hands, handRows, { title: 'No Hands Match That Search', detail: 'The Hand-History Source Was Read And Returned No Matching Records.' })}
           {handRows.map((row, index) => <SimpleRecordCard key={String(first(row, 'id', 'hand_id', 'handId') || index)} row={row} kind="hands" />)}
-          {handFilters && hands.loaded && !hands.error && handCoverage.showPager && (
-            <div className={styles.pager}>
-              <button type="button" className={styles.pagerBtn} disabled={hands.loading || handBack.length === 0}
-                onClick={() => {
-                  setHandCursor(handBack[handBack.length - 1] || '');
-                  setHandBack((entries) => entries.slice(0, -1));
-                }}>Previous</button>
-              <span className={styles.pagerInfo}>{handCoverage.label}</span>
-              <button type="button" className={styles.pagerBtn} disabled={hands.loading || !handCoverage.nextCursor}
-                onClick={() => {
-                  if (!handCoverage.nextCursor) return;
-                  setHandBack((entries) => [...entries, handCursor]);
-                  setHandCursor(handCoverage.nextCursor);
-                }}>Next</button>
-            </div>
+          {handRows.length > 0 && (
+            <CursorPager resource={hands} cursor={handCursor} history={handBack} setCursor={setHandCursor} setHistory={setHandBack} noun="Hands" />
           )}
         </section>
       )}

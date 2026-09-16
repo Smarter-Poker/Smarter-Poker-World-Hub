@@ -21,7 +21,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, withTiming } from '../../../src/utils/trainingApiUtils';
 import { RFI, getHandFrequencies } from '../../../src/config/solverRanges';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export const RANGE_BUILDER_REFERENCE_PROVENANCE = Object.freeze({
     source: 'static_authored_preflop_reference',

@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'crypto';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       size: b64.length,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn(`[gen-lobby-bg] Error:`, err);
     return res.status(500).json({ error: err.message });
   }

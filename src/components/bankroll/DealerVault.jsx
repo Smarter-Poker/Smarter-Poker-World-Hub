@@ -21,14 +21,11 @@ import DocumentCropper from './DocumentCropper';
 
 // ── Constants ────────────────────────────────────────────────────
 
-// The four document categories. Each is a section of the vault, listed one
-// under another (mobile phase 11); the `icon` field these carried fed the tab
-// strip that is gone, and was an empty string in every row anyway.
 const TABS = [
-    { id: 'gaming_license', label: 'Gaming Licenses' },
-    { id: 'tax', label: 'Tax Documents' },
-    { id: 'employment', label: 'Employment' },
-    { id: 'paystub', label: 'Pay Stubs' },
+    { id: 'gaming_license', label: 'Gaming Licenses', icon: '' },
+    { id: 'tax', label: 'Tax Documents', icon: '' },
+    { id: 'employment', label: 'Employment', icon: '' },
+    { id: 'paystub', label: 'Pay Stubs', icon: '' },
 ];
 
 const TAX_SUB_TYPES = [
@@ -81,14 +78,7 @@ function expiryBadge(expiry_date) {
 // ── Main Component ───────────────────────────────────────────────
 
 function DealerVault({ userId, completedGigs = [] }) {
-    // ALWAYS-DISPLAYED (mobile phase 11). This was `activeTab`, and the four
-    // categories were a tab strip that unmounted three document lists at a
-    // time (docs/mobile-standard, rule 2). Every category now renders stacked
-    // under its own heading, and this state means only one thing: which
-    // category the document being uploaded belongs to. The upload form asks
-    // for it with a labelled select, so it is a choice the dealer can see
-    // rather than a side effect of the last tab they tapped.
-    const [uploadCategory, setUploadCategory] = useState('gaming_license');
+    const [activeTab, setActiveTab] = useState('gaming_license');
     const [docs, setDocs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
@@ -148,21 +138,20 @@ function DealerVault({ userId, completedGigs = [] }) {
     // go when the vault closes, not left running behind the rest of the app.
     useEffect(() => () => { releaseOcr(); }, []);
 
-    // One category's documents, filtered by the year picker where a year
-    // means something, and with gaming licences sorted by expiry (most
-    // urgent first) as they always were.
-    const docsForCategory = (category) => {
-        const mine = docs.filter(d => d.category === category);
-        const filtered = ['tax', 'paystub'].includes(category)
-            ? mine.filter(d => d.tax_year === selectedYear)
-            : mine;
-        if (category !== 'gaming_license') return filtered;
-        return [...filtered].sort((a, b) => {
+    // Filter docs for current tab
+    const tabDocs = docs.filter(d => d.category === activeTab);
+    const filteredDocs = ['tax', 'paystub'].includes(activeTab)
+        ? tabDocs.filter(d => d.tax_year === selectedYear)
+        : tabDocs;
+
+    // Sort gaming licenses by expiry (most urgent first)
+    const sortedDocs = activeTab === 'gaming_license'
+        ? [...filteredDocs].sort((a, b) => {
             if (!a.expiry_date) return 1;
             if (!b.expiry_date) return -1;
             return new Date(a.expiry_date) - new Date(b.expiry_date);
-        });
-    };
+        })
+        : filteredDocs;
 
     // ── 1099 Threshold Checker ──────────────────────────────────
     const thresholdAlerts = (() => {
@@ -322,7 +311,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                 }));
 
                 if (data.category && ['gaming_license', 'tax', 'employment', 'paystub'].includes(data.category)) {
-                    setUploadCategory(data.category);
+                    setActiveTab(data.category);
                 }
 
                 toast.success('Document data auto-extracted!');
@@ -344,7 +333,7 @@ function DealerVault({ userId, completedGigs = [] }) {
 
     const handleUpload = async () => {
         if (!pendingFile || !userId) return;
-        if (uploadCategory === 'gaming_license' && !uploadForm.state) {
+        if (activeTab === 'gaming_license' && !uploadForm.state) {
             toast.error('Please select a state');
             return;
         }
@@ -358,16 +347,16 @@ function DealerVault({ userId, completedGigs = [] }) {
 
             const insertPayload = {
                 user_id: userId,
-                category: uploadCategory,
+                category: activeTab,
                 file_url: fileUrl,
                 file_name: pendingFile.name,
                 label: uploadForm.label || pendingFile.name,
                 sub_type: uploadForm.sub_type || null,
-                tax_year: ['tax', 'paystub'].includes(uploadCategory) ? parseInt(uploadForm.tax_year, 10) : null,
+                tax_year: ['tax', 'paystub'].includes(activeTab) ? parseInt(uploadForm.tax_year, 10) : null,
                 issued_date: uploadForm.issued_date || null,
                 expiry_date: uploadForm.expiry_date || null,
-                state: uploadCategory === 'gaming_license' ? uploadForm.state : null,
-                license_number: uploadCategory === 'gaming_license' ? (uploadForm.license_number || null) : null,
+                state: activeTab === 'gaming_license' ? uploadForm.state : null,
+                license_number: activeTab === 'gaming_license' ? (uploadForm.license_number || null) : null,
                 amount: uploadForm.amount ? parseFloat(uploadForm.amount) : null,
                 notes: uploadForm.notes || null,
             };
@@ -417,10 +406,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                     <span style={s.headerIcon}></span>
                     <div>
                         <div style={s.headerTitle}>Dealer Vault</div>
-                        {/* ONE text node. Split across two, the page's Title
-                            Case pass capitalises each of them and the plural
-                            renders as "0 DocumentS Stored" (mobile phase 11). */}
-                        <div style={s.headerSub}>{`${docs.length} Document${docs.length !== 1 ? 's' : ''} Stored`}</div>
+                        <div style={s.headerSub}>{docs.length} document{docs.length !== 1 ? 's' : ''} Stored</div>
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -439,18 +425,31 @@ function DealerVault({ userId, completedGigs = [] }) {
                         </div>
                     )}
 
-                    {/* Year Filter: the one filter a dealer chooses, and it
-                        applies to the two year-keyed sections below. */}
-                    <div style={s.yearRow}>
-                        <span style={s.yearRowLabel}>Tax Year</span>
-                        {YEARS.map(y => (
+                    {/* Tab Bar */}
+                    <div style={s.tabBar}>
+                        {TABS.map(tab => (
                             <button
-                                key={y}
-                                style={{ ...s.yearBtn, ...(selectedYear === y ? s.yearBtnActive : {}) }}
-                                onClick={() => setSelectedYear(y)}
-                            >{y}</button>
+                                key={tab.id}
+                                style={{ ...s.tab, ...(activeTab === tab.id ? s.tabActive : {}) }}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                {tab.icon} {tab.label}
+                            </button>
                         ))}
                     </div>
+
+                    {/* Year Filter (tax + paystub only) */}
+                    {['tax', 'paystub'].includes(activeTab) && (
+                        <div style={s.yearRow}>
+                            {YEARS.map(y => (
+                                <button
+                                    key={y}
+                                    style={{ ...s.yearBtn, ...(selectedYear === y ? s.yearBtnActive : {}) }}
+                                    onClick={() => setSelectedYear(y)}
+                                >{y}</button>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Live Camera Scanner */}
                     {showLiveCamera && !pendingFile && (
@@ -464,12 +463,10 @@ function DealerVault({ userId, completedGigs = [] }) {
                     {!showUploadForm && !showLiveCamera && (
                         <div>
                             {/* Camera Scan Button */}
-                            <button
-                                type="button"
-                                aria-label="Tap To Scan Document"
+                            <div
                                 style={{
                                     display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                    width: '100%', padding: '24px 0', cursor: 'pointer', background: METAL.mid,
+                                    padding: '24px 0', cursor: 'pointer', background: METAL.mid,
                                     borderRadius: 12, border: `1px solid ${METAL.highlight}`, marginBottom: 16
                                 }}
                                 onClick={() => setShowLiveCamera(true)}
@@ -483,13 +480,11 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 </div>
                                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.05em' }}>TAP TO SCAN DOCUMENT</div>
                                 <div style={{ color: METAL.textSecondary, fontSize: 13, marginTop: 4 }}>Auto-Detects And Extracts Data</div>
-                            </button>
+                            </div>
 
                             <div style={{ textAlign: 'center', color: METAL.textSecondary, margin: '8px 0', fontSize: 14 }}>Or Choose A File From Device</div>
 
-                            <button
-                                type="button"
-                                aria-label="Drop A Document Here Or Tap To Upload"
+                            <div
                                 style={{ ...s.dropZone, ...(isDragging ? s.dropZoneActive : {}) }}
                                 onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                                 onDragLeave={() => setIsDragging(false)}
@@ -499,16 +494,14 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 <div style={s.dropIcon}></div>
                                 <div style={s.dropText}>Drop A Document Here Or Tap To Upload</div>
                                 <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
-                            </button>
-                            {/* Outside the button: a file input nested in a button
-                                is opened twice by the click that reaches both. */}
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*,application/pdf"
-                                style={{ display: 'none' }}
-                                onChange={e => handleFileSelect(e.target.files?.[0])}
-                            />
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    style={{ display: 'none' }}
+                                    onChange={e => handleFileSelect(e.target.files?.[0])}
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -525,24 +518,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                     </span>
                                 </div>
                             )}
-                            <div style={s.uploadFormTitle}>{pendingFile?.name}</div>
-
-                            {/* The category used to be whichever tab happened to be
-                                open. It is asked for here instead, so the dealer can
-                                see and change what the reader guessed. */}
-                            <div>
-                                <div style={s.fieldLabel}>Category</div>
-                                <select
-                                    style={s.select}
-                                    value={uploadCategory}
-                                    onChange={e => setUploadCategory(e.target.value)}
-                                    aria-label="Document Category"
-                                >
-                                    {TABS.map(t => (
-                                        <option key={t.id} value={t.id}>{t.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            <div style={s.uploadFormTitle}>📄 {pendingFile?.name}</div>
 
                             <input
                                 style={s.input}
@@ -551,9 +527,9 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 onChange={e => setUploadForm(f => ({ ...f, label: e.target.value }))}
                             />
 
-                            {uploadCategory === 'gaming_license' && (
+                            {activeTab === 'gaming_license' && (
                                 <>
-                                    <div style={s.row2} className="toke-row2">
+                                    <div style={s.row2}>
                                         <select
                                             style={s.select}
                                             value={uploadForm.state}
@@ -570,7 +546,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                             onChange={e => setUploadForm(f => ({ ...f, license_number: e.target.value }))}
                                         />
                                     </div>
-                                    <div style={s.row2} className="toke-row2">
+                                    <div style={s.row2}>
                                         <div>
                                             <div style={s.fieldLabel}>Issue Date</div>
                                             <input
@@ -593,9 +569,9 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 </>
                             )}
 
-                            {uploadCategory === 'tax' && (
+                            {activeTab === 'tax' && (
                                 <>
-                                    <div style={s.row2} className="toke-row2">
+                                    <div style={s.row2}>
                                         <select
                                             style={s.select}
                                             value={uploadForm.sub_type}
@@ -624,7 +600,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 </>
                             )}
 
-                            {uploadCategory === 'employment' && (
+                            {activeTab === 'employment' && (
                                 <select
                                     style={s.select}
                                     value={uploadForm.sub_type}
@@ -637,8 +613,8 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 </select>
                             )}
 
-                            {uploadCategory === 'paystub' && (
-                                <div style={s.row2} className="toke-row2">
+                            {activeTab === 'paystub' && (
+                                <div style={s.row2}>
                                     <input
                                         type="number"
                                         style={s.input}
@@ -663,7 +639,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                 onChange={e => setUploadForm(f => ({ ...f, notes: e.target.value }))}
                             />
 
-                            <div style={s.row2} className="toke-row2">
+                            <div style={s.row2}>
                                 <button
                                     style={{ ...s.btn, background: METAL.primary }}
                                     onClick={handleUpload}
@@ -682,48 +658,34 @@ function DealerVault({ userId, completedGigs = [] }) {
                         </div>
                     )}
 
-                    {/* Document List: every category, stacked, each under its
-                        own heading (mobile phase 11). Nothing is behind a tap. */}
+                    {/* Document List */}
                     {isLoading ? (
                         <div style={s.emptyState}>Loading Documents...</div>
-                    ) : TABS.map(section => {
-                        const sectionDocs = docsForCategory(section.id);
-                        const isYearKeyed = ['tax', 'paystub'].includes(section.id);
-                        return (
-                        <section key={section.id} style={s.docSection}>
-                            <h4 style={s.docSectionTitle}>
-                                {section.label}
-                                <span style={s.docSectionCount}>
-                                    {sectionDocs.length}{isYearKeyed ? ` In ${selectedYear}` : ''}
-                                </span>
-                            </h4>
-                            {sectionDocs.length === 0 ? (
-                        <div style={s.emptyState}>No {section.label} Uploaded Yet</div>
+                    ) : sortedDocs.length === 0 ? (
+                        <div style={s.emptyState}>No {TABS.find(t => t.id === activeTab)?.label} Uploaded Yet</div>
                     ) : (
                         <div style={s.docList}>
-                            {sectionDocs.map(doc => {
-                                const badge = section.id === 'gaming_license' ? expiryBadge(doc.expiry_date) : null;
+                            {sortedDocs.map(doc => {
+                                const badge = activeTab === 'gaming_license' ? expiryBadge(doc.expiry_date) : null;
                                 const isImage = doc.file_url && !doc.file_url.toLowerCase().endsWith('.pdf');
                                 return (
                                     <div key={doc.id} style={s.docCard}>
                                         {/* Thumbnail or PDF icon */}
-                                        <button
-                                            type="button"
+                                        <div
                                             style={s.docThumb}
                                             onClick={() => window.open(doc.file_url, '_blank')}
-                                            aria-label={`Open ${doc.label || doc.file_name}`}
                                         >
                                             {isImage
                                                 ? <img src={doc.file_url} alt={doc.label} style={s.thumbImg} />
-                                                : <span style={s.pdfIcon}>PDF</span>
+                                                : <div style={s.pdfIcon}>📄</div>
                                             }
-                                        </button>
+                                        </div>
 
                                         {/* Info */}
                                         <div style={s.docInfo}>
                                             <div style={s.docLabel}>{doc.label || doc.file_name}</div>
 
-                                            {section.id === 'gaming_license' && (
+                                            {activeTab === 'gaming_license' && (
                                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                                                     {doc.state && <span style={s.badge}>{doc.state}</span>}
                                                     {doc.license_number && <span style={{ ...s.badge, color: METAL.textSecondary }}># {doc.license_number}</span>}
@@ -735,7 +697,7 @@ function DealerVault({ userId, completedGigs = [] }) {
                                                 </div>
                                             )}
 
-                                            {section.id === 'tax' && (
+                                            {activeTab === 'tax' && (
                                                 <div style={s.docMeta}>
                                                     {doc.sub_type && <span style={s.badge}>{TAX_SUB_TYPES.find(t => t.value === doc.sub_type)?.label || doc.sub_type}</span>}
                                                     {doc.tax_year && <span style={{ ...s.badge, color: METAL.textSecondary }}>{doc.tax_year}</span>}
@@ -743,14 +705,14 @@ function DealerVault({ userId, completedGigs = [] }) {
                                                 </div>
                                             )}
 
-                                            {section.id === 'paystub' && (
+                                            {activeTab === 'paystub' && (
                                                 <div style={s.docMeta}>
                                                     {doc.tax_year && <span style={s.badge}>{doc.tax_year}</span>}
                                                     {doc.amount && <span style={{ ...s.badge, color: METAL.success }}>${parseFloat(doc.amount).toLocaleString()}</span>}
                                                 </div>
                                             )}
 
-                                            {section.id === 'employment' && doc.sub_type && (
+                                            {activeTab === 'employment' && doc.sub_type && (
                                                 <div style={s.docMeta}>
                                                     <span style={s.badge}>{EMPLOYMENT_SUB_TYPES.find(t => t.value === doc.sub_type)?.label || doc.sub_type}</span>
                                                 </div>
@@ -769,17 +731,13 @@ function DealerVault({ userId, completedGigs = [] }) {
                                             <button
                                                 style={s.deleteBtn}
                                                 onClick={() => handleDelete(doc)}
-                                                aria-label={`Delete ${doc.label || doc.file_name}`}
-                                            >Delete</button>
+                                            ></button>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                     )}
-                        </section>
-                        );
-                    })}
                 </div>
             )}
 
@@ -855,45 +813,40 @@ const s = {
         lineHeight: 1.5,
     },
 
-    // Category sections (mobile phase 11: these replaced a tab strip).
-    docSection: {
-        padding: '4px 0 0',
-    },
-    docSectionTitle: {
+    // Tabs
+    // Always-Displayed Mobile Standard: tabs wrap, they never scroll sideways.
+    tabBar: {
         display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        margin: '16px 16px 0',
-        fontSize: 14,
-        fontWeight: 700,
-        color: METAL.textPrimary,
-        letterSpacing: '0.04em',
-        textTransform: 'uppercase',
+        flexWrap: 'wrap',
+        gap: 0,
+        padding: '12px 16px 0',
+        borderBottom: `1px solid ${METAL.highlight}`,
     },
-    docSectionCount: {
-        fontSize: 12,
-        fontWeight: 600,
+    tab: {
+        flex: '0 0 auto',
+        minHeight: 44,
+        padding: '10px 14px',
+        background: 'none',
+        border: 'none',
+        borderBottom: '2px solid transparent',
         color: METAL.textSecondary,
-        background: METAL.darkest,
-        border: `1px solid ${METAL.highlight}`,
-        borderRadius: 999,
-        padding: '2px 10px',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        transition: 'all 0.15s',
+    },
+    tabActive: {
+        color: METAL.primary,
+        borderBottomColor: METAL.primary,
     },
 
     // Year filter
     yearRow: {
         display: 'flex',
         flexWrap: 'wrap',
-        alignItems: 'center',
         gap: 8,
         padding: '12px 16px',
-    },
-    yearRowLabel: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: METAL.textSecondary,
-        textTransform: 'uppercase',
-        letterSpacing: '0.06em',
     },
     yearBtn: {
         minHeight: 44,

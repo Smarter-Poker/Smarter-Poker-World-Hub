@@ -24,7 +24,7 @@
  *   21608 — trial account: recipient not on the verified-caller-ID list
  */
 
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const SID = (process.env.TWILIO_ACCOUNT_SID || '').trim();
 const TOKEN = (process.env.TWILIO_AUTH_TOKEN || '').trim();

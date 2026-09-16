@@ -14,7 +14,6 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import ResponsiveTable from '../../../src/components/ui/ResponsiveTable';
 // Single source of truth for the CST day boundary (Phase 73). This page used to
 // re-implement getTodayCST/getDateDaysAgo locally, via the
 // `new Date(now.toLocaleString(...))` round-trip that the shared lib explicitly
@@ -188,7 +187,7 @@ export default function TriviaLeaderboard() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box', background: '#18191a' }}>
+                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
                     <UniversalHeader pageDepth={2} />
 
                     <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -198,8 +197,7 @@ export default function TriviaLeaderboard() {
                                 background: 'rgba(35, 116, 225, 0.1)',
                                 border: '1px solid rgba(35, 116, 225, 0.3)',
                                 color: '#2374e1',
-                                padding: '10px 16px',
-                                minHeight: 44,
+                                padding: '8px 16px',
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 marginBottom: '20px'
@@ -221,7 +219,6 @@ export default function TriviaLeaderboard() {
                                         aria-pressed={period === p}
                                         style={{
                                             padding: '8px 16px',
-                                            minHeight: 44,
                                             background: period === p ? '#2374e1' : '#3a3b3c',
                                             border: period === p ? 'none' : '1px solid #4e4f50',
                                             color: '#e4e6eb',
@@ -247,7 +244,6 @@ export default function TriviaLeaderboard() {
                                     aria-pressed={modeFilter === m.id}
                                     style={{
                                         padding: '6px 14px',
-                                        minHeight: 44,
                                         background: modeFilter === m.id ? 'rgba(35, 116, 225, 0.25)' : 'transparent',
                                         border: `1px solid ${modeFilter === m.id ? '#2374e1' : '#4e4f50'}`,
                                         color: modeFilter === m.id ? '#e4e6eb' : '#65676b',
@@ -277,7 +273,7 @@ export default function TriviaLeaderboard() {
                                 <p style={{ color: '#f02849', fontSize: '16px', marginBottom: '16px' }}>{loadError}</p>
                                 <button
                                     onClick={() => setPeriod(period)}
-                                    style={{ background: '#2374e1', border: 'none', color: '#fff', padding: '10px 20px', minHeight: 44, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    style={{ background: '#2374e1', border: 'none', color: '#fff', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                                 >
                                     Retry
                                 </button>
@@ -295,26 +291,52 @@ export default function TriviaLeaderboard() {
                                 </p>
                             </div>
                         ) : (
-                            <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '4px 12px' }}>
-                                {/* MOBILE PHASE 7 (docs/mobile-standard): a real table on
-                                    desktop, one card per player under 768px. */}
-                                <ResponsiveTable
-                                    columns={[
-                                        { key: 'rank', label: 'Rank', render: (player) => <strong style={{ color: getRankColor(player.rank) }}>{getRankLabel(player.rank)}</strong> },
-                                        { key: 'displayName', label: 'Player', render: (player) => (
-                                            <span style={{ color: '#e4e6eb', fontWeight: player.user_id === currentUserId ? 700 : 400 }}>
-                                                {player.displayName}
-                                                {player.user_id === currentUserId && <span style={{ marginLeft: '8px', color: '#2374e1', fontSize: '12px' }}>(You)</span>}
-                                            </span>
-                                        ) },
-                                        ...(modeFilter === 'all' ? [{ key: 'mode', label: 'Mode', render: (player) => <span style={{ color: '#65676b', fontSize: '13px', textTransform: 'capitalize' }}>{player.mode || '-'}</span> }] : []),
-                                        { key: 'score', label: 'Score', align: 'right', render: (player) => <strong style={{ color: '#2374e1' }}>{(player.score || 0).toLocaleString()}</strong> },
-                                        { key: 'accuracy', label: 'Accuracy', align: 'right', render: (player) => <strong style={{ color: '#31a24c' }}>{player.accuracy}%</strong> },
-                                    ]}
-                                    rows={leaderboard.map((player) => ({ ...player, id: player.user_id || `rank-${player.rank}` }))}
-                                    keyField="id"
-                                    caption="Trivia leaderboard"
-                                />
+                            <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', overflow: 'hidden' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: '#3a3b3c' }}>
+                                            <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Rank</th>
+                                            <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Player</th>
+                                            {modeFilter === 'all' && (
+                                                <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Mode</th>
+                                            )}
+                                            <th style={{ padding: '16px', textAlign: 'right', color: '#65676b', fontWeight: '600' }}>Score</th>
+                                            <th style={{ padding: '16px', textAlign: 'right', color: '#65676b', fontWeight: '600' }}>Accuracy</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {leaderboard.map(player => (
+                                            <tr
+                                                key={player.user_id || player.rank}
+                                                style={{
+                                                    borderTop: '1px solid #4e4f50',
+                                                    background: player.user_id === currentUserId ? 'rgba(35, 116, 225, 0.1)' : 'transparent'
+                                                }}
+                                            >
+                                                <td style={{ padding: '16px', color: getRankColor(player.rank), fontWeight: 'bold' }}>
+                                                    {getRankLabel(player.rank)}
+                                                </td>
+                                                <td style={{ padding: '16px', color: '#e4e6eb' }}>
+                                                    {player.displayName}
+                                                    {player.user_id === currentUserId && (
+                                                        <span style={{ marginLeft: '8px', color: '#2374e1', fontSize: '12px' }}>(You)</span>
+                                                    )}
+                                                </td>
+                                                {modeFilter === 'all' && (
+                                                    <td style={{ padding: '16px', color: '#65676b', fontSize: '13px', textTransform: 'capitalize' }}>
+                                                        {player.mode || '-'}
+                                                    </td>
+                                                )}
+                                                <td style={{ padding: '16px', color: '#2374e1', textAlign: 'right', fontWeight: 'bold' }}>
+                                                    {(player.score || 0).toLocaleString()}
+                                                </td>
+                                                <td style={{ padding: '16px', color: '#31a24c', textAlign: 'right', fontWeight: 'bold' }}>
+                                                    {player.accuracy}%
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>

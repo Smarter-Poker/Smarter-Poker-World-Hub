@@ -320,7 +320,7 @@ export default function LeaderboardDisplay({
                     align-items: center;
                     gap: 2px;
                     min-width: 30px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 700;
                     color: #65676b;
                 }
@@ -331,7 +331,7 @@ export default function LeaderboardDisplay({
                 .movement[data-dir="new"] { color: #fbbf24; }
 
                 .movement-new {
-                    font-size: 12px;
+                    font-size: 9px;
                     letter-spacing: 0.5px;
                 }
 
@@ -368,7 +368,7 @@ export default function LeaderboardDisplay({
                 }
 
                 .you-badge {
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 700;
                     color: #2374e1;
                     background: rgba(35, 116, 225, 0.2);

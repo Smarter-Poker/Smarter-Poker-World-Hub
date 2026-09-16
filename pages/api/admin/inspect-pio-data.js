@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

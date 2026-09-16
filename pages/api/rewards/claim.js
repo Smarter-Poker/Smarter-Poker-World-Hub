@@ -41,7 +41,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { createEggContext, verifyEgg } from '../../../src/lib/rewards/eggVerifiers';
 import {

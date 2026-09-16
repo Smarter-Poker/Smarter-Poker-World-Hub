@@ -65,70 +65,6 @@ except ImportError:
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 BASE_URL     = 'https://smarter.poker'
-# The file that WINS on the Open Claw host, and the one that only looks like it
-# does. openclaw.service carries `EnvironmentFile=-/etc/openclaw.env`, so that
-# file becomes os.environ and _load_cron_secret returns from it on the first
-# line. /opt/openclaw/.env is the DEPLOY SEED: deploy-openclaw.yml copies keys
-# out of it into /etc/openclaw.env and then never overwrites them again. So
-# once the two disagree, /opt/openclaw/.env is inert - editing it changes
-# nothing, and a restart "to pick up the fix" changes nothing either.
-#
-# That is not hypothetical. 2026-09-05 03:20:56 UTC the hub's CRON_SECRET was
-# replaced in Vercel; 03:25 every one of the ~89 routed jobs began 401ing and
-# stayed dead for 3.5 hours. The repair found THREE different 64-char values
-# live at once - production's, /etc/openclaw.env's, and /opt/openclaw/.env's -
-# wrote the correct one into /opt/openclaw/.env, restarted, and watched the
-# box keep 401ing, because the file it had just fixed is the shadowed one.
-# Nothing said so. These two constants and the check below exist to say so.
-# Overridable so the check is testable off-box; the defaults are the real paths.
-ETC_ENV_FILE = Path(os.environ.get('OPENCLAW_ETC_ENV', '/etc/openclaw.env'))    # authoritative at runtime
-SEED_ENV_FILE = Path(os.environ.get('OPENCLAW_SEED_ENV', '/opt/openclaw/.env')) # deploy seed only - shadowed
-
-# Startup findings, drained by main() once logging is configured (this block
-# runs before logging.basicConfig, so it cannot log for itself).
-_SECRET_SHADOW_FINDINGS = []
-
-
-def _fingerprint(value):
-    """A stable, non-reversible 12 hex chars. Never log or page a secret."""
-    if not value:
-        return 'empty'
-    return hashlib.sha1(value.encode('utf-8')).hexdigest()[:12]
-
-
-def _read_env_file_key(path, key):
-    """First `KEY=value` in a dotenv-style file, quotes stripped. '' if absent."""
-    try:
-        if not path.exists():
-            return ''
-        for line in path.read_text().splitlines():
-            line = line.strip()
-            if line.startswith(f'{key}='):
-                return line.split('=', 1)[1].strip().strip('"').strip("'")
-    except Exception:
-        # A secret loader must never be the reason the dispatcher will not boot.
-        return ''
-    return ''
-
-
-def _check_shadowed_secret(key, effective):
-    """Record it when the inert seed file disagrees with what is actually in use.
-
-    Silent precedence is the whole trap: both files parse, both look correct in
-    isolation, and only one is read. Naming the winner turns a multi-hour
-    outage into one edit.
-    """
-    seed = _read_env_file_key(SEED_ENV_FILE, key)
-    if not seed or not effective or seed == effective:
-        return
-    _SECRET_SHADOW_FINDINGS.append(
-        f'{key} DISAGREES between {ETC_ENV_FILE} (in use, sha={_fingerprint(effective)}) '
-        f'and {SEED_ENV_FILE} (SHADOWED, sha={_fingerprint(seed)}). '
-        f'{ETC_ENV_FILE} is what openclaw.service loads and is the only one that '
-        f'changes behaviour; editing {SEED_ENV_FILE} and restarting does nothing.'
-    )
-
-
 def _load_cron_secret():
     """Load CRON_SECRET from env or .env.local — never hardcode secrets."""
     secret = os.environ.get('CRON_SECRET')
@@ -142,7 +78,6 @@ def _load_cron_secret():
     return ''
 
 CRON_SECRET  = _load_cron_secret()
-_check_shadowed_secret('CRON_SECRET', CRON_SECRET)
 
 # The workers VM authenticates against ITS OWN copy of CRON_SECRET, held in
 # /opt/workers/.env inside the container's compose env. It is a SEPARATE
@@ -168,7 +103,6 @@ _check_shadowed_secret('CRON_SECRET', CRON_SECRET)
 # and never overwrites), and falls back to CRON_SECRET when unset so a box
 # where the two genuinely agree needs no configuration at all.
 WORKERS_CRON_SECRET = os.environ.get('WORKERS_CRON_SECRET', '').strip() or CRON_SECRET
-_check_shadowed_secret('WORKERS_CRON_SECRET', os.environ.get('WORKERS_CRON_SECRET', '').strip())
 
 LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
@@ -232,8 +166,6 @@ _workers_health_state = {'consec_fail': 0, 'alert_sent': False}
 
 # Same shape as above, for the auth-drift watchdog (added 2026-08-17).
 _auth_drift_state = {'consec_fail': 0, 'alert_sent': False}
-# Same shape, for the shadowed-secret-file check (added 2026-09-05).
-_secret_shadow_state = {'consec_fail': 0, 'alert_sent': False}
 
 # Public Poker Near Me directory monitor. This deliberately observes the same
 # API and published snapshot a visitor receives; it never refreshes or mutates
@@ -489,7 +421,7 @@ def _alert(state, body, recovery=False):
 # Composition (35 jobs total):
 #   Original overflow set (13): auto-settlement stack, license-reminders,
 #     scraper-watchdog, venue-game-alerts, scraper-data-cleanup,
-#     venue-review-prompts, tour-schedule-scraper,
+#     clawbot/orchestrator, venue-review-prompts, tour-schedule-scraper,
 #     scrape-charity-schedules, deploy-error-poll + 4 video-library-* SCRIPT_JOBS.
 #   Restored orphan (1): hard-stop.
 #   Wave 1 additions (18): scrapers, content generation, cleanup jobs that
@@ -535,7 +467,7 @@ ALL_CRONS = [
     # first live run 401'd on a drifted copy. Commander runs both legs
     # (structural + signed-in with its PROBE_LOGIN_* credentials), records the
     # run in cron_execution_log as /commander/internal/login-bridge-probe, and
-    # records login-bridge failures through existing local diagnostics. The
+    # sends commander.probe.login_bridge_failed to Sentry on any failure. The
     # relay returns Commander's status verbatim; two non-200s in a row page
     # (CRITICAL_JOBS).
     ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours
@@ -578,6 +510,7 @@ ALL_CRONS = [
     # Personal Assistant lifecycle retention. The normal assistant route is
     # outside pages/api/cron because that directory has a strict CI file cap.
     ('/api/assistant/retention-maintenance', dict(hour=3, minute=17)),
+    ('/api/clawbot/orchestrator',           dict(hour=7, minute=0)),
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
@@ -1118,6 +1051,10 @@ WORKERS_PREFERRED = {
     # workflows replace them, will be deleted in 2B.3), tour-schedule-scraper
     # + horse-batch/0..9 + horses-stories + horses-social-* (DEFERRED
     # to dedicated AG dispatch sessions per 2b2-wrap-38-of-44.md).
+    #
+    # Path remap notes:
+    #   /api/clawbot/orchestrator → /cron/clawbot-orchestrator (workers
+    #     uses hyphen instead of slash; value-side mapping handles it)
     '/api/cron/collusion-scan':                '/cron/collusion-scan',
     '/api/cron/chip-supply-snapshot':          '/cron/chip-supply-snapshot',
     # '/api/cron/solver-watchdog' — retired 2026-08-27, see the schedule block above.
@@ -1143,6 +1080,7 @@ WORKERS_PREFERRED = {
     # '/api/cron/vip-stipend' is deliberately NOT in this table: it must run on
     # Vercel, where the monolith handler and its vip_subscriptions control live.
     '/api/cron/vip-status-check':              '/cron/vip-status-check',
+    '/api/clawbot/orchestrator':               '/cron/clawbot-orchestrator',
     # ─── 2B.2(h) — late add: scrape-sports-clips ───────────────────────────
     # Re-probed after fixing 30s timeout in the test harness — workers
     # responds 200 in ~40s with same payload shape as monolith
@@ -1234,7 +1172,7 @@ def _workers_dispatch(path: str) -> bool:
 # A job on this list is one whose FAILURE is the incident, not a symptom of
 # one. The Club Commander login-bridge probe is the first: when it fails,
 # nobody can sign in to Commander, and until today that produced a ⚠️ line in
-# this journal, a GitHub issue, and a retired error provider event that the exhausted org
+# this journal, a GitHub issue, and a Sentry event that the exhausted org
 # quota drops on the floor. None of those reach a phone. The workers
 # healthcheck has paged on two consecutive failures since Phase 2A; this gives
 # the same treatment to any job named here, through the same _alert() path
@@ -1657,17 +1595,11 @@ def _auth_drift_watchdog_job():
     # Two strikes before paging. A single failure can be a transient network
     # blip, and a false alert at 3am trains people to ignore the real one.
     if state['consec_fail'] >= 2 and not state['alert_sent']:
-        # Name the file. The 2026-09-05 repair lost a restart cycle writing the
-        # right secret into /opt/openclaw/.env - the obvious file, and the inert
-        # one - because this text said only "did not reach this host".
         state['alert_sent'] = _alert(
             state,
             'SMARTER.POKER SECRET DRIFT - ' + '; '.join(failures) +
             '. A rotation likely did not reach this host; cron jobs and/or '
-            f'workers are silently 401ing. FIX IN {ETC_ENV_FILE} (that is the '
-            f'EnvironmentFile openclaw.service reads), then '
-            f'`systemctl restart openclaw`. Editing {SEED_ENV_FILE} does '
-            'NOTHING - it is only the deploy seed.'
+            'workers are silently 401ing.'
         )
     _alert_flush(state)
 
@@ -1890,7 +1822,6 @@ def _heartbeat_job():
 _alert_state_load()
 _alert_bind('workers-health', _workers_health_state)
 _alert_bind('auth-drift', _auth_drift_state)
-_alert_bind('secret-shadow', _secret_shadow_state)
 _alert_bind('pnm-directory-health', _pnm_directory_health_state)
 
 
@@ -2063,29 +1994,6 @@ def main():
             log.info(f'Skipping {len(SCRIPT_JOBS)} SCRIPT_JOBS on secondary (SCRAPER_PY is Mac-only)')
     log.info(f'Managing {len(ALL_CRONS)} cron jobs')
     log.info('=' * 60)
-
-    # Two files, one winner, no announcement - until now. A disagreement here
-    # is not yet an outage (the value in use may still be the correct one), but
-    # it guarantees the NEXT repair edits the wrong file, so it pages on sight.
-    for finding in _SECRET_SHADOW_FINDINGS:
-        log.error(f'[secret-shadow] {finding}')
-    if _SECRET_SHADOW_FINDINGS:
-        _secret_shadow_state['consec_fail'] += 1
-        if not _secret_shadow_state['alert_sent']:
-            _secret_shadow_state['alert_sent'] = _alert(
-                _secret_shadow_state,
-                'SMARTER.POKER SHADOWED SECRET - ' + ' | '.join(_SECRET_SHADOW_FINDINGS)
-            )
-        _alert_flush(_secret_shadow_state)
-    else:
-        if _secret_shadow_state['alert_sent']:
-            _alert(_secret_shadow_state,
-                   'smarter.poker shadowed secret RESOLVED - '
-                   f'{ETC_ENV_FILE} and {SEED_ENV_FILE} agree again',
-                   recovery=True)
-        _secret_shadow_state['consec_fail'] = 0
-        _secret_shadow_state['alert_sent'] = False
-        _alert_flush(_secret_shadow_state)
 
     scheduler = BlockingScheduler(timezone='UTC')
 

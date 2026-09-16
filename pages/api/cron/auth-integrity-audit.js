@@ -25,6 +25,13 @@ import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
+let Sentry;
+try {
+    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+    Sentry = require('@sentry/nextjs');
+} catch (_) {
+    Sentry = { captureMessage: () => null, withScope: (cb) => cb({ setTag: () => null, setLevel: () => null }) };
+}
 
 let _admin = null;
 function getAdmin() {
@@ -83,6 +90,17 @@ async function handler(req, res) {
 
         // Alert on real orphans
         if (realCount > 0) {
+            try {
+                Sentry.withScope((scope) => {
+                    scope.setTag('auth.flow', 'integrity_audit');
+                    scope.setLevel(realCount > 5 ? 'error' : 'warning');
+                    Sentry.captureMessage(
+                        `Auth integrity: ${realCount} REAL orphan(s) detected`
+                        + ` (no_profile=${realOrphans.no_profile}, no_wallet=${realOrphans.no_wallet}, no_diamonds=${realOrphans.no_diamonds})`
+                        + (shouldHeal ? ` - healed: ${JSON.stringify(healResult)}` : ' - pass ?heal=1 to fix'),
+                    );
+                });
+            } catch (_) { /* ignore */ }
 
             if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {
                 try {

@@ -73,11 +73,7 @@ test('Social and Poker Near Me preserve their approved material identities', () 
   assert.match(pokerNearMe, /focus: '#78D8FF'/);
   assert.match(pokerNearMe, /canvas: '#090F15'/);
   assert.match(pokerNearMe, /canvasRaised: '#0A1118'/);
-  assert.match(drawer, /const isPokerNearMeMenu = activeWorld\?\.id === 'poker-near-me'/);
-  assert.match(drawer, /data-pnm-console=\{isPokerNearMeMenu \? 'painted-command-drawer-v1' : undefined\}/);
-  assert.match(read('pages/_app.js'), /import ['"]\.\.\/src\/styles\/worlds\/poker-near-me-console-menu\.css['"]/);
-  const paintedMenu = read('src/styles/worlds/poker-near-me-console-menu.css');
-  assert.match(paintedMenu, /body\.world-poker-near-me \.sp-drawer\[data-pnm-console='painted-command-drawer-v1'\] \.sp-grid-tile::after\s*\{\s*content: none !important;\s*\}/);
+  assert.match(drawer, /data-world-command-menu='poker-near-me'[\s\S]*?\.sp-grid-tile::after[\s\S]*?content: none/);
 });
 
 test('the drawer, fallback trigger, and recovery surface consume one token set', () => {

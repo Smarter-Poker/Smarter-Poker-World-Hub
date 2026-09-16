@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   YouTubeErrorOverlay,
   reportFailureToServer,
+  reportToSentry,
 } from '../../hooks/useYouTubeErrorManager';
 import { supabase } from '../../lib/supabase';
 import { useSupabase } from '../../providers/SupabaseProvider';
@@ -807,11 +808,12 @@ function ReelViewer({ reels, startIndex, onClose }) {
         }
         if (data?.event === 'onError') {
           setYtError({ code: data.info });
-          // Report to server (best-effort) — read index via stable ref
+          // Report to server + Sentry (best-effort) — read index via stable ref
           try {
             const vid = getYouTubeVideoId(reelsRef.current[currentIndexRef.current]?.video_url);
             if (vid) {
               reportFailureToServer(vid, data.info, 'ReelsFeedCarousel');
+              reportToSentry(vid, data.info, 'ReelsFeedCarousel');
             }
           } catch {
             /* best-effort */

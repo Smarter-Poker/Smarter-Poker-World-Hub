@@ -40,7 +40,7 @@ function isBlockedUrl(urlStr) {
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // Wrap fetch with an AbortController so a hanging upstream (Cloudflare,
 // slow CDN, dead origin) can't pin the function until Vercel's 504.
@@ -366,7 +366,7 @@ function extractFallbackMetadata(url, req) {
             siteName: domain,
         };
     } catch (e) {
-        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         return {
             url,
             title: 'Link',

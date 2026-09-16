@@ -5,7 +5,7 @@
  *   Runs all security checks and returns results
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -107,6 +107,13 @@ export default async function handler(req, res) {
       // ==========================================
       // 3. External Service Configurations
       // ==========================================
+
+      // Sentry
+      addCheck(
+          'Sentry error monitoring',
+          process.env.NEXT_PUBLIC_SENTRY_DSN ? 'pass' : 'warn',
+          process.env.NEXT_PUBLIC_SENTRY_DSN ? 'Sentry DSN configured' : 'Sentry not configured - errors won\'t be tracked'
+      );
 
       // Web Push (VAPID)
       addCheck(
@@ -237,6 +244,7 @@ export default async function handler(req, res) {
               checks,
               recommendations: [
                   ...(failed > 0 ? ['Fix all FAILED checks immediately'] : []),
+                  ...(!process.env.NEXT_PUBLIC_SENTRY_DSN ? ['Set up Sentry for error tracking (free tier available)'] : []),
                   ...(!process.env.VAPID_PUBLIC_KEY ? ['Set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY to enable push'] : []),
                   ...(!process.env.ADMIN_API_TOKEN ? ['Set ADMIN_API_TOKEN to protect admin endpoints'] : []),
                   'Add Content-Security-Policy header',
@@ -248,7 +256,7 @@ export default async function handler(req, res) {
       });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

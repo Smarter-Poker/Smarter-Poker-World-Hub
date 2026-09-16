@@ -23,8 +23,6 @@
  */
 
 import { enqueuePush } from './push/push-enqueue';
-import { isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON } from './push/operational-push-routing.mjs';
-import { ALERT_TASK_ID } from './operationalAlerts.mjs';
 
 // Lazy so importing notify.js from a non-API context can't explode on the
 // pages/api module graph. These modules only hold in-memory Maps + handlers.
@@ -82,9 +80,6 @@ export async function notify(supabase, args = {}) {
     const body = args.body ? String(args.body).slice(0, BODY_MAX) : null;
     const url = args.url || null;
     const wantsPush = args.withPush !== false;
-    const operational = isOwnerOperationalNotification(args.userId, {
-        type: args.type, title, data: args.data,
-    });
 
     // Stamp how push was handled for this row. The DB trigger
     // fn_mirror_notification_to_push_outbox mirrors every UNMARKED notification
@@ -126,52 +121,6 @@ export async function notify(supabase, args = {}) {
         }
     } catch (e) {
         console.warn('[notify] notifications insert threw:', e?.message || e);
-    }
-
-    // The DB destination outbox handles both in-app-only and pushed operational
-    // originals. Do not emit a second inline push after that transaction. Read
-    // its actual receipt: a notification INSERT alone is not queue acceptance.
-    if (operational) {
-        out.destination = 'operational_task';
-        out.operationalEventId = null;
-        if (typeof out.notificationId !== 'string'
-            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(out.notificationId)) {
-            out.ok = false;
-            console.warn('[notify] operational original was not acknowledged');
-            return out;
-        }
-        if (out.notificationId) {
-            try {
-                const { data: destination, error } = await supabase
-                    .from('operational_notification_destinations')
-                    .select('notification_id,target_task_id,inbox_event_id')
-                    .eq('notification_id', out.notificationId)
-                    .eq('target_task_id', ALERT_TASK_ID)
-                    .abortSignal(AbortSignal.timeout(9000))
-                    .maybeSingle();
-                if (error || destination?.notification_id !== out.notificationId
-                    || destination.target_task_id !== ALERT_TASK_ID
-                    || (destination.inbox_event_id !== null
-                        && (!Number.isSafeInteger(destination.inbox_event_id) || destination.inbox_event_id <= 0))) {
-                    throw new Error('Operational destination was not acknowledged');
-                }
-                out.operationalEventId = destination.inbox_event_id || null;
-                if (out.operationalEventId === null) {
-                    const retry = await retryOwnerNotificationDestination(supabase, out.notificationId);
-                    out.operationalEventId = retry.eventId;
-                    if (retry.error) console.warn('[notify] operational original remains pending:', retry.error);
-                }
-                // A stored pending original is not a completed route to the
-                // investigation queue. Retain it but tell the caller the truth.
-                if (out.operationalEventId === null) out.ok = false;
-                if (wantsPush) out.push = { sent: false, skipped: true,
-                    reason: out.operationalEventId ? ROUTED_REASON : 'operational_inbox_pending' };
-            } catch (error) {
-                out.ok = false;
-                console.warn('[notify] operational destination confirmation failed:', error?.message || error);
-            }
-        }
-        return out;
     }
 
     // -- Branch B: web push ---------------------------------------------------

@@ -5,7 +5,6 @@ import io
 import json
 import os
 import sys
-import types
 import unittest
 from datetime import date
 from pathlib import Path
@@ -480,68 +479,6 @@ class PokerSeriesDiscoveryTests(unittest.TestCase):
         self.assertIn("flushing confirmed work before exit", source)
         self.assertIn("suppressed series pending manual source repair", source)
         self.assertIn("sys.exit(1)", source)
-
-    def test_factory_recycle_publishes_the_live_session_before_a_stale_fetch(self):
-        live = []
-
-        class Session:
-            def __init__(self, **_kwargs):
-                self.closed = False
-                self.urls = []
-
-            def start(self):
-                if live:
-                    raise RuntimeError("cannot start sync Playwright inside a running event loop")
-                live.append(self)
-
-            def close(self):
-                self.closed = True
-                if self in live:
-                    live.remove(self)
-
-            def fetch(self, url, **_kwargs):
-                if self.closed:
-                    raise RuntimeError("Context manager has been closed")
-                self.urls.append(url)
-                return types.SimpleNamespace(status=200, body=b"verified schedule")
-
-        module = types.ModuleType("scrapling.fetchers")
-        module.StealthySession = Session
-        with mock.patch.dict(sys.modules, {"scrapling.fetchers": module}), \
-                mock.patch.object(scraper, "network_ok", return_value=True), \
-                mock.patch.object(scraper, "_browser_heal", None), \
-                mock.patch.object(scraper.time, "sleep"):
-            old = scraper.create_session()
-            scraper.CURRENT_SESSION = old
-            try:
-                # The drift/six-hour callers do not explicitly publish a new
-                # handle. Exercise the real factory and fetch handoff twice.
-                for url in ["https://example.test/drift", "https://example.test/six-hour"]:
-                    old.close()
-                    replacement = scraper.create_session()
-                    result = scraper.fetch_with_retry(old, url, retries=2)
-                    self.assertEqual(200, result[1])
-                    self.assertIs(scraper.CURRENT_SESSION, replacement)
-                    self.assertEqual([url], replacement.urls)
-                    self.assertEqual([replacement], live)
-                    old = replacement
-            finally:
-                for session in list(live):
-                    session.close()
-
-    def test_factory_does_not_publish_a_session_that_failed_to_start(self):
-        previous = object()
-        scraper.CURRENT_SESSION = previous
-        session = mock.Mock()
-        session.start.side_effect = RuntimeError("browser launch refused")
-        module = types.ModuleType("scrapling.fetchers")
-        module.StealthySession = mock.Mock(return_value=session)
-        with mock.patch.dict(sys.modules, {"scrapling.fetchers": module}), \
-                mock.patch.object(scraper, "network_ok", return_value=True), \
-                mock.patch.object(scraper, "_browser_heal", None):
-            with self.assertRaisesRegex(RuntimeError, "browser launch refused"):
-                scraper.create_session()
-        self.assertIs(scraper.CURRENT_SESSION, previous)
 
     def test_daemon_integrity_errors_use_bounded_backoff_without_exit(self):
         errors = {key: 0 for key in scraper.RUN_ERRORS}

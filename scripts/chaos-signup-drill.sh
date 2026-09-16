@@ -90,27 +90,6 @@ restore_file() {
     fi
 }
 
-# One command for the clean baseline and every injected fault. VM modules
-# are required by the runtime guards on the supported Node 20 runner.
-run_signup_tests() {
-    # Missing files are omitted here so the meta-guard can report intentional
-    # test deletion as an assertion failure, rather than a CLI startup error.
-    # shellcheck disable=SC2046
-    node --experimental-vm-modules --test --test-reporter=tap $(ls \
-        __tests__/_test-guards-exist.test.mjs \
-        __tests__/auth-routes-exist.test.mjs \
-        __tests__/signup-hardening.test.mjs \
-        __tests__/build-2-deliverables.test.mjs \
-        __tests__/retired-error-provider.test.mjs \
-        __tests__/phase-3-deliverables.test.mjs \
-        __tests__/phase-4-deliverables.test.mjs 2>/dev/null)
-}
-
-# TAP gives the same bounded numeric summary on every supported Node version.
-test_summary_count() {
-    awk -v label="$1" '$1 == "#" && $2 == label && $3 ~ /^[0-9]+$/ { count=$3 } END { print count }' "$2"
-}
-
 # run_drill — applies breakage, runs tests, parses fail count, restores
 run_drill() {
     DRILL_NUM=$((DRILL_NUM + 1))
@@ -129,16 +108,25 @@ run_drill() {
     # Apply
     eval "$apply_fn"
 
-    # Use exactly the command that qualified the clean baseline.
+    # Run ALL signup-related tests (glob, so new ones are picked up
+    # automatically). The meta-guard _test-guards-exist.test.mjs is
+    # included to catch deletion of any other test file.
     local out="$BACKUPS/drill-$DRILL_NUM-out.txt"
-    local test_status=0
-    run_signup_tests > "$out" 2>&1 || test_status=$?
+    # shellcheck disable=SC2046
+    node --test $(ls __tests__/_test-guards-exist.test.mjs \
+                     __tests__/auth-routes-exist.test.mjs \
+                     __tests__/signup-hardening.test.mjs \
+                     __tests__/build-2-deliverables.test.mjs \
+                     __tests__/sentry-coverage.test.mjs \
+                     __tests__/phase-3-deliverables.test.mjs \
+                     __tests__/phase-4-deliverables.test.mjs 2>/dev/null) \
+        > "$out" 2>&1 || true
 
     local fail_count
-    fail_count=$(test_summary_count fail "$out")
+    fail_count=$(grep -E '(#|ℹ)\s*fail' "$out" | head -1 | awk '{print $3}')
     fail_count=${fail_count:-0}
 
-    if [ "$test_status" -ne 0 ] && [ "$fail_count" -gt 0 ]; then
+    if [ "$fail_count" -gt 0 ]; then
         echo -e "  ${GREEN}✓${NC} DETECTED — $fail_count test(s) failed"
         DRILL_PASS=$((DRILL_PASS + 1))
     else
@@ -157,21 +145,6 @@ echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  SIGNUP CHAOS DRILL — $(date '+%Y-%m-%d %H:%M')"
 echo "═══════════════════════════════════════════════════════════════"
-
-# A runtime/dependency failure on healthy source must never be credited as
-# detection of an injected fault. Refuse an empty or unparseable run as well.
-baseline_out="$BACKUPS/clean-baseline-out.txt"
-baseline_status=0
-run_signup_tests > "$baseline_out" 2>&1 || baseline_status=$?
-baseline_tests=$(test_summary_count tests "$baseline_out")
-baseline_failures=$(test_summary_count fail "$baseline_out")
-baseline_passes=$(test_summary_count pass "$baseline_out")
-if [ "$baseline_status" -ne 0 ] || [ "${baseline_tests:-0}" -eq 0 ] || [ "$baseline_failures" != "0" ] || [ "$baseline_passes" != "$baseline_tests" ]; then
-    echo "BASELINE FAILED — healthy signup guards must pass before fault injection."
-    cat "$baseline_out"
-    exit 1
-fi
-echo "Clean baseline: $baseline_tests tests passed."
 
 run_drill "callback.js deleted" \
     "pages/auth/callback.js" \

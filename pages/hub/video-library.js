@@ -14,13 +14,6 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import VideoLibraryCommandRail from '../../src/components/video-library/VideoLibraryCommandRail';
-import HubPageShell from '../../src/components/ui/HubPageShell';
-import PullToRefresh from '../../src/components/ui/PullToRefresh';
-import toast from '../../src/stores/toastStore';
-import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
-import { useHaptics } from '../../src/hooks/useHaptics';
-import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
-import { useModalHistory } from '../../src/hooks/useModalHistory';
 import { isVideoLibraryVideoAllowed } from '../../src/lib/videoLibraryAvailability';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -142,11 +135,24 @@ function parseDuration(durationStr) {
     return parts[0] || 0;
 }
 
-/* MOBILE PHASE 9 (docs/mobile-standard): the rail scroller is gone. It
-   scrolled a sideways strip so the chosen control came into view; every
-   control row wraps now, so the chosen control is on screen by construction.
-   Four cards at first on Continue Watching and New This Week, then Show More. */
-const INITIAL_RAIL_CARDS = 4;
+/** Keep a newly selected horizontal-rail control visible without moving the page. */
+function keepRailButtonInView(button) {
+    const rail = button?.parentElement;
+    if (!rail) return;
+
+    window.requestAnimationFrame(() => {
+        // A second frame lets responsive CSS settle after hydration/deep-link
+        // state changes before measuring the rail.
+        window.requestAnimationFrame(() => {
+            if (rail.scrollWidth <= rail.clientWidth) return;
+            const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            rail.scrollTo({
+                left: button.offsetLeft - ((rail.clientWidth - button.clientWidth) / 2),
+                behavior: reducedMotion ? 'auto' : 'smooth',
+            });
+        });
+    });
+}
 
 /** Copy text with a legacy fallback for browsers where Clipboard API is unavailable. */
 async function copyTextToClipboard(text) {
@@ -245,7 +251,6 @@ export default function VideoLibraryPage() {
     const [allVideos, setAllVideos] = useState(STATIC_CATALOG); // unfiltered master list
     const [catalogRefreshFailed, setCatalogRefreshFailed] = useState(false);
     const [catalogLoading, setCatalogLoading] = useState(true);
-    useLoadFailsafe(catalogLoading, setCatalogLoading);
     const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
     const [catalogTotal, setCatalogTotal] = useState(STATIC_CATALOG.length);
     const [catalogHasMore, setCatalogHasMore] = useState(false);
@@ -349,19 +354,8 @@ export default function VideoLibraryPage() {
     const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const searchInputRef = useRef(null);
-    // Phase 0a foundation (mobile phase 9). The catalog skeleton is capped at
-    // eight seconds; a pull at the top re-reads the catalog; card taps buzz;
-    // an offline refresh says so instead of spinning.
-    const haptic = useHaptics();
-    const online = useOnlineStatus();
-    const requireOnline = useCallback(() => {
-        if (online) return true;
-        toast.error(OFFLINE_TOAST);
-        return false;
-    }, [online]);
-    const [cwVisible, setCwVisible] = useState(INITIAL_RAIL_CARDS);
-    const [newWeekVisible, setNewWeekVisible] = useState(INITIAL_RAIL_CARDS);
-    const [sourcesExpanded, setSourcesExpanded] = useState(false);
+    const filterRailRef = useRef(null);
+    const sourceRailRef = useRef(null);
     const reelsDialogRef = useRef(null);
     const reelsTriggerRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
@@ -456,7 +450,7 @@ export default function VideoLibraryPage() {
         setSearchQuery('');
         setCatalogSearchQuery('');
         replaceNavigationQuery({ type: type === 'ALL' ? null : type, filter: null });
-        button?.focus?.();
+        keepRailButtonInView(button);
     };
 
     const selectPersonalView = (filter, button) => {
@@ -465,7 +459,7 @@ export default function VideoLibraryPage() {
         setSearchQuery('');
         setCatalogSearchQuery('');
         replaceNavigationQuery({ type: null, filter });
-        button?.focus?.();
+        keepRailButtonInView(button);
     };
 
     const selectSourceView = (source, button) => {
@@ -475,8 +469,21 @@ export default function VideoLibraryPage() {
             type: selectedType === 'ALL' ? null : selectedType,
             filter: libraryFilter === 'ALL' ? null : libraryFilter,
         });
-        button?.focus?.();
+        keepRailButtonInView(button);
     };
+
+    useEffect(() => {
+        const group = libraryFilter === 'ALL' ? 'type' : 'library';
+        const activeButton = filterRailRef.current?.querySelector(
+            `[data-filter-group="${group}"][aria-pressed="true"]`
+        );
+        if (activeButton) keepRailButtonInView(activeButton);
+    }, [selectedType, libraryFilter]);
+
+    useEffect(() => {
+        const activeSource = sourceRailRef.current?.querySelector('[aria-pressed="true"]');
+        if (activeSource) keepRailButtonInView(activeSource);
+    }, [selectedSource]);
 
     // Command-status notice for copy, save, favorite, and history feedback.
     const [shareToast, setShareToast] = useState(null); // { message, videoId, tone, kind }
@@ -984,13 +991,6 @@ export default function VideoLibraryPage() {
         void saveWatchSession(startTime, video);
     }, [saveWatchSession, restoreVideoTriggerFocus, router]);
     useEffect(() => { handleCloseVideoRef.current = handleCloseVideo; }, [handleCloseVideo]);
-    // Back closes the viewer, the Reels viewer and the playlist sheet before
-    // it leaves the page (mobile phase 0a).
-    useModalHistory(Boolean(selectedVideo), handleCloseVideo);
-    const closeReels = useCallback(() => setShowReelsModal(false), []);
-    useModalHistory(showReelsModal, closeReels);
-    const closePlaylistSheet = useCallback(() => { setShowPlaylistModal(null); setPlaylistActionError(null); }, []);
-    useModalHistory(Boolean(showPlaylistModal), closePlaylistSheet);
 
     // Share a video — copy deep-link to clipboard and show toast
     const handleShareVideo = useCallback(async (video) => {
@@ -1582,13 +1582,6 @@ export default function VideoLibraryPage() {
         ? Math.floor(watchProgress.get(selectedVideo.id)?.watchedSeconds || 0)
         : 0;
 
-    const refreshLibrary = useCallback(async () => {
-        if (!requireOnline()) return;
-        haptic('light');
-        setCatalogRefreshFailed(false);
-        await fetchCatalogPage({ append: false });
-    }, [requireOnline, haptic, fetchCatalogPage]);
-
     return (
         <PageTransition>
             
@@ -1598,42 +1591,36 @@ export default function VideoLibraryPage() {
                 canonical="/hub/video-library"
             />
 
-            {/* MOBILE PHASE 9 (docs/mobile-standard): HubPageShell owns the shell
-                (100dvh, overflow-x clip, no page-owned bottom pad: BottomNavSpacer
-                in _app.js clears the bottom bar). The world background and the
-                page padding stay on .video-library-page. */}
             <div className="video-library-page" style={{
-                width: '100%', maxWidth: '100vw', boxSizing: 'border-box',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: C.bg,
                 padding: '20px',
             }}>
-                <HubPageShell
-                    className="video-library"
-                    maxWidth={1600}
-                    header={(
-                        <div className="vl-header-area" style={{ maxWidth: 1400, margin: '0 auto', marginBottom: 24 }}>
-                            <div className="vl-global-header" style={{ marginBottom: 20 }}>
-                                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-                                <HamburgerMenu
-                                    isOpen={menuOpen}
-                                    onClose={() => setMenuOpen(false)}
-                                    direction="left"
-                                    theme="dark"
-                                    user={null}
-                                    showProfile={false}
-                                    menuItems={menuConfig.menuItems}
-                                    bottomLinks={menuConfig.bottomLinks}
-                                />
-                            </div>
-                        </div>
-                    )}
-                >
-                <PullToRefresh
-                    onRefresh={refreshLibrary}
-                    disabled={menuOpen || Boolean(selectedVideo) || showReelsModal || Boolean(showPlaylistModal)}
-                >
+                {/* Header */}
+                <div className="vl-header-area" style={{
+                    maxWidth: 1400,
+                    margin: '0 auto',
+                    marginBottom: 24,
+                }}>
+                    {/* Global Header - Full Width */}
+                    <div className="vl-global-header" style={{ marginBottom: 20 }}>
+                        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                        <HamburgerMenu
+                            isOpen={menuOpen}
+                            onClose={() => setMenuOpen(false)}
+                            direction="left"
+                            theme="dark"
+                            user={null}
+                            showProfile={false}
+                            menuItems={menuConfig.menuItems}
+                            bottomLinks={menuConfig.bottomLinks}
+                        />
+                    </div>
+                </div>
+
                 <div className="vl-command-layout">
                     <VideoLibraryCommandRail
+                        ref={filterRailRef}
                         selectedType={selectedType}
                         libraryFilter={libraryFilter}
                         sortMode={sortMode}
@@ -1645,13 +1632,13 @@ export default function VideoLibraryPage() {
                         onSort={(nextSortMode, button) => {
                             setSortMode(nextSortMode);
                             replaceNavigationQuery({ sort: nextSortMode === 'default' ? null : nextSortMode });
-                            button?.focus?.();
+                            keepRailButtonInView(button);
                         }}
                         onOpenReels={() => setShowReelsModal(true)}
                         reelsTriggerRef={reelsTriggerRef}
                     />
 
-                <section className="vl-command-main" data-tutorial="main">
+                <main className="vl-command-main">
                     <div className="vl-command-bar">
                         <div className="vl-command-heading">
                             <span>{currentViewMeta.kicker}</span>
@@ -1660,7 +1647,7 @@ export default function VideoLibraryPage() {
                         </div>
 
                         {/* Search Input */}
-                        <div className="vl-search-wrap" data-tutorial="search" style={{
+                        <div className="vl-search-wrap" style={{
                             position: 'relative',
                             width: 220,
                             marginLeft: 12,
@@ -1745,11 +1732,12 @@ export default function VideoLibraryPage() {
 
 
                     {/* Premium Creator Cards */}
-                    <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources" style={{
+                    <div ref={sourceRailRef} className="vl-source-pills" style={{
                         display: 'flex',
-                        flexWrap: 'wrap',
                         gap: 12,
+                        overflowX: 'auto',
                         padding: '8px 4px 12px',
+                        scrollbarWidth: 'none',
                     }}>
                         {[{ id: 'ALL', name: 'All Sources', logo: null }, ...SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL')].map(source => {
                             const isActive = selectedSource === source.id;
@@ -1870,15 +1858,6 @@ export default function VideoLibraryPage() {
                             );
                         })}
                     </div>
-                    {!sourcesExpanded && SOURCES.length > 10 && (
-                        <button
-                            type="button"
-                            className="vl-show-all-sources vl-show-more"
-                            onClick={() => { haptic('light'); setSourcesExpanded(true); }}
-                        >
-                            Show All {SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').length + 1} Sources
-                        </button>
-                    )}
 
                     {libraryFilter !== 'ALL' && (
                         <section className="vl-subview-banner" aria-labelledby="vl-subview-title">
@@ -1931,7 +1910,7 @@ export default function VideoLibraryPage() {
 
                 {/* Continue Watching / Recently Watched Section */}
                 {continueWatchingVideos.length > 0 && (
-                    <div className="vl-continue-watching" data-tutorial="continue" style={{
+                    <div className="vl-continue-watching" style={{
                         maxWidth: 1400,
                         margin: '0 auto 30px',
                     }}>
@@ -1951,13 +1930,14 @@ export default function VideoLibraryPage() {
                                 </button>
                             </div>
                         </div>
-                        <div className="vl-cw-grid" style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        <div className="vl-cw-scroll" style={{
+                            display: 'flex',
                             gap: 16,
+                            overflowX: 'auto',
                             paddingBottom: 8,
+                            scrollbarWidth: 'thin',
                         }}>
-                            {continueWatchingVideos.slice(0, cwVisible).map(({ item, video, progress }) => {
+                            {continueWatchingVideos.map(({ item, video, progress }) => {
                                 const roundedProgress = Math.round(progress);
                                 return (
                                     <div
@@ -1969,8 +1949,9 @@ export default function VideoLibraryPage() {
                                         aria-label={`Resume ${video.title}, ${roundedProgress}% complete`}
                                         className="metal-frame video-card-metal vl-continuity-card"
                                         style={{
-                                            minWidth: 0,
+                                            minWidth: 240,
                                             cursor: 'pointer',
+                                            flexShrink: 0,
                                         }}
                                     >
                                         <div style={{ position: 'relative', aspectRatio: '16/9' }}>
@@ -2035,7 +2016,7 @@ export default function VideoLibraryPage() {
                                             </div>
                                             <div style={{
                                                 color: C.textSec,
-                                                fontSize: 12,
+                                                fontSize: 11,
                                                 marginTop: 4,
                                             }}>
                                                 {roundedProgress}% Complete · {formatTime(item.watch_duration_seconds || 0)} Watched
@@ -2045,15 +2026,10 @@ export default function VideoLibraryPage() {
                                 );
                             })}
                         </div>
-                        {continueWatchingVideos.length > cwVisible && (
-                            <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setCwVisible(continueWatchingVideos.length); }}>
-                                Show All {continueWatchingVideos.length} Sessions
-                            </button>
-                        )}
                     </div>
                 )}
 
-                {/* New This Week: videos scraped in the last 7 days, a grid of four then Show More */}
+                {/* New This Week rail — videos scraped in last 7 days */}
                 {newThisWeek.length > 0 && !newThisWeekDismissed && (
                     <div className="vl-new-this-week" style={{ maxWidth: 1400, margin: '0 auto 28px' }}>
                         <div className="vl-new-week-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -2061,10 +2037,10 @@ export default function VideoLibraryPage() {
                                 <span style={{ color: '#00D4FF', fontSize: 14, background: 'rgba(0,212,255,0.2)', border: '1px solid rgba(0,212,255,0.4)', borderRadius: 6, padding: '2px 8px', fontWeight: 700, letterSpacing: '0.5px' }}>NEW</span>
                                 New This Week
                             </h2>
-                            <button type="button" onClick={() => setNewThisWeekDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', fontSize: 12, cursor: 'pointer', padding: '8px 10px', minHeight: 44 }}>Dismiss</button>
+                            <button onClick={() => setNewThisWeekDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', padding: 4 }}>Dismiss</button>
                         </div>
-                        <div className="vl-new-week-grid" data-tutorial="new" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, paddingBottom: 8 }}>
-                            {newThisWeek.slice(0, newWeekVisible).map(video => (
+                        <div className="vl-new-week-scroll" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+                            {newThisWeek.map(video => (
                                 <div
                                     key={video.videoId}
                                     className="vl-new-week-card"
@@ -2073,27 +2049,22 @@ export default function VideoLibraryPage() {
                                     role="button"
                                     tabIndex={0}
                                     aria-label={`Play ${video.title}`}
-                                    style={{ minWidth: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
+                                    style={{ minWidth: 220, flexShrink: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
                                 >
                                     <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
                                         <img src={getThumbnail(video.videoId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
-                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#021017', fontSize: 12, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
+                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#021017', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
                                         {video.duration && (
-                                            <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
+                                            <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
                                         )}
                                     </div>
                                     <div style={{ padding: 10 }}>
                                         <div style={{ color: '#fff', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{video.title}</div>
-                                        <div style={{ color: '#b7c4cb', fontSize: 12 }}>{video.source.replace('_', ' ')}</div>
+                                        <div style={{ color: '#b7c4cb', fontSize: 10 }}>{video.source.replace('_', ' ')}</div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        {newThisWeek.length > newWeekVisible && (
-                            <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setNewWeekVisible(newThisWeek.length); }}>
-                                Show All {newThisWeek.length} New Videos
-                            </button>
-                        )}
                     </div>
                 )}
 
@@ -2110,7 +2081,6 @@ export default function VideoLibraryPage() {
                 <div
                     id="video-library-grid"
                     className="vl-video-grid"
-                    data-tutorial="grid"
                     /* aria-label is prohibited on a role-less div (axe
                        aria-prohibited-attr, serious). A labelled region is
                        what the command rail's aria-controls points at. */
@@ -2198,7 +2168,7 @@ export default function VideoLibraryPage() {
                                             background: 'rgba(0,200,83,0.9)',
                                             padding: '4px 10px',
                                             borderRadius: 12,
-                                            fontSize: 12,
+                                            fontSize: 11,
                                             fontWeight: 700,
                                             color: 'white',
                                             display: 'flex',
@@ -2338,7 +2308,7 @@ export default function VideoLibraryPage() {
                                             borderRadius: 8,
                                             color: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '#34C759' : 'rgba(255,255,255,0.5)',
                                             padding: '5px 10px',
-                                            fontSize: 12,
+                                            fontSize: 11,
                                             fontWeight: 600,
                                             cursor: 'pointer',
                                             transition: 'all 0.2s',
@@ -2390,10 +2360,8 @@ export default function VideoLibraryPage() {
                     Showing {videos.length} Of {catalogTotal} Matching
                     {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                 </div>
-                </section>
+                </main>
                 </div>
-                </PullToRefresh>
-                </HubPageShell>
             </div>
 
             {/* Video Modal */}
@@ -2629,7 +2597,7 @@ export default function VideoLibraryPage() {
                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                     </svg>
                                 </div>
-                                <span style={{ color: 'white', fontSize: 12, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                                     {favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Liked' : 'Like'}
                                 </span>
                             </button>
@@ -2664,7 +2632,7 @@ export default function VideoLibraryPage() {
                                         <line x1="12" y1="2" x2="12" y2="15"/>
                                     </svg>
                                 </div>
-                                <span style={{ color: 'white', fontSize: 12, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Share</span>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Share</span>
                             </button>
 
                             {/* Save / Watch Later */}
@@ -2697,7 +2665,7 @@ export default function VideoLibraryPage() {
                                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                                     </svg>
                                 </div>
-                                <span style={{ color: 'white', fontSize: 12, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                                     {watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Saved' : 'Save'}
                                 </span>
                             </button>
@@ -2738,7 +2706,7 @@ export default function VideoLibraryPage() {
                                         <path d="M17.5 15.5v4M15.5 17.5h4" />
                                     </svg>
                                 </div>
-                                <span style={{ color: 'white', fontSize: 12, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Playlist</span>
+                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Playlist</span>
                             </button>
                         </div>
 
@@ -2796,7 +2764,7 @@ export default function VideoLibraryPage() {
                         background: 'linear-gradient(transparent, rgba(0,0,0,0.95) 30%)',
                         flexShrink: 0,
                         overflowY: 'auto',
-                        overflowX: 'clip',
+                        overflowX: 'hidden',
                         scrollbarWidth: 'thin',
                     }}>
                         {/* Info Row */}
@@ -2895,15 +2863,16 @@ export default function VideoLibraryPage() {
                         {relatedVideos.length > 0 && (
                             <div className="vl-up-next-rail" style={{ padding: '4px 20px 14px' }}>
                                 <div style={{
-                                    fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+                                    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
                                     letterSpacing: '0.8px', marginBottom: 10, textTransform: 'uppercase',
                                 }}>
                                     Up Next
                                 </div>
-                                <div className="vl-up-next-grid" style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                                <div style={{
+                                    display: 'flex',
                                     gap: 12,
+                                    overflowX: 'auto',
+                                    scrollbarWidth: 'thin',
                                     paddingBottom: 4,
                                 }}>
                                     {relatedVideos.map(v => (
@@ -2916,7 +2885,8 @@ export default function VideoLibraryPage() {
                                             aria-label={`Play ${v.title}`}
                                             className="vl-up-next-card"
                                             style={{
-                                                minWidth: 0,
+                                                minWidth: 160,
+                                                flexShrink: 0,
                                                 cursor: 'pointer',
                                                 borderRadius: 8,
                                                 overflow: 'hidden',
@@ -2939,18 +2909,18 @@ export default function VideoLibraryPage() {
                                                     <div style={{
                                                         position: 'absolute', bottom: 4, right: 4,
                                                         background: 'rgba(0,0,0,0.85)', color: '#fff',
-                                                        fontSize: 12, fontWeight: 600, padding: '2px 5px', borderRadius: 3,
+                                                        fontSize: 9, fontWeight: 600, padding: '2px 5px', borderRadius: 3,
                                                     }}>{v.duration}</div>
                                                 )}
                                             </div>
                                             <div style={{ padding: '7px 8px' }}>
                                                 <div style={{
-                                                    color: '#fff', fontSize: 12, fontWeight: 600,
+                                                    color: '#fff', fontSize: 11, fontWeight: 600,
                                                     overflow: 'hidden', textOverflow: 'ellipsis',
                                                     display: '-webkit-box', WebkitLineClamp: 2,
                                                     WebkitBoxOrient: 'vertical', lineHeight: 1.3,
                                                 }}>{v.title}</div>
-                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 3 }}>
+                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, marginTop: 3 }}>
                                                     {v.source.replace('_', ' ')}
                                                 </div>
                                             </div>
@@ -2975,52 +2945,50 @@ export default function VideoLibraryPage() {
                     50%       { box-shadow: 0 0 20px rgba(0,200,83,0.4); border-color: rgba(0,200,83,0.85); }
                 }
 
-                /* The Show More / Show All buttons under a capped grid: one
-                   obvious full-width 44px target. */
-                .vl-show-more {
-                    display: block;
-                    width: 100%;
-                    min-height: 44px;
-                    margin-top: 12px;
-                    border: 1px solid rgba(137, 216, 249, 0.36);
-                    border-radius: 0;
-                    background: linear-gradient(180deg, #0b171e, #03090d);
-                    color: #d9f3ff;
-                    font-size: 12px;
-                    font-weight: 700;
-                    letter-spacing: 0.08em;
-                    text-transform: uppercase;
-                    cursor: pointer;
-                }
-                /* The creator cap only applies on a phone; desktop shows every
-                   creator in two rows, so the button has nothing to reveal. */
-                .vl-show-all-sources { display: none; }
-
-                /* Phone (mobile phase 9): search on its own row; the viewer's
-                   info bar sits under the player and scrolls vertically, with
-                   Up Next a two-column grid inside it instead of being culled. */
-                @media (max-width: 768px) {
+                /* Mobile: stack search on its own row */
+                @media (max-width: 480px) {
                     .vl-search-wrap {
                         width: 100% !important;
                         flex-basis: 100% !important;
                         margin-left: 0 !important;
                     }
-                    .vl-show-all-sources { display: block; }
+                }
+
+                /* Mobile + Tablet: absolute info bar, hide Up Next */
+                @media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
                     .vl-info-bar {
                         position: relative !important;
-                        max-height: 46dvh !important;
+                        max-height: 140px !important;
                         flex: 0 0 auto;
                         pointer-events: auto;
                         z-index: 6;
                     }
-                    .vl-up-next-grid {
-                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    .vl-up-next-rail {
+                        display: none !important;
+                    }
+                }
+                /* Narrow screen fallback */
+                @media (max-width: 767px) {
+                    .vl-info-bar {
+                        position: relative !important;
+                        max-height: 140px !important;
+                        flex: 0 0 auto;
+                        pointer-events: auto;
+                        z-index: 6;
+                    }
+                    .vl-up-next-rail {
+                        display: none !important;
                     }
                 }
                 /* Desktop: info bar caps */
-                @media (min-width: 769px) {
+                @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
                     .vl-info-bar {
-                        max-height: min(25dvh, 200px);
+                        max-height: min(25vh, 200px);
+                    }
+                }
+                @media (min-width: 1025px) {
+                    .vl-info-bar {
+                        max-height: min(25vh, 200px);
                     }
                 }
 
@@ -3122,7 +3090,7 @@ export default function VideoLibraryPage() {
                                         <div>
                                             <div style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>{p.name}</div>
                                             {p.items?.length != null && (
-                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2 }}>{p.items.length} video{p.items.length !== 1 ? 's' : ''}</div>
+                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 }}>{p.items.length} video{p.items.length !== 1 ? 's' : ''}</div>
                                             )}
                                         </div>
                                         <button onClick={async () => {
@@ -3215,7 +3183,7 @@ export default function VideoLibraryPage() {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div id="vl-tts-title" style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
-                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>AI-Matched Drills For This Video</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-Matched Drills For This Video</div>
                             </div>
                             <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="sp-icon-btn" onClick={() => setTtsOverlay(null)} style={{ '--sp-btn-size': '44px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
                         </div>
@@ -3227,12 +3195,12 @@ export default function VideoLibraryPage() {
                                 <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ttsOverlay.ctx.title || 'Poker Video'}</div>
                                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 6, padding: '2px 7px' }}>
                                     <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#00D4FF' }} />
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#FF8888' }}>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
+                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#FF8888' }}>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
                                 </div>
                             </div>
                         </div>
                         <div style={{ padding: '0 20px 8px' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>AI-Recommended Drills</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>AI-Recommended Drills</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {ttsOverlay.games.map((game, idx) => (
                                     <button key={game.id} onClick={() => { setTtsOverlay(null); router.push(`/hub/training?autoLaunch=${game.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: idx === 0 ? 'rgba(0,200,83,0.08)' : 'rgba(255,255,255,0.03)', border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
@@ -3240,9 +3208,9 @@ export default function VideoLibraryPage() {
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                                 <span style={{ fontSize: 12, fontWeight: 700, color: idx === 0 ? '#34C759' : '#fff' }}>{game.name}</span>
-                                                {idx === 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#34C759', background: 'rgba(0,200,83,0.12)', borderRadius: 5, padding: '1px 5px' }}>BEST MATCH</span>}
+                                                {idx === 0 && <span style={{ fontSize: 8, fontWeight: 800, color: '#34C759', background: 'rgba(0,200,83,0.12)', borderRadius: 5, padding: '1px 5px' }}>BEST MATCH</span>}
                                             </div>
-                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{game.focus} · {'★'.repeat(Math.min(game.difficulty || 1, 5))} Difficulty</div>
+                                            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{game.focus} · {'★'.repeat(Math.min(game.difficulty || 1, 5))} Difficulty</div>
                                         </div>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
                                     </button>
@@ -3250,11 +3218,11 @@ export default function VideoLibraryPage() {
                             </div>
                         </div>
                         <div style={{ padding: '6px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training?source=video-library'); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))', border: '1.5px solid rgba(0,150,255,0.35)', color: '#4DA6FF', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s' }}>
+                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training?source=video-library'); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))', border: '1.5px solid rgba(0,150,255,0.35)', color: '#4DA6FF', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s' }}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
                                 Open Verified Training
                             </button>
-                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Browse All 100 Training Games</button>
+                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Browse All 100 Training Games</button>
                         </div>
                     </div>
                 </div>

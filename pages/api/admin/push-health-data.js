@@ -189,24 +189,12 @@ export default async function handler(req, res) {
         let funnel = null;
         try {
             const since24 = new Date(now - 86400_000).toISOString();
-            const [{ count: queued24 }, { count: suppressed24 }, { count: unreachable24 }] = await Promise.all([
+            const [{ count: queued24 }, { count: suppressed24 }] = await Promise.all([
                 supabase.from('push_outbox').select('id', { count: 'exact', head: true })
                     .gte('created_at', since24),
                 supabase.from('push_outbox').select('id', { count: 'exact', head: true })
                     .in('status', ['skipped', 'failed']).gte('created_at', since24),
-                // AN UNREACHABLE RECIPIENT IS NOT A FAILED SEND. classifyReason
-                // has always said so for the breakdown below; the funnel did
-                // not, and the funnel is the part an operator reads first.
-                // Measured 2026-09-12: the tournament-reminder enqueue was
-                // writing ~2,000 rows a day to recipients with no device -
-                // 94.9% of all push_outbox volume over seven days - so a send
-                // rate over the raw queue read 0% while every send to a real
-                // device succeeded. Rate over what was ADDRESSABLE instead.
-                supabase.from('push_outbox').select('id', { count: 'exact', head: true })
-                    .eq('status', 'skipped').eq('failure_reason', 'no_subscription')
-                    .gte('created_at', since24),
             ]);
-            const addressable24 = Math.max(0, (queued24 || 0) - (unreachable24 || 0));
 
             // Device-level confirmation: of the subscriptions we pushed to in
             // the window, how many beaconed a receipt inside it.
@@ -218,17 +206,13 @@ export default async function handler(req, res) {
                 queued: queued24 || 0,
                 sent: sent24 || 0,
                 suppressed: suppressed24 || 0,
-                unreachable: unreachable24 || 0,
-                addressable: addressable24,
                 devicesPushed: pushed.length,
                 devicesConfirmed: confirmed.length,
                 // Null rather than a fake 100% when there is nothing to measure.
                 confirmRate: pushed.length
                     ? Math.round((confirmed.length / pushed.length) * 100)
                     : null,
-                // Over ADDRESSABLE rows, never the raw queue - see above. Null
-                // rather than a fake 0% when nothing was addressable.
-                deliveryRate: addressable24 ? Math.round(((sent24 || 0) / addressable24) * 100) : null,
+                deliveryRate: queued24 ? Math.round(((sent24 || 0) / queued24) * 100) : null,
             };
         } catch { /* diagnostics only -- never break the page */ }
 

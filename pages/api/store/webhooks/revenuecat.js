@@ -6,7 +6,7 @@
  * public.fn_iap_settle_event (service role only). See both headers.
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 const { handleRevenueCatWebhook } = require('../../../../src/lib/store/revenuecatWebhook');
 

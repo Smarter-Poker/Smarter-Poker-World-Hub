@@ -56,7 +56,7 @@ import {
     NO_REPEAT_WINDOW_DAYS,
     DEFAULT_QUALITY_FLOOR,
 } from '../../../src/lib/triviaQuestionLoader';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 // FEAT(adaptive-volume): the per-player demand model lives in the pool guard
 // (CATEGORY_DAILY_DEMAND). Importing it — rather than copying the numbers —
 // keeps the watchdog's "how short are we" math and this cron's "how much do we

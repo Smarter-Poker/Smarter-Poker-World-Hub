@@ -63,9 +63,7 @@ const FIXED_FILES = [
   'pages/hub/video-library.js',
   'pages/hub/news.js',
   'pages/hub/messenger.js',
-  // pages/hub/poker-tools.js left this list on 2026-09-14 (mobile phase 10):
-  // its page-owned settings sheet, the only fixed overlay it had, was replaced
-  // by the shared HamburgerMenu, which carries its own safe-area handling.
+  'pages/hub/poker-tools.js',
   'pages/hub/lives.js',
   'pages/hub/home-games.js',
 ];

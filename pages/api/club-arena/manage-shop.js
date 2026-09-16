@@ -8,7 +8,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import {
     getMaximumCardFundedClubItemPrice,
@@ -25,7 +25,6 @@ const {
     normalizeImageUrl,
     itemHasSales,
     HAS_SALES_ERROR,
-    enforceAllThrowablesMutation,
 } = require('../../../src/lib/club-arena/shopItemRules');
 const {
     PRIMARY_SHOP_CURRENCY,
@@ -272,14 +271,6 @@ export default async function handler(req, res) {
         }
 
         if (action === 'create') {
-          const throwableGuard = enforceAllThrowablesMutation('create', req.body);
-          if (throwableGuard.error) {
-            return res.status(400).json({
-              success: false,
-              error: throwableGuard.error,
-              code: throwableGuard.code,
-            });
-          }
           const listPrice = Number(price);
           if (!name?.trim() || !Number.isSafeInteger(listPrice) || listPrice <= 0) {
             return res.status(400).json({ success: false, error: 'Name and positive price required' });
@@ -376,24 +367,6 @@ export default async function handler(req, res) {
         if (action === 'update') {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
-          const { data: existingItem, error: existingItemError } = await getSupabase()
-            .from('club_shop_items')
-            .select('name, description, category, item_type, grant_spec, image_url, is_active, stackable, per_user_limit, price, sale_price')
-            .eq('id', itemId)
-            .eq('club_id', clubId)
-            .maybeSingle();
-          if (existingItemError) throw existingItemError;
-          if (!existingItem) return res.status(404).json({ success: false, error: 'Item not found' });
-
-          const throwableGuard = enforceAllThrowablesMutation('update', req.body, existingItem);
-          if (throwableGuard.error) {
-            return res.status(400).json({
-              success: false,
-              error: throwableGuard.error,
-              code: throwableGuard.code,
-            });
-          }
-
           const updates = {};
           if (name !== undefined) {
             if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ success: false, error: 'Name cannot be empty' });
@@ -462,8 +435,16 @@ export default async function handler(req, res) {
             if (grant.error) return res.status(400).json({ success: false, error: grant.error });
             updates.grant_spec = grant.spec;
           }
-          if (throwableGuard.managed) Object.assign(updates, throwableGuard.updates);
           if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
+
+          const { data: existingItem, error: existingItemError } = await getSupabase()
+            .from('club_shop_items')
+            .select('price, sale_price')
+            .eq('id', itemId)
+            .eq('club_id', clubId)
+            .maybeSingle();
+          if (existingItemError) throw existingItemError;
+          if (!existingItem) return res.status(404).json({ success: false, error: 'Item not found' });
 
           const candidatePrice = updates.price ?? Number(existingItem.price);
           const candidateSalePrice = Object.prototype.hasOwnProperty.call(updates, 'sale_price')
@@ -508,21 +489,12 @@ export default async function handler(req, res) {
 
           const { data: item } = await getSupabase()
             .from('club_shop_items')
-            .select('name, category, item_type, grant_spec, is_active, price')
+            .select('is_active, price')
             .eq('id', itemId)
             .eq('club_id', clubId)
             .maybeSingle();
 
           if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
-
-          const throwableGuard = enforceAllThrowablesMutation('toggle', req.body, item);
-          if (throwableGuard.error) {
-            return res.status(400).json({
-              success: false,
-              error: throwableGuard.error,
-              code: throwableGuard.code,
-            });
-          }
 
           const nextIsActive = !item.is_active;
           if (nextIsActive) {
@@ -562,24 +534,6 @@ export default async function handler(req, res) {
         if (action === 'delete') {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
-          const { data: item, error: itemError } = await getSupabase()
-            .from('club_shop_items')
-            .select('name, category, item_type, grant_spec')
-            .eq('id', itemId)
-            .eq('club_id', clubId)
-            .maybeSingle();
-          if (itemError) throw itemError;
-          if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
-
-          const throwableGuard = enforceAllThrowablesMutation('delete', req.body, item);
-          if (throwableGuard.error) {
-            return res.status(400).json({
-              success: false,
-              error: throwableGuard.error,
-              code: throwableGuard.code,
-            });
-          }
-
           if (await itemHasSales(getSupabase(), clubId, itemId)) {
             return res.status(400).json({ success: false, error: HAS_SALES_ERROR, hasSales: true });
           }
@@ -604,7 +558,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

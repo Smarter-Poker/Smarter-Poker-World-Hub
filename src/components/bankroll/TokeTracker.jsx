@@ -43,8 +43,6 @@ import { supabase } from '../../lib/supabase';
 import VenueSelector from './VenueSelector';
 import toast from '../../stores/toastStore';
 import { busEmit } from '../../engine/EventBus';
-import { useHaptics } from '../../hooks/useHaptics';
-import { useModalHistory } from '../../hooks/useModalHistory';
 
 // ── Down type metadata ──
 const DOWN_TYPES = [
@@ -229,22 +227,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
     // Green celebration flash after closing a day
     const [showCelebration, setShowCelebration] = useState(false);
-
-    // ── Mobile phase 11: the phone back gesture closes whatever is open ──
-    // Every one of these used to trap the dealer: a back swipe left the page
-    // entirely with the sheet still open behind it.
-    const haptic = useHaptics();
-    const closeReceipt = useCallback(() => setViewingReceiptUrl(null), []);
-    const closeEndingDown = useCallback(() => { setEndingDown(null); setEndTokeValue(''); }, []);
-    const closeAddDown = useCallback(() => setShowAddDown(false), []);
-    const closeAddExpense = useCallback(() => { setShowAddExpense(false); setShowScanner(false); }, []);
-    const closeDeleteConfirm = useCallback(() => setConfirmDelete(false), []);
-    useModalHistory(Boolean(viewingReceiptUrl), closeReceipt);
-    useModalHistory(Boolean(endingDown), closeEndingDown);
-    useModalHistory(showAddDown, closeAddDown);
-    useModalHistory(showAddExpense, closeAddExpense);
-    useModalHistory(confirmDelete, closeDeleteConfirm);
-    useModalHistory(showTaxSummary, () => setShowTaxSummary(false));
 
     // Create event form state
     const [newGig, setNewGig] = useState({
@@ -1131,7 +1113,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <p style={styles.reportDates}>
                         {new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}
                         {gig.end_date && ` - ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}`}
-                        {' · '}{`${stats.durationDays} Day${stats.durationDays !== 1 ? 's' : ''}`}
+                        {' · '}{stats.durationDays} day{stats.durationDays !== 1 ? 's' : ''}
                     </p>
 
                     {/* Mileage IRS Deductible */}
@@ -1254,9 +1236,6 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     }
 
     // ── Day-aware computed values ──
-    // NOTE: every hook this component calls is declared ABOVE the
-    // `if (selectedReport)` early return further up, so the hook order is the
-    // same on every render (mobile phase 11 added the modal-history ones).
     const currentDay = activeGig?.days?.find(d => !d.ended_at) || null;
     const isDayOpen = !!currentDay;
     // currentDayNumber: open day's number, or the highest closed day's number when all closed
@@ -1367,7 +1346,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             )}
                             <p style={styles.activeGigMeta}>
                                 Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
-                                {' · '}{`${totalDays} Day${totalDays !== 1 ? 's' : ''} Total`}
+                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} Total
                                 {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
                             </p>
                         </>
@@ -1416,7 +1395,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     {/* ── PRIMARY LOGGING ACTIONS (MASSIVE + TOP MOUNTED) ── */}
                     {!editMode && isDayOpen && !confirmCloseDay && !confirmComplete && !confirmDelete && (
                         <div style={{ display: 'flex', gap: 12, margin: '20px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 24 }}>
-                            <button onClick={() => { haptic('medium'); setShowAddDown(true); }} style={{
+                            <button onClick={() => setShowAddDown(true)} style={{
                                 ...styles.addDownBtn,
                                 flex: 2,
                                 padding: '24px 16px',
@@ -1433,7 +1412,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 8, color: '#38bdf8' }}>+</span>
                                 <span style={{ fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Add Down</span>
                             </button>
-                            <button onClick={() => { haptic('light'); setShowAddExpense(true); }} style={{
+                            <button onClick={() => setShowAddExpense(true)} style={{
                                 ...styles.addExpenseBtn,
                                 flex: 1,
                                 padding: '24px 16px',
@@ -1691,7 +1670,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                         {!confirmCloseDay && !confirmComplete && !editMode ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                {isDayOpen && <button onClick={() => { haptic('light'); setConfirmCloseDay(true); }} style={{ ...styles.closeDayBtn, width: '100%' }}>✓ Close Day {currentDayNumber}</button>}
+                                {isDayOpen && <button onClick={() => setConfirmCloseDay(true)} style={{ ...styles.closeDayBtn, width: '100%' }}>✓ Close Day {currentDayNumber}</button>}
                                 {!isDayOpen && <button onClick={handleStartNewDay} style={{ ...styles.startDayBtn, width: '100%' }}>▶ Start Day {(activeGig?.days?.length || 0) + 1}</button>}
                                 {!isDayOpen && <button onClick={() => setConfirmComplete(true)} style={{ ...styles.completeBtn, width: '100%' }}>✓ Complete Final Event</button>}
                             </div>
@@ -1819,7 +1798,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         style={styles.modalOverlay}
-                        onClick={closeEndingDown}
+                        onClick={() => { setEndingDown(null); setEndTokeValue(''); }}
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
@@ -1853,13 +1832,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             </div>
                             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
                                 <button
-                                    onClick={() => { haptic("medium"); handleEndDownConfirm(); }}
+                                    onClick={handleEndDownConfirm}
                                     style={{ ...styles.confirmYes, flex: 1, padding: '12px', fontSize: 15, fontWeight: 800 }}
                                 >
                                     ✓ End Down
                                 </button>
                                 <button
-                                    onClick={closeEndingDown}
+                                    onClick={() => { setEndingDown(null); setEndTokeValue(''); }}
                                     style={styles.confirmNo}
                                 >
                                     Cancel
@@ -1876,7 +1855,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 downForm={downForm}
                 setDownForm={setDownForm}
                 onSubmit={handleAddDown}
-                onClose={closeAddDown}
+                onClose={() => setShowAddDown(false)}
                 styles={styles}
             />
 
@@ -1886,7 +1865,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 expenseForm={expenseForm}
                 setExpenseForm={setExpenseForm}
                 onSubmit={handleAddExpense}
-                onClose={closeAddExpense}
+                onClose={() => setShowAddExpense(false)}
                 showScanner={showScanner}
                 setShowScanner={setShowScanner}
                 ReceiptScannerComponent={ReceiptScanner}
@@ -1951,7 +1930,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             return (
                                 <>
                                     <div style={styles.goalText}>
-                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {`${daysLeft} Day${daysLeft !== 1 ? 's' : ''} Left`}
+                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
                                     </div>
                                     <div style={styles.goalBarBg}>
                                         <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
@@ -2051,7 +2030,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             {/* ── YEARLY CALENDAR (hidden in standalone mode) ── */}
             {
                 !standalone && (
-                    <div className="toke-cal-wrapper" style={styles.calendarWrapper}>
+                    <div style={styles.calendarWrapper}>
                         <TokeCalendar userId={userId} />
                     </div>
                 )
@@ -2116,10 +2095,7 @@ const styles = {
     // Downs list
     downsSection: { marginBottom: 16 },
     downsSectionTitle: { fontSize: 14, fontWeight: 600, color: '#94a3b8', marginBottom: 8, letterSpacing: 0.5 },
-    // The day's downs render in full: this was `maxHeight: 300, overflowY:
-    // auto`, a scroller inside the page that hid the earliest downs of a
-    // long shift behind a second scrollbar (mobile phase 11).
-    downsScroll: { display: 'flex', flexDirection: 'column', gap: 4 },
+    downsScroll: { maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 },
     downRow: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
         background: '#3A3B3C', borderRadius: 6, padding: '8px 10px', flexWrap: 'wrap',
@@ -2132,26 +2108,26 @@ const styles = {
     tokeDisplay: {
         background: 'none', border: '2px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', fontSize: 13,
         fontWeight: 700, cursor: 'pointer', padding: '0 6px',
-        minWidth: 54, minHeight: 44, display: 'inline-flex', alignItems: 'center',
+        minWidth: 54, height: 26, display: 'inline-flex', alignItems: 'center',
         justifyContent: 'center', borderRadius: 4, boxSizing: 'border-box',
     },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
     tokeInput: {
-        width: 72, minHeight: 44, padding: '4px 8px', background: '#242526', border: '2px solid #3A3B3C', boxShadow: 'inset 0 0 0 1px #3A3B3C',
-        borderRadius: 4, color: '#fff', fontSize: 16, textAlign: 'right',
+        width: 60, padding: '4px 6px', background: '#242526', border: '2px solid #3A3B3C', boxShadow: 'inset 0 0 0 1px #3A3B3C',
+        borderRadius: 4, color: '#fff', fontSize: 13, textAlign: 'right',
     },
     tokeSaveBtn: {
         background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '2px solid rgba(16,185,129,0.3)', boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.3)',
-        borderRadius: 4, padding: '4px 10px', minWidth: 44, minHeight: 44, fontSize: 15, cursor: 'pointer', fontWeight: 700,
+        borderRadius: 4, padding: '4px 8px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
     },
     endDownSmallBtn: {
         background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
-        borderRadius: 4, padding: '2px 12px', minHeight: 44, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         whiteSpace: 'nowrap',
     },
     downDeleteBtn: {
         background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
-        borderRadius: 4, padding: '2px 10px', minWidth: 44, minHeight: 44, fontSize: 14, cursor: 'pointer', color: '#ef4444', lineHeight: 1,
+        borderRadius: 4, padding: '2px 6px', fontSize: 12, cursor: 'pointer', color: '#ef4444', lineHeight: 1,
     },
 
     // Actions
@@ -2191,7 +2167,7 @@ const styles = {
     // Delete
     topActionBtn: {
         background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
-        borderRadius: 8, padding: '4px 12px', minWidth: 44, minHeight: 44, color: '#94a3b8', fontSize: 16, cursor: 'pointer',
+        borderRadius: 8, padding: '4px 10px', color: '#94a3b8', fontSize: 14, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.2s ease'
     },
@@ -2236,7 +2212,7 @@ const styles = {
     formLabel: { fontSize: 13, fontWeight: 600, color: '#B0B3B8', marginBottom: 4, display: 'block', marginTop: 12 },
     formInput: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, color: '#fff', fontSize: 16, minHeight: 44, outline: 'none', boxSizing: 'border-box',
+        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
         transition: 'border-color 0.2s ease',
     },
     attachedReceiptBox: {
@@ -2275,12 +2251,12 @@ const styles = {
         touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     },
     lightboxImage: {
-        maxWidth: '100%', maxHeight: '90dvh', objectFit: 'contain',
+        maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain',
         borderRadius: 8, boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
     },
     formSelect: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 8, color: '#fff', fontSize: 16, minHeight: 44, outline: 'none', boxSizing: 'border-box',
+        borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
         cursor: 'pointer', WebkitAppearance: 'none', appearance: 'none',
         backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23ffffff\' d=\'M6 8L1 3h10z\'/%3E%3C/svg%3E")',
         backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
@@ -2381,7 +2357,7 @@ const styles = {
     reportTitle: { fontSize: 24, fontWeight: 700, color: '#fff', margin: '0 0 4px' },
     reportAddress: { fontSize: 13, color: '#8A8D91', margin: '0 0 4px', fontStyle: 'italic' },
     reportDates: { fontSize: 14, color: '#64748b', margin: '0 0 20px' },
-    reportStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12, marginBottom: 20 },
+    reportStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
     reportStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: '10px 8px' },
     reportStatLabel: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
     reportStatValue: { fontSize: 18, fontWeight: 700, color: '#fff' },
@@ -2417,7 +2393,7 @@ const styles = {
     jarvisInput: {
         flex: 1, padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
         border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', borderRadius: 8,
-        color: '#fff', fontSize: 16, minHeight: 44, outline: 'none',
+        color: '#fff', fontSize: 14, outline: 'none',
     },
     jarvisAskBtn: {
         background: '#2374e1', color: '#fff', border: '2px solid rgba(35,116,225,0.5)',
@@ -2456,15 +2432,15 @@ const styles = {
         borderTop: '1px solid rgba(255,255,255,0.06)',
     },
     eventEditBtn: {
-        flex: 1, padding: '6px 0', minHeight: 44, background: 'rgba(74,144,217,0.1)',
+        flex: 1, padding: '6px 0', background: 'rgba(74,144,217,0.1)',
         border: '2px solid rgba(74,144,217,0.3)', boxShadow: 'inset 0 0 0 1px rgba(74,144,217,0.3)', borderRadius: 6,
-        color: '#4A90D9', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     eventDeleteBtn: {
-        flex: 1, padding: '6px 0', minHeight: 44, background: 'rgba(240,40,73,0.08)',
+        flex: 1, padding: '6px 0', background: 'rgba(240,40,73,0.08)',
         border: '2px solid rgba(240,40,73,0.3)', boxShadow: 'inset 0 0 0 1px rgba(240,40,73,0.3)', borderRadius: 6,
-        color: '#F02849', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        color: '#F02849', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     eventSaveBtn: {
@@ -2480,7 +2456,7 @@ const styles = {
     editInlineInput: {
         width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.3)',
         border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', borderRadius: 6,
-        color: '#E4E6EB', fontSize: 16, minHeight: 44, outline: 'none', boxSizing: 'border-box',
+        color: '#E4E6EB', fontSize: 13, outline: 'none', boxSizing: 'border-box',
     },
     jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
     jarvisHistoryA: { fontSize: 12, color: '#B0B3B8', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
@@ -2493,8 +2469,8 @@ const styles = {
     goalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
     goalTitle: { fontSize: 15, fontWeight: 700, color: '#E4E6EB' },
     goalEditBtn: {
-        padding: '4px 14px', minHeight: 44, background: 'rgba(74,144,217,0.15)', border: '2px solid #4A90D9', boxShadow: 'inset 0 0 0 1px #4A90D9',
-        borderRadius: 6, color: '#4A90D9', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '2px solid #4A90D9', boxShadow: 'inset 0 0 0 1px #4A90D9',
+        borderRadius: 6, color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
     },
     goalText: { fontSize: 14, color: '#B0B3B8', marginBottom: 10, lineHeight: 1.5 },
     goalBarBg: { height: 8, background: '#3A3B3C', borderRadius: 4, overflow: 'hidden' },
@@ -2502,7 +2478,7 @@ const styles = {
     goalEditRow: { display: 'flex', gap: 8, alignItems: 'center' },
     goalInput: {
         flex: 1, padding: '10px 12px', background: '#18191A', border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)',
-        borderRadius: 8, color: '#E4E6EB', fontSize: 16, minHeight: 44, outline: 'none',
+        borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none',
     },
     goalSaveBtn: {
         padding: '10px 16px', background: '#4A90D9', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',

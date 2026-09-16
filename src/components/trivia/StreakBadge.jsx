@@ -143,7 +143,7 @@ export default function StreakBadge({
                 }
                 
                 .streak-title {
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.6);
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
@@ -155,7 +155,7 @@ export default function StreakBadge({
                     right: -8px;
                     padding: 2px 8px;
                     border-radius: 12px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 700;
                     color: #000;
                     display: flex;
@@ -185,7 +185,7 @@ export default function StreakBadge({
                     align-items: center;
                     gap: 4px;
                     margin-top: 4px;
-                    font-size: 12px;
+                    font-size: 10px;
                     color: rgba(255, 255, 255, 0.5);
                 }
 

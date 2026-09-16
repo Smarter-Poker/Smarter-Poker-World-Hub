@@ -24,6 +24,7 @@
  * Recommended-but-not-fatal in production (logs a warning):
  *   - XAI_API_KEY                    → Grok AI (xAI) — used for all AI features
  *   - RESEND_API_KEY                 → transactional email
+ *   - SENTRY_DSN                     → error tracking
  *
  * We intentionally DO NOT gate preview/staging on these — partial envs are
  * the whole point of preview deployments.
@@ -42,6 +43,7 @@ const REQUIRED_IN_PRODUCTION = [
 const RECOMMENDED_IN_PRODUCTION = [
     'XAI_API_KEY',
     'RESEND_API_KEY',
+    'SENTRY_DSN'
 ];
 
 let _checked = false;

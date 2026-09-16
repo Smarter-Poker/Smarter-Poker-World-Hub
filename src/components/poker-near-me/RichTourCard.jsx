@@ -5,16 +5,43 @@
  */
 import React from 'react';
 import useSWR from 'swr';
-import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
-const TOUR_TONES = {
-    'WSOP': 'gold', 'WPT': 'red', 'WSOPC': 'gold', 'MSPT': 'blue',
-    'RGPS': 'green', 'PGT': 'violet', 'TRITON': 'blue', 'NAPT': 'red',
-    'CPPT': 'green', 'FPN': 'violet', 'LIPS': 'red', 'ROUGHRIDER': 'gold',
-    'default': 'silver',
+const TOUR_COLORS = {
+    'WSOP':      { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
+    'WPT':       { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
+    'WSOPC':     { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
+    'MSPT':      { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff' },
+    'RGPS':      { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff' },
+    'PGT':       { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff' },
+    'TRITON':    { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff' },
+    'NAPT':      { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
+    'CPPT':      { bg: 'linear-gradient(135deg, #0f766e, #134e4a)', text: '#fff' },
+    'FPN':       { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff' },
+    'LIPS':      { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff' },
+    'ROUGHRIDER':{ bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff' },
+    'default':   { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff' },
 };
 
-// Labels stay in the DOM; painted control artwork supplies any pictograms.
+// CLAUDE.md rule: no bare emoji in source/JSX (bare emoji have broken the SWC
+// compile and Vercel builds). Inline SVGs replace the former pin/money glyphs.
+function PinIcon({ size = 12 }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+        </svg>
+    );
+}
+
+function MoneyIcon({ size = 12 }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink: 0 }}>
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+    );
+}
+
 const TOUR_TYPE_LABELS = {
     major: 'Major', circuit: 'Circuit', regional: 'Regional',
     high_roller: 'High Roller', grassroots: 'Grassroots', charity: 'Charity',
@@ -42,24 +69,25 @@ function formatDateRange(startDate, endDate) {
 // Skeleton shown while live data loads
 function TourCardSkeleton({ venue }) {
     const code = venue.tour_code || '';
-    const tourTone = TOUR_TONES[code] || TOUR_TONES.default;
+    const tourColor = TOUR_COLORS[code] || TOUR_COLORS.default;
     const [logoFailed, setLogoFailed] = React.useState(false);
     return (
-        <PokerNearMePanelShell className="pnm-console-card pnm-console-card--tour rich-tour-card is-loading" bodyClassName="pnm-console-card__body">
-            <div className="card-header">
+        <div className="entity-card tour-card rich-tour-card" style={{ minHeight: 120 }}>
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {venue.logo_url && !logoFailed ? (
                     <img src={venue.logo_url} alt={code}
                         onError={() => setLogoFailed(true)}
-                        className="pnm-console-card__logo" />
+                        style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.9)', padding: 2 }} />
                 ) : (
-                    <div className="pnm-console-card__brand" data-tone={tourTone}>
-                        <span>{code || 'TOUR'}</span>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '8px 16px', borderRadius: 6, background: tourColor.bg, minWidth: 70 }}>
+                        <span style={{ color: tourColor.text, fontSize: 14, fontWeight: 800 }}>{code || 'TOUR'}</span>
                     </div>
                 )}
-                <div className="pnm-console-card__loading-copy">Loading Live Data...</div>
+                <div style={{ opacity: 0.4, fontSize: 13 }}>Loading Live Data...</div>
             </div>
-            <h4 className="pnm-console-card__title">{venue.tour_name || venue.name}</h4>
-        </PokerNearMePanelShell>
+            <h4 style={{ margin: '8px 0 4px', fontSize: 16, fontWeight: 700 }}>{venue.tour_name || venue.name}</h4>
+        </div>
     );
 }
 
@@ -118,7 +146,7 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
 
     // Fallback to registry data from tour_card_data while live data loads
     const displayTour = tour || venue.tour_card_data || {};
-    const tourTone = TOUR_TONES[tourCode] || TOUR_TONES.default;
+    const tourColor = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
     const tourTypeLabel = TOUR_TYPE_LABELS[displayTour.tour_type] || displayTour.tour_type || '';
     const logoUrl = displayTour.logo_url || venue.logo_url;
     const [logoFailed, setLogoFailed] = React.useState(false);
@@ -138,11 +166,12 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
     }
 
     return (
-        <PokerNearMePanelShell
-            className="pnm-console-card pnm-console-card--tour rich-tour-card"
-            bodyClassName="pnm-console-card__body"
+        <div
+            className="entity-card tour-card rich-tour-card"
             onClick={() => onNavigate && onNavigate(detailUrl)}
+            style={{ cursor: 'pointer', position: 'relative' }}
         >
+            {/* Fav button */}
             <button
                 type="button"
                 className={'fav-btn' + (isFavorited ? ' active' : '')}
@@ -150,75 +179,160 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                 aria-label={isFavorited ? `Remove ${displayTour.tour_name || venue.tour_name || venue.name || 'tour'} from saved tours` : `Save ${displayTour.tour_name || venue.tour_name || venue.name || 'tour'}`}
                 aria-pressed={!!isFavorited}
             >
-                <PokerNearMeConsoleIcon name="saved" />
+                <svg width="16" height="16" viewBox="0 0 24 24"
+                    fill={isFavorited ? '#ef4444' : 'none'}
+                    stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'}
+                    strokeWidth="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                </svg>
             </button>
 
-            <div className="pnm-console-card__header">
+            {/* Header Row: logo + badges */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 {logoUrl && !logoFailed ? (
-                    <img src={logoUrl} alt={tourCode} onError={() => setLogoFailed(true)} className="pnm-console-card__logo" />
+                    <img src={logoUrl} alt={tourCode}
+                        onError={() => setLogoFailed(true)}
+                        style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'contain',
+                            background: 'rgba(255,255,255,0.95)', padding: 3, border: '1px solid rgba(255,255,255,0.15)',
+                            flexShrink: 0 }} />
                 ) : (
-                    <div className="pnm-console-card__brand" data-tone={tourTone}>
-                        <span>{tourCode || 'TOUR'}</span>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '8px 14px', borderRadius: 6, background: tourColor.bg, minWidth: 64, flexShrink: 0 }}>
+                        <span style={{ color: tourColor.text, fontSize: 14, fontWeight: 800, letterSpacing: '0.5px' }}>
+                            {tourCode || 'TOUR'}
+                        </span>
                     </div>
                 )}
-                <div className="pnm-console-card__tag-row">
-                    <span className="pnm-console-card__tag" data-tone={tourTone}>{tourCode || 'TOUR'}</span>
-                    {tourTypeLabel && <span className="pnm-console-card__tag">{tourTypeLabel}</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Tour code badge */}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '3px 10px', borderRadius: 5, background: tourColor.bg, fontSize: 12, fontWeight: 800,
+                            color: tourColor.text, letterSpacing: '0.5px' }}>
+                            {tourCode || 'TOUR'}
+                        </span>
+                        {/* Tour type badge */}
+                        {tourTypeLabel && (
+                            <span style={{ padding: '3px 8px', borderRadius: 5, fontSize: 12, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
+                                border: '1px solid rgba(255,255,255,0.12)' }}>
+                                {tourTypeLabel}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <h4 className="pnm-console-card__title">
+            {/* Tour Name */}
+            <h4 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
                 {displayTour.tour_name || venue.tour_name || venue.name || 'Poker Tour'}
             </h4>
 
+            {/* LIVE NOW / NEXT STOP banner */}
             {currentStop && (
-                <div className={`rich-tour-card__signal ${currentStopType === 'current' ? 'is-live' : 'is-next'}`}>
-                    <div className="rich-tour-card__signal-label">
-                        <span className="pnm-console-card__signal" aria-hidden="true" />
-                        <span>{currentStopType === 'current' ? 'LIVE NOW' : 'NEXT STOP'}</span>
+                <div style={{
+                    padding: '8px 12px', borderRadius: 8, marginBottom: 10,
+                    background: currentStopType === 'current'
+                        ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                    border: currentStopType === 'current'
+                        ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                        <span style={{
+                            display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
+                            background: currentStopType === 'current' ? '#10b981' : '#3b82f6',
+                            boxShadow: currentStopType === 'current'
+                                ? '0 0 6px #10b981' : '0 0 6px #3b82f6',
+                        }} />
+                        <span style={{
+                            fontSize: 12, fontWeight: 800, letterSpacing: '0.5px',
+                            color: currentStopType === 'current' ? '#10b981' : '#3b82f6',
+                        }}>
+                            {currentStopType === 'current' ? 'LIVE NOW' : 'NEXT STOP'}
+                        </span>
                     </div>
-                    {currentStop.stop_name && <div className="rich-tour-card__stop-name">{currentStop.stop_name}</div>}
-                    {currentStop.stop_venue && <div className="rich-tour-card__stop-venue">{currentStop.stop_venue}</div>}
+                    {currentStop.stop_name && (
+                        <div style={{ fontWeight: 700, fontSize: 13, color: '#fff', marginTop: 2 }}>
+                            {currentStop.stop_name}
+                        </div>
+                    )}
+                    {currentStop.stop_venue && (
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                            {currentStop.stop_venue}
+                        </div>
+                    )}
                     {(currentStop.stop_city || currentStop.stop_state) && (
-                        <div className="rich-tour-card__stop-location">
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                             {[currentStop.stop_city, currentStop.stop_state].filter(Boolean).join(', ')}
                         </div>
                     )}
                     {currentStop.stop_start_date && (
-                        <div className="rich-tour-card__stop-date">
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
                             {formatDateRange(currentStop.stop_start_date, currentStop.stop_end_date)}
                         </div>
                     )}
                 </div>
             )}
 
+            {/* Fallback: show host venue if no schedule loaded yet */}
             {!currentStop && (venue.stop_venue || venue.city) && (
-                <div className="pnm-console-card__meta-line">
-                    <PokerNearMeConsoleIcon name="location" className="pnm-console-card__meta-icon" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+                    <PinIcon />
                     <span>{[venue.stop_venue, venue.city, venue.state].filter(Boolean).join(', ')}</span>
                 </div>
             )}
 
-            {buyinText && <div className="pnm-console-card__buyin">Buy-Ins: {buyinText}</div>}
-
-            {displayTour.regions && displayTour.regions.length > 0 && (
-                <div className="pnm-console-card__tag-row">
-                    {displayTour.regions.slice(0, 3).map(r => <span key={r} className="pnm-console-card__tag">{r}</span>)}
+            {/* Buy-in range */}
+            {buyinText && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <span style={{ display: 'inline-flex', color: 'rgba(255,255,255,0.4)' }}><MoneyIcon /></span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#eab308' }}>
+                        Buy-Ins: {buyinText}
+                    </span>
                 </div>
             )}
 
-            {isRegistryFallback && <div className="pnm-console-card__muted">Schedule Not Yet Published</div>}
+            {/* Regions */}
+            {displayTour.regions && displayTour.regions.length > 0 && (
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {displayTour.regions.slice(0, 3).map(r => (
+                        <span key={r} style={{
+                            padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
+                            background: 'rgba(100,116,139,0.15)', color: '#94a3b8',
+                            border: '1px solid rgba(100,116,139,0.2)'
+                        }}>{r}</span>
+                    ))}
+                </div>
+            )}
 
+            {/* Schedule not published yet — the API answered from the registry fallback,
+                which carries no stops. Without this the card just showed nothing. */}
+            {isRegistryFallback && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                    Schedule Not Yet Published
+                </div>
+            )}
+
+            {/* Upcoming Stops list */}
             {upcomingStops.length > 0 && (
-                <div className="rich-tour-card__upcoming">
-                    <div className="rich-tour-card__upcoming-title">
-                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+                        textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6,
+                        display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
                         Upcoming Stops ({upcomingStops.length})
                     </div>
                     {upcomingStops.map((s, i) => (
-                        <div key={i} className="rich-tour-card__upcoming-row">
-                            <span className="rich-tour-card__upcoming-name">{s.stop_name || s.name}</span>
-                            <span className="rich-tour-card__upcoming-date">
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '4px 0', borderBottom: i < upcomingStops.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', flex: 1, minWidth: 0,
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {s.stop_name || s.name}
+                            </span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', flexShrink: 0, marginLeft: 8 }}>
                                 {formatDateRange(s.stop_start_date, s.stop_end_date) || s.dates || 'TBD'}
                             </span>
                         </div>
@@ -226,26 +340,33 @@ export default function RichTourCard({ venue, isFavorited, onFavorite, onNavigat
                 </div>
             )}
 
-            <div className="card-footer">
-                {displayTour.established && <span className="established">Est. {displayTour.established}</span>}
-                <div className="card-actions">
-                    <span className="action-btn primary">
-                        <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__action-icon" />
+            {/* Footer: Est. + actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8,
+                paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {displayTour.established && (
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                        Est. {displayTour.established}
+                    </span>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                    <span style={{ padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                        background: '#1e40af', color: '#fff', cursor: 'pointer' }}>
                         Details
                     </span>
                     {displayTour.official_website && (
                         <a
                             href={displayTour.official_website.startsWith('http') ? displayTour.official_website : 'https://' + displayTour.official_website}
                             target="_blank" rel="noopener noreferrer"
-                            className="action-btn"
+                            style={{ padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
+                                border: '1px solid rgba(255,255,255,0.12)', textDecoration: 'none', cursor: 'pointer' }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <PokerNearMeConsoleIcon name="globe" className="pnm-console-card__action-icon" />
                             Website
                         </a>
                     )}
                 </div>
             </div>
-        </PokerNearMePanelShell>
+        </div>
     );
 }

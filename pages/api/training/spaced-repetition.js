@@ -7,7 +7,7 @@
  * so every legacy method fails closed until the Phase 12 replacement lands.
  */
 import { withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST, PATCH');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
-    try { reportApiError(err, req); } catch (_reportError) {
-      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+    try { reportApiError(err, req); } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
     }
     console.warn('[SpacedRepetition API Error]', err);
     if (!res.headersSent) {

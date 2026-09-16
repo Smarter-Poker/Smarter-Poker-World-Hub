@@ -6,7 +6,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
  * DELETE:  Remove a template by ID
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
 
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (e) {
-        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[Templates API] Error:', e);
         return res.status(500).json({ error: 'Internal server error' });
     }

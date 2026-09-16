@@ -27,7 +27,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let _admin = null;

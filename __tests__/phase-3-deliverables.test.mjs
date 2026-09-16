@@ -15,8 +15,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import os from 'node:os';
-import { spawnSync } from 'node:child_process';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 const exists = (rel) => fs.existsSync(path.join(REPO, rel));
@@ -82,7 +80,7 @@ test('/api/cron/email-deliverability-check checks SPF + DKIM + Resend domain', (
     // which is what SPF actually validates. The original check demanded
     // include:spf.resend.com on the ROOT, so it failed every day
     // (2026-08-15/16/17 in probe_heartbeats) against DNS that was correct -
-    // a daily 503 and retired error provider alert on the very channel meant to warn that
+    // a daily 503 and Sentry alert on the very channel meant to warn that
     // signup mail has broken. Worse, satisfying it would have meant adding
     // include:amazonses.com to the root, authorising all of Amazon SES to
     // send as @smarter.poker. Pinned so nobody "fixes" it back.
@@ -124,37 +122,3 @@ test('/api/cron/archive-signup-errors calls archive_signup_errors RPC', () => {
     assert.match(src, /older_than_days/, 'must pass retention parameter');
     assert.match(src, /validateCronAuth/, 'must auth via cron secret');
 });
-
-
-for (const baseline of ['failed', 'empty', 'skipped']) {
-    test(`signup chaos drill refuses the ${baseline} clean baseline before injecting faults`, () => {
-        const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'signup-drill-baseline-'));
-        try {
-            fs.mkdirSync(path.join(fixture, 'scripts'));
-            fs.mkdirSync(path.join(fixture, 'bin'));
-            fs.writeFileSync(path.join(fixture, 'scripts/chaos-signup-drill.sh'), read('scripts/chaos-signup-drill.sh'));
-            // No application is copied or changed. Only the real shell control
-            // flow runs; the test runner reports a controlled broken baseline.
-            fs.writeFileSync(path.join(fixture, 'bin/rsync'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
-            fs.writeFileSync(path.join(fixture, 'bin/node'), `#!/bin/sh
-printf '%s\\n' "$*" >> "$CHAOS_TEST_CALLS"
-printf '# tests ${baseline === 'empty' ? 0 : 1}\\n# pass 0\\n# fail ${baseline === 'failed' ? 1 : 0}\\n'
-exit ${baseline === 'failed' ? 1 : 0}
-`, { mode: 0o755 });
-            const calls = path.join(fixture, 'calls.txt');
-            const result = spawnSync('bash', [path.join(fixture, 'scripts/chaos-signup-drill.sh')], {
-                encoding: 'utf8', timeout: 10000,
-                env: { ...process.env, PATH: `${path.join(fixture, 'bin')}:${process.env.PATH}`, CHAOS_TEST_CALLS: calls },
-            });
-            assert.equal(result.error, undefined);
-            assert.equal(result.status, 1, result.stdout + result.stderr);
-            assert.match(result.stdout, /BASELINE FAILED/);
-            assert.doesNotMatch(result.stdout, /DETECTED|DRILL 1:/);
-            const commands = fs.readFileSync(calls, 'utf8').trim().split('\n');
-            assert.equal(commands.length, 1, 'must stop before any injected-fault execution');
-            assert.match(commands[0], /--experimental-vm-modules --test --test-reporter=tap/);
-        } finally {
-            fs.rmSync(fixture, { recursive: true, force: true });
-        }
-    });
-}
