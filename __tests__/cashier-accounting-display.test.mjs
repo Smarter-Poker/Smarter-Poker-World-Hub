@@ -212,7 +212,7 @@ test('the existing message API passes only the authenticated private-reader proo
     const mocks = {
         serverAuth: { getServerUserWithFallback: async () => ({ user: { id: id(8) } }) },
         supabaseServerClient: { createClient: () => db }, apiRateLimit: { applyRateLimit: () => true, LIMITS: {} },
-        sentryWrap: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
+        apiErrorHandler: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
         'messengerWorkspace.mjs': { readMessengerMessages: async (client, user, request) => {
             assert.equal(client, db); calls.push({ user, request }); return [canonical];
         } },

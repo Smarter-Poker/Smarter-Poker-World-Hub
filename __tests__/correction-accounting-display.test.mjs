@@ -222,7 +222,7 @@ test('actual message handler forwards private proof only and retains every corre
     const mocks = {
         serverAuth: { getServerUserWithFallback: async () => ({ user: { id: id(8) } }) },
         supabaseServerClient: { createClient: () => db }, apiRateLimit: { applyRateLimit: () => true, LIMITS: {} },
-        sentryWrap: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
+        apiErrorHandler: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
         'messengerWorkspace.mjs': { readMessengerMessages: async (client, user, request) => {
             assert.equal(client, db); calls.push({ user, request }); return [canonical];
         } },
@@ -332,7 +332,7 @@ test('actual message handler admits only the exact private identity-only project
     const mocks = {
         serverAuth: { getServerUserWithFallback: async () => ({ user: { id: id(8) } }) },
         supabaseServerClient: { createClient: () => db }, apiRateLimit: { applyRateLimit: () => true, LIMITS: {} },
-        sentryWrap: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
+        apiErrorHandler: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
         'messengerWorkspace.mjs': { readMessengerMessages: async (client, user) => {
             assert.equal(client, db); assert.equal(user, id(8)); return [canonical];
         } },

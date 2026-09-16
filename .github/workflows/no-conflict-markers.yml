@@ -48,25 +48,21 @@ jobs:
       - name: Scan for conflict markers
         shell: bash
         run: |
-          # Look for any unescaped marker line in tracked source files.
-          # Excludes node_modules + dist + .next via path filter; ripgrep
-          # respects .gitignore by default.
+          # EVERY TRACKED FILE, not an extension allowlist.
+          #
+          # This used to scan nine extensions. MEASURED 2026-09-15: a scan of
+          # every tracked file found exactly one offender, `.git-commit-msg.tmp`,
+          # whose first line is literally "<<<<<<< Updated upstream" - and the
+          # allowlist scan was GREEN the whole time, because .tmp is not one of
+          # the nine. The single committed file that actually carried conflict
+          # markers was the one file this guard could not see.
+          #
+          # `git ls-files` is the right source: it is the repo's own definition
+          # of what is tracked, so node_modules, .next and dist are excluded by
+          # construction instead of by a directory list that has to be kept in
+          # step. -I skips binaries; -z/-0 survives spaces in paths.
           set -e
-          if grep -rEn '^<<<<<<< |^>>>>>>> |^======= ' \
-               --include='*.sql' \
-               --include='*.js' \
-               --include='*.jsx' \
-               --include='*.ts' \
-               --include='*.tsx' \
-               --include='*.md' \
-               --include='*.yml' \
-               --include='*.yaml' \
-               --include='*.json' \
-               --exclude-dir=node_modules \
-               --exclude-dir=.next \
-               --exclude-dir=dist \
-               --exclude-dir=public \
-               .; then
+          if git ls-files -z | xargs -0 grep -InE '^<<<<<<< |^>>>>>>> |^======= '; then
               echo ""
               echo "::error::Conflict markers found in tracked files. Resolve them before merging."
               exit 1

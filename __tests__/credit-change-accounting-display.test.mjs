@@ -146,7 +146,7 @@ test('actual message API transports credit proof only from the authenticated pri
     const mocks = {
         serverAuth: { getServerUserWithFallback: async () => ({ user: { id: id(8) } }) },
         supabaseServerClient: { createClient: () => db }, apiRateLimit: { applyRateLimit: () => true, LIMITS: {} },
-        sentryWrap: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
+        apiErrorHandler: { reportApiError: () => {} }, 'accountingMessage.mjs': accounting,
         'messengerWorkspace.mjs': { readMessengerMessages: async (client, user) => {
             assert.equal(client, db); assert.equal(user, id(8)); return [canonical];
         } },

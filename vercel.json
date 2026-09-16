@@ -686,10 +686,6 @@
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/cron/sentry-signup-bridge",
-      "schedule": "*/15 * * * *"
-    },
-    {
       "path": "/api/cron/trigger-audit",
       "schedule": "0 6 * * *"
     },

@@ -6,7 +6,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * DELETE: Remove a calibration profile
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 let _supabase = null;
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[poker-brain/calibration] error:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }

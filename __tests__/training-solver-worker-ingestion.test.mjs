@@ -356,7 +356,7 @@ async function loadApi({ claim = true, rowStateMutator = null } = {}) {
   const dependencies = {
     'node:util': { TextDecoder },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
     '../../../src/lib/training/solverRowIdentity.mjs': {
       parseSolverScenarioHash,
