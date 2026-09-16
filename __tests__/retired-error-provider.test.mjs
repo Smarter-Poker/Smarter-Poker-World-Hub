@@ -17,6 +17,7 @@ function sourceFiles(dir) {
 }
 
 test('retired provider has no dependency, runtime loader, API bridge or scheduled job', () => {
+  assert.doesNotMatch(read('scripts/openclaw-cron-dispatcher.py'), /\/(?:api|cron)\/clawbot[/-]orchestrator/, 'provider-only worker task must have no schedule or routing entry');
   for (const file of ['package.json', 'package-lock.json', 'next.config.js', 'vercel.json', '.env.example', 'scripts/ci/vercel-env-baseline.json', 'middleware.ts']) {
     assert.doesNotMatch(read(file), retired, file);
   }
