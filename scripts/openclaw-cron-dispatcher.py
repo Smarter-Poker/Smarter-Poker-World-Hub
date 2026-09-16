@@ -421,7 +421,7 @@ def _alert(state, body, recovery=False):
 # Composition (35 jobs total):
 #   Original overflow set (13): auto-settlement stack, license-reminders,
 #     scraper-watchdog, venue-game-alerts, scraper-data-cleanup,
-#     clawbot/orchestrator, venue-review-prompts, tour-schedule-scraper,
+#     venue-review-prompts, tour-schedule-scraper,
 #     scrape-charity-schedules, deploy-error-poll + 4 video-library-* SCRIPT_JOBS.
 #   Restored orphan (1): hard-stop.
 #   Wave 1 additions (18): scrapers, content generation, cleanup jobs that
@@ -467,7 +467,7 @@ ALL_CRONS = [
     # first live run 401'd on a drifted copy. Commander runs both legs
     # (structural + signed-in with its PROBE_LOGIN_* credentials), records the
     # run in cron_execution_log as /commander/internal/login-bridge-probe, and
-    # sends commander.probe.login_bridge_failed to Sentry on any failure. The
+    # records login-bridge failures through existing local diagnostics. The
     # relay returns Commander's status verbatim; two non-200s in a row page
     # (CRITICAL_JOBS).
     ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours
@@ -510,7 +510,6 @@ ALL_CRONS = [
     # Personal Assistant lifecycle retention. The normal assistant route is
     # outside pages/api/cron because that directory has a strict CI file cap.
     ('/api/assistant/retention-maintenance', dict(hour=3, minute=17)),
-    ('/api/clawbot/orchestrator',           dict(hour=7, minute=0)),
     ('/api/cron/venue-review-prompts',      dict(hour='*/6', minute=0)),
     ('/api/cron/tour-schedule-scraper',     dict(day='*/3', hour=4, minute=0)),
     ('/api/cron/scrape-charity-schedules',  dict(day='*/3', hour=3, minute=0)),
@@ -1051,10 +1050,6 @@ WORKERS_PREFERRED = {
     # workflows replace them, will be deleted in 2B.3), tour-schedule-scraper
     # + horse-batch/0..9 + horses-stories + horses-social-* (DEFERRED
     # to dedicated AG dispatch sessions per 2b2-wrap-38-of-44.md).
-    #
-    # Path remap notes:
-    #   /api/clawbot/orchestrator → /cron/clawbot-orchestrator (workers
-    #     uses hyphen instead of slash; value-side mapping handles it)
     '/api/cron/collusion-scan':                '/cron/collusion-scan',
     '/api/cron/chip-supply-snapshot':          '/cron/chip-supply-snapshot',
     # '/api/cron/solver-watchdog' — retired 2026-08-27, see the schedule block above.
@@ -1080,7 +1075,6 @@ WORKERS_PREFERRED = {
     # '/api/cron/vip-stipend' is deliberately NOT in this table: it must run on
     # Vercel, where the monolith handler and its vip_subscriptions control live.
     '/api/cron/vip-status-check':              '/cron/vip-status-check',
-    '/api/clawbot/orchestrator':               '/cron/clawbot-orchestrator',
     # ─── 2B.2(h) — late add: scrape-sports-clips ───────────────────────────
     # Re-probed after fixing 30s timeout in the test harness — workers
     # responds 200 in ~40s with same payload shape as monolith
@@ -1172,7 +1166,7 @@ def _workers_dispatch(path: str) -> bool:
 # A job on this list is one whose FAILURE is the incident, not a symptom of
 # one. The Club Commander login-bridge probe is the first: when it fails,
 # nobody can sign in to Commander, and until today that produced a ⚠️ line in
-# this journal, a GitHub issue, and a Sentry event that the exhausted org
+# this journal, a GitHub issue, and a retired error provider event that the exhausted org
 # quota drops on the floor. None of those reach a phone. The workers
 # healthcheck has paged on two consecutive failures since Phase 2A; this gives
 # the same treatment to any job named here, through the same _alert() path

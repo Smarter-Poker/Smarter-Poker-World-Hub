@@ -47,7 +47,7 @@
 import { serviceClient } from '../trivia/tournament-lifecycle';
 import { settlePvpMatch } from '../trivia/pvp-settle-match';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { forcedPvpSettlementFailureCount } from '../../../src/lib/trivia/pvpSettlementPolicy.mjs';
 

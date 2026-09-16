@@ -15,8 +15,7 @@ import { createClient } from '@supabase/supabase-js';
 import { isTwilioConfigured } from '../../../src/lib/commander/twilio';
 import { getOneSignalStatus } from '../../../src/lib/commander/pushNotifications';
 import { getEmailStatus } from '../../../src/lib/emailTemplates';
-import { getSentryStatus } from '../../../src/lib/sentry';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 // ─── Phase 5.1.4 live-probe helpers ────────────────────────────────────────
 // Keep probes short-timeout and swallow-on-error: a failing probe should
@@ -110,7 +109,6 @@ export default async function handler(req, res) {
               anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '[SET]' : '[NOT SET]',
               serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? '[SET]' : '[NOT SET]',
           },
-          sentry: getSentryStatus(),
           push: getOneSignalStatus(),
           twilio: {
               configured: isTwilioConfigured(),
@@ -166,7 +164,7 @@ export default async function handler(req, res) {
       });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

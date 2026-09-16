@@ -49,7 +49,7 @@ export async function getServerSideProps({ req, res }) {
     const [healthRes, heartbeatsRes, errorsRes] = await Promise.all([
         adm.from('signup_health_view').select('*').maybeSingle(),
         adm.from('probe_heartbeats').select('id, probe_name, status, duration_ms, occurred_at').order('occurred_at', { ascending: false }).limit(20),
-        adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at, forwarded_to_sentry').order('occurred_at', { ascending: false }).limit(50),
+        adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at').order('occurred_at', { ascending: false }).limit(50),
     ]);
 
     return {
@@ -249,7 +249,6 @@ export default function SignupHealthDashboard(props) {
                                 <th style={S.th}>Trigger</th>
                                 <th style={S.th}>Code</th>
                                 <th style={S.th}>Message</th>
-                                <th style={S.th}>To Sentry</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -259,7 +258,6 @@ export default function SignupHealthDashboard(props) {
                                     <td style={S.td}><code>{e.trigger_name}</code></td>
                                     <td style={S.td}><code>{e.error_code}</code></td>
                                     <td style={{ ...S.td, fontSize: 12, maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.error_msg?.slice(0, 200)}</td>
-                                    <td style={S.td}>{e.forwarded_to_sentry ? '✓' : '⏳'}</td>
                                 </tr>
                             ))}
                         </tbody>

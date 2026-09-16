@@ -23,10 +23,9 @@
  *   ?calMonth=2026-08                   Load all events for a specific calendar month (YYYY-MM)
  */
 
-import { withSentry } from '../../../src/lib/sentry';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   decodeScrapedTournamentText,
   fetchAllRows,
@@ -994,7 +993,7 @@ async function handler(req, res) {
 
     return res.status(200).json(responsePayload);
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[events-calendar] Fatal error:', err);
     // [EC7 FIX] Was res.status(200) — returning 200 for fatal errors lets Vercel CDN
     // cache the error response (s-maxage=60) and serve it to hundreds of users.
@@ -1012,4 +1011,16 @@ async function handler(req, res) {
   }
 }
 
-export default withSentry(handler);
+export default async function routeHandler(req, res) {
+    try {
+        return await handler(req, res);
+    } catch (error) {
+        reportApiError(error, req);
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Internal server error',
+                ...(process.env.NODE_ENV === 'development' ? { message: error.message } : {}),
+            });
+        }
+    }
+}

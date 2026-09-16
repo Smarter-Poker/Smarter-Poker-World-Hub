@@ -34,7 +34,7 @@ import {
   approvalPendingResponse,
   cashoutAuthPath,
 } from '../../../src/lib/horses/approvals.js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
 function getSupabase() {
@@ -499,7 +499,7 @@ export default async function handler(req, res) {
     }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -577,7 +577,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
       }
     }
   } catch (e) {
-      try { reportApiError(e, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(e, null); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[approve-cashout] Push notification failed:', e.message);
   }
 }

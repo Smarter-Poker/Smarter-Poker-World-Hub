@@ -84,7 +84,7 @@ function loadReadApi(relativePath, resultsByTable) {
     '../../../src/utils/trainingApiUtils': {
       sanitizeParam: (value) => String(value || ''), withTiming() {},
     },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
     '../../../src/data/TRAINING_LIBRARY': {
       TRAINING_LIBRARY: [{ id: 'cash-001', name: 'Cash One', category: 'Cash', difficulty: 1 }],
     },

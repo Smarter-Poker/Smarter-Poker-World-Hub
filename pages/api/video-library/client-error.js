@@ -1,5 +1,5 @@
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 const ALLOWED_EVENTS = new Set([
     'catalog_load',
