@@ -30,12 +30,12 @@ function pushSelectionFixture(run) {
     writeFileSync(join(root, name), body);
   };
   const commit = () => { git('add', '.'); git('commit', '--quiet', '-m', 'fixture'); return git('rev-parse', 'HEAD'); };
-  const select = (input = '') => {
+  const select = (input = '', remote = 'origin') => {
     const hook = readFileSync(hookUrl, 'utf8');
     const start = hook.indexOf('# Get list of changed files compared to remote');
     const end = hook.indexOf('\nif [ -z "$CHANGED_FILES" ]; then', start);
     assert.ok(start >= 0 && end > start, 'maintained selection boundary');
-    const result = spawnSync('/bin/sh', ['-c', hook.slice(start, end) + '\nprintf \'%s\\n\' "$CHANGED_FILES"'],
+    const result = spawnSync('/bin/sh', ['-c', hook.slice(start, end) + '\nprintf \'%s\\n\' "$CHANGED_FILES"', 'pre-push', remote, 'unused-fixture-remote'],
       { cwd: root, env, input, encoding: 'utf8', timeout: 10000 });
     assert.ifError(result.error);
     return { ...result, files: result.stdout.trim().split('\n').filter(Boolean) };
@@ -78,7 +78,7 @@ test('pre-push unions every ref range and includes both rename paths and deletio
   });
 });
 
-test('pre-push absent input, new ref and unavailable remote base inspect all committed files', () => {
+test('pre-push absent input, new ref without baseline and unavailable remote base inspect all committed files', () => {
   pushSelectionFixture(({ put, commit, select, update, zero }) => {
     put('wrapper.py', 'print("fixture")\n'); const head = commit();
     for (const input of ['', update(head, zero), update(head, 'f'.repeat(head.length))]) {
@@ -86,6 +86,24 @@ test('pre-push absent input, new ref and unavailable remote base inspect all com
       assert.equal(result.status, 0, result.stderr);
       assert.deepEqual(result.files, ['old.js', 'wrapper.py']);
     }
+  });
+});
+
+test('pre-push new ref uses only its actual remote main merge-base without rescanning published source', () => {
+  pushSelectionFixture(({ put, git, commit, select, update, initial, zero }) => {
+    put('old.js', 'export const alreadyPublished = 2;\n');
+    const published = commit();
+    git('update-ref', 'refs/remotes/fixture/main', published);
+    git('update-ref', 'refs/remotes/origin/main', initial);
+    put('wrapper.py', 'print("fixture")\n');
+    const head = commit();
+    const result = select(update(head, zero), 'fixture');
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.files, ['wrapper.py']);
+    // A resolvable main cannot narrow an existing ref with a missing old object.
+    const unknown = select(update(head, 'f'.repeat(head.length)), 'fixture');
+    assert.equal(unknown.status, 0, unknown.stderr);
+    assert.deepEqual(unknown.files, ['old.js', 'wrapper.py']);
   });
 });
 
