@@ -134,5 +134,5 @@ test('PR template includes auth-critical checklist', () => {
     const src = read('.github/pull_request_template.md');
     assert.match(src, /Auth-Critical Path Checklist/);
     assert.match(src, /signup-hardening/);
-    assert.match(src, /SIGNUP-FIX-2026-05-03-FINAL\.md/);
+    assert.match(src, /docs\/SIGNUP_RUNBOOK\.md/);
 });

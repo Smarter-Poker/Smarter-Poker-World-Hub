@@ -521,8 +521,7 @@ export default function SignUpPage() {
     } catch (err) {
       console.warn(`${provider} sign in error:`, err);
       // PARITY WITH login.js (2026-08-25). This page had no server-side error
-      // capture at all, and client Sentry is off in production - so a Facebook
-      // button that failed HERE was still completely invisible, which is the
+      // reporting, so a provider failure was invisible. This closes the
       // exact bug the callback fix was written to close.
       reportAuthError('signup_oauth_init', err);
       setError(err.message || `Failed to sign in with ${provider}`);

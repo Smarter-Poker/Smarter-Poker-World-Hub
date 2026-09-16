@@ -6,7 +6,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 
 
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

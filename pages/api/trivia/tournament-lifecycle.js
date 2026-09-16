@@ -43,7 +43,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import {
     areTriviaTournamentsReleased,

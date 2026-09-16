@@ -41,7 +41,7 @@ test('message API uses the authenticated database page and preserves provenance 
  const source=fs.readFileSync(new URL('../pages/api/messenger/get-messages.js',import.meta.url),'utf8');
  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const module={exports:{}};
- const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},sentryWrap:{reportApiError:()=>{}},'accountingMessage.mjs':{verifyAccountingMessage}};
+ const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},apiErrorHandler:{reportApiError:()=>{}},'accountingMessage.mjs':{verifyAccountingMessage}};
  new Function('require','module','exports','process',code)(p=>mocks[p.split('/').at(-1)],module,module.exports,{env:{SUPABASE_SERVICE_ROLE_KEY:'fixture'}});
  let status=200,payload=null;const res={status(n){status=n;return this;},json(v){payload=v;return this;}};
  const cursor='2026-09-14T12:00:00.123456Z',beforeId='00000000-0000-4000-8000-000000000001';
@@ -108,7 +108,7 @@ for (const [route, limit] of [['global-search',30],['search-messages',50]]) {
   const source=fs.readFileSync(new URL('../pages/api/messenger/'+route+'.js',import.meta.url),'utf8');
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const module={exports:{}},db={from(){throw Error('Raw message access is forbidden');}};
-  const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},sentryWrap:{reportApiError:noop},'messengerWorkspace.mjs':{searchMessengerWorkspace:async(client,userId,request,cap)=>{assert.equal(client,db);calls.push({userId,request,cap});if(refusal)throw refusal;return [];}}};
+  const mocks={serverAuth:{getServerUserWithFallback:async()=>({user:{id:'verified-user'}})},supabaseServerClient:{createClient:()=>db},apiRateLimit:{applyRateLimit:()=>true,LIMITS:{}},apiErrorHandler:{reportApiError:noop},'messengerWorkspace.mjs':{searchMessengerWorkspace:async(client,userId,request,cap)=>{assert.equal(client,db);calls.push({userId,request,cap});if(refusal)throw refusal;return [];}}};
   new Function('require','module','exports','process',code)(name=>mocks[name.split('/').at(-1)],module,module.exports,{env:{SUPABASE_SERVICE_ROLE_KEY:'fixture'}});
   let status=200,payload=null;const res={status(value){status=value;return this;},json(value){payload=value;return this;}};
   const req={method:'POST',headers:{authorization:'Bearer fixture'},body:{userId:'forged-user',conversationId:'invoice',query:'query'}};

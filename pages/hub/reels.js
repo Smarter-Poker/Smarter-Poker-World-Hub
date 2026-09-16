@@ -7,7 +7,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   YouTubeErrorOverlay,
   reportFailureToServer,
-  reportToSentry,
 } from '../../src/hooks/useYouTubeErrorManager';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -2317,12 +2316,11 @@ export default function ReelsPage() {
           const errorCode = Number(data.info);
           console.warn('[Reels] YouTube error:', errorCode);
           setYtError({ code: errorCode });
-          // Report to server + Sentry (best-effort)
+          // Report to server (best-effort)
           try {
             const vid = iframeRef.current?.src ? getYouTubeVideoId(iframeRef.current.src) : null;
             if (vid) {
               reportFailureToServer(vid, errorCode, 'HubReels');
-              reportToSentry(vid, errorCode, 'HubReels');
             }
           } catch {
             /* best-effort */

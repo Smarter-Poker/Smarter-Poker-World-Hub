@@ -482,7 +482,7 @@ async function loadSpotRoute({
       sanitizeParam: (value, max) => String(value || '').trim().slice(0, max),
       withTiming: () => {},
     },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/utils/v2Matrix': {
       v2ToAppMatrix: realAdapter ? (value) => {
         const matrix = realV2ToAppMatrix(value);

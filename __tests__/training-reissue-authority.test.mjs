@@ -86,7 +86,7 @@ function loadHandler(fixtures = {}) {
     },
     '../../../src/lib/supabaseServerClient': { createClient: () => supabase },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
     '../../../src/lib/training/gradingReceipt.mjs': {
       trainingQuestionDigest: (question) => `digest:${question.id}`,
       prepareTrainingQuestionForDelivery: (input) => {
