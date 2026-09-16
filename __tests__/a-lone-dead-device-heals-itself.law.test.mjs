@@ -88,6 +88,20 @@ test('the two real devices are retired, with no sibling to vouch for them', () =
         'both had accepted sends running days past any proof of life');
 });
 
+test('ONE proven-dead row, with no sibling at all, is still retired', () => {
+    // The defect this law is named for, and the case the suite was missing.
+    // selectRetirable spared a subscription that was the only live row it had,
+    // so Dan's iPhone - the single Apple endpoint on the account once the iPad
+    // went - was never retired and so never replaced. Asserted with a ONE
+    // element array on purpose: the two-device case above passes whether or not
+    // a lone row is spared, so it cannot see this bug. Restoring the original
+    // `if (all.length <= 1) return []` must fail HERE and nowhere else.
+    assert.deepEqual(selectProvenDead([IPHONE]).map((r) => r.id), ['iphone'],
+        'a zombie with nothing to compare against is still a zombie');
+    assert.deepEqual(selectProvenDead([IPAD]).map((r) => r.id), ['ipad'],
+        'and so is the other one, alone');
+});
+
 test('a device nobody has pushed to is never touched', () => {
     // The conservatism the original guard was protecting. No send means no
     // evidence, however old the row is.
