@@ -43,7 +43,10 @@ git fetch origin main
 git add -- "$@"
 if ! git diff --cached --quiet; then git commit -m "$message"; fi
 head="$(git rev-parse HEAD)"
-git push --set-upstream origin "$branch"
+remote_head="$(git ls-remote --heads origin "refs/heads/$branch")"
+if [[ "${remote_head%%$'\t'*}" != "$head" ]]; then
+  git push --set-upstream origin "$branch"
+fi
 pr="$(gh pr list --repo "$repo" --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
 if [[ -z "$pr" ]]; then
   gh pr create --repo "$repo" --base main --head "$branch" --title "$message" \

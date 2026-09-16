@@ -71,7 +71,8 @@ function fixture(t, { branch = 'agent/test', owned = true, auth = true, push = t
   writeFileSync(join(bin, 'git'), `#!/bin/bash
 if [[ "$1 $2 $3" == 'remote get-url origin' ]]; then echo git@github.com:Smarter-Poker/Smarter-Poker-World-Hub.git; exit; fi
 if [[ "$1" == fetch ]]; then exit; fi
-if [[ "$1" == push ]]; then printf '%s\\n' "$*" >> "$TRACE"; exit ${push ? 0 : 1}; fi
+if [[ "$1" == ls-remote ]]; then if [[ -f "$PUSHED" ]]; then printf '%s\\trefs/heads/agent/test\\n' "$(cat "$PUSHED")"; fi; exit; fi
+if [[ "$1" == push ]]; then printf '%s\\n' "$*" >> "$TRACE"; "$REAL_GIT" rev-parse HEAD > "$PUSHED"; exit ${push ? 0 : 1}; fi
 exec "$REAL_GIT" "$@"
 `, { mode: 0o755 });
   writeFileSync(join(bin, 'gh'), `#!/bin/bash
@@ -88,7 +89,7 @@ esac
   // The original script must not be allowed to inspect the host keychain.
   writeFileSync(join(bin, 'security'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
   const trace = join(temp, 'trace');
-  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, REAL_GIT: realGit, TRACE: trace, PR_CREATED: join(temp, 'pr'), GH_TOKEN:'', GITHUB_TOKEN:'' };
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, REAL_GIT: realGit, TRACE: trace, PR_CREATED: join(temp, 'pr'), PUSHED: join(temp,'pushed'), GH_TOKEN:'', GITHUB_TOKEN:'' };
   delete env.GIT_DIR; delete env.GIT_WORK_TREE; delete env.GIT_INDEX_FILE;
   const run = (...paths) => spawnSync('bash', ['submit.sh', 'Repair submission', ...paths], { cwd: root, env, encoding:'utf8' });
   return { root, git, baseline, run, trace: () => existsSync(trace) ? readFileSync(trace,'utf8') : '' };
@@ -111,6 +112,7 @@ test('agent submission reuses its existing open PR on a repeated invocation', (t
   const head=f.git('rev-parse','HEAD'); assert.equal(f.run('change.txt').status,0);
   assert.equal(f.git('rev-parse','HEAD'),head);
   assert.equal(f.trace().split('\n').filter(x=>x.startsWith('pr create ')).length,1);
+  assert.equal(f.trace().split('\n').filter(x=>x.startsWith('push ')).length,1);
 });
 test('agent submission preserves an existing staged index and refuses to sweep it in', (t) => {
   const f=fixture(t); f.git('add','other.txt'); const before=f.git('diff','--cached');

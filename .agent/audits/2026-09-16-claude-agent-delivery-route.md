@@ -33,3 +33,11 @@ Agent entrypoints now point to the current guide. Existing local publisher,
 credentials, resource caps, required checks and release protections are unchanged.
 Automatic publication remains an explicit unimplemented infrastructure gap,
 not something a producer can fix by reading a project environment file.
+
+Actual resubmission exposed one more path: Git invokes pre-push with no updates
+for an already-pushed head, and the existing conservative hook then scans all
+source. The helper now reads the exact remote branch SHA and skips only the
+redundant transport when it equals HEAD; its existing repeated-invocation case
+asserts exactly one push across two submissions. Changed heads still use every
+normal hook. The observed redundant scan was stopped without a ref mutation;
+no hook was bypassed for the final changed version.
