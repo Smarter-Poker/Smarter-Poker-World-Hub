@@ -97,7 +97,7 @@ async function loadHandler(client) {
       sanitizeParam: (value) => value,
       withTiming: () => {},
     },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
   };
   const module = new SourceTextModule(API_SOURCE, { identifier: API_PATH });
   await module.link(async (specifier) => {

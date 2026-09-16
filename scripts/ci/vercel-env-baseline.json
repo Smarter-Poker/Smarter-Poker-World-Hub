@@ -135,12 +135,6 @@
       "updatedAt": "2026-01-25T23:13:05.282Z"
     },
     {
-      "key": "NEXT_PUBLIC_SENTRY_DSN",
-      "target": "production",
-      "type": "encrypted",
-      "updatedAt": "2026-02-02T14:31:53.700Z"
-    },
-    {
       "key": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
       "target": "production",
       "type": "encrypted",
@@ -255,30 +249,6 @@
       "updatedAt": "2026-01-13T18:50:34.673Z"
     },
     {
-      "key": "SENTRY_AUTH_TOKEN",
-      "target": "development,preview,production",
-      "type": "encrypted",
-      "updatedAt": "2026-04-20T10:08:32.335Z"
-    },
-    {
-      "key": "SENTRY_DSN",
-      "target": "production",
-      "type": "encrypted",
-      "updatedAt": "2026-02-02T14:31:54.747Z"
-    },
-    {
-      "key": "SENTRY_ORG",
-      "target": "development,preview,production",
-      "type": "encrypted",
-      "updatedAt": "2026-04-20T10:08:34.610Z"
-    },
-    {
-      "key": "SENTRY_PROJECT",
-      "target": "development,preview,production",
-      "type": "encrypted",
-      "updatedAt": "2026-04-20T10:08:38.028Z"
-    },
-    {
       "key": "STRIPE_SECRET_KEY",
       "target": "production",
       "type": "encrypted",
@@ -379,12 +349,6 @@
       "target": "development,preview,production",
       "type": "encrypted",
       "updatedAt": "2026-01-13T02:40:25.526Z"
-    },
-    {
-      "key": "VITE_SENTRY_DSN",
-      "target": "development,preview,production",
-      "type": "plain",
-      "updatedAt": "2026-08-26T13:35:54.962Z"
     },
     {
       "key": "VITE_SUPABASE_ANON_KEY",

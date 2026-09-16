@@ -75,7 +75,6 @@
 
 /** @type {import('next').NextConfig} */
 const os = require('os');
-const { withSentryConfig } = require('@sentry/nextjs');
 
 // --- How many cores the build is allowed to use -----------------------------
 // Read the machine instead of hard-coding a number, because this same config
@@ -482,7 +481,6 @@ const nextConfig = {
     'docx',
     'livekit-server-sdk',
     'posthog-node',
-    '@sentry/node',
     // ffmpeg/ffprobe ship native binaries — must NOT be webpacked.
     // Used by /api/cron/transcode-videos to convert HEVC → H.264 MP4.
     '@ffmpeg-installer/ffmpeg',
@@ -734,22 +732,7 @@ const nextConfig = {
       "img-src 'self' data: blob: https://*.supabase.co https://*.smarter.poker https://storage.googleapis.com https://maps.googleapis.com https://maps.gstatic.com https://server.arcgisonline.com https://api.qrserver.com https://img.youtube.com https://media.giphy.com https://*.giphy.com https://images.unsplash.com",
       // Connections: API calls to Supabase, OneSignal, Google Maps (geocode), Giphy, LiveKit
       //
-      // Sentry added 2026-08-29. It was MISSING, and this policy is Report-Only,
-      // so the only symptom was a line in the console that nobody reads:
-      //
-      //   Connecting to 'https://o4510810580779008.ingest.us.sentry.io/api/.../envelope/'
-      //   violates the following Content Security Policy directive: "connect-src ..."
-      //   The policy is report-only, so the violation has been logged but no
-      //   further action has been taken.
-      //
-      // That is a loaded gun. The comment above this block says the plan is to
-      // "switch to Content-Security-Policy" once violations are zero — and the
-      // moment anybody does that, every Sentry envelope on the platform is
-      // blocked and error reporting goes silently dark, which is the single
-      // worst thing to lose at exactly the moment you have just changed a
-      // security header. Wildcarded across both ingest domains because the
-      // region prefix moves with the project.
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://maps.googleapis.com https://api.giphy.com https://*.livekit.cloud wss://*.livekit.cloud https://smarter.poker https://*.smarter.poker wss://*.smarter.poker",
       // Media: self + blob (audio/video playback)
       "media-src 'self' blob: https://*.supabase.co",
       // Workers: self + blob (service worker, workbox)
@@ -778,9 +761,8 @@ const nextConfig = {
     // the policy graduates to enforcing "once violations have been monitored
     // and confirmed zero". Nothing has ever monitored it: there is no
     // `report-uri` and no `report-to` in the policy above, so a violation
-    // writes one line to one browser console and is forgotten. That is how the
-    // missing Sentry allowance survived ten days - see the comment on
-    // connect-src, which says so in as many words.
+    // writes one line to one browser console and is forgotten. A missing
+    // network allowance can otherwise go unnoticed.
     //
     // Club Arena's tests/e2e/production-csp-violations.spec.ts now collects
     // `securitypolicyviolation` events (they fire for a report-only policy too,
@@ -904,7 +886,7 @@ const nextConfig = {
           },
           {
             // Report-Only: logs violations without blocking — safe to enable immediately.
-            // Monitor browser console and Sentry for violations, then graduate to
+            // Monitor browser console for violations, then graduate to
             // Content-Security-Policy once the violation list is clean.
             key: 'Content-Security-Policy-Report-Only',
             value: csp,
@@ -1205,62 +1187,6 @@ const nextConfig = {
   },
 };
 
-// Sentry configuration options
-const sentryWebpackPluginOptions = {
-  // Suppresses source map uploading logs during build
-  silent: true,
-
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
-  org: process.env.SENTRY_ORG || 'smarter-software-inc',
-  project: process.env.SENTRY_PROJECT || 'javascript-nextjsmarter-poker-world-hubs',
-
-  // Auth token for source map uploads (optional)
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-
-  // Only upload source maps in production
-  dryRun: process.env.NODE_ENV !== 'production',
-};
-
-// Sentry SDK options
-const sentryOptions = {
-  // [Phase 5.2.1e] Disabled widenClientFileUpload to cut build memory.
-  // With 952 pages + standalone output, widening the source-map upload set
-  // plus autoInstrumentServerFunctions pushed the Vercel 8GB build container
-  // into the kernel OOM killer (SIGKILL) after every mass-file commit.
-  // Narrow upload scope only; errors still symbolicate on the files Sentry
-  // cares about (pages + app routes).
-  widenClientFileUpload: false,
-
-  // Hide source maps from client bundles
-  hideSourceMaps: true,
-
-  // [Phase 5.2.1e] Disabled autoInstrumentServerFunctions — it wraps every
-  // API route with Sentry tracing at build time, allocating a huge closure
-  // map. Runtime Sentry.init() still captures all thrown errors; only the
-  // automatic performance-tracing wrapping is skipped.
-  autoInstrumentServerFunctions: false,
-
-  // Disable verbose logging
-  disableLogger: true,
-
-  // Disable automatic transaction wrapping for middleware
-  // (can cause issues with some Next.js features)
-  autoInstrumentMiddleware: false,
-};
-
-// [OOM FIX] Bypass Sentry webpack plugin entirely.
-// withSentryConfig instruments every route + uploads source maps at build time.
-// On a 950+ page repo this consumes 1-2GB of build RAM and tips us over the
-// Vercel 8GB container limit. Runtime Sentry.init() in sentry.client.config.js
-// still captures all thrown errors — only build-time auto-instrumentation is skipped.
-// [2026-07-25] APPLY the PWA wrapper. It was constructed above with the
-// carefully-tuned NetworkOnly runtimeCaching rules (the "Dan-fix mobile
-// white-screen" mitigations), but the export line read `module.exports =
-// nextConfig`, so withPWA was never applied and NONE of the service-worker /
-// caching config took effect in production. Wrapping here activates it.
-// withPWA already self-disables when not on Vercel (`disable: !process.env.VERCEL`),
-// so local `next dev` is unaffected. withSentryConfig stays intentionally
-// bypassed (build-time OOM); runtime Sentry is wired via src/instrumentation*.js.
+// Keep the existing service-worker and cache policy.
 const pwaConfig = withPWA(nextConfig);
 module.exports = pwaConfig;

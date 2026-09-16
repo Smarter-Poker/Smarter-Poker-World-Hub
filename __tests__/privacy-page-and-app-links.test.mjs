@@ -58,7 +58,7 @@ test('/privacy is a page with no client state that renders the one PrivacySectio
   const terms = read('pages/terms.js');
   assert.match(terms, /export function PrivacySection\(\)/);
   // what a store reviewer looks for, on the page they will read
-  for (const s of ['The Club Arena App', 'Deleting Your Account', 'Push Token', 'RevenueCat', 'PostHog', 'Sentry']) {
+  for (const s of ['The Club Arena App', 'Deleting Your Account', 'Push Token', 'RevenueCat', 'PostHog', 'Our Error Logs']) {
     assert.ok(terms.includes(s), `privacy section names ${s}`);
   }
 });

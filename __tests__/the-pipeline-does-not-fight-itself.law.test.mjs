@@ -59,7 +59,7 @@ test('experimental.cpus is derived from the machine, never a bare constant', () 
 test('the real resolveBuildCpus gives 4 on an 8-core builder and 1 on a 2-core box', () => {
   // Extracted and evaluated from next.config.js rather than re-implemented, so
   // this cannot pass against a function that no longer behaves this way.
-  // next.config.js is not imported directly: it pulls in Sentry, PWA and a
+  // next.config.js is not imported directly: it pulls in retired error provider, PWA and a
   // child_process call at module scope.
   const src = read('next.config.js');
   const fn = src.match(/function resolveBuildCpus\(\)[\s\S]*?\n\}/);
