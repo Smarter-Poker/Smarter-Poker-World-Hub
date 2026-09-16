@@ -12,22 +12,28 @@ function sourceFiles(dir) {
   return fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) return entry.name === 'tests' || entry.name === 'node_modules' ? [] : sourceFiles(file);
-    return /\.(?:[cm]?js|jsx|tsx?)$/.test(entry.name) ? [file] : [];
+    return (/\.(?:[cm]?js|jsx|tsx?)$/.test(entry.name) || (file.startsWith('public/') && /\.(?:html|json|map)$/.test(entry.name))) ? [file] : [];
   });
 }
 
 test('retired provider has no dependency, runtime loader, API bridge or scheduled job', () => {
-  for (const file of ['package.json', 'package-lock.json', 'next.config.js', 'vercel.json', '.env.example', 'scripts/ci/vercel-env-baseline.json']) {
+  for (const file of ['package.json', 'package-lock.json', 'next.config.js', 'vercel.json', '.env.example', 'scripts/ci/vercel-env-baseline.json', 'middleware.ts']) {
     assert.doesNotMatch(read(file), retired, file);
   }
-  for (const file of ['sentry.client.config.js', 'sentry.server.config.js', 'sentry.edge.config.js', 'src/instrumentation-client.js', 'src/lib/sentry.js', 'src/lib/sentryWrap.js', 'vendor/commander-shared/src/lib/sentryWrap.js', 'pages/api/cron/sentry-signup-bridge.js', 'pages/api/clawbot/sentry-triage.js', 'resolve-sentry-issues.js']) {
+  for (const file of ['sentry.client.config.js', 'sentry.server.config.js', 'sentry.edge.config.js', 'src/instrumentation-client.js', 'src/lib/sentry.js', 'src/lib/sentryWrap.js', 'vendor/commander-shared/src/lib/sentryWrap.js', 'pages/api/cron/sentry-signup-bridge.js', 'pages/api/clawbot/sentry-triage.js', 'resolve-sentry-issues.js', '.agent/skills/sentry-mcp/SKILL.md']) {
     assert.equal(fs.existsSync(path.join(root, file)), false, `${file} must stay retired`);
   }
 });
 
 test('active product source cannot reintroduce the retired SDK, transport or wrapper', () => {
-  const offenders = ['pages', 'src', 'utils', 'vendor/commander-shared/src'].flatMap(sourceFiles).filter((file) => retired.test(read(file)));
+  const offenders = ['pages', 'app', 'public', 'src', 'utils', 'vendor/commander-shared/src'].flatMap(sourceFiles).filter((file) => retired.test(read(file)));
   assert.deepEqual(offenders, []);
+});
+
+test('active operator guidance does not ask agents to reconnect the retired provider', () => {
+  for (const file of ['docs/SIGNUP_RUNBOOK.md', '.agent/skills/club-commander/ANTIGRAVITY_TASKS.md', '.agent/skills/club-commander/IMPLEMENTATION_PHASES.md', '.agent/skills/club-commander/BUILD_PLAN.md', '.agent/skills/whats-next-roadmap/SKILL.md', '.agent/architecture/ONE-SOURCE-OF-TRUTH.md', '.agent/architecture/club-arena-operations-api.md', 'CLUB_COMMANDER_BUILD_PLAN.md']) {
+    assert.doesNotMatch(read(file), retired, file);
+  }
 });
 
 test('existing first-party crash storage, auth error route and production guard remain wired', () => {

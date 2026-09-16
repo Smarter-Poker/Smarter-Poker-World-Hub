@@ -535,7 +535,7 @@ ALL_CRONS = [
     # first live run 401'd on a drifted copy. Commander runs both legs
     # (structural + signed-in with its PROBE_LOGIN_* credentials), records the
     # run in cron_execution_log as /commander/internal/login-bridge-probe, and
-    # sends commander.probe.login_bridge_failed to Sentry on any failure. The
+    # records login-bridge failures through existing local diagnostics. The
     # relay returns Commander's status verbatim; two non-200s in a row page
     # (CRITICAL_JOBS).
     ('/api/internal/login-bridge-probe',            dict(minute=22)),      # hourly at :22 - off the quarter-hours

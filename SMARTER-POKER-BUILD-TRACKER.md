@@ -168,7 +168,7 @@
 | PostHog MCP | SUGGESTED | User needs to connect |
 | Vercel MCP | CONNECTED | Can deploy, read logs |
 | Supabase | IN CODEBASE | Via env vars, not MCP |
-| Sentry | IN CODEBASE | Error tracking active |
+| First-party error diagnostics | IN CODEBASE | Existing application and crash logs |
 | GitHub | VIA CLI | gh commands available |
 
 ---
