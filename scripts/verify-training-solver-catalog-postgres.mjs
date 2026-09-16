@@ -105,6 +105,65 @@ function commandAsync(binary, args, { input } = {}) {
   });
 }
 
+async function withStaleReceiptLock(binary, args, cleanup) {
+  const child = spawn(binary, args, {
+    cwd: ROOT, env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  let stdout = '';
+  let stderr = '';
+  let releaseRequested = false;
+  let readyResolve;
+  let readyReject;
+  const ready = new Promise((resolve, reject) => {
+    readyResolve = resolve;
+    readyReject = reject;
+  });
+  const finished = new Promise((resolve, reject) => {
+    child.once('error', (error) => { readyReject(error); reject(error); });
+    child.once('close', (status, signal) => {
+      const error = new Error(`Stale receipt locker exited (${status ?? signal}).\n${stdout}\n${stderr}`);
+      readyReject(error);
+      if (status !== 0 || !releaseRequested) reject(error);
+      else resolve();
+    });
+  });
+  // The owner still awaits this promise in finally; prevent an early child
+  // failure becoming an unhandled rejection while cleanup is in flight.
+  finished.catch(() => {});
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    stdout += chunk;
+    if (/(?:^|\n)stale-receipt-lock-held\r?\n/.test(stdout)) readyResolve();
+  });
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  child.stdin.on('error', (error) => { readyReject(error); child.kill('SIGKILL'); });
+  // Bound the holder even if its client or the verification callback fails.
+  const deadline = setTimeout(() => child.kill('SIGKILL'), 10_000);
+  try {
+    child.stdin.write(String.raw`
+      BEGIN;
+      SET LOCAL statement_timeout = '1500ms';
+      SET LOCAL idle_in_transaction_session_timeout = '10s';
+      SELECT request_nonce
+      FROM public.training_solver_worker_receipts
+      WHERE machine_id = 'M1' AND request_nonce = md5('stale-receipt-1')::uuid
+        AND received_at < now() - interval '24 hours'
+      FOR UPDATE
+      \gset
+      \echo stale-receipt-lock-held
+    `);
+    // psql emits this marker only after the row lock and a one-row \gset.
+    // Keep stdin open, and the transaction held, until cleanup has completed.
+    await ready;
+    return await cleanup();
+  } finally {
+    releaseRequested = true;
+    if (!child.stdin.destroyed) child.stdin.end('ROLLBACK;\n');
+    try { await finished; } finally { clearTimeout(deadline); }
+  }
+}
+
 function resolvePostgresBin() {
   const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
@@ -3376,44 +3435,49 @@ try {
     quiet: true,
   });
 
-  // Hold the oldest receipt row while another request performs its bounded
-  // retention pass. FOR UPDATE SKIP LOCKED must let the request complete under
-  // a deadline instead of joining the platform's existing deadlock pressure.
-  const staleRowLocker = commandAsync(tool('psql'), [
+  // Prove an actual row lock before and after the bounded retention pass.
+  // Holder release is explicit; its deliberate lifetime is not cleanup time.
+  await withStaleReceiptLock(tool('psql'), [
     '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
-  ], {
-    input: String.raw`
-      BEGIN;
-      SELECT request_nonce
-      FROM public.training_solver_worker_receipts
-      WHERE received_at < now() - interval '24 hours'
-      ORDER BY received_at, machine_id
-      FOR UPDATE
-      LIMIT 1;
-      SELECT pg_sleep(2);
-      COMMIT;
-    `,
+  ], async () => {
+    const heldRowProof = String.raw`
+      DO $held_row_proof$
+      DECLARE locked boolean := false;
+      BEGIN
+        BEGIN
+          PERFORM 1 FROM public.training_solver_worker_receipts
+          WHERE machine_id = 'M1' AND request_nonce = md5('stale-receipt-1')::uuid
+            AND received_at < now() - interval '24 hours'
+          FOR UPDATE NOWAIT;
+        EXCEPTION WHEN lock_not_available THEN locked := true;
+        END;
+        IF NOT locked THEN
+          RAISE EXCEPTION 'STALE_RECEIPT_ROW_NOT_HELD';
+        END IF;
+      END;
+      $held_row_proof$;
+    `;
+    const cleanupResult = await commandAsync(tool('psql'), [
+      '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
+    ], {
+      input: String.raw`
+        SET statement_timeout = '1500ms';
+        ${heldRowProof}
+        SELECT public.training_claim_solver_worker_request_v1(
+          'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+          'training-v2', repeat('c', 64),
+          '93000000-0000-4000-8000-000000000001', 'heartbeat',
+          now(), repeat('7', 64)
+        );
+        ${heldRowProof}
+        SELECT count(*) = 1 FROM public.training_solver_worker_receipts
+        WHERE machine_id = 'M1' AND received_at < now() - interval '24 hours';
+      `,
+    });
+    if (cleanupResult.stdout.trim() !== 'SET\nDO\nt\nDO\nt') {
+      throw new Error(`Receipt cleanup did not preserve the held row and remove the 100 unlocked stale receipts.\n${cleanupResult.stdout}`);
+    }
   });
-  await new Promise((resolve) => setTimeout(resolve, 250));
-  const cleanupStart = Date.now();
-  const cleanupResult = await commandAsync(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
-  ], {
-    input: String.raw`
-      SET statement_timeout = '1500ms';
-      SELECT public.training_claim_solver_worker_request_v1(
-        'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-        'training-v2', repeat('c', 64),
-        '93000000-0000-4000-8000-000000000001', 'heartbeat',
-        now(), repeat('7', 64)
-      );
-    `,
-  });
-  await staleRowLocker;
-  if (!/(?:^|\n)t(?:\n|$)/.test(cleanupResult.stdout)
-      || Date.now() - cleanupStart >= 1_900) {
-    throw new Error(`Receipt cleanup waited on a locked stale row.\n${cleanupResult.stdout}`);
-  }
 
   // Force the ON CONFLICT branch: transaction A commits one exact ingest but
   // holds its nonce/warehouse locks; transaction B started concurrently must

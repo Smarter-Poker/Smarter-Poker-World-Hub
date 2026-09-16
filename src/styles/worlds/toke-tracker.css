@@ -72,17 +72,35 @@
 
 /* ── Touch: 44px controls, 16px inputs, at every width ─────────────────── */
 
-.toke-page button:not(.universal-header *):not(.hamburger-menu *):not(.toke-img-map-element),
+/* Every control, including the image-mapped ones. The Add Down modal paints
+   its controls into the artwork and positions transparent buttons over them;
+   at 375 its Start Down and Cancel zones were 36px and its two input rows
+   40px, because a percentage of a 399px-tall card is not 44px. They are
+   absolutely positioned, so a min-height grows the hit area downward into
+   the card's lower bezel, where there is nothing to overlap. */
+.toke-page button:not(.universal-header *):not(.hamburger-menu *),
 .toke-page [role="button"] {
     min-height: 44px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
 
-.toke-page input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-.toke-page select,
+.toke-page input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.toke-img-map-element),
+.toke-page select:not(.toke-img-map-element),
 .toke-page textarea {
     font-size: 16px !important;
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+/* The one exception to the 16px rule, and it has to be an exception rather
+   than a later override: the rule above is (0,4,1) specific, so a plain
+   `.toke-page .toke-img-map-element` at (0,2,0) loses to it even with
+   !important, and the painted fields silently rendered at 16px. They are
+   drawn at 18px to sit inside the artwork's own slots, and 18 is already
+   above the iOS zoom threshold. */
+.toke-page .toke-img-map-element {
+    font-size: 18px !important;
     min-height: 44px;
     touch-action: manipulation;
 }
@@ -130,6 +148,38 @@
     opacity: 0.45;
 }
 
+/* ── Loading: one class, one keyframe, mirroring the real layout ────────── */
+
+.toke-skel {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.09),
+        rgba(255, 255, 255, 0.05)
+    );
+    background-size: 200% 100%;
+    animation: tokeShimmer 1.4s ease-in-out infinite;
+    border-radius: 12px;
+}
+
+.toke-skel-card {
+    height: 96px;
+    margin-bottom: 12px;
+}
+
+.toke-skel-panel {
+    height: 220px;
+}
+
+@keyframes tokeShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toke-skel { animation: none; }
+}
+
 /* ── Dashboard: every chart is on the page, under its own heading ───────── */
 
 .toke-chart-heading {
@@ -163,6 +213,26 @@
 @media (max-width: 600px) {
     .toke-cal-year-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Seven 44px days plus six 2px gaps is 320px, and a phone is 375. So at
+       phone width the month grid takes the full width of whatever it is
+       mounted in, and every card between the page and the grid stops
+       charging it side padding. Measured on
+       /hub/bankroll-manager?view=toke-tracker, where four nested cards left
+       the grid 263px and every day came out 35px wide - below the 44px
+       target this stylesheet claims two rules up. These three classes are
+       deliberately unscoped: the same components render inside
+       .bankroll-page as well as .toke-page, and the defect was on the
+       bankroll one. */
+    .toke-cal-wrapper,
+    .toke-cal-month {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .toke-cal-grid {
+        gap: 2px !important;
     }
 
     /* The Tax Summary is a fixed, centred card above 600px. On a phone it

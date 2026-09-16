@@ -35,19 +35,9 @@ These are tasks that require external accounts, manual configuration, or human a
 
 ---
 
-### 2. Sentry Error Monitoring Setup
-**Why:** Catch and track production errors automatically
-**Steps:**
-1. Create account at https://sentry.io (free tier available)
-2. Create new project → Select "Next.js"
-3. Copy DSN from project settings
-4. Add to Vercel environment variables:
-   ```
-   NEXT_PUBLIC_SENTRY_DSN=your_dsn_here
-   SENTRY_DSN=your_dsn_here
-   ```
-
-**Cost:** Free tier includes 5,000 errors/month
+### 2. Existing Error Diagnostics
+Use the maintained local error reporter and existing first-party crash records.
+Do not install an external telemetry SDK or add a paid monitoring service.
 
 ---
 
@@ -160,10 +150,6 @@ SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_ONESIGNAL_APP_ID=
 ONESIGNAL_REST_API_KEY=
 
-# Sentry Error Monitoring (Priority 1 - FREE)
-NEXT_PUBLIC_SENTRY_DSN=
-SENTRY_DSN=
-
 # Email - Optional (Priority 2)
 RESEND_API_KEY=
 
@@ -186,7 +172,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_KEY=
 
 ### Minimum Viable Setup (Do These First):
 - [ ] **OneSignal:** Create account, get App ID + API Key, add to Vercel
-- [ ] **Sentry:** Create account, get DSN, add to Vercel
+- [ ] **Error diagnostics:** Verify the existing first-party error path.
 
 ### Testing After Setup:
 - [ ] Open your app in browser
@@ -220,6 +206,6 @@ Push notification code is in:
 - `src/lib/commander/pushNotifications.js` - Server-side sending
 - `src/components/commander/shared/PushNotificationProvider.jsx` - Client-side setup
 
-Sentry config:
-- `sentry.client.config.js`
-- `sentry.server.config.js`
+Error diagnostics:
+- `src/lib/apiErrorHandler.js`
+- `src/lib/commander/errorMonitoring.js`

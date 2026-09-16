@@ -1,0 +1,349 @@
+/* Poker Near Me command drawer: painted controls, live DOM labels and state. */
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] {
+  border: 0 !important;
+  background-color: #010305 !important;
+  background-image: url('/images/pnm-console/painted-panels-v1/panel-mid.png') !important;
+  background-position: top center !important;
+  background-repeat: repeat-y !important;
+  background-size: 100% auto !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
+  .sp-command-utility-rail,
+  .sp-command-grid-mark,
+  .sp-command-context,
+  .sp-command-search,
+  .sp-command-search input,
+  .sp-command-utility-button,
+  .sp-command-offline,
+  .sp-command-identity,
+  .sp-menu-row,
+  .sp-grid-tile,
+  .sp-icon-btn
+) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
+  .sp-command-grid-mark,
+  .sp-command-context,
+  .sp-menu-row,
+  .sp-grid-tile
+)::before,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile::after {
+  content: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  min-height: 68px;
+  box-sizing: border-box;
+  padding: 10px 16px !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / 100% auto no-repeat !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-grid-mark {
+  width: 46px !important;
+  height: 46px !important;
+  flex: 0 0 46px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-menu.png') center / contain no-repeat !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-grid-mark svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search__well > svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row > svg,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-icon-btn svg {
+  display: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 !important;
+  color: transparent !important;
+  background-color: transparent !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  transition: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button--edit {
+  background-image: url('/images/pnm-console/painted-controls-v1/icon-edit.png') !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-button--close {
+  background-image: url('/images/pnm-console/painted-controls-v1/icon-close.png') !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-close-label {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context,
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-offline {
+  min-height: 62px;
+  box-sizing: border-box;
+  margin: 2px 12px 10px !important;
+  padding: 12px clamp(20px, 6vw, 28px) !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / 100% auto no-repeat !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context p {
+  margin-top: 4px;
+  color: #aeb9c4;
+  font-size: 12px;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search {
+  top: 68px !important;
+  z-index: 7;
+  padding: 0 12px 8px !important;
+  background: #010305 !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search__well {
+  min-height: 64px;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search__well::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  pointer-events: none;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-search.png') center / contain no-repeat;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search input {
+  min-height: 64px !important;
+  padding: 0 52px 0 58px !important;
+  color: #e9f1f7 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search input::placeholder {
+  color: #8f9eaa;
+  opacity: 1;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-icon-btn {
+  width: 44px !important;
+  height: 44px !important;
+  color: transparent !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-close.png') center / contain no-repeat !important;
+  transition: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] [data-world-primary-commands] {
+  gap: 6px !important;
+  padding: 0 12px !important;
+  margin-bottom: 10px !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile {
+  min-height: 62px !important;
+  padding: 5px 12px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  color: #dfe8ef !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-secondary.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+  transition: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile[aria-current='page'] {
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/button-primary.png') !important;
+  filter: brightness(1.08);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row {
+  position: relative;
+  width: calc(100% - 16px) !important;
+  min-height: 62px !important;
+  margin: 0 8px 2px !important;
+  padding: 7px 24px !important;
+  color: #dfe8ef !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% auto !important;
+  transition: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[aria-current='page'] {
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  filter: brightness(1.12) saturate(1.08);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  color: transparent !important;
+  background-color: transparent !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--search { background-image: url('/images/pnm-console/painted-controls-v1/icon-search.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--saved { background-image: url('/images/pnm-console/painted-controls-v1/icon-saved.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--alert { background-image: url('/images/pnm-console/painted-controls-v1/icon-alert.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--review { background-image: url('/images/pnm-console/painted-controls-v1/icon-review.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--community { background-image: url('/images/pnm-console/painted-controls-v1/icon-community.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--roadtrip { background-image: url('/images/pnm-console/painted-controls-v1/icon-roadtrip.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--event-ticket { background-image: url('/images/pnm-console/painted-controls-v1/icon-event-ticket.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--trophy { background-image: url('/images/pnm-console/painted-controls-v1/icon-trophy.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--live-games { background-image: url('/images/pnm-console/painted-controls-v1/icon-live-games.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--globe { background-image: url('/images/pnm-console/painted-controls-v1/icon-globe.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--location { background-image: url('/images/pnm-console/painted-controls-v1/icon-location.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--filter { background-image: url('/images/pnm-console/painted-controls-v1/icon-filter.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--info { background-image: url('/images/pnm-console/painted-controls-v1/icon-info.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--home { background-image: url('/images/pnm-console/painted-controls-v1/icon-home.png') !important; }
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon--more { background-image: url('/images/pnm-console/painted-controls-v1/icon-more.png') !important; }
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row:is(a, [aria-expanded])::after {
+  content: '';
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  margin-left: auto;
+  background: transparent url('/images/pnm-console/painted-controls-v1/icon-back.png') center / contain no-repeat;
+  transform: rotate(180deg);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-menu-row[aria-expanded='true']::after {
+  transform: rotate(-90deg);
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-identity {
+  margin: 0 8px 12px !important;
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-sc-tile > div:first-child {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: #05080c !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/icon-community.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-sc-tile > div:first-child img {
+  inset: 7px !important;
+  width: calc(100% - 14px) !important;
+  height: calc(100% - 14px) !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
+  .sp-menu-row,
+  .sp-grid-tile,
+  .sp-icon-btn,
+  .sp-command-utility-button,
+  .sp-sc-tile
+):focus-visible {
+  border-radius: 0 !important;
+  outline: 2px solid #d8f4ff !important;
+  outline-offset: -3px !important;
+}
+
+body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] :is(
+  .sp-menu-row,
+  .sp-grid-tile,
+  .sp-icon-btn,
+  .sp-command-utility-button,
+  .sp-sc-tile
+):active {
+  transform: scale(0.985);
+  filter: brightness(1.1);
+}
+
+@media (max-width: 420px) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
+    min-height: 62px;
+    padding: 7px 12px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context {
+    min-height: 58px;
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search {
+    top: 62px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-grid-tile {
+    min-height: 58px !important;
+    padding-right: 9px !important;
+    padding-left: 9px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-item-icon {
+    width: 34px !important;
+    height: 34px !important;
+    flex-basis: 34px !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-utility-rail {
+    position: relative;
+    min-height: 54px;
+    padding: 5px 12px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-context {
+    min-height: 54px;
+    margin-bottom: 5px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
+  }
+
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] .sp-command-search {
+    position: relative !important;
+    top: auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.world-poker-near-me .sp-drawer[data-pnm-console='painted-command-drawer-v1'] * {
+    transition-duration: 0.01ms !important;
+  }
+}

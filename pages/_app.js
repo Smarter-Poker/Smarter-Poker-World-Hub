@@ -35,6 +35,16 @@ import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-machined.css';
 import '../src/styles/worlds/poker-near-me-command-surfaces.css';
+import '../src/styles/worlds/poker-near-me-console.css';
+import '../src/styles/worlds/poker-near-me-console-deep.css';
+import '../src/styles/worlds/poker-near-me-console-search.css';
+import '../src/styles/worlds/poker-near-me-console-nav.css';
+import '../src/styles/worlds/poker-near-me-console-dialogs.css';
+import '../src/styles/worlds/poker-near-me-console-surfaces.css';
+import '../src/styles/worlds/poker-near-me-console-map.css';
+import '../src/styles/worlds/poker-near-me-console-cards.css';
+import '../src/styles/worlds/poker-near-me-console-tools.css';
+import '../src/styles/worlds/poker-near-me-console-menu.css';
 import {
   Orbitron,
   Inter,
@@ -1273,15 +1283,10 @@ export default function App({ Component, pageProps }) {
   );
 }
 
-// Report Web Vitals to Sentry for performance monitoring
+// Keep local development Web Vitals and route-scoped first-party analytics.
 export function reportWebVitals({ id, name, label, value }) {
   try {
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.metrics?.distribution(name, value, {
-        tags: { id, label },
-        unit: name === 'CLS' ? 'none' : 'millisecond',
-      });
-    }
+
     // Also log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);

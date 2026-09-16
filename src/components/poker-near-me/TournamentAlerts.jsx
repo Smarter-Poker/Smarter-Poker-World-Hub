@@ -6,6 +6,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { normalizeGameName } from './normalize-game';
 import { haversineMiles } from './pnm-utils';
 import { getAccessToken } from '../../lib/authUtils';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const GAME_TYPES = ['NLH', 'PLO', 'Mixed', 'Omaha Hi-Lo', 'Stud'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -280,16 +281,19 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
     };
 
     return (
-        <div className="tournament-alerts">
+        <PokerNearMePanelShell
+            as="section"
+            className="tournament-alerts pnm-console-tool"
+            bodyClassName="pnm-console-tool__body"
+            aria-labelledby="pnm-tournament-alerts-title"
+        >
             <div className="ta-header">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 01-3.46 0" />
-                    <circle cx="18" cy="4" r="3" fill="#ef4444" stroke="none" />
-                </svg>
-                <h2>Tournament Alerts</h2>
+                <PokerNearMeConsoleIcon name="calendar" className="pnm-console-tool__header-icon" />
+                <h2 id="pnm-tournament-alerts-title">Tournament Alerts</h2>
                 <button
+                    type="button"
                     className={'ta-toggle' + (prefs.enabled ? ' active' : '')}
+                    aria-pressed={prefs.enabled}
                     onClick={() => setPrefs(p => ({ ...p, enabled: !p.enabled }))}
                 >
                     {prefs.enabled ? 'ON' : 'OFF'}
@@ -300,24 +304,19 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
             {prefs.enabled && matches.length > 0 && (
                 <div className="ta-matches-banner">
                     <div className="ta-matches-pulse" />
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
-                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="calendar" />
                     <span><strong>{matches.length}</strong> tournament{matches.length > 1 ? 's' : ''} Match Your Alerts!</span>
                 </div>
             )}
 
             {/* Setup panel */}
-            <button className="ta-setup-toggle" onClick={() => setShowSetup(!showSetup)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-                </svg>
+            <button type="button" className="ta-setup-toggle" aria-expanded={showSetup} onClick={() => setShowSetup(!showSetup)}>
+                <PokerNearMeConsoleIcon name="saved" />
                 {showSetup ? 'Hide Preferences' : 'Set Preferences'}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showSetup ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                    <polyline points="6 9 12 15 18 9" />
-                </svg>
+                <PokerNearMeConsoleIcon
+                    name="back"
+                    className={'pnm-console-tool__disclosure' + (showSetup ? ' is-open' : '')}
+                />
             </button>
 
             {showSetup && (
@@ -326,7 +325,7 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                         <label>Game Types</label>
                         <div className="ta-chips">
                             {GAME_TYPES.map(g => (
-                                <button key={g} className={'ta-chip' + (prefs.gameTypes.includes(g) ? ' active' : '')} onClick={() => toggleGameType(g)}>{g}</button>
+                                <button type="button" key={g} className={'ta-chip' + (prefs.gameTypes.includes(g) ? ' active' : '')} aria-pressed={prefs.gameTypes.includes(g)} onClick={() => toggleGameType(g)}>{g}</button>
                             ))}
                         </div>
                     </div>
@@ -334,9 +333,9 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                     <div className="ta-pref-group">
                         <label>Buy-In Range</label>
                         <div className="ta-range-row">
-                            <input type="number" placeholder="Min $" value={prefs.minBuyin} onChange={e => setPrefs(p => ({ ...p, minBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
+                            <input type="number" aria-label="Minimum buy-in" placeholder="Min $" value={prefs.minBuyin} onChange={e => setPrefs(p => ({ ...p, minBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
                             <span className="ta-range-sep">-</span>
-                            <input type="number" placeholder="Max $" value={prefs.maxBuyin} onChange={e => setPrefs(p => ({ ...p, maxBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
+                            <input type="number" aria-label="Maximum buy-in" placeholder="Max $" value={prefs.maxBuyin} onChange={e => setPrefs(p => ({ ...p, maxBuyin: e.target.value ? parseInt(e.target.value) : '' }))} className="ta-range-input" />
                         </div>
                     </div>
 
@@ -344,7 +343,7 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                         <label>Distance</label>
                         <div className="ta-chips">
                             {[25, 50, 100, 250].map(d => (
-                                <button key={d} className={'ta-chip' + (prefs.distanceMi === d ? ' active' : '')} onClick={() => setPrefs(p => ({ ...p, distanceMi: d }))}>{d} Mi</button>
+                                <button type="button" key={d} className={'ta-chip' + (prefs.distanceMi === d ? ' active' : '')} aria-pressed={prefs.distanceMi === d} onClick={() => setPrefs(p => ({ ...p, distanceMi: d }))}>{d} Mi</button>
                             ))}
                         </div>
                     </div>
@@ -353,14 +352,14 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
                         <label>Days Of Week</label>
                         <div className="ta-chips">
                             {DAYS.map(d => (
-                                <button key={d} className={'ta-chip small' + (prefs.days.includes(d) ? ' active' : '')} onClick={() => toggleDay(d)}>{d}</button>
+                                <button type="button" key={d} className={'ta-chip small' + (prefs.days.includes(d) ? ' active' : '')} aria-pressed={prefs.days.includes(d)} onClick={() => toggleDay(d)}>{d}</button>
                             ))}
                         </div>
                     </div>
 
                     <div className="ta-pref-group push-row">
                         <label>Push Notifications</label>
-                        <button className="ta-push-btn" onClick={enablePush}>
+                        <button type="button" className="ta-push-btn" onClick={enablePush}>
                             {prefs.pushEnabled ? '✓ Enabled' : 'Enable Push'}
                         </button>
                     </div>
@@ -391,54 +390,12 @@ export default function TournamentAlerts({ dailyTournaments = EMPTY_LIST, userId
 
             {prefs.enabled && matches.length === 0 && dailyTournaments.length > 0 && (
                 <div className="ta-no-matches">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
+                    <PokerNearMeConsoleIcon name="search" className="pnm-console-tool__state-icon" />
                     <p>No Tournaments Match Your Current Preferences.</p>
-                    <p style={{ fontSize: 12 }}>Try Broadening Your Filters.</p>
+                    <p className="ta-no-matches__hint">Try Broadening Your Filters.</p>
                 </div>
             )}
 
-            <style>{`
-        .tournament-alerts { padding: 0 0 20px; }
-        .ta-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .ta-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }
-        .ta-toggle { padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.25s; border: 1.5px solid rgba(148,163,184,0.15); background: linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95)); color: rgba(148,163,184,0.6); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
-        .ta-toggle.active { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.5); color: #22c55e; }
-        .ta-matches-banner { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: rgba(34,197,94,0.1); border: 1.5px solid rgba(34,197,94,0.3); border-radius: 12px; margin-bottom: 16px; position: relative; overflow: hidden; box-shadow: inset 0 1px 0 rgba(34,197,94,0.1), 0 2px 8px rgba(0,0,0,0.3); }
-        .ta-matches-banner span { font-size: 14px; color: #e2e8f0; }
-        .ta-matches-pulse { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #22c55e; animation: alertPulse 2s ease-in-out infinite; }
-        @keyframes alertPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        .ta-setup-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; color: rgba(148,163,184,0.7); font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 6px rgba(0,0,0,0.3); }
-        .ta-setup-toggle:hover { border-color: rgba(148,163,184,0.25); color: #e2e8f0; }
-        .ta-prefs-panel { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 14px; padding: 20px; margin-top: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
-        .ta-pref-group { margin-bottom: 18px; }
-        .ta-pref-group:last-child { margin-bottom: 0; }
-        .ta-pref-group label { display: block; font-size: 12px; font-weight: 600; color: rgba(148,163,184,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .ta-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .ta-chip { padding: 8px 14px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95)); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
-        .ta-chip:hover { border-color: rgba(148,163,184,0.3); color: #e2e8f0; }
-        .ta-chip.small { padding: 6px 10px; font-size: 12px; }
-        .ta-chip.active { background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.45); color: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1); }
-        .ta-range-row { display: flex; align-items: center; gap: 8px; }
-        .ta-range-input { flex: 1; padding: 10px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 14px; font-family: inherit; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
-        .ta-range-input::placeholder { color: rgba(148,163,184,0.35); }
-        .ta-range-sep { color: rgba(148,163,184,0.3); }
-        .push-row { display: flex; align-items: center; justify-content: space-between; }
-        .ta-push-btn { padding: 8px 16px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.4); color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.3); }
-        .ta-match-list { margin-top: 16px; }
-        .ta-match-list h3 { font-size: 16px; font-weight: 600; color: #e2e8f0; margin: 0 0 12px; }
-        .ta-match-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; margin-bottom: 8px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
-        .ta-match-card:hover { border-color: rgba(255,255,255,0.3); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4); }
-        .ta-match-header { display: flex; justify-content: space-between; align-items: center; }
-        .ta-match-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-        .ta-match-buyin { padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,0.15); color: #22c55e; font-size: 12px; font-weight: 600; }
-        .ta-match-details { font-size: 12px; color: rgba(148,163,184,0.5); margin-top: 4px; }
-        .ta-more { text-align: center; padding: 10px; color: rgba(148,163,184,0.5); font-size: 13px; }
-        .ta-no-matches { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; text-align: center; }
-        .ta-no-matches p { color: rgba(148,163,184,0.5); font-size: 14px; margin: 8px 0 0; }
-      `}</style>
-        </div>
+        </PokerNearMePanelShell>
     );
 }

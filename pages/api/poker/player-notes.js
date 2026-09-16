@@ -8,7 +8,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { getServiceSupabase as getSupabase } from '../../../src/lib/apiSupabase';
 import { LIMITS, applyRateLimit, rateLimit } from '../../../src/lib/apiRateLimit';
 import { checkServerFeatureAccess } from '../../../src/lib/gates/serverFeatureGate';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
             if (error) throw error;
             return res.status(200).json({ success: true, note: toClientNote(data) });
         } catch (err) {
-            try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+            try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
             console.warn('[PlayerNotes API] POST error:', err);
             return res.status(500).json({ error: 'Failed to save player note' });
         }

@@ -32,6 +32,7 @@ import { withCronHealth } from '../../../src/lib/cronHealth';
 import { isPushConfigured } from '../../../src/lib/push/web-push';
 import { sendPush, SUBSCRIPTION_COLUMNS } from '../../../src/lib/push/send-push';
 import { recordSendFailure } from '../../../src/lib/push/push-deliver';
+import { routeOperationalPushRows, routeQueuedOperationalPushes } from '../../../src/lib/push/operational-push-routing.mjs';
 import { isTournamentReminder, deliverTournamentReminder } from '../../../src/lib/push/tournament-reminder-delivery';
 import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
 
@@ -194,8 +195,12 @@ async function handler(req, res) {
     };
 
     if (!isPushConfigured()) {
-        await finish('vapid_not_configured');
-        return res.status(200).json({ ok: false, reason: 'vapid_not_configured', ...stats });
+        const routing = await routeQueuedOperationalPushes(supabase);
+        stats.skipped = routing.routed;
+        stats.failed = routing.pending;
+        const reason = routing.error ? 'operational_inbox_pending' : 'vapid_not_configured';
+        await finish(reason);
+        return res.status(routing.error ? 503 : 200).json({ ok: false, reason, ...stats });
     }
 
     try {
@@ -213,8 +218,14 @@ async function handler(req, res) {
             return res.status(500).json({ error: claimErr.message });
         }
 
-        const rows = batch || [];
-        stats.claimed = rows.length;
+        const claimedRows = batch || [];
+        stats.claimed = claimedRows.length;
+        // Route every original operational notice before preferences, age
+        // gates and digest rewriting can discard or combine its evidence.
+        const routing = await routeOperationalPushRows(supabase, claimedRows);
+        const rows = routing.remaining;
+        stats.skipped += routing.routed;
+        stats.failed += routing.pending;
 
         // GATE AT SEND TIME, not at queue time.
         //
@@ -231,8 +242,8 @@ async function handler(req, res) {
         );
 
         if (rows.length === 0) {
-            await finish('nothing_pending');
-            return res.status(200).json({ ok: true, ...stats, slot });
+            await finish(routing.pending ? 'operational_inbox_pending' : 'nothing_pending');
+            return res.status(routing.pending ? 503 : 200).json({ ok: routing.pending === 0, ...stats, slot });
         }
 
         // Daily-cap counts for the whole batch in one query, but ONLY for the
@@ -524,7 +535,7 @@ async function handler(req, res) {
         }
 
         await finish(ranOutOfTime ? 'time_budget_exhausted' : null);
-        return res.status(200).json({ ok: true, ...stats, slot });
+        return res.status(routing.pending ? 503 : 200).json({ ok: routing.pending === 0, ...stats, slot });
     } catch (e) {
         await finish(`threw:${e?.message || e}`);
         return res.status(500).json({ error: e?.message || 'push-dispatch failed' });

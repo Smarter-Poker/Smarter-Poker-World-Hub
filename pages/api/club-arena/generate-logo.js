@@ -1,4 +1,4 @@
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, logoUrl });
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         console.warn('[generate-logo] Failed:', error);
         return res.status(500).json({
             success: false,

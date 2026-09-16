@@ -132,7 +132,7 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
     'src/components/poker-near-me/VenueReviews.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.vr-handle \{ display: block; width: 44px; height: 4px;/, /\.vr-textarea \{ font-size: 16px; \}/],
     'src/components/poker-near-me/VenueCard.js': [/useModalHistory\(checkinModal, closeCheckin\)/, /useScrimDismiss\(closeCheckin\)/, /@media \(max-width: 600px\)/, /\.vc3-checkin-handle \{ display: block; width: 44px; height: 4px;/, /\.vc3-checkin-textarea \{ font-size: 16px; \}/],
     'src/components/poker-near-me/ReportGameModal.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /useScrimDismiss\(onClose\)/, /@media \(max-width: 600px\)/, /\.rgm-handle \{ display: block; width: 44px; height: 4px;/, /width: 44, height: 44, minWidth: 44, minHeight: 44/],
-    'src/components/poker-near-me/SocialLayer.jsx': [/useModalHistory\(!!inviteModal, closeInvite\)/, /useScrimDismiss\(closeInvite\)/, /@media \(max-width: 600px\)/, /\.sl-modal-handle \{ display: block; width: 44px; height: 4px;/, /\.sl-modal-close \{[^}]*min-width: 44px; min-height: 44px;/],
+    'src/components/poker-near-me/SocialLayer.jsx': [/useModalHistory\(!!inviteModal, closeInvite\)/, /useScrimDismiss\(closeInvite\)/, /<PokerNearMePanelShell[\s\S]*?role="dialog"[\s\S]*?aria-modal="true"/, /<PokerNearMeConsoleIcon name="close" \/>/],
     'src/components/poker-near-me/GlobalSearchOverlay.jsx': [/useModalHistory\(!!isOpen, onClose\)/, /safe-area-inset-top/],
   };
   for (const [file, pins] of Object.entries(sheets)) {
@@ -155,6 +155,10 @@ test('every overlay the pages open is a back-gesture sheet with a 44px close', (
   const css = read('styles/poker-near-me.css');
   assert.match(css, /\.pnm-sheet__close \{[^}]*min-width: 44px;[^}]*min-height: 44px;/s);
   assert.match(css, /@media \(max-width: 600px\) \{\s*\.pnm-sheet-scrim \{ align-items: flex-end;/);
+  const consoleToolsCss = read('src/styles/worlds/poker-near-me-console-tools.css');
+  assert.match(consoleToolsCss, /\.sl-modal-close[\s\S]*?width: 44px;[\s\S]*?height: 44px;/, 'the painted close control keeps its 44px target');
+  assert.match(consoleToolsCss, /@media \(max-width: 600px\) \{[\s\S]*?\.social-layer \.sl-modal-overlay \{[\s\S]*?align-items: end;/, 'the painted invite dialog remains a mobile bottom sheet');
+  assert.match(consoleToolsCss, /@media \(max-width: 600px\) \{[\s\S]*?\.social-layer \.sl-invite-link-input \{[\s\S]*?font-size: 16px;/, 'the mobile invite field avoids browser zoom');
 });
 
 test('no rail, no snap, no hidden scrollbar, no label cull: everything wraps', () => {

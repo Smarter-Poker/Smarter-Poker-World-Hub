@@ -35,7 +35,7 @@ async function loadHandler(rpcResult) {
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({ user: { id: USER_ID }, error: null }),
     },

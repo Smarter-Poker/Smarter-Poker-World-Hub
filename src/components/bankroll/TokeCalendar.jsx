@@ -280,7 +280,7 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                         const hasEvents = monthEvents.length > 0;
 
                         return (
-                            <div key={monthIdx} style={calStyles.monthCard}>
+                            <div key={monthIdx} className="toke-cal-month" style={calStyles.monthCard}>
                                 <h4 style={calStyles.monthHeader}>
                                     <span style={{ ...calStyles.monthName, ...(hasEvents ? { color: '#f59e0b' } : {}) }}>
                                         {MONTHS[monthIdx]}
@@ -291,7 +291,7 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                                 </h4>
 
                                 {/* One grid, always the full one, 44px days. */}
-                                <div style={calStyles.fullGrid}>
+                                <div className="toke-cal-grid" style={calStyles.fullGrid}>
                                     {DAY_HEADERS.map(d => (
                                         <div key={d} style={calStyles.fullDayHeader}>{d}</div>
                                     ))}

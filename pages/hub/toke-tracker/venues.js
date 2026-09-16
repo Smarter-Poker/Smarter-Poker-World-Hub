@@ -122,9 +122,16 @@ export default function VenueIntelPage() {
                         <h1 className="toke-page-title" data-tutorial="title">Venue Intel</h1>
                         <p className="toke-page-subtitle">Performance By Venue And Shift Calendar</p>
 
-                        <HubErrorBoundary name="Venue Intelligence">
-                            <VenueIntelligence gigs={completedGigs} />
-                        </HubErrorBoundary>
+                        {gigsLoading ? (
+                            <div aria-hidden="true">
+                                <div className="toke-skel toke-skel-card" />
+                                <div className="toke-skel toke-skel-panel" />
+                            </div>
+                        ) : (
+                            <HubErrorBoundary name="Venue Intelligence">
+                                <VenueIntelligence gigs={completedGigs} />
+                            </HubErrorBoundary>
+                        )}
 
                         <div style={{ marginTop: 24 }} data-tutorial="calendar">
                             <HubErrorBoundary name="Shift Calendar">

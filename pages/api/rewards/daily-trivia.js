@@ -24,7 +24,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { safeAward } from '../../../src/lib/rewards/awardGuard';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 
@@ -255,13 +255,13 @@ export default async function handler(req, res) {
         return sendAwardResult(res, award, 'Daily Trivia Challenge!');
 
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         console.warn('[DailyTrivia] Error:', error.message || error);
         return res.status(500).json({ success: false, error: 'Failed to claim daily trivia reward' });
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
       console.warn('[API Error]', err);
       if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
