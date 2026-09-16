@@ -44,6 +44,42 @@ MAX_CONCURRENT = 3  # max concurrent browser sessions
 # Days
 DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+# ── The PokerAtlas fallback URL, under whichever key the catalog uses ──
+#
+# MEASURED against public/data/all-venues.json (658 venues, 2026-09-15):
+#
+#     poker_atlas_url   populated in   0 / 658
+#     pokeratlas_url    populated in 467 / 658
+#
+# This script read `poker_atlas_url`, so TIER 2 HAS ALWAYS BEEN EMPTY. Of the
+# 72 venues with no website, 36 have a usable pokeratlas_url and every one of
+# them was being classified "no source URL, skipping". The workflow header
+# advertised a PokerAtlas fallback for the websiteless venues; there was none,
+# because of one underscore.
+#
+# Both spellings are accepted rather than swapping one for the other: the DB
+# column and the exported JSON do not agree, and a scraper that works only
+# against one of them is the bug again with the sides reversed.
+PA_URL_KEYS = ('pokeratlas_url', 'poker_atlas_url')
+
+
+def pokeratlas_url(venue: dict) -> str:
+    """The venue's PokerAtlas URL, or '' if it has none under any known key."""
+    for key in PA_URL_KEYS:
+        value = venue.get(key)
+        if isinstance(value, str) and len(value.strip()) > 5:
+            return value.strip()
+    return ''
+
+
+def venue_website(venue: dict) -> str:
+    """The venue's own website, or '' if it has none."""
+    value = venue.get('website')
+    if isinstance(value, str) and len(value.strip()) > 3:
+        return value.strip()
+    return ''
+
+
 # ── Load credentials from .agent/skills/credentials/.env if available ──
 def load_credentials():
     global SERVICE_KEY, VENUE_SCRAPER_SECRET
@@ -318,16 +354,16 @@ async def scrape_venue(session, venue, semaphore):
         name = venue.get('name', 'Unknown')
         
         # Determine URL — venue website first, PokerAtlas fallback
-        website = venue.get('website', '')
-        pa_url = venue.get('poker_atlas_url', '')
+        website = venue_website(venue)
+        pa_url = pokeratlas_url(venue)
         
         source_tier = 'website'
         url = ''
         
-        if website and len(website.strip()) > 3:
+        if website:
             url = website if website.startswith('http') else f'https://{website}'
             source_tier = 'website'
-        elif pa_url and len(pa_url.strip()) > 5:
+        elif pa_url:
             url = pa_url
             source_tier = 'pokeratlas'
         else:
@@ -430,9 +466,11 @@ async def run_scraper(venues, dry_run=False):
     print(f'{"="*60}')
     print(f'  Total venues: {len(venues)}')
     
-    tier1 = [v for v in venues if v.get('website') and len(v['website'].strip()) > 3]
-    tier2 = [v for v in venues if (not v.get('website') or len(v['website'].strip()) <= 3) and v.get('poker_atlas_url') and len(v['poker_atlas_url'].strip()) > 5]
-    tier3 = [v for v in venues if (not v.get('website') or len(v['website'].strip()) <= 3) and (not v.get('poker_atlas_url') or len(v['poker_atlas_url'].strip()) <= 5)]
+    # One definition of each tier, shared with the fetcher above, so the summary
+    # and the work can never disagree about which venues have a source.
+    tier1 = [v for v in venues if venue_website(v)]
+    tier2 = [v for v in venues if not venue_website(v) and pokeratlas_url(v)]
+    tier3 = [v for v in venues if not venue_website(v) and not pokeratlas_url(v)]
     
     print(f'  Tier 1 (direct website): {len(tier1)}')
     print(f'  Tier 2 (PokerAtlas fallback): {len(tier2)}')
@@ -487,12 +525,34 @@ async def run_scraper(venues, dry_run=False):
     print(f'  News items:   {total_news}')
     
     # ── POST results in batches to receive endpoint ──
+    #
+    # A SCRAPE THAT IS NOT STORED IS NOT A SCRAPE. post_results() has always
+    # returned the endpoint's body, or None when the POST threw, and the caller
+    # has always thrown that away - so a run where every single batch failed to
+    # POST printed the same cheerful summary as one that stored everything, and
+    # exited 0 either way. The counters below are what the exit gate reads.
+    batches = 0
+    post_fails = 0
+    tournaments_upserted = 0
+    news_inserted = 0
     if all_results and VENUE_SCRAPER_SECRET:
         BATCH_POST_SIZE = 20
         for i in range(0, len(all_results), BATCH_POST_SIZE):
             batch = all_results[i:i + BATCH_POST_SIZE]
             batch_id = f'scrapling-{datetime.now(timezone.utc).strftime("%Y%m%d%H%M")}-{i//BATCH_POST_SIZE}'
-            await post_results(batch, batch_id, 'scrapling')
+            batches += 1
+            body = await post_results(batch, batch_id, 'scrapling')
+            if not isinstance(body, dict):
+                post_fails += 1
+            else:
+                res = body.get('results') or {}
+                tournaments_upserted += int(res.get('tournaments_upserted') or 0)
+                news_inserted += int(res.get('news_inserted') or 0)
+                # 'partial' means the endpoint hit errors of its own on rows we
+                # handed it. Those rows are lost and that is ours, not the
+                # venue website's.
+                if body.get('success') is not True:
+                    post_fails += 1
             await asyncio.sleep(1)
     elif not VENUE_SCRAPER_SECRET:
         print('\n  ⚠️  No VENUE_SCRAPER_SECRET — saving results to JSON instead')
@@ -507,8 +567,72 @@ async def run_scraper(venues, dry_run=False):
         }, indent=2))
         print(f'  💾 Saved to {output_path}')
     
+    print(f'  Stored:       {tournaments_upserted} tournament(s), {news_inserted} news item(s)')
+    if post_fails:
+        print(f'  ⛔ {post_fails} batch(es) were scraped and then NOT stored')
     print(f'\n{"="*60}\n')
-    return all_results
+    return {
+        'venues': len(all_results),
+        'scraped_ok': len(success),
+        'source_fails': len(failed),
+        'batches': batches,
+        'post_fails': post_fails,
+        'tournaments_upserted': tournaments_upserted,
+        'news_inserted': news_inserted,
+        'had_secret': bool(VENUE_SCRAPER_SECRET),
+        'dry_run': bool(dry_run),
+    }
+
+
+def exit_code_for(summary, require_store: bool) -> int:
+    """
+    JUDGE THE RUN ON WHAT IT STORED, the way the series and HendonMob gates do.
+
+    This exists because --all could not fail. run_scraper() returned its list,
+    __main__ dropped it, and the process fell off the end at exit 0. A run where
+    every venue website was unreachable printed "Success: 0 / Failed: 401" and
+    reported success; so did a run where every batch failed to POST. The
+    workflow that called it had nothing to alarm on, which is one of the reasons
+    nobody noticed this job had been failing for weeks.
+
+    --require-store is what CI passes. Locally the script may legitimately run
+    with no secret and write its JSON file instead, and that stays exit 0.
+
+      no venues in the catalog  -> 1. We could not even try.
+      dry run                   -> 0. It did what it was asked.
+      no secret, storing needed -> 1. Nothing reached the database.
+      any batch not stored      -> 1. OURS: we scraped it and lost it.
+      scraped, stored nothing   -> 1. Barren.
+      stored something          -> 0. A venue website being down is not ours.
+    """
+    if not isinstance(summary, dict):
+        return 1
+    if summary.get('venues', 0) == 0 and not summary.get('dry_run'):
+        print('❌ No venues were processed at all')
+        return 1
+    if summary.get('dry_run'):
+        return 0
+    if not require_store:
+        return 0
+    if not summary.get('had_secret'):
+        print('❌ VENUE_SCRAPER_SECRET is not set, so nothing could be stored')
+        return 1
+    if summary.get('post_fails', 0) > 0:
+        print(f"❌ {summary['post_fails']} batch(es) were scraped and then not "
+              f"stored — that is our fault, not the venue's")
+        return 1
+    stored = summary.get('tournaments_upserted', 0) + summary.get('news_inserted', 0)
+    if summary.get('scraped_ok', 0) > 0 and stored == 0:
+        print(f"❌ {summary['scraped_ok']} venue(s) scraped and nothing was stored")
+        return 1
+    if stored == 0:
+        print(f"❌ Nothing was stored from {summary.get('venues', 0)} venue(s) "
+              f"against {summary.get('source_fails', 0)} source failure(s)")
+        return 1
+    if summary.get('source_fails'):
+        print(f"⚠️  {summary['source_fails']} venue(s) could not be read; "
+              f"{stored} row(s) stored. Reported, not failed.")
+    return 0
 
 
 def load_venues():
@@ -530,6 +654,10 @@ if __name__ == '__main__':
     parser.add_argument('--url', type=str, help='Scrape a single URL (testing)')
     parser.add_argument('--dry-run', action='store_true', help='List venues without scraping')
     parser.add_argument('--limit', type=int, default=0, help='Limit number of venues to scrape')
+    parser.add_argument('--require-store', action='store_true',
+                        help='Exit non-zero unless scraped rows actually reached the '
+                             'database. CI passes this; local runs without a secret '
+                             'should not.')
     args = parser.parse_args()
     
     if args.url:
@@ -557,7 +685,10 @@ if __name__ == '__main__':
         if args.limit > 0:
             venues = venues[:args.limit]
         
-        asyncio.run(run_scraper(venues, dry_run=args.dry_run))
+        summary = asyncio.run(run_scraper(venues, dry_run=args.dry_run))
+        code = exit_code_for(summary, require_store=args.require_store)
+        if code:
+            sys.exit(code)
     
     else:
         parser.print_help()
