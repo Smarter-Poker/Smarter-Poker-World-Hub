@@ -820,7 +820,7 @@ Deep V8 Bible engine invariants (deck shuffling, fairness math, settlement math,
 
 Migration: `20260503_phase39_drop_unused_indexes.sql`. Calendar lock through 2026-05-14 was overconservative — `pg_stat_database.stats_reset = NULL` showed scan stats accumulated since DB creation 2026-01-06 (~4 months). All 43 targeted indexes had idx_scan=0 over the full 4-month window, not just the recent soak.
 
-Dropped 43 indexes, ~200MB freed. Excluded 3: `mv_active_poker_locations_geog`, `mv_active_poker_locations_activity` (materialized-view refresh might need them even if user queries don't), and `autofix_attempts_status_next_retry_idx` (recently added by sentry autofix automation, may need warm-up).
+Dropped 43 indexes, ~200MB freed. Excluded 3: `mv_active_poker_locations_geog`, `mv_active_poker_locations_activity` (materialized-view refresh might need them even if user queries don't), and `autofix_attempts_status_next_retry_idx` (recently added by former error automation, may need warm-up).
 
 ## PHASE 40 — Messenger "pivot" closed (2026-05-03)
 

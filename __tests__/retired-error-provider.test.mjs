@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { spawnSync } from 'node:child_process';
 
 const root = process.env.RETIRED_PROVIDER_TEST_ROOT || path.resolve(new URL('..', import.meta.url).pathname);
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
-const retired = /@sentry\/|\bsentry[\w.-]*|(?:NEXT_PUBLIC_|VITE_)?SENTRY_[A-Z_]+|(?:get|with|reportTo)Sentry\w*/i;
+const provider = ['sen', 'try'].join('');
+const retired = new RegExp('@' + provider + '/|\\b' + provider + '[\\w.-]*|(?:NEXT_PUBLIC_|VITE_)?' + provider + '_[A-Z_]+|(?:get|with|reportTo)' + provider + '\\w*', 'i');
 
 function sourceFiles(dir) {
   return fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -21,7 +23,7 @@ test('retired provider has no dependency, runtime loader, API bridge or schedule
   for (const file of ['package.json', 'package-lock.json', 'next.config.js', 'vercel.json', '.env.example', 'scripts/ci/vercel-env-baseline.json', 'middleware.ts']) {
     assert.doesNotMatch(read(file), retired, file);
   }
-  for (const file of ['sentry.client.config.js', 'sentry.server.config.js', 'sentry.edge.config.js', 'src/instrumentation-client.js', 'src/lib/sentry.js', 'src/lib/sentryWrap.js', 'vendor/commander-shared/src/lib/sentryWrap.js', 'pages/api/cron/sentry-signup-bridge.js', 'pages/api/clawbot/sentry-triage.js', 'resolve-sentry-issues.js', '.agent/skills/sentry-mcp/SKILL.md']) {
+  for (const file of [`${provider}.client.config.js`, `${provider}.server.config.js`, `${provider}.edge.config.js`, 'src/instrumentation-client.js', `src/lib/${provider}.js`, `src/lib/${provider}Wrap.js`, `vendor/commander-shared/src/lib/${provider}Wrap.js`, `pages/api/cron/${provider}-signup-bridge.js`, `pages/api/clawbot/${provider}-triage.js`, `resolve-${provider}-issues.js`, `.agent/skills/${provider}-mcp/SKILL.md`]) {
     assert.equal(fs.existsSync(path.join(root, file)), false, `${file} must stay retired`);
   }
 });
@@ -35,6 +37,25 @@ test('active operator guidance does not ask agents to reconnect the retired prov
   for (const file of ['docs/SIGNUP_RUNBOOK.md', '.agent/skills/club-commander/ANTIGRAVITY_TASKS.md', '.agent/skills/club-commander/IMPLEMENTATION_PHASES.md', '.agent/skills/club-commander/BUILD_PLAN.md', '.agent/skills/whats-next-roadmap/SKILL.md', '.agent/architecture/ONE-SOURCE-OF-TRUTH.md', '.agent/architecture/club-arena-operations-api.md', 'CLUB_COMMANDER_BUILD_PLAN.md']) {
     assert.doesNotMatch(read(file), retired, file);
   }
+});
+
+test('tracked source and guidance cannot reintroduce the retired provider', () => {
+  // Applied migration history is immutable. Its schema retirement is a new,
+  // separately verified migration, never a rewrite of these historical names.
+  const historicalSql = [
+    'migrations/clawbot-infrastructure.sql',
+    'supabase/migrations/20260329_clawbot_infrastructure.sql',
+    'supabase/migrations/20260421115000_autofix_columns_and_budgets.sql',
+    'supabase/migrations/20260422000100_fix_security_definer_views.sql',
+    `supabase/migrations/20260520_${provider}_perf_index_wallet_transactions.sql`,
+    'supabase/migrations/20260803150000_rescope_service_role_policies.sql',
+    'supabase/migrations/20260819_client_crash_log.sql',
+  ];
+  const pattern = `(^|[^[:alpha:]])${provider}|get${provider}|with${provider}|reportTo${provider}`;
+  const result = spawnSync('git', ['grep', '-I', '-l', '-i', '-E', pattern, '--', '.', ...historicalSql.map((file) => `:!${file}`)], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.error, undefined);
+  assert.ok(result.status === 0 || result.status === 1, result.stderr);
+  assert.equal(result.stdout.trim(), '', 'retired provider remains in tracked source or guidance');
 });
 
 test('existing first-party crash storage, auth error route and production guard remain wired', () => {

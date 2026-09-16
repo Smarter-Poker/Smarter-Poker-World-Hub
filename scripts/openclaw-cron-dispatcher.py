@@ -1234,7 +1234,7 @@ def _workers_dispatch(path: str) -> bool:
 # A job on this list is one whose FAILURE is the incident, not a symptom of
 # one. The Club Commander login-bridge probe is the first: when it fails,
 # nobody can sign in to Commander, and until today that produced a ⚠️ line in
-# this journal, a GitHub issue, and a Sentry event that the exhausted org
+# this journal, a GitHub issue, and a retired error provider event that the exhausted org
 # quota drops on the floor. None of those reach a phone. The workers
 # healthcheck has paged on two consecutive failures since Phase 2A; this gives
 # the same treatment to any job named here, through the same _alert() path

@@ -354,6 +354,6 @@ curl https://kuklfnapbkmacvwxktbh.supabase.co/auth/v1/settings -H "apikey: <ANON
 | Browser crash records | First-party `client_crash_log`, filtered by route/section |
 | Vercel project | https://vercel.com/<org>/smarter-poker-world-hub |
 | Resend domain | https://resend.com/domains |
-| Original outage post-mortem | `SIGNUP-FIX-2026-05-03-FINAL.md` |
+| Original outage post-mortem | Preserved in restricted retirement evidence and repository history; current procedures are in this runbook. |
 | Hardening tests | `__tests__/signup-hardening.test.mjs` |
 | Re-apply patches | `bash scripts/apply-signup-hardening-2026-05-03.sh` |

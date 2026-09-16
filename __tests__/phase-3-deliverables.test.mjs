@@ -82,7 +82,7 @@ test('/api/cron/email-deliverability-check checks SPF + DKIM + Resend domain', (
     // which is what SPF actually validates. The original check demanded
     // include:spf.resend.com on the ROOT, so it failed every day
     // (2026-08-15/16/17 in probe_heartbeats) against DNS that was correct -
-    // a daily 503 and Sentry alert on the very channel meant to warn that
+    // a daily 503 and retired error provider alert on the very channel meant to warn that
     // signup mail has broken. Worse, satisfying it would have meant adding
     // include:amazonses.com to the root, authorising all of Amazon SES to
     // send as @smarter.poker. Pinned so nobody "fixes" it back.

@@ -75,7 +75,7 @@ jobs:
               'Changes to these files have caused signup outages before. Please:',
               '',
               '- [ ] I have run `node --test __tests__/auth-routes-exist.test.mjs __tests__/signup-hardening.test.mjs` locally',
-              '- [ ] I have read `SIGNUP-FIX-2026-05-03-FINAL.md` and understand the failure modes these files protect against',
+              '- [ ] I have read `docs/SIGNUP_RUNBOOK.md` and understand the failure modes these files protect against',
               '- [ ] If I removed a guard, I added a replacement that protects the same class of failure',
               '- [ ] If geo-blocks or middleware changed, I tested with at least one restricted-state region',
               '- [ ] Auth Owner has reviewed (re-request review if not)',
