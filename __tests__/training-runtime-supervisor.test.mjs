@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { BUILD_COMMAND } from '../scripts/vercel-build.mjs';
 
 import {
   parseStrictInteger,
@@ -198,7 +201,8 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
   );
 
   const vercel = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
-  assert.match(vercel.buildCommand, /npm run test:training:phase6-authority/);
+  assert.equal(vercel.buildCommand, 'node scripts/vercel-build.mjs');
+  assert.match(BUILD_COMMAND, /npm run test:training:phase6-authority/);
   const vercelIgnore = readFileSync(join(ROOT, '.vercelignore'), 'utf8');
   const phase6BuildTests = [
     packageJson.scripts['test:training:legacy-windows-retirement'],
@@ -280,6 +284,51 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     1,
     'the required PR safety context must run the PostgreSQL 17 behavior suite exactly once',
   );
+});
+
+test('Linux PostgreSQL provisioning persists en_US before locale regeneration', () => {
+  const gate = readFileSync(join(ROOT, '.github/workflows/build-safety-gate.yml'), 'utf8');
+  const install = gate.slice(
+    gate.indexOf('sudo apt-get install --yes --no-install-recommends postgresql-17 locales'),
+    gate.indexOf('      - name: Resolve Exact PostgreSQL 17 Training Test Binaries'),
+  );
+  const commands = install.slice(install.indexOf('\n') + 1).replace(/^          /gm, '');
+  const root = mkdtempSync(join(tmpdir(), 'wh-locale-config-'));
+  try {
+    const config = join(root, 'locale.gen');
+    const generated = join(root, 'generated');
+    // Model only Debian locale-gen's configured-input boundary: command-line
+    // locale arguments do not enable entries. Actual grep/tee and workflow
+    // shell commands operate on the temporary file, never the host config.
+    const script = `sudo() { "$@"; }\nlocale-gen() { grep -v '^#' "$LOCALE_CONFIG" > "$GENERATED" || true; }\n`
+      + commands.replaceAll('/etc/locale.gen', '"$LOCALE_CONFIG"');
+    for (const initial of [
+      '# en_US.UTF-8 UTF-8\nde_DE.UTF-8 UTF-8\n',
+      'de_DE.UTF-8 UTF-8\n',
+      'en_US.UTF-8 UTF-8\nde_DE.UTF-8 UTF-8\n',
+    ]) {
+      writeFileSync(config, initial);
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const result = spawnSync('/bin/bash', ['-e', '-o', 'pipefail', '-c', script], {
+          env: { ...process.env, LOCALE_CONFIG: config, GENERATED: generated },
+          encoding: 'utf8',
+        });
+        assert.equal(result.status, 0, result.stderr);
+        const actual = readFileSync(generated, 'utf8');
+        assert.equal(actual.split('\n').filter((line) => line === 'en_US.UTF-8 UTF-8').length, 1);
+        assert.ok(actual.includes('de_DE.UTF-8 UTF-8'), 'preserve other configured locales');
+      }
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  const resolve = gate.slice(
+    gate.indexOf('      - name: Resolve Exact PostgreSQL 17 Training Test Binaries'),
+    gate.indexOf('      - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"'),
+  );
+  assert.match(resolve, /\[\[ "\$version" == \*" 17\."\* \]\] \|\| continue/);
+  assert.match(resolve, /if \[ -z "\$postgres_bin" \]; then[\s\S]*?exit 1/);
+  assert.match(resolve, /if ! locale -a \| grep -Eiq '\^en_US\\\.\(UTF-8\|utf8\)\$'; then[\s\S]*?exit 1/);
 });
 
 test('every Phase 6 database verifier requires exact PostgreSQL 17 binaries', () => {

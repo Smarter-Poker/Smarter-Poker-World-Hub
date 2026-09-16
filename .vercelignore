@@ -96,6 +96,9 @@ _legacy_sql/
 # direct Vercel CLI upload while remaining present in Git and local CI.
 !/__tests__/*.test.mjs
 !/__tests__/solver-matrix-trust-runtime-probe.cjs
+!/__tests__/marketplace-console-v1-foundation.test.mjs
+!/__tests__/marketplace-console-user-correction.test.mjs
+!/__tests__/marketplace-merch-premium.test.mjs
 !/__tests__/diamond-store-phase-7.test.mjs
 !/__tests__/diamond-store-phase-8.test.mjs
 !/__tests__/diamond-store-phase-9.test.mjs
@@ -123,6 +126,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-22.test.mjs
 !/__tests__/diamond-store-phase-23.test.mjs
 !/__tests__/diamond-store-phase-24.test.mjs
+!/__tests__/marketplace-phase-8-lifetime-entitlements.test.mjs
 !/__tests__/marketplace-phase-6-request-resilience.test.mjs
 !/__tests__/marketplace-phase-6-fulfillment-verifier.test.mjs
 !/__tests__/marketplace-phase-6-lifetime-checkout-recovery.test.mjs
@@ -142,6 +146,7 @@ _legacy_sql/
 !/__tests__/printful-fulfillment.test.mjs
 !/__tests__/merch-catalog-admin.test.mjs
 !/__tests__/marketplace-operations.test.mjs
+!/tests/shop-item-rules.test.mjs
 !/supabase/migrations/20260829130000_club_shop_atomic_purchase.sql
 /playwright/
 /playwright-report/

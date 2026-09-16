@@ -11,7 +11,7 @@ const {renderToStaticMarkup} = require('react-dom/server');
 function snapshot() {
  return {schemaVersion:1, observedAt:'2026-09-14T13:45:00Z',windowDays:7,
   subscriptions:{total:4,active:3,zombies:2},outbox:{pending:0,processing:2,failed:0,skipped:6007,sentLast24h:2},
-  funnel:{windowHours:24,queued:6007,sent:1,suppressed:6006,devicesPushed:3,devicesConfirmed:1,confirmRate:33,deliveryRate:0},
+  funnel:{windowHours:24,queued:6007,sent:1,suppressed:6006,devicesPushed:3,devicesConfirmed:1,confirmRate:33,deliveryRate:0,unreachable:6006,addressable:1,addressableDeliveryRate:100},
   dispatch:{lastRunAt:null,minutesSince:null,recent:[]},
   byType:[{event:'accounting_invoice',total:6007,sent:1}],skipReasons:[{reason:'no_subscription',count:6006,kind:'not_enrolled'}],
   staff:[{id:'admin',username:'Admin',status:'zombie',devices:3,totalDevices:4,lastReceiptAt:null}],
@@ -41,12 +41,28 @@ test('exact aggregate with more than transport row limits retains count and unkn
 test('missing or inconsistent counts cannot become a green health snapshot',()=>{
  for(const mutate of [d=>delete d.outbox,d=>delete d.outbox.pending,d=>d.outbox.pending=null,d=>d.outbox.pending=Number.MAX_SAFE_INTEGER+1,d=>d.subscriptions.active=6,d=>d.funnel.devicesConfirmed=4,d=>d.funnel.confirmRate=100,d=>d.funnel.sent=7000,d=>d.dispatch.minutesSince=0,d=>delete d.skipReasons]){const d=snapshot();mutate(d);assert.equal(isPushHealthSnapshot(d),false);}
 });
+test('addressable counts and both rates must agree with the exact same cohort',()=>{
+ const good=snapshot();assert.equal(isPushHealthSnapshot(good),true);assert.equal(good.funnel.addressableDeliveryRate,100);assert.equal(good.funnel.deliveryRate,0);
+ for(const mutate of [d=>delete d.funnel.unreachable,d=>delete d.funnel.addressable,d=>delete d.funnel.addressableDeliveryRate,d=>d.funnel.addressable=6007,d=>d.funnel.unreachable=6007,d=>d.funnel.addressableDeliveryRate=0,d=>d.funnel.deliveryRate=100,d=>d.skipReasons[0].kind='fault']){
+  const d=snapshot();mutate(d);assert.equal(isPushHealthSnapshot(d),false);
+ }
+});
+test('empty and entirely unreachable cohorts have no addressable send rate',()=>{
+ for(const queued of [0,10]){
+  const d=snapshot();Object.assign(d.funnel,{queued,sent:0,suppressed:queued,unreachable:queued,addressable:0,deliveryRate:queued?0:null,addressableDeliveryRate:null});
+  assert.equal(isPushHealthSnapshot(d),true);d.funnel.addressableDeliveryRate=0;assert.equal(isPushHealthSnapshot(d),false);
+ }
+});
 test('subscription existence without receipt cannot declare a staff account reachable',()=>{const d=snapshot();d.staff[0].status='ok';assert.equal(isPushHealthSnapshot(d),false);d.staff[0].lastReceiptAt=d.observedAt;assert.equal(isPushHealthSnapshot(d),true);});
 test('health API uses verified actor and exact RPC without sampled table fallback',async()=>{
- const f=routeFixture(),r=await f.run();assert.equal(r.status,200);assert.deepEqual(f.calls,[{name:'fn_push_health_snapshot',args:{p_user_id:'verified-admin'}}]);assert.equal(r.body.byType[0].total,6007);assert.equal(r.body.config.configured,true);assert.match(r.headers['Cache-Control'],/no-store/);
+ const f=routeFixture(),r=await f.run();assert.equal(r.status,200);assert.deepEqual(f.calls,[{name:'fn_push_health_snapshot',args:{p_user_id:'verified-admin'}}]);assert.equal(r.body.byType[0].total,6007);assert.equal(r.body.funnel.addressableDeliveryRate,100);assert.equal(r.body.funnel.deliveryRate,0);assert.equal(r.body.config.configured,true);assert.match(r.headers['Cache-Control'],/no-store/);
 });
 test('database failure and missing aggregate fail unavailable without publishing partial zero totals',async()=>{
  const f=routeFixture();for(const values of [{error:{code:'57014'},data:null},{error:null,data:{}},{data:snapshot(),throwRpc:true}]){f.set(values);const r=await f.run();assert.equal(r.status,503);assert.match(r.body.error,/Unavailable/);assert.equal(r.body.outbox,undefined);}
+});
+test('the old RPC shape is unavailable until the additive reader fields exist',async()=>{
+ const f=routeFixture(),d=snapshot();delete d.funnel.unreachable;delete d.funnel.addressable;delete d.funnel.addressableDeliveryRate;f.set({data:d});
+ const r=await f.run();assert.equal(r.status,503);assert.equal(r.body.funnel,undefined);assert.equal(f.calls.length,1);
 });
 test('anonymous and nonadministrator callers are rejected',async()=>{
  const f=routeFixture();f.set({user:null});assert.equal((await f.run()).status,401);assert.equal(f.calls.length,0);
@@ -61,7 +77,7 @@ function pageHtml(data,error=null) {
  },React);return renderToStaticMarkup(Page());
 }
 test('rendered dashboard does not present old healthy totals after an error',()=>{const html=pageHtml({...snapshot(),config:{configured:true,keyMatches:true}},'Push Health Is Unavailable.');assert.match(html,/Push Health Is Unavailable/);assert.doesNotMatch(html,/VAPID configured|Queue backlog|6007/);});
-test('rendered dashboard shows exact accounting volume, observed time and unfinished backlog',()=>{const html=pageHtml({...snapshot(),config:{configured:true,keyMatches:true}});assert.match(html,/accounting_invoice/);assert.match(html,/6007/);assert.match(html,/Counts Include Every Matching Record/);assert.match(html,/Queue backlog[\s\S]*?>2<\/p>/);assert.match(html,/33% \(1\/3\)/);assert.match(html,/never/);});
+test('rendered dashboard shows exact accounting volume, observed time and unfinished backlog',()=>{const html=pageHtml({...snapshot(),config:{configured:true,keyMatches:true}});assert.match(html,/accounting_invoice/);assert.match(html,/6007/);assert.match(html,/Counts Include Every Matching Record/);assert.match(html,/Queue backlog[\s\S]*?>2<\/p>/);assert.match(html,/33% \(1\/3\)/);assert.match(html,/Send rate \(of addressable\)[\s\S]*?>100%<\/p>/);assert.match(html,/never/);});
 
 function readerFixture() {
  let actor={id:'admin-a'},state,effect,cleanup,authCallback,unsubscribed=false,writes=0;const requests=[],events=new Map();

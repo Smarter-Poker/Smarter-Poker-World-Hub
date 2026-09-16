@@ -116,22 +116,20 @@ test('preview builds are an allow-list, not a deny-list', () => {
   );
 });
 
-test('branches that are never browsed are refused before a container is created', () => {
-  const enabled = JSON.parse(read('vercel.json')).git?.deploymentEnabled ?? {};
-
-  // deploymentEnabled stops the deployment being CREATED. ignoreCommand does
-  // not: it provisions a build container and clones the repo before the script
-  // gets to say no. For refs that can never want a preview the map is strictly
-  // cheaper, so both are used.
-  for (const ref of ['agent/**', 'ci-marker/**', 'backup/**', 'build/**', 'patch/**']) {
-    assert.equal(
-      enabled[ref],
-      false,
-      `vercel.json git.deploymentEnabled must disable "${ref}". patch/** was ` +
-        `missing until 2026-09-08, which is how the audit of this very problem ` +
-        `triggered a preview build on its own branch.`
-    );
-  }
+test('automatic Git cloud builds stay disabled for every branch', () => {
+  // Owner recovery policy (2026-09-15): builds run locally, and publication
+  // uploads the resulting artifacts. A branch deny-list still allows main
+  // and newly named branches to create cloud builds before ignoreCommand runs.
+  assert.equal(
+    JSON.parse(read('vercel.json')).git?.deploymentEnabled,
+    false,
+    'git.deploymentEnabled must be false for all branches, including main'
+  );
+  assert.doesNotMatch(
+    read('.github/workflows/build-safety-gate.yml'),
+    /^  vercel-deploy-retry:/m,
+    'the retired retry job must not request a remote Vercel build'
+  );
 });
 
 // -- 3. main is allowed to finish what it started ----------------------------

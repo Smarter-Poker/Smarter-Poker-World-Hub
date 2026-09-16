@@ -406,9 +406,11 @@ export const VIP_MEMBERSHIP = {
 //                                       benefit and is not planned as one.
 //   • "Priority Support"             : no ticket priority field keyed on is_vip.
 //   • "Early Access / Beta Programs" : no feature-flag or beta cohort exists.
-//   • "3 Exclusive Table Themes"     : VIP_GOLD_LIMITS.themes is display-only;
-//                                       theme_unlock is a 25 dia. purchase for
-//                                       everyone, with no VIP grant path.
+//   • "3 Exclusive Table Themes"     : the number three was invented. Club
+//                                       Arena now authorizes every cataloged
+//                                       premium Table Studio asset directly
+//                                       from active VIP membership; no generic
+//                                       theme_unlock receipt represents that.
 //   • "Create Up To 3 Private Clubs" : clubCreation: 3 is display-only. The
 //                                       only real limit is ClubsService
 //                                       MAX_CLUBS = 4 on JOINS, for all users;
@@ -425,8 +427,6 @@ export const VIP_MEMBERSHIP = {
 //   • "Unlimited Preflop Charts"     : preflop-charts.js has no cost or VIP
 //                                       check at all. It is free for everyone,
 //                                       so it is not a VIP benefit.
-//   • "Show Stack In BBs"            : FEATURE_PRICING.show_stack_bb.cost is 0.
-//                                       Free for everyone.
 //   • "Free Entry To Freeroll Tournaments": no freeroll+VIP logic exists.
 //                                       tournament-enter.js REQUIRES VIP and
 //                                       still deducts the entry fee.
@@ -435,9 +435,10 @@ export const VIP_MEMBERSHIP = {
 //   • "$50/$25/$15 Per Month" values : invented retail prices. Replaced with
 //                                       the real diamond day-pass prices from
 //                                       FEATURE_CONFIG, which are verifiable.
-//   • "Unlimited Rabbit Hunting"     : it is 100/month, then 5 dia. each
-//                                       (fn_consume_rabbit_hunt). Corrected,
-//                                       not removed.
+//   • "Unlimited Rabbit Hunting"     : ordinary Monthly And Yearly VIP remain
+//                                       100/month, then 5 Diamonds each. Exact
+//                                       Lifetime VIP is now unlimited and is
+//                                       declared separately below.
 // ───────────────────────────────────────────────────────────────────────────
 export const VIP_BENEFITS = [
     // ─── SMARTER.POKER PLATFORM ───
@@ -456,19 +457,83 @@ export const VIP_BENEFITS = [
     { icon: '◆', title: 'Entry To VIP-Only Trivia Tournaments', description: 'Trivia Tournaments Are Restricted To VIP Members. The Tournament Buy-In Still Applies Normally', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Higher Daily Diamond Earning Cap', description: 'Earn Up To 150 Diamonds Per Day Instead Of The Free Ceiling Of 110', value: '150 ◆/Day', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Higher Monthly Diamond Earning Cap', description: 'Earn Up To 4,500 Diamonds Per Month Instead Of The Free Ceiling Of 3,300', value: '4,500 ◆/Mo', category: 'Smarter.Poker' },
-    { icon: '◆', title: '500 Bonus Diamonds Credited Every Month', description: 'Credited Automatically To Active Monthly And Yearly Subscriptions, And Yours To Keep Forever', value: '500 ◆/Mo', category: 'Smarter.Poker' },
+    { icon: '◆', title: '500 Bonus Diamonds Credited Every Month', description: 'Credited Automatically To Active Monthly And Yearly Subscriptions, And Yours To Keep Forever', value: '500 ◆/Mo', category: 'Smarter.Poker', plans: ['month', 'year'] },
     { icon: '◆', title: 'Up To 5 Custom AI-Generated Avatars', description: 'Free Accounts Get One Custom Avatar, Ever. VIP Holds Five At Once And Can Delete One To Make Room For A New Build', value: '5 Slots', category: 'Smarter.Poker' },
     { icon: '◆', title: 'The Full VIP Avatar Library Unlocked', description: 'Every Locked Avatar In The Selection Pool Opens, Including The Entire VIP-Only Set', value: 'VIP Only', category: 'Smarter.Poker' },
     { icon: '◆', title: 'Gold VIP Badge, Crown And Profile Flair', description: 'A Gold Border, Crown Icon And VIP Tag On Your Profile, The Site Header And Every Leaderboard Row', value: 'Exclusive', category: 'Smarter.Poker' },
     // ─── CLUB & DIAMOND ARENA FEATURES ───
-    { icon: '◆', title: '100 Free Rabbit Hunts Every Month', description: 'See The Cards That Would Have Come After You Fold. Hunts Beyond The First 100 Cost 5 Diamonds Each', value: '100/Mo', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: '100 Free Rabbit Hunts Every Month', description: 'See The Cards That Would Have Come After You Fold. Hunts Beyond The First 100 Cost 5 Diamonds Each', value: '100/Mo', category: 'Club & Diamond Arena', plans: ['month', 'year'] },
     { icon: '◆', title: 'Unlimited Offline Protection During Hands', description: 'Your Hand Is Protected Every Time You Disconnect. Free Accounts Get Exactly One Per Session', value: 'Unlimited', category: 'Club & Diamond Arena' },
     { icon: '◆', title: 'Auto Time Bank Activation, Free Every Time', description: 'Your Time Bank Fires Automatically The Moment You Need It. Free Accounts Pay 5 Diamonds Per Activation', value: 'No ◆ Cost', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: '120 Extra Time Bank Seconds Every Month', description: 'Added On Top Of The 40 Second Base Bank, For 160 Seconds Of Thinking Time In Total', value: '+120s/Mo', category: 'Club & Diamond Arena' },
-    { icon: '◆', title: '500 Free Throwables Every Month', description: 'Throw Any Of The 49 Items At The Table For Free. Throws Beyond The First 500 Cost 1 Diamond Each', value: '500/Mo', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: 'Stack Display In Big Blinds, Free Every Session', description: 'Display Every Stack In Big Blinds Without The Standard 5-Diamond Session Charge', value: 'No ◆ Cost', category: 'Club & Diamond Arena' },
+    { icon: '◆', title: '120 Extra Time Bank Seconds Every Month', description: 'Added On Top Of The 40 Second Base Bank, For 160 Seconds Of Thinking Time In Total', value: '+120s/Mo', category: 'Club & Diamond Arena', plans: ['month', 'year'] },
+    { icon: '◆', title: '500 Free Throwables Every Month', description: 'Throw Any Of The 49 Items At The Table For Free. Throws Beyond The First 500 Cost 1 Diamond Each', value: '500/Mo', category: 'Club & Diamond Arena', plans: ['month', 'year'] },
     { icon: '◆', title: 'VIP Cosmetic Frames And Borders Owned Outright', description: 'Every VIP-Tier Avatar Frame Belongs To You For As Long As You Are A Member, With No Separate Unlock To Buy', value: 'VIP Only', category: 'Club & Diamond Arena' },
     { icon: '◆', title: 'Entry To VIP-Only Club Tournaments', description: 'Tournaments A Club Flags As VIP Only Are Open To You And Carry A VIP Tag In The Lobby', value: 'VIP Only', category: 'Club & Diamond Arena' },
 ];
+
+/* Lifetime-only additions are separate from the ordinary VIP contract. Club
+   Arena entitlement and catalog paths expose these before the normal purchase
+   branch. A Time Bank remains one standard 20-second activation and
+   the engine still caps it at two activations per street, so "Unlimited" does
+   not become an unlimited decision clock.
+
+   This list intentionally names digital entitlements only. Physical
+   merchandise, Diamond grants or packages, memberships, tournament buy-ins,
+   transferable assets, and operator-stock Club Shop items retain their normal
+   settlement rules. Lifetime still inherits the ordinary VIP contract above:
+   tournament eligibility never waives the stated buy-in, and a higher earning
+   cap is not a currency grant. */
+export const VIP_LIFETIME_BENEFITS = [
+    {
+        icon: '◆',
+        title: 'Unlimited Rabbit Hunts With Lifetime VIP',
+        description: 'Reveal The Undealt Community Cards Without Spending A Hunt Pack Or Diamonds',
+        value: 'Unlimited',
+        category: 'Club & Diamond Arena',
+    },
+    {
+        icon: '◆',
+        title: 'Unlimited Standard Time Bank Activations',
+        description: 'Receive Another 20-Second Time Bank Whenever Needed. The Two-Per-Street Anti-Stall Limit Still Applies',
+        value: 'Unlimited',
+        category: 'Club & Diamond Arena',
+    },
+    {
+        icon: '◆',
+        title: 'Unlimited Throwables With Lifetime VIP',
+        description: 'Use Every Available Table Throwable Without Spending A Pack Credit Or Diamond',
+        value: 'Unlimited',
+        category: 'Club & Diamond Arena',
+    },
+    {
+        icon: '◆',
+        title: 'Every Cataloged Table Skin And Background Included',
+        description: 'Equip Every Current And Future Cataloged Digital Felt, Table Skin, And Scene While Lifetime VIP Is Active',
+        value: 'All Included',
+        category: 'Club & Diamond Arena',
+    },
+    {
+        icon: '◆',
+        title: 'Every Cataloged Card Back And Dealer Button Included',
+        description: 'Equip Every Current And Future Cataloged Digital Card Back And Dealer Button Without A Separate Purchase',
+        value: 'All Included',
+        category: 'Club & Diamond Arena',
+    },
+    {
+        icon: '◆',
+        title: 'Lifetime Emoji Packs And Player Tags Included',
+        description: 'Emoji Packs And Player Tags Never Require A Separate Diamond Purchase',
+        value: 'All Included',
+        category: 'Club & Diamond Arena',
+    },
+];
+
+export function getVipBenefitsForPlan(interval) {
+    const normalized = interval === 'lifetime' ? 'lifetime' : interval === 'year' ? 'year' : 'month';
+    const common = VIP_BENEFITS.filter((benefit) => !benefit.plans || benefit.plans.includes(normalized));
+    return normalized === 'lifetime' ? [...common, ...VIP_LIFETIME_BENEFITS] : common;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MERCHANDISE: Physical goods

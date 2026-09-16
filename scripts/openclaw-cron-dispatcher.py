@@ -65,6 +65,70 @@ except ImportError:
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 BASE_URL     = 'https://smarter.poker'
+# The file that WINS on the Open Claw host, and the one that only looks like it
+# does. openclaw.service carries `EnvironmentFile=-/etc/openclaw.env`, so that
+# file becomes os.environ and _load_cron_secret returns from it on the first
+# line. /opt/openclaw/.env is the DEPLOY SEED: deploy-openclaw.yml copies keys
+# out of it into /etc/openclaw.env and then never overwrites them again. So
+# once the two disagree, /opt/openclaw/.env is inert - editing it changes
+# nothing, and a restart "to pick up the fix" changes nothing either.
+#
+# That is not hypothetical. 2026-09-05 03:20:56 UTC the hub's CRON_SECRET was
+# replaced in Vercel; 03:25 every one of the ~89 routed jobs began 401ing and
+# stayed dead for 3.5 hours. The repair found THREE different 64-char values
+# live at once - production's, /etc/openclaw.env's, and /opt/openclaw/.env's -
+# wrote the correct one into /opt/openclaw/.env, restarted, and watched the
+# box keep 401ing, because the file it had just fixed is the shadowed one.
+# Nothing said so. These two constants and the check below exist to say so.
+# Overridable so the check is testable off-box; the defaults are the real paths.
+ETC_ENV_FILE = Path(os.environ.get('OPENCLAW_ETC_ENV', '/etc/openclaw.env'))    # authoritative at runtime
+SEED_ENV_FILE = Path(os.environ.get('OPENCLAW_SEED_ENV', '/opt/openclaw/.env')) # deploy seed only - shadowed
+
+# Startup findings, drained by main() once logging is configured (this block
+# runs before logging.basicConfig, so it cannot log for itself).
+_SECRET_SHADOW_FINDINGS = []
+
+
+def _fingerprint(value):
+    """A stable, non-reversible 12 hex chars. Never log or page a secret."""
+    if not value:
+        return 'empty'
+    return hashlib.sha1(value.encode('utf-8')).hexdigest()[:12]
+
+
+def _read_env_file_key(path, key):
+    """First `KEY=value` in a dotenv-style file, quotes stripped. '' if absent."""
+    try:
+        if not path.exists():
+            return ''
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if line.startswith(f'{key}='):
+                return line.split('=', 1)[1].strip().strip('"').strip("'")
+    except Exception:
+        # A secret loader must never be the reason the dispatcher will not boot.
+        return ''
+    return ''
+
+
+def _check_shadowed_secret(key, effective):
+    """Record it when the inert seed file disagrees with what is actually in use.
+
+    Silent precedence is the whole trap: both files parse, both look correct in
+    isolation, and only one is read. Naming the winner turns a multi-hour
+    outage into one edit.
+    """
+    seed = _read_env_file_key(SEED_ENV_FILE, key)
+    if not seed or not effective or seed == effective:
+        return
+    _SECRET_SHADOW_FINDINGS.append(
+        f'{key} DISAGREES between {ETC_ENV_FILE} (in use, sha={_fingerprint(effective)}) '
+        f'and {SEED_ENV_FILE} (SHADOWED, sha={_fingerprint(seed)}). '
+        f'{ETC_ENV_FILE} is what openclaw.service loads and is the only one that '
+        f'changes behaviour; editing {SEED_ENV_FILE} and restarting does nothing.'
+    )
+
+
 def _load_cron_secret():
     """Load CRON_SECRET from env or .env.local — never hardcode secrets."""
     secret = os.environ.get('CRON_SECRET')
@@ -78,6 +142,7 @@ def _load_cron_secret():
     return ''
 
 CRON_SECRET  = _load_cron_secret()
+_check_shadowed_secret('CRON_SECRET', CRON_SECRET)
 
 # The workers VM authenticates against ITS OWN copy of CRON_SECRET, held in
 # /opt/workers/.env inside the container's compose env. It is a SEPARATE
@@ -103,6 +168,7 @@ CRON_SECRET  = _load_cron_secret()
 # and never overwrites), and falls back to CRON_SECRET when unset so a box
 # where the two genuinely agree needs no configuration at all.
 WORKERS_CRON_SECRET = os.environ.get('WORKERS_CRON_SECRET', '').strip() or CRON_SECRET
+_check_shadowed_secret('WORKERS_CRON_SECRET', os.environ.get('WORKERS_CRON_SECRET', '').strip())
 
 LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
@@ -166,6 +232,8 @@ _workers_health_state = {'consec_fail': 0, 'alert_sent': False}
 
 # Same shape as above, for the auth-drift watchdog (added 2026-08-17).
 _auth_drift_state = {'consec_fail': 0, 'alert_sent': False}
+# Same shape, for the shadowed-secret-file check (added 2026-09-05).
+_secret_shadow_state = {'consec_fail': 0, 'alert_sent': False}
 
 # Public Poker Near Me directory monitor. This deliberately observes the same
 # API and published snapshot a visitor receives; it never refreshes or mutates
@@ -1595,11 +1663,17 @@ def _auth_drift_watchdog_job():
     # Two strikes before paging. A single failure can be a transient network
     # blip, and a false alert at 3am trains people to ignore the real one.
     if state['consec_fail'] >= 2 and not state['alert_sent']:
+        # Name the file. The 2026-09-05 repair lost a restart cycle writing the
+        # right secret into /opt/openclaw/.env - the obvious file, and the inert
+        # one - because this text said only "did not reach this host".
         state['alert_sent'] = _alert(
             state,
             'SMARTER.POKER SECRET DRIFT - ' + '; '.join(failures) +
             '. A rotation likely did not reach this host; cron jobs and/or '
-            'workers are silently 401ing.'
+            f'workers are silently 401ing. FIX IN {ETC_ENV_FILE} (that is the '
+            f'EnvironmentFile openclaw.service reads), then '
+            f'`systemctl restart openclaw`. Editing {SEED_ENV_FILE} does '
+            'NOTHING - it is only the deploy seed.'
         )
     _alert_flush(state)
 
@@ -1822,6 +1896,7 @@ def _heartbeat_job():
 _alert_state_load()
 _alert_bind('workers-health', _workers_health_state)
 _alert_bind('auth-drift', _auth_drift_state)
+_alert_bind('secret-shadow', _secret_shadow_state)
 _alert_bind('pnm-directory-health', _pnm_directory_health_state)
 
 
@@ -1994,6 +2069,29 @@ def main():
             log.info(f'Skipping {len(SCRIPT_JOBS)} SCRIPT_JOBS on secondary (SCRAPER_PY is Mac-only)')
     log.info(f'Managing {len(ALL_CRONS)} cron jobs')
     log.info('=' * 60)
+
+    # Two files, one winner, no announcement - until now. A disagreement here
+    # is not yet an outage (the value in use may still be the correct one), but
+    # it guarantees the NEXT repair edits the wrong file, so it pages on sight.
+    for finding in _SECRET_SHADOW_FINDINGS:
+        log.error(f'[secret-shadow] {finding}')
+    if _SECRET_SHADOW_FINDINGS:
+        _secret_shadow_state['consec_fail'] += 1
+        if not _secret_shadow_state['alert_sent']:
+            _secret_shadow_state['alert_sent'] = _alert(
+                _secret_shadow_state,
+                'SMARTER.POKER SHADOWED SECRET - ' + ' | '.join(_SECRET_SHADOW_FINDINGS)
+            )
+        _alert_flush(_secret_shadow_state)
+    else:
+        if _secret_shadow_state['alert_sent']:
+            _alert(_secret_shadow_state,
+                   'smarter.poker shadowed secret RESOLVED - '
+                   f'{ETC_ENV_FILE} and {SEED_ENV_FILE} agree again',
+                   recovery=True)
+        _secret_shadow_state['consec_fail'] = 0
+        _secret_shadow_state['alert_sent'] = False
+        _alert_flush(_secret_shadow_state)
 
     scheduler = BlockingScheduler(timezone='UTC')
 

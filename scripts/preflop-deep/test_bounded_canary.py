@@ -82,18 +82,26 @@ def make_canary(machine_id, parent_id, child_id, flop, turn):
     }
 
 
-def make_manifest(include_canaries=True):
-    phases = [
-        make_phase(game_type, stack)
-        for game_type, stacks in worker.TRAINING_SOLVER_CONTRACTS.items()
-        for stack in sorted(stacks)
-    ]
+def make_manifest(include_canaries=True, execution_scope="bounded_canary",
+                  phase_pairs=None):
+    if phase_pairs is None:
+        phase_pairs = (
+            [("hu_cash", 100)]
+            if execution_scope == worker.EXECUTION_SCOPE_BOUNDED_CANARY
+            else [
+                (game_type, stack)
+                for game_type, stacks in worker.TRAINING_SOLVER_CONTRACTS.items()
+                for stack in sorted(stacks)
+            ]
+        )
+    phases = [make_phase(game_type, stack) for game_type, stack in phase_pairs]
     phase_contracts = worker.canonical_phase_contracts(phases)
     game_contracts = worker.canonical_training_game_contracts(phases)
     chip_ev_contracts = worker.canonical_contract_pairs(worker.TRAINING_SOLVER_CONTRACTS)
     icm_contracts = worker.canonical_contract_pairs(worker.TRAINING_ICM_CONTRACTS)
     manifest = {
         "version": 5,
+        "execution_scope": execution_scope,
         "pipeline_bundle_checksum": "f" * 64,
         "range_combo_order": worker.h.COMBO_ORDER,
         "artifact_combo_order": worker.h.COMBO_ORDER,
@@ -206,6 +214,39 @@ class BoundedCanaryManifestTests(unittest.TestCase):
         self.assertEqual(worker.bounded_canary_for_machine(validated)["machine_id"], "M1")
         with self.assertRaisesRegex(SystemExit, "manifest release gate is closed"):
             validate_manifest(manifest, "backlog")
+        self.assertIsNone(worker.ACTIVE_ADMISSION_MODE)
+        with self.assertRaisesRegex(RuntimeError, "admission mode is unavailable"):
+            worker._worker_envelope("heartbeat", {}, 5, "f" * 64)
+
+        forced_open = copy.deepcopy(manifest)
+        forced_open["release_gate"]["solver_ready"] = True
+        with self.assertRaisesRegex(SystemExit, "execution scope"):
+            validate_manifest(forced_open, "backlog")
+
+    def test_canary_rejects_unreferenced_extra_or_non_training_phase(self):
+        extra = make_manifest(phase_pairs=[("hu_cash", 100), ("hu_cash", 40)])
+        with self.assertRaisesRegex(SystemExit, "phase set must exactly match"):
+            validate_manifest(extra)
+
+        outside = make_manifest(phase_pairs=[("not_training", 100)])
+        with self.assertRaisesRegex(SystemExit, "outside the exact Training"):
+            validate_manifest(outside)
+
+    def test_backlog_still_requires_every_chip_ev_contract(self):
+        partial = make_manifest(
+            execution_scope=worker.EXECUTION_SCOPE_BACKLOG,
+            phase_pairs=[("hu_cash", 100)],
+        )
+        partial["release_gate"]["solver_ready"] = True
+        with self.assertRaisesRegex(SystemExit, "phase coverage is incomplete"):
+            validate_manifest(partial, "backlog")
+
+        complete = make_manifest(
+            execution_scope=worker.EXECUTION_SCOPE_BACKLOG,
+        )
+        complete["release_gate"]["solver_ready"] = True
+        (validated, _), _ = validate_manifest(complete, "backlog")
+        self.assertEqual(validated["execution_scope"], "training_backlog")
 
     def test_canary_requires_distinct_gate_contract_and_digest(self):
         missing = make_manifest(include_canaries=False)
@@ -221,6 +262,18 @@ class BoundedCanaryManifestTests(unittest.TestCase):
         tampered["bounded_canary_contracts"][0]["child_artifact_id"] = M2_CHILD_ID
         with self.assertRaisesRegex(SystemExit, "checksum-seal"):
             validate_manifest(tampered)
+
+        missing_machine = make_manifest()
+        missing_machine["bounded_canary_contracts"].pop()
+        missing_machine["bounded_canary_contracts_sha256"] = hashlib.sha256(
+            json.dumps(
+                missing_machine["bounded_canary_contracts"],
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        ).hexdigest()
+        with self.assertRaisesRegex(SystemExit, "exactly M1 and M2"):
+            validate_manifest(missing_machine)
 
     def test_canary_rejects_invalid_uuid_lineage_node_and_machine_duplicates(self):
         invalid_uuid = make_manifest()

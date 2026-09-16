@@ -28,6 +28,12 @@ const {
   buildGrantSpec,
   normalizeImageUrl,
   HAS_SALES_ERROR,
+  ALL_THROWABLES_NAME,
+  ALL_THROWABLES_DESCRIPTION,
+  ALL_THROWABLES_IMAGE_URL,
+  ALL_THROWABLES_GRANT_SPEC,
+  THROWABLES_PLATFORM_MANAGED_CODE,
+  enforceAllThrowablesMutation,
 } = rules;
 
 describe('category vocabulary', () => {
@@ -58,25 +64,31 @@ describe('buildGrantSpec — an item must never silently grant nothing', () => {
     assert.deepEqual(buildGrantSpec('Emotes').spec, { type: 'emote_pack' });
   });
 
-  test('defaults a missing quantity to 1 instead of failing the request', () => {
+  test('defaults a missing time-bank quantity to 1 instead of failing the request', () => {
     // Regression: requiring grantQty 400'd the two most common categories for
     // any caller that predated grants.
-    assert.equal(buildGrantSpec('Throwables').spec.qty, 1);
+    assert.equal(buildGrantSpec('Time Banks').spec.qty, 1);
+  });
+
+  test('always represents throwables as the generic ten-use pack', () => {
+    assert.equal(buildGrantSpec('Throwables').spec.qty, 10);
+    assert.equal(buildGrantSpec('Throwables', 'throwable', 10).spec.qty, 10);
+    assert.match(buildGrantSpec('Throwables', 'throwable', 3).error, /exactly 10/i);
   });
 
   test('honours an explicit quantity', () => {
     assert.equal(buildGrantSpec('Throwables', 'throwable', 10).spec.qty, 10);
   });
 
-  test('floors a fractional quantity so the DB cast cannot fail', () => {
-    assert.equal(buildGrantSpec('Throwables', 'throwable', 3.9).spec.qty, 3);
+  test('floors a fractional time-bank quantity so the DB cast cannot fail', () => {
+    assert.equal(buildGrantSpec('Time Banks', 'time_bank', 3.9).spec.qty, 3);
   });
 
   test('rejects a quantity outside 1..MAX', () => {
     assert.ok(buildGrantSpec('Throwables', 'throwable', 0).error);
     assert.ok(buildGrantSpec('Throwables', 'throwable', -5).error);
-    assert.ok(buildGrantSpec('Throwables', 'throwable', MAX_GRANT_QTY + 1).error);
-    assert.ok(buildGrantSpec('Throwables', 'throwable', 'abc').error);
+    assert.ok(buildGrantSpec('Time Banks', 'time_bank', MAX_GRANT_QTY + 1).error);
+    assert.ok(buildGrantSpec('Time Banks', 'time_bank', 'abc').error);
   });
 
   test('an explicit "none" is preserved — a club-fulfilled perk is legitimate', () => {
@@ -140,6 +152,124 @@ describe('normalizeImageUrl — a club admin must not be able to beacon members'
   test('caps the stored length', () => {
     const long = 'https://e.com/' + 'a'.repeat(2000);
     assert.ok(normalizeImageUrl(long).value.length <= 500);
+  });
+});
+
+describe('platform-owned All Throwables Pack', () => {
+  const canonicalItem = {
+    name: ALL_THROWABLES_NAME,
+    description: ALL_THROWABLES_DESCRIPTION,
+    category: 'Throwables',
+    item_type: 'throwable',
+    grant_spec: { ...ALL_THROWABLES_GRANT_SPEC },
+    image_url: ALL_THROWABLES_IMAGE_URL,
+    is_active: true,
+    stackable: true,
+    per_user_limit: null,
+  };
+
+  test('rejects creating any club-authored throwable offer', () => {
+    for (const body of [
+      { category: 'Throwables' },
+      { category: 'Exclusive', grantType: 'throwable' },
+    ]) {
+      const result = enforceAllThrowablesMutation('create', body);
+      assert.equal(result.code, THROWABLES_PLATFORM_MANAGED_CODE);
+      assert.match(result.error, /cannot create/i);
+    }
+  });
+
+  test('rejects converting another item into a throwable offer', () => {
+    const result = enforceAllThrowablesMutation(
+      'update',
+      { category: 'Throwables', grantQty: 10 },
+      { category: 'Time Banks', item_type: 'time_bank', grant_spec: { type: 'time_bank', qty: 1 } }
+    );
+    assert.equal(result.code, THROWABLES_PLATFORM_MANAGED_CODE);
+  });
+
+  test('rejects updating a hidden historical item-specific throwable row', () => {
+    const result = enforceAllThrowablesMutation(
+      'update',
+      { price: 900 },
+      {
+        name: 'Tomato Pack (10)',
+        category: 'Throwables',
+        item_type: 'throwable',
+        grant_spec: { type: 'throwable', qty: 10 },
+        is_active: false,
+      }
+    );
+    assert.equal(result.code, THROWABLES_PLATFORM_MANAGED_CODE);
+  });
+
+  test('normalizes canonical identity while allowing commercial fields', () => {
+    const result = enforceAllThrowablesMutation(
+      'update',
+      { price: 1500, stock: 100, salePrice: 1250, sortOrder: 30 },
+      canonicalItem
+    );
+    assert.equal(result.managed, true);
+    assert.deepEqual(result.updates.grant_spec, { type: 'throwable', qty: 10 });
+    assert.equal(result.updates.name, ALL_THROWABLES_NAME);
+    assert.equal(result.updates.image_url, ALL_THROWABLES_IMAGE_URL);
+    assert.equal(result.updates.is_active, true);
+    assert.equal(result.updates.stackable, true);
+    assert.equal(result.updates.per_user_limit, null);
+  });
+
+  test('rejects every item-specific identity mutation', () => {
+    const conflicts = [
+      { name: 'Tomato Pack (10)' },
+      { description: 'Only Tomatoes.' },
+      { category: 'Exclusive' },
+      { imageUrl: '/tomato.png' },
+      { grantType: 'throwable', grantQty: 3 },
+      { grantRef: 'tomato' },
+      { isActive: false },
+      { stackable: false },
+      { perUserLimit: 1 },
+    ];
+    for (const body of conflicts) {
+      const result = enforceAllThrowablesMutation('update', body, canonicalItem);
+      assert.equal(result.code, THROWABLES_PLATFORM_MANAGED_CODE, JSON.stringify(body));
+    }
+  });
+
+  test('allows callers to repeat the exact canonical identity', () => {
+    const result = enforceAllThrowablesMutation('update', {
+      name: ALL_THROWABLES_NAME,
+      description: ALL_THROWABLES_DESCRIPTION,
+      category: 'Throwables',
+      imageUrl: ALL_THROWABLES_IMAGE_URL,
+      grantType: 'throwable',
+      grantQty: 10,
+      grantRef: '',
+      isActive: true,
+      stackable: true,
+      perUserLimit: null,
+    }, canonicalItem);
+    assert.equal(result.managed, true);
+    assert.deepEqual(result.updates.grant_spec, { type: 'throwable', qty: 10 });
+  });
+
+  test('rejects hiding or deleting the platform offer', () => {
+    assert.equal(
+      enforceAllThrowablesMutation('toggle', {}, canonicalItem).code,
+      THROWABLES_PLATFORM_MANAGED_CODE
+    );
+    assert.equal(
+      enforceAllThrowablesMutation('delete', {}, canonicalItem).code,
+      THROWABLES_PLATFORM_MANAGED_CODE
+    );
+  });
+
+  test('does not interfere with unrelated catalog items', () => {
+    const normal = { category: 'Time Banks', item_type: 'time_bank', grant_spec: { type: 'time_bank' } };
+    assert.deepEqual(enforceAllThrowablesMutation('create', { category: 'Time Banks' }), { managed: false });
+    assert.deepEqual(enforceAllThrowablesMutation('update', { price: 2000 }, normal), { managed: false });
+    assert.deepEqual(enforceAllThrowablesMutation('toggle', {}, normal), { managed: false });
+    assert.deepEqual(enforceAllThrowablesMutation('delete', {}, normal), { managed: false });
   });
 });
 

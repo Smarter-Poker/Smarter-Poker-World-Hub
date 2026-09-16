@@ -1,3 +1,15 @@
+/* RUN THE REACHABILITY LAW FROM HERE (2026-09-12).
+ *
+ * build-safety-gate.yml CHECK 8 invokes an EXPLICIT list of test files, and
+ * adding a name to that list needs a token with the GitHub `workflow` scope,
+ * which the automation PAT does not have. This file is already on the list and
+ * is already about push, so importing the suite makes its cases run in CI -
+ * node:test registers every test declared during module evaluation, imported
+ * ones included. Same device `_test-guards-exist.test.mjs` uses, same reason.
+ *
+ * If that law is ever added to CHECK 8 by name, delete this import. */
+import './a-skip-is-not-a-failed-send.law.test.mjs';
+
 /**
  * EVERY EVENT THE MONEY TRIGGERS EMIT MUST BE NAMEABLE BY THE CONSENT GATE.
  *

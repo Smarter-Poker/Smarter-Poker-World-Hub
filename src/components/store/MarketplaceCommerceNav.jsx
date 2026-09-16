@@ -1,14 +1,13 @@
 import Link from 'next/link';
-import { Heart, PackageCheck, ShoppingCart, Store } from 'lucide-react';
 
 import useCartStore from '../../stores/cartStore';
 import styles from './MarketplaceCommerceNav.module.css';
 
 const DESTINATIONS = [
-  { id: 'store', label: 'Marketplace', href: '/hub/diamond-store', Icon: Store },
-  { id: 'cart', label: 'Cart', href: '/hub/diamond-store/cart', Icon: ShoppingCart },
-  { id: 'orders', label: 'Orders', href: '/hub/diamond-store/orders', Icon: PackageCheck },
-  { id: 'wishlist', label: 'Wishlist', href: '/hub/diamond-store/wishlist', Icon: Heart },
+  { id: 'store', label: 'Marketplace', href: '/hub/diamond-store' },
+  { id: 'cart', label: 'Cart', href: '/hub/diamond-store/cart' },
+  { id: 'orders', label: 'Orders', href: '/hub/diamond-store/orders' },
+  { id: 'wishlist', label: 'Wishlist', href: '/hub/diamond-store/wishlist' },
 ];
 
 export default function MarketplaceCommerceNav({ active = 'store' }) {
@@ -20,7 +19,7 @@ export default function MarketplaceCommerceNav({ active = 'store' }) {
     <nav className={styles.rail} aria-label="Marketplace Commerce">
       <span className={styles.eyebrow}>Commerce Console</span>
       <div className={styles.links}>
-        {DESTINATIONS.map(({ id, label, href, Icon }) => {
+        {DESTINATIONS.map(({ id, label, href }) => {
           const current = active === id;
           return (
             <Link
@@ -29,7 +28,6 @@ export default function MarketplaceCommerceNav({ active = 'store' }) {
               className={styles.link}
               aria-current={current ? 'page' : undefined}
             >
-              <Icon size={17} aria-hidden="true" />
               <span>{label}</span>
               {id === 'cart' && itemCount > 0 && (
                 <strong className={styles.count} aria-label={`${itemCount} Items In Cart`}>

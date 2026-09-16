@@ -202,7 +202,6 @@ export default function VenuesTabPanel({
                             return (
                                 <div key={venue.id || `tour-${i}`} id={`tour-card-${venue.tour_code || i}`}
                                     className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}
-                                    style={{ border: '1.5px solid #ef4444', borderRadius: 12, boxShadow: '0 0 12px rgba(239,68,68,0.25)' }}
                                 >
                                     <RichTourCard
                                         venue={venue}

@@ -31,11 +31,28 @@ sh "$ROOT/scripts/hooks/pre-push-js-safety.sh"   "$@" || FAIL=1
 # this only ever speaks about text a person can actually read.
 node "$ROOT/scripts/ci/check-ui-text.mjs" || FAIL=1
 
-# The other half of the same instruction, and until now the asymmetric half.
-# check-title-case has run in CI since it landed, but not here - so the em dash
-# rule was answered before a push and the capitalization rule only after one.
-# Both gates are cheap and both read the same files; there is no reason for a
-# developer to learn about one of them a minute later than the other.
-node "$ROOT/scripts/ci/check-title-case.mjs" || FAIL=1
+# Agent worktrees have no dependency installation. Only this parser-dependent
+# check may be deferred: required Pre-Deploy Safety Checks runs this exact
+# command unconditionally as CHECK 20, with parser acquisition failures fatal.
+# Resolve from the guard's location, not from an unrelated caller directory.
+# A broken installed package or a failed check still blocks the push.
+TITLE_CASE_PARSER=0
+node - "$ROOT/scripts/ci/check-title-case.mjs" <<'NODE' || TITLE_CASE_PARSER=$?
+const { createRequire } = require('node:module');
+try {
+  createRequire(process.argv[2]).resolve('typescript');
+} catch (error) {
+  if (error.code === 'MODULE_NOT_FOUND' && error.message.startsWith("Cannot find module 'typescript'")) {
+    process.exit(2);
+  }
+  console.error(error);
+  process.exit(1);
+}
+NODE
+case "$TITLE_CASE_PARSER" in
+  0) node "$ROOT/scripts/ci/check-title-case.mjs" || FAIL=1 ;;
+  2) echo "[world-hub pre-push] DEFERRED: Title Case was not run locally (TypeScript absent). Required Pre-Deploy Safety Checks / CHECK 20 must pass before merge." ;;
+  *) echo "[world-hub pre-push] BLOCKED: could not resolve the Title Case parser." >&2; FAIL=1 ;;
+esac
 
 exit $FAIL

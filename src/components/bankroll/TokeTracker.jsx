@@ -1131,7 +1131,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <p style={styles.reportDates}>
                         {new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}
                         {gig.end_date && ` - ${new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}`}
-                        {' · '}{stats.durationDays} day{stats.durationDays !== 1 ? 's' : ''}
+                        {' · '}{`${stats.durationDays} Day${stats.durationDays !== 1 ? 's' : ''}`}
                     </p>
 
                     {/* Mileage IRS Deductible */}
@@ -1367,7 +1367,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             )}
                             <p style={styles.activeGigMeta}>
                                 Started {new Date(activeGig.start_date + 'T12:00:00').toLocaleDateString()}
-                                {' · '}{totalDays} day{totalDays !== 1 ? 's' : ''} Total
+                                {' · '}{`${totalDays} Day${totalDays !== 1 ? 's' : ''} Total`}
                                 {activeGig.hourly_rate > 0 && ` · $${activeGig.hourly_rate}/hr`}
                             </p>
                         </>
@@ -1951,7 +1951,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             return (
                                 <>
                                     <div style={styles.goalText}>
-                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
+                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) - {`${daysLeft} Day${daysLeft !== 1 ? 's' : ''} Left`}
                                     </div>
                                     <div style={styles.goalBarBg}>
                                         <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
@@ -2051,7 +2051,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             {/* ── YEARLY CALENDAR (hidden in standalone mode) ── */}
             {
                 !standalone && (
-                    <div style={styles.calendarWrapper}>
+                    <div className="toke-cal-wrapper" style={styles.calendarWrapper}>
                         <TokeCalendar userId={userId} />
                     </div>
                 )

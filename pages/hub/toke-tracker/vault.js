@@ -150,8 +150,11 @@ export default function DealerVaultPage() {
                             <DealerVault userId={userId} completedGigs={completedGigs} />
                         </HubErrorBoundary>
 
-                        {/* Tax Summary Button */}
-                        {completedGigs.length > 0 && (
+                        {/* Tax Summary Button. Its presence depends on the gigs,
+                            so while they load the space it will occupy is a
+                            skeleton rather than nothing that then jumps. */}
+                        {gigsLoading && <div className="toke-skel toke-skel-card" style={{ marginTop: 16 }} aria-hidden="true" />}
+                        {!gigsLoading && completedGigs.length > 0 && (
                             <button
                                 type="button"
                                 style={s.taxBtn}

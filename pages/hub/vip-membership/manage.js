@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { CalendarClock, Crown, RefreshCw, ShieldCheck, Sparkles, WalletCards, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
@@ -209,8 +208,8 @@ export default function VipManagePage() {
       status={stateLabel}
       actions={
         <>
-          <Link href="/hub/vip-membership"><Crown size={16} aria-hidden="true" /> VIP Storefront</Link>
-          <Link href="/hub/vip-membership/compare"><CalendarClock size={16} aria-hidden="true" /> Compare Plans</Link>
+          <Link href="/hub/vip-membership">VIP Storefront</Link>
+          <Link href="/hub/vip-membership/compare">Compare Plans</Link>
         </>
       }
       structuredData={schema}
@@ -218,7 +217,6 @@ export default function VipManagePage() {
     >
       {view.status === 'loading' && (
         <section className={`${styles.panel} ${styles.loading}`} role="status" aria-live="polite">
-          <RefreshCw size={25} aria-hidden="true" />
           <h2>Synchronizing VIP Record</h2>
           <p>Reading Your Private Entitlement And Recurring Billing State…</p>
         </section>
@@ -226,7 +224,6 @@ export default function VipManagePage() {
 
       {view.status === 'signed-out' && (
         <section className={styles.signedOut}>
-          <ShieldCheck size={29} aria-hidden="true" />
           <h2>Connect Your Private Membership Record</h2>
           <p>Sign In To Review Your VIP Source, Renewal Date, Plan, And Secure Management Controls.</p>
           <Link href={`/auth/login?redirect=${encodeURIComponent(canonical)}`}>Sign In To Manage VIP</Link>
@@ -235,17 +232,16 @@ export default function VipManagePage() {
 
       {view.status === 'error' && (
         <section className={styles.signedOut} role="alert">
-          <ShieldCheck size={29} aria-hidden="true" />
           <h2>Membership Link Interrupted</h2>
           <p>{marketplaceCopy(view.message)}</p>
-          <button className={styles.button} type="button" onClick={loadMembership}><RefreshCw size={15} aria-hidden="true" /> Retry Secure Read</button>
+          <button className={styles.button} type="button" onClick={loadMembership}>Retry Secure Read</button>
         </section>
       )}
 
       {view.status === 'ready' && (
         <div className={styles.console}>
           <section className={`${styles.panel} ${styles.panelGold}`} aria-labelledby="entitlement-signal-title">
-            <h2 id="entitlement-signal-title"><Crown size={22} aria-hidden="true" /> Entitlement Signal</h2>
+            <h2 id="entitlement-signal-title">Entitlement Signal</h2>
             <p>The Server, Not This Browser, Decides Whether Your VIP Access Is Active.</p>
             <div className={styles.statusLine}>
               <div><span>Access State</span><strong>{membership.isVip ? 'Active' : 'Inactive'}</strong></div>
@@ -261,7 +257,7 @@ export default function VipManagePage() {
           </section>
 
           <section className={styles.panel} aria-labelledby="secure-controls-title">
-            <h2 id="secure-controls-title"><WalletCards size={22} aria-hidden="true" /> Secure Controls</h2>
+            <h2 id="secure-controls-title">Secure Controls</h2>
             {!membership.isVip && (
               <>
                 <p>No Active VIP Entitlement Was Found. Choose A Monthly, Yearly, Or Lifetime Plan To Activate The Suite.</p>
@@ -272,7 +268,7 @@ export default function VipManagePage() {
             {membership.isVip && !membership.recurring && (
               <>
                 <p>{membership.source === 'lifetime' ? 'Lifetime VIP has no recurring bill to manage.' : 'Diamond VIP passes expire automatically and never renew a card.'}</p>
-                <div className={styles.notice}><Sparkles size={15} aria-hidden="true" /> No Cancellation Is Needed For This Membership Source.</div>
+                <div className={styles.notice}>No Cancellation Is Needed For This Membership Source.</div>
               </>
             )}
 
@@ -330,7 +326,7 @@ export default function VipManagePage() {
             )}
             {action.status === 'error' && <div className={`${styles.notice} ${styles.noticeError}`} role="alert">{marketplaceCopy(action.message)}</div>}
             <div className={styles.dialogActions}>
-              <button className={styles.secondaryButton} type="button" disabled={action.status === 'busy'} onClick={() => { setConfirmOpen(false); setPendingPlan(null); }}><X size={15} aria-hidden="true" /> {pendingPlan ? 'Keep Current Plan' : 'Keep Membership'}</button>
+              <button className={styles.secondaryButton} type="button" disabled={action.status === 'busy'} onClick={() => { setConfirmOpen(false); setPendingPlan(null); }}>{pendingPlan ? 'Keep Current Plan' : 'Keep Membership'}</button>
               {pendingPlan ? (
                 <button className={styles.button} type="button" disabled={action.status === 'busy'} onClick={() => switchPlan(pendingPlan)}>{action.status === 'busy' ? 'Switching…' : `Confirm ${pendingPlan} Plan`}</button>
               ) : (

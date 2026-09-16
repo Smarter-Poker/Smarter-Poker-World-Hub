@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { CreditCard, Gem, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
@@ -489,7 +488,6 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
             }}
             disabled={state.kind === 'processing' || !canPurchaseWithDiamonds}
           >
-            <Gem size={16} aria-hidden="true" />
             {isFreeItem
               ? 'Review Free Claim'
               : canPurchaseWithDiamonds
@@ -501,7 +499,6 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
             onClick={purchaseWithCard}
             disabled={state.kind === 'processing' || !itemAvailable || cardCharge == null}
           >
-            <CreditCard size={16} aria-hidden="true" />
             {cardCharge == null
               ? isFreeItem
                 ? 'No Card Charge Required'
@@ -523,7 +520,7 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
               Retry Live Inventory
             </button>
           )}
-          <Link href="/hub/club-shop">{state.kind === 'loading' && <Loader2 size={16} aria-hidden="true" />} Return To Club Shop</Link>
+          <Link href="/hub/club-shop">Return To Club Shop</Link>
         </>
       )}
       structuredData={schema}

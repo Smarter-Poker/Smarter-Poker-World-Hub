@@ -12,6 +12,7 @@ const WEBHOOK = read('pages/api/store/webhooks/stripe.js');
 const SHOWCASE = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const SHOWCASE_CSS = read('src/components/diamond-store/SmarterStoreShowcase.module.css');
 const MERCH = read('src/components/store/MerchStore.jsx');
+const MERCH_CSS = read('src/components/store/MerchStore.module.css');
 const STATUS_PANEL = read('src/components/diamond-store/CheckoutStatusPanel.jsx');
 const STATUS_CSS = read('src/components/diamond-store/CheckoutStatusPanel.module.css');
 const LEGACY_STYLES = read('src/components/diamond-store/diamondStoreStyles.js');
@@ -72,7 +73,7 @@ test('the merch page server-renders a static lineup while refreshing the live ca
   assert.match(MERCH, /Verifying Live Prices, Options, And Stock/);
   assert.doesNotMatch(MERCH, /\{!loading && sections\.map/);
   assert.match(MERCH, /catalog_fallback/);
-  assert.match(MERCH, /width:\s*44,[\s\S]*?minWidth:\s*44,[\s\S]*?height:\s*44/);
+  assert.match(MERCH_CSS, /\.quantityButton\s*\{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?height:\s*44px;/);
 });
 
 test('seeded merch image placeholders do not issue guaranteed production 404s', () => {
