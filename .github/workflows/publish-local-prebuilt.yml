@@ -1,0 +1,27 @@
+name: Request local prebuilt publication
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  request:
+    runs-on: [self-hosted, smarter-local-linux-arm64]
+    timeout-minutes: 5
+    steps:
+      - name: Request publication on the existing trusted local publisher
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          gh api --method POST repos/Smarter-Poker/Smarter-Poker-World-Hub/statuses/"$GITHUB_SHA" \
+            -f state=pending -f context=world-hub/publication \
+            -f description='Queued for the existing M3 publisher'
+          jq -n --arg sha "$GITHUB_SHA" --arg requested_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{event_type:"publish-world-hub",client_payload:{repository:"Smarter-Poker/Smarter-Poker-World-Hub",sha:$sha,requested_at:$requested_at}}' \
+            | gh api --method POST repos/Smarter-Poker/Smarter-Poker-Club-Arena/dispatches --input -
+          echo 'Publication result is reported as world-hub/publication on this commit.' >> "$GITHUB_STEP_SUMMARY"
