@@ -96,6 +96,11 @@ jobs:
       - name: Operational Alert Delivery Contracts
         run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
 
+      # The existing PNM entry point runs source/unit contracts only (including
+      # the three painted-console checks); npm also invokes pretest:pnm.
+      - name: Poker Near Me Source And Console Contracts
+        run: npm run test:pnm
+
       - name: Messenger Club And Invoice Separation
         run: node --test __tests__/messenger-workspace.test.mjs __tests__/messenger-accounting-ui.test.mjs
 

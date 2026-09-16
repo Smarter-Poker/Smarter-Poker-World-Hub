@@ -1,0 +1,214 @@
+/* Poker Near Me search uses painted wells and icon holders. All interaction,
+   map state, result data, and focus management remain live DOM behavior. */
+
+body.world-poker-near-me .gso-console-overlay {
+  background-color: #010306 !important;
+  background-image: url('/images/pnm-redesign/casino-command-map-v1.webp') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  background-blend-mode: multiply;
+  backdrop-filter: none !important;
+}
+
+body.world-poker-near-me .gso-console-header,
+body.world-poker-near-me .gso-detail-console__header {
+  min-height: 72px;
+  border: 0 !important;
+  background: #020508 !important;
+}
+
+body.world-poker-near-me :is(.gso-back, .gso-clear, .gso-painted-icon-button) {
+  display: grid !important;
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
+  padding: 0 !important;
+  place-items: center;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me :is(.gso-back, .gso-clear, .gso-painted-icon-button) .pnc-icon {
+  width: 52px !important;
+  height: 52px !important;
+  flex-basis: 52px !important;
+}
+
+body.world-poker-near-me .gso-console-form {
+  width: min(100%, 820px);
+  min-width: 0;
+}
+
+body.world-poker-near-me .gso-console-search-well {
+  width: 100%;
+  min-height: 64px;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+}
+
+body.world-poker-near-me .gso-console-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 5.5%;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  transform: translateY(-50%);
+}
+
+body.world-poker-near-me .gso-console-input {
+  min-height: 64px;
+  padding: 0 10% 0 13% !important;
+  color: #f4f7fb !important;
+  background: none !important;
+}
+
+body.world-poker-near-me .gso-console-input:focus-visible {
+  outline: 2px solid #8fd4ff !important;
+  outline-offset: -10px;
+}
+
+body.world-poker-near-me .gso-console-submit {
+  width: 134px;
+  min-width: 134px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 22px !important;
+  color: #effaff !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card) {
+  position: relative;
+  width: min(100%, 620px) !important;
+  min-height: 62px;
+  aspect-ratio: 1829 / 313;
+  margin-inline: auto;
+  padding: 4% 8% !important;
+  color: #d9e4ee !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card):active {
+  filter: brightness(1.14);
+}
+
+body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card):focus-visible {
+  outline: 2px solid #8fd4ff !important;
+  outline-offset: -8px;
+}
+
+body.world-poker-near-me .gso-result-card > div:first-of-type {
+  width: 48px !important;
+  height: 48px !important;
+  flex: 0 0 48px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/utility-well.png') center / contain no-repeat !important;
+}
+
+body.world-poker-near-me .gso-result-card > div:first-of-type img {
+  width: 54% !important;
+  height: 54% !important;
+  object-fit: contain !important;
+}
+
+body.world-poker-near-me .gso-result-card > div:first-of-type .pnc-icon {
+  width: 48px;
+  height: 48px;
+}
+
+body.world-poker-near-me .gso-console-info-row,
+body.world-poker-near-me .gso-detail-console__hero {
+  width: 100%;
+  min-height: 64px;
+  aspect-ratio: 1829 / 313;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/pnm-console/painted-controls-v1/search-well.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .gso-detail-console__hero {
+  min-height: 108px;
+}
+
+body.world-poker-near-me .gso-detail-console {
+  background: #010306 url('/images/pnm-phase-4/location-command-grid-v1.webp') center / cover no-repeat !important;
+}
+
+body.world-poker-near-me .gso-detail-console__actions :is(button, a) {
+  width: 174px !important;
+  min-width: 174px !important;
+  min-height: 57px !important;
+  padding: 0 24px !important;
+  color: #effaff !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .gso-console-skeleton {
+  width: min(100%, 620px);
+  aspect-ratio: 1829 / 313;
+  margin-inline: auto;
+  background: transparent url('/images/pnm-console/painted-controls-v1/search-well.png') center / contain no-repeat;
+  animation: gso-console-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gso-console-pulse {
+  0%, 100% { opacity: 0.34; }
+  50% { opacity: 0.76; }
+}
+
+@media (max-width: 620px) {
+  body.world-poker-near-me .gso-console-header {
+    gap: 4px !important;
+    padding-inline: 6px !important;
+  }
+
+  body.world-poker-near-me .gso-console-search-icon {
+    left: 4%;
+    width: 34px;
+    height: 34px;
+  }
+
+  body.world-poker-near-me .gso-console-input {
+    min-height: 58px;
+    padding-left: 15% !important;
+    font-size: 16px !important;
+  }
+
+  body.world-poker-near-me .gso-console-submit {
+    width: 112px;
+    min-width: 112px;
+  }
+
+  body.world-poker-near-me :is(.gso-city-btn, .gso-hist-btn, .gso-result-card) {
+    min-height: 60px;
+    padding: 3% 8% !important;
+  }
+}
+
+@media (max-width: 430px) {
+  body.world-poker-near-me .gso-console-submit {
+    position: absolute;
+    right: 8px;
+    bottom: -52px;
+    z-index: 3;
+  }
+}

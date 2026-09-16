@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import { TextDecoder } from 'node:util';
-import { createContext, SourceTextModule, SyntheticModule } from 'node:vm';
+import { createContext, runInNewContext, SourceTextModule, SyntheticModule } from 'node:vm';
 
 import {
   decodeSolverWorkerSecret,
@@ -36,6 +36,105 @@ const OPERATION_SCOPE_MIGRATION_SOURCE = fs.readFileSync(
 );
 const M1_SECRET_HEX = '1'.repeat(64);
 const M2_SECRET_HEX = '2'.repeat(64);
+const CATALOG_VERIFIER = fs.readFileSync('scripts/verify-training-solver-catalog-postgres.mjs', 'utf8');
+
+function receiptLockHarness() {
+  const start = CATALOG_VERIFIER.indexOf('async function withStaleReceiptLock(');
+  const end = CATALOG_VERIFIER.indexOf('\nfunction resolvePostgresBin()', start);
+  assert.ok(start >= 0 && end > start, 'receipt lock must have an explicit owner');
+  let child;
+  const hold = runInNewContext(`(${CATALOG_VERIFIER.slice(start, end)})`, {
+    ROOT: process.cwd(), process, setTimeout, clearTimeout,
+    spawn: (...args) => { child = spawn(...args); return child; },
+  });
+  return { hold, child: () => child };
+}
+
+const RECEIPT_LOCK_CLIENT = String.raw`
+  let input = '';
+  let ready = false;
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => {
+    input += chunk;
+    if (!ready && input.includes('\\echo stale-receipt-lock-held')) {
+      if (!input.includes("md5('stale-receipt-1')::uuid") || !input.includes('FOR UPDATE')) process.exit(2);
+      ready = true;
+      process.stdout.write('stale-receipt-lock-held\n');
+    }
+    if (input.includes('ROLLBACK;')) process.exit(ready ? 0 : 3);
+  });
+`;
+
+test('retention verifier holds the identified row until cleanup and reaps its client', async () => {
+  const harness = receiptLockHarness();
+  const result = await harness.hold(process.execPath, ['-e', RECEIPT_LOCK_CLIENT], async () => {
+    assert.equal(harness.child().exitCode, null);
+    return 'cleanup completed';
+  });
+  assert.equal(result, 'cleanup completed');
+  assert.equal(harness.child().exitCode, 0);
+});
+
+test('retention verifier releases and reaps the holder when cleanup fails', async () => {
+  const harness = receiptLockHarness();
+  await assert.rejects(harness.hold(process.execPath, ['-e', RECEIPT_LOCK_CLIENT], async () => {
+    throw new Error('cleanup assertion failed');
+  }), /cleanup assertion failed/);
+  assert.equal(harness.child().exitCode, 0);
+});
+
+test('retention verifier refuses a holder that exits before lock readiness', async () => {
+  const harness = receiptLockHarness();
+  let cleanupRan = false;
+  await assert.rejects(harness.hold(process.execPath, ['-e', 'process.exit(7)'], async () => {
+    cleanupRan = true;
+  }), /Stale receipt locker exited/);
+  assert.equal(cleanupRan, false);
+  assert.equal(harness.child().exitCode, 7);
+});
+
+test('retention verifier refuses successful holder exit before explicit release', async () => {
+  const harness = receiptLockHarness();
+  await assert.rejects(harness.hold(process.execPath, ['-e', String.raw`
+    process.stdout.write('stale-receipt-lock-held\n', () => process.exit(0));
+  `], async () => {
+    await new Promise((resolve) => harness.child().once('close', resolve));
+  }), /Stale receipt locker exited/);
+  assert.equal(harness.child().exitCode, 0);
+});
+
+test('retention verifier measures DB lock truth rather than delayed holder retirement', async () => {
+  const start = CATALOG_VERIFIER.search(/  \/\/ (?:Hold the oldest receipt row|Prove an actual row lock)/);
+  const end = CATALOG_VERIFIER.indexOf('\n  // Force the ON CONFLICT branch', start);
+  assert.ok(start >= 0 && end > start);
+  let clock = 0;
+  let releaseOldHolder;
+  let cleanupSql;
+  await runInNewContext(`(async () => {${CATALOG_VERIFIER.slice(start, end)}\n})()`, {
+    connection: [], tool: () => 'psql', Date: { now: () => clock },
+    setTimeout: (callback, delay) => { clock += delay; callback(); },
+    withStaleReceiptLock: async (_binary, _args, cleanup) => {
+      const result = await cleanup();
+      clock += 2_300; // Slow holder retirement must not become cleanup latency.
+      return result;
+    },
+    commandAsync: async (_binary, _args, { input }) => {
+      if (input.includes('pg_sleep(2)')) {
+        return new Promise((resolve) => {
+          releaseOldHolder = () => { clock += 2_300; resolve({ stdout: '' }); };
+        });
+      }
+      cleanupSql = input;
+      if (releaseOldHolder) releaseOldHolder();
+      return { stdout: input.includes('held_row_proof') ? 'SET\nDO\nt\nDO\nt\n' : 'SET\nt\n' };
+    },
+  });
+  assert.match(cleanupSql, /SET statement_timeout = '1500ms'/);
+  assert.equal((cleanupSql.match(/FOR UPDATE NOWAIT/g) || []).length, 2);
+  assert.equal((cleanupSql.match(/WHEN lock_not_available/g) || []).length, 2);
+  assert.match(cleanupSql, /SELECT count\(\*\) = 1 FROM public\.training_solver_worker_receipts/);
+});
+
 const FORBIDDEN_WORKER_DATABASE_ENV = [
   'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_KEY',
   'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY',
