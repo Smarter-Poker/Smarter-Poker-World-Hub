@@ -364,7 +364,7 @@ test('source integration retains a single V2 dispatcher and no legacy response c
   assert.match(horses, /retainCashoutTerminalIntent/);
   assert.match(horses, /'X-Idempotency-Key': operationId/);
   assert.match(horses, /expectedActorId: user.id/);
-  assert.match(horses, /receipt\.operationId !== operationId/);
+  assert.match(horses, /body\?\.receipt\?\.operationId !== operationId/);
   assert.doesNotMatch(horses, /localStorage\.removeItem\([^\n]*cashout-terminal/);
 });
 
