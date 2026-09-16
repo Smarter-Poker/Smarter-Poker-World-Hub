@@ -22,7 +22,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             const [healthRes, heartbeatsRes, errorsRes] = await Promise.all([
                 adm.from('signup_health_view').select('*').maybeSingle(),
                 adm.from('probe_heartbeats').select('id, probe_name, status, duration_ms, occurred_at').order('occurred_at', { ascending: false }).limit(20),
-                adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at').order('occurred_at', { ascending: false }).limit(50),
+                adm.from('signup_errors').select('id, email, trigger_name, error_code, error_msg, occurred_at, forwarded_to_sentry').order('occurred_at', { ascending: false }).limit(50),
             ]);
             return res.status(200).json({
                 health: healthRes.data || null,
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
             generatedAt: new Date().toISOString(),
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[auth-health-data] error:', err);
         if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
     }

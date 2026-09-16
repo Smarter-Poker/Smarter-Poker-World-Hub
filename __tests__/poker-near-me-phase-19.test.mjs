@@ -206,34 +206,22 @@ test('simulator rejects scraped navigation labels before they become venues', as
   assert.match(simulator, /venue_type not in PHYSICAL_DIRECTORY_VENUE_TYPES/);
 });
 
-test('painted map artwork and control geometry stay optimized and continuous', async () => {
+test('machined map artwork and control geometry stay optimized and continuous', async () => {
   const asset = new URL('../public/images/pnm-redesign/map-command-render-v2.webp', import.meta.url);
   const info = await stat(asset);
   assert.ok(info.size > 100_000, 'render should retain cinematic detail');
   assert.ok(info.size < 250_000, 'render should stay within the map loading budget');
 
-  const [style, paintedStyle, map, frame, panel] = await Promise.all([
+  const [style, map, panel] = await Promise.all([
     source('src/styles/worlds/poker-near-me-machined.css'),
-    source('src/styles/worlds/poker-near-me-console-map.css'),
     source('src/components/poker-near-me/mapPresentation.js'),
-    source('src/components/poker-near-me/MapSurfaceFrame.jsx'),
     source('src/components/poker-near-me/MapTabPanel.jsx'),
   ]);
   assert.match(style, /map-command-render-v2\.webp/);
   assert.match(style, /\.sp-drawer[\s\S]*?clip-path: none !important/);
   assert.match(style, /\[style\*='border-radius'\]/);
-  assert.match(paintedStyle, /painted-chassis-v1\/top-flat\.png/);
-  assert.match(paintedStyle, /painted-chassis-v1\/mid\.png/);
-  assert.match(paintedStyle, /painted-chassis-v1\/bottom-foot\.png/);
-  assert.match(paintedStyle, /painted-controls-v1\/utility-well\.png/);
-  assert.match(paintedStyle, /min-height:\s*44px/);
-  assert.match(map, /pnm-painted-marker/);
-  assert.match(map, /pnm-painted-cluster/);
-  assert.doesNotMatch(map, /border-radius:3px|linear-gradient|<svg width="40"/);
+  assert.match(map, /border-radius:3px/);
   assert.match(map, /#48c7ff/);
-  assert.match(frame, /data-pnm-map-console="painted-chassis-v1"/);
-  assert.match(frame, /PokerNearMeConsoleIcon/);
-  assert.equal((frame.match(/\{children\}/g) || []).length, 1);
   assert.match(panel, /className="pnm-map-radius-control"/);
   assert.match(panel, /aria-label="Map search radius"/);
 });

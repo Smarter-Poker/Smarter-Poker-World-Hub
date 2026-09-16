@@ -47,7 +47,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { serviceClient, deterministicOptionOrder, optionOrderSeed } from './tournament-lifecycle';
 import { getDailyDiamondsEarned, clampToCap } from '../../../src/lib/trivia/diamondCap';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
@@ -369,7 +369,7 @@ export default async function handler(req, res) {
         });
     } catch (e) {
         console.warn('[trivia session-submit] unexpected:', e);
-        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

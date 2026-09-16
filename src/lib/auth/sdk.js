@@ -8,6 +8,12 @@
  *   - Account-enumeration-safe error normalization
  *   - PostHog identify() (no SIGNUP funnel event — caller decides when
  *     the user is "fully provisioned")
+ *   - **Sentry capture** — every signup error is sent to Sentry with
+ *     custom tags (`auth.flow=signup`, `auth.error_code=...`) so an
+ *     on-call engineer can search/filter for signup failures specifically.
+ *     Bridges the gap left by `withSentryConfig` being disabled (OOM
+ *     workaround in next.config.js), which means auto-instrumentation
+ *     does NOT capture uncaught errors — only EXPLICIT captures land.
  *   - Telemetry on duration
  *
  * NEW IN 2026-05-03 — not yet adopted by callers. Existing call sites
@@ -35,6 +41,56 @@
 
 import { supabase } from '../supabase';
 
+// Sentry — best-effort import. Falls back to a no-op shim if the package
+// isn't loadable (e.g. unit tests, ts-node, an older client without
+// @sentry/nextjs). NEVER let Sentry being broken break signup.
+let Sentry;
+try {
+    // Dynamically require so this file works in environments without
+    // @sentry/nextjs installed (e.g. some local dev modes).
+    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+    Sentry = require('@sentry/nextjs');
+} catch (_e) {
+    Sentry = {
+        captureException: () => null,
+        captureMessage: () => null,
+        addBreadcrumb: () => null,
+        withScope: (cb) => cb({ setTag: () => null, setContext: () => null, setLevel: () => null }),
+    };
+}
+
+function sentryCaptureSignupFailure({ code, raw, email, ms }) {
+    try {
+        Sentry.withScope((scope) => {
+            scope.setTag('auth.flow', 'signup');
+            scope.setTag('auth.error_code', code);
+            // Avoid leaking full email — domain only is enough for triage
+            scope.setContext('signup', {
+                email_domain: typeof email === 'string' ? email.split('@')[1] || 'unknown' : 'unknown',
+                duration_ms: ms,
+                code,
+            });
+            scope.setLevel(code === 'enumeration_avoided' ? 'info' : 'error');
+            if (raw instanceof Error) {
+                Sentry.captureException(raw);
+            } else {
+                Sentry.captureMessage(`signup ${code}: ${raw?.message || raw || 'unknown'}`);
+            }
+        });
+    } catch (_sentryErr) { /* never let observability break signup */ }
+}
+
+function sentryBreadcrumb(category, message, data) {
+    try {
+        Sentry.addBreadcrumb({
+            category,
+            message,
+            data,
+            level: 'info',
+        });
+    } catch (_) { /* ignore */ }
+}
+
 /**
  * Sign up a new user.
  *
@@ -50,6 +106,7 @@ import { supabase } from '../supabase';
  */
 export async function signupUser(args) {
     const start = Date.now();
+    sentryBreadcrumb('auth', 'signupUser called', { has_metadata: !!args?.metadata });
 
     if (!args || typeof args !== 'object') {
         return _err('invalid_email', 'Signup request was malformed.', { args }, 0, args?.email);
@@ -88,6 +145,9 @@ export async function signupUser(args) {
         // Account enumeration defense: never confirm whether the email exists
         if (m.includes('already registered') || m.includes('user already') ||
             m.includes('email already') || m.includes('duplicate key')) {
+            // Still surface to Sentry as `info` level so we can detect
+            // patterns (e.g. an attacker probing the form).
+            sentryCaptureSignupFailure({ code: 'enumeration_avoided', raw: result.error, email, ms });
             return {
                 user: null,
                 session: null,
@@ -127,6 +187,7 @@ export async function signupUser(args) {
 }
 
 function _err(code, userMessage, raw, ms = 0, email = '') {
+    sentryCaptureSignupFailure({ code, raw, email, ms });
     return {
         user: null,
         session: null,

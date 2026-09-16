@@ -91,14 +91,7 @@ function CompletedEventsList({
                                     </div>
                                 </div>
                             ) : (
-                                <button
-                                    /* A card a keyboard could not reach: this was
-                                       a bare div with an onClick (phase 11). */
-                                    type="button"
-                                    onClick={() => onViewReport(gig.id)}
-                                    aria-label={`View The Report For ${gig.venue_name}`}
-                                    style={{ cursor: 'pointer', display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, color: 'inherit', font: 'inherit' }}
-                                >
+                                <div onClick={() => onViewReport(gig.id)} style={{ cursor: 'pointer' }}>
                                     <div style={styles.gigCardHeader}>
                                         <h4 style={styles.gigCardName}>{gig.venue_name}</h4>
                                         <span style={{ ...styles.gigCardTokes, color: '#38bdf8' }}>
@@ -113,7 +106,7 @@ function CompletedEventsList({
                                         <span>{gig.totalDowns || 0} Downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
                                         <span style={styles.viewReportLink}>View Report →</span>
                                     </div>
-                                </button>
+                                </div>
                             )}
                             {editingCompletedGig !== gig.id && (
                                 <div style={styles.eventActionRow}>

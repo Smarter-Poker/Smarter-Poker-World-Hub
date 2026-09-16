@@ -3,7 +3,7 @@
 ## When to use
 
 - `/api/admin/cron-health` returns non-green for any job.
-- Application logs show repeated errors from a `pages/api/cron/*` route.
+- Sentry shows repeated errors from a `pages/api/cron/*` route.
 - A scheduled scraper reports 0 new records for > 2 consecutive runs.
 - Vercel dashboard shows a cron invocation error rate > 10% in an hour.
 

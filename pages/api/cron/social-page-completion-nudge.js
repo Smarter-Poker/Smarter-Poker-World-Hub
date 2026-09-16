@@ -21,7 +21,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
 let _supabase = null;

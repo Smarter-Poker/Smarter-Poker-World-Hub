@@ -21,7 +21,7 @@
 
 import { createHmac } from 'crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import allVenuesData from '../../../public/data/all-venues.json';
 // Pure, so the "did this run produce anything" rule is testable by running it.
 import { isTotalDispatchFailure } from '../../../src/lib/scraperRunOutcome.js';
@@ -437,7 +437,7 @@ POST body format:
         });
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[Venue Scraper Trigger Error]', err);
         if (!res.headersSent) return res.status(500).json({ error: err.message });
     }

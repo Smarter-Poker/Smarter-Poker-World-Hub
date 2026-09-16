@@ -5,7 +5,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  * Query: ?staff_id=X&venue_id=Y&week=2026-03-02
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

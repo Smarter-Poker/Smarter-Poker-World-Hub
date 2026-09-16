@@ -10,7 +10,7 @@
  * the migration has never processed a single hand. There is nothing to
  * migrate; the endpoint is retired rather than given phantom columns.
  */
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         'there is no legacy data to migrate.',
     });
   } catch (err) {
-    try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

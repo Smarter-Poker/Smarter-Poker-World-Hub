@@ -28,7 +28,7 @@ The Sentinel Tripwire workflow will auto-comment if you touched any of these.
 - [ ] If I changed `geo-blocks.json` or `middleware.ts`, I added a test that proves `/auth/*` is still reachable from a restricted-state region
 - [ ] If I removed a guard, I added a replacement that protects the same failure class
 - [ ] If I touched a trigger function, I queried `signup_health_view` after to confirm `errors_1h = 0`
-- [ ] I read `docs/SIGNUP_RUNBOOK.md` and understand the historical failure modes
+- [ ] I read `SIGNUP-FIX-2026-05-03-FINAL.md` and understand the historical failure modes
 - [ ] Auth-Owner has been requested as a reviewer
 
 ## Screenshots

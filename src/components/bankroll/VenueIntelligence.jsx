@@ -180,7 +180,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                             <div style={s.venueInfo}>
                                                 <div style={s.venueName}>{v.venue}</div>
                                                 <div style={s.venueMeta}>
-                                                    {`${v.events} Event${v.events !== 1 ? 's' : ''}`}
+                                                    {v.events} event{v.events !== 1 ? 's' : ''}
                                                     {v.totalHours > 0 && ` · ${v.totalHours.toFixed(1)}h`}
                                                 </div>
                                             </div>

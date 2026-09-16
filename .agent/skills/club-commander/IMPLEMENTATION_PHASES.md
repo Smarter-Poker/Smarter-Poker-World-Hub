@@ -561,9 +561,16 @@ Checklist:
 - [ ] Secrets not in code
 ```
 
-#### Step 6.3: Error Diagnostics
-Retain the existing first-party error handlers and crash storage. Verify that
-failures remain visible without adding an external telemetry SDK or transport.
+#### Step 6.3: Error Monitoring
+```typescript
+// Sentry integration
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+});
+```
 
 ### Week 23-24: Launch Prep
 

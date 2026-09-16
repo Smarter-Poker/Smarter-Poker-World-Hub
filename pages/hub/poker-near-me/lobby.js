@@ -43,7 +43,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useVenueRealtime from '../../../src/hooks/useVenueRealtime';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { PodErrorBoundary } from '../../../src/components/poker-near-me/ControllerRecovery';
-import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 // BottomNavBar removed — Poker Near Me has its own navigation grid
 
 // ─── Extracted Utilities (Bundle Splitting) ───
@@ -2505,7 +2504,6 @@ export default function PokerNearMeLobby() {
         }
         onMenuClick={() => setMenuOpen(true)}
       >
-      <PokerNearMeFamilyNav />
       <div className="pnm-lobby-page" data-pnm-realism="machined-v2">
         {/* ═══ SERVER-RENDERED CRAWLABLE LAYER ═══
             LobbyCanvas and LobbyOverlay are both ssr:false, so without this

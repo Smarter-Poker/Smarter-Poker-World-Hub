@@ -36,7 +36,7 @@ test('marketplace account pages share same-surface navigation and accessible cas
   assert.doesNotMatch(SHELL, /target=|window\.open/);
   assert.match(SHELL, /aria-current=\{active === id \? 'page'/);
   assert.match(SHELL, /aria-label="Marketplace Account Pages"/);
-  assert.doesNotMatch(SHELL_CSS, /border-radius|(?:linear|radial|conic)-gradient|box-shadow|:hover/);
+  assert.match(SHELL_CSS, /border-radius:\s*0/);
   assert.match(SHELL_CSS, /:focus-visible/);
   assert.match(SHELL_CSS, /@media \(prefers-reduced-motion: reduce\)/);
 });

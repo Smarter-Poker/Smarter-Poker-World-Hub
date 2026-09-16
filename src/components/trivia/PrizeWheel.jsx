@@ -514,7 +514,7 @@ export default function PrizeWheel({
                 }
                 
                 .result-breakdown {
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.55);
                     margin-top: 2px;
                 }

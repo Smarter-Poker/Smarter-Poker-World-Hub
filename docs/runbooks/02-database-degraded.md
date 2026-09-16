@@ -4,7 +4,7 @@
 
 - Supabase project status page shows red for `api`, `db`, or `realtime`.
 - `/api/health` reports `db.status: degraded` or latency > 2000ms.
-- Application error spike of `PGRST` errors, connection timeouts, or `57P01`
+- Sentry spike of `PGRST` errors, connection timeouts, or `57P01`
   (admin-shutdown) rows.
 - Club Arena wallet / hand-history pages show "Unable to load" at scale.
 

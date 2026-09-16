@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Award, BarChart3 } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
@@ -84,8 +85,8 @@ export default function RewardDetail({ reward }) {
       status={reward.lifetime ? 'Lifetime Signal' : 'Repeatable'}
       actions={
         <>
-          <Link href="/hub/smarter-rewards">View Every Reward</Link>
-          <Link href="/hub/diamond-store">Open Diamond Wallet</Link>
+          <Link href="/hub/smarter-rewards"><Award size={16} aria-hidden="true" /> View Every Reward</Link>
+          <Link href="/hub/diamond-store"><BarChart3 size={16} aria-hidden="true" /> Open Diamond Wallet</Link>
         </>
       }
       structuredData={schema}

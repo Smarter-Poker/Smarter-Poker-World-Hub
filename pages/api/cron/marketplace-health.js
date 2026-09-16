@@ -3,10 +3,11 @@
  *
  * Runs the strict marketplace dependency probe on a schedule. A degraded
  * provider, catalog, or checkout capability returns 503 so Vercel cron health,
+ * Sentry, and cron_health_log all receive a failure signal.
  */
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getMarketplaceReadiness } from '../store/readiness';
 
 export const config = { maxDuration: 30 };

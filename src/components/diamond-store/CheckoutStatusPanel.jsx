@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { AlertTriangle, CheckCircle, Clock3, ReceiptText, X } from 'lucide-react';
 
 import styles from './CheckoutStatusPanel.module.css';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
@@ -10,37 +11,37 @@ const COPY = {
     eyebrow: 'Transaction Seal',
     title: 'Verifying Your Purchase',
     body: 'Your Payment Return Is Secure. We Are Confirming The Session Before Showing A Receipt.',
-    mark: 'Checking',
+    Icon: Clock3,
   },
   pending: {
     eyebrow: 'Payment Received',
     title: 'Fulfillment Is Processing',
     body: 'Stripe Confirmed The Checkout. Your Balance, Membership, Or Order Will Update As Soon As The Signed Webhook Finishes.',
-    mark: 'Processing',
+    Icon: Clock3,
   },
   complete: {
     eyebrow: 'Verified Transaction',
     title: 'Purchase Complete',
     body: 'The Payment And Store Record Match. Your Purchase Is Now Recorded On Your Smarter.Poker Account.',
-    mark: 'Verified',
+    Icon: CheckCircle,
   },
   review: {
     eyebrow: 'Item Action Required',
     title: 'Card Payment Complete, Item Pending',
     body: 'Your Card Payment And Diamond Funding Are Recorded, But The Item Was Not Purchased. Review The Updated Wallet And Current Item Price Before Finishing With Diamonds. Do Not Pay By Card Again.',
-    mark: 'Review',
+    Icon: AlertTriangle,
   },
   canceled: {
     eyebrow: 'Checkout Closed',
     title: 'No Payment Was Made',
     body: 'The Checkout Was Canceled Before Payment. Your Balance And Membership Were Not Changed.',
-    mark: 'Closed',
+    Icon: X,
   },
   failed: {
     eyebrow: 'Verification Required',
     title: 'We Could Not Verify This Return',
     body: 'No Purchase Is Being Claimed From The URL Alone. Refresh Your Wallet Or Order History, Or Contact Support If Stripe Shows A Charge.',
-    mark: 'Attention',
+    Icon: AlertTriangle,
   },
 };
 
@@ -65,6 +66,7 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
   if (!state?.status) return null;
 
   const config = COPY[state.status] || COPY.failed;
+  const Icon = config.Icon;
   const receipt = state.receipt || null;
   const reference = receipt?.sessionId ? receipt.sessionId.slice(-12).toUpperCase() : null;
   const amount = amountLabel(receipt);
@@ -81,7 +83,7 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
       tabIndex={-1}
     >
       <div className={styles.seal} aria-hidden="true">
-        {config.mark}
+        <Icon size={28} strokeWidth={1.7} />
       </div>
       <div className={styles.copy}>
         <span>{config.eyebrow}</span>
@@ -135,9 +137,10 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
       </div>
       {state.status !== 'verifying' && (
         <button type="button" className={styles.dismiss} onClick={onDismiss} aria-label="Dismiss Checkout Status">
-          Dismiss
+          <X size={19} />
         </button>
       )}
+      <ReceiptText className={styles.watermark} size={92} aria-hidden="true" />
     </section>
   );
 }

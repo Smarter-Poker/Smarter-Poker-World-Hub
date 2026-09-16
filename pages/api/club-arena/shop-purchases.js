@@ -23,7 +23,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
@@ -226,7 +226,7 @@ export default async function handler(req, res) {
             hasMore: typeof count === 'number' ? offset + limit < count : result.length === limit,
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_e) { /* Local error reporting is best-effort. */ }
+        try { reportApiError(err, req); } catch (_e) { /* sentry optional */ }
         console.warn('[shop-purchases]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

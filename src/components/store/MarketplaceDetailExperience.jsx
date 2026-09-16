@@ -1,12 +1,16 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { ChevronRight, Gem, ShieldCheck, Sparkles, X, ZoomIn } from 'lucide-react';
 
 import UniversalHeader from '../ui/UniversalHeader';
 import PageTransition from '../transitions/PageTransition';
 import MarketplaceCommerceNav from './MarketplaceCommerceNav';
 import styles from './MarketplaceDetailExperience.module.css';
-import { marketplaceCopy, marketplaceStructuredData } from '../../lib/store/marketplaceCopy';
+import {
+  marketplaceCopy,
+  marketplaceStructuredData,
+} from '../../lib/store/marketplaceCopy';
 
 const DEFAULT_MARKETPLACE_IMAGE = '/images/store-v3/diamond-vault-hero.webp';
 
@@ -63,16 +67,10 @@ export default function MarketplaceDetailExperience({
   children,
 }) {
   const safeImage = resolveMarketplaceImage(image);
-  const media = useMemo(
-    () =>
-      [
-        ...new Set([
-          safeImage,
-          ...(Array.isArray(galleryImages) ? galleryImages : []).map(resolveMarketplaceImage),
-        ]),
-      ].slice(0, 8),
-    [safeImage, galleryImages]
-  );
+  const media = useMemo(() => [...new Set([
+    safeImage,
+    ...(Array.isArray(galleryImages) ? galleryImages : []).map(resolveMarketplaceImage),
+  ])].slice(0, 8), [safeImage, galleryImages]);
   const [selectedMedia, setSelectedMedia] = useState(0);
   const [mediaExpanded, setMediaExpanded] = useState(false);
   const mediaDialogId = useId();
@@ -154,13 +152,10 @@ export default function MarketplaceDetailExperience({
           <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, index) => (
               <span key={crumb.href}>
-                <Link
-                  href={crumb.href}
-                  aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}
-                >
+                <Link href={crumb.href} aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}>
                   {marketplaceCopy(crumb.label)}
                 </Link>
-                {index < breadcrumbs.length - 1 && <span aria-hidden="true">/</span>}
+                {index < breadcrumbs.length - 1 && <ChevronRight size={13} aria-hidden="true" />}
               </span>
             ))}
           </nav>
@@ -170,11 +165,7 @@ export default function MarketplaceDetailExperience({
               <div className={styles.mediaStage}>
                 <img
                   src={media[selectedMedia]}
-                  alt={
-                    selectedMedia === 0
-                      ? copyImageAlt
-                      : `${copyImageAlt} Detail ${selectedMedia + 1}`
-                  }
+                  alt={selectedMedia === 0 ? copyImageAlt : `${copyImageAlt} Detail ${selectedMedia + 1}`}
                   width={1200}
                   height={900}
                   loading="eager"
@@ -190,15 +181,11 @@ export default function MarketplaceDetailExperience({
                   aria-expanded={mediaExpanded}
                   onClick={() => setMediaExpanded(true)}
                 >
-                  Inspect
+                  <ZoomIn size={17} aria-hidden="true" /> Inspect
                 </button>
               </div>
               {media.length > 1 && (
-                <div
-                  className={styles.mediaRail}
-                  role="group"
-                  aria-label={`${copyTitle} Image Gallery`}
-                >
+                <div className={styles.mediaRail} role="group" aria-label={`${copyTitle} Image Gallery`}>
                   {media.map((source, index) => (
                     <button
                       type="button"
@@ -207,17 +194,16 @@ export default function MarketplaceDetailExperience({
                       aria-pressed={selectedMedia === index}
                       onClick={() => setSelectedMedia(index)}
                     >
-                      <img
-                        src={source}
-                        alt=""
-                        loading={index === 0 ? 'eager' : 'lazy'}
-                        decoding="async"
-                      />
+                      <img src={source} alt="" loading={index === 0 ? 'eager' : 'lazy'} decoding="async" />
                     </button>
                   ))}
                 </div>
               )}
-              <div className={styles.mediaBadge}>Secure Marketplace Item</div>
+              <span className={styles.scanLine} aria-hidden="true" />
+              <div className={styles.mediaBadge}>
+                <ShieldCheck size={15} aria-hidden="true" />
+                Secure Marketplace Item
+              </div>
               {mediaExpanded && (
                 <div
                   className={styles.mediaDialog}
@@ -237,7 +223,7 @@ export default function MarketplaceDetailExperience({
                     autoFocus
                     onClick={closeMedia}
                   >
-                    Close
+                    <X size={22} aria-hidden="true" /> Close
                   </button>
                   <img src={media[selectedMedia]} alt={copyImageAlt} />
                 </div>
@@ -259,7 +245,7 @@ export default function MarketplaceDetailExperience({
                 {diamondPrice != null && (
                   <div>
                     <small>{copyDiamondLabel}</small>
-                    <strong>{Number(diamondPrice).toLocaleString()} Diamonds</strong>
+                    <strong><Gem size={17} aria-hidden="true" /> {Number(diamondPrice).toLocaleString()}</strong>
                   </div>
                 )}
                 <div>
@@ -269,7 +255,11 @@ export default function MarketplaceDetailExperience({
               </div>
 
               <div className={styles.actions}>{actions}</div>
-              {copySecurity && <p className={styles.securityCopy}>{copySecurity}</p>}
+              {copySecurity && (
+                <p className={styles.securityCopy}>
+                  <Sparkles size={14} aria-hidden="true" /> {copySecurity}
+                </p>
+              )}
             </div>
           </article>
 

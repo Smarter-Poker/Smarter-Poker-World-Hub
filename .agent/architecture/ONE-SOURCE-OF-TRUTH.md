@@ -31,7 +31,7 @@ Every product surface has exactly one repo. Pushes go nowhere else.
 
 - `supabase.auth.getUser()` calls outside `src/lib/auth/*` — use the validated Bearer wrapper.
 - Client-side PIN gates for admin surfaces — server-side cookie + HMAC only (Phase 3.6 enforced).
-- `export const runtime = 'edge'` on Pages Router routes that import `apiErrorHandler`, `supabaseServerClient`, or `serverAuth` — those are Node-only. Lesson from the 81-route revert in commit `683a8d380`.
+- `export const runtime = 'edge'` on Pages Router routes that import `sentryWrap`, `supabaseServerClient`, or `serverAuth` — those are Node-only. Lesson from the 81-route revert in commit `683a8d380`.
 
 ## Rule 4 — Verify after every push
 

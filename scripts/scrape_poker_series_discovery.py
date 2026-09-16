@@ -466,20 +466,11 @@ def fetch_db_known_series() -> tuple[set, list]:
 
     # Pull from poker_series table if it exists
     try:
-        rows = sb_get_paged(
-            "poker_series", "series_uid,series_name,source_url,scrape_url,source", ""
-        )
+        rows = sb_get_paged("poker_series", "series_uid,series_name", "")
         for r in rows:
             name = (r.get("series_name") or "").strip()
             if name:
-                # The master list is the next stage's source handoff. Keep
-                # the stored address and provenance with the exact parent
-                # identity; names alone cannot reconstruct either one.
-                db_records.append({
-                    "id": r.get("series_uid"), "name": name, "table": "poker_series",
-                    "source_url": r.get("source_url") or r.get("scrape_url") or "",
-                    "scrape_source": r.get("source") or "",
-                })
+                db_records.append({"id": r.get("series_uid"), "name": name, "table": "poker_series"})
                 known_keys.add(normalize_key(name))
         log.info(f"  poker_series:             {len(rows)} rows")
     except Exception as e:

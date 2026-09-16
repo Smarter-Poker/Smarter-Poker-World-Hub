@@ -169,7 +169,7 @@ function SourcePlaceholderBoxBody({ sourceName, sourceUrl, index, openExternal }
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.5);
                 }
                 .box-meta .source {

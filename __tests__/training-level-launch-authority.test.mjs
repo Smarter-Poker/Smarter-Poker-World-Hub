@@ -29,7 +29,7 @@ function compileSessionStart({ authUser = { id: 'user-1' }, authError = null } =
     },
     '../../../src/lib/supabaseServerClient': { createClient: () => ({}) },
     '../../../src/lib/training/customTrainingLaunchContract.mjs': { isCanonicalTrainingGameId },
-    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/lib/sentryWrap': { reportApiError() {} },
   };
   const module = { exports: {} };
   new Function('require', 'module', 'exports', compiled)((specifier) => {

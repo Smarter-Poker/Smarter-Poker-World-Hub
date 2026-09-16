@@ -3,10 +3,10 @@
  * Floating cart with slide-out panel
  */
 import { useEffect, useState } from 'react';
+import { X, Trash2 } from 'lucide-react';
 import useCartStore from '../../stores/cartStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
-import styles from './ShoppingCart.module.css';
 
 // Mirrors MAX_DIAMOND_QUANTITY_PER_PACKAGE in cartStore.js and in
 // pages/api/store/create-checkout-session.js. The store clamps the value;
@@ -15,490 +15,428 @@ const MAX_DIAMOND_QUANTITY_PER_PACKAGE = 10;
 const PRINT_ON_DEMAND_ITEM_IDS = new Set(['hoodie-neural', 'tshirt-gto', 'hat-diamond']);
 
 const atQuantityCap = (item) =>
-  item?.type === 'diamonds' && (item.quantity || 1) >= MAX_DIAMOND_QUANTITY_PER_PACKAGE;
+    item?.type === 'diamonds' && (item.quantity || 1) >= MAX_DIAMOND_QUANTITY_PER_PACKAGE;
 
-export default function ShoppingCartComponent({
-  onCheckout,
-  onPayWithDiamonds,
-  isProcessing = false,
-}) {
-  const {
-    items,
-    isOpen,
-    toggleCart,
-    closeCart,
-    removeItem,
-    updateQuantity,
-    getTotal,
-    getItemCount,
-  } = useCartStore();
+export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, isProcessing = false }) {
+    const {
+        items,
+        isOpen,
+        toggleCart,
+        closeCart,
+        removeItem,
+        updateQuantity,
+        getTotal,
+        getItemCount
+    } = useCartStore();
 
-  const [mounted, setMounted] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-  if (!mounted) return null;
+    if (!mounted) return null;
 
-  const itemCount = getItemCount();
-  const total = getTotal();
+    const itemCount = getItemCount();
+    const total = getTotal();
 
-  return (
-    <>
-      {/* Existing marketplace cart artwork is the persistent cart entry point. */}
-      <button
-        onClick={toggleCart}
-        aria-label={`Shopping Cart${itemCount ? `, ${itemCount} items` : ''}`}
-        className={styles.cartTrigger}
-        style={{
-          position: 'fixed',
-          bottom: 110,
-          right: 24,
-          width: 136,
-          height: 136,
-          borderRadius: 14,
-          background: 'transparent',
-          border: 'none',
-          boxShadow: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: 6,
-          overflow: 'visible',
-        }}
-      >
-        <img
-          src="/images/cart-icon.jpg"
-          alt="Shopping Cart"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            filter: 'drop-shadow(0 0 4px rgba(0, 180, 255, 0.4))',
-          }}
-        />
-        {itemCount > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -8,
-              right: -8,
-              minWidth: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: '#ff4757',
-              color: '#fff',
-              fontSize: 12,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 4px',
-              border: '2px solid #000',
-              boxShadow: '0 2px 8px rgba(255, 71, 87, 0.5)',
-            }}
-          >
-            {itemCount}
-          </div>
-        )}
-      </button>
-
-      {/* Cart Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeCart}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.5)',
-                zIndex: 1001,
-              }}
-            />
-
-            {/* Cart Drawer */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              style={{
-                position: 'fixed',
-                top: 0,
-                right: 0,
-                width: '100%',
-                maxWidth: 400,
-                height: '100dvh',
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                boxSizing: 'border-box',
-                background: '#242526',
-                boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.3)',
-                zIndex: 1002,
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              {/* Header remains below the status bar so its close control is reachable. */}
-              <div
+    return (
+        <>
+            {/* Cart Icon Button */}
+            <button
+                onClick={toggleCart}
                 style={{
-                  padding: '20px 24px',
-                  paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <h2
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 700,
-                    color: '#E4E6EB',
-                    margin: 0,
-                  }}
-                  className={styles.drawerTitle}
-                >
-                  Shopping Cart ({itemCount})
-                </h2>
-                <button
-                  onClick={closeCart}
-                  aria-label="Close"
-                  className={styles.closeButton}
-                  style={{
-                    background: 'none',
+                    position: 'fixed',
+                    bottom: 110,
+                    right: 24,
+                    width: 136,
+                    height: 136,
+                    borderRadius: 14,
+                    background: 'transparent',
                     border: 'none',
+                    boxShadow: 'none',
                     cursor: 'pointer',
-                    padding: 8,
-                    minWidth: 44,
-                    minHeight: 44,
-                    touchAction: 'manipulation',
-                    WebkitTapHighlightColor: 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-
-              {/* Cart Items */}
-              <div
-                style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  padding: 24,
+                    zIndex: 1000,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    padding: 6,
+                    overflow: 'visible'
                 }}
-              >
-                {items.length === 0 ? (
-                  <div
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                }}
+            >
+                <img
+                    src="/images/cart-icon.jpg"
+                    alt="Shopping Cart"
                     style={{
-                      textAlign: 'center',
-                      padding: '40px 20px',
-                      color: 'rgba(255, 255, 255, 0.5)',
-                    }}
-                  >
-                    <img
-                      src="/images/cart-icon.png"
-                      alt="Cart"
-                      style={{
-                        width: 64,
-                        height: 64,
-                        margin: '0 auto 16px',
+                        width: '100%',
+                        height: '100%',
                         objectFit: 'contain',
-                        opacity: 0.5,
-                      }}
-                    />
-                    <p>Your Cart Is Empty</p>
-                  </div>
-                ) : (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: 12,
-                        padding: 16,
-                        marginBottom: 12,
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: 8,
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <h3
-                            style={{
-                              fontSize: 16,
-                              fontWeight: 600,
-                              color: '#E4E6EB',
-                              margin: '0 0 4px 0',
-                            }}
-                          >
-                            {marketplaceCopy(item.name)}
-                          </h3>
-                          {item.diamonds > 0 && (
-                            <p
-                              style={{
-                                fontSize: 14,
-                                color: '#1877F2',
-                                margin: 0,
-                              }}
-                            >
-                              <img
-                                src="/images/diamond.png"
-                                alt="Diamond"
-                                style={{
-                                  width: 20,
-                                  height: 20,
-                                  display: 'inline-block',
-                                  verticalAlign: 'middle',
-                                }}
-                              />{' '}
-                              {item.diamonds} Diamonds
-                              {item.bonus > 0 && ` + ${item.bonus} Bonus`}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 4,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <span className={styles.removeLabel}>Remove</span>
-                        </button>
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <button
-                            onClick={() =>
-                              item.quantity <= 1
-                                ? removeItem(item.id)
-                                : updateQuantity(item.id, item.quantity - 1)
-                            }
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              border: '1px solid rgba(255, 255, 255, 0.2)',
-                              color: '#E4E6EB',
-                              cursor: 'pointer',
-                              fontSize: 16,
-                              fontWeight: 700,
-                            }}
-                            className={styles.quantityButton}
-                          >
-                            −
-                          </button>
-                          <span
-                            style={{
-                              fontSize: 14,
-                              color: '#E4E6EB',
-                              minWidth: 20,
-                              textAlign: 'center',
-                            }}
-                          >
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
-                            disabled={atQuantityCap(item)}
-                            title={
-                              atQuantityCap(item)
-                                ? `Limit ${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per diamond package`
-                                : undefined
-                            }
-                            aria-label={`Increase Quantity Of ${marketplaceCopy(item.name || 'Item')}`}
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              border: '1px solid rgba(255, 255, 255, 0.2)',
-                              color: '#E4E6EB',
-                              cursor: atQuantityCap(item) ? 'not-allowed' : 'pointer',
-                              opacity: atQuantityCap(item) ? 0.4 : 1,
-                              fontSize: 16,
-                              fontWeight: 700,
-                            }}
-                            className={styles.quantityButton}
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: 18,
-                            fontWeight: 700,
-                            color: '#1877F2',
-                          }}
-                        >
-                          ${((Number(item.price) || 0) * (Number(item.quantity) || 0)).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Footer */}
-              {items.length > 0 && (
-                <div
-                  style={{
-                    padding: 24,
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                    background: 'rgba(0, 0, 0, 0.2)',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 16,
+                        filter: 'drop-shadow(0 0 4px rgba(0, 180, 255, 0.4))'
                     }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 600,
-                        color: '#E4E6EB',
-                      }}
-                    >
-                      Total
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 24,
+                />
+                {itemCount > 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        minWidth: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        background: '#ff4757',
+                        color: '#fff',
+                        fontSize: 12,
                         fontWeight: 700,
-                        color: '#1877F2',
-                      }}
-                    >
-                      ${(Number(total) || 0).toFixed(2)}
-                    </span>
-                  </div>
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        border: '2px solid #000',
+                        boxShadow: '0 2px 8px rgba(255, 71, 87, 0.5)'
+                    }}>
+                        {itemCount}
+                    </div>
+                )}
+            </button>
 
-                  <button
-                    disabled={isProcessing}
-                    aria-busy={isProcessing}
-                    onClick={() => {
-                      if (isProcessing) return;
-                      if (onCheckout) {
-                        onCheckout(items);
-                        // Don't close cart immediately - let the checkout complete
-                        // The page will redirect to Stripe when ready
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '16px 24px',
-                      background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-                      border: 'none',
-                      borderRadius: 12,
-                      color: '#fff',
-                      fontSize: 16,
-                      fontWeight: 700,
-                      cursor: isProcessing ? 'wait' : 'pointer',
-                      opacity: isProcessing ? 0.6 : 1,
-                      fontFamily:
-                        "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-                    }}
-                    className={styles.primaryAction}
-                  >
-                    {isProcessing ? 'Processing...' : 'Proceed to Checkout'}
-                  </button>
+            {/* Cart Panel */}
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={closeCart}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: 'rgba(0, 0, 0, 0.5)',
+                                zIndex: 1001
+                            }}
+                        />
 
-                  {/* Pay with Diamonds: hidden when the cart holds diamond packages
+                        {/* Cart Drawer */}
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                right: 0,
+                                width: '100%',
+                                maxWidth: 400,
+                                height: '100dvh',
+                                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                                boxSizing: 'border-box',
+                                background: '#242526',
+                                boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.3)',
+                                zIndex: 1002,
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}
+                        >
+                            {/* Header. Below the status bar so the X is reachable (mobile phase 0b). */}
+                            <div style={{
+                                padding: '20px 24px',
+                                paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <h2 style={{
+                                    fontSize: 20,
+                                    fontWeight: 700,
+                                    color: '#E4E6EB',
+                                    margin: 0
+                                }}>
+                                    Shopping Cart ({itemCount})
+                                </h2>
+                                <button
+                                    onClick={closeCart}
+                                    aria-label="Close"
+                                    className="sp-icon-btn"
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: 8,
+                                        minWidth: 44,
+                                        minHeight: 44,
+                                        touchAction: 'manipulation',
+                                        WebkitTapHighlightColor: 'transparent',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <X size={24} color="#E4E6EB" />
+                                </button>
+                            </div>
+
+                            {/* Cart Items */}
+                            <div style={{
+                                flex: 1,
+                                overflowY: 'auto',
+                                padding: 24
+                            }}>
+                                {items.length === 0 ? (
+                                    <div style={{
+                                        textAlign: 'center',
+                                        padding: '40px 20px',
+                                        color: 'rgba(255, 255, 255, 0.5)'
+                                    }}>
+                                        <img src="/images/cart-icon.png" alt="Cart" style={{ width: 64, height: 64, margin: '0 auto 16px', objectFit: 'contain', opacity: 0.5 }} />
+                                        <p>Your Cart Is Empty</p>
+                                    </div>
+                                ) : (
+                                    items.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                borderRadius: 12,
+                                                padding: 16,
+                                                marginBottom: 12,
+                                                border: '1px solid rgba(255, 255, 255, 0.1)'
+                                            }}
+                                        >
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'flex-start',
+                                                marginBottom: 8
+                                            }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <h3 style={{
+                                                        fontSize: 16,
+                                                        fontWeight: 600,
+                                                        color: '#E4E6EB',
+                                                        margin: '0 0 4px 0'
+                                                    }}>
+                                                        {marketplaceCopy(item.name)}
+                                                    </h3>
+                                                    {item.diamonds > 0 && (
+                                                        <p style={{
+                                                            fontSize: 14,
+                                                            color: '#1877F2',
+                                                            margin: 0
+                                                        }}>
+                                                            <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> {item.diamonds} Diamonds
+                                                            {item.bonus > 0 && ` + ${item.bonus} Bonus`}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => removeItem(item.id)}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        padding: 4,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                >
+                                                    <Trash2 size={18} color="#ff4757" />
+                                                </button>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 8
+                                                }}>
+                                                    <button
+                                                        onClick={() => item.quantity <= 1 ? removeItem(item.id) : updateQuantity(item.id, item.quantity - 1)}
+                                                        style={{
+                                                            width: 28,
+                                                            height: 28,
+                                                            borderRadius: 6,
+                                                            background: 'rgba(255, 255, 255, 0.1)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                            color: '#E4E6EB',
+                                                            cursor: 'pointer',
+                                                            fontSize: 16,
+                                                            fontWeight: 700
+                                                        }}
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <span style={{
+                                                        fontSize: 14,
+                                                        color: '#E4E6EB',
+                                                        minWidth: 20,
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {item.quantity}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
+                                                        disabled={atQuantityCap(item)}
+                                                        title={atQuantityCap(item)
+                                                            ? `Limit ${MAX_DIAMOND_QUANTITY_PER_PACKAGE} per diamond package`
+                                                            : undefined}
+                                                        aria-label={`Increase Quantity Of ${marketplaceCopy(item.name || 'Item')}`}
+                                                        style={{
+                                                            width: 28,
+                                                            height: 28,
+                                                            borderRadius: 6,
+                                                            background: 'rgba(255, 255, 255, 0.1)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                            color: '#E4E6EB',
+                                                            cursor: atQuantityCap(item) ? 'not-allowed' : 'pointer',
+                                                            opacity: atQuantityCap(item) ? 0.4 : 1,
+                                                            fontSize: 16,
+                                                            fontWeight: 700
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+
+                                                <div style={{
+                                                    fontSize: 18,
+                                                    fontWeight: 700,
+                                                    color: '#1877F2'
+                                                }}>
+                                                    ${((Number(item.price) || 0) * (Number(item.quantity) || 0)).toFixed(2)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            {items.length > 0 && (
+                                <div style={{
+                                    padding: 24,
+                                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: 'rgba(0, 0, 0, 0.2)'
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        marginBottom: 16
+                                    }}>
+                                        <span style={{
+                                            fontSize: 18,
+                                            fontWeight: 600,
+                                            color: '#E4E6EB'
+                                        }}>
+                                            Total
+                                        </span>
+                                        <span style={{
+                                            fontSize: 24,
+                                            fontWeight: 700,
+                                            color: '#1877F2'
+                                        }}>
+                                            ${(Number(total) || 0).toFixed(2)}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        disabled={isProcessing}
+                                        aria-busy={isProcessing}
+                                        onClick={() => {
+                                            if (isProcessing) return;
+                                            if (onCheckout) {
+                                                onCheckout(items);
+                                                // Don't close cart immediately - let the checkout complete
+                                                // The page will redirect to Stripe when ready
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '16px 24px',
+                                            background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+                                            border: 'none',
+                                            borderRadius: 12,
+                                            color: '#fff',
+                                            fontSize: 16,
+                                            fontWeight: 700,
+                                            cursor: isProcessing ? 'wait' : 'pointer',
+                                            opacity: isProcessing ? 0.6 : 1,
+                                            transition: 'transform 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.02)'; }}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        {isProcessing ? 'Processing...' : 'Proceed to Checkout'}
+                                    </button>
+
+                                    {/* Pay with Diamonds: hidden when the cart holds diamond packages
                                         or VIP subscriptions. Diamonds can't buy diamonds, and VIP is
                                         activated only by the Stripe webhook / purchase-daily-vip
                                         endpoint, so /api/store/purchase-with-diamonds rejects both.
                                         Keep this in sync with handlePayWithDiamonds in
                                         pages/hub/diamond-store.js. */}
-                  {onPayWithDiamonds &&
-                    items.every(
-                      (i) =>
-                        i?.type !== 'diamonds' &&
-                        i?.type !== 'vip' &&
-                        !PRINT_ON_DEMAND_ITEM_IDS.has(i?.id)
-                    ) && (
-                      <button
-                        disabled={isProcessing}
-                        aria-busy={isProcessing}
-                        onClick={() => {
-                          if (isProcessing) return;
-                          if (onPayWithDiamonds) {
-                            onPayWithDiamonds(items);
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          marginTop: 10,
-                          padding: '14px 24px',
-                          background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                          border: 'none',
-                          borderRadius: 12,
-                          color: '#000',
-                          fontSize: 15,
-                          fontWeight: 700,
-                          cursor: isProcessing ? 'wait' : 'pointer',
-                          opacity: isProcessing ? 0.6 : 1,
-                          fontFamily:
-                            "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                        }}
-                        className={styles.secondaryAction}
-                      >
-                        <img src="/images/diamond.png" alt="" style={{ width: 20, height: 20 }} />
-                        {isProcessing ? 'Processing...' : 'Pay with Diamonds'}
-                      </button>
-                    )}
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
-  );
+                                    {onPayWithDiamonds && items.every(i => (
+                                        i?.type !== 'diamonds'
+                                        && i?.type !== 'vip'
+                                        && !PRINT_ON_DEMAND_ITEM_IDS.has(i?.id)
+                                    )) && (
+                                        <button
+                                            disabled={isProcessing}
+                                            aria-busy={isProcessing}
+                                            onClick={() => {
+                                                if (isProcessing) return;
+                                                if (onPayWithDiamonds) {
+                                                    onPayWithDiamonds(items);
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                marginTop: 10,
+                                                padding: '14px 24px',
+                                                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                                                border: 'none',
+                                                borderRadius: 12,
+                                                color: '#000',
+                                                fontSize: 15,
+                                                fontWeight: 700,
+                                                cursor: isProcessing ? 'wait' : 'pointer',
+                                                opacity: isProcessing ? 0.6 : 1,
+                                                transition: 'transform 0.2s',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                            }}
+                                            onMouseEnter={(e) => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.02)'; }}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                        >
+                                            <img src="/images/diamond.png" alt="" style={{ width: 20, height: 20 }} />
+                                            {isProcessing ? 'Processing...' : 'Pay with Diamonds'}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </>
+    );
 }

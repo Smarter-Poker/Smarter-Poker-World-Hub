@@ -4,7 +4,7 @@
 
 - Sign-in failure rate > 5% over 5 minutes (Grafana "Auth success / min"
   panel).
-- Application error spike on `pages/api/auth/*` or `lib/supabase/auth.ts` paths.
+- Sentry spike on `pages/api/auth/*` or `lib/supabase/auth.ts` paths.
 - MFA challenge endpoints returning 5xx.
 - Supabase dashboard reports `auth` service degraded.
 - Users reporting "stuck on loading" after entering password, or MFA
@@ -79,7 +79,7 @@ org, it's C.
    ```bash
    git log --oneline --since="24 hours ago" -- pages/api/auth middleware.ts lib/auth
    ```
-3. Identify the broken path. The Error signature usually tells you
+3. Identify the broken path. The Sentry fingerprint usually tells you
    the file and line.
 4. Fix forward or revert. Auth code is especially unsafe for fix-forward
    under time pressure — default to revert.
@@ -258,5 +258,5 @@ git push
   these files).
 - Supabase Auth logs look healthy — the failure is downstream of
   Supabase, on our redirect target.
-- No application error is recorded because the 404 is served by Next.js's
+- Sentry shows no errors because the 404 is served by Next.js's
   static 404 handler, not by application code.

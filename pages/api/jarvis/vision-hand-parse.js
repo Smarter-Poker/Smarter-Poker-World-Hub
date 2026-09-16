@@ -1,6 +1,6 @@
 import { OpenAI } from 'openai';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -101,7 +101,7 @@ Guidelines:
 
         return res.status(200).json({ success: true, hand: parsedHand });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.error('[AI Vision] Error processing hand:', err);
         return res.status(500).json({ success: false, error: 'Failed to process image' });
     }

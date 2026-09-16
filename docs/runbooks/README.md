@@ -13,10 +13,11 @@ a new runbook after the incident is resolved.
 |---|---------|-------------------|
 | 00 | [Incident Response Protocol](./00-incident-response.md) | Any unclassified page |
 | 01 | [Deploy Failure](./01-deploy-failure.md) | Vercel deploy ERROR, `/api/health` regression, build-safety-gate red |
-| 02 | [Database Degraded](./02-database-degraded.md) | Supabase pooler red, query p99 > 2s, RLS errors in application logs |
+| 02 | [Database Degraded](./02-database-degraded.md) | Supabase pooler red, query p99 > 2s, RLS errors in Sentry |
 | 03 | [Engine Down](./03-engine-down.md) | `engine.smarter.poker` health red, pm2 process crash, WebSocket flood |
 | 04 | [Cron Failure](./04-cron-failure.md) | `/api/admin/cron-health` degraded, supabaseKey errors, scraper alert |
 | 05 | [Ledger Drift](./05-ledger-drift.md) | Nightly reconciliation variance > threshold, wallet/chip_pool trigger fires |
+| 06 | [Sentry Error Spike](./06-sentry-spike.md) | Issue volume > 10× baseline, new high-severity issue, spam from one release |
 | 07 | [Auth Outage](./07-auth-outage.md) | Login failure rate > 5%, MFA 5xx, Supabase auth degraded |
 | 08 | [Cost Anomaly](./08-cost-anomaly.md) | Vercel bandwidth alert, Supabase egress spike, PostHog quota |
 
@@ -56,7 +57,7 @@ Before taking your first on-call shift, confirm you have:
 2. Vercel deploy access on the `smarter-poker` team (redeploy + rollback).
 3. Supabase admin access on `smarter-poker` project (SQL console + logs).
 4. SSH to `cron-01.smarter.poker` and `engine.smarter.poker` (Hetzner).
-5. PostHog and Grafana logins (SSO).
+5. PostHog, Sentry, and Grafana logins (SSO).
 6. Twilio admin (for silencing the SMS escalation chain if a runbook calls
    for it during a deploy-failure loop — see runbook 01).
 
@@ -72,7 +73,7 @@ Every runbook follows this template:
 
 ## When to use
 What alerts or symptoms trigger this. Be specific — link to the Grafana panel
-or application-log query if there is one.
+or Sentry query if there is one.
 
 ## Prerequisites
 Access and tools needed. If the operator doesn't have these, they can't run

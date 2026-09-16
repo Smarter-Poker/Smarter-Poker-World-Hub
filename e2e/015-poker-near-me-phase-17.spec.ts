@@ -1,47 +1,10 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 async function expectNoOverflow(page: Page, label: string) {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth
   );
   expect(overflow, `${label} overflows horizontally by ${overflow}px`).toBeLessThanOrEqual(1);
-}
-
-// The PNM overlay replaces drawn borders with the approved complete raster
-// frames. Verify the rendered CSS asset actually decodes at its native size.
-async function expectPaintedFrame(locator: Locator, asset: string, dimensions: [number, number], repeat = 'no-repeat') {
-  const frame = await locator.evaluate(async (element) => {
-    const style = getComputedStyle(element);
-    const match = /^url\(["']?(.*?)["']?\)$/.exec(style.backgroundImage);
-    if (!match) throw new Error(`Expected one painted frame, received ${style.backgroundImage}`);
-    const image = new Image();
-    image.src = match[1];
-    await image.decode();
-    return {
-      path: new URL(image.currentSrc || image.src).pathname,
-      dimensions: [image.naturalWidth, image.naturalHeight],
-      size: style.backgroundSize,
-      repeat: style.backgroundRepeat,
-    };
-  });
-  expect(frame.path).toBe(`/images/pnm-console/${asset}`);
-  expect(frame.dimensions).toEqual(dimensions);
-  expect(frame.size).toBe('100% auto');
-  expect(frame.repeat).toBe(repeat);
-  // Visibility and decoded artwork do not mean the drawer's entry transition
-  // has finished. Re-read the same bounds using the configured expect timeout.
-  await expect.poll(() => locator.evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    return {
-      positiveWidth: box.width > 0,
-      leftInsideViewport: box.left >= 0,
-      rightInsideViewport: box.right <= window.innerWidth,
-    };
-  })).toEqual({
-    positiveWidth: true,
-    leftInsideViewport: true,
-    rightInsideViewport: true,
-  });
 }
 
 async function waitForDiscovery(page: Page) {
@@ -424,7 +387,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await venuesPage.close();
   });
 
-  test('mobile header focus and command selectors remain visible without detached borders', async ({ page, browserName }) => {
+  test('mobile header focus and command selectors remain visible without detached borders', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
     await waitForDiscovery(page);
@@ -457,10 +420,8 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
         decoration: after.content,
       };
     });
-    await expect(drawer).toHaveAttribute('data-pnm-console', 'painted-command-drawer-v1');
-    await expectPaintedFrame(drawer, 'painted-panels-v1/panel-mid.png', [1000, 8], 'repeat-y');
-    expect(drawerFrame.rightBorder).toBe('0px');
-    expect(drawerFrame.rightBorderStyle).toBe('none');
+    expect(drawerFrame.rightBorder).toBe('1px');
+    expect(drawerFrame.rightBorderStyle).toBe('solid');
     expect(drawerFrame.radius).toBe('0px');
     expect(drawerFrame.clipPath).toBe('none');
     expect(drawerFrame.decoration).toBe('none');
@@ -472,30 +433,16 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       const after = getComputedStyle(element, '::after');
       return {
         widths: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+        color: style.borderTopColor,
         radius: style.borderRadius,
         clipPath: style.clipPath,
         decoration: after.content,
       };
     });
     expect(new Set(frame.widths).size).toBe(1);
-    expect(frame.widths[0]).toBe('0px');
-    expect(frame.radius).toBe('0px');
-    await expectPaintedFrame(selected, 'painted-controls-v1/button-primary.png', [348, 114]);
-    const unselected = drawer.locator(".sp-grid-tile:not([aria-current='page'])").first();
-    await expectPaintedFrame(unselected, 'painted-controls-v1/button-secondary.png', [348, 114]);
-    // Enter keyboard modality through real navigation. Programmatic focus
-    // after a pointer-opened drawer does not prove :focus-visible styling.
-    // Mac WebKit's plain Tab visits text inputs; Option+Tab also visits links
-    // and buttons. Use that native navigation chord to reach the selected link.
-    const tabKey = process.platform === 'darwin' && browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
-    const tabLimit = await drawer.locator('button, a[href], input, select, textarea, [tabindex]').count() + 1;
-    for (let index = 0; index < tabLimit; index += 1) {
-      await page.keyboard.press(tabKey);
-      if (await selected.evaluate((element) => element === document.activeElement)) break;
-    }
-    await expect(selected).toBeFocused();
-    await expect(selected).toHaveCSS('outline-style', 'solid');
-    await expect(selected).toHaveCSS('outline-width', '2px');
+    expect(frame.widths[0]).toBe('1px');
+    expect(frame.color).toBe('rgb(72, 199, 255)');
+    expect(frame.radius).toBe('3px');
     expect(frame.clipPath).toBe('none');
     expect(frame.decoration).toBe('none');
     await expectNoOverflow(page, 'open Poker Near Me command menu');
@@ -515,7 +462,6 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
 
     const drawer = page.locator(".sp-drawer[data-direction='right']");
     await expect(drawer).toBeVisible();
-    await expect(drawer).toHaveAttribute('data-world-command-menu', 'global');
     await expect.poll(() => drawer.evaluate((element) => {
       const style = getComputedStyle(element);
       const box = element.getBoundingClientRect();

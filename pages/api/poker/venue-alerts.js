@@ -8,7 +8,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
     
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Venue alerts error:', err);
     res.status(500).json({ error: err.message });
   }

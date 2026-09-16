@@ -89,7 +89,10 @@ export function takeAuthErrorDetail(code) {
 }
 
 /**
- * Fire-and-forget first-party auth error reporting shared by auth pages.
+ * Fire-and-forget server-side capture. Client Sentry is disabled in production
+ * (the OOM workaround), so a `console.warn` in an auth catch block is invisible
+ * - which is why auth failures "looked silent" for months. Lifted out of
+ * login.js so signup.js stops being the one page with no telemetry at all.
  *
  * `flow` must be a value in ALLOWED_FLOWS in pages/api/auth/log-client-error.js
  * or the report is bucketed as 'unknown' next to malformed payloads.

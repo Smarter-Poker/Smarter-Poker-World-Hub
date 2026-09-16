@@ -28,7 +28,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -388,7 +388,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     const isTimeout = err.message && err.message.includes('timed out');
     console.warn('[poker-brain/decide] error:', isTimeout ? 'TIMEOUT' : err.message);
     return res.status(isTimeout ? 504 : 500).json({

@@ -8,7 +8,6 @@
  * dropped from the signature (extra props from existing call sites are ignored).
  */
 import React, { useState, useMemo } from 'react';
-import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const TOUR_COLORS_MAP = {
     wsop: { bg: '#ffffff', text: '#000' },
@@ -181,15 +180,20 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
     const getMonthEventCount = (mo) => monthEventDayCounts.get(`${mo.year}-${mo.month}`) || 0;
 
     return (
-        <PokerNearMePanelShell
-            as="section"
-            className="seasonal-cal pnm-console-tool"
-            bodyClassName="pnm-console-tool__body"
-            aria-labelledby="pnm-seasonal-calendar-title"
-        >
+        <div className="seasonal-cal">
             <div className="sc-header">
-                <PokerNearMeConsoleIcon name="calendar" className="pnm-console-tool__header-icon" />
-                <h2 id="pnm-seasonal-calendar-title">Seasonal Calendar</h2>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <circle cx="8" cy="14" r="1.5" fill="#22c55e" stroke="none" />
+                    <circle cx="12" cy="14" r="1.5" fill="#3b82f6" stroke="none" />
+                    <circle cx="16" cy="14" r="1.5" fill="#ffffff" stroke="none" />
+                    <circle cx="8" cy="18" r="1.5" fill="#ef4444" stroke="none" />
+                    <circle cx="12" cy="18" r="1.5" fill="#8b5cf6" stroke="none" />
+                </svg>
+                <h2>Seasonal Calendar</h2>
                 <span className="sc-event-count">{allEvents.length} Events</span>
             </div>
 
@@ -198,13 +202,13 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                 <div className="sc-filter-group">
                     <span className="sc-filter-label">Type:</span>
                     {FILTER_OPTIONS.type.map(t => (
-                        <button type="button" key={t} className={'sc-filter-chip' + (filterType === t ? ' active' : '')} aria-pressed={filterType === t} onClick={() => setFilterType(t)}>{t}</button>
+                        <button key={t} className={'sc-filter-chip' + (filterType === t ? ' active' : '')} onClick={() => setFilterType(t)}>{t}</button>
                     ))}
                 </div>
-                <div className="sc-filter-group sc-filter-group--secondary">
+                <div className="sc-filter-group" style={{ marginTop: 8 }}>
                     <span className="sc-filter-label">Buy-In:</span>
                     {FILTER_OPTIONS.buyinRange.map(b => (
-                        <button type="button" key={b} className={'sc-filter-chip' + (filterBuyin === b ? ' active' : '')} aria-pressed={filterBuyin === b} onClick={() => setFilterBuyin(b)}>{b}</button>
+                        <button key={b} className={'sc-filter-chip' + (filterBuyin === b ? ' active' : '')} onClick={() => setFilterBuyin(b)}>{b}</button>
                     ))}
                 </div>
             </div>
@@ -227,15 +231,15 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
 
                     return (
                         <div key={mi} className={'sc-month' + (isExpanded ? ' expanded' : '')}>
-                            <button type="button" className="sc-month-header" aria-expanded={isExpanded} onClick={() => setExpandedMonth(isExpanded ? -1 : mi)}>
+                            <button className="sc-month-header" onClick={() => setExpandedMonth(isExpanded ? -1 : mi)}>
                                 <div className="sc-month-title">
                                     <span>{mo.label}</span>
                                     {eventCount > 0 && <span className="sc-month-badge">{eventCount} Event Days</span>}
                                 </div>
-                                <PokerNearMeConsoleIcon
-                                    name="back"
-                                    className={'pnm-console-tool__disclosure' + (isExpanded ? ' is-open' : '')}
-                                />
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                    style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
                             </button>
 
                             {isExpanded && (
@@ -299,9 +303,7 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                 <div className="sc-day-panel">
                     <div className="sc-dp-header">
                         <h3>{MONTH_NAMES[selectedDay.month]} {selectedDay.day}, {selectedDay.year}</h3>
-                        <button type="button" className="sc-dp-close" aria-label="Close selected day" onClick={() => setSelectedDay(null)}>
-                            <PokerNearMeConsoleIcon name="close" />
-                        </button>
+                        <button className="sc-dp-close" onClick={() => setSelectedDay(null)}>×</button>
                     </div>
                     <div className="sc-dp-events">
                         {selectedEvents.map((ev, i) => {
@@ -321,6 +323,7 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                                 <div
                                     key={i}
                                     className={'sc-event-card' + (activate ? '' : ' inert')}
+                                    style={{ borderLeftColor: color.bg }}
                                     role={activate ? 'button' : undefined}
                                     tabIndex={activate ? 0 : undefined}
                                     onClick={activate || undefined}
@@ -328,7 +331,6 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
                                     } : undefined}
                                 >
-                                    <span className="sc-event-mark" style={{ backgroundColor: color.bg }} aria-hidden="true" />
                                     <div className="sc-ev-header">
                                         <span className="sc-ev-name">{ev.name || ev.series_name}</span>
                                         {ev.tour_code && (
@@ -347,6 +349,61 @@ export default function SeasonalCalendar({ series = [], tours = [], onEventClick
                 </div>
             )}
 
-        </PokerNearMePanelShell>
+            <style>{`
+        .seasonal-cal { padding: 0 0 20px; }
+        .sc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .sc-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; flex: 1; letter-spacing: -0.3px; }
+        .sc-event-count { padding: 4px 12px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(200,214,229,0.08) 100%); border: 1.5px solid rgba(255,255,255,0.35); color: #ffffff; font-size: 12px; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.25); }
+        .sc-filters { margin-bottom: 12px; }
+        .sc-filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .sc-filter-label { font-size: 12px; color: rgba(148,163,184,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .sc-filter-chip { padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9) 0%, rgba(15,23,42,0.95) 100%); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
+        .sc-filter-chip:hover { border-color: rgba(148,163,184,0.3); color: #e2e8f0; }
+        .sc-filter-chip.active { background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(200,214,229,0.08) 100%); border-color: rgba(255,255,255,0.45); color: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.3); }
+        .sc-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; padding: 10px 14px; background: linear-gradient(160deg, rgba(18,28,45,0.7) 0%, rgba(10,16,28,0.8) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .sc-legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(148,163,184,0.6); }
+        .sc-legend-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 4px currentColor; }
+        .sc-months { display: flex; flex-direction: column; gap: 8px; }
+        .sc-month { background: linear-gradient(160deg, rgba(18,28,45,0.85) 0%, rgba(10,16,28,0.92) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 12px; overflow: hidden; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
+        .sc-month.expanded { border-color: rgba(255,255,255,0.35); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06); }
+        .sc-month-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: none; border: none; color: #e2e8f0; cursor: pointer; transition: background 0.2s; }
+        .sc-month-header:hover { background: rgba(148,163,184,0.04); }
+        .sc-month-title { display: flex; align-items: center; gap: 10px; }
+        .sc-month-title span:first-child { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+        .sc-month-badge { padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; font-size: 12px; font-weight: 600; }
+        .sc-month-body { padding: 0 16px 16px; }
+        .sc-day-headers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+        .sc-dh { text-align: center; font-size: 12px; color: rgba(148,163,184,0.5); font-weight: 600; padding: 4px 0; text-transform: uppercase; letter-spacing: 0.3px; }
+        .sc-day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .sc-day { position: relative; min-height: 38px; padding: 4px; border-radius: 6px; background: rgba(148,163,184,0.03); display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all 0.2s; border: 1px solid transparent; }
+        .sc-day.empty { background: transparent; }
+        .sc-day.has-events { cursor: pointer; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+        .sc-day.has-events:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+        .sc-day.today { background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.3); }
+        .sc-day.selected { background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.5); box-shadow: 0 0 8px rgba(255,255,255,0.1); }
+        .sc-day-num { font-size: 12px; color: rgba(148,163,184,0.6); font-weight: 500; }
+        .sc-day.today .sc-day-num { color: #ffffff; font-weight: 700; }
+        .sc-day-dots { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; }
+        .sc-dot { width: 5px; height: 5px; border-radius: 50%; }
+        .sc-dot-more { font-size: 12px; color: rgba(148,163,184,0.5); }
+        .sc-day-panel { margin-top: 16px; background: linear-gradient(160deg, rgba(18,28,45,0.92) 0%, rgba(10,16,28,0.96) 100%); border: 2px solid rgba(148,163,184,0.16); border-radius: 14px; padding: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.5); }
+        .sc-dp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .sc-dp-header h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0; }
+        .sc-dp-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; }
+        .sc-dp-close:hover { color: #ffffff; }
+        .sc-dp-events { display: flex; flex-direction: column; gap: 8px; }
+        .sc-event-card { padding: 14px; background: linear-gradient(160deg, rgba(18,28,45,0.7) 0%, rgba(10,16,28,0.85) 100%); border: 1.5px solid rgba(148,163,184,0.12); border-left: 3px solid #ffffff; border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); transition: all 0.25s; cursor: pointer; }
+        .sc-event-card:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.35); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4); }
+        .sc-event-card:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+        .sc-event-card.inert { cursor: default; }
+        .sc-event-card.inert:hover { transform: none; border-color: rgba(148,163,184,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .sc-day:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+        .sc-ev-header { display: flex; justify-content: space-between; align-items: center; }
+        .sc-ev-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+        .sc-ev-tour { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+        .sc-ev-details { font-size: 12px; color: rgba(148,163,184,0.5); margin-top: 4px; }
+        .sc-ev-gtd { font-size: 13px; color: #22c55e; font-weight: 600; margin-top: 4px; }
+      `}</style>
+        </div>
     );
 }

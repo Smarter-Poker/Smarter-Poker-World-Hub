@@ -1,9 +1,49 @@
-/** Rate-limited first-party auth error reporting to client_crash_log. */
+/**
+ * /api/auth/log-client-error — Server-side capture of client auth errors
+ * ═══════════════════════════════════════════════════════════════════════════
+ * The user-facing auth pages (pages/auth/signup.js, login.js, callback.js)
+ * currently console.warn on errors. With Sentry auto-instrumentation
+ * disabled (OOM workaround in next.config.js), those errors NEVER reach
+ * Sentry. Result: we have no visibility into client-side signup failures.
+ *
+ * This endpoint is the migration target. New code SHOULD POST errors
+ * here from the catch blocks instead of console.warn:
+ *
+ *   try { ... } catch (err) {
+ *     fetch('/api/auth/log-client-error', {
+ *       method: 'POST',
+ *       headers: { 'Content-Type': 'application/json' },
+ *       body: JSON.stringify({
+ *         flow: 'signup_form_submit',
+ *         message: err?.message,
+ *         stack: err?.stack,
+ *         code: err?.code,
+ *       }),
+ *     });
+ *   }
+ *
+ * The endpoint then captures via server-side Sentry (which IS reliably
+ * initialized via sentry.server.config.js) with consistent auth.* tags.
+ *
+ * Why this endpoint exists alongside client-side Sentry:
+ *   - Client Sentry can be blocked by ad-blockers (~30% of users)
+ *   - Server-side capture works regardless
+ *   - Centralized tagging keeps Sentry alerts simple
+ *
+ * Rate-limited to prevent abuse — 30 reports per IP per minute.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
 
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
-// Keep a durable record even after the browser tab closes.
+// 2026-08-19: this endpoint forwarded to Sentry and nowhere else, and Sentry's
+// browser SDK never initialises in production (no DSN is baked into the
+// bundle) — so every signup and login failure captured here went straight into
+// a black hole, which is the exact thing the header comment above says this
+// endpoint exists to prevent. It now ALSO writes public.client_crash_log,
+// boundary 'auth', section = the flow tag. Same table the error boundaries
+// use, so there is one place to look.
 let _supabase = null;
 function getSupabase() {
     if (_supabase) return _supabase;
@@ -12,6 +52,18 @@ function getSupabase() {
     if (!key) return null;
     _supabase = createClient(url, key);
     return _supabase;
+}
+
+let Sentry;
+try {
+    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+    Sentry = require('@sentry/nextjs');
+} catch (_) {
+    Sentry = {
+        captureException: () => null,
+        captureMessage: () => null,
+        withScope: (cb) => cb({ setTag: () => null, setContext: () => null, setLevel: () => null, setFingerprint: () => null }),
+    };
 }
 
 const ALLOWED_FLOWS = new Set([
@@ -50,11 +102,11 @@ export default async function handler(req, res) {
         const { flow, message, stack, code, url, user_agent } = req.body || {};
 
         // Validate flow tag — anything not in our allowlist gets bucketed
-        // as 'unknown' so an attacker can't pollute the stored flow names.
+        // as 'unknown' so an attacker can't pollute our Sentry tag space.
         const safeFlow = ALLOWED_FLOWS.has(flow) ? flow : 'unknown';
 
         // Truncate everything aggressively — the client could be hostile
-        // and we don't want to store giant payloads.
+        // and we don't want to forward giant payloads to Sentry.
         const safeMessage = String(message || '').slice(0, 500);
         const safeStack = String(stack || '').slice(0, 2000);
         const safeCode = String(code || '').slice(0, 100);
@@ -65,7 +117,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'message, stack, or code required' });
         }
 
-        // Write the durable first-party record.
+        // Durable first: Sentry is best-effort, this is the record.
         try {
             const supabase = getSupabase();
             if (supabase) {
@@ -87,6 +139,27 @@ export default async function handler(req, res) {
         } catch (dbErr) {
             console.warn('[log-client-error] durable write failed:', dbErr?.message);
         }
+
+        Sentry.withScope((scope) => {
+            scope.setTag('auth.flow', safeFlow);
+            scope.setTag('auth.source', 'client_log_endpoint');
+            if (safeCode) scope.setTag('auth.error_code', safeCode);
+            scope.setLevel('warning');
+            // Group like errors together in Sentry by flow + first 50 chars
+            scope.setFingerprint(['client-auth-error', safeFlow, safeMessage.slice(0, 50)]);
+            scope.setContext('client_error', {
+                flow: safeFlow,
+                code: safeCode,
+                url: safeUrl,
+                user_agent: safeUa,
+                stack_preview: safeStack.slice(0, 500),
+            });
+            // Reconstruct as a synthetic Error so Sentry shows a proper
+            // stack instead of just a message
+            const syntheticErr = new Error(`[client ${safeFlow}] ${safeMessage}`);
+            if (safeStack) syntheticErr.stack = safeStack;
+            Sentry.captureException(syntheticErr);
+        });
 
         return res.status(200).json({ ok: true });
     } catch (err) {

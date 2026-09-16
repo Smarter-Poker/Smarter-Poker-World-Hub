@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Heart, PackageCheck, ShoppingCart, Store } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import useCartStore from '../../stores/cartStore';
@@ -6,10 +7,10 @@ import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import styles from './MarketplaceSubpageShell.module.css';
 
 const DESTINATIONS = [
-  { id: 'store', label: 'Marketplace', href: '/hub/diamond-store' },
-  { id: 'cart', label: 'Cart', href: '/hub/diamond-store/cart' },
-  { id: 'orders', label: 'Orders', href: '/hub/diamond-store/orders' },
-  { id: 'wishlist', label: 'Wishlist', href: '/hub/diamond-store/wishlist' },
+  { id: 'store', label: 'Marketplace', href: '/hub/diamond-store', Icon: Store },
+  { id: 'cart', label: 'Cart', href: '/hub/diamond-store/cart', Icon: ShoppingCart },
+  { id: 'orders', label: 'Orders', href: '/hub/diamond-store/orders', Icon: PackageCheck },
+  { id: 'wishlist', label: 'Wishlist', href: '/hub/diamond-store/wishlist', Icon: Heart },
 ];
 
 const BAY_META = {
@@ -44,8 +45,8 @@ export default function MarketplaceSubpageShell({
   children,
 }) {
   const bay = BAY_META[active] || BAY_META.store;
-  const canonicalRoute =
-    DESTINATIONS.find((destination) => destination.id === active)?.href || DESTINATIONS[0].href;
+  const canonicalRoute = DESTINATIONS.find((destination) => destination.id === active)?.href
+    || DESTINATIONS[0].href;
   const copyEyebrow = marketplaceCopy(eyebrow);
   const copyTitle = marketplaceCopy(title);
   const copyDescription = marketplaceCopy(description);
@@ -67,9 +68,13 @@ export default function MarketplaceSubpageShell({
   }, [active]);
 
   return (
-    <main className={styles.stage} data-active={active} data-marketplace-route={canonicalRoute}>
+    <main
+      className={styles.stage}
+      data-active={active}
+      data-marketplace-route={canonicalRoute}
+    >
       <nav ref={routeRailRef} className={styles.routeRail} aria-label="Marketplace Account Pages">
-        {DESTINATIONS.map(({ id, label, href }) => (
+        {DESTINATIONS.map(({ id, label, href, Icon }) => (
           <Link
             key={id}
             ref={active === id ? activeRouteRef : null}
@@ -77,6 +82,7 @@ export default function MarketplaceSubpageShell({
             className={styles.routeLink}
             aria-current={active === id ? 'page' : undefined}
           >
+            <Icon size={15} aria-hidden="true" />
             <span>{label}</span>
             {id === 'cart' && itemCount > 0 && (
               <strong className={styles.routeCount} aria-label={`${itemCount} Items In Cart`}>
@@ -104,6 +110,7 @@ export default function MarketplaceSubpageShell({
             <strong>{bay.label}</strong>
             <small>{bay.description}</small>
           </div>
+          <span className={styles.scanLine} aria-hidden="true" />
         </div>
       </header>
 

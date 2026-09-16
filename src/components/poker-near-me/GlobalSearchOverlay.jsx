@@ -18,7 +18,6 @@ import { fuzzyMatchScore } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { acquireScrollLock } from '../../lib/scrollLock';
 import useAccessibleDialog from '../../hooks/useAccessibleDialog';
-import { PokerNearMeConsoleIcon } from './PokerNearMeConsole';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -200,16 +199,26 @@ function parseNaturalLanguageQuery(raw) {
 }
 
 // ─── Inline SVG icons (no emoji — bare emoji have broken SWC/Vercel builds) ───
-const PaintedIcon = ({ name, size = 28 }) => (
-  <PokerNearMeConsoleIcon
-    name={name}
-    style={{ width: size, height: size, flexBasis: size }}
-  />
+const CalendarIcon = (props) => (
+  <svg width={props?.size || 12} height={props?.size || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
 );
-const CalendarIcon = (props) => <PaintedIcon name="calendar" size={props?.size || 28} />;
-const MapPinIcon = (props) => <PaintedIcon name="location" size={props?.size || 28} />;
-const PhoneIcon = (props) => <PaintedIcon name="phone" size={props?.size || 28} />;
-const GlobeIcon = (props) => <PaintedIcon name="globe" size={props?.size || 28} />;
+const MapPinIcon = (props) => (
+  <svg width={props?.size || 12} height={props?.size || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const PhoneIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z" />
+  </svg>
+);
+const GlobeIcon = (props) => (
+  <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+  </svg>
+);
 const ClockIcon = (props) => (
   <svg width={props?.size || 14} height={props?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -310,7 +319,6 @@ function DetailModal({ item, type, onClose, onNavigate }) {
   return (
     <div
       ref={dialogRef}
-      className="gso-detail-console"
       role="dialog"
       aria-modal="true"
       aria-labelledby="gso-detail-title"
@@ -318,9 +326,9 @@ function DetailModal({ item, type, onClose, onNavigate }) {
       style={{ position: 'absolute', inset: 0, zIndex: 10010, background: 'rgba(4,10,20,0.99)', display: 'flex', flexDirection: 'column', animation: 'gso-modal-in 0.22s ease' }}
     >
       {/* Header */}
-      <div className="gso-detail-console__header" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
-        <button ref={initialFocusRef} onClick={onClose} className="gso-painted-icon-button sp-icon-btn" style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close details">
-          <PokerNearMeConsoleIcon name="back" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
+        <button ref={initialFocusRef} onClick={onClose} className="sp-icon-btn" style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }} aria-label="Close details">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
         </button>
         <span id="gso-detail-title" style={{ fontSize: 14, fontWeight: 700, color: 'rgba(200,214,229,0.8)' }}>
           {isVenue ? 'Venue Details' : isTour ? 'Tour Details' : 'Series Details'}
@@ -330,7 +338,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
       <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 20px 80px' }}>
           {/* Hero */}
-          <div className="gso-detail-console__hero" style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: 20, marginBottom: 20, background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))', border: `1px solid ${accentColor}30`, borderRadius: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: 20, marginBottom: 20, background: 'linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))', border: `1px solid ${accentColor}30`, borderRadius: 16 }}>
             <div style={{ width: 72, height: 72, borderRadius: 14, flexShrink: 0, background: isVenue ? typeStyle.bg : `${accentColor}18`, border: `2px solid ${accentColor}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               {logo ? <img src={logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 18, fontWeight: 900, color: accentColor }}>{initials}</span>}
             </div>
@@ -386,7 +394,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
             </div>
           )}
           {/* Actions */}
-          <div className="gso-detail-console__actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {detailPath && onNavigate && (
               <button onClick={() => onNavigate(detailPath)}
                 style={{ flex: '1 1 100%', padding: '12px 16px', background: 'linear-gradient(135deg,#ffffff,#cbd5e1)', border: 'none', borderRadius: 10, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -425,7 +433,7 @@ function DetailModal({ item, type, onClose, onNavigate }) {
 
 function InfoRow({ icon, label, href }) {
   const inner = (
-    <div className="gso-console-info-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
       <span style={{ fontSize: 15, flexShrink: 0, display: 'flex', alignItems: 'center', color: 'rgba(110,231,239,0.7)', marginTop: 1 }}>{icon}</span>
       <span style={{ fontSize: 13, color: href ? '#6ee7ef' : 'rgba(200,214,229,0.8)', flex: 1, wordBreak: 'break-word' }}>{label}</span>
     </div>
@@ -439,13 +447,15 @@ function VenueResultCard({ venue, onClick, isSelected = false }) {
   const typeStyle = VENUE_TYPE_STYLES[venue.venue_type] || VENUE_TYPE_STYLES.card_room;
   const city = [venue.city, venue.state].filter(Boolean).join(', ');
   return (
-    <button className="gso-result-card gso-result-card--venue" onClick={() => onClick?.(venue)}
+    <button onClick={() => onClick?.(venue)}
       style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(110,231,239,0.07)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.25)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(110,231,239,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {venue.logo_url || venue.profile_photo_url
           ? <img src={venue.logo_url || venue.profile_photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
-          : <PokerNearMeConsoleIcon name="home" />}
+          : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.3)" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{venue.name}</div>
@@ -459,8 +469,10 @@ function VenueResultCard({ venue, onClick, isSelected = false }) {
 function TourResultCard({ tour, onClick, isSelected = false }) {
   const color = TOUR_COLORS[tour.tour_code] || '#6ee7ef';
   return (
-    <button className="gso-result-card gso-result-card--tour" onClick={() => onClick?.(tour)}
+    <button onClick={() => onClick?.(tour)}
       style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(110,231,239,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(110,231,239,0.07)'; e.currentTarget.style.borderColor = 'rgba(110,231,239,0.2)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(110,231,239,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(110,231,239,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: `${color}18`, border: `1.5px solid ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {tour.logo_url ? <img src={tour.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} onError={e => { e.target.style.display = 'none'; }} /> : <span style={{ fontSize: 12, fontWeight: 900, color }}>{tour.tour_code || '?'}</span>}
@@ -477,11 +489,13 @@ function TourResultCard({ tour, onClick, isSelected = false }) {
 function SeriesResultCard({ series, onClick, isSelected = false }) {
   const city = [series.city, series.state].filter(Boolean).join(', ');
   return (
-    <button className="gso-result-card gso-result-card--series" onClick={() => onClick?.(series)}
+    <button onClick={() => onClick?.(series)}
       style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: isSelected ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)', border: isSelected ? '1px solid rgba(52,211,153,0.45)' : '1px solid rgba(110,231,239,0.08)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', fontFamily: 'Inter,system-ui,sans-serif' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(52,211,153,0.06)'; e.currentTarget.style.borderColor = 'rgba(52,211,153,0.2)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = isSelected ? 'rgba(52,211,153,0.45)' : 'rgba(110,231,239,0.08)'; }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(52,211,153,0.1)', border: '1.5px solid rgba(52,211,153,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <PokerNearMeConsoleIcon name="calendar" />
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{series.name || series.series_name}</div>
@@ -506,7 +520,7 @@ function SearchSkeletons() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {[1,2,3,4,5].map(i => (
-        <div className="gso-console-skeleton" key={i} style={{ animationDelay: `${i * 0.1}s` }} />
+        <div key={i} style={{ height: 68, borderRadius: 12, background: 'linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.04) 75%)', backgroundSize: '200% 100%', animation: `gso-shimmer 1.5s ease-in-out infinite ${i*0.1}s` }} />
       ))}
     </div>
   );
@@ -993,12 +1007,15 @@ export default function GlobalSearchOverlay({
         @keyframes gso-underline {
           from { width: 0; } to { width: 100%; }
         }
+        .gso-back:hover { background: rgba(255,255,255,0.08) !important; }
+        .gso-city-btn:hover { background: rgba(110,231,239,0.07) !important; }
+        .gso-hist-btn:hover { background: rgba(255,255,255,0.05) !important; }
+        .gso-clear:hover { background: rgba(255,255,255,0.1) !important; }
       `}</style>
 
       {/* ───── OVERLAY SHELL ───── */}
       <div
         ref={dialogRef}
-        className="gso-console-overlay"
         style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(4,10,20,0.98)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', display: 'flex', flexDirection: 'column', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', animation: 'gso-in 0.22s ease', overflow: 'hidden' }}
         role="dialog" aria-modal="true" aria-label="Search Poker Venues, Tours, and Series"
       >
@@ -1012,35 +1029,37 @@ export default function GlobalSearchOverlay({
 
         {/* ───── HEADER ───── */}
         {/* Header sits below the status bar so the close control is reachable on a phone (mobile phase 0b). */}
-        <div className="gso-console-header" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid rgba(110,231,239,0.08)', flexShrink: 0 }}>
           <button type="button" className="gso-back sp-icon-btn" onClick={onClose} aria-label="Close"
             style={{ '--sp-btn-size': '44px', flexShrink: 0, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.04)', color: 'rgba(200,214,229,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s' }}>
-            <PokerNearMeConsoleIcon name="back" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
           </button>
 
-          <form className="gso-console-form" onSubmit={handleSubmit} style={{ flex: 1, position: 'relative' }}>
-            <div className="gso-console-search-well" style={{ position: 'relative' }}>
-              <PokerNearMeConsoleIcon name="search" className="gso-console-search-icon" />
+          <form onSubmit={handleSubmit} style={{ flex: 1, position: 'relative' }}>
+            <div style={{ position: 'relative' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.5)" strokeWidth="2" style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               <input
                 ref={inputRef} type="text" value={localQuery} onChange={handleInputChange} onKeyDown={handleKeyDown}
                 placeholder="Search City, Venue, Tour, Series, Tournament..."
                 autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 role="combobox" aria-expanded={phase === 'input'} aria-autocomplete="list"
                 aria-controls="gso-suggestions" aria-activedescendant={activeDescendantId}
-                className="gso-console-input"
                 style={{ width: '100%', paddingLeft: 30, paddingRight: localQuery ? 36 : 0, paddingTop: 8, paddingBottom: 8, background: 'transparent', border: 'none', outline: 'none', fontSize: 18, fontWeight: 500, color: '#e0e8f0', letterSpacing: '-0.3px', fontFamily: 'inherit', caretColor: '#6ee7ef' }}
               />
+              <div style={{ position: 'absolute', bottom: -2, left: 30, right: 0, height: 2, background: 'linear-gradient(90deg,#6ee7ef,#a78bfa)', borderRadius: 2, animation: 'gso-underline 0.3s ease' }} />
               {localQuery && (
                 <button type="button" className="gso-clear"
                   onClick={() => { setLocalQuery(''); onSearchChange?.(''); setPhase('input'); setVenueResults([]); setTourResults([]); setSeriesResults([]); setCitySuggestions([]); inputRef.current?.focus(); }}
                   style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.06)', color: 'rgba(200,214,229,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, transition: 'background 0.15s' }}
-                  aria-label="Clear"><PokerNearMeConsoleIcon name="close" /></button>
+                  aria-label="Clear">×</button>
               )}
             </div>
           </form>
 
           {localQuery.trim() && (
-            <button type="button" className="gso-console-submit" onClick={handleSubmit}
+            <button type="button" onClick={handleSubmit}
               style={{ flexShrink: 0, minHeight: 44, padding: '0 16px', borderRadius: 8, touchAction: 'manipulation', border: 'none', background: 'linear-gradient(135deg,rgba(110,231,239,0.2),rgba(167,139,250,0.15))', color: '#6ee7ef', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               Search
             </button>
@@ -1192,7 +1211,7 @@ export default function GlobalSearchOverlay({
               {/* Empty state */}
               {!localQuery && accountHistory.length === 0 && recentSearches.length === 0 && (
                 <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.25)' }}>
-                  <PokerNearMeConsoleIcon name="search" style={{ width: 72, height: 72, margin: '0 auto 16px' }} />
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: 16, opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Search Anything</div>
                   <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(200,214,229,0.35)' }}>City, State, Venue, Casino,<br />Tournament, Series, Or Tour Name</div>
                 </div>
@@ -1208,7 +1227,7 @@ export default function GlobalSearchOverlay({
 
               {!isLoading && !hasResults && (
                 <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.35)' }}>
-                  <PokerNearMeConsoleIcon name="search" style={{ width: 72, height: 72, margin: '0 auto 16px' }} />
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: 16, opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Results Found</div>
                   <div style={{ fontSize: 13 }}>Try A Different City, Venue Name, Or Tour</div>
                 </div>

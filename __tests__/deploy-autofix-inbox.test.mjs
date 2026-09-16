@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const source = (await readFile(process.env.AUTOFIX_TEST_SOURCE || new URL('../pages/api/deploy-autofix.js', import.meta.url), 'utf8'))
-  .replace("import { reportApiError } from '../../src/lib/apiErrorHandler';", 'const reportApiError = () => {};')
+  .replace("import { reportApiError } from '../../src/lib/sentryWrap';", 'const reportApiError = () => {};')
   .replace("import { sendSMS } from '../../src/lib/commander/twilio';", 'const sendSMS = () => { throw new Error("SMS is forbidden"); };')
   .replace("'../../src/lib/operationalAlerts.mjs'", JSON.stringify(new URL('../src/lib/operationalAlerts.mjs', import.meta.url).href));
 const { default: handler } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);

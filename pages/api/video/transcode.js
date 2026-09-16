@@ -23,7 +23,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../src/lib/auth-middleware';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const TRANSCODE_TABLE = 'video_transcode_jobs';
 

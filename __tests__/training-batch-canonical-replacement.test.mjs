@@ -202,7 +202,7 @@ function createHarness({
       enforceSolverClaimHonesty: (question) => question,
       normalizeAuditedChartQuestion: (question) => question,
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/lib/sentryWrap': { reportApiError() {} },
     '../../../src/lib/training/trainingPersistence.mjs': {
       runTrainingPersistenceQuery: async (factory) => factory(),
       trainingPersistenceUnavailableBody: () => ({

@@ -1,6 +1,6 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[Global Leaderboard Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

@@ -45,7 +45,7 @@ async function loadHandler(rows) {
       sanitizeParam: (value) => typeof value === 'string' ? value : '',
       withTiming: () => {},
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
   };
   const module = new SourceTextModule(SOURCE, { identifier: 'training-get-progress.js' });
   await module.link(async (specifier) => {

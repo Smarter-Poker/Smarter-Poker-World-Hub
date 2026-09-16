@@ -1,8 +1,9 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { normalizeForMatch, resolveVenueName } from '../poker/venue-dedup';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { withSentry } from '../../../src/lib/sentry';
 import { sendPushNotification } from '../../../src/lib/onesignal-server';
 // NOTE: onesignal-server is now a VAPID-backed compatibility shim. See that file.
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
@@ -164,7 +165,7 @@ async function handler(req, res) {
         });
 
     } catch (e) {
-        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('[game-threshold-cron] FAILED', e);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }
@@ -178,16 +179,4 @@ function getSupabase() {
     return _supabase;
 }
 
-export default async function routeHandler(req, res) {
-    try {
-        return await handler(req, res);
-    } catch (error) {
-        reportApiError(error, req);
-        if (!res.headersSent) {
-            res.status(500).json({
-                error: 'Internal server error',
-                ...(process.env.NODE_ENV === 'development' ? { message: error.message } : {}),
-            });
-        }
-    }
-}
+export default withSentry(handler);

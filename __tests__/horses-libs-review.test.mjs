@@ -19,7 +19,7 @@
  *   4. stablePick is deterministic - the property the paid avatar prompt
  *      depends on.
  *
- * Nothing here touches Supabase, retired error provider or the network. No node_modules is
+ * Nothing here touches Supabase, Sentry or the network. No node_modules is
  * required: every import resolves inside this repo.
  */
 import assert from 'node:assert/strict';

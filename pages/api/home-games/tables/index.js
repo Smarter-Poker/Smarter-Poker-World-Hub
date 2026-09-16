@@ -7,7 +7,7 @@
  * Both enforce authz inside the RPC (member for read, staff for write).
  */
 import { bridgeRequest, mapRpcError, LIMITS } from '../../../../src/lib/home-games/rpcBridge';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {

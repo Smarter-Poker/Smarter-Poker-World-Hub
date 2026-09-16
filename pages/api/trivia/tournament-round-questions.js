@@ -35,7 +35,7 @@
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
     areTriviaTournamentsReleased,
     rejectUnavailableTriviaTournament,

@@ -28,7 +28,7 @@
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import {
     DIAMOND_STOREFRONT_FALLBACK_PACKAGES,
@@ -217,7 +217,7 @@ export default async function handler(req, res) {
             warnings,
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_e) { /* Local error reporting is best-effort. */ }
+        try { reportApiError(err, req); } catch (_e) { /* sentry optional */ }
         console.warn('[store-catalog]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

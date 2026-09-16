@@ -17,7 +17,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
@@ -360,7 +360,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Unknown action: ${action}` });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

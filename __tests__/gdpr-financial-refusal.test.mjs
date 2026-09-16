@@ -89,7 +89,7 @@ async function invoke(route, options = {}) {
     serverAuth: { getServerUserWithFallback: async () => ({ user, error: authError }) },
     apiRateLimit: { rateLimit: () => options.rateDenied ? { ok: false, retryAfter: 60 } : { ok: true } },
     mfaGate: { requireRecentMfa: async () => options.mfaDenied ? { ok: false, status: 403, requiresStepUp: true } : { ok: true } },
-    apiErrorHandler: { reportApiError: error => unexpected(`Unexpected handler error: ${error.message}`) },
+    sentryWrap: { reportApiError: error => unexpected(`Unexpected handler error: ${error.message}`) },
   };
   const context = vm.createContext({
     process: { env: Object.freeze({}) },

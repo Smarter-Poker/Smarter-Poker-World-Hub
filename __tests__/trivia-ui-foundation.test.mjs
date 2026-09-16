@@ -125,9 +125,7 @@ test('desktop stays a grid while every mobile card stays image-first and stacked
   assert.ok(cardStart > -1);
   assert.ok(cardMarkup.indexOf('mode-image-card__art') < cardMarkup.indexOf('mode-image-card__body'));
   assert.match(LOBBY, /\.modes-grid \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
-  // PIN MOVED (mobile phase 7, 2026-09-14): the phone block sits at the
-  // standard's 768px boundary, not 700 (docs/mobile-standard, three breakpoints).
-  assert.match(LOBBY, /@media \(max-width: 768px\)[\s\S]*?\.modes-grid \{[\s\S]*?grid-template-columns: 1fr !important;/);
-  assert.match(LOBBY, /@media \(max-width: 768px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
-  assert.match(LOBBY, /@media \(max-width: 768px\)[\s\S]*?\.mode-image-card__art \{[\s\S]*?aspect-ratio: 4 \/ 3;/);
+  assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.modes-grid \{[\s\S]*?grid-template-columns: 1fr !important;/);
+  assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
+  assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card__art \{[\s\S]*?aspect-ratio: 4 \/ 3;/);
 });

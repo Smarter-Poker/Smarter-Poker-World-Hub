@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 340,
+    "dependencyFiles": 335,
     "componentFiles": 50,
     "hookFiles": 14,
     "ctas": 343,
@@ -4646,15 +4646,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -4829,8 +4824,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-final-honesty-surfaces.test.mjs",
@@ -5879,15 +5873,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6021,8 +6010,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-question-integrity.test.mjs"
@@ -6268,15 +6256,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6419,8 +6402,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs"
@@ -6507,15 +6489,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6691,8 +6668,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -6795,15 +6771,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -6925,8 +6896,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": []
         },
@@ -8204,15 +8174,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -8337,8 +8302,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": []
         },
@@ -9437,15 +9401,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -9584,8 +9543,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "e2e/020-hamburger.spec.ts"
@@ -9945,15 +9903,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10097,8 +10050,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-legacy-consumer-authority.test.mjs"
@@ -10186,15 +10138,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10377,8 +10324,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-community-leaderboard-authority.test.mjs",
@@ -10475,15 +10421,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -10605,8 +10546,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": []
         },
@@ -11797,15 +11737,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -11978,8 +11913,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-casino-realism-catalog.test.mjs",
@@ -12570,15 +12504,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -12807,8 +12736,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-arena-review-gateway-authority.test.mjs",
@@ -12930,15 +12858,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -13072,8 +12995,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs"
@@ -15530,15 +15452,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -15696,8 +15613,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-projection-authority-package-c.test.mjs",
@@ -15788,15 +15704,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -15952,8 +15863,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-community-phase-11.test.mjs",
@@ -16302,15 +16212,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16432,8 +16337,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": []
         },
@@ -16696,15 +16600,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -16846,8 +16745,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-phase-3-adversarial.test.mjs",
@@ -16939,15 +16837,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -17085,8 +16978,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/training-authored-surface-authority.test.mjs"
@@ -17172,15 +17064,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "states": {
@@ -17347,8 +17234,7 @@
           "evidence": [
             "src/components/training/ConnectionToast.js",
             "src/components/ui/HamburgerMenu.jsx",
-            "src/contexts/AvatarContext.jsx",
-            "src/tutorials/poker-tools.js"
+            "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
             "__tests__/poker-near-me-phase-6.test.mjs",
@@ -18071,7 +17957,7 @@
     {
       "file": "pages/api/training/achievements.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -18188,8 +18074,8 @@
     {
       "file": "pages/api/training/analytics.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/questionAnalytics.mjs",
@@ -18392,8 +18278,8 @@
       "file": "pages/api/training/audit-hand-history.js",
       "imports": [
         "src/engines/HandHistoryParser.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/handAuditEngine.js"
@@ -18461,8 +18347,8 @@
         "src/config/gameConfigs.js",
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheContract.mjs",
@@ -18605,8 +18491,8 @@
     {
       "file": "pages/api/training/bookmark-solution.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -18679,8 +18565,8 @@
     {
       "file": "pages/api/training/browse-solutions.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -18794,7 +18680,7 @@
     {
       "file": "pages/api/training/challenges.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -18865,8 +18751,8 @@
     {
       "file": "pages/api/training/coaching-summary.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -19005,8 +18891,8 @@
       "imports": [
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -19102,7 +18988,7 @@
     {
       "file": "pages/api/training/daily-bonus.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/trivia/getTodayCST.js",
@@ -19229,8 +19115,8 @@
     {
       "file": "pages/api/training/equity.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -19358,7 +19244,7 @@
     {
       "file": "pages/api/training/explain-answer.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -19514,8 +19400,8 @@
     {
       "file": "pages/api/training/get-progress.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -19593,9 +19479,9 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/grokClient.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheContract.mjs",
@@ -19741,8 +19627,8 @@
     {
       "file": "pages/api/training/get-sessions.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -19835,8 +19721,8 @@
       "file": "pages/api/training/grade-range.js",
       "imports": [
         "src/config/solverRanges.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -19934,8 +19820,8 @@
     {
       "file": "pages/api/training/gto-reports.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -20041,8 +19927,8 @@
     {
       "file": "pages/api/training/hand-of-the-day.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -20281,8 +20167,8 @@
     {
       "file": "pages/api/training/health.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -20405,8 +20291,8 @@
     {
       "file": "pages/api/training/icm-calc.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -20494,7 +20380,7 @@
     {
       "file": "pages/api/training/leaderboard.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/leaderboardDimensions.mjs",
@@ -20625,8 +20511,8 @@
       "imports": [
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -20713,8 +20599,8 @@
       "file": "pages/api/training/preflop-ranges.js",
       "imports": [
         "src/config/solverRanges.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -20828,8 +20714,8 @@
       "file": "pages/api/training/progress.js",
       "imports": [
         "src/config/LevelRegistry.ts",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -20902,8 +20788,8 @@
       "file": "pages/api/training/recommendations.js",
       "imports": [
         "src/data/TRAINING_LIBRARY.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -20976,8 +20862,8 @@
     {
       "file": "pages/api/training/record-question.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/answerGradingContract.mjs",
@@ -21138,8 +21024,8 @@
     {
       "file": "pages/api/training/reissue-questions.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/gradingReceipt.mjs",
@@ -21208,8 +21094,8 @@
     {
       "file": "pages/api/training/report-question.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -21334,8 +21220,8 @@
     {
       "file": "pages/api/training/save-progress.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -21416,8 +21302,8 @@
     {
       "file": "pages/api/training/save-session.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -21498,8 +21384,8 @@
     {
       "file": "pages/api/training/share.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -21563,8 +21449,8 @@
     {
       "file": "pages/api/training/smart-practice.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -21678,7 +21564,7 @@
       "file": "pages/api/training/solver-api.js",
       "imports": [
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/customSolverSpotContract.mjs",
@@ -21838,8 +21724,8 @@
     {
       "file": "pages/api/training/solver-worker.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/solverWorkerAuth.mjs"
@@ -21866,10 +21752,10 @@
       "persistenceWrites": {
         "localStorage": 0,
         "sessionStorage": 0,
-        "inserts": 0,
+        "inserts": 1,
         "updates": 0,
         "deletes": 0,
-        "rpc": 6
+        "rpc": 5
       },
       "realtime": {
         "channels": 0,
@@ -21952,7 +21838,7 @@
         },
         {
           "name": "operationPayloadIsValid",
-          "line": 188,
+          "line": 186,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21960,7 +21846,7 @@
         },
         {
           "name": "rpcIdentity",
-          "line": 196,
+          "line": 194,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -21968,7 +21854,7 @@
         },
         {
           "name": "executeBoundedDatabaseOperation",
-          "line": 211,
+          "line": 208,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -21976,7 +21862,7 @@
         },
         {
           "name": "enforceDurableWorkerRateLimit",
-          "line": 224,
+          "line": 221,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21984,7 +21870,7 @@
         },
         {
           "name": "claimRequest",
-          "line": 246,
+          "line": 243,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -21992,7 +21878,7 @@
         },
         {
           "name": "ingestArtifact",
-          "line": 256,
+          "line": 253,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22000,7 +21886,7 @@
         },
         {
           "name": "rowStates",
-          "line": 273,
+          "line": 270,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22008,7 +21894,7 @@
         },
         {
           "name": "boardPage",
-          "line": 348,
+          "line": 343,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22016,15 +21902,15 @@
         },
         {
           "name": "heartbeat",
-          "line": 380,
-          "references": 4,
+          "line": 368,
+          "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "handler",
-          "line": 401,
+          "line": 383,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -22039,7 +21925,7 @@
     {
       "file": "pages/api/training/spaced-repetition.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -22095,8 +21981,8 @@
       "imports": [
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -22349,8 +22235,8 @@
     {
       "file": "pages/api/training/streak.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -22777,7 +22663,7 @@
     {
       "file": "pages/api/training/tournaments.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -22960,8 +22846,8 @@
     {
       "file": "pages/api/training/weekly-stats.js",
       "imports": [
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -35853,7 +35739,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 1589,
+          "line": 1635,
           "handler": "onClose",
           "destination": null,
           "type": null,
@@ -35863,7 +35749,7 @@
         {
           "element": "button",
           "name": "Buy Diamonds",
-          "line": 1678,
+          "line": 1725,
           "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
           "destination": null,
           "type": "button",
@@ -35873,7 +35759,7 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1689,
+          "line": 1736,
           "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
           "destination": null,
           "type": "button",
@@ -35882,8 +35768,8 @@
         },
         {
           "element": "button",
-          "name": "Clear",
-          "line": 1730,
+          "name": "Clear Search",
+          "line": 1778,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -35893,7 +35779,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1765,
+          "line": 1818,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -35903,7 +35789,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1787,
+          "line": 1840,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -35913,7 +35799,7 @@
         {
           "element": "button",
           "name": "Choose A Different Friend",
-          "line": 1864,
+          "line": 1917,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": "button",
@@ -35923,7 +35809,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1885,
+          "line": 1938,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": "button",
@@ -35933,7 +35819,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 1915,
+          "line": 1969,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": "button",
@@ -35943,7 +35829,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1946,
+          "line": 2000,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": "button",
@@ -35953,7 +35839,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2027,
+          "line": 2068,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -35963,7 +35849,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2088,
+          "line": 2130,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": "button",
@@ -35973,7 +35859,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2095,
+          "line": 2137,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -35983,7 +35869,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2319,
+          "line": 2370,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": "button",
@@ -35993,7 +35879,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 2358,
+          "line": 2407,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -36003,7 +35889,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 2381,
+          "line": 2430,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": "button",
@@ -36013,7 +35899,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2509,
+          "line": 2567,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": "button",
@@ -36023,7 +35909,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2532,
+          "line": 2590,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": "button",
@@ -36062,16 +35948,8 @@
       },
       "functions": [
         {
-          "name": "txConfigFor",
-          "line": 152,
-          "references": 5,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "getPersistedRecipients",
-          "line": 205,
+          "line": 216,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36079,7 +35957,7 @@
         },
         {
           "name": "persistRecipients",
-          "line": 214,
+          "line": 225,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36087,7 +35965,7 @@
         },
         {
           "name": "parseRateLimitError",
-          "line": 223,
+          "line": 234,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36095,7 +35973,7 @@
         },
         {
           "name": "copyReceiptToClipboard",
-          "line": 264,
+          "line": 275,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36103,7 +35981,7 @@
         },
         {
           "name": "showConfettiAnimation",
-          "line": 280,
+          "line": 291,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36111,7 +35989,7 @@
         },
         {
           "name": "getCachedTransactions",
-          "line": 405,
+          "line": 482,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36119,7 +35997,7 @@
         },
         {
           "name": "setCachedTransactions",
-          "line": 421,
+          "line": 498,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36127,7 +36005,7 @@
         },
         {
           "name": "getCachedBalance",
-          "line": 453,
+          "line": 530,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -36135,7 +36013,7 @@
         },
         {
           "name": "getDateGroup",
-          "line": 467,
+          "line": 544,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36143,7 +36021,7 @@
         },
         {
           "name": "getSkeletonCount",
-          "line": 485,
+          "line": 562,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36151,7 +36029,7 @@
         },
         {
           "name": "useAnimatedCounter",
-          "line": 532,
+          "line": 609,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36159,7 +36037,7 @@
         },
         {
           "name": "DiamondWalletModal",
-          "line": 576,
+          "line": 653,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -36167,15 +36045,23 @@
         },
         {
           "name": "WalletDescription",
-          "line": 247,
+          "line": 258,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "EmptyStateDiamond",
+          "line": 310,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "DonutChart",
-          "line": 299,
+          "line": 376,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36183,7 +36069,7 @@
         },
         {
           "name": "SkeletonRow",
-          "line": 493,
+          "line": 570,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36191,7 +36077,7 @@
         },
         {
           "name": "tick",
-          "line": 554,
+          "line": 631,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36199,7 +36085,7 @@
         },
         {
           "name": "handleBalanceRefresh",
-          "line": 688,
+          "line": 760,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36207,7 +36093,7 @@
         },
         {
           "name": "handleBusEvent",
-          "line": 720,
+          "line": 792,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36215,7 +36101,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 992,
+          "line": 1058,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36226,7 +36112,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 1368,
+          "line": 1416,
           "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36234,7 +36120,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1725,
+          "line": 1773,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36242,7 +36128,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1909,
+          "line": 1963,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36250,7 +36136,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2021,
+          "line": 2062,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36271,7 +36157,7 @@
         {
           "element": "button",
           "name": "Dismiss Store Message",
-          "line": 126,
+          "line": 173,
           "handler": "() => removeToast(toast.id)",
           "destination": null,
           "type": "button",
@@ -36320,7 +36206,7 @@
         {
           "name": "StoreToast",
           "line": 62,
-          "references": 3,
+          "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
@@ -39741,7 +39627,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 803,
+          "line": 781,
           "handler": "onActivate",
           "destination": null,
           "type": "button",
@@ -39751,7 +39637,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 810,
+          "line": 788,
           "handler": "onActivate",
           "destination": "item.href",
           "type": null,
@@ -39761,7 +39647,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 816,
+          "line": 794,
           "handler": "onActivate",
           "destination": "item.href",
           "type": null,
@@ -39771,7 +39657,7 @@
         {
           "element": "button",
           "name": "item.label",
-          "line": 833,
+          "line": 811,
           "handler": "() => item.onChange(!item.checked)",
           "destination": null,
           "type": "button",
@@ -39781,7 +39667,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 886,
+          "line": 860,
           "handler": "() => {\n              if (item.openInviteModal) {\n                onClose?.();\n                setShowInviteModal(true);\n                return;\n              }\n              if (typeof item.onClick === 'function') item.onClick();\n              if (item.closeOnClick !== false) onClose?.();\n            }",
           "destination": null,
           "type": "button",
@@ -39791,7 +39677,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 976,
+          "line": 942,
           "handler": "() => {\n                      gridItem.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -39801,7 +39687,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1003,
+          "line": 969,
           "handler": "onTile",
           "destination": "gridItem.href",
           "type": null,
@@ -39811,7 +39697,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1010,
+          "line": 976,
           "handler": "onTile",
           "destination": "gridItem.href",
           "type": null,
@@ -39821,7 +39707,7 @@
         {
           "element": "button",
           "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-          "line": 1226,
+          "line": 1191,
           "handler": "() => setEditFavs((v) => !v)",
           "destination": null,
           "type": "button",
@@ -39831,7 +39717,7 @@
         {
           "element": "button",
           "name": "Close menu",
-          "line": 1241,
+          "line": 1206,
           "handler": "onClose",
           "destination": null,
           "type": "button",
@@ -39841,7 +39727,7 @@
         {
           "element": "button",
           "name": "Clear search",
-          "line": 1302,
+          "line": 1266,
           "handler": "() => setQuery('')",
           "destination": null,
           "type": "button",
@@ -39851,7 +39737,7 @@
         {
           "element": "a",
           "name": "`Open ${sc.name}`",
-          "line": 1393,
+          "line": 1357,
           "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
           "destination": "sc.href",
           "type": null,
@@ -39861,7 +39747,7 @@
         {
           "element": "link",
           "name": "`Open ${sc.name}`",
-          "line": 1411,
+          "line": 1375,
           "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
           "destination": "sc.href",
           "type": null,
@@ -39871,7 +39757,7 @@
         {
           "element": "link",
           "name": "See all your pages",
-          "line": 1428,
+          "line": 1392,
           "handler": "() => onClose?.()",
           "destination": "/hub/social-pages",
           "type": null,
@@ -39881,7 +39767,7 @@
         {
           "element": "link",
           "name": "View Profile",
-          "line": 1495,
+          "line": 1458,
           "handler": "() => onClose?.()",
           "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
           "type": null,
@@ -39891,7 +39777,7 @@
         {
           "element": "button",
           "name": "(Personal)",
-          "line": 1541,
+          "line": 1504,
           "handler": "() => { switchToPersonal(); onClose?.(); }",
           "destination": null,
           "type": "button",
@@ -39901,7 +39787,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1564,
+          "line": 1527,
           "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
           "destination": null,
           "type": "button",
@@ -39911,7 +39797,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1647,
+          "line": 1610,
           "handler": "() => toggleSection(group.label)",
           "destination": null,
           "type": "button",
@@ -39921,7 +39807,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1722,
+          "line": 1685,
           "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
           "destination": null,
           "type": "button",
@@ -39931,7 +39817,7 @@
         {
           "element": "a",
           "name": "<dynamic>",
-          "line": 1746,
+          "line": 1709,
           "handler": "() => onClose?.()",
           "destination": "link.href",
           "type": null,
@@ -39941,7 +39827,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 1755,
+          "line": 1718,
           "handler": "() => { rememberRecent(link); onClose?.(); }",
           "destination": "link.href",
           "type": null,
@@ -39982,16 +39868,8 @@
       },
       "functions": [
         {
-          "name": "pokerNearMeCommandIcon",
-          "line": 101,
-          "references": 5,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "buildGroups",
-          "line": 121,
+          "line": 101,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -39999,7 +39877,7 @@
         },
         {
           "name": "countActionable",
-          "line": 136,
+          "line": 116,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40007,7 +39885,7 @@
         },
         {
           "name": "collectLinkables",
-          "line": 141,
+          "line": 121,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40015,7 +39893,7 @@
         },
         {
           "name": "HamburgerMenuContent",
-          "line": 154,
+          "line": 134,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40023,7 +39901,7 @@
         },
         {
           "name": "HamburgerMenu",
-          "line": 2150,
+          "line": 2152,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -40072,7 +39950,7 @@
         {
           "name": "labelOf",
           "line": 96,
-          "references": 8,
+          "references": 7,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -40095,7 +39973,7 @@
         },
         {
           "name": "goOn",
-          "line": 266,
+          "line": 245,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -40103,7 +39981,7 @@
         },
         {
           "name": "goOff",
-          "line": 267,
+          "line": 246,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -40111,7 +39989,7 @@
         },
         {
           "name": "on",
-          "line": 280,
+          "line": 259,
           "references": 22,
           "exported": false,
           "defaultExport": false,
@@ -40119,7 +39997,7 @@
         },
         {
           "name": "containOutsideKey",
-          "line": 353,
+          "line": 332,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -40127,7 +40005,7 @@
         },
         {
           "name": "handleTouchStart",
-          "line": 429,
+          "line": 408,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40135,7 +40013,7 @@
         },
         {
           "name": "handleTouchEnd",
-          "line": 439,
+          "line": 418,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40143,7 +40021,7 @@
         },
         {
           "name": "handleTouchCancel",
-          "line": 450,
+          "line": 429,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40151,7 +40029,7 @@
         },
         {
           "name": "isolateBranches",
-          "line": 487,
+          "line": 466,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -40159,7 +40037,7 @@
         },
         {
           "name": "toggleSection",
-          "line": 588,
+          "line": 567,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40167,7 +40045,7 @@
         },
         {
           "name": "toggleFav",
-          "line": 599,
+          "line": 578,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40175,7 +40053,7 @@
         },
         {
           "name": "renderNavigation",
-          "line": 702,
+          "line": 681,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -40183,7 +40061,7 @@
         },
         {
           "name": "onActivate",
-          "line": 757,
+          "line": 735,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -40191,7 +40069,7 @@
         },
         {
           "name": "renderMenuItem",
-          "line": 822,
+          "line": 800,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -40199,7 +40077,7 @@
         },
         {
           "name": "onTile",
-          "line": 993,
+          "line": 959,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -40207,7 +40085,7 @@
         },
         {
           "name": "renderSectionTitle",
-          "line": 1037,
+          "line": 1003,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -40215,7 +40093,7 @@
         },
         {
           "name": "isWiredSignOut",
-          "line": 1080,
+          "line": 1046,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -40258,7 +40136,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 377,
+          "line": 356,
           "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40266,7 +40144,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 393,
+          "line": 372,
           "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40274,7 +40152,7 @@
         },
         {
           "kind": "STUB",
-          "line": 973,
+          "line": 939,
           "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40282,7 +40160,7 @@
         },
         {
           "kind": "STUB",
-          "line": 974,
+          "line": 940,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40290,7 +40168,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1077,
+          "line": 1043,
           "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40298,7 +40176,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1292,
+          "line": 1256,
           "excerpt": "placeholder=\"Search menu\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40306,7 +40184,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1719,
+          "line": 1682,
           "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -40314,7 +40192,7 @@
         },
         {
           "kind": "STUB",
-          "line": 1720,
+          "line": 1683,
           "excerpt": "if (stub) return null;",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -46539,7 +46417,7 @@
         },
         {
           "name": "useUnreadCount",
-          "line": 357,
+          "line": 358,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -46555,7 +46433,7 @@
         },
         {
           "name": "refreshNotifications",
-          "line": 142,
+          "line": 143,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -46563,7 +46441,7 @@
         },
         {
           "name": "scheduleNotifRefresh",
-          "line": 213,
+          "line": 214,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -46571,7 +46449,7 @@
         },
         {
           "name": "tick",
-          "line": 300,
+          "line": 301,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -46579,7 +46457,7 @@
         },
         {
           "name": "onVisibility",
-          "line": 311,
+          "line": 312,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -46587,7 +46465,7 @@
         },
         {
           "name": "setAndBroadcastUnreadCount",
-          "line": 331,
+          "line": 332,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -46598,7 +46476,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 167,
+          "line": 168,
           "excerpt": "// Fallback: social-only count straight off the table.",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -46708,46 +46586,6 @@
           "namedFunctionExpression": false
         }
       ],
-      "possibleUnwiredFunctions": [],
-      "markers": []
-    },
-    {
-      "file": "src/lib/apiErrorHandler.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
       "possibleUnwiredFunctions": [],
       "markers": []
     },
@@ -48165,6 +48003,46 @@
         "sweepStaleScrollLocks",
         "clearBodyScrollLockIfUnheld"
       ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/sentryWrap.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
+      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -54285,7 +54163,7 @@
       "functions": [
         {
           "name": "solverWorkerSecretEnvName",
-          "line": 19,
+          "line": 17,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -54293,7 +54171,7 @@
         },
         {
           "name": "decodeSolverWorkerSecret",
-          "line": 23,
+          "line": 21,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54301,7 +54179,7 @@
         },
         {
           "name": "solverWorkerBodySha256",
-          "line": 37,
+          "line": 35,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54309,7 +54187,7 @@
         },
         {
           "name": "solverWorkerSignatureMessage",
-          "line": 41,
+          "line": 39,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54317,7 +54195,7 @@
         },
         {
           "name": "signSolverWorkerRequest",
-          "line": 45,
+          "line": 43,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -54325,7 +54203,7 @@
         },
         {
           "name": "safeHexEqual",
-          "line": 51,
+          "line": 49,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -54333,7 +54211,7 @@
         },
         {
           "name": "verifySolverWorkerRequest",
-          "line": 56,
+          "line": 54,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -54341,7 +54219,7 @@
         },
         {
           "name": "solverWorkerEnvelopeIsValid",
-          "line": 93,
+          "line": 91,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56160,15 +56038,10 @@
       "file": "src/tutorials/index.js",
       "imports": [
         "src/tutorials/bankroll-manager.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
-        "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js"
+        "src/tutorials/training.js"
       ],
       "links": [
         "/hub/training"
@@ -56208,7 +56081,7 @@
       "functions": [
         {
           "name": "normalisePath",
-          "line": 74,
+          "line": 61,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56216,7 +56089,7 @@
         },
         {
           "name": "getTutorialForPath",
-          "line": 81,
+          "line": 68,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -56224,7 +56097,7 @@
         },
         {
           "name": "read",
-          "line": 93,
+          "line": 80,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -56232,7 +56105,7 @@
         },
         {
           "name": "write",
-          "line": 102,
+          "line": 89,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -56240,7 +56113,7 @@
         },
         {
           "name": "hasSeenTutorial",
-          "line": 111,
+          "line": 98,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56248,7 +56121,7 @@
         },
         {
           "name": "markTutorialSeen",
-          "line": 115,
+          "line": 102,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56256,7 +56129,7 @@
         },
         {
           "name": "promptKey",
-          "line": 119,
+          "line": 106,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -56264,7 +56137,7 @@
         },
         {
           "name": "hasSeenPrompt",
-          "line": 123,
+          "line": 110,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56272,7 +56145,7 @@
         },
         {
           "name": "markPromptSeen",
-          "line": 127,
+          "line": 114,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56280,7 +56153,7 @@
         },
         {
           "name": "requestPageTutorial",
-          "line": 135,
+          "line": 122,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -56294,46 +56167,6 @@
         "markPromptSeen",
         "requestPageTutorial"
       ],
-      "markers": []
-    },
-    {
-      "file": "src/tutorials/news.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
-      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -56417,46 +56250,6 @@
       "markers": []
     },
     {
-      "file": "src/tutorials/poker-tools.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": true,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
-      "possibleUnwiredFunctions": [],
-      "markers": []
-    },
-    {
       "file": "src/tutorials/preflop-charts.js",
       "imports": [],
       "links": [],
@@ -56497,127 +56290,7 @@
       "markers": []
     },
     {
-      "file": "src/tutorials/toke-tracker.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
-      "possibleUnwiredFunctions": [],
-      "markers": []
-    },
-    {
       "file": "src/tutorials/training.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
-      "possibleUnwiredFunctions": [],
-      "markers": []
-    },
-    {
-      "file": "src/tutorials/trivia.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
-      "possibleUnwiredFunctions": [],
-      "markers": []
-    },
-    {
-      "file": "src/tutorials/video-library.js",
       "imports": [],
       "links": [],
       "apiReferences": [],
@@ -57463,7 +57136,7 @@
   "dependencyEdges": [
     {
       "from": "pages/api/training/achievements.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/achievements.js",
@@ -57483,11 +57156,11 @@
     },
     {
       "from": "pages/api/training/analytics.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/analytics.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/analytics.js",
@@ -57515,11 +57188,11 @@
     },
     {
       "from": "pages/api/training/audit-hand-history.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/audit-hand-history.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/audit-hand-history.js",
@@ -57551,11 +57224,11 @@
     },
     {
       "from": "pages/api/training/batch-preload.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/batch-preload.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/batch-preload.js",
@@ -57627,11 +57300,11 @@
     },
     {
       "from": "pages/api/training/bookmark-solution.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/bookmark-solution.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/bookmark-solution.js",
@@ -57647,11 +57320,11 @@
     },
     {
       "from": "pages/api/training/browse-solutions.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/browse-solutions.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/browse-solutions.js",
@@ -57675,7 +57348,7 @@
     },
     {
       "from": "pages/api/training/challenges.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/challenges.js",
@@ -57687,11 +57360,11 @@
     },
     {
       "from": "pages/api/training/coaching-summary.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/coaching-summary.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/coaching-summary.js",
@@ -57719,11 +57392,11 @@
     },
     {
       "from": "pages/api/training/custom-train.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/custom-train.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/custom-train.js",
@@ -57771,7 +57444,7 @@
     },
     {
       "from": "pages/api/training/daily-bonus.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/daily-bonus.js",
@@ -57795,11 +57468,11 @@
     },
     {
       "from": "pages/api/training/equity.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/equity.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/equity.js",
@@ -57815,7 +57488,7 @@
     },
     {
       "from": "pages/api/training/explain-answer.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/explain-answer.js",
@@ -57823,11 +57496,11 @@
     },
     {
       "from": "pages/api/training/get-progress.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/get-progress.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/get-progress.js",
@@ -57867,15 +57540,15 @@
     },
     {
       "from": "pages/api/training/get-question.js",
-      "to": "src/lib/apiErrorHandler.js"
-    },
-    {
-      "from": "pages/api/training/get-question.js",
       "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/get-question.js",
       "to": "src/lib/grokClient.js"
+    },
+    {
+      "from": "pages/api/training/get-question.js",
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/get-question.js",
@@ -57931,11 +57604,11 @@
     },
     {
       "from": "pages/api/training/get-sessions.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/get-sessions.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/get-sessions.js",
@@ -57963,11 +57636,11 @@
     },
     {
       "from": "pages/api/training/grade-range.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/grade-range.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/grade-range.js",
@@ -57983,11 +57656,11 @@
     },
     {
       "from": "pages/api/training/gto-reports.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/gto-reports.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/gto-reports.js",
@@ -58011,11 +57684,11 @@
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
@@ -58059,11 +57732,11 @@
     },
     {
       "from": "pages/api/training/health.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/health.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/health.js",
@@ -58075,11 +57748,11 @@
     },
     {
       "from": "pages/api/training/icm-calc.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/icm-calc.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/icm-calc.js",
@@ -58095,7 +57768,7 @@
     },
     {
       "from": "pages/api/training/leaderboard.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/leaderboard.js",
@@ -58139,11 +57812,11 @@
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/next-street.js",
@@ -58187,11 +57860,11 @@
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
@@ -58211,11 +57884,11 @@
     },
     {
       "from": "pages/api/training/progress.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/progress.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/progress.js",
@@ -58235,11 +57908,11 @@
     },
     {
       "from": "pages/api/training/recommendations.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/recommendations.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/recommendations.js",
@@ -58259,11 +57932,11 @@
     },
     {
       "from": "pages/api/training/record-question.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/record-question.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/record-question.js",
@@ -58311,11 +57984,11 @@
     },
     {
       "from": "pages/api/training/reissue-questions.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/reissue-questions.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/reissue-questions.js",
@@ -58351,11 +58024,11 @@
     },
     {
       "from": "pages/api/training/report-question.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/report-question.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/report-question.js",
@@ -58375,11 +58048,11 @@
     },
     {
       "from": "pages/api/training/save-progress.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/save-progress.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/save-progress.js",
@@ -58399,11 +58072,11 @@
     },
     {
       "from": "pages/api/training/save-session.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/save-session.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/save-session.js",
@@ -58423,11 +58096,11 @@
     },
     {
       "from": "pages/api/training/share.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/share.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/share.js",
@@ -58443,11 +58116,11 @@
     },
     {
       "from": "pages/api/training/smart-practice.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/smart-practice.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/smart-practice.js",
@@ -58471,7 +58144,7 @@
     },
     {
       "from": "pages/api/training/solver-api.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/solver-api.js",
@@ -58503,11 +58176,11 @@
     },
     {
       "from": "pages/api/training/solver-worker.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/solver-worker.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/solver-worker.js",
@@ -58523,7 +58196,7 @@
     },
     {
       "from": "pages/api/training/spaced-repetition.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/spaced-repetition.js",
@@ -58539,11 +58212,11 @@
     },
     {
       "from": "pages/api/training/spot-drill.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/spot-drill.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/spot-drill.js",
@@ -58579,11 +58252,11 @@
     },
     {
       "from": "pages/api/training/streak.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/streak.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/streak.js",
@@ -58655,7 +58328,7 @@
     },
     {
       "from": "pages/api/training/tournaments.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/tournaments.js",
@@ -58671,11 +58344,11 @@
     },
     {
       "from": "pages/api/training/weekly-stats.js",
-      "to": "src/lib/apiErrorHandler.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/weekly-stats.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/weekly-stats.js",
@@ -61311,10 +60984,6 @@
     },
     {
       "from": "src/tutorials/index.js",
-      "to": "src/tutorials/news.js"
-    },
-    {
-      "from": "src/tutorials/index.js",
       "to": "src/tutorials/personal-assistant.js"
     },
     {
@@ -61323,27 +60992,11 @@
     },
     {
       "from": "src/tutorials/index.js",
-      "to": "src/tutorials/poker-tools.js"
-    },
-    {
-      "from": "src/tutorials/index.js",
       "to": "src/tutorials/preflop-charts.js"
     },
     {
       "from": "src/tutorials/index.js",
-      "to": "src/tutorials/toke-tracker.js"
-    },
-    {
-      "from": "src/tutorials/index.js",
       "to": "src/tutorials/training.js"
-    },
-    {
-      "from": "src/tutorials/index.js",
-      "to": "src/tutorials/trivia.js"
-    },
-    {
-      "from": "src/tutorials/index.js",
-      "to": "src/tutorials/video-library.js"
     }
   ],
   "componentFiles": [
@@ -61720,10 +61373,10 @@
       "writes": {
         "localStorage": 0,
         "sessionStorage": 0,
-        "inserts": 0,
+        "inserts": 1,
         "updates": 0,
         "deletes": 0,
-        "rpc": 6
+        "rpc": 5
       }
     },
     {
@@ -65251,11 +64904,11 @@
       "effectRef": "src/components/store/DiamondInPlayBalance.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1589:1",
+      "id": "src/components/store/DiamondWalletModal.jsx:1635:1",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Close",
-      "line": 1589,
+      "line": 1635,
       "handler": "onClose",
       "destination": null,
       "type": null,
@@ -65264,11 +64917,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1678:2",
+      "id": "src/components/store/DiamondWalletModal.jsx:1725:2",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Buy Diamonds",
-      "line": 1678,
+      "line": 1725,
       "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
       "destination": null,
       "type": "button",
@@ -65277,11 +64930,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1689:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1736:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1689,
+      "line": 1736,
       "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
       "destination": null,
       "type": "button",
@@ -65290,11 +64943,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1730:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1778:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
-      "name": "Clear",
-      "line": 1730,
+      "name": "Clear Search",
+      "line": 1778,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -65303,11 +64956,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1765:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1818:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1765,
+      "line": 1818,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -65316,11 +64969,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1787:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1840:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1787,
+      "line": 1840,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -65329,11 +64982,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1864:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:1917:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Choose A Different Friend",
-      "line": 1864,
+      "line": 1917,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": "button",
@@ -65342,11 +64995,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1885:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:1938:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1885,
+      "line": 1938,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": "button",
@@ -65355,11 +65008,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1915:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:1969:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 1915,
+      "line": 1969,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": "button",
@@ -65368,11 +65021,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1946:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:2000:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1946,
+      "line": 2000,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": "button",
@@ -65381,11 +65034,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2027:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:2068:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2027,
+      "line": 2068,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -65394,11 +65047,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2088:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2130:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2088,
+      "line": 2130,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": "button",
@@ -65407,11 +65060,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2095:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2137:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2095,
+      "line": 2137,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -65420,11 +65073,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2319:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2370:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2319,
+      "line": 2370,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": "button",
@@ -65433,11 +65086,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2358:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:2407:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 2358,
+      "line": 2407,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -65446,11 +65099,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2381:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:2430:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 2381,
+      "line": 2430,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": "button",
@@ -65459,11 +65112,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2509:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:2567:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2509,
+      "line": 2567,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": "button",
@@ -65472,11 +65125,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2532:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:2590:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2532,
+      "line": 2590,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": "button",
@@ -65485,11 +65138,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/StoreToast.jsx:126:1",
+      "id": "src/components/store/StoreToast.jsx:173:1",
       "file": "src/components/store/StoreToast.jsx",
       "element": "button",
       "name": "Dismiss Store Message",
-      "line": 126,
+      "line": 173,
       "handler": "() => removeToast(toast.id)",
       "destination": null,
       "type": "button",
@@ -66278,11 +65931,11 @@
       "effectRef": "src/components/ui/GeevesMenuWidget.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:803:1",
+      "id": "src/components/ui/HamburgerMenu.jsx:781:1",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 803,
+      "line": 781,
       "handler": "onActivate",
       "destination": null,
       "type": "button",
@@ -66291,11 +65944,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:810:2",
+      "id": "src/components/ui/HamburgerMenu.jsx:788:2",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 810,
+      "line": 788,
       "handler": "onActivate",
       "destination": "item.href",
       "type": null,
@@ -66304,11 +65957,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:816:3",
+      "id": "src/components/ui/HamburgerMenu.jsx:794:3",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 816,
+      "line": 794,
       "handler": "onActivate",
       "destination": "item.href",
       "type": null,
@@ -66317,11 +65970,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:833:4",
+      "id": "src/components/ui/HamburgerMenu.jsx:811:4",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "item.label",
-      "line": 833,
+      "line": 811,
       "handler": "() => item.onChange(!item.checked)",
       "destination": null,
       "type": "button",
@@ -66330,11 +65983,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:886:5",
+      "id": "src/components/ui/HamburgerMenu.jsx:860:5",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 886,
+      "line": 860,
       "handler": "() => {\n              if (item.openInviteModal) {\n                onClose?.();\n                setShowInviteModal(true);\n                return;\n              }\n              if (typeof item.onClick === 'function') item.onClick();\n              if (item.closeOnClick !== false) onClose?.();\n            }",
       "destination": null,
       "type": "button",
@@ -66343,11 +65996,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:976:6",
+      "id": "src/components/ui/HamburgerMenu.jsx:942:6",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 976,
+      "line": 942,
       "handler": "() => {\n                      gridItem.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -66356,11 +66009,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1003:7",
+      "id": "src/components/ui/HamburgerMenu.jsx:969:7",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1003,
+      "line": 969,
       "handler": "onTile",
       "destination": "gridItem.href",
       "type": null,
@@ -66369,11 +66022,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1010:8",
+      "id": "src/components/ui/HamburgerMenu.jsx:976:8",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1010,
+      "line": 976,
       "handler": "onTile",
       "destination": "gridItem.href",
       "type": null,
@@ -66382,11 +66035,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1226:9",
+      "id": "src/components/ui/HamburgerMenu.jsx:1191:9",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'",
-      "line": 1226,
+      "line": 1191,
       "handler": "() => setEditFavs((v) => !v)",
       "destination": null,
       "type": "button",
@@ -66395,11 +66048,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1241:10",
+      "id": "src/components/ui/HamburgerMenu.jsx:1206:10",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Close menu",
-      "line": 1241,
+      "line": 1206,
       "handler": "onClose",
       "destination": null,
       "type": "button",
@@ -66408,11 +66061,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1302:11",
+      "id": "src/components/ui/HamburgerMenu.jsx:1266:11",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "Clear search",
-      "line": 1302,
+      "line": 1266,
       "handler": "() => setQuery('')",
       "destination": null,
       "type": "button",
@@ -66421,11 +66074,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1393:12",
+      "id": "src/components/ui/HamburgerMenu.jsx:1357:12",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "`Open ${sc.name}`",
-      "line": 1393,
+      "line": 1357,
       "handler": "(e) => {\n                            e.preventDefault();\n                            if (sc.page) switchToClub(sc.page);\n                            onClose?.();\n                            window.location.href = sc.href;\n                          }",
       "destination": "sc.href",
       "type": null,
@@ -66434,11 +66087,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1411:13",
+      "id": "src/components/ui/HamburgerMenu.jsx:1375:13",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "`Open ${sc.name}`",
-      "line": 1411,
+      "line": 1375,
       "handler": "() => {\n                          if (sc.page) switchToClub(sc.page);\n                          onClose?.();\n                        }",
       "destination": "sc.href",
       "type": null,
@@ -66447,11 +66100,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1428:14",
+      "id": "src/components/ui/HamburgerMenu.jsx:1392:14",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "See all your pages",
-      "line": 1428,
+      "line": 1392,
       "handler": "() => onClose?.()",
       "destination": "/hub/social-pages",
       "type": null,
@@ -66460,11 +66113,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1495:15",
+      "id": "src/components/ui/HamburgerMenu.jsx:1458:15",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "View Profile",
-      "line": 1495,
+      "line": 1458,
       "handler": "() => onClose?.()",
       "destination": "isClubMode && clubPage ? `/hub/social-pages/${clubPage.id}` : '/hub/profile'",
       "type": null,
@@ -66473,11 +66126,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1541:16",
+      "id": "src/components/ui/HamburgerMenu.jsx:1504:16",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "(Personal)",
-      "line": 1541,
+      "line": 1504,
       "handler": "() => { switchToPersonal(); onClose?.(); }",
       "destination": null,
       "type": "button",
@@ -66486,11 +66139,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1564:17",
+      "id": "src/components/ui/HamburgerMenu.jsx:1527:17",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1564,
+      "line": 1527,
       "handler": "() => {\n                            switchToClub(page);\n                            onClose?.();\n                            if (page.page_type === 'home_game') {\n                              router.push(homeGamePageUrl(page)); // audit 2026-08-14: was slug||id into the slug route\n                            } else if (page.page_type === 'club') {\n                              window.location.href = '/hub/commander';\n                            } else {\n                              router.push(`/hub/social-pages/${page.id}`);\n                            }\n                          }",
       "destination": null,
       "type": "button",
@@ -66499,11 +66152,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1647:18",
+      "id": "src/components/ui/HamburgerMenu.jsx:1610:18",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1647,
+      "line": 1610,
       "handler": "() => toggleSection(group.label)",
       "destination": null,
       "type": "button",
@@ -66512,11 +66165,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1722:19",
+      "id": "src/components/ui/HamburgerMenu.jsx:1685:19",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1722,
+      "line": 1685,
       "handler": "() => {\n                      if (link.openInviteModal) {\n                        onClose?.();\n                        setShowInviteModal(true);\n                        return;\n                      }\n                      if (typeof link.onClick === 'function') link.onClick();\n                      onClose?.();\n                    }",
       "destination": null,
       "type": "button",
@@ -66525,11 +66178,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1746:20",
+      "id": "src/components/ui/HamburgerMenu.jsx:1709:20",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "a",
       "name": "<dynamic>",
-      "line": 1746,
+      "line": 1709,
       "handler": "() => onClose?.()",
       "destination": "link.href",
       "type": null,
@@ -66538,11 +66191,11 @@
       "effectRef": "src/components/ui/HamburgerMenu.jsx"
     },
     {
-      "id": "src/components/ui/HamburgerMenu.jsx:1755:21",
+      "id": "src/components/ui/HamburgerMenu.jsx:1718:21",
       "file": "src/components/ui/HamburgerMenu.jsx",
       "element": "link",
       "name": "<dynamic>",
-      "line": 1755,
+      "line": 1718,
       "handler": "() => { rememberRecent(link); onClose?.(); }",
       "destination": "link.href",
       "type": null,
@@ -66994,7 +66647,7 @@
       "file": "pages/api/training/achievements.js",
       "reachableFiles": [
         "pages/api/training/achievements.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67029,8 +66682,8 @@
       "file": "pages/api/training/analytics.js",
       "reachableFiles": [
         "pages/api/training/analytics.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67065,7 +66718,6 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/page-tutorials.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs"
       ]
@@ -67075,8 +66727,8 @@
       "reachableFiles": [
         "pages/api/training/audit-hand-history.js",
         "src/engines/HandHistoryParser.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67157,8 +66809,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -67309,8 +66961,8 @@
       "file": "pages/api/training/bookmark-solution.js",
       "reachableFiles": [
         "pages/api/training/bookmark-solution.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67350,8 +67002,8 @@
       "file": "pages/api/training/browse-solutions.js",
       "reachableFiles": [
         "pages/api/training/browse-solutions.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -67394,7 +67046,7 @@
       "file": "pages/api/training/challenges.js",
       "reachableFiles": [
         "pages/api/training/challenges.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -67413,8 +67065,8 @@
       "file": "pages/api/training/coaching-summary.js",
       "reachableFiles": [
         "pages/api/training/coaching-summary.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -67457,8 +67109,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -67589,7 +67241,7 @@
       "file": "pages/api/training/daily-bonus.js",
       "reachableFiles": [
         "pages/api/training/daily-bonus.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/trivia/getTodayCST.js",
@@ -67622,8 +67274,8 @@
       "file": "pages/api/training/equity.js",
       "reachableFiles": [
         "pages/api/training/equity.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67649,7 +67301,7 @@
       "file": "pages/api/training/explain-answer.js",
       "reachableFiles": [
         "pages/api/training/explain-answer.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -67683,8 +67335,8 @@
       "file": "pages/api/training/get-progress.js",
       "reachableFiles": [
         "pages/api/training/get-progress.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67731,9 +67383,9 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/grokClient.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -67869,8 +67521,8 @@
       "file": "pages/api/training/get-sessions.js",
       "reachableFiles": [
         "pages/api/training/get-sessions.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67915,8 +67567,8 @@
       "reachableFiles": [
         "pages/api/training/grade-range.js",
         "src/config/solverRanges.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67944,8 +67596,8 @@
       "file": "pages/api/training/gto-reports.js",
       "reachableFiles": [
         "pages/api/training/gto-reports.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67992,8 +67644,8 @@
         "pages/api/training/hand-of-the-day.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68095,8 +67747,8 @@
       "file": "pages/api/training/health.js",
       "reachableFiles": [
         "pages/api/training/health.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -68135,8 +67787,8 @@
       "file": "pages/api/training/icm-calc.js",
       "reachableFiles": [
         "pages/api/training/icm-calc.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68162,7 +67814,7 @@
       "file": "pages/api/training/leaderboard.js",
       "reachableFiles": [
         "pages/api/training/leaderboard.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/leaderboardDimensions.mjs",
@@ -68246,8 +67898,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -68393,8 +68045,8 @@
       "reachableFiles": [
         "pages/api/training/preflop-ranges.js",
         "src/config/solverRanges.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68424,8 +68076,8 @@
       "reachableFiles": [
         "pages/api/training/progress.js",
         "src/config/LevelRegistry.ts",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68464,8 +68116,8 @@
       "reachableFiles": [
         "pages/api/training/recommendations.js",
         "src/data/TRAINING_LIBRARY.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -68499,8 +68151,8 @@
         "pages/api/training/record-question.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68606,8 +68258,8 @@
         "pages/api/training/reissue-questions.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68684,8 +68336,8 @@
       "file": "pages/api/training/report-question.js",
       "reachableFiles": [
         "pages/api/training/report-question.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68739,8 +68391,8 @@
       "file": "pages/api/training/save-progress.js",
       "reachableFiles": [
         "pages/api/training/save-progress.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68793,8 +68445,8 @@
       "file": "pages/api/training/save-session.js",
       "reachableFiles": [
         "pages/api/training/save-session.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68848,8 +68500,8 @@
       "file": "pages/api/training/share.js",
       "reachableFiles": [
         "pages/api/training/share.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68888,8 +68540,8 @@
       "file": "pages/api/training/smart-practice.js",
       "reachableFiles": [
         "pages/api/training/smart-practice.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68932,7 +68584,7 @@
       "reachableFiles": [
         "pages/api/training/solver-api.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/customSolverSpotContract.mjs",
@@ -68995,8 +68647,8 @@
       "file": "pages/api/training/solver-worker.js",
       "reachableFiles": [
         "pages/api/training/solver-worker.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/solverWorkerAuth.mjs"
@@ -69008,10 +68660,10 @@
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
-            "inserts": 0,
+            "inserts": 1,
             "updates": 0,
             "deletes": 0,
-            "rpc": 6
+            "rpc": 5
           }
         },
         {
@@ -69046,7 +68698,7 @@
       "file": "pages/api/training/spaced-repetition.js",
       "reachableFiles": [
         "pages/api/training/spaced-repetition.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -69072,8 +68724,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -69172,8 +68824,8 @@
       "file": "pages/api/training/streak.js",
       "reachableFiles": [
         "pages/api/training/streak.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69396,7 +69048,7 @@
       "file": "pages/api/training/tournaments.js",
       "reachableFiles": [
         "pages/api/training/tournaments.js",
-        "src/lib/apiErrorHandler.js",
+        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -69439,8 +69091,8 @@
       "file": "pages/api/training/weekly-stats.js",
       "reachableFiles": [
         "pages/api/training/weekly-stats.js",
-        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
+        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -69529,15 +69181,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70370,15 +70017,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -70719,15 +70361,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -71052,15 +70689,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -71372,15 +71004,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72057,15 +71684,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -72667,15 +72289,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -73097,15 +72714,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -73420,15 +73032,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -73751,15 +73358,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -74521,15 +74123,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -75073,15 +74670,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -75397,15 +74989,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -76682,15 +76269,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77051,15 +76633,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77424,15 +77001,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -77799,15 +77371,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -78119,15 +77686,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -78441,15 +78003,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -80360,15 +79917,10 @@
         "src/stores/pageOverlayStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
-        "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js"
+        "src/tutorials/training.js"
       ],
       "apiReferences": [
         "/api/auth/ensure-profile",
@@ -80631,15 +80183,10 @@
         "src/stores/toastStore.js",
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
         "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js",
         "src/world/components/Geeves/index.ts"
       ],
       "apiReferences": [
@@ -82343,16 +81890,6 @@
       "tests": []
     },
     {
-      "file": "src/lib/apiErrorHandler.js",
-      "reachableFiles": [
-        "src/lib/apiErrorHandler.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": []
-    },
-    {
       "file": "src/lib/apiRateLimit.js",
       "reachableFiles": [
         "src/lib/apiRateLimit.js"
@@ -82580,6 +82117,16 @@
         "__tests__/scroll-lock.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ]
+    },
+    {
+      "file": "src/lib/sentryWrap.js",
+      "reachableFiles": [
+        "src/lib/sentryWrap.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
     },
     {
       "file": "src/lib/serverAuth.js",
@@ -83791,15 +83338,10 @@
       "reachableFiles": [
         "src/tutorials/bankroll-manager.js",
         "src/tutorials/index.js",
-        "src/tutorials/news.js",
         "src/tutorials/personal-assistant.js",
         "src/tutorials/poker-near-me.js",
-        "src/tutorials/poker-tools.js",
         "src/tutorials/preflop-charts.js",
-        "src/tutorials/toke-tracker.js",
-        "src/tutorials/training.js",
-        "src/tutorials/trivia.js",
-        "src/tutorials/video-library.js"
+        "src/tutorials/training.js"
       ],
       "apiReferences": [],
       "persistence": [
@@ -83823,19 +83365,6 @@
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs",
         "__tests__/world-menu-mobile-phase3.test.mjs"
-      ]
-    },
-    {
-      "file": "src/tutorials/news.js",
-      "reachableFiles": [
-        "src/tutorials/news.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": [
-        "__tests__/no-slide-to-see.law.test.mjs",
-        "__tests__/page-tutorials.test.mjs"
       ]
     },
     {
@@ -83863,19 +83392,6 @@
       ]
     },
     {
-      "file": "src/tutorials/poker-tools.js",
-      "reachableFiles": [
-        "src/tutorials/poker-tools.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": [
-        "__tests__/no-slide-to-see.law.test.mjs",
-        "__tests__/page-tutorials.test.mjs"
-      ]
-    },
-    {
       "file": "src/tutorials/preflop-charts.js",
       "reachableFiles": [
         "src/tutorials/preflop-charts.js"
@@ -83886,18 +83402,6 @@
       "tests": [
         "__tests__/page-tutorials.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs"
-      ]
-    },
-    {
-      "file": "src/tutorials/toke-tracker.js",
-      "reachableFiles": [
-        "src/tutorials/toke-tracker.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": [
-        "__tests__/page-tutorials.test.mjs"
       ]
     },
     {
@@ -83922,32 +83426,6 @@
         "__tests__/training-runtime-wiring.test.mjs",
         "__tests__/training-session-config-contract.test.mjs",
         "__tests__/training-verified-report-authority.test.mjs"
-      ]
-    },
-    {
-      "file": "src/tutorials/trivia.js",
-      "reachableFiles": [
-        "src/tutorials/trivia.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": [
-        "__tests__/page-tutorials.test.mjs"
-      ]
-    },
-    {
-      "file": "src/tutorials/video-library.js",
-      "reachableFiles": [
-        "src/tutorials/video-library.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": [
-        "__tests__/no-slide-to-see.law.test.mjs",
-        "__tests__/page-tutorials.test.mjs",
-        "__tests__/training-authored-surface-authority.test.mjs"
       ]
     },
     {
@@ -84853,7 +84331,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1368,
+        "line": 1416,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84862,7 +84340,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1725,
+        "line": 1773,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84871,7 +84349,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1909,
+        "line": 1963,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84880,7 +84358,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2021,
+        "line": 2062,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85146,7 +84624,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 377,
+        "line": 356,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85155,7 +84633,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 393,
+        "line": 372,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85164,7 +84642,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 973,
+        "line": 939,
         "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85173,7 +84651,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 974,
+        "line": 940,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85182,7 +84660,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1077,
+        "line": 1043,
         "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85191,7 +84669,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1292,
+        "line": 1256,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85200,7 +84678,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1719,
+        "line": 1682,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -85209,7 +84687,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1720,
+        "line": 1683,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -86069,7 +85547,7 @@
       {
         "file": "src/hooks/useUnreadCount.jsx",
         "kind": "FALLBACK",
-        "line": 167,
+        "line": 168,
         "excerpt": "// Fallback: social-only count straight off the table.",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -87629,7 +87107,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 401,
+        "line": 383,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89434,6 +88912,11 @@
           "pages/hub/saved-posts.js",
           "pages/hub/settings.js",
           "pages/hub/social-media/index.js",
+          "pages/hub/toke-tracker/analytics.js",
+          "pages/hub/toke-tracker/index.js",
+          "pages/hub/toke-tracker/shift.js",
+          "pages/hub/toke-tracker/vault.js",
+          "pages/hub/toke-tracker/venues.js",
           "pages/hub/training.js",
           "pages/hub/training/achievements.js",
           "pages/hub/training/category/[categoryId].js",
@@ -90570,7 +90053,6 @@
           "src/components/poker-near-me/CasinoActionDialog.jsx",
           "src/components/poker-near-me/GlobalSearchOverlay.jsx",
           "src/components/poker-near-me/modals/LocationEnablePopup.js",
-          "src/components/poker-near-me/modals/LoginPromptModal.js",
           "src/components/poker-near-me/modals/ManualLocationModal.js",
           "src/components/store/MerchPurchaseDialog.jsx",
           "src/components/training/GodModeArena.jsx",
@@ -91814,7 +91296,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "decodeSolverWorkerSecret",
-        "line": 23,
+        "line": 21,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91830,7 +91312,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "verifySolverWorkerRequest",
-        "line": 56,
+        "line": 54,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91846,7 +91328,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "solverWorkerEnvelopeIsValid",
-        "line": 93,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92224,7 +91706,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 111,
+        "line": 98,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92239,7 +91721,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 115,
+        "line": 102,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92254,7 +91736,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 123,
+        "line": 110,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92269,7 +91751,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 127,
+        "line": 114,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92284,7 +91766,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 135,
+        "line": 122,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93425,7 +92907,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1368,
+        "line": 1416,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93434,7 +92916,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1725,
+        "line": 1773,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93443,7 +92925,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1909,
+        "line": 1963,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93452,7 +92934,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2021,
+        "line": 2062,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93718,7 +93200,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 377,
+        "line": 356,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]')",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93727,7 +93209,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "FALLBACK",
-        "line": 393,
+        "line": 372,
         "excerpt": "|| document.querySelector('[data-world-menu-trigger=\"route-fallback\"]');",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93736,7 +93218,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 973,
+        "line": 939,
         "excerpt": "const stub = typeof gridItem.onClick !== 'function';",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93745,7 +93227,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 974,
+        "line": 940,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93754,7 +93236,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1077,
+        "line": 1043,
         "excerpt": "// the working row below AND then be dropped by the stub guard at render, so",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93763,7 +93245,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1292,
+        "line": 1256,
         "excerpt": "placeholder=\"Search menu\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93772,7 +93254,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1719,
+        "line": 1682,
         "excerpt": "const stub = typeof link.onClick !== 'function' && !link.openInviteModal;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93781,7 +93263,7 @@
       {
         "file": "src/components/ui/HamburgerMenu.jsx",
         "kind": "STUB",
-        "line": 1720,
+        "line": 1683,
         "excerpt": "if (stub) return null;",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -94641,7 +94123,7 @@
       {
         "file": "src/hooks/useUnreadCount.jsx",
         "kind": "FALLBACK",
-        "line": 167,
+        "line": 168,
         "excerpt": "// Fallback: social-only count straight off the table.",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -96201,7 +95683,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 401,
+        "line": 383,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98006,6 +97488,11 @@
           "pages/hub/saved-posts.js",
           "pages/hub/settings.js",
           "pages/hub/social-media/index.js",
+          "pages/hub/toke-tracker/analytics.js",
+          "pages/hub/toke-tracker/index.js",
+          "pages/hub/toke-tracker/shift.js",
+          "pages/hub/toke-tracker/vault.js",
+          "pages/hub/toke-tracker/venues.js",
           "pages/hub/training.js",
           "pages/hub/training/achievements.js",
           "pages/hub/training/category/[categoryId].js",
@@ -99142,7 +98629,6 @@
           "src/components/poker-near-me/CasinoActionDialog.jsx",
           "src/components/poker-near-me/GlobalSearchOverlay.jsx",
           "src/components/poker-near-me/modals/LocationEnablePopup.js",
-          "src/components/poker-near-me/modals/LoginPromptModal.js",
           "src/components/poker-near-me/modals/ManualLocationModal.js",
           "src/components/store/MerchPurchaseDialog.jsx",
           "src/components/training/GodModeArena.jsx",
@@ -100386,7 +99872,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "decodeSolverWorkerSecret",
-        "line": 23,
+        "line": 21,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100402,7 +99888,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "verifySolverWorkerRequest",
-        "line": 56,
+        "line": 54,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100418,7 +99904,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "solverWorkerEnvelopeIsValid",
-        "line": 93,
+        "line": 91,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100796,7 +100282,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenTutorial",
-        "line": 111,
+        "line": 98,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100811,7 +100297,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markTutorialSeen",
-        "line": 115,
+        "line": 102,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100826,7 +100312,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "hasSeenPrompt",
-        "line": 123,
+        "line": 110,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100841,7 +100327,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "markPromptSeen",
-        "line": 127,
+        "line": 114,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100856,7 +100342,7 @@
       {
         "file": "src/tutorials/index.js",
         "name": "requestPageTutorial",
-        "line": 135,
+        "line": 122,
         "references": 1,
         "exported": true,
         "defaultExport": false,

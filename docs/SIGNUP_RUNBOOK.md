@@ -130,7 +130,7 @@ something about the user-facing path is broken.
 4. Open browser devtools → Network tab → submit a fake signup → look at
    the request. Does it 200?
 5. If form errors with no network call — JS error. Check `/admin/signup-health`
-   error log and the first-party `client_crash_log` records for the signup route.
+   error log AND Sentry for `auth.flow:signup` tag.
 
 **How to fix:**
 - **Geo-block regression:** confirm `/auth/signup` returns 200, not 307. If
@@ -351,9 +351,9 @@ curl https://kuklfnapbkmacvwxktbh.supabase.co/auth/v1/settings -H "apikey: <ANON
 | Health probe | https://smarter.poker/api/health/signup |
 | Backup signup | https://smarter.poker/auth/quick |
 | Supabase project | https://supabase.com/dashboard/project/kuklfnapbkmacvwxktbh |
-| Browser crash records | First-party `client_crash_log`, filtered by route/section |
+| Sentry project | (in Sentry — search `auth.flow:signup`) |
 | Vercel project | https://vercel.com/<org>/smarter-poker-world-hub |
 | Resend domain | https://resend.com/domains |
-| Original outage post-mortem | Preserved in restricted retirement evidence and repository history; current procedures are in this runbook. |
+| Original outage post-mortem | `SIGNUP-FIX-2026-05-03-FINAL.md` |
 | Hardening tests | `__tests__/signup-hardening.test.mjs` |
 | Re-apply patches | `bash scripts/apply-signup-hardening-2026-05-03.sh` |

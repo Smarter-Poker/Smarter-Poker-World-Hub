@@ -1,4 +1,5 @@
 // Batch link-preview endpoint — collapses N individual /api/link-preview
+// calls into a single POST request, eliminating the N+1 Sentry performance
 // alert on pages like /hub/social-media that render many link-cards at once.
 //
 // POST /api/link-preview/batch
@@ -7,6 +8,7 @@
 //
 // Each value is identical to what the single GET endpoint returns, or null
 // if the URL is blocked/invalid. The key is the original URL string.
+// Sentry issue #7720346314 — N+1 API Call at /api/link-preview?url=* (2026-09-10).
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const { applyCors } = require('../../../src/lib/cors');

@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 const { inspectStripeRuntime } = require('../../../src/lib/store/stripeRuntimeMode');
 
 let _supabase = null;
@@ -222,8 +222,8 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (reportingError) {
-      console.warn('[checkout-status] Error reporting failed:', reportingError?.message || reportingError);
+    } catch (sentryError) {
+      console.warn('[checkout-status] Error reporting failed:', sentryError?.message || sentryError);
     }
     if (err?.type === 'StripeInvalidRequestError') {
       return res.status(404).json({ success: false, error: 'Checkout reference not found' });

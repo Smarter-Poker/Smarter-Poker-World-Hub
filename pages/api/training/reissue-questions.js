@@ -2,7 +2,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   prepareTrainingQuestionForDelivery,
 } from '../../../src/lib/training/gradingReceipt.mjs';
@@ -365,7 +365,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   } catch (error) {
-    try { reportApiError(error, req); } catch (_reportErroror) { /* reporting must not mask response */ }
+    try { reportApiError(error, req); } catch (_sentryError) { /* reporting must not mask response */ }
     console.warn('[ReissueQuestions] Unhandled error:', error?.message || error);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, error: 'Internal server error' });

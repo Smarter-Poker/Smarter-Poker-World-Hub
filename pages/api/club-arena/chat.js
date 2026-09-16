@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 const { sanitizeNote } = require('../../../src/lib/club-arena/sanitize');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 
 let _supabase = null;
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[chat API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

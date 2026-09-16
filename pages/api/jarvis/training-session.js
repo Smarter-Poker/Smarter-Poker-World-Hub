@@ -6,7 +6,7 @@
  * from immutable, server-graded attempts instead.
  */
 
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
           code: 'JARVIS_TRAINING_VERIFIED_ATTEMPT_REQUIRED',
       });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
       console.warn('[API Error]', err);
       if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

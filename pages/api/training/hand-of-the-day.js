@@ -3,7 +3,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
   enforceTrainingQuestionContract,

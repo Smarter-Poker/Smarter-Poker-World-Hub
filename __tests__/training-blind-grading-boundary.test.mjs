@@ -105,7 +105,7 @@ function loadRecordQuestionHandler({
       LIMITS: { write: {} },
     },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
     '../../../src/lib/training/answerGradingContract.mjs': {
       TrainingAnswerContractError,
       gradeTrainingAnswer: (input) => {

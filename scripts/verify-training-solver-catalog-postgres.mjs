@@ -24,10 +24,6 @@ const BOUNDED_CANARY_MIGRATION = path.join(
   ROOT,
   'supabase/migrations/20260910120000_training_solver_bounded_canary_authority.sql',
 );
-const OPERATION_SCOPE_MIGRATION = path.join(
-  ROOT,
-  'supabase/migrations/20260913170000_training_solver_operation_scope_binding.sql',
-);
 
 const PRODUCTION_DEFAULT_ACL_SQL = String.raw`
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
@@ -105,65 +101,6 @@ function commandAsync(binary, args, { input } = {}) {
   });
 }
 
-async function withStaleReceiptLock(binary, args, cleanup) {
-  const child = spawn(binary, args, {
-    cwd: ROOT, env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
-  });
-  let stdout = '';
-  let stderr = '';
-  let releaseRequested = false;
-  let readyResolve;
-  let readyReject;
-  const ready = new Promise((resolve, reject) => {
-    readyResolve = resolve;
-    readyReject = reject;
-  });
-  const finished = new Promise((resolve, reject) => {
-    child.once('error', (error) => { readyReject(error); reject(error); });
-    child.once('close', (status, signal) => {
-      const error = new Error(`Stale receipt locker exited (${status ?? signal}).\n${stdout}\n${stderr}`);
-      readyReject(error);
-      if (status !== 0 || !releaseRequested) reject(error);
-      else resolve();
-    });
-  });
-  // The owner still awaits this promise in finally; prevent an early child
-  // failure becoming an unhandled rejection while cleanup is in flight.
-  finished.catch(() => {});
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-  child.stdout.on('data', (chunk) => {
-    stdout += chunk;
-    if (/(?:^|\n)stale-receipt-lock-held\r?\n/.test(stdout)) readyResolve();
-  });
-  child.stderr.on('data', (chunk) => { stderr += chunk; });
-  child.stdin.on('error', (error) => { readyReject(error); child.kill('SIGKILL'); });
-  // Bound the holder even if its client or the verification callback fails.
-  const deadline = setTimeout(() => child.kill('SIGKILL'), 10_000);
-  try {
-    child.stdin.write(String.raw`
-      BEGIN;
-      SET LOCAL statement_timeout = '1500ms';
-      SET LOCAL idle_in_transaction_session_timeout = '10s';
-      SELECT request_nonce
-      FROM public.training_solver_worker_receipts
-      WHERE machine_id = 'M1' AND request_nonce = md5('stale-receipt-1')::uuid
-        AND received_at < now() - interval '24 hours'
-      FOR UPDATE
-      \gset
-      \echo stale-receipt-lock-held
-    `);
-    // psql emits this marker only after the row lock and a one-row \gset.
-    // Keep stdin open, and the transaction held, until cleanup has completed.
-    await ready;
-    return await cleanup();
-  } finally {
-    releaseRequested = true;
-    if (!child.stdin.destroyed) child.stdin.end('ROLLBACK;\n');
-    try { await finished; } finally { clearTimeout(deadline); }
-  }
-}
-
 function resolvePostgresBin() {
   const pgConfig = spawnSync('pg_config', ['--bindir'], { encoding: 'utf8' });
   const candidates = [
@@ -213,18 +150,6 @@ ALTER EXTENSION pgcrypto SET SCHEMA extensions;
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE service_role NOLOGIN BYPASSRLS;
-CREATE TABLE public.solver_status (
-  machine_id text PRIMARY KEY,
-  phase text,
-  board text,
-  spots_done integer DEFAULT 0,
-  rows_written integer DEFAULT 0,
-  bad integer DEFAULT 0,
-  note text,
-  updated_at timestamptz DEFAULT now()
-);
-ALTER TABLE public.solver_status ENABLE ROW LEVEL SECURITY;
-GRANT ALL ON public.solver_status TO service_role;
 CREATE TABLE public.solved_spots_gold (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   scenario_hash text NOT NULL,
@@ -2582,8 +2507,6 @@ try {
     input: String.raw`
       CREATE ROLE solver_unscoped_acl_probe NOLOGIN;
       CREATE ROLE solver_unscoped_acl_delegate NOLOGIN;
-      ALTER DEFAULT PRIVILEGES IN SCHEMA public
-        GRANT EXECUTE ON FUNCTIONS TO solver_unscoped_acl_probe;
       GRANT EXECUTE ON FUNCTION public.training_ingest_solver_artifact_v1(
         text, text, text, text, text, text, uuid, timestamptz, text, jsonb
       ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
@@ -2601,124 +2524,6 @@ try {
   command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', BOUNDED_CANARY_MIGRATION], {
     quiet: true,
   });
-  // Seed nonstandard historical grants on every superseded worker entrypoint.
-  // The scope-binding migration must remove these as well as the standard
-  // service/browser grants; revoking only named application roles is not safe.
-  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
-    input: String.raw`
-      GRANT EXECUTE ON FUNCTION public.training_claim_solver_worker_request_v1(
-        text,text,text,text,text,text,uuid,text,timestamptz,text
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_ingest_solver_artifact_v1(
-        text,text,text,text,text,text,uuid,timestamptz,text,jsonb
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_solver_worker_row_states_v1(text[])
-        TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_solver_worker_row_states_v2(
-        text,text,text,text,text,text,text[]
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_solver_worker_board_page_v1(
-        text,integer,text,text,text,integer
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT UPDATE ON TABLE public.solver_status
-        TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT INSERT (machine_id) ON TABLE public.solver_status
-        TO solver_unscoped_acl_probe;
-      SET ROLE solver_unscoped_acl_probe;
-      GRANT EXECUTE ON FUNCTION public.training_claim_solver_worker_request_v1(
-        text,text,text,text,text,text,uuid,text,timestamptz,text
-      ) TO solver_unscoped_acl_delegate;
-      GRANT UPDATE ON TABLE public.solver_status
-        TO solver_unscoped_acl_delegate;
-      RESET ROLE;
-    `,
-    quiet: true,
-  });
-  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', OPERATION_SCOPE_MIGRATION], {
-    quiet: true,
-  });
-  // Prove both fresh-function default grants and ACLs preserved by
-  // CREATE OR REPLACE are normalized. The downstream delegated grant proves
-  // the migration's CASCADE revocation does not leave inherited execution.
-  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
-    input: String.raw`
-      ALTER DEFAULT PRIVILEGES IN SCHEMA public
-        REVOKE EXECUTE ON FUNCTIONS FROM solver_unscoped_acl_probe;
-      GRANT EXECUTE ON FUNCTION public.training_claim_solver_worker_request_v2(
-        text,text,text,text,text,text,text,uuid,text,timestamptz,text
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_ingest_solver_artifact_v2(
-        text,text,text,text,text,text,text,uuid,timestamptz,text,jsonb
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_solver_worker_row_states_v3(
-        text,text,text,text,text,text,text,text[]
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_solver_worker_heartbeat_v1(
-        text,text,text,text,text,text,text,text,text,integer,integer,integer,text
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.training_solver_worker_board_page_v2(
-        text,text,text,text,text,text,text,text,integer,text,text,text,integer
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      GRANT EXECUTE ON FUNCTION public.fn_training_solver_operation_scope_guard_v1(
-        text,text,text,text,text,text,text
-      ) TO solver_unscoped_acl_probe WITH GRANT OPTION;
-      SET ROLE solver_unscoped_acl_probe;
-      GRANT EXECUTE ON FUNCTION public.training_claim_solver_worker_request_v2(
-        text,text,text,text,text,text,text,uuid,text,timestamptz,text
-      ) TO solver_unscoped_acl_delegate;
-      RESET ROLE;
-    `,
-    quiet: true,
-  });
-  command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection, '-f', OPERATION_SCOPE_MIGRATION], {
-    quiet: true,
-  });
-  const scopedAclExact = command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
-  ], {
-    input: String.raw`
-      WITH signatures(signature) AS (
-        VALUES
-          ('public.training_claim_solver_worker_request_v2(text,text,text,text,text,text,text,uuid,text,timestamp with time zone,text)'),
-          ('public.training_ingest_solver_artifact_v2(text,text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)'),
-          ('public.training_solver_worker_row_states_v3(text,text,text,text,text,text,text,text[])'),
-          ('public.training_solver_worker_heartbeat_v1(text,text,text,text,text,text,text,text,text,integer,integer,integer,text)'),
-          ('public.training_solver_worker_board_page_v2(text,text,text,text,text,text,text,text,integer,text,text,text,integer)'),
-          ('public.fn_training_solver_operation_scope_guard_v1(text,text,text,text,text,text,text)')
-      ), probe_roles(role_name) AS (
-        VALUES ('solver_unscoped_acl_probe'), ('solver_unscoped_acl_delegate')
-      )
-      SELECT NOT EXISTS (
-        SELECT 1
-        FROM signatures
-        CROSS JOIN probe_roles
-        WHERE pg_catalog.has_function_privilege(
-          probe_roles.role_name, signatures.signature, 'EXECUTE'
-        )
-      )
-      AND NOT EXISTS (
-        SELECT 1
-        FROM pg_catalog.pg_proc function_row
-        CROSS JOIN LATERAL pg_catalog.aclexplode(function_row.proacl) expanded_acl
-        JOIN pg_catalog.pg_roles role_row
-          ON role_row.oid = expanded_acl.grantee
-        WHERE function_row.oid = ANY (ARRAY[
-          'public.training_claim_solver_worker_request_v2(text,text,text,text,text,text,text,uuid,text,timestamp with time zone,text)'::regprocedure::oid,
-          'public.training_ingest_solver_artifact_v2(text,text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)'::regprocedure::oid,
-          'public.training_solver_worker_row_states_v3(text,text,text,text,text,text,text,text[])'::regprocedure::oid,
-          'public.training_solver_worker_heartbeat_v1(text,text,text,text,text,text,text,text,text,integer,integer,integer,text)'::regprocedure::oid,
-          'public.training_solver_worker_board_page_v2(text,text,text,text,text,text,text,text,integer,text,text,text,integer)'::regprocedure::oid
-        ])
-          AND role_row.rolname = 'service_role'
-          AND expanded_acl.privilege_type = 'EXECUTE'
-          AND expanded_acl.is_grantable
-      );
-    `,
-    quiet: true,
-  }).stdout.trim();
-  if (scopedAclExact !== 't') {
-    throw new Error('Operation-scope migration preserved an unexpected scoped RPC grant.');
-  }
   const unscopedAclOwnerOnly = command(tool('psql'), [
     '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
   ], {
@@ -2856,416 +2661,6 @@ try {
   }
   const evidence = command(tool('psql'), ['-X', '-v', 'ON_ERROR_STOP=1', ...connection], {
     input: BEHAVIOR_SQL,
-    quiet: true,
-  });
-  // Exercise the final, signed-scope-bound worker surface after the complete
-  // predecessor behavior matrix has established one active M1 backlog and
-  // pre-existing canary artifacts. Every rejection is checked for durable
-  // non-mutation, not merely for an error string.
-  const operationScopeEvidence = command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
-  ], {
-    input: String.raw`
-      BEGIN;
-      INSERT INTO public.training_solver_provenance_authority (
-        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
-        manifest_version, manifest_checksum, source_combo_order_sha256,
-        training_game_contracts_sha256, manifest_contracts, approved_by
-      )
-      SELECT
-        'M1', solver_version, solver_binary_checksum, pipeline_commit,
-        'training-v2-operation-held', repeat('7', 64),
-        source_combo_order_sha256, training_game_contracts_sha256,
-        manifest_contracts, 'phase6-operation-scope-verifier'
-      FROM public.training_solver_provenance_authority
-      WHERE machine_id = 'M1' AND manifest_version = 'training-v2'
-        AND manifest_checksum = repeat('c', 64);
-
-      INSERT INTO public.training_solver_provenance_authority (
-        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
-        manifest_version, manifest_checksum, source_combo_order_sha256,
-        training_game_contracts_sha256, manifest_contracts, approved_by
-      )
-      SELECT
-        'M2', solver_version, solver_binary_checksum, pipeline_commit,
-        'training-v2-operation-canary', repeat('8', 64),
-        source_combo_order_sha256, training_game_contracts_sha256,
-        manifest_contracts, 'phase6-operation-scope-verifier'
-      FROM public.training_solver_provenance_authority
-      WHERE machine_id = 'M1' AND manifest_version = 'training-v2'
-        AND manifest_checksum = repeat('c', 64);
-
-      INSERT INTO public.training_solver_bounded_canary_targets (
-        machine_id, solver_version, solver_binary_checksum, pipeline_commit,
-        manifest_version, manifest_checksum, target_role, artifact_id,
-        scenario_hash, street, node, hero_position, approved_by
-      ) VALUES (
-        'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-        'training-v2-operation-canary', repeat('8', 64), 'parent',
-        'c1000000-0000-4000-8000-000000000001',
-        'hu_cash_BB_100bb_AsKd2c', 'flop', 'r:0', 'BB',
-        'phase6-operation-scope-verifier'
-      ), (
-        'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-        'training-v2-operation-canary', repeat('8', 64), 'child',
-        'c2000000-0000-4000-8000-000000000002',
-        'turn_hu_cash_BB_100bb_AsKd2cAh', 'turn',
-        'r:0:c:b412:c:Ah', 'BB', 'phase6-operation-scope-verifier'
-      );
-      UPDATE public.training_solver_ingest_scopes
-      SET admission_mode = 'bounded_canary', partition_count = 2,
-          partition_index = 1, configured_at = clock_timestamp(),
-          configured_by = 'phase6-operation-scope-verifier'
-      WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-operation-canary'
-        AND manifest_checksum = repeat('8', 64)
-        AND admission_mode = 'held';
-      COMMIT;
-
-      DO $operation_scope_behavior$
-      DECLARE
-        signed_at timestamptz := clock_timestamp();
-        rejected_nonce uuid;
-        before_matrix jsonb;
-        before_status public.solver_status%ROWTYPE;
-        replay_artifact jsonb;
-        replay_receipt record;
-        replay_signed_at timestamptz;
-        board_canary_blocked boolean := false;
-        board_mismatch_blocked boolean := false;
-        row_subset_blocked boolean := false;
-        row_duplicate_blocked boolean := false;
-        row_oversize_blocked boolean := false;
-        heartbeat_mismatch_blocked boolean := false;
-        heartbeat_null_blocked boolean := false;
-        ingest_mismatch_blocked boolean := false;
-      BEGIN
-        IF has_function_privilege(
-             'service_role',
-             'public.training_claim_solver_worker_request_v1(text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'service_role',
-             'public.training_ingest_solver_artifact_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'service_role',
-             'public.training_solver_worker_row_states_v2(text,text,text,text,text,text,text[])',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'service_role',
-             'public.training_solver_worker_board_page_v1(text,integer,text,text,text,integer)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'solver_unscoped_acl_probe',
-             'public.training_claim_solver_worker_request_v1(text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'solver_unscoped_acl_delegate',
-             'public.training_claim_solver_worker_request_v1(text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
-             'EXECUTE'
-           ) THEN
-          RAISE EXCEPTION 'superseded worker entrypoint retained execute privilege';
-        END IF;
-        IF NOT has_function_privilege(
-             'service_role',
-             'public.training_claim_solver_worker_request_v2(text,text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
-             'EXECUTE'
-           )
-           OR NOT has_function_privilege(
-             'service_role',
-             'public.training_ingest_solver_artifact_v2(text,text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
-             'EXECUTE'
-           )
-           OR NOT has_function_privilege(
-             'service_role',
-             'public.training_solver_worker_row_states_v3(text,text,text,text,text,text,text,text[])',
-             'EXECUTE'
-           )
-           OR NOT has_function_privilege(
-             'service_role',
-             'public.training_solver_worker_board_page_v2(text,text,text,text,text,text,text,text,integer,text,text,text,integer)',
-             'EXECUTE'
-           )
-           OR NOT has_function_privilege(
-             'service_role',
-             'public.training_solver_worker_heartbeat_v1(text,text,text,text,text,text,text,text,text,integer,integer,integer,text)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'authenticated',
-             'public.training_solver_worker_heartbeat_v1(text,text,text,text,text,text,text,text,text,integer,integer,integer,text)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'solver_unscoped_acl_probe',
-             'public.training_solver_worker_heartbeat_v1(text,text,text,text,text,text,text,text,text,integer,integer,integer,text)',
-             'EXECUTE'
-           )
-           OR has_function_privilege(
-             'service_role',
-             'public.fn_training_solver_operation_scope_guard_v1(text,text,text,text,text,text,text)',
-             'EXECUTE'
-           )
-           OR has_table_privilege(
-             'solver_unscoped_acl_probe', 'public.solver_status',
-             'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
-           )
-           OR has_any_column_privilege(
-             'solver_unscoped_acl_probe', 'public.solver_status',
-             'INSERT,UPDATE,REFERENCES'
-           )
-           OR has_table_privilege(
-             'solver_unscoped_acl_delegate', 'public.solver_status',
-             'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
-           ) THEN
-          RAISE EXCEPTION 'scoped worker entrypoint ACL contract failed';
-        END IF;
-
-        -- Exact active mode is required before a metadata nonce is consumed.
-        IF NOT public.training_claim_solver_worker_request_v2(
-             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-             'training-v2', repeat('c', 64), 'backlog',
-             '96000000-0000-4000-8000-000000000001', 'row_states',
-             signed_at, repeat('1', 64)
-           ) OR public.training_claim_solver_worker_request_v2(
-             'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-             'training-v2', repeat('c', 64), 'backlog',
-             '96000000-0000-4000-8000-000000000001', 'row_states',
-             signed_at, repeat('1', 64)
-           ) THEN
-          RAISE EXCEPTION 'scope-bound nonce claim/replay contract failed';
-        END IF;
-
-        FOREACH rejected_nonce IN ARRAY ARRAY[
-          '96000000-0000-4000-8000-000000000002'::uuid,
-          '96000000-0000-4000-8000-000000000003'::uuid,
-          '96000000-0000-4000-8000-000000000004'::uuid,
-          '96000000-0000-4000-8000-000000000005'::uuid
-        ] LOOP
-          IF rejected_nonce = '96000000-0000-4000-8000-000000000002'::uuid THEN
-            IF public.training_claim_solver_worker_request_v2(
-              'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2', repeat('c', 64), 'bounded_canary', rejected_nonce,
-              'heartbeat', signed_at, repeat('2', 64)
-            ) THEN RAISE EXCEPTION 'mode mismatch consumed a nonce'; END IF;
-          ELSIF rejected_nonce = '96000000-0000-4000-8000-000000000003'::uuid THEN
-            IF public.training_claim_solver_worker_request_v2(
-              'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-operation-held', repeat('7', 64), 'backlog',
-              rejected_nonce, 'heartbeat', signed_at, repeat('3', 64)
-            ) THEN RAISE EXCEPTION 'held scope consumed a nonce'; END IF;
-          ELSIF rejected_nonce = '96000000-0000-4000-8000-000000000004'::uuid THEN
-            IF public.training_claim_solver_worker_request_v2(
-              'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-canary', repeat('e', 64), 'bounded_canary',
-              rejected_nonce, 'heartbeat', signed_at, repeat('4', 64)
-            ) THEN RAISE EXCEPTION 'retired authority consumed a nonce'; END IF;
-          ELSE
-            IF public.training_claim_solver_worker_request_v2(
-              'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-operation-canary', repeat('8', 64),
-              'bounded_canary', rejected_nonce, 'board_page', signed_at,
-              repeat('5', 64)
-            ) THEN RAISE EXCEPTION 'canary board-page claim consumed a nonce'; END IF;
-          END IF;
-        END LOOP;
-        IF EXISTS (
-          SELECT 1 FROM public.training_solver_worker_receipts
-          WHERE request_nonce BETWEEN
-            '96000000-0000-4000-8000-000000000002'::uuid AND
-            '96000000-0000-4000-8000-000000000005'::uuid
-        ) THEN
-          RAISE EXCEPTION 'rejected scope request left a durable receipt';
-        END IF;
-
-        IF (SELECT count(*) FROM public.training_solver_worker_board_page_v2(
-              'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2', repeat('c', 64), 'backlog',
-              'hu_cash', 100, 'flop', 'BB', NULL, 75
-            )) < 1 THEN
-          RAISE EXCEPTION 'active backlog scope returned no board work';
-        END IF;
-        BEGIN
-          PERFORM 1 FROM public.training_solver_worker_board_page_v2(
-            'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2-operation-canary', repeat('8', 64),
-            'bounded_canary', 'hu_cash', 100, 'flop', 'BB', NULL, 75
-          );
-        EXCEPTION WHEN insufficient_privilege THEN
-          board_canary_blocked := SQLERRM = 'SOLVER_WORKER_BOARD_PAGE_REQUIRES_BACKLOG';
-        END;
-        BEGIN
-          PERFORM 1 FROM public.training_solver_worker_board_page_v2(
-            'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'bounded_canary',
-            'hu_cash', 100, 'flop', 'BB', NULL, 75
-          );
-        EXCEPTION WHEN insufficient_privilege THEN
-          board_mismatch_blocked := SQLERRM = 'SOLVER_WORKER_BOARD_PAGE_REQUIRES_BACKLOG';
-        END;
-
-        IF (SELECT count(*) FROM public.training_solver_worker_row_states_v3(
-              'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-              'training-v2-operation-canary', repeat('8', 64),
-              'bounded_canary', ARRAY[
-                'hu_cash_BB_100bb_AsKd2c',
-                'turn_hu_cash_BB_100bb_AsKd2cAh'
-              ]
-            ) state
-            WHERE state.admission_mode = 'bounded_canary'
-              AND state.partition_count = 2 AND state.partition_index = 1
-              AND state.canary_authorized) <> 2 THEN
-          RAISE EXCEPTION 'exact canary pair did not return scoped row states';
-        END IF;
-        BEGIN
-          PERFORM 1 FROM public.training_solver_worker_row_states_v3(
-            'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2-operation-canary', repeat('8', 64),
-            'bounded_canary', ARRAY['hu_cash_BB_100bb_AsKd2c']
-          );
-        EXCEPTION WHEN insufficient_privilege THEN
-          row_subset_blocked := SQLERRM = 'SOLVER_WORKER_CANARY_ROW_STATES_NOT_AUTHORIZED';
-        END;
-        BEGIN
-          PERFORM 1 FROM public.training_solver_worker_row_states_v3(
-            'M2', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2-operation-canary', repeat('8', 64),
-            'bounded_canary', ARRAY[
-              'hu_cash_BB_100bb_AsKd2c',
-              'turn_hu_cash_BB_100bb_AsKd2cAh',
-              'hu_cash_BB_100bb_AsKd2c'
-            ]
-          );
-        EXCEPTION WHEN insufficient_privilege THEN
-          row_duplicate_blocked := SQLERRM = 'SOLVER_WORKER_CANARY_ROW_STATES_NOT_AUTHORIZED';
-        END;
-        BEGIN
-          PERFORM 1 FROM public.training_solver_worker_row_states_v3(
-            'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'backlog',
-            array_fill('hu_cash_BB_100bb_AsKd2c'::text, ARRAY[76])
-          );
-        EXCEPTION WHEN invalid_parameter_value THEN
-          row_oversize_blocked := SQLERRM = 'SOLVER_WORKER_ROW_STATES_PAYLOAD_INVALID';
-        END;
-
-        PERFORM public.training_solver_worker_heartbeat_v1(
-          'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-          'training-v2', repeat('c', 64), 'backlog', 'scope-preflight', '',
-          2, 3, 0, 'scope-bound heartbeat'
-        );
-        SELECT * INTO before_status FROM public.solver_status WHERE machine_id = 'M1';
-        BEGIN
-          PERFORM public.training_solver_worker_heartbeat_v1(
-            'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'bounded_canary', 'wrong-scope', '',
-            99, 99, 99, 'must not persist'
-          );
-        EXCEPTION WHEN insufficient_privilege THEN
-          heartbeat_mismatch_blocked := SQLERRM = 'SOLVER_WORKER_EXECUTION_SCOPE_MISMATCH';
-        END;
-        BEGIN
-          PERFORM public.training_solver_worker_heartbeat_v1(
-            'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'backlog', 'null-counter', '',
-            NULL, 3, 0, 'must not persist'
-          );
-        EXCEPTION WHEN invalid_parameter_value THEN
-          heartbeat_null_blocked := SQLERRM = 'SOLVER_WORKER_HEARTBEAT_PAYLOAD_INVALID';
-        END;
-        IF (SELECT status_row FROM public.solver_status status_row
-            WHERE machine_id = 'M1') IS DISTINCT FROM before_status THEN
-          RAISE EXCEPTION 'rejected heartbeat mutated solver status';
-        END IF;
-
-        SELECT strategy_matrix_v2 INTO before_matrix
-        FROM public.solved_spots_gold
-        WHERE id = '90000000-0000-4000-8000-000000000009';
-        BEGIN
-          PERFORM 1 FROM public.training_ingest_solver_artifact_v2(
-            'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-            'training-v2', repeat('c', 64), 'bounded_canary',
-            '96000000-0000-4000-8000-000000000006', signed_at,
-            repeat('6', 64), '{}'::jsonb
-          );
-        EXCEPTION WHEN insufficient_privilege THEN
-          ingest_mismatch_blocked := SQLERRM = 'SOLVER_WORKER_EXECUTION_SCOPE_MISMATCH';
-        END;
-        IF EXISTS (SELECT 1 FROM public.training_solver_worker_receipts
-                   WHERE request_nonce = '96000000-0000-4000-8000-000000000006')
-           OR (SELECT strategy_matrix_v2 FROM public.solved_spots_gold
-               WHERE id = '90000000-0000-4000-8000-000000000009')
-              IS DISTINCT FROM before_matrix THEN
-          RAISE EXCEPTION 'rejected scoped ingest mutated receipt or artifact state';
-        END IF;
-
-        SELECT receipt.signed_at INTO replay_signed_at
-        FROM public.training_solver_worker_receipts receipt
-        WHERE receipt.machine_id = 'M1'
-          AND receipt.request_nonce = '91000000-0000-4000-8000-000000000001';
-        SELECT jsonb_build_object(
-          'audited_at', artifact.audited_at,
-          'game_type', artifact.game_type,
-          'id', artifact.id,
-          'machine_id', artifact.machine_id,
-          'manifest_checksum', artifact.manifest_checksum,
-          'manifest_version', artifact.manifest_version,
-          'pipeline_commit', artifact.pipeline_commit,
-          'quality_status', artifact.quality_status,
-          'scenario_hash', artifact.scenario_hash,
-          'solved_v2_at', artifact.solved_v2_at,
-          'solver_binary_checksum', artifact.solver_binary_checksum,
-          'solver_version', artifact.solver_version,
-          'source_artifact_checksum', artifact.source_artifact_checksum,
-          'stack_depth', artifact.stack_depth,
-          'strategy_matrix_v2', artifact.strategy_matrix_v2,
-          'street', artifact.street
-        ) INTO replay_artifact
-        FROM public.solved_spots_gold artifact
-        WHERE artifact.id = '90000000-0000-4000-8000-000000000009';
-        SELECT * INTO replay_receipt
-        FROM public.training_ingest_solver_artifact_v2(
-          'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-          'training-v2', repeat('c', 64), 'backlog',
-          '91000000-0000-4000-8000-000000000001', replay_signed_at,
-          repeat('d', 64), replay_artifact
-        );
-        IF replay_receipt.replayed IS DISTINCT FROM true THEN
-          RAISE EXCEPTION 'scope-bound ingest did not preserve durable replay';
-        END IF;
-
-        IF NOT board_canary_blocked OR NOT board_mismatch_blocked
-           OR NOT row_subset_blocked OR NOT row_duplicate_blocked
-           OR NOT row_oversize_blocked OR NOT heartbeat_mismatch_blocked
-           OR NOT heartbeat_null_blocked OR NOT ingest_mismatch_blocked THEN
-          RAISE EXCEPTION 'one or more scope-bound operation rejections failed';
-        END IF;
-      END;
-      $operation_scope_behavior$;
-
-      -- Keep later per-machine race probes independent from this fixture.
-      UPDATE public.training_solver_provenance_authority
-      SET retired_at = clock_timestamp()
-      WHERE machine_id = 'M2'
-        AND manifest_version = 'training-v2-operation-canary'
-        AND manifest_checksum = repeat('8', 64)
-        AND retired_at IS NULL;
-
-      SELECT json_build_object(
-        'workerOperationScopeBindingPassed', true,
-        'workerOperationScopeAclPassed', true,
-        'workerOperationScopeRejectRollbackPassed', true,
-        'workerOperationCanaryExactPairPassed', true,
-        'workerOperationHeartbeatBindingPassed', true,
-        'workerOperationIngestReplayPassed', true
-      );
-    `,
     quiet: true,
   });
   command(tool('psql'), [
@@ -3435,49 +2830,44 @@ try {
     quiet: true,
   });
 
-  // Prove an actual row lock before and after the bounded retention pass.
-  // Holder release is explicit; its deliberate lifetime is not cleanup time.
-  await withStaleReceiptLock(tool('psql'), [
+  // Hold the oldest receipt row while another request performs its bounded
+  // retention pass. FOR UPDATE SKIP LOCKED must let the request complete under
+  // a deadline instead of joining the platform's existing deadlock pressure.
+  const staleRowLocker = commandAsync(tool('psql'), [
     '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
-  ], async () => {
-    const heldRowProof = String.raw`
-      DO $held_row_proof$
-      DECLARE locked boolean := false;
-      BEGIN
-        BEGIN
-          PERFORM 1 FROM public.training_solver_worker_receipts
-          WHERE machine_id = 'M1' AND request_nonce = md5('stale-receipt-1')::uuid
-            AND received_at < now() - interval '24 hours'
-          FOR UPDATE NOWAIT;
-        EXCEPTION WHEN lock_not_available THEN locked := true;
-        END;
-        IF NOT locked THEN
-          RAISE EXCEPTION 'STALE_RECEIPT_ROW_NOT_HELD';
-        END IF;
-      END;
-      $held_row_proof$;
-    `;
-    const cleanupResult = await commandAsync(tool('psql'), [
-      '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
-    ], {
-      input: String.raw`
-        SET statement_timeout = '1500ms';
-        ${heldRowProof}
-        SELECT public.training_claim_solver_worker_request_v1(
-          'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
-          'training-v2', repeat('c', 64),
-          '93000000-0000-4000-8000-000000000001', 'heartbeat',
-          now(), repeat('7', 64)
-        );
-        ${heldRowProof}
-        SELECT count(*) = 1 FROM public.training_solver_worker_receipts
-        WHERE machine_id = 'M1' AND received_at < now() - interval '24 hours';
-      `,
-    });
-    if (cleanupResult.stdout.trim() !== 'SET\nDO\nt\nDO\nt') {
-      throw new Error(`Receipt cleanup did not preserve the held row and remove the 100 unlocked stale receipts.\n${cleanupResult.stdout}`);
-    }
+  ], {
+    input: String.raw`
+      BEGIN;
+      SELECT request_nonce
+      FROM public.training_solver_worker_receipts
+      WHERE received_at < now() - interval '24 hours'
+      ORDER BY received_at, machine_id
+      FOR UPDATE
+      LIMIT 1;
+      SELECT pg_sleep(2);
+      COMMIT;
+    `,
   });
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const cleanupStart = Date.now();
+  const cleanupResult = await commandAsync(tool('psql'), [
+    '-X', '-v', 'ON_ERROR_STOP=1', '-At', ...connection,
+  ], {
+    input: String.raw`
+      SET statement_timeout = '1500ms';
+      SELECT public.training_claim_solver_worker_request_v1(
+        'M1', 'PioSOLVER 3.0', repeat('a', 64), repeat('b', 40),
+        'training-v2', repeat('c', 64),
+        '93000000-0000-4000-8000-000000000001', 'heartbeat',
+        now(), repeat('7', 64)
+      );
+    `,
+  });
+  await staleRowLocker;
+  if (!/(?:^|\n)t(?:\n|$)/.test(cleanupResult.stdout)
+      || Date.now() - cleanupStart >= 1_900) {
+    throw new Error(`Receipt cleanup waited on a locked stale row.\n${cleanupResult.stdout}`);
+  }
 
   // Force the ON CONFLICT branch: transaction A commits one exact ingest but
   // holds its nonce/warehouse locks; transaction B started concurrently must
@@ -4079,119 +3469,12 @@ try {
         .includes('TRAINING_SOLVER_WORKER_RECEIPT_CONTRACT_INCOMPLETE')) {
     throw new Error('Worker-ingress migration accepted a receipt ledger with a weaker check.');
   }
-
-  // Prove the final migration rejects a pre-existing heartbeat table whose
-  // shape drifted from production, then succeeds and remains idempotent after
-  // an explicit repair. PL/pgSQL would otherwise defer this failure to runtime.
-  const wrongStatusDatabase = 'phase6_solver_status_wrongshape';
-  command(tool('createdb'), [
-    '-h', tempRoot, '-p', String(port), wrongStatusDatabase,
-  ], { quiet: true });
-  const wrongStatusConnection = [
-    '-h', tempRoot, '-p', String(port), '-d', wrongStatusDatabase,
-  ];
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-  ], { input: baselineWithoutClusterRoles, quiet: true });
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-  ], { input: PRODUCTION_DEFAULT_ACL_SQL, quiet: true });
-  for (const migration of [
-    MIGRATION, HARDENING_MIGRATION, WORKER_INGEST_MIGRATION,
-    BOUNDED_CANARY_MIGRATION,
-  ]) {
-    command(tool('psql'), [
-      '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection, '-f', migration,
-    ], { quiet: true });
-  }
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-  ], {
-    input: `ALTER TABLE public.solver_status
-      ALTER COLUMN spots_done TYPE bigint;`,
-    quiet: true,
-  });
-  commandExpectFailure(
-    tool('psql'),
-    ['-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-      '-f', OPERATION_SCOPE_MIGRATION],
-    { expected: 'TRAINING_SOLVER_STATUS_CONTRACT_INCOMPLETE' },
-  );
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-  ], {
-    input: `ALTER TABLE public.solver_status
-      ALTER COLUMN spots_done TYPE integer;`,
-    quiet: true,
-  });
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-    '-f', OPERATION_SCOPE_MIGRATION,
-  ], { quiet: true });
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...wrongStatusConnection,
-    '-f', OPERATION_SCOPE_MIGRATION,
-  ], { quiet: true });
-
-  // Some predecessor migrations are intentionally re-applied above for their
-  // own idempotency probes. Re-apply the newest migration last and require the
-  // final database state—not an earlier snapshot—to remain scope-only.
-  command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', ...connection,
-    '-f', OPERATION_SCOPE_MIGRATION,
-  ], { quiet: true });
-  const finalOperationScopeClosed = command(tool('psql'), [
-    '-X', '-v', 'ON_ERROR_STOP=1', '-tA', ...connection,
-  ], {
-    input: String.raw`
-      SELECT
-        NOT has_function_privilege(
-          'service_role',
-          'public.training_claim_solver_worker_request_v1(text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
-          'EXECUTE'
-        )
-        AND NOT has_function_privilege(
-          'service_role',
-          'public.training_ingest_solver_artifact_v1(text,text,text,text,text,text,uuid,timestamp with time zone,text,jsonb)',
-          'EXECUTE'
-        )
-        AND has_function_privilege(
-          'service_role',
-          'public.training_claim_solver_worker_request_v2(text,text,text,text,text,text,text,uuid,text,timestamp with time zone,text)',
-          'EXECUTE'
-        )
-        AND has_function_privilege(
-          'service_role',
-          'public.training_solver_worker_heartbeat_v1(text,text,text,text,text,text,text,text,text,integer,integer,integer,text)',
-          'EXECUTE'
-        )
-        AND NOT has_table_privilege(
-          'service_role', 'public.solver_status',
-          'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'
-        );
-    `,
-    quiet: true,
-  }).stdout.trim();
-  if (finalOperationScopeClosed !== 't') {
-    throw new Error('Final operation-scope migration state reopened a legacy or direct-write path.');
-  }
   const evidenceLine = evidence.stdout
     .split('\n')
     .map((line) => line.trim())
     .find((line) => line.startsWith('{') && line.endsWith('}'));
   if (!evidenceLine) throw new Error(`Solver catalog verifier emitted no evidence.\n${evidence.stdout}`);
-  const operationScopeEvidenceLine = operationScopeEvidence.stdout
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line.startsWith('{') && line.endsWith('}'));
-  if (!operationScopeEvidenceLine) {
-    throw new Error(`Operation-scope verifier emitted no evidence.\n${operationScopeEvidence.stdout}`);
-  }
-  const combinedEvidence = {
-    ...JSON.parse(evidenceLine),
-    ...JSON.parse(operationScopeEvidenceLine),
-  };
-  console.log(`Phase 6 Training solver catalog verification passed: ${JSON.stringify(combinedEvidence)}`);
+  console.log(`Phase 6 Training solver catalog verification passed: ${evidenceLine}`);
 } finally {
   if (started) {
     spawnSync(tool('pg_ctl'), ['-D', dataDir, '-m', 'fast', 'stop'], {

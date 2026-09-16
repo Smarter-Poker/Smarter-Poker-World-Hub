@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Gem, ShieldCheck, X } from 'lucide-react';
 
 import { acquireScrollLock } from '../../lib/scrollLock';
 import styles from './MerchPurchaseDialog.module.css';
@@ -119,7 +120,7 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
 
         <header className={styles.header}>
           <div className={styles.seal} aria-hidden="true">
-            Secure
+            <ShieldCheck size={28} strokeWidth={1.6} />
           </div>
           <div>
             <span>Diamond Authorization</span>
@@ -132,7 +133,7 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
             disabled={busy}
             aria-label="Cancel Merchandise Purchase"
           >
-            Cancel
+            <X size={19} />
           </button>
         </header>
 
@@ -164,6 +165,7 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
         <div className={styles.total}>
           <span>Order Total</span>
           <strong>
+            <Gem size={21} aria-hidden="true" />
             {fmt(purchase.cost)} Diamonds
           </strong>
         </div>
