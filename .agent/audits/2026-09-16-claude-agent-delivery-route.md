@@ -22,9 +22,9 @@ bound to the exact pushed head. Shared/main worktrees, environment files,
 traversal and unrelated staged work are refused. It reports submission only.
 
 Regression: the prior helper fails the new real-Git host-auth submission case
-with no GITHUB_TOKEN/GH_TOKEN or keychain PAT. The replacement passes all 12
+with no GITHUB_TOKEN/GH_TOKEN or keychain PAT. The replacement passes all 13
 cases in the existing git-safe-push-credential-safety test file, including
-preservation, existing PR reuse, auth/transport/merge failures and unsafe paths.
+preservation, existing PR reuse, auth/transport/merge failures and unsafe paths. Held, draft, moved and closed PRs are not queued.
 GitHub transport is stubbed in these fixtures; an actual protected PR run is
 still required. That test file is already invoked directly by Build Safety
 CHECK 8; no new job or duplicate suite was added.

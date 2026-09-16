@@ -54,7 +54,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
 const agentSource = readFileSync(process.env.AGENT_PUSH_TEST_SOURCE || new URL('../scripts/agent-push.sh', import.meta.url), 'utf8');
-function fixture(t, { branch = 'agent/test', owned = true, auth = true, push = true, merge = true } = {}) {
+function fixture(t, { branch = 'agent/test', owned = true, auth = true, push = true, merge = true, held = false } = {}) {
   const temp = mkdtempSync(join(tmpdir(), 'agent-submit-'));
   t.after(() => rmSync(temp, { recursive: true, force: true }));
   const root = join(temp, owned ? '.agent-trees/test' : 'shared');
@@ -80,6 +80,7 @@ case "$1 $2" in
  'auth status') exit ${auth ? 0 : 1} ;;
  'pr list') if [[ -f "$PR_CREATED" ]]; then echo 42; fi ;;
  'pr create') touch "$PR_CREATED"; echo https://github.com/Smarter-Poker/Smarter-Poker-World-Hub/pull/42 ;;
+ 'pr view') ${held ? 'exit 0' : '"$REAL_GIT" rev-parse HEAD'} ;;
  'pr merge') exit ${merge ? 0 : 1} ;;
  *) exit 3 ;;
 esac
@@ -142,4 +143,10 @@ test('failed transport retains the local commit and never requests a merge', (t)
 test('merge refusal is visible and does not delete the producer branch', (t) => {
   const f=fixture(t,{merge:false}); const result=f.run('change.txt'); assert.notEqual(result.status,0);
   assert.equal(f.git('branch','--show-current'),'agent/test'); assert.doesNotMatch(result.stdout,/SUBMITTED:/);
+});
+
+test('a held or changed PR is not armed for auto-merge', (t) => {
+  const f=fixture(t,{held:true}); const result=f.run('change.txt');
+  assert.notEqual(result.status,0); assert.doesNotMatch(f.trace(),/pr merge/);
+  assert.match(result.stderr,/leaving it unqueued/);
 });

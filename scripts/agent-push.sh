@@ -51,6 +51,10 @@ if [[ -z "$pr" ]]; then
   pr="$(gh pr list --repo "$repo" --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
 fi
 [[ "$pr" =~ ^[0-9]+$ ]] || { echo 'No confirmed PR number; local work and branch are preserved.' >&2; exit 1; }
+# Respect producer holds and confirm the PR still names the exact submitted head.
+allowed="$(gh pr view "$pr" --repo "$repo" --json state,isDraft,baseRefName,headRefOid,labels \
+  --jq 'select(.state == "OPEN" and .isDraft == false and .baseRefName == "main" and (any(.labels[]; .name == "hold" or .name == "do-not-merge" or .name == "wip") | not)) | .headRefOid')"
+[[ "$allowed" == "$head" ]] || { echo 'PR is held, a draft, closed, or changed; leaving it unqueued.' >&2; exit 1; }
 gh pr merge "$pr" --repo "$repo" --auto --squash --match-head-commit "$head"
 printf 'SUBMITTED: https://github.com/%s/pull/%s\nHEAD: %s\n' "$repo" "$pr" "$head"
 echo 'Protected auto-merge requested. This does not certify merge or publication.'
