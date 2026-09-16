@@ -11,7 +11,7 @@ import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import pwd
 import re
 import signal
@@ -78,7 +78,7 @@ def decode(data):
 
 def safe_name(name):
     require(isinstance(name, str) and re.fullmatch(r'[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*', name)
-            and all(part not in ('.', '..') for part in PurePosixPath(name).parts)
+            and all(part not in ('.', '..') for part in name.split('/'))
             and name != 'manifest.json', 'unsafe provider leaf')
     return name
 
