@@ -1,6 +1,6 @@
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { serviceClient } from '../trivia/tournament-lifecycle';
 
 export const config = { maxDuration: 60 };

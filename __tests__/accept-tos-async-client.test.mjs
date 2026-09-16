@@ -43,7 +43,7 @@ test('compiled acceptance waits for the async client export before recording con
       [path.join(root, 'src/lib/serverAuth')]: auth,
       [path.join(root, 'src/lib/poker-engine/RateLimiter')]: rate,
       [path.join(root, 'src/lib/club-arena/idempotency')]: idem,
-      [path.join(root, 'src/lib/sentryWrap')]: sentry,
+      [path.join(root, 'src/lib/apiErrorHandler')]: sentry,
       '@smarter-poker/commander-shared/lib/supabaseServerClient': client,
     };
     await new Promise((resolve, reject) => {

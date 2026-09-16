@@ -22,7 +22,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
 function getSupabase() {
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
 
         return res.status(400).json({ success: false, error: 'Unknown action' });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_e) { console.warn('[block-user] sentry failed'); }
+        try { reportApiError(err, req); } catch (_e) { console.warn('[block-user] error reporting failed'); }
         console.error('[block-user] error:', err.message);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

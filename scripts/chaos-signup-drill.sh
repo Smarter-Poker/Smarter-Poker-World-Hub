@@ -117,7 +117,7 @@ run_drill() {
                      __tests__/auth-routes-exist.test.mjs \
                      __tests__/signup-hardening.test.mjs \
                      __tests__/build-2-deliverables.test.mjs \
-                     __tests__/sentry-coverage.test.mjs \
+                     __tests__/retired-error-provider.test.mjs \
                      __tests__/phase-3-deliverables.test.mjs \
                      __tests__/phase-4-deliverables.test.mjs 2>/dev/null) \
         > "$out" 2>&1 || true

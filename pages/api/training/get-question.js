@@ -23,7 +23,7 @@ import { applyDeterministicEnginePatches } from '../../../src/engines/determinis
 applyDeterministicEnginePatches(deterministicEngine);
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming, reconcileAnswerKey } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { filterCachedRowsForGame } from '../../../src/lib/training/cacheContract.mjs';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import { enforceSolverClaimHonesty, normalizeAuditedChartQuestion } from '../../../src/lib/training/solverDecisionEvidence';
@@ -521,8 +521,8 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (_sentryErr) {
-      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+    } catch (_reportError) {
+      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
     }
     console.warn('[API Error]', err);
     if (!res.headersSent)
