@@ -30,7 +30,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 // Pure, no imports, so the retirement decision can be tested by RUNNING it.
 // See the note in that file: the pins this replaced were regexes over THIS
 // file's source, and all of them passed while the bug was live.
-import { selectRetirable, selectDuplicateConfirmers } from '../../../src/lib/pushDeviceGroups.js';
+import { selectRetirable, selectDuplicateConfirmers, selectProvenDead } from '../../../src/lib/pushDeviceGroups.js';
 import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import { vapidConfig, isPushConfigured } from '../../../src/lib/push/web-push';
@@ -288,6 +288,73 @@ async function handler(req, res) {
            row considered has itself confirmed a recent receipt, and the row
            kept is the group's most recent confirmer, so the device provably
            still receives push afterwards. */
+        /* ── A DEVICE THAT IS THE ONLY LIVE ROW IT HAS, AND IS DEAD ───────
+           The block above spares it on purpose, and its comment says why:
+           "Nothing here can silence a device that is the only live row it
+           has." That protects a quiet device from being switched off on a
+           guess. It also leaves the genuinely dead one with NO WAY BACK.
+
+           MEASURED 2026-09-15. Dan's iPhone: active since 09-03, accepted
+           sends through 09-15, receipts NONE. His iPad: active since 08-30,
+           last receipt 08-31, accepted sends through 09-15. Every Apple
+           endpoint in the database stopped confirming on 09-08 while every
+           Chrome endpoint kept confirming to the minute. Apple answers 2xx
+           forever for a device that is gone and never 410s, so nothing reaps
+           the row; it has no confirming sibling, so nothing retires it; and
+           the client asks the BROWSER whether push is on, never the server,
+           so nothing re-registers it. Twelve days of silence with no exit.
+
+           selectProvenDead draws the line the guard above was missing:
+           last_used_at advances ONLY on an ACCEPTED send, so a row whose sends
+           have run a week past its last proof of life is not a device we have
+           not heard from - it is one we have demonstrably been delivering to
+           with nothing ever reaching a screen. A device nobody pushes to has a
+           still last_used_at and is never touched.
+
+           Retiring it is what lets the client notice and re-subscribe. The
+           bell notice below is sent WITHOUT push for the obvious reason. */
+        const provenDead = selectProvenDead(all);
+        report.provenDeadRetired = 0;
+        if (provenDead.length > 0) {
+            try {
+                const { error: deadErr } = await supabase
+                    .from('push_subscriptions')
+                    .update({
+                        is_active: false,
+                        last_failure_reason: 'no_receipt_after_sustained_sends',
+                        updated_at: new Date().toISOString(),
+                    })
+                    .in('id', provenDead.map((z) => z.id))
+                    .eq('is_active', true);
+                if (deadErr) throw new Error(deadErr.message);
+                report.provenDeadRetired = provenDead.length;
+
+                // Tell the owner on the bell. Being quietly unsubscribed is
+                // indistinguishable from push being broken, which is the whole
+                // confusion this stack exists to remove.
+                const owners = [...new Set(provenDead.map((z) => z.user_id).filter(Boolean))];
+                const DEAD_TITLE = 'A Device Stopped Receiving Notifications';
+                for (const userId of await filterRecentlyAlerted(
+                    supabase, owners, DEAD_TITLE, cooldownSince
+                )) {
+                    try {
+                        await notify(supabase, {
+                            userId,
+                            type: 'system',
+                            withPush: false,
+                            title: DEAD_TITLE,
+                            body: 'One of your devices accepted notifications but never showed them, '
+                                + 'so it has been switched off. Open the app on that device to turn '
+                                + 'notifications back on.',
+                            url: '/hub/settings/notifications',
+                        });
+                    } catch { /* a courtesy notice must never fail the sweep */ }
+                }
+            } catch (e) {
+                report.provenDeadRetireError = String(e?.message || e).slice(0, 200);
+            }
+        }
+
         const redundant = selectDuplicateConfirmers(all, zombieCutoffMs);
         report.duplicateConfirmersRetired = 0;
         if (redundant.length > 0) {

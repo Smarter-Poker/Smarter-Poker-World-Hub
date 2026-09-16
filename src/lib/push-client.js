@@ -418,6 +418,91 @@ export async function enablePush() {
  */
 const OPT_OUT_KEY = 'sp_push_opt_out';
 
+/**
+ * RECONCILE THIS BROWSER'S SUBSCRIPTION WITH THE SERVER'S VIEW OF IT.
+ *
+ * THE BUG THIS CLOSES. Nothing ever compared the two. hasLocalSubscription()
+ * asks the BROWSER, and the browser is happy: it holds a valid PushSubscription
+ * object whether or not the server still has a live row for it, and whether or
+ * not anything has been delivered in a fortnight. So the settings screen said
+ * notifications were on while Dan's iPhone had accepted twelve days of pushes
+ * without showing one (2026-09-15; every Apple endpoint in the database stopped
+ * confirming on 09-08 while Chrome kept confirming to the minute).
+ *
+ * There was no way out of that state from either side. The server would not
+ * retire a device that was the only live row it had, and the client never asked
+ * the server anything, so the silence was permanent.
+ *
+ * Two outcomes, and the difference matters:
+ *   - the server does not KNOW this endpoint  -> re-post it. Ordinary drift:
+ *     a row lost, a takeover by another account, an enrolment that never
+ *     landed.
+ *   - the server RETIRED it as undeliverable  -> re-posting would resurrect
+ *     exactly the row that does not work. Throw the browser subscription away
+ *     and mint a fresh one, which is the only thing that produces a new
+ *     endpoint the push service will actually route.
+ *
+ * Silent and best-effort by design: it runs on load, and a person opening the
+ * app must never be shown an error about bookkeeping they did not ask for.
+ */
+const RETIRED_AS_UNDELIVERABLE = new Set([
+    'no_receipt_after_sustained_sends',
+    'no_receipt_while_sibling_confirmed',
+]);
+
+export async function reconcileSubscription() {
+    if (!isWebPushSupported() || isOptedOut()) return { ok: true, action: 'skipped' };
+    if (notificationPermission() !== 'granted') return { ok: true, action: 'skipped' };
+    try {
+        const registration = await getRegistration();
+        const subscription = await withTimeout(
+            registration.pushManager.getSubscription(),
+            T.getSubscription,
+            'Reading subscription'
+        );
+        // No local subscription is not this function's problem to solve: the
+        // user either never enabled push or turned it off deliberately.
+        if (!subscription) return { ok: true, action: 'none' };
+
+        const res = await withTimeout(
+            fetch(`/api/push/subscribe?endpoint=${encodeURIComponent(subscription.endpoint)}`, {
+                method: 'GET',
+                headers: authHeaders(),
+            }),
+            T.save,
+            'Checking your subscription'
+        );
+        // A status we could not read tells us nothing. Leave a working
+        // subscription alone rather than tearing it down on a blip.
+        if (!res?.ok) return { ok: true, action: 'unknown' };
+        const status = await res.json().catch(() => null);
+        if (!status || status.active) return { ok: true, action: 'active' };
+
+        if (RETIRED_AS_UNDELIVERABLE.has(status.reason)) {
+            // The endpoint is the thing that is broken. Replace it.
+            const stale = subscription.endpoint;
+            try { await subscription.unsubscribe(); } catch { /* ignore */ }
+            const vapidKey = await fetchVapidKey();
+            const fresh = await withTimeout(
+                registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+                }),
+                T.subscribe,
+                'Re-enabling notifications on this device'
+            );
+            await persistSubscription(fresh, stale);
+            return { ok: true, action: 'resubscribed' };
+        }
+
+        // The server simply does not have it. Hand the same one back.
+        await persistSubscription(subscription, undefined);
+        return { ok: true, action: 'reposted' };
+    } catch (e) {
+        return { ok: false, error: e?.message || 'Could not reconcile this device.' };
+    }
+}
+
 export function isOptedOut() {
     try { return Boolean(localStorage.getItem(OPT_OUT_KEY)); } catch { return false; }
 }
@@ -493,4 +578,4 @@ export async function hasLocalSubscription() {
     }
 }
 
-export default { enablePush, disablePush, sendTestPush, isWebPushSupported, notificationPermission, hasLocalSubscription };
+export default { enablePush, disablePush, sendTestPush, isWebPushSupported, notificationPermission, hasLocalSubscription, reconcileSubscription };

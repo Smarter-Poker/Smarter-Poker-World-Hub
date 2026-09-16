@@ -18,7 +18,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
     enablePush, disablePush, isWebPushSupported,
-    notificationPermission, hasLocalSubscription,
+    notificationPermission, hasLocalSubscription, reconcileSubscription,
 } from '../lib/push-client';
 
 const PushContext = createContext(null);
@@ -56,6 +56,23 @@ export function PushProvider({ children }) {
         (async () => {
             await refresh();
             if (!cancelled) setIsInitialized(true);
+
+            /* ASK THE SERVER, NOT JUST THE BROWSER.
+               refresh() above reads pushManager.getSubscription(), which is
+               happy to report a subscription the server retired days ago or
+               never had. Those two views drifted apart on Dan's iPhone and
+               there was no way back: the settings screen said notifications
+               were on while the device had accepted twelve days of pushes
+               without showing one. reconcileSubscription() re-posts a
+               subscription the server has lost, and mints a fresh endpoint
+               when the server retired the old one as undeliverable.
+
+               Deliberately after setIsInitialized: the UI must never wait on
+               bookkeeping, and this is silent and best-effort by design. */
+            try {
+                const result = await reconcileSubscription();
+                if (!cancelled && result?.action === 'resubscribed') await refresh();
+            } catch { /* never let reconciliation surface to the user */ }
         })();
         return () => { cancelled = true; };
     }, [refresh]);
