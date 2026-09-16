@@ -38,15 +38,7 @@ test('the provisioner judges the main clone by its payload and can borrow from a
     assert.match(src, /cmp -s "\$cand\$\{rel:\+\/\$rel\}\/package-lock\.json" "\$lock" \|\| continue/, 'a donor must carry the tree lockfile');
     assert.match(src, /node_modules_matches_lockfile "\$nm" "\$lock" \|\| continue/, 'and its install must satisfy it');
     assert.match(src, /if ! node_modules_usable "\$src\/node_modules" "\$rel"; then/, 'the source is tested before it is cloned');
-    // Through run_repo_script, not `bash "$ROOT/scripts/..."`. $ROOT is the
-    // MAIN CLONE's working tree, which nothing keeps current: on 2026-09-14 it
-    // was 334 commits behind and this helper - newer than that checkout - was
-    // simply absent, so the repair ended in a bare "No such file or directory"
-    // and did not happen. run_repo_script prefers the disk copy when it matches
-    // origin/main and runs main's when it does not, the same way this script
-    // already re-execs itself. The intent pinned here is unchanged: with no
-    // donor, the main clone is repaired.
-    assert.match(src, /run_repo_script scripts\/check-node-modules\.sh/, 'with no donor, the main clone is repaired');
+    assert.match(src, /bash "\$ROOT\/scripts\/check-node-modules\.sh"/, 'with no donor, the main clone is repaired');
 });
 
 test('an install is judged against a lockfile by npm’s own record, and a mismatched clone is finished with npm ci', () => {

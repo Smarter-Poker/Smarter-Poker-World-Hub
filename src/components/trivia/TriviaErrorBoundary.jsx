@@ -75,7 +75,7 @@ class TriviaErrorBoundary extends React.Component {
 
             return (
                 <div style={{
-                    minHeight: '100dvh',
+                    minHeight: '100vh',
                     background: '#0a1628',
                     display: 'flex',
                     alignItems: 'center',
@@ -191,7 +191,7 @@ class TriviaErrorBoundary extends React.Component {
                                 </summary>
                                 <pre style={{
                                     color: '#ef4444',
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     margin: '8px 0 0',
                                     whiteSpace: 'pre-wrap',
                                     wordBreak: 'break-word',

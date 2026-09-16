@@ -52,7 +52,7 @@ function compileHandler({ profileError = null } = {}) {
   const dependencies = {
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
-    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/lib/sentryWrap': { reportApiError() {} },
     '../../../src/config/solverRanges': {
       RFI: positionRange,
       RFI_20BB: positionRange,

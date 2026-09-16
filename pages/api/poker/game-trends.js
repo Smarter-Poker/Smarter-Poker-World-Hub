@@ -8,7 +8,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { fetchAllRows } from '../../../src/lib/poker-near-me/dailyTournamentData.mjs';
 import {
   PNM_TRUTH_CONTRACT_VERSION,
@@ -206,8 +206,8 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (reportingError) {
-      console.warn('Game trends: error reporting failed:', reportingError?.message || reportingError);
+    } catch (sentryError) {
+      console.warn('Game trends: error reporting failed:', sentryError?.message || sentryError);
     }
     console.warn('Game trends error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });

@@ -11,7 +11,7 @@
  * when the person isn't on the platform yet).
  */
 import { bridgeRequest, mapRpcError, LIMITS } from '../../../../../src/lib/home-games/rpcBridge';
-import { reportApiError } from '../../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../../src/lib/sentryWrap';
 
 export default async function handler(req, res) {
   try {

@@ -124,7 +124,7 @@ test('checkout, order ledger, and receipt verification terminate and retry', asy
 
 test('purchase assurance controls retain the approved cyan metal palette', async () => {
   const css = await read('src/components/diamond-store/CheckoutStatusPanel.module.css');
-  assert.match(css, /\.complete\s*\{\s*--seal:\s*#75eaff;\s*\}/);
+  assert.match(css, /\.complete \{ --seal: #75eaff; \}/);
   assert.doesNotMatch(css, /#72f6b3|#10b981|#22c55e|#16a34a/i);
   assert.match(css, /min-height: 44px/);
   assert.match(css, /border-radius: 0/);

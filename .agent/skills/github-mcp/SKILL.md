@@ -49,7 +49,7 @@ GSD Phase Complete
     → GitHub PR (with review findings)
     → Vercel Preview Deploy
     → Playwright E2E Test
-    → Application Error Log Check
+    → Sentry Error Check
     → Merge to Production
 ```
 

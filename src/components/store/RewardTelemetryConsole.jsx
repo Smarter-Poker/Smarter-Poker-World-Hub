@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Activity, Gauge, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { authedFetch, ensureAuthReady, getAuthUser } from '../../lib/authUtils';
@@ -128,21 +129,22 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
     <section id="reward-telemetry" className={styles.console} aria-labelledby="reward-telemetry-title">
       <div className={styles.consoleHeader}>
         <div>
-          <span className={styles.kicker}>Live Account Signal</span>
+          <span className={styles.kicker}><Activity size={15} aria-hidden="true" /> Live Account Signal</span>
           <h2 id="reward-telemetry-title">Verified Reward Telemetry</h2>
           <p>Your Server-Owned Earning Caps, Streak, And Multiplier: Read Directly From The Diamond Ledger.</p>
         </div>
-        <span className={styles.integrityBadge}>Ledger Verified</span>
+        <span className={styles.integrityBadge}><ShieldCheck size={16} aria-hidden="true" /> Ledger Verified</span>
       </div>
 
       {state.status === 'loading' && (
         <div className={styles.statePanel} role="status" aria-live="polite">
-          Synchronizing Your Reward Circuits…
+          <Gauge size={23} aria-hidden="true" /> Synchronizing Your Reward Circuits…
         </div>
       )}
 
       {state.status === 'signed-out' && (
         <div className={styles.statePanel}>
+          <Sparkles size={23} aria-hidden="true" />
           <div>
             <strong>Connect Your Diamond Ledger</strong>
             <p>Sign In To See Your Real Cap Usage, Login Streak, And Multiplier For {marketplaceCopy(reward.name)}.</p>
@@ -153,10 +155,11 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
 
       {state.status === 'error' && (
         <div className={styles.statePanel} role="alert">
+          <Gauge size={23} aria-hidden="true" />
           <div>
             <strong>Telemetry Link Interrupted</strong>
             <p>{marketplaceCopy(state.message)}</p>
-            <button type="button" onClick={loadProgress}>Retry Secure Read</button>
+            <button type="button" onClick={loadProgress}><RefreshCw size={15} aria-hidden="true" /> Retry Secure Read</button>
           </div>
         </div>
       )}
@@ -196,7 +199,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
                 : 'This reward is tracked outside the standard daily-cap circuit.'}
               {data.partial ? ' Some ledger telemetry is temporarily partial.' : ' All displayed totals were verified.'}
             </p>
-            <button type="button" onClick={loadProgress}>Refresh Ledger</button>
+            <button type="button" onClick={loadProgress}><RefreshCw size={15} aria-hidden="true" /> Refresh Ledger</button>
           </div>
         </>
       )}

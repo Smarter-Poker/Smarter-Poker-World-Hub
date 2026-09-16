@@ -122,7 +122,7 @@ function loadHandler(captured, {
       withTiming() {},
       reconcileAnswerKey() {},
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/lib/sentryWrap': { reportApiError() {} },
     '../../../src/lib/training/cacheContract.mjs': { filterCachedRowsForGame: (rows) => rows },
     '../../../src/lib/training/questionContract.mjs': {
       enforceTrainingQuestionContract: (question) => question,

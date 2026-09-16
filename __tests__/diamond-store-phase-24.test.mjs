@@ -3,10 +3,6 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-// Phase 24 is the compact Marketplace suite anchor. Import the Phase 8
-// Lifetime contract so both local and Vercel builds execute the new checks.
-import './marketplace-phase-8-lifetime-entitlements.test.mjs';
-
 const ROOT = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, ROOT), 'utf8');
 

@@ -133,7 +133,7 @@ function VideoCardBody({ video, onClick }) {
                     padding: 3px 6px;
                     background: rgba(0, 0, 0, 0.85);
                     border-radius: 4px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 600;
                     color: #fff;
                 }
@@ -177,9 +177,7 @@ function VideoCardBody({ video, onClick }) {
                 .video-meta {
                     display: flex;
                     justify-content: space-between;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.5);
                 }
 

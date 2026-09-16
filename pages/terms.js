@@ -291,7 +291,7 @@ export function PrivacySection() {
             <ul style={styles.list}>
                 <li><strong>Purchases:</strong> Diamonds And VIP Are Sold Through The App Store Or Google Play. We Receive A Receipt And The Product Purchased From RevenueCat; We Never See Your Card.</li>
                 <li><strong>Notifications:</strong> If You Turn Them On, Your Device's Push Token Is Stored So We Can Send You Seat, Tournament And Club Alerts. Turn Them Off In Settings Or In Your Phone's Notification Settings And The Token Is Retired.</li>
-                <li><strong>Crash Reports:</strong> Stored In Our Error Logs To Diagnose And Fix Errors.</li>
+                <li><strong>Crash Reports:</strong> Sent To Sentry Without Your Email Address, To Fix Errors.</li>
                 <li><strong>Analytics:</strong> Product Analytics (PostHog) Run Only After You Say Yes In The App, And Can Be Turned Off In Settings At Any Time.</li>
                 <li><strong>Age:</strong> We Ask Your Date Of Birth Once. Under 18 Cannot Create An Account, And Nothing About A Minor Is Sent To Us.</li>
                 <li><strong>Deleting Your Account:</strong> Settings, Then Delete Account, Removes Your Profile, Your Wallet And Your Push Tokens. Records We Must Keep By Law Are Retained Only As Long As Required.</li>

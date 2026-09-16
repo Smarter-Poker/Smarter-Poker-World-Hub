@@ -7,21 +7,14 @@
  */
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
-import HubPageShell from '../../src/components/ui/HubPageShell';
-import { useHaptics } from '../../src/hooks/useHaptics';
-import { useAvatar } from '../../src/contexts/AvatarContext';
-import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import Link from 'next/link';
 import {
     calculateEquity, makeCard, GAME_CONFIGS, PRESETS, parsePresetHands
 } from '../../src/lib/poker/pokerOddsEngine';
 // 2026-05-07 — UI-UX-Pro-Max: Lucide icons replace UTF chars / emoji
 import {
-    X, UserPlus, Crown, RotateCcw, Play, Loader2,
+    ArrowLeft, SlidersHorizontal, X, UserPlus, Crown, RotateCcw, Play, Loader2,
 } from 'lucide-react';
-
-const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
-const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 
 /* ═══════════════════════════════════════════════
    CONSTANTS
@@ -64,14 +57,6 @@ export default function PokerToolsPage() {
     const [selectedSlot, setSelectedSlot] = useState({ type: 'hand', playerIdx: 0 });
     const [showMenu, setShowMenu] = useState(false);
     const [showPresets, setShowPresets] = useState(false);
-    /* MOBILE PHASE 10 (docs/mobile-standard): the shared header and
-       hamburger (with its Page Tutorial row) replace the page's own header
-       and settings sheet; a tap on a card, a seat or Calculate buzzes. The
-       calculator runs in the browser with no network, so the load failsafe,
-       pull to refresh and the offline guard have nothing to guard here. */
-    const haptic = useHaptics();
-    const { user } = useAvatar();
-    const menuConfig = useMemo(() => getMenuConfig('odds-calculator', user), [user]);
 
     const config = GAME_CONFIGS[game];
 
@@ -144,7 +129,6 @@ export default function PokerToolsPage() {
         if (!selectedSlot) return;
         const card = makeCard(rank, suit);
         if (!card || usedCardIds.has(card.id)) return;
-        haptic('light');
 
         if (selectedSlot.type === 'hand') {
             setHands(prev => {
@@ -168,7 +152,7 @@ export default function PokerToolsPage() {
         }
         setResults(null);
         setSelectedSlot(advanceSlot(selectedSlot));
-    }, [selectedSlot, usedCardIds, config.holeCards, advanceSlot, haptic]);
+    }, [selectedSlot, usedCardIds, config.holeCards, advanceSlot]);
 
     const removeCard = useCallback((type, playerIdx, cardIdx) => {
         if (type === 'hand') {
@@ -192,14 +176,13 @@ export default function PokerToolsPage() {
     const runCalculation = useCallback(() => {
         const validHands = hands.filter(h => h.length === config.holeCards);
         if (validHands.length < 2) return;
-        haptic('medium');
         setCalculating(true);
         setTimeout(() => {
             const res = calculateEquity({ game, hands: validHands, board, dead: deadCards, iterations: 10000 });
             setResults(res);
             setCalculating(false);
         }, 50);
-    }, [game, hands, board, deadCards, config.holeCards, haptic]);
+    }, [game, hands, board, deadCards, config.holeCards]);
 
     const loadPreset = useCallback((preset) => {
         const parsed = parsePresetHands(preset.hands);
@@ -228,31 +211,70 @@ export default function PokerToolsPage() {
                 
             </Head>
 
-            <HubPageShell
-                className="poker-tools"
-                maxWidth={1100}
-                background="#080810"
-                header={<UniversalHeader pageDepth={1} onMenuClick={() => setShowMenu(true)} />}
-            >
-            <HamburgerMenu
-                isOpen={showMenu}
-                onClose={() => setShowMenu(false)}
-                direction="left"
-                theme="dark"
-                user={user || null}
-                showProfile={!!user}
-                menuItems={menuConfig.menuItems}
-                bottomLinks={menuConfig.bottomLinks}
-            />
             <div style={{
-                width: '100%', boxSizing: 'border-box', color: '#E4E6EB',
+                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#080810', color: '#E4E6EB',
                 fontFamily: "var(--font-inter), -apple-system, sans-serif",
+                /* 2026-05-07 — removed textTransform: 'capitalize' that was Title-Casing every word */
                 display: 'flex', flexDirection: 'column',
             }}>
-                <h1 style={{ fontSize: 16, fontWeight: 800, margin: '10px 14px 0' }} data-tutorial="title">Poker Odds Calculator</h1>
+                {/* ─── HEADER ─── */}
+                <div style={{
+                    background: '#0f0f18', borderBottom: '1px solid #222',
+                    padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Link href="/hub" aria-label="Back to hub" style={{ color: '#888', textDecoration: 'none', fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <ArrowLeft size={14} aria-hidden /> Hub
+                        </Link>
+                        <span style={{ color: '#333' }}>|</span>
+                        <h1 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Poker Odds Calculator</h1>
+                    </div>
+                    <button onClick={() => setShowMenu(!showMenu)}
+                        aria-label="Open settings menu"
+                        aria-expanded={showMenu}
+                        style={{
+                            background: 'none', border: 'none', color: '#888', cursor: 'pointer',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
+                        }}>
+                        <SlidersHorizontal size={20} aria-hidden />
+                    </button>
+                </div>
+
+                {/* ─── CALCULATOR SETTINGS PANEL ─── */}
+                {showMenu && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setShowMenu(false)}>
+                        <div style={{
+                            position: 'absolute', top: 0, right: 0, width: 280, height: '100%',
+                            background: '#111118', borderLeft: '1px solid #333',
+                            padding: '24px 20px', overflowY: 'auto', boxSizing: 'border-box',
+                            // Below the status bar so the X is reachable (mobile phase 0b).
+                            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+                        }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                <span style={{ fontSize: 16, fontWeight: 800 }}>Settings</span>
+                                <button onClick={() => setShowMenu(false)}
+                                    aria-label="Close"
+                                    className="sp-icon-btn"
+                                    style={{
+                                        background: 'none', border: 'none', color: '#888', cursor: 'pointer',
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                        minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8,
+                                        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                                    }}>
+                                    <X size={18} aria-hidden />
+                                </button>
+                            </div>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: 1, marginBottom: 10 }}>LINKS</p>
+                            <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none', borderBottom: '1px solid #222' }}><ArrowLeft size={14} aria-hidden /> Back To World Hub</Link>
+                            <Link href="/hub/profile-edit" style={{ display: 'block', color: '#888', fontSize: 13, padding: '10px 0', textDecoration: 'none' }}>Edit Profile</Link>
+                        </div>
+                    </div>
+                )}
 
                 {/* ─── GAME TABS — LARGE, NO EMOJIS ─── */}
-                <div style={{ padding: '8px 10px' }} data-tutorial="games">
+                <div style={{ padding: '8px 10px' }}>
                     <div style={{
                         display: 'flex', gap: 3, flexWrap: 'wrap',
                         background: '#111', borderRadius: 10, padding: 4, border: '1px solid #222',
@@ -260,11 +282,11 @@ export default function PokerToolsPage() {
                         {Object.entries(GAME_CONFIGS || {}).map(([key, cfg]) => (
                             <button key={key} onClick={() => changeGame(key)}
                                 style={{
-                                    flex: 1, minWidth: 70, minHeight: 44, padding: '10px 6px', borderRadius: 8, border: 'none',
+                                    flex: 1, minWidth: 70, padding: '10px 6px', borderRadius: 8, border: 'none',
                                     background: game === key ? '#1877F2' : 'transparent',
                                     color: game === key ? '#fff' : '#888',
                                     fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                                    transition: 'all 0.2s',
+                                    transition: 'all 0.2s', whiteSpace: 'nowrap',
                                 }}>
                                 {cfg.name}
                             </button>
@@ -275,7 +297,7 @@ export default function PokerToolsPage() {
                 {/* ═══════════════════════════════════════════════════════
                    GOLDEN TEMPLATE TABLE — EXACT MATCH (GoldenTemplateTable.jsx)
                 ═══════════════════════════════════════════════════════ */}
-                <div style={{ position: 'relative', width: '100%', paddingBottom: '55%', margin: '0 auto' }} data-tutorial="table">
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '55%', margin: '0 auto' }}>
 
                     {/* Table Container — matching GoldenTemplateTable positioning */}
                     <div style={{ position: 'absolute', top: '2%', left: '3%', right: '3%', bottom: '2%' }}>
@@ -452,7 +474,7 @@ export default function PokerToolsPage() {
                                                             <div style={{
                                                                 position: 'absolute', top: '50%', left: '50%',
                                                                 transform: 'translate(-50%, -50%)',
-                                                                fontSize: Math.max(12, Math.round(cw * 0.18)),
+                                                                fontSize: Math.max(8, Math.round(cw * 0.18)),
                                                                 fontWeight: 900, color: 'rgba(255,215,0,0.2)',
                                                                 letterSpacing: 1,
                                                             }}>S</div>
@@ -477,7 +499,7 @@ export default function PokerToolsPage() {
                                     minWidth: 55,
                                 }}>
                                     <span style={{
-                                        display: 'block', fontSize: 12, fontWeight: 'bold',
+                                        display: 'block', fontSize: 10, fontWeight: 'bold',
                                         color: isSelected ? '#fff' : '#000', lineHeight: 1.3,
                                     }}>
                                         {isHero ? (
@@ -553,19 +575,19 @@ export default function PokerToolsPage() {
                 </div>
 
                 {/* ─── ACTION BAR ─── */}
-                <div style={{ padding: '6px 12px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }} data-tutorial="actions">
+                <div style={{ padding: '6px 12px', display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     <button onClick={resetAll}
                         aria-label="Reset to new hand"
                         style={{
                             padding: '8px 14px', borderRadius: 8, background: '#1a1a1a', border: '1px solid #333',
                             color: '#aaa', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                            display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44,
+                            display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36,
                         }}>
                         <RotateCcw size={12} aria-hidden /> New Hand
                     </button>
                     <button onClick={() => setSelectedSlot({ type: 'board' })}
                         style={{
-                            padding: '8px 14px', minHeight: 44, borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                            padding: '8px 14px', borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                             background: selectedSlot?.type === 'board' ? '#1877F2' : '#1a1a1a',
                             color: selectedSlot?.type === 'board' ? '#fff' : '#aaa',
                         }}>
@@ -573,7 +595,7 @@ export default function PokerToolsPage() {
                     </button>
                     <button onClick={() => setSelectedSlot({ type: 'dead' })}
                         style={{
-                            padding: '8px 14px', minHeight: 44, borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                            padding: '8px 14px', borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                             background: selectedSlot?.type === 'dead' ? '#EF4444' : '#1a1a1a',
                             color: selectedSlot?.type === 'dead' ? '#fff' : '#aaa',
                         }}>
@@ -582,7 +604,7 @@ export default function PokerToolsPage() {
                     {PRESETS[game] && (
                         <button onClick={() => setShowPresets(!showPresets)}
                             style={{
-                                padding: '8px 14px', minHeight: 44, borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                padding: '8px 14px', borderRadius: 8, border: '1px solid #333', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                                 background: showPresets ? '#1877F2' : '#1a1a1a',
                                 color: showPresets ? '#fff' : '#aaa',
                             }}>
@@ -598,7 +620,7 @@ export default function PokerToolsPage() {
                                 padding: '8px 18px', borderRadius: 8, background: '#1877F2', border: 'none',
                                 color: '#fff', fontSize: 13, fontWeight: 600, cursor: calculating ? 'wait' : 'pointer',
                                 opacity: calculating ? 0.6 : 1,
-                                display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44,
+                                display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 36,
                             }}>
                             {calculating ? (
                                 <>
@@ -618,28 +640,27 @@ export default function PokerToolsPage() {
                 {/* Dead Cards */}
                 {deadCards.length > 0 && (
                     <div style={{ padding: '2px 12px 6px', display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ fontSize: 12, color: '#888' }}>Dead:</span>
+                        <span style={{ fontSize: 10, color: '#555' }}>Dead:</span>
                         {deadCards.map((c, i) => (
-                            <button type="button" key={i} onClick={() => removeCard('dead', 0, i)} aria-label={`Remove dead card ${c.rank} of ${c.suit}`}
-                                style={{ cursor: 'pointer', background: 'none', border: 'none', padding: '1px 4px', minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div key={i} onClick={() => removeCard('dead', 0, i)} style={{ cursor: 'pointer' }}>
                                 <img src={getCardImage(c.rank, c.suit)} alt=""
                                     style={{ width: 30, height: 42, borderRadius: 3, border: '1px solid #EF4444', opacity: 0.5 }}  loading="lazy" />
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}
 
                 {/* Presets */}
                 {showPresets && PRESETS[game] && (
-                    <div data-tutorial="presets" style={{
+                    <div style={{
                         margin: '0 12px 6px', display: 'flex', gap: 5, flexWrap: 'wrap',
                         background: '#111', borderRadius: 8, padding: 10, border: '1px solid #222',
                     }}>
                         {PRESETS[game].map((p, i) => (
                             <button key={i} onClick={() => loadPreset(p)}
                                 style={{
-                                    padding: '6px 12px', minHeight: 44, borderRadius: 6, background: '#0a0a0a', border: '1px solid #333',
-                                    color: '#aaa', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                    padding: '6px 12px', borderRadius: 6, background: '#0a0a0a', border: '1px solid #333',
+                                    color: '#aaa', fontSize: 11, fontWeight: 600, cursor: 'pointer',
                                 }}>
                                 {p.name}
                             </button>
@@ -650,7 +671,7 @@ export default function PokerToolsPage() {
                 {/* ═══════════════════════════════════════════
                     CARD PICKER — BELOW TABLE, LARGE
                 ═══════════════════════════════════════════ */}
-                <div style={{ padding: '0 10px 8px' }} data-tutorial="picker">
+                <div style={{ padding: '0 10px 8px' }}>
                     <div style={{
                         background: '#0f0f18', borderRadius: 12, padding: '10px',
                         border: `2px solid ${selectedSlot ? '#1877F2' : '#222'}`,
@@ -664,10 +685,7 @@ export default function PokerToolsPage() {
                                         : 'Select dead card'
                             ) : 'Tap a seat above, then pick cards'}
                         </p>
-                        {/* MOBILE PHASE 10: thirteen fixed columns made every card a 22px
-                            target at 375. auto-fill at 44px gives eight 44px cards per row on
-                            a phone and the full thirteen on a desktop. */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))', gap: 4 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 4 }}>
                             {SUITS.map(suit =>
                                 RANKS.map(rank => {
                                     const card = makeCard(rank, suit);
@@ -699,32 +717,8 @@ export default function PokerToolsPage() {
                     </div>
                 </div>
 
-                {/* MOBILE PHASE 10: the numbers as stacked cards. The seat badges
-                    on the felt carry the equity too, but at 375 they are the
-                    smallest thing on the page; this list is the readable copy,
-                    one card per seat, every seat on the page. */}
-                {results && (
-                    <section aria-label="Equity results" data-tutorial="results" style={{ padding: '0 10px 12px' }}>
-                        <h2 style={{ fontSize: 13, fontWeight: 700, color: '#ccc', margin: '0 0 8px 4px' }}>Equity After 10,000 Runouts</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-                            {results.map((r, pi) => (
-                                <div key={pi} style={{
-                                    background: '#0f0f18', border: `1px solid ${PLAYER_COLORS[pi] || '#333'}`, borderRadius: 10, padding: '10px 12px',
-                                    display: 'flex', flexDirection: 'column', gap: 4,
-                                }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: PLAYER_COLORS[pi] || '#aaa', letterSpacing: 0.5 }}>{pi === 0 ? 'Hero' : `Villain ${pi}`}</span>
-                                    <span style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1.1 }}>{Number(r.equity || 0).toFixed(1)}%</span>
-                                    <span style={{ fontSize: 12, color: '#999' }}>
-                                        Wins {Number(r.wins || 0).toLocaleString()} · Ties {Number(r.ties || 0).toLocaleString()} Of {Number(r.total || 0).toLocaleString()}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
 
             </div>
-            </HubPageShell>
             {/* 2026-05-07 — UI-UX-Pro-Max: spin keyframes + reduced-motion guard */}
             <style jsx global>{`
                 @keyframes spcalc-spin { to { transform: rotate(360deg); } }

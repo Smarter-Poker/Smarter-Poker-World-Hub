@@ -54,7 +54,6 @@ import toast from '../../stores/toastStore';
 import { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
-import { isVisibleNotification, notificationCache, readNotificationCache } from '../../lib/notificationVisibility.mjs';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import useTrainingBus from '../../hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
@@ -221,17 +220,19 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 return;
             }
 
-            const enriched = (feedData.notifications || []).filter(isVisibleNotification);
+            const enriched = feedData.notifications || [];
             const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
 
-            if (mounted.current && getAuthUser()?.id === au.id) {
+            if (mounted.current) {
                 setNotifications(enriched);
                 setLoading(false);
 
                 // ── Cache with timestamp for 5-min TTL on next load ──
                 try {
                     const now = Date.now();
-                    localStorage.setItem('sp-notif-cache', notificationCache(enriched, au.id, now));
+                    localStorage.setItem('sp-notif-cache', JSON.stringify(
+                        enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
+                    ));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
 
@@ -330,10 +331,13 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         try {
             const cached = localStorage.getItem('sp-notif-cache');
             if (cached) {
-                const parsed = readNotificationCache(cached, getAuthUser()?.id);
-                if (parsed?.length) {
+                const parsed = JSON.parse(cached);
+                // Discard if older than 5 minutes (300_000 ms)
+                const ts = parsed?.[0]?._cache_ts || 0;
+                const age = Date.now() - ts;
+                if (parsed && parsed.length > 0 && age < 300_000) {
                     setNotifications(parsed);
-                    setLoading(false);
+                    setLoading(false); // Skip shimmer — show cached data immediately
                     hasCacheRef.current = true;
                 }
             }
@@ -387,9 +391,9 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             .channel(`notifs:${user.id}:${instanceId}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
                 // Prepend new notification to the list in real-time
-                if (payload.new && isVisibleNotification(payload.new)) {
+                if (payload.new) {
                     const n = payload.new;
-                    if (mounted.current && getAuthUser()?.id === user.id) {
+                    if (mounted.current) {
                         // Realtime rows arrive straight from Postgres and never
                         // pass through /api/notifications/feed, so nothing has
                         // resolved a destination for them. Resolve here or the
@@ -406,14 +410,6 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                             ...prev,
                         ]);
                     }
-                }
-            })
-            // An archived club payout becomes part of the weekly summary.
-            // Remove any already-open copy without waiting for the next fetch.
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
-                if (payload.new?.id && !isVisibleNotification(payload.new) && mounted.current && getAuthUser()?.id === user.id) {
-                    setNotifications(prev => prev.filter(n => n.id !== payload.new.id));
-                    try { localStorage.removeItem('sp-notif-cache'); } catch (_) { console.warn('[App] Notification Cache Unavailable'); }
                 }
             })
             // [Audit#3] Subscribe to DELETE events so other-device deletes sync to this tab
@@ -470,6 +466,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
                 try {
                     const sliced = next.slice(0, 30);
+                    // Preserve _cache_ts so the 5-min TTL check on next load doesn't discard this cache
+                    if (sliced.length > 0 && !sliced[0]._cache_ts) sliced[0] = { ...sliced[0], _cache_ts: Date.now() };
                     localStorage.setItem('sp-notif-cache', JSON.stringify(sliced));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return next;
@@ -801,7 +799,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                             <p style={{ color: C.textSec }}>When Someone Likes, Comments, Or Tags You, You'll See It Here.</p>
                         </div>
                     ) : (
-                        notifications.filter(n => isVisibleNotification(n) && user?.id === getAuthUser()?.id).map(n => {
+                        notifications.map(n => {
                             // Comprehensive notification icon map — category-based + message parsing
                             const getNotifIcon = () => {
                                 const s = 14; const clr = '#fff';

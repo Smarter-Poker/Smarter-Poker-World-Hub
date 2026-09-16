@@ -47,6 +47,15 @@ node -p "require('./package.json').dependencies.next"
 # These MUST all be the same major version
 ```
 
+### 3. Check Sentry Compatibility
+
+```bash
+# Verify @sentry/nextjs peer dep includes the new Next.js version
+node -p "require('./node_modules/@sentry/nextjs/package.json').peerDependencies"
+```
+
+If `next` isn't in the Sentry peer dep range, wait for a Sentry release before upgrading.
+
 ### 4. Check ESLint Peer Deps
 
 ```bash
@@ -145,6 +154,7 @@ npm run lint 2>&1 | head -20
 
 Other packages where pinning is recommended:
 - `react` / `react-dom` — major version changes break lifecycle APIs
+- `@sentry/nextjs` — Sentry releases can change source map behavior
 
 ---
 

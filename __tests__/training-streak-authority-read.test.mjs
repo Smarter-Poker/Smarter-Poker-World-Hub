@@ -39,7 +39,7 @@ async function loadHandler(results) {
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({ user: { id: USER_ID }, error: null }),
     },

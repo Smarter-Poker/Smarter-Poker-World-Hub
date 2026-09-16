@@ -18,6 +18,7 @@
  *   - /api/health/signup (would surface as a "warn" eventually if we
  *     wired this in)
  *   - probe_heartbeats with status='failed'
+ *   - Optional Resend email + Sentry capture
  *
  * What this CANNOT detect:
  *   - Specific recipient inbox provider (Gmail, Outlook) flagging us as
@@ -33,6 +34,13 @@ import { validateCronAuth } from '../../../src/utils/cron-auth';
 import { createClient } from '@supabase/supabase-js';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
+let Sentry;
+try {
+    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+    Sentry = require('@sentry/nextjs');
+} catch (_) {
+    Sentry = { captureMessage: () => null, withScope: (cb) => cb({ setTag: () => null, setLevel: () => null }) };
+}
 
 let _admin = null;
 function getAdmin() {
@@ -108,6 +116,7 @@ async function checkSpfRecord() {
         // check was pushing toward a WORSE configuration than the live one.
         //
         // Cost of the false positive: a daily 503, `error` in cron_health_log
+        // and a Sentry alert, on the one channel meant to warn that signup and
         // password-reset mail has broken. Identical failure recorded in
         // probe_heartbeats on 2026-08-15, -16 and -17.
         const sendResp = await fetch(
@@ -229,6 +238,15 @@ async function handler(req, res) {
     }
 
     if (failures.length > 0) {
+        // Sentry alert
+        try {
+            Sentry.withScope((scope) => {
+                scope.setTag('auth.flow', 'email_deliverability');
+                scope.setTag('auth.source', 'email_deliverability_cron');
+                scope.setLevel('error');
+                Sentry.captureMessage(`Email deliverability degraded: ${failures.map((f) => f.check).join(', ')}`);
+            });
+        } catch (_) { /* never fail cron because of alerting */ }
 
         // Email alert
         if (process.env.RESEND_API_KEY && process.env.OPS_ALERT_EMAIL) {

@@ -3,7 +3,7 @@
  * GET: Returns the current week's challenge scenario
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { getTodayCST } from '../../../../src/lib/trivia/getTodayCST';
 import { CURATED_WEEKLY_SPOTS as CURATED_SPOTS } from '../../../../src/lib/personal-assistant/weeklySpotCatalog';
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

@@ -3,7 +3,12 @@
  * ═══════════════════════════════════════════════════════════════════════════
  * HubErrorBoundary and PageErrorBoundary POST here from componentDidCatch.
  *
- * A sessionStorage-only log dies with the tab, so crashes are persisted here.
+ * This exists because every other reporting path in this app is a black hole:
+ *   - Sentry's browser SDK never initialises (no NEXT_PUBLIC_SENTRY_DSN is
+ *     baked into the production bundle), so Sentry.captureException() in the
+ *     boundaries does nothing.
+ *   - public.sentry_error_log has 0 rows — the snapshot mirror never ran.
+ *   - PageErrorBoundary's sessionStorage log dies with the tab.
  *
  * So on 2026-08-19 a live page showed "Temporarily Unavailable" and there was
  * no way to learn what threw. Rows in public.client_crash_log are that answer.

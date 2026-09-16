@@ -310,7 +310,7 @@ body.world-trivia :focus:not(:focus-visible),
 
 /* ── Layout helpers ───────────────────────────────────────────────────── */
 .trivia-shell {
-    min-height: 100dvh;
+    min-height: 100vh;
     /* dvh keeps the mobile URL bar from cropping the last row */
     min-height: 100dvh;
     background: var(--trivia-bg-gradient, linear-gradient(180deg, #070b14 0%, #04070d 100%));

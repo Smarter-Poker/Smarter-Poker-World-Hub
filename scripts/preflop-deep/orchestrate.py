@@ -75,7 +75,7 @@ if (len(WORKER_HMAC_SECRET_HEX) != 64
         or any(c not in "0123456789abcdef" for c in WORKER_HMAC_SECRET_HEX)):
     raise SystemExit("SOLVER_WORKER_HMAC_SECRET must be one distinct 32-byte lowercase hex key")
 WORKER_HMAC_SECRET = bytes.fromhex(WORKER_HMAC_SECRET_HEX)
-WORKER_PROTOCOL = "smarter-poker.solver-worker.v2"
+WORKER_PROTOCOL = "smarter-poker.solver-worker.v1"
 WORKER_MAX_BODY_BYTES = 2 * 1024 * 1024
 WORKER_MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
@@ -108,7 +108,6 @@ if len(APPROVED_MANIFEST_CHECKSUM) != 64 or any(c not in "0123456789abcdef" for 
 if not RANGE_DIRECTORY:
     raise SystemExit("RANGE_DIRECTORY must point to the approved solver range artifacts")
 APPROVED_MANIFEST_BYTES = None  # Set only by the checksum-pinned launcher.
-ACTIVE_ADMISSION_MODE = None  # Set only after the exact manifest validates.
 
 # Injected only by the pinned run_machine.py launcher. Direct execution fails
 # before any solve or write, which prevents an ad-hoc transport from bypassing
@@ -122,10 +121,6 @@ def read_results():
 
 
 def _worker_envelope(operation, payload, manifest_version, manifest_checksum):
-    if ACTIVE_ADMISSION_MODE not in ("backlog", "bounded_canary"):
-        raise RuntimeError(
-            "solver worker admission mode is unavailable before manifest validation"
-        )
     return {
         "protocol": WORKER_PROTOCOL,
         "operation": operation,
@@ -136,7 +131,6 @@ def _worker_envelope(operation, payload, manifest_version, manifest_checksum):
             "pipeline_commit": PIPELINE_COMMIT,
             "manifest_version": str(manifest_version),
             "manifest_checksum": manifest_checksum,
-            "admission_mode": ACTIVE_ADMISSION_MODE,
         },
         "payload": payload,
     }
@@ -171,7 +165,7 @@ def _worker_request(operation, payload, manifest_version, manifest_checksum):
         "X-SP-Solver-Nonce": nonce,
         "X-SP-Solver-Content-SHA256": body_sha256,
         "X-SP-Solver-Signature": signature,
-        "User-Agent": "SmarterPokerSolverWorker/2",
+        "User-Agent": "SmarterPokerSolverWorker/1",
     }
     attempts = 3 if operation == "ingest_artifact" else 1
     last_error = None
@@ -485,14 +479,12 @@ BOUNDED_CANARY_PARTITIONS = {
     "M1": (2, 0),
     "M2": (2, 1),
 }
-EXECUTION_SCOPE_BACKLOG = "training_backlog"
-EXECUTION_SCOPE_BOUNDED_CANARY = "bounded_canary"
 
 
 def canonical_bounded_canary_contracts(contracts):
     """Canonicalize only the fields the bounded runner is allowed to consume."""
-    if not isinstance(contracts, list) or len(contracts) != 2:
-        raise ValueError("bounded canary contracts must contain exactly M1 and M2 targets")
+    if not isinstance(contracts, list) or not 1 <= len(contracts) <= 2:
+        raise ValueError("bounded canary contracts must contain one or two machine targets")
     canonical = []
     for contract in contracts:
         if (not isinstance(contract, dict)
@@ -626,8 +618,6 @@ def validate_bounded_canary_contracts(manifest):
         if contract["parent_scenario_hash"] in seen_scenarios or child_scenario in seen_scenarios:
             raise SystemExit("bounded canary scenarios must be globally distinct")
         seen_scenarios.update((contract["parent_scenario_hash"], child_scenario))
-    if seen_machines != set(BOUNDED_CANARY_PARTITIONS):
-        raise SystemExit("bounded canary contracts require exactly M1 and M2 targets")
     return contracts
 
 
@@ -656,10 +646,6 @@ def validate_board(board, expected_cards):
     return cards
 
 def validate_manifest(manifest_text, run_mode="backlog"):
-    global ACTIVE_ADMISSION_MODE
-    # A failed revalidation must not leave a prior manifest's execution mode
-    # available to the signed transport in this process.
-    ACTIVE_ADMISSION_MODE = None
     checksum = hashlib.sha256(manifest_text.encode()).hexdigest()
     if checksum != APPROVED_MANIFEST_CHECKSUM:
         raise SystemExit("manifest checksum does not match APPROVED_MANIFEST_CHECKSUM")
@@ -673,16 +659,6 @@ def validate_manifest(manifest_text, run_mode="backlog"):
         raise SystemExit(
             "manifest bounded canary gate is closed: %s"
             % gate.get("bounded_canary_reason", "unspecified")
-        )
-    expected_execution_scope = (
-        EXECUTION_SCOPE_BACKLOG
-        if run_mode == "backlog"
-        else EXECUTION_SCOPE_BOUNDED_CANARY
-    )
-    if manifest.get("execution_scope") != expected_execution_scope:
-        raise SystemExit(
-            "manifest execution scope %r does not authorize %s mode"
-            % (manifest.get("execution_scope"), run_mode)
         )
     if int(manifest.get("version", 0)) < 4 or not manifest.get("phases"):
         raise SystemExit("manifest must be version 4+ with at least one approved phase")
@@ -824,31 +800,12 @@ def validate_manifest(manifest_text, run_mode="backlog"):
     expected_phase_contracts = {
         (row["game_type"], row["stack"]) for row in expected_chip_ev
     }
-    validated_canary_contracts = None
-    if run_mode == "backlog":
-        if phase_contracts != expected_phase_contracts:
-            missing = sorted(expected_phase_contracts - phase_contracts)
-            extra = sorted(phase_contracts - expected_phase_contracts)
-            raise SystemExit(
-                "manifest phase coverage is incomplete: missing=%s extra=%s"
-                % (missing, extra)
-            )
-    else:
-        validated_canary_contracts = validate_bounded_canary_contracts(manifest)
-        referenced_canary_phase_ids = {
-            contract["phase_id"] for contract in validated_canary_contracts
-        }
-        if phase_ids != referenced_canary_phase_ids:
-            missing = sorted(referenced_canary_phase_ids - phase_ids)
-            extra = sorted(phase_ids - referenced_canary_phase_ids)
-            raise SystemExit(
-                "bounded canary manifest phase set must exactly match its sealed targets: "
-                "missing=%s extra=%s" % (missing, extra)
-            )
-        if not phase_contracts.issubset(expected_phase_contracts):
-            raise SystemExit(
-                "bounded canary phase is outside the approved Training chip-EV universe"
-            )
+    if phase_contracts != expected_phase_contracts:
+        missing = sorted(expected_phase_contracts - phase_contracts)
+        extra = sorted(phase_contracts - expected_phase_contracts)
+        raise SystemExit(
+            "manifest phase coverage is incomplete: missing=%s extra=%s" % (missing, extra)
+        )
     expected_game_contracts = canonical_training_game_contracts(manifest["phases"])
     declared_game_contracts = manifest.get("training_game_contracts")
     declared_game_checksum = str(
@@ -906,12 +863,8 @@ def validate_manifest(manifest_text, run_mode="backlog"):
             "bounded_canary_contracts_sha256",
         )
     )
-    if (run_mode == "canary" and validated_canary_contracts is None) or (
-            run_mode != "canary" and canary_fields_present):
+    if run_mode == "canary" or canary_fields_present:
         validate_bounded_canary_contracts(manifest)
-    ACTIVE_ADMISSION_MODE = (
-        "backlog" if run_mode == "backlog" else "bounded_canary"
-    )
     return manifest, checksum
 
 def load_range(name, expected_checksum):

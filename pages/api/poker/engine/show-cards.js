@@ -16,7 +16,7 @@
  *   2. JWT user.id must match the player seated at tableId:seatIndex.
  */
 
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, key, show: !!show });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[show-cards] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }

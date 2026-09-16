@@ -3,7 +3,7 @@
  * Supports filtering by id, upcoming, type, tour, search, date range
  * Tries Supabase DB first, falls back to JSON data file
  */
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
 import seriesSourceRegistry from '../../../data/series_source_registry.json';
@@ -15,6 +15,7 @@ import msptEvents from '../../../data/mspt-2026-events.json';
 import rgpsEvents from '../../../data/rgps-2026-events.json';
 import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
   decodeScrapedTournamentText,
@@ -805,22 +806,10 @@ async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
-export default async function routeHandler(req, res) {
-    try {
-        return await handler(req, res);
-    } catch (error) {
-        reportApiError(error, req);
-        if (!res.headersSent) {
-            res.status(500).json({
-                error: 'Internal server error',
-                ...(process.env.NODE_ENV === 'development' ? { message: error.message } : {}),
-            });
-        }
-    }
-}
+export default withSentry(handler);

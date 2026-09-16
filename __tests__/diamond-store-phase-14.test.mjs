@@ -92,7 +92,7 @@ async function loadHandler({ user = { id: '11111111-1111-4111-8111-111111111111'
 
   const dependencyExports = {
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => user
         ? { user, error: null }

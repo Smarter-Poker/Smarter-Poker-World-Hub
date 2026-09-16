@@ -280,21 +280,6 @@ export function listMeta(payload, rowCount = 0) {
   return { total, hasMore, nextCursor, shown: rowCount };
 }
 
-// Each request examines a bounded candidate window before player filtering.
-// Zero matches therefore says nothing about older, unexamined hands.
-export function handSearchCoverage(payload, rowCount = 0, historyLength = 0) {
-  const nextCursor = listMeta(payload, rowCount).nextCursor;
-  return {
-    nextCursor,
-    showPager: rowCount > 0 || Boolean(nextCursor) || historyLength > 0,
-    title: nextCursor ? 'No Matching Hands In This Window' : 'No Matching Hands In The Remaining History',
-    detail: nextCursor
-      ? 'Older Hands Remain Unsearched. Choose Next To Continue.'
-      : 'The Search Reached The End Of The Available History For These Filters.',
-    label: `Search Window ${historyLength + 1}: ${rowCount} Matching Hands`,
-  };
-}
-
 export function healthOf(payload) {
   const root = payloadOf(payload);
   const health = root.health && typeof root.health === 'object'

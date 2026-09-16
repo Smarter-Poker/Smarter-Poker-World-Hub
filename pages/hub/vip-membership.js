@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    /hub/vip-membership : the VIP tab as a real page
    ═══════════════════════════════════════════════════════════════════════════
-   Each Marketplace destination owns a real internal page. Navigation stays in
-   the current browser tab and never falls back to the diamond-store slug.
+   Dan 2026-08-25: "Each tab should open to a new page, and tab, not just stay
+   within the diamond-store slug."
 
    This is a thin wrapper, deliberately. The store is one 3,000-line component
    with five views; forking it into five copies would guarantee they drift, and

@@ -1,19 +1,11 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import PokerNearMeConsole from './PokerNearMeConsole';
 
 const FALLBACKS = {
   location: '/images/pnm-phase-4/location-command-grid-v1.webp',
   venue: '/images/pnm-phase-4/venue-signal-fallback-v1.webp',
   home_game: '/images/pnm-phase-4/venue-signal-fallback-v1.webp',
   dashboard: '/images/pnm-phase-4/venue-signal-fallback-v1.webp',
-};
-
-const CRESTS = {
-  location: 'locator',
-  venue: 'flat',
-  home_game: 'club',
-  dashboard: 'diamond',
 };
 
 function normalizeMetrics(metrics) {
@@ -46,41 +38,22 @@ export default function DeepRouteSignalDeck({
   }, [fallback, image]);
 
   return (
-    <PokerNearMeConsole
-      as="section"
-      titleAs="h1"
-      titleId="pnm-deep-route-title"
-      eyebrow={eyebrow}
-      title={title}
-      subtitle={description}
-      pill={status}
-      pillInk={statusTone === 'modeled' ? 'gold' : statusTone === 'offline' ? 'red' : statusTone === 'live' ? 'green' : 'muted'}
-      crest={CRESTS[kind] || 'locator'}
-      className={`pnm-deep-deck${compact ? ' pnm-deep-deck--compact' : ''}`}
-      aria-labelledby="pnm-deep-route-title"
-    >
-      <div className="pnm-deep-deck__stage">
-        <div className="pnm-deep-deck__visual" aria-hidden="true">
-          <img
-            src={visual}
-            alt=""
-            loading={compact ? 'lazy' : 'eager'}
-            fetchpriority={compact ? 'auto' : 'high'}
-            onError={() => {
-              if (visual !== fallback) setVisual(fallback);
-            }}
-            onLoad={(event) => {
-              if (visual === fallback) return;
-              const { naturalWidth, naturalHeight } = event.currentTarget;
-              const cinematicEnough = naturalWidth >= 640
-                && naturalHeight >= 320
-                && naturalWidth / Math.max(1, naturalHeight) >= 1.2;
-              if (!cinematicEnough) setVisual(fallback);
-            }}
-          />
-        </div>
+    <section className={`pnm-deep-deck${compact ? ' pnm-deep-deck--compact' : ''}`} aria-labelledby="pnm-deep-route-title">
+      <div className="pnm-deep-deck__visual" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={visual}
+          alt=""
+          loading={compact ? 'lazy' : 'eager'}
+          fetchpriority={compact ? 'auto' : 'high'}
+          onError={() => {
+            if (visual !== fallback) setVisual(fallback);
+          }}
+        />
+        <span className="pnm-deep-deck__scan" />
+      </div>
 
-        <div className="pnm-deep-deck__content">
+      <div className="pnm-deep-deck__content">
         {breadcrumbs.length > 0 && (
           <nav className="pnm-deep-deck__breadcrumbs" aria-label="Breadcrumb">
             <ol>
@@ -93,6 +66,8 @@ export default function DeepRouteSignalDeck({
           </nav>
         )}
 
+        <p className="pnm-deep-deck__eyebrow">{eyebrow}</p>
+        <h1 id="pnm-deep-route-title">{title}</h1>
         {description && <p className="pnm-deep-deck__description">{description}</p>}
 
         <div className="pnm-deep-deck__status" data-tone={statusTone} role="status">
@@ -119,9 +94,8 @@ export default function DeepRouteSignalDeck({
         )}
 
         {actions && <div className="pnm-deep-deck__actions">{actions}</div>}
-        </div>
       </div>
       <span className="pnm-deep-deck__alt sr-only">{imageAlt}</span>
-    </PokerNearMeConsole>
+    </section>
   );
 }

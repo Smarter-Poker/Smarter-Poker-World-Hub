@@ -219,23 +219,6 @@ target set is immutable after activation, and M1/M2 are fixed to `2/0` and
 `2/1`. A backlog approval is a separate explicit `held` to `backlog`
 transition and is valid only with zero canary targets. Never reuse or widen a
 bounded-canary tuple for backlog work; retire it and approve a new tuple.
-
-The protected manifest also seals an explicit execution scope. A supervised
-canary uses `execution_scope: bounded_canary`, keeps `solver_ready` false, and
-contains only phases referenced by the exact M1 and M2 canary contracts. Its
-107-game ledger remains complete, but games outside those canary phase pairs
-truthfully carry no runnable phase. A production backlog uses
-`execution_scope: training_backlog` and must contain all 18 approved chip-EV
-family/stack contracts. Changing a release-gate boolean can never convert the
-partial canary manifest into backlog authority.
-
-The v2 gateway and operation-scope migration are an intentional fail-closed
-cutover, not a mixed-version compatibility window. Keep M1 and M2 stopped while
-the protected database migration and application deployment converge. The old
-v1 RPC grants are removed, and the v2 API cannot return work until the scoped
-RPCs exist. Activate a held scope only after production proves both the exact
-served application commit and the v2 database function/ACL postconditions.
-
 An UPDATE may not move a target's machine, provenance tuple, manifest tuple, or
 parent/child role—even into another held scope. Target repair is allowed only
 in place while its original exact scope is held.

@@ -21,7 +21,7 @@ export default function LiveWireStyles() {
                 --wire-alert: #ff4d5b;
                 --wire-ice: #e4edf1;
                 --wire-muted: #81939e;
-                min-height: 100dvh;
+                min-height: 100vh;
                 padding-bottom: 78px;
                 color: var(--wire-ice);
                 background:
@@ -91,10 +91,10 @@ export default function LiveWireStyles() {
 
             .live-wire .news-desk-kicker {
                 color: var(--wire-alert);
-                font-size: 12px;
+                font-size: 9px;
                 font-weight: 700;
-                letter-spacing: 0.08em;
-                line-height: 1.3;
+                letter-spacing: 0.16em;
+                white-space: nowrap;
             }
 
             .live-wire .news-desk-freshness {
@@ -102,8 +102,8 @@ export default function LiveWireStyles() {
                 align-items: center;
                 gap: 9px;
                 color: var(--wire-muted);
-                font-size: 12px;
-                letter-spacing: 0.06em;
+                font-size: 8px;
+                letter-spacing: 0.12em;
                 white-space: nowrap;
             }
 
@@ -127,8 +127,8 @@ export default function LiveWireStyles() {
                 background: linear-gradient(180deg, #1b2429, #080d10);
                 box-shadow: inset 0 1px rgba(227, 235, 239, 0.7);
                 color: #d5dce0;
-                font: 700 12px ui-monospace, monospace;
-                letter-spacing: 0.06em;
+                font: 700 8px ui-monospace, monospace;
+                letter-spacing: 0.12em;
                 text-transform: uppercase;
                 cursor: pointer;
             }
@@ -156,8 +156,8 @@ export default function LiveWireStyles() {
                 border-radius: 0;
                 background: linear-gradient(180deg, #0b151b, #03070a);
                 color: #8f9ba2;
-                font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace;
-                letter-spacing: 0.06em;
+                font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+                letter-spacing: 0.11em;
                 text-transform: uppercase;
             }
 
@@ -206,20 +206,18 @@ export default function LiveWireStyles() {
                 padding: 0 13px;
                 border-radius: 0;
                 background: var(--wire-alert);
-                font: 800 12px ui-monospace, monospace;
-                letter-spacing: 0.08em;
+                font: 800 8px ui-monospace, monospace;
+                letter-spacing: 0.14em;
             }
 
             .live-wire .breaking-text {
                 padding: 0 12px;
                 color: #b9c6cd;
-                font-size: 12px;
+                font-size: 10px;
             }
 
-            /* MOBILE PHASE 6: the source chips wrap; every source is on screen. This
-               was a sideways chip rail, and Card Player was cut off at 375. */
             .live-wire .source-filters {
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
                 justify-content: flex-start;
                 gap: 7px;
                 margin: 0 0 10px;
@@ -227,6 +225,9 @@ export default function LiveWireStyles() {
                 border: 1px solid #405f72;
                 border-radius: 0;
                 background: rgba(3, 9, 13, 0.92);
+                overflow-x: auto;
+                scrollbar-width: thin;
+                scrollbar-color: var(--wire-rail-dim) transparent;
             }
 
             .live-wire .source-chip {
@@ -237,8 +238,8 @@ export default function LiveWireStyles() {
                 border-radius: 999px;
                 background: #050b0f;
                 color: #9aaab3;
-                font: 700 12px ui-monospace, monospace;
-                letter-spacing: 0.04em;
+                font: 700 9px ui-monospace, monospace;
+                letter-spacing: 0.06em;
                 text-transform: uppercase;
             }
 
@@ -270,7 +271,7 @@ export default function LiveWireStyles() {
                 border-radius: 0;
                 background: #02070a;
                 color: var(--wire-ice);
-                font: 12px ui-monospace, monospace;
+                font: 10px ui-monospace, monospace;
                 letter-spacing: 0.04em;
             }
 
@@ -344,14 +345,14 @@ export default function LiveWireStyles() {
                 gap: 9px;
                 padding: 0 12px;
                 color: #8297a3;
-                font-size: 12px;
+                font-size: 8px;
                 font-weight: 700;
-                letter-spacing: 0.06em;
+                letter-spacing: 0.11em;
             }
 
             .live-wire .story-signal-readout strong {
                 color: var(--wire-blue);
-                font-size: 14px;
+                font-size: 12px;
                 font-weight: 800;
             }
 
@@ -387,8 +388,8 @@ export default function LiveWireStyles() {
                 border-right: 1px solid #172f3c;
                 background: #030b10;
                 color: #718994;
-                font: 800 12px ui-monospace, monospace;
-                letter-spacing: 0.05em;
+                font: 800 8px ui-monospace, monospace;
+                letter-spacing: 0.09em;
                 text-transform: uppercase;
                 cursor: pointer;
             }
@@ -419,8 +420,8 @@ export default function LiveWireStyles() {
                 border: 1px solid rgba(255, 77, 91, 0.66);
                 background: rgba(35, 7, 12, 0.92);
                 color: #d9e3e8;
-                font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
-                letter-spacing: 0.04em;
+                font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+                letter-spacing: 0.05em;
             }
 
             .live-wire .feed-status-alert div,
@@ -445,8 +446,8 @@ export default function LiveWireStyles() {
                 border: 1px solid var(--wire-alert);
                 background: #120408;
                 color: #fff;
-                font: 800 12px ui-monospace, monospace;
-                letter-spacing: 0.05em;
+                font: 800 8px ui-monospace, monospace;
+                letter-spacing: 0.1em;
                 text-transform: uppercase;
                 cursor: pointer;
             }
@@ -590,8 +591,8 @@ export default function LiveWireStyles() {
 
             .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-meta {
                 color: #91a4ae !important;
-                font: 12px ui-monospace, monospace !important;
-                letter-spacing: 0.05em;
+                font: 8px ui-monospace, monospace !important;
+                letter-spacing: 0.08em;
                 text-transform: uppercase;
             }
 
@@ -614,15 +615,8 @@ export default function LiveWireStyles() {
                 line-height: 1.08 !important;
             }
 
-            /* MOBILE PHASE 6: the excerpt stays on every card, clamped to two
-               lines. It was display: none on every card but the first. */
             .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-excerpt {
-                display: -webkit-box !important;
-                -webkit-box-orient: vertical;
-                -webkit-line-clamp: 2;
-                overflow: hidden;
-                font-size: 12px !important;
-                line-height: 1.4 !important;
+                display: none !important;
             }
 
             .live-wire .box-actions button,
@@ -665,8 +659,8 @@ export default function LiveWireStyles() {
                 padding: 0;
                 border: 0;
                 color: #7193a5;
-                font: 700 12px ui-monospace, monospace;
-                letter-spacing: 0.1em;
+                font: 700 9px ui-monospace, monospace;
+                letter-spacing: 0.15em;
             }
 
             .live-wire .news-list-item {
@@ -716,8 +710,8 @@ export default function LiveWireStyles() {
 
             .live-wire .list-meta {
                 color: #71838e;
-                font: 12px ui-monospace, monospace;
-                letter-spacing: 0.03em;
+                font: 8px ui-monospace, monospace;
+                letter-spacing: 0.055em;
                 text-transform: uppercase;
             }
 
@@ -782,8 +776,8 @@ export default function LiveWireStyles() {
                 border-radius: 0;
                 background: transparent;
                 color: var(--wire-ice);
-                font: 700 12px ui-monospace, monospace;
-                letter-spacing: 0.06em;
+                font: 700 10px ui-monospace, monospace;
+                letter-spacing: 0.095em;
                 text-transform: uppercase;
             }
 
@@ -868,29 +862,20 @@ export default function LiveWireStyles() {
                 }
             }
 
-            /* MOBILE PHASE 6 (docs/mobile-standard). One column below the
-               sanctioned 900. The sidebar keeps EVERY widget and moves UNDER
-               the main column: it used to jump above it (order: -1) as a
-               three-up strip and cull every widget but three with
-               display: none, so the trending, sources and digest widgets
-               simply vanished on a phone. */
-            @media (max-width: 900px) {
+            @media (max-width: 1000px) {
                 .live-wire .layout {
                     grid-template-columns: 1fr;
                 }
 
                 .live-wire .sidebar {
                     display: grid !important;
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                    order: 1;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    order: -1;
                     align-items: stretch;
-                    gap: 12px;
                 }
-            }
 
-            @media (max-width: 600px) {
-                .live-wire .sidebar {
-                    grid-template-columns: 1fr;
+                .live-wire .sidebar > .widget:not(.leaderboard):not(.events):not(.newsletter) {
+                    display: none;
                 }
             }
 
@@ -898,8 +883,8 @@ export default function LiveWireStyles() {
                 .news-hub.live-wire {
                     width: 100% !important;
                     max-width: 100vw !important;
-                    padding: 60px 0 0 !important; /* MOBILE PHASE 6: BottomNavSpacer owns the bottom clearance */
-                    overflow-x: clip !important;
+                    padding: 60px 0 74px !important;
+                    overflow-x: hidden !important;
                 }
 
                 .live-wire .layout {
@@ -914,15 +899,13 @@ export default function LiveWireStyles() {
                 .live-wire .sidebar {
                     display: grid !important;
                     grid-template-columns: minmax(0, 1fr) !important;
-                    order: 1 !important; /* MOBILE PHASE 6: under the main column */
+                    order: -1 !important;
                     width: 100% !important;
                     padding: 0 0 4px !important;
                     gap: 12px !important;
                 }
 
                 .live-wire .news-desk-masthead {
-                    flex-wrap: wrap;
-                    gap: 6px 12px;
                     min-height: 34px;
                     margin-bottom: 8px;
                 }
@@ -931,59 +914,50 @@ export default function LiveWireStyles() {
                     font-size: 20px;
                 }
 
-                /* MOBILE PHASE 6: the kicker and the freshness label stay.
-                   They were display: none here, which took the one line that
-                   says how old the feed is off the phone. */
                 .live-wire .news-desk-kicker,
                 .live-wire .news-desk-freshness > span {
-                    font-size: 12px;
-                    line-height: 1.3;
+                    display: none;
                 }
 
                 .live-wire .news-desk-freshness button {
-                    min-height: 44px;
-                    min-width: 44px;
-                    padding: 0 12px;
+                    min-height: 28px;
+                    padding: 0 9px;
                 }
 
-                /* MOBILE PHASE 6: every section anchor is on screen. This was
-                   a hidden-scrollbar strip of 108px cards at 8px, the smallest
-                   type on the page; two of the five sat off the right edge. */
                 .live-wire .section-tabs {
-                    display: grid !important;
-                    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)) !important;
-                    gap: 6px;
+                    display: flex !important;
+                    justify-content: flex-start !important;
                     width: 100% !important;
                     max-width: 100% !important;
+                    min-height: 44px;
                     margin: 0 0 10px !important;
                     padding: 0 !important;
+                    overflow-x: auto;
+                    scrollbar-width: none;
+                }
+
+                .live-wire .section-tabs::-webkit-scrollbar {
+                    display: none;
                 }
 
                 .live-wire .section-tab {
-                    min-width: 0 !important;
+                    flex: 0 0 108px !important;
                     min-height: 44px;
                     padding: 0 8px !important;
-                    font-size: 12px;
-                    line-height: 1.2;
-                    white-space: normal;
+                    font-size: 8px;
                 }
 
                 .live-wire .breaking-ticker {
-                    min-height: 44px;
                     margin-bottom: 10px;
-                }
-
-                .live-wire .breaking-text {
-                    white-space: normal;
-                    overflow: visible;
-                    text-overflow: clip;
-                    line-height: 1.35;
-                    padding: 8px 10px;
                 }
 
                 .live-wire .source-filters {
                     margin-bottom: 10px;
                     padding: 8px;
+                }
+
+                .live-wire .source-chip {
+                    min-height: 34px;
                 }
 
                 .live-wire .search-view-row {
@@ -993,8 +967,6 @@ export default function LiveWireStyles() {
 
                 .live-wire .news-search-input {
                     min-height: 44px;
-                    padding-right: 46px;
-                    font-size: 16px;
                 }
 
                 .live-wire .source-chip {
@@ -1002,9 +974,9 @@ export default function LiveWireStyles() {
                 }
 
                 .live-wire .search-clear-button {
-                    width: 44px;
-                    height: 44px;
-                    right: 0;
+                    width: 42px;
+                    height: 42px;
+                    right: 1px;
                 }
 
                 .live-wire .view-toggle button {
@@ -1012,34 +984,16 @@ export default function LiveWireStyles() {
                     height: 44px;
                 }
 
-                /* Readout on one row, the two sort buttons on a second: at
-                   12px the readout and two 44px buttons do not share 339px. */
                 .live-wire .story-signal-bar {
-                    flex-wrap: wrap;
                     min-height: 44px;
                 }
 
                 .live-wire .story-signal-readout {
-                    flex: 1 1 100%;
-                    min-height: 44px;
-                    padding: 6px 9px;
+                    padding: 0 9px;
                 }
 
-                .live-wire .story-sort-toggle {
-                    flex: 1 1 100%;
-                    border-left: 0;
-                    border-top: 1px solid #29495b;
-                }
-
-                .live-wire .story-sort-toggle button {
-                    flex: 1 1 0;
-                }
-
-                /* MOBILE PHASE 6: kept; it wraps at 12px instead of vanishing. */
                 .live-wire .story-signal-copy {
-                    font-size: 12px;
-                    line-height: 1.3;
-                    white-space: normal;
+                    display: none;
                 }
 
                 .live-wire .story-sort-toggle button {
@@ -1108,7 +1062,6 @@ export default function LiveWireStyles() {
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:first-child .box-content {
                     order: 1;
                     width: 100% !important;
-                    box-sizing: border-box;
                     min-height: 202px !important;
                     padding: 19px 16px 23px !important;
                 }
@@ -1118,58 +1071,24 @@ export default function LiveWireStyles() {
                     line-height: 1 !important;
                 }
 
-                /* The wrap is a plain block. It used to carry the same grid as
-                   the card inside it, which put .news-box in the wrap's 96px
-                   column and left the card's own text column at 0px wide
-                   (measured on production at 375: title invisible). */
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) {
-                    display: block !important;
-                    width: 100% !important;
-                    height: 168px !important;
-                    min-height: 168px !important;
-                    max-height: 168px !important;
-                }
-
-                /* Two rows: the text, then a 52px strip that the three 44px
-                   action chips (bookmark, share, read later) sit in. At 28px
-                   they used to float over the title; at 44px they would have
-                   covered it. The image spans both rows. */
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child),
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .news-box {
                     display: grid !important;
                     grid-template-columns: 96px minmax(0, 1fr) !important;
-                    grid-template-rows: 116px 52px !important;
+                    grid-template-rows: 112px !important;
                     width: 100% !important;
-                    height: 168px !important;
-                    min-height: 168px !important;
-                    max-height: 168px !important;
+                    height: 112px !important;
+                    min-height: 112px !important;
+                    max-height: 112px !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-image {
                     grid-column: 1;
-                    grid-row: 1 / -1;
+                    grid-row: 1;
                     width: 96px !important;
-                    height: 168px !important;
-                    min-height: 168px !important;
+                    height: 112px !important;
+                    min-height: 112px !important;
                     aspect-ratio: auto !important;
-                }
-
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-actions {
-                    top: auto;
-                    bottom: 4px;
-                    right: 4px;
-                }
-
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .readlater-overlay-btn {
-                    top: auto;
-                    bottom: 4px;
-                    right: 104px;
-                }
-
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .read-time-badge {
-                    top: auto;
-                    bottom: 4px;
-                    right: auto;
-                    left: 4px;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-image img {
@@ -1183,39 +1102,31 @@ export default function LiveWireStyles() {
                     grid-row: 1;
                     justify-content: center;
                     min-width: 0;
-                    min-height: 116px !important;
-                    padding: 10px 10px !important;
+                    min-height: 112px !important;
+                    padding: 11px 10px !important;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-title {
                     display: -webkit-box;
                     font-size: 15px !important;
                     white-space: normal !important;
-                    overflow: hidden !important;
-                    -webkit-line-clamp: 2;
+                    -webkit-line-clamp: 3;
                     -webkit-box-orient: vertical;
                 }
 
                 .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta {
                     max-width: 100%;
-                    font-size: 12px !important;
+                    font-size: 8px !important;
                 }
 
-                /* MOBILE PHASE 6: the view count stays on every card. */
-                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta .views {
-                    font-size: 12px !important;
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta .views,
+                .live-wire .news-grid:not(.news-grid-list) > .news-card-wrap:not(:first-child) .box-meta .separator:last-of-type {
+                    display: none !important;
                 }
 
                 .live-wire .box-actions,
                 .live-wire .readlater-overlay-btn {
                     opacity: 1 !important;
-                }
-
-                /* 12 + 44 + 6 + 44 + 6: to the left of NewsBox's two 44px chips. */
-                .live-wire .readlater-overlay-btn {
-                    width: 44px;
-                    height: 44px;
-                    right: 112px;
                 }
 
                 .live-wire .more-stories-section {
@@ -1254,36 +1165,11 @@ export default function LiveWireStyles() {
                     overflow: hidden;
                 }
 
-                /* MOBILE PHASE 6: the category pill, the view count and the
-                   bookmark / share actions stay on every list item. They were
-                   display: none, so a phone could read a story but not save it. */
-                .live-wire .list-meta {
-                    flex-wrap: wrap;
-                    row-gap: 4px;
-                }
+                .live-wire .list-meta .category-pill,
+                .live-wire .list-meta .views,
+                .live-wire .list-meta > span:nth-last-child(2),
                 .live-wire .news-list-item .list-actions {
-                    display: flex;
-                    gap: 6px;
-                }
-
-                /* Three 44px chips beside a 68px thumbnail left the title
-                   about 100px wide, so the actions take a row of their own
-                   under the thumbnail and text. */
-                .live-wire .news-list-item {
-                    flex-wrap: wrap;
-                }
-
-                .live-wire .news-list-item .list-actions {
-                    flex-basis: 100%;
-                    justify-content: flex-end;
-                    margin-left: 0;
-                }
-
-                .live-wire .news-list-item .list-actions button {
-                    width: 44px;
-                    height: 44px;
-                    min-width: 44px;
-                    min-height: 44px;
+                    display: none;
                 }
 
                 .live-wire .reels-preview-section {
@@ -1302,7 +1188,7 @@ export default function LiveWireStyles() {
                 }
             }
 
-            @media (max-width: 600px) {
+            @media (max-width: 390px) {
                 .live-wire .news-desk-title {
                     font-size: 18px;
                 }
@@ -1311,9 +1197,8 @@ export default function LiveWireStyles() {
                     gap: 7px;
                 }
 
-                /* MOBILE PHASE 6: the bookmark count stays. */
                 .live-wire .view-toggle .bookmark-counter {
-                    font-size: 12px;
+                    display: none;
                 }
 
                 .live-wire .story-sort-toggle button {

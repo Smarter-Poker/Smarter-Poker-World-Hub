@@ -10,10 +10,11 @@
  *   GET /api/poker/daily-tournaments?state=TX - Filter by state
  *   GET /api/poker/daily-tournaments?venue=Lodge - Search by venue name
  */
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { withSentry } from '../../../src/lib/sentry';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   combineDailyTournamentQueryResults,
   decodeScrapedTournamentText,
@@ -957,7 +958,7 @@ async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) {
       res.setHeader('Cache-Control', 'private, no-store');
@@ -1009,16 +1010,4 @@ function countByField(tournaments, field) {
     return counts;
 }
 
-export default async function routeHandler(req, res) {
-    try {
-        return await handler(req, res);
-    } catch (error) {
-        reportApiError(error, req);
-        if (!res.headersSent) {
-            res.status(500).json({
-                error: 'Internal server error',
-                ...(process.env.NODE_ENV === 'development' ? { message: error.message } : {}),
-            });
-        }
-    }
-}
+export default withSentry(handler);

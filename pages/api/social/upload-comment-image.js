@@ -9,7 +9,7 @@
 
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 // 2026-07-29: this handler calls getServerUserWithFallback (line ~46) but the
 // import was missing, so every comment-image upload threw ReferenceError at
 // runtime on top of the wrong bucket name below. Restore the canonical import.
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, url: publicUrl });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[CommentUpload] Error:', err);
     return res.status(500).json({ error: 'Upload failed' });
   }

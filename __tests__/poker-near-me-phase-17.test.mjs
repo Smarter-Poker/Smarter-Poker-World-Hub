@@ -91,12 +91,11 @@ test('shared Poker Near Me world supports WebKit masks and user contrast prefere
 });
 
 test('mobile command controls use continuous contained frames', async () => {
-  const [header, menu, navigation, world, painted] = await Promise.all([
+  const [header, menu, navigation, world] = await Promise.all([
     source('src/components/ui/UniversalHeader.js'),
     source('src/components/ui/HamburgerMenu.jsx'),
     source('src/config/worldMenuNavigation.js'),
     source('src/styles/worlds/poker-near-me.css'),
-    source('src/styles/worlds/poker-near-me-console-menu.css'),
   ]);
 
   // The approved chrome deliberately replaced the old rectangular cyan
@@ -116,16 +115,9 @@ test('mobile command controls use continuous contained frames', async () => {
   );
   assert.match(world, /:where\(:not\([\s\S]*?\.approved-global-header__button[\s\S]*?\.sp-grid-tile/);
   assert.match(navigation, /'poker-near-me':[\s\S]*?scheme:\s*'casino-realism'[\s\S]*?accent:\s*'#38bdf8'/);
-  // The same PNM-only controls now use complete painted frames. Keep the
-  // containment, selected state and keyboard outline contracts on that layer.
-  assert.match(menu, /data-pnm-console=\{isPokerNearMeMenu \? 'painted-command-drawer-v1'/);
-  assert.match(painted, /body\.world-poker-near-me \.sp-drawer\[data-pnm-console='painted-command-drawer-v1'\]/);
-  assert.match(painted, /\.sp-grid-tile::after\s*\{\s*content:\s*none !important/);
-  assert.match(painted, /\.sp-grid-tile\[aria-current='page'\]\s*\{[^}]*button-primary\.png/);
-  assert.match(painted, /\.sp-menu-row\[aria-current='page'\]\s*\{[^}]*filter:\s*brightness/);
-  assert.match(painted, /background-size:\s*contain !important/);
-  assert.match(painted, /\.sp-grid-tile,[\s\S]*?\):focus-visible\s*\{[^}]*outline:\s*2px solid #d8f4ff !important/);
-  assert.doesNotMatch(painted, /clip-path/);
+  assert.match(menu, /data-world-command-menu='poker-near-me'[\s\S]*?border-style:\s*solid !important/);
+  assert.match(menu, /data-world-command-menu='poker-near-me'[\s\S]*?\.sp-grid-tile::after\s*\{[\s\S]*?content:\s*none/);
+  assert.match(menu, /border-color:\s*#48c7ff !important/);
   assert.doesNotMatch(menu, /data-world-command-menu='poker-near-me'[^}]*clip-path/);
 });
 

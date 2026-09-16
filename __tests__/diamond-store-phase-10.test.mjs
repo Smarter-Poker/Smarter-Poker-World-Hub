@@ -129,11 +129,9 @@ test('production readiness is observable without exposing secrets', () => {
 
 test('marketplace controls and utility copy enforce the AA quality floor', () => {
   const css = read('src/components/store/MarketplaceCommerceNav.module.css');
-  const merchCss = read('src/components/store/MerchStore.module.css');
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /min-width:\s*44px/);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);
-  assert.match(merchCss, /font-size:\s*12px/);
-  assert.match(merchCss, /:focus-visible/);
+  assert.match(MERCH, /fontSize:\s*12/);
 });

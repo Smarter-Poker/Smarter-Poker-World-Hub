@@ -21,7 +21,6 @@ import {
   decideBody,
   flagsUrl,
   handsUrl,
-  handSearchCoverage,
   healthUrl,
   listMeta,
   openCaseBody,
@@ -49,25 +48,6 @@ const panel = await readFile(
   path.join(HERE, '..', 'src/components/horses/IntegrityPanel.jsx'),
   'utf8',
 );
-
-test('empty candidate windows retain navigation and disclose unsearched history', () => {
-  const cursor = { created_at: '2026-09-14T06:00:00.123456+00:00', id: 'hand-500' };
-  const empty = handSearchCoverage({ hands: [], next_cursor: cursor }, 0, 0);
-  assert.equal(empty.showPager, true);
-  assert.equal(empty.nextCursor, cursor);
-  assert.match(empty.detail, /Older Hands Remain Unsearched/);
-  assert.equal(empty.label, 'Search Window 1: 0 Matching Hands');
-  const url = new URL(handsUrl({ playerId: 'player-1', cursor }), 'https://x');
-  assert.deepEqual(JSON.parse(url.searchParams.get('cursor')), cursor);
-  const final = handSearchCoverage({ hands: [], next_cursor: null }, 0, 2);
-  assert.equal(final.showPager, true, 'Previous stays reachable on a terminal empty window');
-  assert.equal(final.nextCursor, null);
-  assert.match(final.detail, /Reached The End/);
-  assert.equal(handSearchCoverage({ next_cursor: null }, 0, 0).showPager, false);
-  assert.equal(handSearchCoverage({ next_cursor: cursor }, 2, 1).label, 'Search Window 2: 2 Matching Hands');
-  assert.match(panel, /hands\.loaded && !hands\.error && handCoverage\.showPager/);
-  assert.match(panel, /renderListState\(hands, handRows, handCoverage\)/);
-});
 
 test('the Integrity tab is visible, code split, and read-gated', () => {
   const tab = findTab('integrity');

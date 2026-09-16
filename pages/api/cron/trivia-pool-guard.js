@@ -33,7 +33,7 @@ import {
     NO_REPEAT_WINDOW_DAYS,
     DEFAULT_QUALITY_FLOOR,
 } from '../../../src/lib/triviaQuestionLoader';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 
 export const config = { maxDuration: 60 };

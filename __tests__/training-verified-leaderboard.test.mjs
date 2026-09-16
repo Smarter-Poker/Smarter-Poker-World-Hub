@@ -77,7 +77,7 @@ async function loadRoute({
       clampPagination: (value) => ({ limit: Math.max(1, Math.min(Number(value) || 20, 100)) }),
       withTiming: () => {},
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () => ({
         user: { id: '00000000-0000-0000-0000-000000000007' },

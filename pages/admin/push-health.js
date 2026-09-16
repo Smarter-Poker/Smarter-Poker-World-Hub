@@ -106,24 +106,16 @@ export default function PushHealthPage() {
                                 Queued To Sent Is Our Plumbing. Sent To Confirmed Is Reality: Push
                                 Services Return 2xx For Devices That Are Long Gone, So Only A
                                 Service-Worker Receipt Proves Anything Was Drawn On A Screen.
-                                Unreachable Rows Were Addressed To Somebody With No Device. They
-                                Are Not Failed Sends And The Send Rate Excludes Them.
                             </p>
                             {data.funnel ? (
                                 <>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 12 }}>
                                         <Stat label="Queued" value={data.funnel.queued} />
-                                        <Stat label="Unreachable" value={data.funnel.unreachable ?? 0} />
-                                        <Stat label="Addressable" value={data.funnel.addressable ?? 0} />
                                         <Stat label="Sent" value={data.funnel.sent} />
                                         <Stat label="Suppressed" value={data.funnel.suppressed} />
-
+                                        
                                         <Stat
-                                            // Of what was ADDRESSABLE, not of the raw queue. A
-                                            // notification written for somebody with no device
-                                            // never had anywhere to go, and counting it as a
-                                            // failed send reads 0% while every real send works.
-                                            label="Send rate (of addressable)"
+                                            label="Send rate"
                                             value={data.funnel.deliveryRate == null ? 'n/a' : `${data.funnel.deliveryRate}%`}
                                         />
                                         <Stat

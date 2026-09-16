@@ -20,7 +20,6 @@
 import { deliverPushNow } from './push-deliver';
 import { loadGateContext, gateDecision, needsDailyCount, countSentToday } from './push-gate';
 import { isPushConfigured } from './web-push';
-import { isOwnerOperationalPush, enqueueOperationalPush } from './operational-push-routing.mjs';
 
 const TITLE_MAX = 120;
 const BODY_MAX = 500;
@@ -54,13 +53,6 @@ export async function enqueuePush(supabase, args = {}) {
         out.skipped = true;
         out.reason = 'missing_supabase_or_user';
         return out;
-    }
-
-    // The owner's incident destination applies even to force:true callers and
-    // when push credentials/preferences are unavailable. This path never
-    // reports a phone send for an operational-inbox receipt.
-    if (isOwnerOperationalPush(userId, args)) {
-        return enqueueOperationalPush(supabase, args);
     }
 
     const title = String(args.title || 'Smarter Poker').slice(0, TITLE_MAX);

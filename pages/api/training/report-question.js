@@ -2,7 +2,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const VALID_REASONS = new Set([
   'inaccurate_answer',
@@ -89,8 +89,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    try { reportApiError(error, req); } catch (_reportErroror) {
-      console.warn('[App] Handled exception:', _reportErroror?.message || _reportErroror);
+    try { reportApiError(error, req); } catch (_sentryError) {
+      console.warn('[App] Handled exception:', _sentryError?.message || _sentryError);
     }
     console.warn('[TrainingQuestionReport] unexpected error:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });

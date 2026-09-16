@@ -8,7 +8,6 @@ import { haversineMiles, escapeHtml } from './pnm-utils';
 import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
 import { createPokerMapSession, loadPokerMapRuntime, resetPokerMapRuntime } from '../../lib/poker-near-me/mapRuntime';
 import MapSurfaceFrame from './MapSurfaceFrame';
-import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 import {
     filterSeriesForRoute,
     interpolateRouteLeg,
@@ -394,15 +393,15 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     }, [mapExpanded, routeResult]);
 
     return (
-        <PokerNearMePanelShell
-            as="section"
-            className="road-trip-planner pnm-console-tool"
-            bodyClassName="pnm-console-tool__body"
-            aria-labelledby="pnm-road-trip-title"
-        >
+        <div className="road-trip-planner">
             <div className="rtp-header">
-                <PokerNearMeConsoleIcon name="directions" className="pnm-console-tool__header-icon" />
-                <h2 id="pnm-road-trip-title">Poker Road Trip Planner</h2>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 17h2l2-8h4l-1 4h3l5-6" />
+                    <circle cx="6.5" cy="17.5" r="2.5" fill="none" />
+                    <circle cx="16.5" cy="17.5" r="2.5" fill="none" />
+                    <path d="M9 17h5" />
+                </svg>
+                <h2>Poker Road Trip Planner</h2>
             </div>
 
             <div className="rtp-form">
@@ -429,9 +428,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             onChange={e => updateWaypoint(i, e.target.value)}
                             className="rtp-input"
                         />
-                        <button type="button" className="rtp-remove-btn" aria-label={`Remove waypoint ${i + 1}`} onClick={() => removeWaypoint(i)}>
-                            <PokerNearMeConsoleIcon name="close" />
-                        </button>
+                        <button type="button" className="rtp-remove-btn" aria-label={`Remove waypoint ${i + 1}`} onClick={() => removeWaypoint(i)}>×</button>
                     </div>
                 ))}
 
@@ -448,6 +445,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 </div>
 
                 <button type="button" className="rtp-add-waypoint" onClick={addWaypoint}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                     Add Stop
                 </button>
 
@@ -476,7 +474,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         <><span className="rtp-spinner" /> Calculating...</>
                     ) : (
                         <>
-                            <PokerNearMeConsoleIcon name="directions" />
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
                             Plan My Trip
                         </>
                     )}
@@ -494,12 +492,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             aria-expanded={savedTripsOpen}
                             aria-controls={savedTripsId}
                         >
-                            <PokerNearMeConsoleIcon name="saved" />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Saved Trips ({savedTrips.length})
-                            <PokerNearMeConsoleIcon
-                                name="back"
-                                className={'pnm-console-tool__disclosure' + (savedTripsOpen ? ' is-open' : '')}
-                            />
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto', transform: savedTripsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
                         </button>
                         {savedTripsOpen && (
                             <div className="rtp-saved-trips-list" id={savedTripsId}>
@@ -507,7 +502,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     <div key={i} className="rtp-saved-trip-item">
                                         <div className="rtp-saved-trip-route">
                                             <span className="rtp-saved-trip-from">{trip.origin || '?'}</span>
-                                            <span className="rtp-saved-trip-separator">To</span>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.5)" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
                                             <span className="rtp-saved-trip-to">{trip.destination || '?'}</span>
                                         </div>
                                         <div className="rtp-saved-trip-meta">
@@ -597,9 +592,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 }
                                 setTimeout(() => setShareStatus(null), 4000);
                             }}
-                            className="rtp-result-action rtp-result-action--save"
+                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                         >
-                            <PokerNearMeConsoleIcon name="saved" />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                             Save Trip
                         </button>
                         <button
@@ -627,9 +622,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 }
                                 setTimeout(() => setShareStatus(null), 4000);
                             }}
-                            className="rtp-result-action rtp-result-action--share"
+                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, color: '#3b82f6', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                         >
-                            <PokerNearMeConsoleIcon name="share" />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                             Share Trip
                         </button>
                         <button
@@ -638,9 +633,9 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                 if (!routeResult?.stops?.length || routeResult.stops.length < 2) return;
                                 openMultiStopRoute(routeResult.stops);
                             }}
-                            className="rtp-result-action rtp-result-action--route"
+                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, color: '#ffffff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                         >
-                            <PokerNearMeConsoleIcon name="directions" />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
                             Start Full Route ({routeResult?.stops?.length || 0} Stops)
                         </button>
                     </div>
@@ -654,14 +649,15 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                     {/* Map — collapsible on mobile */}
                     <div className="rtp-map-wrapper">
                         <button type="button" className="rtp-map-toggle" onClick={() => setMapExpanded(e => !e)} aria-expanded={mapExpanded} aria-controls={mapPanelId}>
-                            <PokerNearMeConsoleIcon name="location" />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                            </svg>
                             {mapExpanded ? 'Hide Map' : 'Show Map'}
-                            <PokerNearMeConsoleIcon
-                                name="back"
-                                className={'pnm-console-tool__disclosure' + (mapExpanded ? ' is-open' : '')}
-                            />
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
                         </button>
-                        <div className="rtp-map-shell" id={mapPanelId} hidden={!mapExpanded}>
+                        <div className="rtp-map-shell" id={mapPanelId} style={{ display: mapExpanded ? 'block' : 'none' }}>
                             <MapSurfaceFrame
                                 className="pnm-map-surface--road-trip"
                                 eyebrow="Route intelligence"
@@ -771,6 +767,106 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 </div>
             )}
 
-        </PokerNearMePanelShell>
+            <style>{`
+        .road-trip-planner { padding: 0 0 20px; }
+        .rtp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .rtp-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; letter-spacing: -0.3px; }
+        .rtp-form { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 16px; padding: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
+        .rtp-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .rtp-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .rtp-dot.origin { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.5); }
+        .rtp-dot.waypoint { background: #ffffff; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+        .rtp-dot.destination { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+        .rtp-input { flex: 1; min-width: 0; min-height: 44px; padding: 12px 16px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 10px; color: #e2e8f0; font-size: 14px; font-family: inherit; transition: border-color 0.25s; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
+        .rtp-input:focus { outline: none; border-color: rgba(255,255,255,0.5); }
+        .rtp-input::placeholder { color: rgba(148,163,184,0.35); }
+        .rtp-remove-btn { background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); color: #ef4444; width: 44px; height: 44px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+        .rtp-remove-btn:hover { background: rgba(239,68,68,0.2); }
+        .rtp-add-waypoint { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); border-radius: 8px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 16px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
+        .rtp-add-waypoint:hover { border-color: rgba(255,255,255,0.5); }
+        .rtp-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        @media (max-width: 600px) { .rtp-options { grid-template-columns: 1fr; } }
+        .rtp-option-group label { display: block; font-size: 12px; font-weight: 600; color: rgba(148,163,184,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .rtp-chips { display: flex; gap: 6px; }
+        .rtp-chip { padding: 8px 14px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95)); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
+        .rtp-chip.active { background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.45); color: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1); }
+        .rtp-date-row { display: flex; align-items: center; gap: 8px; }
+        .rtp-date { padding: 8px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 13px; font-family: inherit; color-scheme: dark; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
+        .rtp-date-sep { color: rgba(148,163,184,0.4); font-size: 16px; }
+        .rtp-calculate-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 12px; color: #000; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: filter 0.2s; }
+        .rtp-calculate-btn:hover { filter: brightness(1.1); }
+        .rtp-calculate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .rtp-spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2); border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .rtp-error { margin-top: 12px; padding: 10px 14px; background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); border-radius: 8px; color: #ef4444; font-size: 13px; }
+        .rtp-results { margin-top: 20px; }
+        .rtp-stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        @media (max-width: 500px) { .rtp-stats-bar { grid-template-columns: repeat(2, 1fr); } }
+        .rtp-stat { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 12px; padding: 16px; text-align: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .rtp-stat-value { display: block; font-size: 22px; font-weight: 700; color: #ffffff; }
+        .rtp-stat-label { font-size: 12px; color: rgba(148,163,184,0.5); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rtp-map-wrapper { margin-bottom: 20px; }
+        .rtp-map-toggle { display: none; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(200,214,229,0.04)); border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; align-items: center; justify-content: center; gap: 6px; font-family: inherit; margin-bottom: 8px; }
+        @media (max-width: 600px) { .rtp-map-toggle { display: flex; } }
+        .rtp-map-shell { position: relative; }
+        .rtp-map { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1.5px solid rgba(148,163,184,0.12); background: #0d1117; }
+        @media (max-width: 600px) { .rtp-map { height: 250px; } }
+        .rtp-map-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; border-radius: 12px; background: rgba(13,17,23,0.92); color: rgba(148,163,184,0.75); font-size: 13px; pointer-events: none; }
+        .rtp-map-overlay.error { pointer-events: auto; }
+        .rtp-map-overlay p { margin: 0 0 12px; }
+        .rtp-map-overlay button { min-width: 44px; min-height: 44px; padding: 10px 16px; border: 1px solid rgba(59,130,246,0.55); border-radius: 6px; background: rgba(59,130,246,0.14); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+        .rtp-estimate-note { margin: -6px 0 14px; font-size: 12px; color: rgba(148,163,184,0.55); line-height: 1.5; }
+        .rtp-share-status { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
+        .rtp-share-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+        .rtp-share-status.fail { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+        .rtp-venue-card-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .rtp-venue-logo { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
+        .rtp-venues-section h3, .rtp-series-section h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0 0 12px; }
+        .rtp-venue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+        .rtp-venue-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); cursor: pointer; }
+        .rtp-venue-card:hover { border-color: rgba(255,255,255,0.35); transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4); }
+        .rtp-venue-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+        .rtp-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-bottom: 6px; }
+        .rtp-venue-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+        .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .rtp-tag.type { background: rgba(99,102,241,0.2); color: #818cf8; }
+        .rtp-tag.trust { background: rgba(255,255,255,0.12); color: #ffffff; }
+        .rtp-nav-btn { background: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
+        .rtp-nav-btn:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
+        .rtp-more { padding: 14px; text-align: center; color: rgba(148,163,184,0.5); font-size: 13px; }
+        .rtp-series-section { margin-top: 20px; }
+        .rtp-series-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
+        .rtp-series-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+        .rtp-series-dates { font-size: 12px; color: rgba(148,163,184,0.5); }
+        .rtp-series-venue { font-size: 12px; color: #ffffff; margin-top: 2px; }
+        .rtp-saved-trips { margin-top: 14px; border: 1.5px solid rgba(148,163,184,0.1); border-radius: 10px; overflow: hidden; }
+        .rtp-saved-trips-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; background: linear-gradient(180deg, rgba(18,28,45,0.5), rgba(10,16,28,0.6)); border: none; color: rgba(148,163,184,0.6); font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trips-toggle:hover { color: #ffffff; background: rgba(255,255,255,0.05); }
+        .rtp-saved-trips-list { padding: 6px; }
+        .rtp-saved-trip-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-bottom: 1px solid rgba(148,163,184,0.06); }
+        .rtp-saved-trip-item:last-child { border-bottom: none; }
+        .rtp-saved-trip-route { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #e2e8f0; }
+        .rtp-saved-trip-meta { display: flex; gap: 12px; font-size: 12px; color: rgba(148,163,184,0.4); }
+        .rtp-saved-trip-actions { display: flex; gap: 6px; margin-top: 4px; }
+        .rtp-saved-trip-load { padding: 4px 12px; border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trip-load:hover { background: rgba(255,255,255,0.2); }
+        .rtp-saved-trip-delete { padding: 4px 12px; border-radius: 6px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: rgba(239,68,68,0.6); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trip-delete:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .rtp-add-waypoint, .rtp-chip, .rtp-date, .rtp-map-toggle, .rtp-nav-btn, .rtp-saved-trips-toggle, .rtp-saved-trip-load, .rtp-saved-trip-delete { min-height: 44px; }
+        .rtp-date { min-width: 0; flex: 1; }
+        .rtp-result-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+        .rtp-result-actions > button { min-height: 44px; }
+        .rtp-empty { grid-column: 1 / -1; padding: 20px; border: 1px dashed rgba(148,163,184,0.2); border-radius: 10px; color: rgba(226,232,240,0.7); text-align: center; font-size: 13px; }
+        .road-trip-planner button:focus-visible, .road-trip-planner input:focus-visible { outline: 2px solid #6ee7ef; outline-offset: 2px; }
+        @media (max-width: 600px) {
+          .rtp-form { padding: 16px; }
+          .rtp-result-actions { flex-direction: column; }
+          .rtp-result-actions > button { width: 100%; flex: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .road-trip-planner *, .road-trip-planner *::before, .road-trip-planner *::after { animation: none !important; transition: none !important; }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+        </div>
     );
 }

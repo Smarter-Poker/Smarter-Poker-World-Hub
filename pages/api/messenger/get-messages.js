@@ -1,8 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
-import { verifyAccountingMessage } from '../../../src/lib/accountingMessage.mjs';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 let _supabase = null;
 function getSupabase() {
@@ -37,17 +36,14 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
-      const { conversationId, before, beforeId, limit: reqLimit } = req.body;
+      const { conversationId, before, limit: reqLimit } = req.body;
 
       if (!conversationId) {
           return res.status(400).json({ success: false, error: 'Missing conversationId' });
       }
 
       // Pagination: cap limit at 200
-      const pageLimit = Math.max(1, Math.min(parseInt(reqLimit) || 100, 200));
-      if ((beforeId && !before) || (before && (typeof before !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(before) || !Number.isFinite(Date.parse(before)) || (beforeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId))))) {
-          return res.status(400).json({ success: false, error: 'Invalid Message Cursor' });
-      }
+      const pageLimit = Math.min(parseInt(reqLimit) || 100, 200);
 
       try {
           // First verify user is a participant in this conversation (security check)
@@ -62,12 +58,37 @@ export default async function handler(req, res) {
               return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
           }
 
-          // The database verifies participation, joins actual invoice receipts,
-          // and excludes archived club copies BEFORE applying the page limit.
-          const { data: messages, error } = await getSupabase().rpc('fn_messenger_message_page', {
-              p_user_id: userId, p_conversation_id: conversationId,
-              p_before: before || null, p_before_id: beforeId || null, p_limit: pageLimit,
-          });
+          // Fetch messages with sender profiles (with pagination support)
+          let query = getSupabase()
+              .from('social_messages')
+              .select(`
+                  id,
+                  content,
+                  message_type,
+                  media_metadata,
+                  created_at,
+                  updated_at,
+                  sender_id,
+                  is_deleted,
+                  is_edited,
+                  profiles:sender_id (id, username, avatar_url, is_vip)
+              `)
+              .eq('conversation_id', conversationId)
+              .eq('is_deleted', false);
+
+          // Pagination: load messages before a given timestamp
+          if (before) {
+              // Backward pagination: descending to get the N most recent before cursor
+              query = query.lt('created_at', before)
+                  .order('created_at', { ascending: false })
+                  .limit(pageLimit);
+          } else {
+              // Initial load: descending to get newest N, then reverse for display
+              query = query.order('created_at', { ascending: false })
+                  .limit(pageLimit);
+          }
+
+          const { data: messages, error } = await query;
 
           if (error) {
               console.warn('[ANTIGRAVITY] Error fetching messages:', error);
@@ -76,6 +97,7 @@ export default async function handler(req, res) {
 
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
+
           // Reactions, in ONE query for the whole page.
           //
           // This route never returned reactions, and the get_message_reactions
@@ -102,10 +124,6 @@ export default async function handler(req, res) {
           }
 
           const normalized = sorted.map(m => {
-              m = verifyAccountingMessage(m, m.media_metadata?.accounting_verified === true ? {
-                  id: m.media_metadata.invoice_id, status: m.media_metadata.status,
-                  chips_transferred: m.media_metadata.chips_transferred,
-              } : null);
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
                   prof = {
@@ -136,7 +154,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

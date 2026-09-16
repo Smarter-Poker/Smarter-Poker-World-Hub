@@ -20,12 +20,6 @@ test('controller-delivered solver release rejects tampering without network or P
   });
 });
 
-test('controller builds release bundles only from protected Git object bytes', () => {
-  execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['test_build_release_bundle.py'], {
-    cwd: 'scripts/preflop-deep', encoding: 'utf8', stdio: 'pipe',
-  });
-});
-
 
 test('Vercel packages the exact bounded-canary runbook without uploading other agent artifacts', () => {
   const lines = VERCEL_IGNORE.split(/\r?\n/).map((line) => line.trim());

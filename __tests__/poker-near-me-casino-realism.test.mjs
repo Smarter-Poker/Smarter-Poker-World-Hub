@@ -21,94 +21,6 @@ test('Poker Near Me shared navigation preserves stable discovery routes', () => 
   assert.match(nav, /aria-label="Poker Near Me"/);
 });
 
-test('Poker Near Me shared navigation uses complete painted plates without CSS-drawn chrome', () => {
-  const nav = read('src/components/poker-near-me/PokerNearMeFamilyNav.jsx');
-  const css = read('src/styles/worlds/poker-near-me-console-nav.css');
-  const app = read('pages/_app.js');
-  const navImport = "import '../src/styles/worlds/poker-near-me-console-nav.css';";
-
-  assert.match(nav, /data-pnm-console-surface="family-navigation-v1"/);
-  assert.match(css, /button-secondary\.png/);
-  assert.match(css, /button-primary\.png/);
-  assert.match(css, /background-size:\s*contain/);
-  assert.match(css, /min-height:\s*44px/);
-  assert.match(css, /grid-template-columns:\s*repeat\(10, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 900px\)[\s\S]*?repeat\(5, minmax\(0, 1fr\)\)/);
-  assert.match(css, /@media \(max-width: 480px\)[\s\S]*?repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient|border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/i);
-  assert.doesNotMatch(css, /text-transform:\s*uppercase/i);
-  assert.ok(app.indexOf(navImport) > app.indexOf("import '../src/styles/worlds/poker-near-me-console.css';"));
-  for (const asset of ['button-primary.png', 'button-secondary.png']) {
-    assert.equal(
-      existsSync(new URL(`../public/images/pnm-console/painted-controls-v1/${asset}`, import.meta.url)),
-      true,
-      `${asset} must exist`
-    );
-  }
-});
-
-test('Poker Near Me shared navigation stays one compact row in short landscape', () => {
-  const css = read('src/styles/worlds/poker-near-me-console-nav.css');
-
-  assert.match(
-    css,
-    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?\.pnm-console-family-nav,[\s\S]*?position:\s*relative;[\s\S]*?top:\s*auto;[\s\S]*?padding:\s*4px/
-  );
-  assert.match(
-    css,
-    /@media \(orientation: landscape\) and \(min-width: 700px\) and \(max-height: 520px\)[\s\S]*?\.pnm-console-family-nav__label\s*\{[\s\S]*?display:\s*none;[\s\S]*?\.pnm-console-family-nav__rail\s*\{[\s\S]*?repeat\(10, minmax\(0, 1fr\)\)/
-  );
-});
-
-test('shared Poker Near Me result cards use the three-slice painted console contract', () => {
-  const cardPaths = [
-    'src/components/poker-near-me/VenueCard.js',
-    'src/components/poker-near-me/TourCard.js',
-    'src/components/poker-near-me/RichTourCard.jsx',
-    'src/components/poker-near-me/NewSeriesVenueCard.jsx',
-    'src/components/poker-near-me/SeriesCard.js',
-    'src/components/poker-near-me/PokerTourCard.jsx',
-  ];
-  const css = read('src/styles/worlds/poker-near-me-console-cards.css');
-
-  for (const path of cardPaths) {
-    const card = read(path);
-    assert.match(card, /PokerNearMePanelShell/, `${path} must inherit the painted panel shell`);
-    assert.match(card, /pnm-console-card/, `${path} must opt into the shared result-card layout`);
-    assert.doesNotMatch(card, /<svg\b|(?:linear|radial|conic)-gradient/, `${path} must not draw generic vector or gradient chrome`);
-    assert.doesNotMatch(card, /className="[^"]*(?:entity-card|tour-card-premium|vc3-card)(?:\s|")/, `${path} must not inherit the retired generic card chassis`);
-  }
-
-  for (const slice of ['panel-head.png', 'panel-mid.png', 'panel-foot.png']) {
-    assert.match(css, new RegExp(slice.replace('.', '\\.')));
-    assert.equal(
-      existsSync(new URL(`../public/images/pnm-console/painted-panels-v1/${slice}`, import.meta.url)),
-      true,
-      `${slice} must exist`
-    );
-  }
-  assert.match(css, /panel-mid\.png[^;]*repeat-y/);
-  assert.match(css, /min-height:\s*44px/);
-  assert.match(css, /@media \(max-width: 600px\)[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
-  assert.match(css, /@media \(orientation: landscape\) and \(max-height: 520px\)/);
-  assert.doesNotMatch(css, /(?:linear|radial|conic)-gradient|(?:^|[;{\s])border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/im);
-
-  const venue = read(cardPaths[0]);
-  assert.match(venue, /PokerNearMeConsoleIcon name="phone"/);
-  assert.match(venue, /PokerNearMeConsoleIcon name="directions"/);
-  assert.match(venue, /PokerNearMeConsoleIcon name="calendar"/);
-  assert.match(venue, /createPortal/);
-  assert.match(venue, /useModalHistory\(checkinModal, closeCheckin\)/);
-
-  const featuredSeries = read(cardPaths[3]);
-  assert.doesNotMatch(featuredSeries, /frame-bolt|neon-strip/);
-
-  const venuesPanel = read('src/components/poker-near-me/VenuesTabPanel.jsx');
-  assert.match(venuesPanel, /className=\{'venue-card-wrapper' \+ \(isHighlighted \? ' venue-card-highlighted' : ''\)\}/);
-  assert.match(venuesPanel, /<RichTourCard/);
-  assert.doesNotMatch(venuesPanel, /style=\{\{\s*border:\s*'1\.5px solid #ef4444'[\s\S]*?boxShadow:/);
-});
-
 test('all primary Poker Near Me page families render the shared navigation', () => {
   [
     'pages/hub/home-games.js',
@@ -123,15 +35,9 @@ test('all primary Poker Near Me page families render the shared navigation', () 
     assert.match(page, /<PokerNearMeFamilyNav \/>/);
   });
 
-  for (const path of [
-    'pages/hub/poker-near-me/[pnmTab].js',
-    'pages/hub/poker-near-me/lobby.js',
-  ]) {
-    const page = read(path);
-    assert.match(page, /PokerNearMeFamilyNav/);
-    assert.match(page, /<PokerNearMeFamilyNav \/>/);
-  }
-  assert.match(read('pages/hub/poker-near-me/[pnmTab].js'), /className="pnm-top-tabs"/);
+  const dynamicFamily = read('pages/hub/poker-near-me/[pnmTab].js');
+  assert.doesNotMatch(dynamicFamily, /PokerNearMeFamilyNav/);
+  assert.match(dynamicFamily, /className="pnm-top-tabs"/);
 });
 
 test('casino realism theme covers the full route family and mobile audit target', () => {
@@ -536,18 +442,13 @@ test('Poker Near Me and Home Games actions never fall back to browser-native dia
   });
 
   const dialog = read('src/components/poker-near-me/CasinoActionDialog.jsx');
-  const dialogCss = read('src/styles/worlds/poker-near-me-console-dialogs.css');
   assert.match(dialog, /role="dialog"/);
   assert.match(dialog, /aria-modal="true"/);
   assert.match(dialog, /event\.key === 'Escape'/);
   assert.match(dialog, /event\.key === 'Tab'/);
-  assert.match(dialog, /<PokerNearMeConsole/);
-  assert.match(dialog, /crest=\{destructive \? 'diamond' : 'flat'\}/);
-  assert.match(dialog, /secondary:\s*\{[\s\S]*?buttonRef:\s*cancelRef/);
-  assert.match(dialog, /primary:\s*\{[\s\S]*?disabled:\s*busy \|\| confirmDisabled/);
-  assert.match(dialogCss, /min-height:\s*44px/);
-  assert.doesNotMatch(dialog, /<svg|style=|<style jsx|clip-path|::before|::after/);
-  assert.doesNotMatch(dialogCss, /(?:linear|radial|conic)-gradient|(?:^|[;{\s])border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/im);
+  assert.match(dialog, /min-height:\s*46px/);
+  assert.match(dialog, /border:\s*1px solid #657386/);
+  assert.doesNotMatch(dialog, /clip-path|::before|::after/);
 
   const tourCard = read('src/components/poker-series/TourCard.js');
   const trackedTours = read('src/hooks/useTrackedTours.js');

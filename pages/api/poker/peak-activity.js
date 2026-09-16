@@ -6,7 +6,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { normalizeGameName } from '../../../src/components/poker-near-me/normalize-game';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   PNM_TRUTH_CONTRACT_VERSION,
   QUALIFIED_OBSERVED_SOURCES,
@@ -361,7 +361,7 @@ export default async function handler(req, res) {
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('Peak activity error:', err);
     // Never echo the raw DB/driver message back to the client.
     res.status(500).json({ error: 'Internal server error' });

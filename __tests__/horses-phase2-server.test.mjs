@@ -4,7 +4,7 @@
  * Behaviour tests with fake I/O, in the shape the Phase 1 suites established:
  * the real modules run, every database call goes to a fake query builder that
  * RECORDS and APPLIES the filters and ranges it is handed, and nothing here
- * touches Supabase, retired error provider or the network.
+ * touches Supabase, Sentry or the network.
  *
  * What is asserted, and why each one matters:
  *

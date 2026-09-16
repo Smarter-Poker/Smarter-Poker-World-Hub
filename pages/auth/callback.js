@@ -102,6 +102,7 @@ export default function AuthCallback() {
             );
         };
 
+        // [2026-08-04] Server-side error capture — client Sentry is disabled,
         // so console.warn here was invisible in prod. Best-effort, never throws.
         // [2026-08-25] Now imported from src/lib/authErrors.js rather than
         // redeclared per page; the three copies had already drifted (this one
@@ -145,6 +146,7 @@ export default function AuthCallback() {
                         providerError;
                     const desc = typeof rawDesc === 'string' ? rawDesc.replace(/\+/g, ' ') : '';
                     console.warn('[auth-callback] provider error:', providerError, desc);
+                    // Client Sentry is off in prod, so console.warn is invisible.
                     // This branch was the ONLY failure path with no server-side
                     // capture at all — the exact one we needed a record of.
                     reportAuthError('oauth_provider_error', {

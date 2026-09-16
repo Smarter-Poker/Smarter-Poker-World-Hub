@@ -88,7 +88,7 @@ async function loadAuthorityHelpers({
     },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
-    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
+    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
     '../../../src/lib/training/questionContract.mjs': {
       enforceTrainingQuestionContract: (question) => question,
       isTrainingQuestionValid: () => true,

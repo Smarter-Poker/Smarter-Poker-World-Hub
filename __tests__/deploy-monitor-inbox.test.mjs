@@ -7,7 +7,7 @@ import { createHmac } from 'node:crypto';
 // Replace only the external telemetry adapter so the real Next handler can run
 // under Node without the package's extensionless bundler-only re-export.
 const source = (await readFile(new URL('../pages/api/deploy-monitor.js', import.meta.url), 'utf8'))
-  .replace("import { reportApiError } from '../../src/lib/apiErrorHandler';", 'const reportApiError = () => {};')
+  .replace("import { reportApiError } from '../../src/lib/sentryWrap';", 'const reportApiError = () => {};')
   .replace("'../../src/lib/operationalAlerts.mjs'", JSON.stringify(new URL('../src/lib/operationalAlerts.mjs', import.meta.url).href));
 const { default: handler } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 process.env.DEPLOY_WEBHOOK_SECRET = 'test-webhook-secret';

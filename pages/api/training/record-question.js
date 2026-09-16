@@ -7,7 +7,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import {
   TrainingAnswerContractError,
   gradeTrainingAnswer,
@@ -673,10 +673,10 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (_reportError) {
-      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+    } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
       // Error reporting is best-effort; the original API response remains authoritative.
-      void _reportError;
+      void _sentryErr;
     }
     console.warn('[API Error]', err);
     if (!res.headersSent)

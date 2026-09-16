@@ -14,7 +14,7 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { NO_REPEAT_WINDOW_DAYS, DEFAULT_QUALITY_FLOOR } from '../../../src/lib/triviaQuestionLoader';
@@ -310,7 +310,7 @@ export default async function handler(req, res) {
     return res.status(200).json(poolStatus);
 
   } catch (error) {
-      try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+      try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
       console.warn('[Trivia Pool Status] Error:', error);
       if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
   }

@@ -9,7 +9,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { supabase } from '../../../../src/lib/supabase';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../../src/lib/sentryWrap';
 
 // ─── Haversine distance (miles) ────────────────────────────────────────────────
 function haversineServerMiles(lat1, lon1, lat2, lon2) {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -275,7 +275,7 @@ async function handlePost(req, res) {
         });
 
     } catch (error) {
-        try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
+        try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
         console.warn('Live games POST error:', error);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

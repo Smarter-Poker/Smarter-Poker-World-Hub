@@ -119,6 +119,7 @@ export async function getUserDb(token, deps = {}) {
  * The Home Games RPCs raise UNAUTHORIZED (SQLSTATE 42501) when auth.uid() does
  * not satisfy their own role check, and PostgREST answers PGRST301 / "JWT
  * expired" when the caller's token has lapsed. Four routes used to collapse
+ * both into a 500 "Could Not Be Loaded" plus a Sentry report, so an operator
  * whose session had simply expired, or whom the RPC does not accept (any
  * granted non-legacy operator until those functions learn about grants), read
  * as an outage. Now:

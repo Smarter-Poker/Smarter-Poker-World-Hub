@@ -16,7 +16,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { validateUnionWallet } from '../../../src/contracts/orb4_syndicate';
 const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
-import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { reportApiError } from '../../../src/lib/sentryWrap';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -762,8 +762,8 @@ export default async function handler(req, res) {
     } catch (err) {
       try {
         reportApiError(err, req);
-      } catch (_reportError) {
-        console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+      } catch (_sentryErr) {
+        console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
       }
       console.warn('[union-wallet]', err);
       return res.status(500).json({ success: false, error: 'Server error' });

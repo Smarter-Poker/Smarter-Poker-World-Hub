@@ -32,8 +32,7 @@
  * popup shows the feed rather than a second copy of the app's chrome.
  */
 
-import React, { useCallback, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from './FullScreenPageOverlay';
 import { usePageOverlayStore } from '../../stores/pageOverlayStore';
@@ -61,22 +60,11 @@ const HubNotificationsFeed = dynamic(
 );
 
 export default function GlobalPageOverlay() {
-  const router = useRouter();
   const overlayPage = usePageOverlayStore((s) => s.overlayPage);
   const overlayUrl = usePageOverlayStore((s) => s.overlayUrl);
   const overlayTitle = usePageOverlayStore((s) => s.overlayTitle);
   const closeOverlay = usePageOverlayStore((s) => s.closeOverlay);
   const setNotifClearedCount = usePageOverlayStore((s) => s.setNotifClearedCount);
-
-  // Opening the feed preserves the current page. Following a notification
-  // must reveal its destination once navigation succeeds, including invoice
-  // links within the same Messenger page. Failed navigation keeps the feed.
-  useEffect(() => {
-    if (overlayPage !== 'notifications') return;
-    const revealDestination = () => closeOverlay();
-    router.events.on('routeChangeComplete', revealDestination);
-    return () => router.events.off('routeChangeComplete', revealDestination);
-  }, [overlayPage, router.events, closeOverlay]);
 
   /**
    * The framed notifications page posts `SP_NOTIF_CLEARED` up to us when it

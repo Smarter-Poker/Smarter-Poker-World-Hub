@@ -46,7 +46,7 @@ function loadRoute() {
       getCombos: (hand) => (hand.length === 2 ? 6 : hand.endsWith('s') ? 4 : 12),
       withTiming() {},
     },
-    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
+    '../../../src/lib/sentryWrap': { reportApiError() {} },
     '../../../src/config/solverRanges': { RFI, BB_DEFENSE, FOUR_BET, getHandFrequencies },
   });
 }

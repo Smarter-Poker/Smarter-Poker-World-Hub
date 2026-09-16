@@ -30,7 +30,7 @@ const VideoLibraryCommandRail = forwardRef(function VideoLibraryCommandRail({
             <div className="vl-rail-kicker">Smarter.Poker Hub</div>
             <h1 className="vl-rail-title">Video <span>Library</span></h1>
 
-            <div ref={filterRailRef} className="vl-type-toggle-row" role="group" aria-label="Browse and sort videos" data-tutorial="filters">
+            <div ref={filterRailRef} className="vl-type-toggle-row" role="group" aria-label="Browse and sort videos">
                 <span className="vl-filter-group-label">Browse</span>
                 {BROWSE_VIEWS.map(view => {
                     const isActive = selectedType === view.id && libraryFilter === 'ALL';
@@ -103,7 +103,7 @@ const VideoLibraryCommandRail = forwardRef(function VideoLibraryCommandRail({
                 </button>
             </div>
 
-            <div className="vl-rail-count" aria-live="polite" data-tutorial="count">
+            <div className="vl-rail-count" aria-live="polite">
                 <strong>{visibleCount}</strong>
                 <span>Videos Showing</span>
             </div>

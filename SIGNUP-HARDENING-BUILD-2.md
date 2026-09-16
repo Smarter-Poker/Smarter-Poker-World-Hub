@@ -1,6 +1,6 @@
 # Signup Hardening — BUILD 2 (2026-05-03)
 
-Follow-on to `docs/SIGNUP_RUNBOOK.md`. The original fix patched the
+Follow-on to `SIGNUP-FIX-2026-05-03-FINAL.md`. The original fix patched the
 immediate outage; this build adds 7 layers of structural prevention so the
 signup path can never break again the same way.
 
@@ -151,7 +151,7 @@ or external-service dependencies):
 
 If you're picking this up:
 
-1. Read `docs/SIGNUP_RUNBOOK.md` for the outage backstory
+1. Read `SIGNUP-FIX-2026-05-03-FINAL.md` for the outage backstory
 2. Read this file for what's been added since
 3. Run `node --test __tests__/auth-routes-exist.test.mjs __tests__/signup-hardening.test.mjs __tests__/build-2-deliverables.test.mjs` — expect 19/19
 4. Run `bash scripts/apply-signup-hardening-2026-05-03.sh` — expect "already applied" for all 4 patches

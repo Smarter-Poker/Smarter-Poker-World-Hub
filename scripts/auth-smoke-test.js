@@ -72,7 +72,8 @@ async function run() {
       }
     }
     
-    // Correlate failures with existing application logs when diagnosing server errors.
+    // Also let's check for any 500 errors in recent vercel deployments if possible? 
+    // Or check Sentry using the Sentry API
     console.log('----------------------------------------------------');
     console.log(`Test completed with ${failures} auth/server failures.`);
   } catch (err) {
