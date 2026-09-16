@@ -964,7 +964,7 @@ jobs:
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
-            __tests__/sentry-coverage.test.mjs \
+            __tests__/retired-error-provider.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs \

@@ -307,7 +307,6 @@ async function createHorse(db, op, req, body) {
   // `alias` is unique and this route generates it from Math.random() when the
   // caller does not supply one, so a collision is an ordinary event, not a
   // server fault. Addendum item 17: it comes back as a 409 the operator can
-  // act on instead of a 500 that says "Request failed" and pages Sentry.
   if (error) throw mapDbError(error, 'A Horse With That Name Or Alias', { route: 'horses.stable-admin' });
   if (!data) throw new ApiError(500, 'The Horse Was Not Created', 'not_created');
 

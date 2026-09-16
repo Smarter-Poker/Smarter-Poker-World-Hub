@@ -14,7 +14,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { isCanonicalTrainingGameId } from '../../../src/lib/training/customTrainingLaunchContract.mjs';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let supabase = null;
 function getSupabase() {
@@ -55,8 +55,8 @@ export default async function handler(req, res) {
             arenaPath: `/hub/training/arena/${gameId}`,
         });
     } catch (error) {
-        try { reportApiError(error, req); } catch (_sentryError) {
-            console.warn('[SessionStart] Error reporting failed:', _sentryError?.message || _sentryError);
+        try { reportApiError(error, req); } catch (_reportErroror) {
+            console.warn('[SessionStart] Error reporting failed:', _reportErroror?.message || _reportErroror);
         }
         console.warn('[SessionStart] Unhandled error:', error);
         if (!res.headersSent) {

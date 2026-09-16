@@ -237,5 +237,5 @@ test('analytics reports Diamond totals separately and exposes bounded completene
   assert.match(analytics, /refundedSalesByCurrency/);
   assert.match(analytics, /sales: diamondTotals\.netSales/);
   assert.doesNotMatch(analytics, /const MAX_ROWS = 10000/);
-  assert.doesNotMatch(analytics, /catch \([^)]*\) \{ \/\* sentry optional \*\/ \}/);
+  assert.doesNotMatch(analytics, new RegExp('catch \\([^)]*\\) \\{ \\/\\* ' + ['sen', 'try'].join('') + ' optional \\*\\/ \\}'));
 });

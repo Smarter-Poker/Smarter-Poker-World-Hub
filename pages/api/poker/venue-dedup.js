@@ -4,7 +4,7 @@
  * Used by the live-tables API to combine data from both sources for matching venues.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import {
   normalizeForMatch,
   normalizeVenueName,
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
       alias_registry_size: venueAliasRegistrySize,
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('Venue dedup error:', err);
     res.status(500).json({ error: 'Venue identity report unavailable' });
   }

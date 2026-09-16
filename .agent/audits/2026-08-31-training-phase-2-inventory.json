@@ -17957,7 +17957,7 @@
     {
       "file": "pages/api/training/achievements.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -18074,8 +18074,8 @@
     {
       "file": "pages/api/training/analytics.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/questionAnalytics.mjs",
@@ -18278,8 +18278,8 @@
       "file": "pages/api/training/audit-hand-history.js",
       "imports": [
         "src/engines/HandHistoryParser.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/handAuditEngine.js"
@@ -18347,8 +18347,8 @@
         "src/config/gameConfigs.js",
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheContract.mjs",
@@ -18491,8 +18491,8 @@
     {
       "file": "pages/api/training/bookmark-solution.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -18565,8 +18565,8 @@
     {
       "file": "pages/api/training/browse-solutions.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -18680,7 +18680,7 @@
     {
       "file": "pages/api/training/challenges.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -18751,8 +18751,8 @@
     {
       "file": "pages/api/training/coaching-summary.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -18891,8 +18891,8 @@
       "imports": [
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -18988,7 +18988,7 @@
     {
       "file": "pages/api/training/daily-bonus.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/trivia/getTodayCST.js",
@@ -19115,8 +19115,8 @@
     {
       "file": "pages/api/training/equity.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -19244,7 +19244,7 @@
     {
       "file": "pages/api/training/explain-answer.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -19400,8 +19400,8 @@
     {
       "file": "pages/api/training/get-progress.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -19479,9 +19479,9 @@
         "src/data/TRAINING_LIBRARY.js",
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/grokClient.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheContract.mjs",
@@ -19627,8 +19627,8 @@
     {
       "file": "pages/api/training/get-sessions.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -19721,8 +19721,8 @@
       "file": "pages/api/training/grade-range.js",
       "imports": [
         "src/config/solverRanges.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -19820,8 +19820,8 @@
     {
       "file": "pages/api/training/gto-reports.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -19927,8 +19927,8 @@
     {
       "file": "pages/api/training/hand-of-the-day.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -20167,8 +20167,8 @@
     {
       "file": "pages/api/training/health.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -20291,8 +20291,8 @@
     {
       "file": "pages/api/training/icm-calc.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -20380,7 +20380,7 @@
     {
       "file": "pages/api/training/leaderboard.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/leaderboardDimensions.mjs",
@@ -20511,8 +20511,8 @@
       "imports": [
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -20599,8 +20599,8 @@
       "file": "pages/api/training/preflop-ranges.js",
       "imports": [
         "src/config/solverRanges.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -20714,8 +20714,8 @@
       "file": "pages/api/training/progress.js",
       "imports": [
         "src/config/LevelRegistry.ts",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -20788,8 +20788,8 @@
       "file": "pages/api/training/recommendations.js",
       "imports": [
         "src/data/TRAINING_LIBRARY.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -20862,8 +20862,8 @@
     {
       "file": "pages/api/training/record-question.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/answerGradingContract.mjs",
@@ -21024,8 +21024,8 @@
     {
       "file": "pages/api/training/reissue-questions.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/gradingReceipt.mjs",
@@ -21094,8 +21094,8 @@
     {
       "file": "pages/api/training/report-question.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -21220,8 +21220,8 @@
     {
       "file": "pages/api/training/save-progress.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -21302,8 +21302,8 @@
     {
       "file": "pages/api/training/save-session.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -21384,8 +21384,8 @@
     {
       "file": "pages/api/training/share.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -21449,8 +21449,8 @@
     {
       "file": "pages/api/training/smart-practice.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -21564,7 +21564,7 @@
       "file": "pages/api/training/solver-api.js",
       "imports": [
         "src/engines/positionOrder.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/customSolverSpotContract.mjs",
@@ -21724,8 +21724,8 @@
     {
       "file": "pages/api/training/solver-worker.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/solverWorkerAuth.mjs"
@@ -21925,7 +21925,7 @@
     {
       "file": "pages/api/training/spaced-repetition.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/utils/trainingApiUtils.js"
       ],
       "links": [],
@@ -21981,8 +21981,8 @@
       "imports": [
         "src/engines/DeterministicGTOEngine.js",
         "src/engines/deterministicEnginePatches.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthPersistence.mjs",
@@ -22235,8 +22235,8 @@
     {
       "file": "pages/api/training/streak.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/trainingPersistence.mjs",
@@ -22663,7 +22663,7 @@
     {
       "file": "pages/api/training/tournaments.js",
       "imports": [
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -22846,8 +22846,8 @@
     {
       "file": "pages/api/training/weekly-stats.js",
       "imports": [
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -46417,7 +46417,7 @@
         },
         {
           "name": "useUnreadCount",
-          "line": 358,
+          "line": 357,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -46433,7 +46433,7 @@
         },
         {
           "name": "refreshNotifications",
-          "line": 143,
+          "line": 142,
           "references": 8,
           "exported": false,
           "defaultExport": false,
@@ -46441,7 +46441,7 @@
         },
         {
           "name": "scheduleNotifRefresh",
-          "line": 214,
+          "line": 213,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -46449,7 +46449,7 @@
         },
         {
           "name": "tick",
-          "line": 301,
+          "line": 300,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -46457,7 +46457,7 @@
         },
         {
           "name": "onVisibility",
-          "line": 312,
+          "line": 311,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -46465,7 +46465,7 @@
         },
         {
           "name": "setAndBroadcastUnreadCount",
-          "line": 332,
+          "line": 331,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -46476,7 +46476,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 168,
+          "line": 167,
           "excerpt": "// Fallback: social-only count straight off the table.",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -46586,6 +46586,46 @@
           "namedFunctionExpression": false
         }
       ],
+      "possibleUnwiredFunctions": [],
+      "markers": []
+    },
+    {
+      "file": "src/lib/apiErrorHandler.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [],
       "possibleUnwiredFunctions": [],
       "markers": []
     },
@@ -48003,46 +48043,6 @@
         "sweepStaleScrollLocks",
         "clearBodyScrollLockIfUnheld"
       ],
-      "markers": []
-    },
-    {
-      "file": "src/lib/sentryWrap.js",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
-        "offline": false,
-        "stale": false,
-        "success": false,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [],
-      "possibleUnwiredFunctions": [],
       "markers": []
     },
     {
@@ -57136,7 +57136,7 @@
   "dependencyEdges": [
     {
       "from": "pages/api/training/achievements.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/achievements.js",
@@ -57156,11 +57156,11 @@
     },
     {
       "from": "pages/api/training/analytics.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/analytics.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/analytics.js",
@@ -57188,11 +57188,11 @@
     },
     {
       "from": "pages/api/training/audit-hand-history.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/audit-hand-history.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/audit-hand-history.js",
@@ -57224,11 +57224,11 @@
     },
     {
       "from": "pages/api/training/batch-preload.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/batch-preload.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/batch-preload.js",
@@ -57300,11 +57300,11 @@
     },
     {
       "from": "pages/api/training/bookmark-solution.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/bookmark-solution.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/bookmark-solution.js",
@@ -57320,11 +57320,11 @@
     },
     {
       "from": "pages/api/training/browse-solutions.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/browse-solutions.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/browse-solutions.js",
@@ -57348,7 +57348,7 @@
     },
     {
       "from": "pages/api/training/challenges.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/challenges.js",
@@ -57360,11 +57360,11 @@
     },
     {
       "from": "pages/api/training/coaching-summary.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/coaching-summary.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/coaching-summary.js",
@@ -57392,11 +57392,11 @@
     },
     {
       "from": "pages/api/training/custom-train.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/custom-train.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/custom-train.js",
@@ -57444,7 +57444,7 @@
     },
     {
       "from": "pages/api/training/daily-bonus.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/daily-bonus.js",
@@ -57468,11 +57468,11 @@
     },
     {
       "from": "pages/api/training/equity.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/equity.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/equity.js",
@@ -57488,7 +57488,7 @@
     },
     {
       "from": "pages/api/training/explain-answer.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/explain-answer.js",
@@ -57496,11 +57496,11 @@
     },
     {
       "from": "pages/api/training/get-progress.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/get-progress.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/get-progress.js",
@@ -57540,15 +57540,15 @@
     },
     {
       "from": "pages/api/training/get-question.js",
+      "to": "src/lib/apiErrorHandler.js"
+    },
+    {
+      "from": "pages/api/training/get-question.js",
       "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/get-question.js",
       "to": "src/lib/grokClient.js"
-    },
-    {
-      "from": "pages/api/training/get-question.js",
-      "to": "src/lib/sentryWrap.js"
     },
     {
       "from": "pages/api/training/get-question.js",
@@ -57604,11 +57604,11 @@
     },
     {
       "from": "pages/api/training/get-sessions.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/get-sessions.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/get-sessions.js",
@@ -57636,11 +57636,11 @@
     },
     {
       "from": "pages/api/training/grade-range.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/grade-range.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/grade-range.js",
@@ -57656,11 +57656,11 @@
     },
     {
       "from": "pages/api/training/gto-reports.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/gto-reports.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/gto-reports.js",
@@ -57684,11 +57684,11 @@
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/hand-of-the-day.js",
@@ -57732,11 +57732,11 @@
     },
     {
       "from": "pages/api/training/health.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/health.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/health.js",
@@ -57748,11 +57748,11 @@
     },
     {
       "from": "pages/api/training/icm-calc.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/icm-calc.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/icm-calc.js",
@@ -57768,7 +57768,7 @@
     },
     {
       "from": "pages/api/training/leaderboard.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/leaderboard.js",
@@ -57812,11 +57812,11 @@
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/next-street.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/next-street.js",
@@ -57860,11 +57860,11 @@
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/preflop-ranges.js",
@@ -57884,11 +57884,11 @@
     },
     {
       "from": "pages/api/training/progress.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/progress.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/progress.js",
@@ -57908,11 +57908,11 @@
     },
     {
       "from": "pages/api/training/recommendations.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/recommendations.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/recommendations.js",
@@ -57932,11 +57932,11 @@
     },
     {
       "from": "pages/api/training/record-question.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/record-question.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/record-question.js",
@@ -57984,11 +57984,11 @@
     },
     {
       "from": "pages/api/training/reissue-questions.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/reissue-questions.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/reissue-questions.js",
@@ -58024,11 +58024,11 @@
     },
     {
       "from": "pages/api/training/report-question.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/report-question.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/report-question.js",
@@ -58048,11 +58048,11 @@
     },
     {
       "from": "pages/api/training/save-progress.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/save-progress.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/save-progress.js",
@@ -58072,11 +58072,11 @@
     },
     {
       "from": "pages/api/training/save-session.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/save-session.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/save-session.js",
@@ -58096,11 +58096,11 @@
     },
     {
       "from": "pages/api/training/share.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/share.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/share.js",
@@ -58116,11 +58116,11 @@
     },
     {
       "from": "pages/api/training/smart-practice.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/smart-practice.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/smart-practice.js",
@@ -58144,7 +58144,7 @@
     },
     {
       "from": "pages/api/training/solver-api.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/solver-api.js",
@@ -58176,11 +58176,11 @@
     },
     {
       "from": "pages/api/training/solver-worker.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/solver-worker.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/solver-worker.js",
@@ -58196,7 +58196,7 @@
     },
     {
       "from": "pages/api/training/spaced-repetition.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/spaced-repetition.js",
@@ -58212,11 +58212,11 @@
     },
     {
       "from": "pages/api/training/spot-drill.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/spot-drill.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/spot-drill.js",
@@ -58252,11 +58252,11 @@
     },
     {
       "from": "pages/api/training/streak.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/streak.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/streak.js",
@@ -58328,7 +58328,7 @@
     },
     {
       "from": "pages/api/training/tournaments.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/tournaments.js",
@@ -58344,11 +58344,11 @@
     },
     {
       "from": "pages/api/training/weekly-stats.js",
-      "to": "src/lib/apiRateLimit.js"
+      "to": "src/lib/apiErrorHandler.js"
     },
     {
       "from": "pages/api/training/weekly-stats.js",
-      "to": "src/lib/sentryWrap.js"
+      "to": "src/lib/apiRateLimit.js"
     },
     {
       "from": "pages/api/training/weekly-stats.js",
@@ -66647,7 +66647,7 @@
       "file": "pages/api/training/achievements.js",
       "reachableFiles": [
         "pages/api/training/achievements.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -66682,8 +66682,8 @@
       "file": "pages/api/training/analytics.js",
       "reachableFiles": [
         "pages/api/training/analytics.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -66727,8 +66727,8 @@
       "reachableFiles": [
         "pages/api/training/audit-hand-history.js",
         "src/engines/HandHistoryParser.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -66809,8 +66809,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -66961,8 +66961,8 @@
       "file": "pages/api/training/bookmark-solution.js",
       "reachableFiles": [
         "pages/api/training/bookmark-solution.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67002,8 +67002,8 @@
       "file": "pages/api/training/browse-solutions.js",
       "reachableFiles": [
         "pages/api/training/browse-solutions.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
@@ -67046,7 +67046,7 @@
       "file": "pages/api/training/challenges.js",
       "reachableFiles": [
         "pages/api/training/challenges.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -67065,8 +67065,8 @@
       "file": "pages/api/training/coaching-summary.js",
       "reachableFiles": [
         "pages/api/training/coaching-summary.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -67109,8 +67109,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -67241,7 +67241,7 @@
       "file": "pages/api/training/daily-bonus.js",
       "reachableFiles": [
         "pages/api/training/daily-bonus.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/trivia/getTodayCST.js",
@@ -67274,8 +67274,8 @@
       "file": "pages/api/training/equity.js",
       "reachableFiles": [
         "pages/api/training/equity.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67301,7 +67301,7 @@
       "file": "pages/api/training/explain-answer.js",
       "reachableFiles": [
         "pages/api/training/explain-answer.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -67335,8 +67335,8 @@
       "file": "pages/api/training/get-progress.js",
       "reachableFiles": [
         "pages/api/training/get-progress.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67383,9 +67383,9 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
         "src/lib/grokClient.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -67521,8 +67521,8 @@
       "file": "pages/api/training/get-sessions.js",
       "reachableFiles": [
         "pages/api/training/get-sessions.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67567,8 +67567,8 @@
       "reachableFiles": [
         "pages/api/training/grade-range.js",
         "src/config/solverRanges.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67596,8 +67596,8 @@
       "file": "pages/api/training/gto-reports.js",
       "reachableFiles": [
         "pages/api/training/gto-reports.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67644,8 +67644,8 @@
         "pages/api/training/hand-of-the-day.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -67747,8 +67747,8 @@
       "file": "pages/api/training/health.js",
       "reachableFiles": [
         "pages/api/training/health.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -67787,8 +67787,8 @@
       "file": "pages/api/training/icm-calc.js",
       "reachableFiles": [
         "pages/api/training/icm-calc.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -67814,7 +67814,7 @@
       "file": "pages/api/training/leaderboard.js",
       "reachableFiles": [
         "pages/api/training/leaderboard.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/leaderboardDimensions.mjs",
@@ -67898,8 +67898,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -68045,8 +68045,8 @@
       "reachableFiles": [
         "pages/api/training/preflop-ranges.js",
         "src/config/solverRanges.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68076,8 +68076,8 @@
       "reachableFiles": [
         "pages/api/training/progress.js",
         "src/config/LevelRegistry.ts",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68116,8 +68116,8 @@
       "reachableFiles": [
         "pages/api/training/recommendations.js",
         "src/data/TRAINING_LIBRARY.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/sessionEvidence.mjs",
@@ -68151,8 +68151,8 @@
         "pages/api/training/record-question.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68258,8 +68258,8 @@
         "pages/api/training/reissue-questions.js",
         "src/engines/DifficultyEngine.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68336,8 +68336,8 @@
       "file": "pages/api/training/report-question.js",
       "reachableFiles": [
         "pages/api/training/report-question.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68391,8 +68391,8 @@
       "file": "pages/api/training/save-progress.js",
       "reachableFiles": [
         "pages/api/training/save-progress.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68445,8 +68445,8 @@
       "file": "pages/api/training/save-session.js",
       "reachableFiles": [
         "pages/api/training/save-session.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68500,8 +68500,8 @@
       "file": "pages/api/training/share.js",
       "reachableFiles": [
         "pages/api/training/share.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -68540,8 +68540,8 @@
       "file": "pages/api/training/smart-practice.js",
       "reachableFiles": [
         "pages/api/training/smart-practice.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -68584,7 +68584,7 @@
       "reachableFiles": [
         "pages/api/training/solver-api.js",
         "src/engines/positionOrder.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/customSolverSpotContract.mjs",
@@ -68647,8 +68647,8 @@
       "file": "pages/api/training/solver-worker.js",
       "reachableFiles": [
         "pages/api/training/solver-worker.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/supabaseServerClient.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/solverWorkerAuth.mjs"
@@ -68698,7 +68698,7 @@
       "file": "pages/api/training/spaced-repetition.js",
       "reachableFiles": [
         "pages/api/training/spaced-repetition.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/utils/trainingApiUtils.js"
       ],
       "apiReferences": [],
@@ -68724,8 +68724,8 @@
         "src/engines/PostflopStrategyEngine.js",
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabase.js",
         "src/lib/supabaseRetry.js",
@@ -68824,8 +68824,8 @@
       "file": "pages/api/training/streak.js",
       "reachableFiles": [
         "pages/api/training/streak.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseRetry.js",
         "src/lib/supabaseServerClient.js",
@@ -69048,7 +69048,7 @@
       "file": "pages/api/training/tournaments.js",
       "reachableFiles": [
         "pages/api/training/tournaments.js",
-        "src/lib/sentryWrap.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
       ],
@@ -69091,8 +69091,8 @@
       "file": "pages/api/training/weekly-stats.js",
       "reachableFiles": [
         "pages/api/training/weekly-stats.js",
+        "src/lib/apiErrorHandler.js",
         "src/lib/apiRateLimit.js",
-        "src/lib/sentryWrap.js",
         "src/lib/serverAuth.js",
         "src/lib/supabaseServerClient.js",
         "src/utils/trainingApiUtils.js"
@@ -81890,6 +81890,16 @@
       "tests": []
     },
     {
+      "file": "src/lib/apiErrorHandler.js",
+      "reachableFiles": [
+        "src/lib/apiErrorHandler.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
       "file": "src/lib/apiRateLimit.js",
       "reachableFiles": [
         "src/lib/apiRateLimit.js"
@@ -82117,16 +82127,6 @@
         "__tests__/scroll-lock.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ]
-    },
-    {
-      "file": "src/lib/sentryWrap.js",
-      "reachableFiles": [
-        "src/lib/sentryWrap.js"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": []
     },
     {
       "file": "src/lib/serverAuth.js",
@@ -85547,7 +85547,7 @@
       {
         "file": "src/hooks/useUnreadCount.jsx",
         "kind": "FALLBACK",
-        "line": 168,
+        "line": 167,
         "excerpt": "// Fallback: social-only count straight off the table.",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -94123,7 +94123,7 @@
       {
         "file": "src/hooks/useUnreadCount.jsx",
         "kind": "FALLBACK",
-        "line": 168,
+        "line": 167,
         "excerpt": "// Fallback: social-only count straight off the table.",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",

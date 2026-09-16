@@ -5,7 +5,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
  * GET:  Return aggregate stats and study patterns
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 import { persistedResult, persistenceFailure } from '../../../../src/lib/personal-assistant/persistenceContract';
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
 
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (e) {
-        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         console.warn('[Analytics API] Error:', e);
         return res.status(500).json({ error: 'Internal server error' });
     }
