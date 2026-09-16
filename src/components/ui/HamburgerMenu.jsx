@@ -97,6 +97,26 @@ const labelOf = (item) => (typeof item?.label === 'string' ? item.label : '');
 const matchesId = (item, id) => item?.id === id;
 const looksLikeSignOut = (item) => /sign\s*out|log\s*out|logout/i.test(labelOf(item));
 
+/** Presentation-only mapping to Poker Near Me's painted command controls. */
+function pokerNearMeCommandIcon(item) {
+  const signal = `${item?.href || ''} ${labelOf(item)} ${item?.description || ''}`.toLowerCase();
+  if (/search/.test(signal)) return 'search';
+  if (/saved|favourite|favorite|bookmark/.test(signal)) return 'saved';
+  if (/alert|notification/.test(signal)) return 'alert';
+  if (/review|rating/.test(signal)) return 'review';
+  if (/friend|community|social|player/.test(signal)) return 'community';
+  if (/road|trip|route|directions/.test(signal)) return 'roadtrip';
+  if (/event|calendar|schedule/.test(signal)) return 'event-ticket';
+  if (/tour|tournament|series|daily grind/.test(signal)) return 'trophy';
+  if (/live|cash|game/.test(signal)) return 'live-games';
+  if (/venue|casino|club|room/.test(signal)) return 'globe';
+  if (/map|nearby|location/.test(signal)) return 'location';
+  if (/filter|setting|preference/.test(signal)) return 'filter';
+  if (/help|about|info|guide/.test(signal)) return 'info';
+  if (/home/.test(signal)) return 'home';
+  return 'more';
+}
+
 /** Split a flat menu array into [{ label, items:[{item,index}] }] groups. */
 function buildGroups(items) {
   const groups = [];
@@ -151,6 +171,7 @@ function HamburgerMenuContent({
     [router?.asPath, router?.pathname],
   );
   const commandMenuId = `sp-world-command-menu-${activeWorld?.id || 'global'}`;
+  const isPokerNearMeMenu = activeWorld?.id === 'poker-near-me';
   const worldAccent = activeWorld?.menuPalette?.accent || activeWorld?.accent || '#2e9bff';
   const isFacebookMenu = activeWorld?.menuPalette?.scheme === 'facebook';
   const worldMenuStyle = useMemo(
@@ -687,6 +708,7 @@ function HamburgerMenuContent({
         {/* Reserve the icon slot so every label shares one left edge */}
         <span
           aria-hidden="true"
+          className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item)}` : undefined}
           style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.danger ? colors.danger : 'inherit' }}
         >
           {item.icon || null}
@@ -819,7 +841,11 @@ function HamburgerMenuContent({
             onClick={() => item.onChange(!item.checked)}
             style={{ ...rowBase, color: colors.text, alignItems: 'center' }}
           >
-            <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span
+              aria-hidden="true"
+              className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item)}` : undefined}
+              style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               {item.icon || null}
             </span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -880,7 +906,11 @@ function HamburgerMenuContent({
               cursor: 'pointer',
             }}
           >
-            <span aria-hidden="true" style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span
+              aria-hidden="true"
+              className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(item)}` : undefined}
+              style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               {item.icon || null}
             </span>
             <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontWeight: 500 }}>{item.label}</span>
@@ -918,7 +948,11 @@ function HamburgerMenuContent({
                 boxSizing: 'border-box', fontFamily: 'inherit',
               };
               const iconSlot = gridItem.icon ? (
-                <span aria-hidden="true" style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span
+                  aria-hidden="true"
+                  className={isPokerNearMeMenu ? `sp-command-item-icon sp-command-item-icon--${pokerNearMeCommandIcon(gridItem)}` : undefined}
+                  style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
                   {gridItem.icon}
                 </span>
               ) : null;
@@ -1117,6 +1151,7 @@ function HamburgerMenuContent({
         inert={childDialogOpen ? '' : undefined}
         aria-busy={pendingHref ? 'true' : 'false'}
         data-world-command-menu={activeWorld?.id || 'global'}
+        data-pnm-console={isPokerNearMeMenu ? 'painted-command-drawer-v1' : undefined}
         data-world-menu-scheme={activeWorld?.menuPalette?.scheme || 'global'}
         data-world-menu-texture={activeWorld?.menuPalette?.texture || 'none'}
         data-direction={direction}
@@ -1190,7 +1225,7 @@ function HamburgerMenuContent({
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <button
             type="button"
-            className="sp-command-utility-button"
+            className="sp-command-utility-button sp-command-utility-button--edit"
             onClick={() => setEditFavs((v) => !v)}
             aria-pressed={editFavs}
             aria-label={editFavs ? 'Done pinning menu items' : 'Pin menu items to favourites'}
@@ -1206,7 +1241,7 @@ function HamburgerMenuContent({
           <button
             ref={closeBtnRef}
             type="button"
-            className="sp-command-utility-button"
+            className="sp-command-utility-button sp-command-utility-button--close"
             onClick={onClose}
             aria-label="Close menu"
             style={{
@@ -1233,6 +1268,7 @@ function HamburgerMenuContent({
         {!online && (
           <div
             role="status"
+            className="sp-command-offline"
             style={{
               margin: '0 16px 12px', padding: '10px 12px', borderRadius: 8,
               background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
@@ -1247,7 +1283,7 @@ function HamburgerMenuContent({
         {/* Search */}
         {showSearch && (
           <div className="sp-command-search" style={{ padding: '0 14px 12px', position: 'sticky', top: 0, zIndex: 4, background: colors.bg }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <div className="sp-command-search__well" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={18} aria-hidden="true" color={colors.textSec} style={{ position: 'absolute', left: 12 }} />
               <input
                 type="search"
@@ -1419,6 +1455,7 @@ function HamburgerMenuContent({
             {/* Active Identity Switcher */}
             {showProfile && activeUser && (
               <div
+                className="sp-command-identity"
                 style={{
                   margin: '0 12px 16px',
                   background: (theme === 'light' || isFacebookMenu) ? colors.bg : colors.cardBg,
@@ -1971,45 +2008,6 @@ function HamburgerMenuContent({
           cursor: progress !important;
           filter: saturate(1.2) brightness(1.08);
         }
-        /* Poker Near Me uses one continuous machined frame per control. Avoid
-           intersecting inset rails and decorative edge fragments: at narrow
-           raster scales those read as broken corners instead of premium trim. */
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-grid-mark,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-context,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-icon-btn,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-menu-row,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-grid-tile {
-          border-style: solid !important;
-          border-width: 1px !important;
-          border-radius: 3px !important;
-          outline: 0;
-        }
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-grid-mark,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-command-context,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-icon-btn {
-          border-color: rgba(164, 188, 207, .34) !important;
-          background: #0a1118 !important;
-          box-shadow: inset 0 1px rgba(255, 255, 255, .055) !important;
-        }
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-menu-row,
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-grid-tile {
-          border-color: rgba(151, 177, 198, .28) !important;
-          background: #090f15 !important;
-          box-shadow: inset 0 1px rgba(255, 255, 255, .04), 0 8px 18px rgba(0, 0, 0, .22) !important;
-        }
-        .sp-drawer[data-world-command-menu='poker-near-me'] .sp-grid-tile::after {
-          content: none;
-        }
-        .sp-drawer[data-world-command-menu='poker-near-me'] :is(.sp-menu-row, .sp-grid-tile)[aria-current='page'] {
-          border-color: #48c7ff !important;
-          background: #0a1822 !important;
-          box-shadow: inset 0 0 0 1px rgba(72, 199, 255, .12), 0 8px 22px rgba(0, 0, 0, .3) !important;
-        }
-        .sp-drawer[data-world-command-menu='poker-near-me'] :is(.sp-menu-row, .sp-grid-tile, .sp-icon-btn):focus-visible {
-          outline: 2px solid #78d8ff;
-          outline-offset: 2px;
-          border-radius: 3px;
-        }
         .sp-drawer[data-world-command-menu='social-media'] {
           background:
             linear-gradient(90deg, rgba(24,119,242,.045), transparent 2px),
@@ -2068,8 +2066,8 @@ function HamburgerMenuContent({
           border-radius: 3px;
         }
         @media (hover: hover) {
-          .sp-menu-row:hover { background: var(--world-tile-active, rgba(127, 148, 190, 0.14)) !important; }
-          .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
+          .sp-drawer:not([data-world-command-menu='poker-near-me']) .sp-menu-row:hover { background: var(--world-tile-active, rgba(127, 148, 190, 0.14)) !important; }
+          .sp-drawer:not([data-world-command-menu='poker-near-me']) .sp-grid-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18); }
         }
         @media (max-width: 420px) {
           .sp-command-backdrop[data-responsive-composition='adaptive'] {

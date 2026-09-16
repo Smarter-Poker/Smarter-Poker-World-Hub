@@ -19,7 +19,7 @@
  */
 
 import { runTournamentLifecycle, serviceClient } from '../trivia/tournament-lifecycle';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { requireAdminSecret } from '../../../src/lib/trivia/adminAuth';
 import { withCronHealth } from '../../../src/lib/cronHealth';
 import {

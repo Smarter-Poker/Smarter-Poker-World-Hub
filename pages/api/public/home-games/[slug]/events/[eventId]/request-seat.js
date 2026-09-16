@@ -42,7 +42,7 @@ import { sendPushNotification } from '../../../../../../../src/lib/commander/pus
 import { sendDirectMessageBetweenUsers } from '../../../../../../../src/lib/home-games/messenger';
 import { getUserScopedClient, mapRpcError } from '../../../../../../../src/lib/home-games/rpcBridge';
 import { homeGameSeatNotificationId } from '../../../../../../../src/lib/home-games/seatNotificationId.mjs';
-import { reportApiError } from '../../../../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
 function getSupabase() {
@@ -417,7 +417,7 @@ async function dispatchHostNotification(supabase, ctx) {
       messageType: 'text',
     });
   } catch (e) {
-      try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[request-seat] DM dispatch threw:', e?.message || e);
   }
 }

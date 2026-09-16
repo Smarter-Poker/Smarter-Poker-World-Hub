@@ -44,7 +44,7 @@ test.describe('Poker Near Me phase 15 secondary interaction foundation', () => {
       .filter((image) => image.complete && image.naturalWidth === 0)
       .map((image) => image.currentSrc || image.src));
     expect(brokenImages).toEqual([]);
-    await expectInteractionFloor(page.locator('.pnm-family-nav__link'), 'family navigation');
+    await expectInteractionFloor(page.locator('.pnm-console-family-nav__link'), 'family navigation');
     await expectInteractionFloor(main.locator('.section-action-btn, .vr-write-btn'), 'venue actions');
     await expectNoOverflow(page, 'venue detail');
   });

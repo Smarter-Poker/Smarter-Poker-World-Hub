@@ -7,6 +7,7 @@ import HamburgerMenu from '../ui/HamburgerMenu';
 import PokerNearMeFamilyNav from './PokerNearMeFamilyNav';
 import DeepRouteSignalDeck from './DeepRouteSignalDeck';
 import PokerNearMeRecentRail from './PokerNearMeRecentRail';
+import { PokerNearMePanelShell } from './PokerNearMeConsole';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../lib/poker-near-me/activity';
 import { buildLocationDirectorySchema, serializePokerJsonLd } from '../../lib/poker-near-me/structuredData';
 import {
@@ -60,10 +61,20 @@ function VenueCard({ venue }) {
   const catalog = venue.live_data?.data_mode === 'catalog';
   const unavailable = venue.live_data?.live_count_known === false && !catalog;
   return (
-    <article className="pnm-location-card">
+    <PokerNearMePanelShell className="pnm-location-card">
       <Link href={`/hub/venues/${venue.id}`} aria-label={`View ${venue.name}`}>
         <div className="pnm-location-card__media">
-          <img src={image} alt="" loading="lazy" onError={() => setImage(FALLBACK)} />
+          <img
+            src={image}
+            alt=""
+            loading="lazy"
+            onError={() => setImage(FALLBACK)}
+            onLoad={(event) => {
+              if (image === FALLBACK) return;
+              const { naturalWidth, naturalHeight } = event.currentTarget;
+              if (naturalWidth < 480 || naturalHeight < 240) setImage(FALLBACK);
+            }}
+          />
         </div>
         <div className="pnm-location-card__body">
           <span>{String(venue.venue_type || 'Poker room').replace(/_/g, ' ')}</span>
@@ -83,7 +94,7 @@ function VenueCard({ venue }) {
           </div>
         </div>
       </Link>
-    </article>
+    </PokerNearMePanelShell>
   );
 }
 
@@ -228,9 +239,9 @@ export default function PokerNearMeLocationPage({
             </header>
             <div className="pnm-location-listing__states">
               {states.map((state) => (
-                <Link key={state.code} href={state.href} className="pnm-location-listing__state">
+                <PokerNearMePanelShell as={Link} key={state.code} href={state.href} className="pnm-location-listing__state">
                   <span>{state.name}</span><small>{state.venueCount} Venues · {state.cityCount} Cities</small>
-                </Link>
+                </PokerNearMePanelShell>
               ))}
             </div>
           </section>
@@ -245,9 +256,9 @@ export default function PokerNearMeLocationPage({
             </header>
             <div className="pnm-location-listing__states">
               {cities.map((entry) => (
-                <Link key={entry.href} href={entry.href} className="pnm-location-listing__state">
+                <PokerNearMePanelShell as={Link} key={entry.href} href={entry.href} className="pnm-location-listing__state">
                   <span>{entry.name}</span><small>{entry.venueCount} Venues</small>
-                </Link>
+                </PokerNearMePanelShell>
               ))}
             </div>
           </section>

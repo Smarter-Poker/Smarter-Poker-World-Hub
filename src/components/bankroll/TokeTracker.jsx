@@ -2051,7 +2051,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             {/* ── YEARLY CALENDAR (hidden in standalone mode) ── */}
             {
                 !standalone && (
-                    <div style={styles.calendarWrapper}>
+                    <div className="toke-cal-wrapper" style={styles.calendarWrapper}>
                         <TokeCalendar userId={userId} />
                     </div>
                 )

@@ -31,7 +31,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // check-in prompt was silently discarded: no outbox row, no log, no error.
 // notify() fires the in-app bell and the web push together.
 import { notifyVenueAlert } from '../../../src/lib/notify';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getGrokClient } from '../../../src/lib/grokClient';
 const { getServerUserWithFallback } = require('../../../src/lib/serverAuth');
 
@@ -492,8 +492,8 @@ export default async function vercelHandler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (_sentryErr) {
-      console.warn('[venues] handled exception:', _sentryErr?.message ?? _sentryErr);
+    } catch (_reportError) {
+      console.warn('[venues] handled exception:', _reportError?.message ?? _reportError);
     }
     console.warn('[venues] router error:', err);
     if (!res.headersSent) {
