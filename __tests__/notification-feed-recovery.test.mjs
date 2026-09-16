@@ -6,7 +6,7 @@ import vm from 'node:vm';
 async function fixture(file = 'pages/api/notifications/feed.js') {
   const state = { userId: 'account-a', failedTable: null, calls: [], inserted: [],
     tables: {
-      notifications: [{ id: 'social', user_id: 'account-a', title: 'Seat Open', created_at: '2026-09-10T00:00:00Z', read: false }],
+      personal_notifications: [{ id: 'social', user_id: 'account-a', title: 'Seat Open', created_at: '2026-09-10T00:00:00Z', read: false }],
       page_followers: [{ page_type: 'venue', page_id: '123', user_id: 'account-a' }],
       page_notifications: [{ id: 'page', page_type: 'venue', page_id: '123', created_at: '2026-09-10T00:00:00Z' }],
       notification_reads: [], profiles: [],
@@ -16,9 +16,10 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
     const call = { table, filters: [], order: null, limit: null };
     state.calls.push(call);
     const chain = {
-      select() { return chain; },
+      select(columns, options) { call.count = options?.count; return chain; },
       eq(key, value) { call.filters.push(['eq', key, value]); return chain; },
       in(key, value) { call.filters.push(['in', key, value]); return chain; },
+      not(key, operator, value) { call.filters.push(['not', key, value]); return chain; },
       or(value) { call.or = value; return chain; },
       order(key, options) { call.order = [key, options]; return chain; },
       limit(value) { call.limit = value; return chain; },
@@ -34,20 +35,21 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
         }
         let rows = [...(state.tables[table] || [])];
         for (const [op, key, value] of call.filters) {
-          rows = rows.filter(row => op === 'eq' ? row[key] === value : value.includes(row[key]));
+          rows = rows.filter(row => op === 'eq' ? row[key] === value : op === 'not' ? row[key] !== value : value.includes(row[key]));
         }
         if (call.order) {
           const [key, options] = call.order;
           rows.sort((a, b) => String(a[key]).localeCompare(String(b[key])) * (options.ascending ? 1 : -1));
         }
         if (call.limit != null) rows = rows.slice(0, call.limit);
-        return Promise.resolve({ data: call.single ? (rows[0] || null) : rows, error: null }).then(resolve, reject);
+        return Promise.resolve({ data: call.single ? (rows[0] || null) : rows,
+          count: call.count ? rows.length : null, error: null }).then(resolve, reject);
       },
     };
     return chain;
   } };
   const context = vm.createContext({
-    process: { env: {} }, console: { warn() {} },
+    process: { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture-not-a-credential' } }, console: { warn() {}, error() {} },
     require: () => ({ applyCors: () => true }),
   });
   const module = new vm.SourceTextModule(readFileSync(file, 'utf8'), { context });
@@ -75,7 +77,7 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
   return { state, request };
 }
 
-for (const table of ['notifications', 'page_followers', 'page_notifications', 'notification_reads']) {
+for (const table of ['personal_notifications', 'page_followers', 'page_notifications', 'notification_reads']) {
   test('feed refuses and does not cache an authoritative ' + table + ' read error', async () => {
     const { state, request } = await fixture();
     state.failedTable = table;
@@ -92,7 +94,7 @@ for (const table of ['notifications', 'page_followers', 'page_notifications', 'n
 }
 test('a confirmed empty feed succeeds without querying unrelated page notifications', async () => {
   const { state, request } = await fixture();
-  state.tables.notifications = [];
+  state.tables.personal_notifications = [];
   state.tables.page_followers = [];
   const result = await request();
   assert.equal(result.statusCode, 200);
@@ -103,7 +105,7 @@ test('a confirmed empty feed succeeds without querying unrelated page notificati
 test('bust=1 reads through the warm server cache', async () => {
   const { state, request } = await fixture();
   await request();
-  state.tables.notifications[0].read = true;
+  state.tables.personal_notifications[0].read = true;
   const recovered = await request({ bust: '1' });
   assert.equal(recovered.headers['X-Cache'], 'MISS');
   assert.equal(recovered.payload.notifications.find(row => row.id === 'social').read, true);
@@ -128,6 +130,24 @@ test('unsafe followed page ids cannot broaden the service-role feed query', asyn
   assert.equal(state.calls.find(call => call.table === 'page_notifications').or,
     'and(page_type.eq.venue,page_id.eq.456)');
 });
+
+for (const file of ['pages/api/notifications/feed.js', 'pages/api/notifications/list.js',
+  'pages/api/notifications/unread-count.js', 'pages/api/user/get-header-stats.js']) {
+  test(`${file} uses the personal destination view without reading the raw owner alert feed`, async () => {
+    const { state, request } = await fixture(file);
+    state.tables.page_followers = [];
+    state.tables.profiles = [{ id: 'account-a', username: 'fixture' }];
+    // If any service reader goes back to the raw table, this original would
+    // reappear despite account RLS. The database view itself needs native proof.
+    state.tables.notifications = [{ id: 'operational-original', user_id: 'account-a', read: false }];
+    const result = await request();
+    assert.ok(state.calls.some(call => call.table === 'personal_notifications'));
+    assert.equal(state.calls.some(call => call.table === 'notifications'), false);
+    if (file.endsWith('unread-count.js')) assert.equal(result.payload.count, 1);
+    else if (file.endsWith('get-header-stats.js')) assert.equal(result.payload.notificationCount, 1);
+    else assert.deepEqual(Array.from(result.payload.notifications, row => row.id), ['social']);
+  });
+}
 test('mark-all covers the latest page signals shown by the unified feed', async () => {
   const { state, request } = await fixture('pages/api/poker/notifications.js');
   state.tables.page_notifications = Array.from({ length: 130 }, (_, i) => ({

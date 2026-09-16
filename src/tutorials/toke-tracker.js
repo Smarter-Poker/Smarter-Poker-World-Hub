@@ -51,7 +51,10 @@ export const TOKE_TRACKER_TUTORIAL = {
       id: 'downs',
       title: 'Log Every Down',
       body: 'Add Down Records A Cash Game, A Tournament, A Brush Or A Break, And A Thirty Five Minute Timer Asks Whether You Are Still At The Same Table. Tap The Toke Amount On Any Down To Correct It.',
-      target: 'event|shift',
+      // 'cards' last, like every other step: the tour opens on the landing
+      // page, where neither 'event' nor 'shift' exists, and step four was the
+      // only one of eight that lost its spotlight there (measured 2026-09-15).
+      target: 'event|shift|cards',
     },
     {
       id: 'analytics',

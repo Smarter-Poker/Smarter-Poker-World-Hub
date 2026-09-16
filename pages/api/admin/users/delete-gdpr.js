@@ -12,7 +12,7 @@
  */
 import { createClient } from "../../../../src/lib/supabaseServerClient";
 import { requireRecentMfa } from "../../../../src/lib/mfaGate";
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 const {
     logAdminAction,
 } = require("../../../../src/lib/antiAbuse");
@@ -228,7 +228,7 @@ export default async function handler(req, res) {
             summary,
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         console.warn("[GDPR admin] unexpected:", err);
         if (!res.headersSent) {
             return res

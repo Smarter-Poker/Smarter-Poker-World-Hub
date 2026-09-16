@@ -2,7 +2,7 @@
  * GUARD: __tests__/openclaw-critical-jobs.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
  * The Club Commander login-bridge probe runs on Open Claw hourly. Until
- * 2026-09-04 its failure reached a journal line, a GitHub issue and a Sentry
+ * 2026-09-04 its failure reached a journal line, a GitHub issue and a retired error provider
  * event that the exhausted org quota dropped - never a phone. CRITICAL_JOBS
  * pages after two consecutive failures through the same _alert() path the
  * workers healthcheck uses. These pins keep it wired; the functional test in

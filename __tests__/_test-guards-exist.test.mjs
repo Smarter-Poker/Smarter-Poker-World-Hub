@@ -2,6 +2,14 @@ import './auth-network-deadline.test.mjs';
 import './notification-feed-recovery.test.mjs';
 // Required CHECK 8 must catch wallet palette regressions before Vercel builds.
 import './diamond-store-phase-9.test.mjs';
+// CHECK 8's reachability predicate requires direct imports. ESM deduplicates
+// the fixture imports also made by the deployability law.
+import './vercel-json-is-deployable.law.test.mjs';
+import './marketplace-operations.test.mjs';
+import './a-pdf-w2g-is-read.law.test.mjs';
+import './no-route-names-a-model-that-does-not-exist.law.test.mjs';
+import './local-production-build-env.test.mjs';
+import './vercel-build-entry.test.mjs';
 /**
  * META-GUARD: __tests__/_test-guards-exist.test.mjs
  * ─────────────────────────────────────────────────────────────────────────
@@ -145,6 +153,7 @@ import './horses-routes-group-b.test.mjs';
 import './horses-subpages-phase1.test.mjs';
 import './login-painted-auth-state.test.mjs';
 import './messenger-prefs-sync.test.mjs';
+import './messenger-search-lifecycle.test.mjs';
 import './mobile-foundation.test.mjs';
 import './modal-history-core.test.mjs';
 import './news-intelligence-phase-7.test.mjs';
@@ -307,7 +316,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/openclaw-workers-secret.test.mjs',
     '__tests__/signup-hardening.test.mjs',
     '__tests__/build-2-deliverables.test.mjs',
-    '__tests__/sentry-coverage.test.mjs',
+    '__tests__/retired-error-provider.test.mjs',
     '__tests__/phase-3-deliverables.test.mjs',
     '__tests__/phase-4-deliverables.test.mjs',
     // Personal Assistant guards. menu-routes catches dead hamburger links;
