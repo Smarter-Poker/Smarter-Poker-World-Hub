@@ -2,6 +2,13 @@
 # Editor / sandbox backup files
 *.bak
 *.orig
+# Editor and merge leftovers. Five of these were tracked until
+# 2026-09-15, including two stale divergent copies of live API handlers
+# in pages/api/ and one file whose first line was a conflict marker.
+*.tmp
+*.tmp[0-9]
+*.tmp[0-9][0-9]
+*.rej
 
 !.venv/.gitkeep
 !.vscode/extensions.json
