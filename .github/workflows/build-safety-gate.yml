@@ -555,6 +555,7 @@ jobs:
           # see .agent/audits/2026-08-15-check13-phantom-column-burndown.md),
           # so --warn-only was removed the same day the scanner first
           # reported clean.
+          node --test tests/check-phantom-column-select-parser.test.mjs
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-column check is NOT enforced."
             exit 0
