@@ -190,6 +190,14 @@ jobs:
           echo "AWARD_V2_POSTGRES_BIN=$postgres_bin" >> "$GITHUB_ENV"
           "$postgres_bin/postgres" --version
 
+      - name: Owner Operational Notification PostgreSQL Contracts
+        env:
+          OWNER_NOTIFICATION_PG17_PROVIDER_DIR: ${{ vars.OWNER_NOTIFICATION_PG17_PROVIDER_DIR }}
+          OWNER_NOTIFICATION_PG17_PROVIDER_SHA256: ${{ vars.OWNER_NOTIFICATION_PG17_PROVIDER_SHA256 }}
+        run: |
+          python3 scripts/ci/test-owner-operational-notification-postgres.py --self-test
+          PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
+
       - name: "CHECK 24C: Training PostgreSQL 17 Behavioral Authority"
         run: npm run audit:training:phase6-db
 

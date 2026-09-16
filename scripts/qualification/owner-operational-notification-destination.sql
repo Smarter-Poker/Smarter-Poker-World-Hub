@@ -170,6 +170,9 @@ SELECT phase='prepare' AS preparing FROM q_inputs \gset
       PERFORM pg_temp.q_assert(n->>'message'='Original body: '||c.name,'notification original not inserted');
       IF c.routed THEN
         SELECT * INTO STRICT d FROM public.operational_notification_destinations WHERE notification_id=c.id;
+        PERFORM pg_temp.q_assert(d.inbox_event_id IS NOT NULL AND d.last_error IS NULL,
+          format('routed receipt missing or failed: case=%s notification_id=%s inbox_event_id=%s last_error=%s',
+            c.name,c.id,COALESCE(d.inbox_event_id::text,'NULL'),COALESCE(d.last_error,'NULL')));
         SELECT * INTO STRICT e FROM public.operational_alert_events WHERE id=d.inbox_event_id;
         PERFORM pg_temp.q_assert(d.original_notification->'data' IS NOT DISTINCT FROM COALESCE(c.data,'null'::jsonb)
           AND d.original_notification->>'message'='Original body: '||c.name

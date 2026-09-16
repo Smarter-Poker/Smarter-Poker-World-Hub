@@ -110,7 +110,7 @@ BEGIN
         -- Existing intake preserves an earlier snapshot. Only acknowledgement
         -- state/timestamps may differ; content, identity and all other fields
         -- must match. The complete current original remains in the destination.
-        AND (e.payload->'original_notification'-ARRAY['read','is_read','read_at','updated_at'])
+        AND ((e.payload->'original_notification')-ARRAY['read','is_read','read_at','updated_at'])
           =(n-ARRAY['read','is_read','read_at','updated_at'])
     ) THEN RAISE EXCEPTION 'operational destination receipt mismatch'; END IF;
     UPDATE public.operational_notification_destinations SET inbox_event_id=v_id,
@@ -223,7 +223,7 @@ BEGIN
     'uncaptured',EXISTS(SELECT 1 FROM public.notifications x
       WHERE x.user_id='47965354-0e56-43ef-931c-ddaab82af765'::uuid
         AND public.fn_is_owner_operational_notification(x.user_id,x.type,x.title,x.data)
-        AND NOT EXISTS(SELECT 1 FROM public.operational_notification_destinations d WHERE d.notification_id=x.id)));
+        AND NOT EXISTS(SELECT 1 FROM public.operational_notification_destinations captured WHERE captured.notification_id=x.id)));
 END;
 $body$;
 REVOKE ALL ON FUNCTION public.fn_capture_owner_notification_history(integer) FROM PUBLIC,anon,authenticated;
