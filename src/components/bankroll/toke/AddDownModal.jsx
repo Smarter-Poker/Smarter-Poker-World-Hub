@@ -61,29 +61,33 @@ function AddDownModal({ show, downForm, setDownForm, onSubmit, onClose, styles }
                         onClick={() => setDownForm({ ...downForm, down_type: 'cash' })}
                         style={{ ...styles.imgMapBtn, top: '12.5%', left: '8%', width: '41%', height: '16.5%' }}
                         title="Cash Game"
+                        aria-label="Cash Game"
                     />
                     <button
                         className="toke-img-map-element"
                         onClick={() => setDownForm({ ...downForm, down_type: 'tournament' })}
                         style={{ ...styles.imgMapBtn, top: '12.5%', left: '51%', width: '41%', height: '16.5%' }}
                         title="Tournament"
+                        aria-label="Tournament"
                     />
                     <button
                         className="toke-img-map-element"
                         onClick={() => setDownForm({ ...downForm, down_type: 'break' })}
                         style={{ ...styles.imgMapBtn, top: '31%', left: '8%', width: '41%', height: '16.5%' }}
                         title="On Break"
+                        aria-label="On Break"
                     />
                     <button
                         className="toke-img-map-element"
                         onClick={() => setDownForm({ ...downForm, down_type: 'brush' })}
                         style={{ ...styles.imgMapBtn, top: '31%', left: '51%', width: '41%', height: '16.5%' }}
                         title="Brush"
+                        aria-label="Brush"
                     />
 
                     {/* Game Type Input Zone */}
                     {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                        <div style={{ position: 'absolute', top: '52%', left: '5%', width: '90%', height: '10%', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ position: 'absolute', top: '52%', left: '5%', width: '90%', height: '10%', minHeight: 44, display: 'flex', alignItems: 'center', gap: 6 }}>
                             {downForm.down_type === 'cash' ? (
                                 <>
                                     <select
@@ -125,7 +129,7 @@ function AddDownModal({ show, downForm, setDownForm, onSubmit, onClose, styles }
 
                     {/* Table Number Input Zone */}
                     {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                        <div style={{ position: 'absolute', top: '67%', left: '5%', width: '90%', height: '10%', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ position: 'absolute', top: '67%', left: '5%', width: '90%', height: '10%', minHeight: 44, display: 'flex', alignItems: 'center' }}>
                             <input
                                 type="text"
                                 className="toke-img-map-element"
@@ -141,14 +145,16 @@ function AddDownModal({ show, downForm, setDownForm, onSubmit, onClose, styles }
                     <button
                         className="toke-img-map-element"
                         onClick={onSubmit}
-                        style={{ ...styles.imgMapBtn, top: '82.5%', left: '9%', width: '56.5%', height: '9%' }}
+                        style={{ ...styles.imgMapBtn, top: '82.5%', left: '9%', width: '56.5%', height: '9%', minHeight: 44 }}
                         title="Start Down"
+                        aria-label="Start Down"
                     />
                     <button
                         className="toke-img-map-element"
                         onClick={onClose}
-                        style={{ ...styles.imgMapBtn, top: '82.5%', left: '68.5%', width: '22.5%', height: '9%' }}
+                        style={{ ...styles.imgMapBtn, top: '82.5%', left: '68.5%', width: '22.5%', height: '9%', minHeight: 44 }}
                         title="Cancel"
+                        aria-label="Cancel"
                     />
                 </motion.div>
             </motion.div>

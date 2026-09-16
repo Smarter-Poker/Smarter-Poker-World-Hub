@@ -15,11 +15,10 @@
  *   featured   - if 'true', only featured venues
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import allVenuesData from '../../../data/all-venues.json';
 import directorySnapshotData from '../../../data/poker-venue-directory-snapshot.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
 // Home-group coordinate privacy. See src/lib/home-games/geoPrivacy.js —
 // a home group's lat/lng is a person's home address and must never be
 // emitted raw from this (public, unauthenticated) endpoint.
@@ -724,10 +723,7 @@ export default async function handler(req, res) {
                   fallbackMetadata: directorySnapshotData.metadata || {},
                   onFallback: (directoryError) => {
                       console.warn('[venues] Directory database unavailable; serving projected snapshot:', directoryError?.message || directoryError);
-                      captureError(directoryError, {
-                          tags: { api: 'poker-venues', stage: 'directory-fallback' },
-                          extra: { query: req.query },
-                      });
+                      reportApiError(directoryError, req);
                   },
               });
               res.setHeader('X-PNM-Data-Source', directory.data_source);
@@ -1314,7 +1310,7 @@ export default async function handler(req, res) {
                                   }
                               } catch (clubErr) {
                                   console.warn('[venues] Club/tournament lookup failed (non-fatal):', clubErr.message);
-                                  captureError(clubErr, { tags: { api: 'poker-venues', stage: 'tournament-detection' } });
+                                  reportApiError(clubErr, req);
                               }
                           }
 
@@ -1341,11 +1337,7 @@ export default async function handler(req, res) {
                           const linkedPages = socialPages.filter(sp => sp.linked_venue_id);
                           const unlinkedPages = socialPages.filter(sp => !sp.linked_venue_id);
 
-                          addBreadcrumb({
-                              category: 'poker-venues',
-                              message: `Social page merge: ${socialPages.length} total, ${linkedPages.length} linked, ${unlinkedPages.length} unlinked`,
-                              data: { total: socialPages.length, linked: linkedPages.length, unlinked: unlinkedPages.length },
-                          });
+
 
                           // --- Enrich JSON venues that have a linked social page ---
                           const missedLinkedPages = []; // Pages whose linked_venue_id is NOT in JSON
@@ -1458,7 +1450,7 @@ export default async function handler(req, res) {
                                   }
                               } catch (pvErr) {
                                   console.warn('[venues] poker_venues lookup for missed linked pages failed (non-fatal):', pvErr.message);
-                                  captureError(pvErr, { tags: { api: 'poker-venues', stage: 'missed-linked-enrichment' } });
+                                  reportApiError(pvErr, req);
                               }
                           }
 
@@ -1702,16 +1694,12 @@ export default async function handler(req, res) {
                           // safe to trim when the caller asked for a small limit.
                           venues = venues.concat(mappedPages.map(p => ({ ...p, _merged_social: true })));
 
-                          addBreadcrumb({
-                              category: 'poker-venues',
-                              message: `Merge complete: ${mappedPages.length} social entries added, ${missedLinkedPages.length} enriched from poker_venues`,
-                              data: { mapped: mappedPages.length, missed: missedLinkedPages.length, enriched: Object.keys(supabaseVenuesByIdMap || {}).length },
-                          });
+
                       }
                   }
               } catch (spErr) {
                   console.warn('[venues] Social pages merge failed (non-fatal):', spErr.message);
-                  captureError(spErr, { tags: { api: 'poker-venues', stage: 'social-merge' }, level: 'warning' });
+                  reportApiError(spErr, req);
               }
 
               // --- Standalone home groups ---
@@ -2361,10 +2349,7 @@ export default async function handler(req, res) {
           });
       } catch (error) {
           console.warn('Venues API error:', error);
-          captureError(error, {
-              tags: { api: 'poker-venues', stage: 'handler' },
-              extra: { query: req.query },
-          });
+          reportApiError(error, req);
 
           // Last resort: JSON data, but still gated through applyFilters so
           // is_active=false / is_suppressed=true venues stay hidden.
@@ -2404,7 +2389,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

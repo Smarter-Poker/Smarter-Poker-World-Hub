@@ -11,7 +11,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { RFI, BB_DEFENSE, FOUR_BET, getHandFrequencies } from '../../../src/config/solverRanges';
 
 export const PREFLOP_REFERENCE_CONTRACT = Object.freeze({
@@ -245,8 +245,8 @@ export default async function handler(req, res) {
   } catch (error) {
     try {
       reportApiError(error, req);
-    } catch (sentryError) {
-      const reportingMessage = sentryError?.message || String(sentryError);
+    } catch (reportingError) {
+      const reportingMessage = reportingError?.message || String(reportingError);
       console.warn('[App] Handled exception:', reportingMessage);
     }
     console.warn('[PreflopRanges] Error:', error);

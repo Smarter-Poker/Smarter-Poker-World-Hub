@@ -24,7 +24,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
     getRecentlySeenIds,
@@ -660,7 +660,7 @@ export default async function handler(req, res) {
       } catch (error) {
           console.warn('[Trivia API] Error:', error);
           // Make outages visible instead of masking them as a healthy 200.
-          try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+          try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
 
           return res.status(200).json({
               success: true,
@@ -676,7 +676,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { BUILD_COMMAND } from '../scripts/vercel-build.mjs';
 
 const require = createRequire(import.meta.url);
 const {
@@ -488,9 +489,13 @@ test('Vercel build and scheduled health probe enforce marketplace operations wit
   const vercel = JSON.parse(vercelText);
   assert.match(pkg.scripts['test:marketplace'], /marketplace-operations\.test\.mjs/);
   assert.match(pkg.scripts.build, /npm run test:marketplace/);
-  assert.ok(vercel.buildCommand.indexOf('prune-platform-bins') < vercel.buildCommand.indexOf('patch-next'));
-  assert.ok(vercel.buildCommand.indexOf('patch-next') < vercel.buildCommand.indexOf('test:marketplace'));
-  assert.ok(vercel.buildCommand.indexOf('test:marketplace') < vercel.buildCommand.indexOf('next build'));
+  assert.equal(vercel.buildCommand, 'node scripts/vercel-build.mjs');
+  for (const step of ['prune-platform-bins', 'patch-next', 'test:marketplace', 'next build']) {
+    assert.ok(BUILD_COMMAND.includes(step), `The deployment entry must retain ${step}`);
+  }
+  assert.ok(BUILD_COMMAND.indexOf('prune-platform-bins') < BUILD_COMMAND.indexOf('patch-next'));
+  assert.ok(BUILD_COMMAND.indexOf('patch-next') < BUILD_COMMAND.indexOf('test:marketplace'));
+  assert.ok(BUILD_COMMAND.indexOf('test:marketplace') < BUILD_COMMAND.indexOf('next build'));
   for (const file of pkg.scripts['test:marketplace'].match(/__tests__\/[^ ]+\.mjs/g) || []) {
     const escaped = file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     assert.match(vercelIgnore, new RegExp(`!/${escaped}`));

@@ -1,0 +1,133 @@
+/* Painted deep-route deck. Geometry comes from PokerNearMeConsole's raster
+   head, repeating rail body, and flat foot; this file owns layout only. */
+
+body.world-poker-near-me .pnc.pnm-deep-deck {
+  display: flex !important;
+  width: min(calc(100% - 24px), 1000px) !important;
+  min-height: 0 !important;
+  margin: 18px auto 28px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  isolation: isolate;
+}
+
+body.world-poker-near-me .pnc.pnm-deep-deck::before,
+body.world-poker-near-me .pnc.pnm-deep-deck::after {
+  content: none !important;
+}
+
+body.world-poker-near-me .pnc.pnm-deep-deck > .pnc__body {
+  gap: 0;
+  padding-bottom: 0;
+}
+
+body.world-poker-near-me .pnm-deep-deck__stage {
+  position: relative;
+  min-width: 0;
+  min-height: clamp(390px, 54vw, 620px);
+  overflow: hidden;
+}
+
+body.world-poker-near-me .pnm-deep-deck__visual {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  overflow: hidden;
+  background: #030507 !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/images/pnm-console/painted-chassis-v1/source/crest-locator.png') 94% 12% / min(34%, 260px) auto no-repeat,
+    rgb(1 4 7 / 72%) !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.88) contrast(1.12) brightness(0.7);
+}
+
+body.world-poker-near-me .pnm-deep-deck__scan {
+  display: none !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__content {
+  position: relative;
+  z-index: 1;
+  width: min(76%, 650px) !important;
+  padding: clamp(24px, 5vw, 58px) !important;
+  box-sizing: border-box;
+}
+
+body.world-poker-near-me .pnm-deep-deck__description {
+  margin-top: 0 !important;
+  color: #d3dbe4 !important;
+  text-shadow: 0 2px 5px rgb(0 0 0 / 94%);
+}
+
+body.world-poker-near-me .pnm-deep-deck__status {
+  min-height: 32px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__status > span {
+  border-radius: 50%;
+}
+
+body.world-poker-near-me .pnm-deep-deck__metrics {
+  gap: 16px;
+  border: 0 !important;
+  background: none !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__metrics > div {
+  padding: 8px 0 !important;
+  border: 0 !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__actions :is(a, button) {
+  width: 174px;
+  min-width: 174px;
+  min-height: 57px;
+  padding: 0 28px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent url('/images/pnm-console/painted-controls-v1/button-primary.png') center / contain no-repeat !important;
+  box-shadow: none !important;
+}
+
+body.world-poker-near-me .pnm-deep-deck__actions :is(a, button):active {
+  filter: brightness(1.14);
+}
+
+body.world-poker-near-me .pnm-deep-deck__actions :is(a, button):focus-visible {
+  outline: 2px solid #8fd4ff !important;
+  outline-offset: -6px;
+}
+
+@media (max-width: 640px) {
+  body.world-poker-near-me .pnm-deep-deck__stage {
+    min-height: 520px;
+  }
+
+  body.world-poker-near-me .pnm-deep-deck__content {
+    width: 100% !important;
+    padding: 24px 18px 34px !important;
+  }
+
+  body.world-poker-near-me .pnm-deep-deck__visual::after {
+    background: rgb(1 4 7 / 74%) !important;
+  }
+}

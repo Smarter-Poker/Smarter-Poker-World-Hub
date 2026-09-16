@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { acquireScrollLock } from '../../../lib/scrollLock';
+import PokerNearMeConsole from '../PokerNearMeConsole';
 
 const STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -73,20 +74,21 @@ export default function ManualLocationModal({
       releaseScrollLock();
       returnFocusRef.current?.focus?.();
     };
-  }, [showManualLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showManualLocation]);
 
   if (!showManualLocation) return null;
 
   return (
     <div
-      className="pnm-location-sheet"
+      className="pnm-console-dialog-overlay pnm-console-dialog-overlay--location"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) closeModal();
       }}
     >
       <section
         ref={dialogRef}
-        className="pnm-location-sheet__frame"
+        className="pnm-console-dialog-shell pnm-console-dialog-shell--location"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pnm-manual-location-title"
@@ -94,57 +96,71 @@ export default function ManualLocationModal({
         aria-busy={manualGeocoding}
         tabIndex={-1}
       >
-        <div className="pnm-location-sheet__energy" aria-hidden="true" />
-        <header className="pnm-location-sheet__header">
-          <div>
-            <span className="pnm-location-sheet__eyebrow">Manual Search Origin</span>
-            <h2 id="pnm-manual-location-title">Set Your Location</h2>
-            <p id="pnm-manual-location-description">Choose A City To Anchor Nearby Rooms, Events, And Route Distances.</p>
+        <PokerNearMeConsole
+          as="div"
+          className="pnm-console-dialog"
+          crest="locator"
+          eyebrow="Manual Search Origin"
+          title="Set Your Location"
+          titleId="pnm-manual-location-title"
+          plates={{
+            secondary: {
+              label: gpsLoading ? 'Locating...' : 'Try GPS Again',
+              onClick: () => handleGpsClick({ fromModal: true }),
+              disabled: gpsLoading || manualGeocoding,
+              'aria-label': gpsLoading ? 'Locating' : 'Try GPS again',
+            },
+            primary: {
+              label: manualGeocoding ? 'Locating...' : 'Set Location',
+              ink: 'blue',
+              onClick: handleManualLocationSet,
+              disabled: !canSubmit,
+              'aria-label': manualGeocoding ? 'Locating' : 'Set location',
+            },
+          }}
+        >
+          <div className="pnm-console-dialog__body">
+            <p id="pnm-manual-location-description" className="pnm-console-dialog__copy">
+              Choose A City To Anchor Nearby Rooms, Events, And Route Distances.
+            </p>
+
+            {gpsError && <p className="pnm-console-dialog__error" role="alert">{gpsError}</p>}
+
+            <div className="pnm-console-dialog__fields">
+              <label className="pnm-console-dialog__field">
+                <span className="pnm-console-dialog__label">City</span>
+                <input
+                  ref={cityRef}
+                  type="text"
+                  placeholder="e.g. Chicago"
+                  value={manualCity}
+                  maxLength={100}
+                  onChange={(event) => setManualCity(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && canSubmit) handleManualLocationSet();
+                  }}
+                  autoComplete="address-level2"
+                />
+              </label>
+              <label className="pnm-console-dialog__field">
+                <span className="pnm-console-dialog__label">State</span>
+                <select value={manualState} onChange={(event) => setManualState(event.target.value)} autoComplete="address-level1">
+                  <option value="">Optional</option>
+                  {STATES.map((state) => <option key={state} value={state}>{state}</option>)}
+                </select>
+              </label>
+            </div>
           </div>
-          <button type="button" className="pnm-location-sheet__close" onClick={closeModal} disabled={manualGeocoding} aria-label="Close manual location dialog">&times;</button>
-        </header>
-
-        <div className="pnm-location-sheet__body">
-          <button type="button" className="pnm-location-sheet__gps" onClick={() => handleGpsClick({ fromModal: true })} disabled={gpsLoading || manualGeocoding}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            {gpsLoading ? 'Locating…' : 'Try GPS Again'}
-          </button>
-
-          {gpsError && <p className="pnm-location-sheet__error" role="alert">{gpsError}</p>}
-
-          <div className="pnm-location-sheet__divider"><span>Or Enter Manually</span></div>
-
-          <div className="pnm-location-sheet__fields">
-            <label>
-              <span>City</span>
-              <input
-                ref={cityRef}
-                type="text"
-                placeholder="e.g. Chicago"
-                value={manualCity}
-                maxLength={100}
-                onChange={(event) => setManualCity(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && canSubmit) handleManualLocationSet();
-                }}
-                autoComplete="address-level2"
-              />
-            </label>
-            <label>
-              <span>State</span>
-              <select value={manualState} onChange={(event) => setManualState(event.target.value)} autoComplete="address-level1">
-                <option value="">Optional</option>
-                {STATES.map((state) => <option key={state} value={state}>{state}</option>)}
-              </select>
-            </label>
-          </div>
-
-          <button type="button" className="pnm-location-sheet__primary" onClick={handleManualLocationSet} disabled={!canSubmit}>
-            {manualGeocoding ? 'Locating…' : 'Set Location'}
-          </button>
-        </div>
+        </PokerNearMeConsole>
+        <button
+          type="button"
+          className="pnm-console-dialog__close"
+          onClick={closeModal}
+          disabled={manualGeocoding}
+          aria-label="Close manual location dialog"
+        >
+          Close
+        </button>
       </section>
     </div>
   );

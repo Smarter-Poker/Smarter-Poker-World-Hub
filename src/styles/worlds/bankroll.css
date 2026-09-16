@@ -510,3 +510,27 @@ body.world-bankroll-manager {
         font-size: 20px !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHONE CONTENT WIDTH - @media (max-width: 600px)
+   Deliberately AFTER the 768 block: that block sets .bankroll-main-content
+   padding too, and two rules of equal specificity are decided by order.
+
+   At 375 this page spent 104px - 28% of the screen - on nested horizontal
+   padding before any content: 12 on the main column, 20 on the section card,
+   then whatever the section itself nests. Found by measuring the toke
+   calendar mounted at ?view=toke-tracker, where the seven-column month grid
+   was left 263px and every day button came out 35px wide against a 44px
+   target. Reducing it here gives that width back to every section on the
+   page, not only the calendar.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+    .bankroll-main-content {
+        padding: 8px !important;
+    }
+
+    .bankroll-activity-section {
+        padding: 10px !important;
+    }
+}

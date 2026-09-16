@@ -176,6 +176,110 @@ test('the tutorial is registered for the prefix with eight steps whose targets e
   }
 });
 
+test('every control is reachable: no bare div with an onClick on the surface', () => {
+  // Four of these shipped, and three were primary actions: Tap To Scan
+  // Document, the file drop zone, a document thumbnail, and the completed
+  // event card. A div with an onClick is invisible to a keyboard and to a
+  // screen reader, and it is not counted by the 44px budget either, because
+  // that only measures buttons (mobile phase 11 sweep).
+  const files = [...SURFACE,
+    'src/components/bankroll/toke/AddDownModal.jsx',
+    'src/components/bankroll/toke/AddExpenseModal.jsx',
+    'src/components/bankroll/toke/CompletedEventsList.jsx',
+    'src/components/bankroll/toke/DoubleDownPrompt.jsx',
+  ];
+  const hits = [];
+  for (const rel of files) {
+    read(rel).split('\n').forEach((line, i) => {
+      if (!/<div[^>]*\bonClick=/.test(line)) return;
+      // A scrim whose only job is "tap outside to close" is not a control:
+      // it is aria-hidden and every such layer also has a real close button.
+      if (/aria-hidden="true"/.test(line)) return;
+      // stopPropagation on a wrapper is not a control either.
+      if (/onClick=\{e => e\.stopPropagation\(\)\}/.test(line)) return;
+      hits.push(`${rel}:${i + 1} ${line.trim().slice(0, 90)}`);
+    });
+  }
+  assert.deepEqual(hits, [], `clickable <div> (make it a <button>):\n${hits.join('\n')}`);
+});
+
+test('the image-mapped Add Down controls are 44px and named', () => {
+  const modal = read('src/components/bankroll/toke/AddDownModal.jsx');
+  // 9% and 10% of a 399px-tall card at 375 is 36px and 40px. The zones are
+  // absolutely positioned, so a min-height grows the hit area downward into
+  // the artwork's lower bezel.
+  assert.equal((modal.match(/minHeight: 44/g) || []).length, 4, 'all four undersized zones carry minHeight 44');
+  for (const label of ['Cash Game', 'Tournament', 'On Break', 'Brush', 'Start Down', 'Cancel']) {
+    assert.match(modal, new RegExp(`aria-label="${label}"`), `the ${label} zone is painted art with no text: it needs a name`);
+  }
+  // And the stylesheet no longer exempts them from the 44px floor.
+  const css = read(CSS);
+  assert.doesNotMatch(css, /button:not\(\.universal-header \*\):not\(\.hamburger-menu \*\):not\(\.toke-img-map-element\)/,
+    'the image-mapped buttons are exempt from the 44px rule again');
+  // The 16px rule is (0,4,1) specific, so overriding it from a (0,2,0)
+  // selector loses even with !important and the painted fields rendered at
+  // 16px. Measured in a browser: they must be EXCLUDED from it, not
+  // overridden after it.
+  assert.match(css, /\.toke-page input[^,]*:not\(\.toke-img-map-element\),/,
+    'the painted fields must be excluded from the 16px rule, not overridden after it');
+  assert.match(css, /\.toke-page select:not\(\.toke-img-map-element\),/);
+  assert.match(css, /\.toke-page \.toke-img-map-element \{\s*font-size: 18px !important;\s*min-height: 44px;/,
+    'the painted fields keep their 18px and the 44px floor');
+});
+
+test('the load failsafe guards a skeleton that actually renders', () => {
+  // useLoadFailsafe clears a stuck flag after 8s. On both pages that flag was
+  // read by nothing, so the failsafe protected a skeleton that did not exist.
+  for (const rel of ['pages/hub/toke-tracker/vault.js', 'pages/hub/toke-tracker/venues.js']) {
+    const src = read(rel);
+    assert.match(src, /useLoadFailsafe\(gigsLoading, setGigsLoading\)/, `${rel} has the failsafe`);
+    assert.match(src, /gigsLoading[\s\S]{0,120}toke-skel/, `${rel} renders a skeleton from it`);
+  }
+  assert.match(read(CSS), /\.toke-skel \{/, 'one skeleton class');
+  assert.match(read(CSS), /@keyframes tokeShimmer/, 'one shimmer keyframe');
+  assert.match(read(CSS), /prefers-reduced-motion: reduce\) \{\s*\.toke-skel \{ animation: none; \}/);
+});
+
+test('the month grid gets the whole phone width, so seven 44px days fit', () => {
+  // Measured 2026-09-15 at 375 on /hub/bankroll-manager?view=toke-tracker,
+  // where these same components mount inside .bankroll-page: the
+  // seven-column month grid had 263px and every day button came out 35px
+  // wide, against the 44px floor this stylesheet declares two tests up. The
+  // cause was 104px - 28% of the screen - of nested horizontal padding spent
+  // before the grid: the main column, the section card, the calendar's own
+  // wrapper card, the month card. Fixed by giving the width back, not by
+  // letting the days shrink.
+  const toke = read(CSS);
+  const bank = read('src/styles/worlds/bankroll.css');
+
+  // The classes have to be ON the elements or the rules select nothing.
+  assert.match(read(TRACKER), /className="toke-cal-wrapper" style=\{styles\.calendarWrapper\}/);
+  assert.match(read(CALENDAR), /className="toke-cal-grid" style=\{calStyles\.fullGrid\}/);
+  assert.match(read('pages/hub/bankroll-manager.js'), /className="bankroll-activity-section" style=\{styles\.activitySection\}/);
+
+  // Unscoped on purpose: the defect was on .bankroll-page, not .toke-page.
+  assert.match(toke, /\.toke-cal-wrapper,\s*\.toke-cal-month \{\s*padding-left: 0 !important;\s*padding-right: 0 !important;/);
+  assert.doesNotMatch(toke, /\.toke-page \.toke-cal-wrapper|\.toke-page \.toke-cal-month/);
+
+  // The phone block must come AFTER the 768 block, which sets the same
+  // property: equal specificity is decided by order, and the first draft of
+  // this fix was silently overridden by the later rule.
+  const at600 = bank.lastIndexOf('@media (max-width: 600px)');
+  assert.ok(at600 > bank.indexOf('@media (max-width: 768px)'),
+    'the phone padding block is overridden by the 768 block unless it comes after it');
+
+  // And the arithmetic has to close at 375.
+  const phone = bank.slice(at600);
+  const gap = Number(toke.match(/\.toke-cal-grid \{\s*gap: (\d+)px !important;/)[1]);
+  const mainPad = Number(phone.match(/\.bankroll-main-content \{\s*padding: (\d+)px !important;/)[1]);
+  const sectionPad = Number(phone.match(/\.bankroll-activity-section \{\s*padding: (\d+)px !important;/)[1]);
+  // +2 for the section card's 2px border, which is inline and not going away.
+  const available = 375 - 2 * mainPad - 2 * (sectionPad + 2);
+  const needed = 7 * 44 + 6 * gap;
+  assert.ok(available >= needed,
+    `a 375px phone leaves the month grid ${available}px and seven 44px days need ${needed}`);
+});
+
 test('the budget rows and the law count phase 11 as converted', () => {
   const budget = JSON.parse(read('scripts/ci/mobile-budget.json')).routes;
   assert.equal(budget['/hub/toke-tracker'].converted, true);

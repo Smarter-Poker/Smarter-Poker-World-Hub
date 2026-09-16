@@ -13,7 +13,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { resolveNotificationRoute } from '../../../src/lib/notificationRoute';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
         // ── Phase 1: Fetch social notifications + page_followers in parallel ──
         const [socialResult, followsResult] = await Promise.all([
             supabase
-                .from('notifications')
+                .from('personal_notifications')
                 .select('id, type, title, message, data, read, is_read, created_at, user_id, actor_id, action_url, link')
                 .eq('user_id', userId)
                 .or('type.is.null,type.neq.accounting_invoice_detail')

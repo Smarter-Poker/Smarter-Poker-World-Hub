@@ -83,3 +83,23 @@ test('no E2E workflow starts next on a literal port', () => {
     assert.ok(!/127\.0\.0\.1:3000|localhost:3000/.test(text), `${f} still points at :3000`);
   }
 });
+
+test('enabled required workflow dependency caches cannot cross CPU architectures', () => {
+  const required = [
+    'build-safety-gate.yml', 'no-conflict-markers.yml',
+    'undefined-identifier-guard.yml', 'audit-marker-guard.yml', 'supabase-invariants.yml',
+  ];
+  let count = 0;
+  for (const file of required) {
+    const source = readFileSync(join(DIR, file), 'utf8');
+    for (const block of source.split(/\n      - /).filter((step) => /uses: actions\/cache@/.test(step))) {
+      const keys = block.match(/(?:key:|^\s+)([^\n]*\$\{\{ runner\.os \}\}[^\n]*)/gm) || [];
+      assert.ok(keys.length, `${file}: cache must have an OS-bound key`);
+      for (const key of keys) {
+        assert.match(key, /\$\{\{ runner\.arch \}\}/, `${file}: installed/native cache must include runner.arch, including restore prefixes`);
+      }
+      count += 1;
+    }
+  }
+  assert.equal(count, 5, 'cover the four safety caches and identifier-guard dependency cache');
+});

@@ -22,7 +22,7 @@
  * anti-cheat and union-application import `src/lib/serverAuth` without an
  * extension; merch-catalog-admin requires a module outside this repo).
  *
- * Nothing here touches Supabase, Sentry or the network.
+ * Nothing here touches Supabase, retired error provider or the network.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
