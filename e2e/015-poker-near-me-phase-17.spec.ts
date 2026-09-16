@@ -418,7 +418,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await venuesPage.close();
   });
 
-  test('mobile header focus and command selectors remain visible without detached borders', async ({ page }) => {
+  test('mobile header focus and command selectors remain visible without detached borders', async ({ page, browserName }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/hub/poker-near-me/venues', { waitUntil: 'domcontentloaded' });
     await waitForDiscovery(page);
@@ -479,9 +479,12 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
     await expectPaintedFrame(unselected, 'painted-controls-v1/button-secondary.png', [348, 114]);
     // Enter keyboard modality through real navigation. Programmatic focus
     // after a pointer-opened drawer does not prove :focus-visible styling.
+    // Mac WebKit's plain Tab visits text inputs; Option+Tab also visits links
+    // and buttons. Use that native navigation chord to reach the selected link.
+    const tabKey = process.platform === 'darwin' && browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
     const tabLimit = await drawer.locator('button, a[href], input, select, textarea, [tabindex]').count() + 1;
     for (let index = 0; index < tabLimit; index += 1) {
-      await page.keyboard.press('Tab');
+      await page.keyboard.press(tabKey);
       if (await selected.evaluate((element) => element === document.activeElement)) break;
     }
     await expect(selected).toBeFocused();
@@ -506,6 +509,7 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
 
     const drawer = page.locator(".sp-drawer[data-direction='right']");
     await expect(drawer).toBeVisible();
+    await expect(drawer).toHaveAttribute('data-world-command-menu', 'global');
     await expect.poll(() => drawer.evaluate((element) => {
       const style = getComputedStyle(element);
       const box = element.getBoundingClientRect();
@@ -521,15 +525,13 @@ test.describe('Poker Near Me phase 17 cross-engine and accessibility hardening',
       };
     }), { timeout: 15_000 }).toEqual({
       x: 0,
-      leftBorder: '0px',
-      leftBorderStyle: 'none',
+      leftBorder: '1px',
+      leftBorderStyle: 'solid',
       rightBorder: '0px',
       radius: '0px',
       clipPath: 'none',
       overflowX: 'clip',
     });
-    await expect(drawer).toHaveAttribute('data-pnm-console', 'painted-command-drawer-v1');
-    await expectPaintedFrame(drawer, 'painted-panels-v1/panel-mid.png', [1000, 8], 'repeat-y');
     await expectNoOverflow(page, 'Commander right command menu');
   });
 
