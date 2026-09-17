@@ -5,7 +5,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
+import LandingProductSummary from '../src/components/landing/LandingProductSummary';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HAPTIC FEEDBACK
@@ -21,32 +23,32 @@ function triggerHaptic() {
 // ─────────────────────────────────────────────────────────────────────────────
 const HOTSPOTS = [
   {
-    id: 'join-now',
+    id: 'join-now', label: 'Join Now',
     top: 0, left: 0, width: 100, height: 36,
     action: 'navigate', href: '/auth/signup',
   },
   {
-    id: 'global-connection',
+    id: 'global-connection', label: 'Global Connection',
     top: 36.5, left: 1, width: 48, height: 21,
-    action: 'overlay', image: '/images/global-connection.jpg', overlayKey: 'gc',
+    action: 'overlay', image: '/images/global-connection.webp', overlayKey: 'gc',
   },
   {
-    id: 'elite-training',
+    id: 'elite-training', label: 'Elite Training',
     top: 36.5, left: 51, width: 48, height: 21,
-    action: 'overlay', image: '/images/elite-training.jpg', overlayKey: 'et',
+    action: 'overlay', image: '/images/elite-training.webp', overlayKey: 'et',
   },
   {
-    id: 'bankroll-discovery',
+    id: 'bankroll-discovery', label: 'Bankroll And Discovery',
     top: 58.5, left: 1, width: 98, height: 15,
-    action: 'overlay', image: '/images/total-discovery.jpg', overlayKey: 'td',
+    action: 'overlay', image: '/images/total-discovery.webp', overlayKey: 'td',
   },
   {
-    id: 'lifestyle-news',
+    id: 'lifestyle-news', label: 'Lifestyle And News',
     top: 74.5, left: 1, width: 48, height: 24,
-    action: 'overlay', image: '/images/lifestyle-rewards.jpg', overlayKey: 'lr',
+    action: 'overlay', image: '/images/lifestyle-rewards.webp', overlayKey: 'lr',
   },
   {
-    id: 'club-commander',
+    id: 'club-commander', label: 'Club Commander',
     top: 74.5, left: 51, width: 48, height: 24,
     action: 'navigate', href: '/hub/commander',
   },
@@ -128,13 +130,11 @@ export default function LandingPage() {
   return (
     <>
       <SEOHead
-        title="Smarter.Poker - The Future Of The Game"
-        description="Train Smarter, Connect Globally, Manage Everything. The Ultimate Poker Platform For GTO Training, Live Venue Discovery, Bankroll Tracking, Trivia, And Community."
+        title="Smarter.Poker: Free Poker Training, Private Clubs And Live Games"
+        description="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
-      >
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </SEOHead>
+      />
 
       <div style={styles.page}>
         {/* ── NAV BAR ─────────────────────────────────────────── */}
@@ -142,31 +142,58 @@ export default function LandingPage() {
           <div style={styles.logo}>
             <span style={styles.logoText}>SMARTER.POKER</span>
           </div>
+          {/* AEO PHASE 1 (2026-09-17): real links, not buttons with a router
+              push. A crawler follows an href; it cannot click a button. Same
+              look, same destinations, now keyboard- and crawler-reachable. */}
           <div style={styles.navLinks}>
-            <button onClick={() => router.push('/auth/signup')} style={styles.navButton}>
+            <Link href="/auth/signup" style={styles.navButton}>
               Sign Up
-            </button>
-            <button onClick={() => router.push('/auth/login')} style={styles.navButtonPrimary}>
+            </Link>
+            <Link href="/auth/login" style={styles.navButtonPrimary}>
               Sign In
-            </button>
+            </Link>
           </div>
         </nav>
 
         {/* ── FULL-WIDTH HERO IMAGE WITH HOTSPOTS ─────────────── */}
         <div style={styles.imageWrapper}>
           <img
-            src="/images/landing-hero.jpg"
+            src="/images/landing-hero.webp"
             alt="Smarter.Poker - The Future Of The Game"
+            // THE HERO RESERVES ITS OWN SPACE (2026-09-17). Without intrinsic
+            // dimensions the browser gives the image a zero-height box until
+            // the bytes arrive, and the shimmer below it reserved 180% of the
+            // width while the file is 179.21% (1116x2000). Whichever of the
+            // two settled first, the other moved the whole page: measured on
+            // production at phone width, CLS 0.797 on one load in six. With
+            // width and height the box is exact before the first byte.
+            width={1116}
+            height={2000}
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
-            loading="lazy"
+            // The hero IS the largest contentful paint; lazy-loading it told the
+            // browser to fetch it last (AEO phase 1, 2026-09-17).
+            loading="eager"
+            // React 18 drops the camelCase form; the lowercase attribute reaches
+            // the DOM and the browser (React 19 accepts either).
+            fetchpriority="high"
+            decoding="async"
             draggable={false}
           />
           {!heroLoaded && <div style={styles.shimmer} />}
           {heroLoaded && HOTSPOTS.map((spot) => (
             <div
               key={spot.id}
+              role={spot.action === 'navigate' ? 'link' : 'button'}
+              tabIndex={0}
+              aria-label={spot.label}
               onClick={() => handleHotspotClick(spot)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleHotspotClick(spot);
+                }
+              }}
               style={{
                 position: 'absolute',
                 top: `${spot.top}%`,
@@ -204,7 +231,16 @@ export default function LandingPage() {
                 OVERLAY_HOTSPOTS[overlay.overlayKey].map((spot) => (
                   <div
                     key={spot.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={spot.action === 'close' ? 'Back' : 'Sign Up'}
                     onClick={() => handleOverlayHotspotClick(spot)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOverlayHotspotClick(spot);
+                      }
+                    }}
                     style={{
                       position: 'absolute',
                       top: `${spot.top}%`,
@@ -230,9 +266,14 @@ export default function LandingPage() {
           </div>
         )}
 
+        {/* ── PRODUCT SUMMARY (AEO phase 1) ─────────────────────
+           The one server-rendered block of words on the landing page:
+           H1, definition, one H2 per product. See the component header. */}
+        <LandingProductSummary />
+
         {/* ── FOOTER ──────────────────────────────────────────── */}
         <footer style={styles.footer}>
-          <span style={styles.footerText}>© 2025 Smarter.Poker - The Future Of The Game</span>
+          <span style={styles.footerText}>© {new Date().getFullYear()} Smarter.Poker - The Future Of The Game</span>
         </footer>
       </div>
 
@@ -288,6 +329,8 @@ const styles = {
   navLinks: { display: 'flex', gap: '8px' },
   navButton: {
     background: 'transparent',
+    display: 'inline-block',
+    textDecoration: 'none',
     border: '1px solid rgba(0, 198, 255, 0.4)',
     color: '#00c6ff',
     padding: '8px 18px',
@@ -299,6 +342,8 @@ const styles = {
   },
   navButtonPrimary: {
     background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
+    display: 'inline-block',
+    textDecoration: 'none',
     border: 'none',
     color: '#ffffff',
     padding: '8px 18px',
@@ -318,8 +363,13 @@ const styles = {
     userSelect: 'none',
   },
   shimmer: {
-    width: '100%',
-    paddingBottom: '180%',
+    // An OVERLAY, not a sibling in the flow. It used to reserve its own
+    // 180% band beside a zero-height image; removing it when the image
+    // arrived moved everything below it (2026-09-17). The image now owns
+    // the box and the shimmer sits on top of it until it paints.
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
     background: 'linear-gradient(90deg, #111827 25%, #1a2540 50%, #111827 75%)',
     backgroundSize: '200% 100%',
   },

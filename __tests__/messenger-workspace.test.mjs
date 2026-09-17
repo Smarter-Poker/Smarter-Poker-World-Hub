@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getMessengerWorkspace, searchMessengerWorkspace } from '../src/lib/messengerWorkspace.mjs';
+import { getMessengerWorkspace, searchMessengerWorkspace, readMessengerMessages } from '../src/lib/messengerWorkspace.mjs';
 
 const ids = { user:'00000000-0000-4000-8000-000000000001', other:'00000000-0000-4000-8000-000000000002', club:'10000000-0000-4000-8000-000000000001', second:'10000000-0000-4000-8000-000000000002', page:'20000000-0000-4000-8000-000000000001', social:'30000000-0000-4000-8000-000000000001', chat:'30000000-0000-4000-8000-000000000002', invoice:'30000000-0000-4000-8000-000000000003', agentInvoice:'30000000-0000-4000-8000-000000000004' };
 function fixture({ member=true, role='player', broken=null, cap=200, page=true }={}) {
@@ -17,7 +17,7 @@ function fixture({ member=true, role='player', broken=null, cap=200, page=true }
         let data=[...(tables[table] || [])], limit=Infinity, order=null, ascending=true;
         const q={select(){return q;},eq(k,v){data=data.filter(r=>r[k]===v);return q;},neq(k,v){data=data.filter(r=>r[k]!==v);return q;},contains(k,v){data=data.filter(r=>Object.entries(v).every(([key,value])=>r[k]?.[key]===value));return q;},in(k,values){data=data.filter(r=>values.includes(r[k]));return q;},gt(k,v){data=data.filter(r=>r[k]>v);return q;},not(k,op,v){data=data.filter(r=>r[k]!==v);return q;},lte(k,v){data=data.filter(r=>r[k]<=v);return q;},order(k,options={}){order=k;ascending=options.ascending!==false;return q;},limit(n){limit=n;return q;},then(resolve,reject){calls.push(table);if(order)data.sort((a,b)=>String(a[order]).localeCompare(String(b[order]))*(ascending?1:-1));return Promise.resolve({data:data.slice(0,Math.min(cap,limit)),error:broken===table?{code:'42501'}:null}).then(resolve,reject);}};
         return q;
-    },async rpc(name,args){calls.push(args);if(name==='fn_messenger_search_messages')return {data:tables.searchResults||[],error:broken==='search'?{code:'57014'}:null};if(name==='fn_messenger_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_club_weekly_accounting_summary')return {data:tables.report,error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
+    },async rpc(name,args){calls.push({...args,rpc:name});if(name==='fn_messenger_private_message_page')return {data:tables.messages||[],error:broken==='messages'?{code:'42883'}:null};if(name==='fn_messenger_private_search_messages')return {data:tables.searchResults||[],error:broken==='search'?{code:'57014'}:null};if(name==='fn_messenger_private_accounting_threads')return {data:tables.accounting_conversations.filter(c=>args.p_conversation_ids.includes(c.conversation_id)).map(c=>({conversation_id:c.conversation_id,recipient_visible:c.recipient_visible!==false&&c.recipient_id===args.p_user_id,last_message_preview:'Visible Document'})),error:broken==='visibility'?{code:'42501'}:null};if(name==='fn_messenger_private_weekly_summary')return {data:Object.hasOwn(tables,'weeklyReceipt')?tables.weeklyReceipt:{contract_version:1,user_id:args.p_user_id,club_id:args.p_club_id,period_id:args.p_period_id,summary:tables.report},error:broken==='summary'?{code:'42501'}:null};if(broken==='rpc')return {data:null,error:{code:'57014'}}; const convs=args.p_context_entity_id ? [ids.chat,ids.invoice,ids.agentInvoice] : page ? [ids.social] : [ids.social,ids.invoice,ids.agentInvoice];return {data:convs.map(id=>({conversation_id:id,title:id,is_group:true,unread_count:1})),error:null};}};
     return {db,tables,calls};
 }
 
@@ -67,9 +67,36 @@ test('an unanswered issuer thread cannot be reopened through a forged link',asyn
  const {db,tables}=fixture({role:'owner'});tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});
  await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'resolve',conversationId:ids.agentInvoice}),e=>e.status===403);
 });
+test('direct message paging and search refuse a hidden payee thread before calling a message reader',async()=>{
+ const {db,tables,calls}=fixture({role:'owner'});
+ tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});
+ await assert.rejects(readMessengerMessages(db,ids.user,{conversationId:ids.agentInvoice,limit:10}),e=>e.status===403);
+ await assert.rejects(searchMessengerWorkspace(db,ids.user,{conversationId:ids.agentInvoice,query:'invoice'}),e=>e.status===403);
+ assert.ok(!calls.some(c=>c.rpc==='fn_messenger_private_message_page'||c.rpc==='fn_messenger_private_search_messages'));
+});
+test('genuine issuer discussion can be paged but only through the private database contract',async()=>{
+ const {db,tables,calls}=fixture({role:'owner'});
+ tables.accounting_conversations[1].last_discussion_at='2026-09-14T12:00:00Z';
+ tables.social_conversation_participants.push({conversation_id:ids.agentInvoice,user_id:ids.user,context_entity_id:ids.page});
+ tables.messages=[{id:'question',message_type:'text',content:'Please explain the statement.'}];
+ const result=await readMessengerMessages(db,ids.user,{conversationId:ids.agentInvoice,limit:10,before:'2026-09-14T12:00:00.123456Z'});
+ assert.deepEqual(result,tables.messages);
+ const read=calls.find(c=>c.rpc==='fn_messenger_private_message_page');
+ assert.equal(read.p_user_id,ids.user);assert.equal(read.p_conversation_id,ids.agentInvoice);assert.equal(read.p_before,'2026-09-14T12:00:00.123456Z');
+});
+test('uninstalled private reader and revoked membership are unavailable, never legacy page fallbacks',async()=>{
+ const absent=fixture({broken:'messages'});
+ await assert.rejects(readMessengerMessages(absent.db,ids.user,{conversationId:ids.invoice,limit:10}),e=>e.status===503);
+ assert.ok(!absent.calls.some(c=>c.rpc==='fn_messenger_message_page'));
+ const removed=fixture({member:false});
+ await assert.rejects(readMessengerMessages(removed.db,ids.user,{conversationId:ids.invoice,limit:10}),e=>e.status===403);
+ assert.ok(!removed.calls.some(c=>c.rpc==='fn_messenger_private_message_page'));
+});
 function reportFixture(options={}) {
- const f=fixture({role:'owner',...options});f.tables.settlement_periods=[{id:'period',club_id:ids.club,union_id:ids.second,end_at:'2026-09-07T07:00:00Z'}];
- f.tables.report={club_id:ids.club,status:'needs_reconciliation',rake_received:'100.29',source_ledger_ids:['private-source']};return f;
+ const f=fixture({role:'owner',...options});f.tables.settlement_periods=[{id:'40000000-0000-4000-8000-000000000001',club_id:ids.club,union_id:ids.second,start_at:'2026-08-31T07:00:00Z',end_at:'2026-09-07T07:00:00Z'}];
+ const p=f.tables.settlement_periods[0];
+ f.tables.report={accounting_version:3,scope_kind:'union',scope_id:p.union_id,period_id:p.id,club_id:p.club_id,union_id:p.union_id,
+  period_start:p.start_at,period_end:p.end_at,currency:'CHIPS',status:'needs_reconciliation',run_status:'blocked',rake_received:'100.29'};return f;
 }
 test('club manager receives one unresolved weekly preview without individual transfer IDs',async()=>{
  const {db}=reportFixture();const result=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
@@ -85,6 +112,54 @@ test('a failed or wrongly scoped summary does not display a false total',async()
 });
 test('an already complete weekly statement does not duplicate the delivered invoice',async()=>{
  const {db,tables}=reportFixture();tables.report.status='complete';const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});assert.equal(r.weeklySummary,null);
+});
+test('an unresolved standalone week uses its exact recorded club scope and preserves unknown amounts',async()=>{
+ const {db,tables,calls}=reportFixture();tables.settlement_periods[0].union_id=null;
+ Object.assign(tables.report,{union_id:null,scope_kind:'club',scope_id:ids.club,rake_received:'0.00',private_rake_banked:null,ready_to_issue:false});
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices',userId:ids.other});
+ assert.equal(r.weeklySummary.scope_kind,'club');assert.equal(r.weeklySummary.union_id,null);
+ assert.equal(r.weeklySummary.status,'needs_reconciliation');assert.equal(r.weeklySummary.run_status,'blocked');
+ assert.equal(r.weeklySummary.private_rake_banked,null);assert.equal(r.weeklySummary.ready_to_issue,false);
+ assert.deepEqual(calls.find(c=>c.rpc==='fn_messenger_private_weekly_summary'),{rpc:'fn_messenger_private_weekly_summary',p_user_id:ids.user,p_club_id:ids.club,p_period_id:tables.report.period_id});
+ assert.ok(!calls.some(c=>c.rpc==='fn_club_weekly_accounting_summary'||c.rpc==='fn_accounting_party_users'));
+});
+test('a former union club selects the newer standalone period instead of an older union or foreign club book',async()=>{
+ const {db,tables,calls}=reportFixture();const prior=tables.settlement_periods[0];
+ const latest={...prior,id:'40000000-0000-4000-8000-000000000002',union_id:null,start_at:prior.end_at,end_at:'2026-09-14T07:00:00Z'};
+ tables.settlement_periods.push(latest,{...latest,id:'40000000-0000-4000-8000-000000000003',club_id:ids.second,end_at:'2026-09-14T08:00:00Z'});
+ Object.assign(tables.report,{period_id:latest.id,union_id:null,scope_kind:'club',scope_id:ids.club,period_start:latest.start_at,period_end:latest.end_at});
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(r.weeklySummary.period_id,latest.id);assert.equal(calls.find(c=>c.rpc==='fn_messenger_private_weekly_summary').p_period_id,latest.id);
+});
+test('a recorded union period stays a union book regardless of missing current-union metadata',async()=>{
+ const {db,tables}=reportFixture();assert.equal(tables.clubs[0].union_id,undefined);
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(r.weeklySummary.scope_kind,'union');assert.equal(r.weeklySummary.scope_id,ids.second);
+});
+test('two books ending together are unavailable instead of an arbitrary or locally added total',async()=>{
+ const {db,tables,calls}=reportFixture();tables.settlement_periods.push({...tables.settlement_periods[0],id:'40000000-0000-4000-8000-000000000002',union_id:null});
+ await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+ assert.ok(!calls.some(c=>c.rpc==='fn_messenger_private_weekly_summary'));
+});
+test('completed standalone summary does not duplicate the delivered weekly invoice',async()=>{
+ const {db,tables}=reportFixture();tables.settlement_periods[0].union_id=null;
+ Object.assign(tables.report,{union_id:null,scope_kind:'club',scope_id:ids.club,status:'complete',run_status:'complete',ready_to_issue:true});
+ const r=await getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'});
+ assert.equal(r.weeklySummary,null);assert.deepEqual(r.conversations.map(c=>c.id),[ids.invoice]);
+});
+test('wrong period, recorded scope, version or status cannot be presented as a weekly summary',async()=>{
+ for(const patch of [{period_id:'different'},{union_id:null},{scope_kind:'club'},{scope_id:ids.club},{accounting_version:2},
+  {period_start:'2026-08-30T07:00:00Z'},{period_end:'2026-09-08T07:00:00Z'},{currency:'USD'},{status:'paid'},{status:null}]) {
+  const {db,tables}=reportFixture();Object.assign(tables.report,patch);
+  await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+ }
+});
+test('missing, wrong-actor and stale-scope wrapper receipts are unavailable with no privileged fallback',async()=>{
+ for(const patch of [null,{contract_version:0},{user_id:ids.other},{club_id:ids.second},{period_id:'other-period'}]) {
+  const {db,tables,calls}=reportFixture();tables.weeklyReceipt=patch===null?null:{contract_version:1,user_id:ids.user,club_id:ids.club,period_id:tables.report.period_id,summary:tables.report,...patch};
+  await assert.rejects(getMessengerWorkspace(db,ids.user,{workspace:'club',clubId:ids.club,folder:'invoices'}),e=>e.status===503);
+  assert.ok(!calls.some(c=>c.rpc==='fn_club_weekly_accounting_summary'));
+ }
 });
 
 test('archived club copies do not leave empty individual-payout threads in the invoice tab',async()=>{
@@ -119,4 +194,16 @@ test('search does not reopen archived-only threads or treat unavailable search a
 test('search validates query size and result limits before any database call',async()=>{
  const {db,calls}=fixture();for(const query of ['x',' '.repeat(3),'x'.repeat(501)])await assert.rejects(searchMessengerWorkspace(db,ids.user,{query}),e=>e.status===400);
  await assert.rejects(searchMessengerWorkspace(db,ids.user,{query:'valid'},101),e=>e.status===400);assert.equal(calls.length,0);
+});
+
+
+test('invoice deep links select only the requested joined club and supported folder',async()=>{
+ const {resolveMessengerClubEntry}=await import('../src/lib/messengerClubEntry.mjs');
+ const clubs=[{id:'club-a',pageId:'page-a'},{id:'club-b'}];
+ assert.deepEqual(resolveMessengerClubEntry(clubs,{clubId:'club-b',folder:'invoices'}),{club:clubs[1],folder:'invoices'});
+ assert.equal(resolveMessengerClubEntry(clubs,{clubId:'not-joined',folder:'invoices'}),null);
+ assert.equal(resolveMessengerClubEntry([],{clubId:'club-b',folder:'invoices'}),null);
+ assert.equal(resolveMessengerClubEntry(clubs,{clubId:['club-a'],folder:'invoices'}),null);
+ assert.equal(resolveMessengerClubEntry(clubs,{clubId:'club-a',conversation:'explicit-thread'}),null);
+ assert.equal(resolveMessengerClubEntry(clubs,{forceIdentity:'page-a',folder:'unknown'}).folder,'messages');
 });

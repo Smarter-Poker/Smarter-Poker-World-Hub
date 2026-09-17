@@ -6,6 +6,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { useRouter } from 'next/router';
 import { Home, Calendar, Globe, UserPlus, Search, Filter, QrCode } from 'lucide-react';
 import GroupCard from '../../../../src/components/commander/home-games/GroupCard';
@@ -258,10 +259,11 @@ export default function PlayerHomeGamesHub() {
     <CommanderPageShell>
     <>
       <SEOHead
-                title="Home Games"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+        title="Poker Home Games"
+        description="Find And Host Private Poker Home Games Through Club Commander: Invitations, Seat Requests, Schedules And Player Verification In One Place."
+        canonical="/hub/commander/home-games"
+        jsonLd={commanderBreadcrumbs('Poker Home Games', '/hub/commander/home-games')}
+      />
 
       <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Notification Banner */}

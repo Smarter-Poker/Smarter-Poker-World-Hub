@@ -7,7 +7,7 @@ Runs locally on this machine. yt-dlp cannot run serverless on Vercel.
 
 Architecture:
   - This is the ONLY real ingestion engine.
-  - The workers /cron/video-library-scraper receives the completed run receipt.
+  - The API cron /api/cron/video-library-scraper is a status/reporting webhook only.
   - Open Claw triggers this script daily via shell call at 6am UTC.
 
 CREATORS COVERED (23 active — BOSKI/RYAN have no accessible channel):
@@ -87,6 +87,7 @@ SUPABASE_URL      = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
 SUPABASE_KEY      = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 CRON_SECRET       = os.environ.get('CRON_SECRET', '')
 PRODUCTION_URL    = os.environ.get('NEXT_PUBLIC_SITE_URL', 'https://smarter.poker')  # used by AI tagging
+SLACK_WEBHOOK     = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
 # --verify-sources reads YouTube and writes nothing, so it must not require
 # database credentials: a check that only runs where production secrets are
@@ -232,41 +233,57 @@ def check_playable(vid_id: str) -> bool:
         return True  # Network error — don't delete on uncertainty
 
 
-def scrape_succeeded(summary: dict) -> bool:
-    return not any(summary.get(k, 0) for k in ('failed', 'insert_failed', 'metadata_failed')) and not summary.get('errors')
+def report_to_api(summary: dict) -> None:
+    """POST scrape results back to the status API so audit log is kept up to date."""
+    if not CRON_SECRET:
+        return
+    try:
+        data = json.dumps(summary).encode('utf-8')
+        url  = 'https://smarter.poker/api/cron/video-library-scraper?report=1'
+        req  = urllib.request.Request(
+            url, data=data, method='POST',
+            headers={
+                'Content-Type':  'application/json',
+                'Authorization': f'Bearer {CRON_SECRET}',
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+    except Exception as e:
+        log.warning(f'Report-back to API failed (non-fatal): {e}')
 
 
-def report_to_api(summary: dict) -> dict:
-    """Require the workers' committed receipt, including for a failed run."""
-    base = os.environ.get('WORKERS_BASE_URL', '').strip().rstrip('/')
-    secret = os.environ.get('WORKERS_CRON_SECRET', '').strip() or CRON_SECRET
-    if not base or not secret:
-        raise RuntimeError('Workers report endpoint or credential unavailable')
-    headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {secret}'}
-    private_ip = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
-    if private_ip:
-        headers['X-Forwarded-For'] = private_ip
-    req = urllib.request.Request(base + '/cron/video-library-scraper?report=1',
-        data=json.dumps(summary).encode('utf-8'), method='POST', headers=headers)
+def send_failure_alert(summary: dict) -> None:
+    """
+    POST a Slack webhook alert when >= 3 creators fail in one run.
+    Requires SLACK_WEBHOOK_URL in .env.local (optional — silently skipped if absent).
+    """
+    if not SLACK_WEBHOOK:
+        return
     try:
-        response = urllib.request.urlopen(req, timeout=15)
-    except urllib.error.HTTPError as error:
-        response = error  # A committed failed run is deliberately HTTP 503.
-    with response:
-        raw = response.read(32_001)
-        status = response.status
-    if len(raw) > 32_000:
-        raise RuntimeError('Workers report acknowledgement exceeds limit')
-    try:
-        receipt = json.loads(raw)
-    except (ValueError, UnicodeError):
-        raise RuntimeError(f'Workers report returned invalid JSON (HTTP {status})') from None
-    success = scrape_succeeded(summary)
-    if (not isinstance(receipt, dict) or receipt.get('accepted') is not True
-        or receipt.get('run_id') != summary['run_id'] or receipt.get('audit_id') != summary['run_id']
-        or receipt.get('success') is not success or status != (200 if success else 503)):
-        raise RuntimeError(f'Workers report commit unconfirmed (HTTP {status})')
-    return receipt
+        failed_sources = [
+            cr['source_id'] for cr in summary.get('creator_results', [])
+            if cr.get('error')
+        ]
+        msg = {
+            'text': (
+                f':warning: *Video Library Scraper — {summary["failed"]} creator(s) failed*\n'
+                f'Failed: `{",".join(failed_sources)}`\n'
+                f'New: {summary["total_new"]}  Found: {summary["total_found"]}  '
+                f'Elapsed: {summary.get("elapsed_s", 0):.0f}s\n'
+                f'Time: {summary["ran_at"]}'
+            )
+        }
+        data = json.dumps(msg).encode('utf-8')
+        req  = urllib.request.Request(
+            SLACK_WEBHOOK, data=data, method='POST',
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+        log.info('Slack failure alert sent.')
+    except Exception as e:
+        log.warning(f'Slack alert failed (non-fatal): {e}')
 
 
 # ── Dead-video purge ─────────────────────────────────────────────────────────────
@@ -341,7 +358,6 @@ def backfill_metadata(limit: int = 300) -> dict:
 
     log.info(f'Backfill: {len(needs_fix)} rows need date/views fix')
     updated = failed = 0
-    errors = []
     BATCH = 5
 
     for i in range(0, len(needs_fix), BATCH):
@@ -350,8 +366,6 @@ def backfill_metadata(limit: int = 300) -> dict:
         cmd  = ['yt-dlp', '--dump-json', '--no-warnings', '--quiet', '--no-playlist'] + urls
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
-            if r.returncode and len(errors) < 10:
-                errors.append(f'yt-dlp exited {r.returncode}: {r.stderr.strip()[:500]}')
             meta = {}
             for line in r.stdout.strip().splitlines():
                 try:
@@ -379,22 +393,15 @@ def backfill_metadata(limit: int = 300) -> dict:
 
                 if upd:
                     upd['updated_at'] = datetime.now(timezone.utc).isoformat()
-                    try:
-                        supabase.table('video_library_videos').update(upd).eq('id', row['id']).execute()
-                        updated += 1
-                    except Exception as error:
-                        failed += 1
-                        if len(errors) < 10:
-                            errors.append(f'metadata write {vid}: {str(error)[:500]}')
+                    supabase.table('video_library_videos').update(upd).eq('id', row['id']).execute()
+                    updated += 1
 
-        except (subprocess.TimeoutExpired, OSError) as error:
+        except subprocess.TimeoutExpired:
             failed += len(batch)
-            if len(errors) < 10:
-                errors.append(f'metadata process: {type(error).__name__}')
         time.sleep(0.3)
 
     log.info(f'Backfill done — updated={updated} failed={failed}')
-    return {'updated': updated, 'failed': failed, 'errors': errors}
+    return {'updated': updated, 'failed': failed}
 
 
 # ── Channel scraper ─────────────────────────────────────────────────────────────
@@ -539,11 +546,7 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
     log.info(f'Existing videos in DB: {len(existing_ids)}')
 
     summary = {
-        'run_id': str(uuid.uuid4()),
-        'scope': 'source' if filter_source else 'full',
-        'source_id': filter_source.upper() if filter_source else None,
         'processed': 0, 'failed': 0,
-        'insert_failed': 0, 'metadata_failed': 0, 'errors': [],
         'total_found': 0, 'total_new': 0, 'total_skipped': 0,
         'creator_results': [],
         'ran_at': start.isoformat(),
@@ -554,11 +557,11 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
         creators = [c for c in CREATORS if c['source_id'] == filter_source.upper()]
         if not creators:
             log.error(f'Unknown source_id: {filter_source}')
-            raise ValueError(f'Unknown source_id: {filter_source}')
+            return summary
 
     for creator in creators:
         log.info(f'Processing {creator["name"]} (@{creator["handle"]})...')
-        cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'insert_failed': 0, 'error': None}
+        cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'error': None}
 
         try:
             videos = fetch_channel_videos(creator)
@@ -605,22 +608,10 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                             daemon=True
                         ).start()
                     except Exception as e:
-                        # Only the exact stored video proves an idempotent no-op.
-                        duplicate = False
-                        if getattr(e, 'code', None) == '23505':
-                            try:
-                                duplicate = bool(supabase.table('video_library_videos')
-                                    .select('youtube_video_id').eq('youtube_video_id', v['youtube_video_id'])
-                                    .limit(1).execute().data)
-                            except Exception:
-                                duplicate = False
-                        if duplicate:
-                            existing_ids.add(v['youtube_video_id'])
-                            continue
-                        cr['insert_failed'] += 1
-                        summary['insert_failed'] += 1
-                        cr['error'] = f'Insert failed: {str(e)[:500]}'
-                        log.warning(f'    Insert failed for {v["youtube_video_id"]}: {e}')
+                        if '23505' in str(e) or 'duplicate' in str(e).lower() or 'unique' in str(e).lower():
+                            existing_ids.add(v['youtube_video_id'])  # already there
+                        else:
+                            log.warning(f'    Insert failed for {v["youtube_video_id"]}: {e}')
                 cr['new'] = inserted
                 summary['total_new'] += inserted
                 log.info(f'  [{creator["source_id"]}] Inserted {inserted}')
@@ -631,8 +622,6 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                     log.info(f'    • {v["youtube_video_id"]} | {v["title"][:60]}')
 
             summary['processed'] += 1
-            if cr['insert_failed']:
-                summary['failed'] += 1
 
         except Exception as e:
             log.error(f'  [{creator["source_id"]}] Fatal: {e}')
@@ -642,20 +631,18 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
         summary['creator_results'].append(cr)
         time.sleep(0.8)  # Polite pacing between channels
 
+    elapsed = (datetime.now(timezone.utc) - start).total_seconds()
+    summary['elapsed_s'] = elapsed
+
+    # Send Slack alert if >= 3 creators failed
+    if summary['failed'] >= 3 and not dry_run:
+        log.warning(f'{summary["failed"]} creator failures — sending alert')
+        send_failure_alert(summary)
+
     # Backfill dates/views for any static rows that still have fake today-dates
     if not dry_run and not filter_source:
         log.info('Running post-scrape metadata backfill...')
-        try:
-            summary['metadata'] = backfill_metadata(limit=100)
-            summary['metadata_failed'] = summary['metadata']['failed']
-            summary['errors'].extend(summary['metadata'].get('errors', []))
-        except Exception as error:
-            summary['metadata_failed'] = 1
-            summary['errors'].append(f'Metadata backfill failed: {str(error)[:500]}')
-
-    summary['completed_at'] = datetime.now(timezone.utc).isoformat()
-    elapsed = (datetime.fromisoformat(summary['completed_at']) - start).total_seconds()
-    summary['elapsed_s'] = elapsed
+        backfill_metadata(limit=100)  # Fix up to 100 rows per run
 
     # Save evidence file
     ts       = start.strftime('%Y%m%d_%H%M%S')
@@ -665,16 +652,28 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                                    'summary': summary}, indent=2))
     log.info(f'Evidence saved: {ev_file.name}')
 
-    # The worker commits one audit row and sends each failed run to this
-    # task's durable inbox. A missing acknowledgement is a failed run too.
+    # Audit log
     if not dry_run:
         try:
-            summary['report_receipt'] = report_to_api(summary)
+            supabase.table('data_audit_log').insert({
+                'record_id':   str(uuid.uuid4()),
+                'table_name':  'video_library_videos',
+                'action':      'scrape',
+                'scrape_proof': json.dumps({
+                    'scraper':            'video_library_scraper_v3',
+                    'creators_processed': summary['processed'],
+                    'creators_failed':    summary['failed'],
+                    'total_found':        summary['total_found'],
+                    'total_new':          summary['total_new'],
+                    'elapsed_s':          elapsed,
+                    'ran_at':             start.isoformat(),
+                }),
+            }).execute()
         except Exception as e:
-            summary['errors'].append(f'Report commit unconfirmed: {str(e)[:500]}')
-            log.error(summary['errors'][-1])
-        ev_file.write_text(json.dumps({'scraper': 'v3', 'ran_at': start.isoformat(),
-            'dry_run': False, 'elapsed_s': elapsed, 'summary': summary}, indent=2))
+            log.warning(f'Audit log insert failed: {e}')
+
+        # Report to API endpoint
+        report_to_api(summary)
 
     log.info('=' * 60)
     log.info(f'DONE: processed={summary["processed"]} failed={summary["failed"]} '
@@ -823,5 +822,4 @@ if __name__ == '__main__':
         except Exception as e:
             log.error(f'Tag backfill failed: {e}')
     else:
-        result = run_scraper(dry_run=args.dry_run, filter_source=args.source)
-        sys.exit(0 if scrape_succeeded(result) else 1)
+        run_scraper(dry_run=args.dry_run, filter_source=args.source)

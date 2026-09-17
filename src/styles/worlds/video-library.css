@@ -32,8 +32,8 @@ body.world-video-library {
     --vl-display: "Avenir Next Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
     --vl-body: "Avenir Next", "Segoe UI", sans-serif;
     --vl-utility: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    min-height: 100dvh !important;
-    padding: 18px 24px 18px !important;
+    min-height: 100vh !important;
+    padding: 18px 24px calc(82px + env(safe-area-inset-bottom, 0px)) !important;
     color: var(--vl-ice);
     font-family: var(--vl-body);
     background:
@@ -61,7 +61,7 @@ body.world-video-library {
     width: min(1600px, 100%);
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
+    grid-template-columns: 248px minmax(0, 1fr);
     border-top: 1px solid rgba(136, 217, 252, 0.18);
 }
 
@@ -69,8 +69,8 @@ body.world-video-library {
     position: sticky;
     top: 12px;
     align-self: start;
-    min-height: calc(100dvh - 110px);
-    max-height: calc(100dvh - 24px);
+    min-height: calc(100vh - 110px);
+    max-height: calc(100vh - 24px);
     padding: 32px 25px 28px 4px;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -84,7 +84,7 @@ body.world-video-library {
     display: block;
     margin-bottom: 13px;
     color: #7392a1;
-    font: 700 12px/1 var(--vl-utility);
+    font: 700 9px/1 var(--vl-utility);
     letter-spacing: 2.2px;
     text-transform: uppercase;
 }
@@ -110,12 +110,13 @@ body.world-video-library {
     align-items: stretch !important;
     gap: 4px !important;
     margin: 0 !important;
+    scroll-padding-inline: 18px;
 }
 
 .vl-filter-group-label {
     margin: 14px 14px 5px;
     color: #58717e;
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 8px/1 var(--vl-utility);
     letter-spacing: 1.65px;
     text-transform: uppercase;
 }
@@ -186,7 +187,7 @@ body.world-video-library {
     border: 1px solid rgba(129, 208, 242, 0.18);
     color: #718691;
     background: rgba(0, 0, 0, 0.2);
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 8px/1 var(--vl-utility);
     letter-spacing: 0;
     text-align: center;
 }
@@ -213,7 +214,7 @@ body.world-video-library {
 
 .vl-rail-count span {
     color: #60737d;
-    font: 700 12px/1 var(--vl-utility);
+    font: 700 9px/1 var(--vl-utility);
     letter-spacing: 1.4px;
     text-transform: uppercase;
 }
@@ -295,7 +296,7 @@ body.world-video-library {
     color: #82adbe;
     background: rgba(1, 8, 12, 0.74);
     box-shadow: inset 0 -1px rgba(255, 255, 255, 0.04);
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 10px/1 var(--vl-utility);
     text-align: center;
 }
 
@@ -343,12 +344,18 @@ body.world-video-library {
     margin: 0 -1px 29px !important;
     padding: 9px 0 18px !important;
     border-bottom: 1px solid rgba(140, 219, 251, 0.22);
-    /* MOBILE PHASE 9 (docs/mobile-standard): the creator row was a sideways
-       rail (1,842px of logos in 357px at 375, hidden scrollbar, snap). It
-       wraps; every creator is on the page. */
-    display: flex !important;
-    flex-wrap: wrap;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 18px;
+    overscroll-behavior-inline: contain;
 }
+
+.vl-source-pills::-webkit-scrollbar,
+.vl-cw-scroll::-webkit-scrollbar,
+.vl-new-week-scroll::-webkit-scrollbar { height: 4px; }
+
+.vl-source-pills::-webkit-scrollbar-thumb,
+.vl-cw-scroll::-webkit-scrollbar-thumb,
+.vl-new-week-scroll::-webkit-scrollbar-thumb { background: rgba(85, 216, 255, 0.22); }
 
 .vl-source-button {
     width: 66px;
@@ -356,6 +363,7 @@ body.world-video-library {
     gap: 7px !important;
     padding: 3px 1px !important;
     transform: none !important;
+    scroll-snap-align: start;
     touch-action: manipulation;
 }
 
@@ -402,7 +410,7 @@ body.world-video-library {
 .vl-source-name {
     width: 66px !important;
     color: #71838d !important;
-    font: 600 12px/1.15 var(--vl-body) !important;
+    font: 600 9px/1.15 var(--vl-body) !important;
     text-shadow: none !important;
 }
 
@@ -449,7 +457,7 @@ body.world-video-library {
     display: block;
     margin-bottom: 8px;
     color: var(--vl-cyan);
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 8px/1 var(--vl-utility);
     letter-spacing: 1.45px;
     text-transform: uppercase;
 }
@@ -487,7 +495,7 @@ body.world-video-library {
     display: block;
     margin-top: 6px;
     color: #69808c;
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 8px/1 var(--vl-utility);
     font-style: normal;
     letter-spacing: 0.9px;
     text-transform: uppercase;
@@ -517,7 +525,7 @@ body.world-video-library {
 .vl-active-view-copy > span {
     flex: 0 0 auto;
     color: #72909e;
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 8px/1 var(--vl-utility);
     letter-spacing: 1.45px;
     text-transform: uppercase;
 }
@@ -527,8 +535,11 @@ body.world-video-library {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    scrollbar-width: none;
 }
+
+.vl-active-filter-list::-webkit-scrollbar { display: none; }
 
 .vl-active-filter-list strong {
     flex: 0 0 auto;
@@ -536,7 +547,7 @@ body.world-video-library {
     border: 1px solid rgba(111, 203, 242, 0.22);
     color: #cceefa;
     background: rgba(7, 25, 34, 0.72);
-    font: 700 12px/1 var(--vl-utility);
+    font: 700 9px/1 var(--vl-utility);
     letter-spacing: 0.25px;
 }
 
@@ -547,7 +558,7 @@ body.world-video-library {
     border-radius: 0;
     color: var(--vl-cyan);
     background: rgba(2, 12, 17, 0.72);
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 9px/1 var(--vl-utility);
     letter-spacing: 0.45px;
     text-transform: uppercase;
     cursor: pointer;
@@ -603,7 +614,7 @@ body.world-video-library {
 .vl-continuity-kicker,
 .vl-continuity-actions > span {
     color: #6f8792;
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 9px/1 var(--vl-utility);
     letter-spacing: 1.15px;
     text-transform: uppercase;
 }
@@ -621,7 +632,7 @@ body.world-video-library {
     border-radius: 0;
     color: #dff8ff;
     background: linear-gradient(180deg, rgba(20, 94, 122, 0.32), rgba(3, 14, 20, 0.78));
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 9px/1 var(--vl-utility);
     letter-spacing: 0.65px;
     text-transform: uppercase;
     cursor: pointer;
@@ -665,13 +676,9 @@ body.world-video-library {
 
 .vl-video-grid {
     display: grid !important;
-    /* Fluid: three columns beside the rail at 1280, two under 1180, with no
-       fourth breakpoint (the standard allows 900 / 768 / 600 only). */
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 18px 15px !important;
 }
-
-.vl-video-grid > .vl-video-card.is-featured { grid-column: 1 / -1; }
 
 .vl-video-card {
     position: relative;
@@ -772,7 +779,7 @@ body.world-video-library {
     padding: 4px 7px !important;
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 1px !important;
-    font: 800 12px/1 var(--vl-utility) !important;
+    font: 800 10px/1 var(--vl-utility) !important;
     pointer-events: none;
 }
 
@@ -807,7 +814,7 @@ body.world-video-library {
     place-items: center;
     border: 1px solid currentColor;
     border-radius: 50%;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .vl-action-notice--error {
@@ -837,7 +844,7 @@ body.world-video-library {
     border-left: 2px solid var(--vl-cyan);
     color: #8edffa;
     background: linear-gradient(90deg, rgba(34, 151, 194, 0.14), transparent 85%);
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 9px/1 var(--vl-utility);
     letter-spacing: 0.7px;
     text-transform: uppercase;
 }
@@ -877,7 +884,7 @@ body.world-video-library {
     border-radius: 0 !important;
     color: var(--vl-cyan) !important;
     background: transparent !important;
-    font: 800 12px/1 var(--vl-utility) !important;
+    font: 800 10px/1 var(--vl-utility) !important;
     letter-spacing: 0.55px;
 }
 
@@ -893,7 +900,7 @@ body.world-video-library {
 .vl-card-views {
     margin-left: auto;
     color: #748690 !important;
-    font: 500 12px/1 var(--vl-utility) !important;
+    font: 500 10px/1 var(--vl-utility) !important;
     white-space: nowrap;
 }
 
@@ -905,7 +912,7 @@ body.world-video-library {
     border-radius: 1px !important;
     color: #73858f !important;
     background: rgba(255, 255, 255, 0.025) !important;
-    font: 700 12px/1 var(--vl-utility) !important;
+    font: 700 9px/1 var(--vl-utility) !important;
     white-space: nowrap;
 }
 
@@ -946,7 +953,7 @@ body.world-video-library {
     padding: 13px 15px;
     border-top: 1px solid rgba(139, 218, 250, 0.2);
     color: #667a84 !important;
-    font: 700 12px/1 var(--vl-utility) !important;
+    font: 700 10px/1 var(--vl-utility) !important;
     letter-spacing: 0.5px;
     text-align: right !important;
 }
@@ -998,7 +1005,7 @@ body.world-video-library {
     display: block;
     margin-bottom: 9px;
     color: var(--vl-cyan);
-    font: 800 12px/1 var(--vl-utility);
+    font: 800 9px/1 var(--vl-utility);
     letter-spacing: 1.3px;
     text-transform: uppercase;
 }
@@ -1024,7 +1031,7 @@ body.world-video-library {
     border-radius: 0;
     color: #dff8ff;
     background: rgba(25, 117, 153, 0.18);
-    font: 900 12px/1 var(--vl-utility);
+    font: 900 10px/1 var(--vl-utility);
     letter-spacing: 0.75px;
     text-transform: uppercase;
     cursor: pointer;
@@ -1046,7 +1053,7 @@ body.world-video-library {
     border: 1px solid rgba(255, 184, 76, 0.38);
     color: #ffe2ad;
     background: rgba(83, 50, 7, 0.22);
-    font: 700 12px/1.45 var(--vl-utility);
+    font: 700 11px/1.45 var(--vl-utility);
     letter-spacing: 0.25px;
 }
 
@@ -1058,7 +1065,7 @@ body.world-video-library {
     border-radius: 0;
     color: inherit;
     background: rgba(255, 255, 255, 0.04);
-    font: 900 12px/1 var(--vl-utility);
+    font: 900 9px/1 var(--vl-utility);
     letter-spacing: 0.7px;
     text-transform: uppercase;
     cursor: pointer;
@@ -1082,14 +1089,14 @@ body.world-video-library {
 }
 
 .vl-sync-panel strong {
-    font: 900 12px/1.2 var(--vl-utility);
+    font: 900 11px/1.2 var(--vl-utility);
     letter-spacing: 0.6px;
     text-transform: uppercase;
 }
 
 .vl-sync-panel span {
     color: rgba(220, 244, 252, 0.66);
-    font: 500 12px/1.4 var(--vl-body);
+    font: 500 11px/1.4 var(--vl-body);
 }
 
 .vl-sync-panel.is-loading {
@@ -1158,7 +1165,7 @@ body.world-video-library {
 .vl-media-failed::before {
     content: "Preview unavailable";
     color: rgba(220, 244, 252, 0.55);
-    font: 900 12px/1 var(--vl-utility);
+    font: 900 9px/1 var(--vl-utility);
     letter-spacing: 1px;
     text-transform: uppercase;
 }
@@ -1169,7 +1176,7 @@ body.world-video-library {
     padding: 16px;
     color: rgba(220, 244, 252, 0.58);
     text-align: center;
-    font: 900 12px/1 var(--vl-utility);
+    font: 900 9px/1 var(--vl-utility);
     letter-spacing: 0.8px;
     text-transform: uppercase;
 }
@@ -1201,7 +1208,7 @@ body.world-video-library {
 
 .vl-reels-fallback > span {
     color: #55d8ff;
-    font: 800 12px/1 "SFMono-Regular", Consolas, monospace;
+    font: 800 9px/1 "SFMono-Regular", Consolas, monospace;
     letter-spacing: 1.6px;
     text-transform: uppercase;
 }
@@ -1228,7 +1235,7 @@ body.world-video-library {
     border-radius: 0;
     color: #e8faff;
     background: rgba(25, 117, 153, 0.18);
-    font: 900 12px/1 "SFMono-Regular", Consolas, monospace;
+    font: 900 10px/1 "SFMono-Regular", Consolas, monospace;
     letter-spacing: 0.65px;
     text-transform: uppercase;
     cursor: pointer;
@@ -1332,8 +1339,15 @@ body.world-video-library {
     box-shadow: 0 -18px 70px rgba(0, 0, 0, 0.76), 0 0 42px rgba(0, 153, 255, 0.09) !important;
 }
 
+@media (max-width: 1180px) {
+    .vl-command-layout { grid-template-columns: 218px minmax(0, 1fr); }
+    .vl-command-main { padding-left: 23px; }
+    .vl-video-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .vl-video-grid > .vl-video-card.is-featured { grid-column: 1 / -1; }
+}
+
 /* Tablet bridge: keep the command rail while giving feature cards usable width. */
-@media (min-width: 769px) and (max-width: 900px) {
+@media (min-width: 761px) and (max-width: 900px) {
     .video-library-page { padding-inline: 16px !important; }
     .vl-command-layout { grid-template-columns: 188px minmax(0, 1fr); }
     .vl-command-rail { padding-right: 17px; }
@@ -1353,10 +1367,10 @@ body.world-video-library {
     }
 }
 
-/* Phone composition (mobile phase 9): every control wraps on screen, cards become a feed. */
-@media (max-width: 768px) {
+/* Phone composition: controls become swipeable rails and cards become a feed. */
+@media (max-width: 760px) {
     .video-library-page {
-        padding: 8px 9px 8px !important;
+        padding: 8px 9px calc(78px + env(safe-area-inset-bottom, 0px)) !important;
         background-size: auto, 32px 32px, 32px 32px, auto !important;
     }
 
@@ -1383,7 +1397,7 @@ body.world-video-library {
         border-bottom: 1px solid rgba(134, 216, 251, 0.25);
     }
 
-    .vl-rail-kicker { margin-bottom: 6px; }
+    .vl-rail-kicker { display: none; }
 
     .vl-rail-title {
         margin: 0 0 18px;
@@ -1392,33 +1406,39 @@ body.world-video-library {
         letter-spacing: -1.5px;
     }
 
-    /* MOBILE PHASE 9: the command controls were a sideways rail (1,219px of
-       buttons in 357px at 375, hidden scrollbar, mandatory snap, a fade mask
-       at both edges, group labels culled). A two-column grid instead: every
-       Browse, My Library, Order and Format control on screen, each group
-       label a full-width heading above its buttons. */
     .vl-type-toggle-row {
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px !important;
-        width: 100%;
+        width: calc(100vw - 18px);
+        flex-direction: row;
+        flex-wrap: nowrap !important;
+        gap: 0 !important;
+        row-gap: 0 !important;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        padding-right: 28px;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 13px, #000 calc(100% - 28px), transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0, #000 13px, #000 calc(100% - 28px), transparent 100%);
     }
 
-    .vl-filter-group-label {
-        grid-column: 1 / -1;
-        margin: 10px 2px 0;
-    }
+    .vl-type-toggle-row::-webkit-scrollbar { display: none; }
+
+    .vl-filter-group-label { display: none; }
 
     .vl-filter-button {
-        width: 100%;
-        min-width: 0;
+        width: auto;
+        min-width: max-content;
         min-height: 44px;
-        padding: 0 12px !important;
+        flex: 0 0 auto;
+        padding: 0 18px !important;
         border-color: #294552 !important;
+        border-right: 0 !important;
         justify-content: center !important;
         background: linear-gradient(180deg, #0b171e, #03090d) !important;
+        scroll-snap-align: start;
     }
 
+    .vl-filter-button:last-child { border-right: 1px solid #294552 !important; }
     .vl-filter-button::after { display: none; }
 
     .vl-filter-button.is-active {
@@ -1455,7 +1475,7 @@ body.world-video-library {
 
     .vl-rail-count span {
         display: block;
-        font-size: 12px;
+        font-size: 7px;
     }
 
     .vl-command-main { padding: 14px 0 42px; }
@@ -1465,27 +1485,25 @@ body.world-video-library {
         margin-bottom: 12px;
     }
 
-    .vl-command-heading { margin-bottom: 12px; }
+    .vl-command-heading { display: none; }
     .vl-search-wrap { width: 100% !important; }
 
     .vl-search-wrap input {
-        min-height: 44px;
-        font-size: 16px !important;
+        min-height: 42px;
+        font-size: 14px !important;
     }
 
     .vl-search-results { margin-top: 0 !important; }
 
     .vl-source-pills {
-        width: 100%;
+        width: calc(100vw - 18px);
         margin: 0 0 21px !important;
         padding: 12px 0 14px !important;
         border-top: 1px solid rgba(137, 217, 250, 0.18);
-        justify-content: center;
+        padding-right: 28px !important;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 28px), transparent 100%);
     }
-
-    /* Ten creators at first (two rows of five at 375), the rest behind one
-       44px Show All button: same cap as Reels and Videos on Poker News. */
-    .vl-source-pills:not(.is-expanded) > .vl-source-button:nth-child(n + 11) { display: none !important; }
 
     .vl-empty-state button,
     .vl-search-wrap input { min-height: 44px; }
@@ -1512,7 +1530,7 @@ body.world-video-library {
         margin-bottom: 6px;
     }
 
-    .vl-active-view > button { padding: 8px; min-height: 44px; }
+    .vl-active-view > button { padding: 8px; }
 
     .vl-subview-banner {
         grid-template-columns: minmax(0, 1fr) 72px;
@@ -1528,15 +1546,15 @@ body.world-video-library {
     }
 
     .vl-subview-copy h2 { font-size: 27px; }
-    .vl-subview-copy p { font-size: 12px; line-height: 1.45; }
+    .vl-subview-copy p { font-size: 11px; line-height: 1.45; }
     .vl-subview-status { min-width: 0; padding-left: 11px; }
     .vl-subview-status strong { font-size: 29px; }
     .vl-subview-status span,
-    .vl-subview-status em { font-size: 12px; letter-spacing: 0.5px; }
+    .vl-subview-status em { font-size: 7px; letter-spacing: 0.5px; }
 
     .vl-source-button {
-        width: 64px;
-        min-width: 64px;
+        width: 62px;
+        min-width: 62px;
     }
 
     .vl-source-logo-frame {
@@ -1546,7 +1564,7 @@ body.world-video-library {
 
     .vl-source-name {
         width: 60px !important;
-        font-size: 12px !important;
+        font-size: 9px !important;
     }
 
     .vl-continue-watching,
@@ -1566,13 +1584,11 @@ body.world-video-library {
         gap: 7px;
     }
 
-    .vl-continuity-actions > span { font-size: 12px; }
-    .vl-continuity-actions button { min-height: 44px; padding-inline: 12px; font-size: 12px; }
+    .vl-continuity-actions > span { font-size: 8px; }
+    .vl-continuity-actions button { min-height: 32px; padding-inline: 9px; font-size: 8px; }
 
-    /* Continue Watching and New This Week are two-column grids (four cards,
-       then Show More), never a sideways strip. */
-    .vl-cw-grid,
-    .vl-new-week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    .vl-new-week-card,
+    .vl-continue-watching .video-card-metal { min-width: 198px !important; }
 
     .vl-video-grid { display: block !important; }
     .vl-video-card { margin-top: -1px; }
@@ -1640,13 +1656,14 @@ body.world-video-library {
         gap: 5px;
     }
 
+    .vl-video-grid > .vl-video-card:not(.is-featured) .vl-source-chip-logo { display: none !important; }
     .vl-video-grid > .vl-video-card:not(.is-featured) .vl-card-views { margin-left: 0; }
 
     .vl-share-button {
         margin-left: auto;
         min-height: 44px;
         padding: 4px 6px !important;
-        font-size: 12px !important;
+        font-size: 8px !important;
     }
 
     .vl-play-button {
@@ -1657,8 +1674,8 @@ body.world-video-library {
     }
 
     .vl-video-card:not(.is-featured) .vl-play-button {
-        width: 44px !important;
-        height: 44px !important;
+        width: 34px !important;
+        height: 34px !important;
     }
 
     .vl-video-card:not(.is-featured) .vl-play-button span { font-size: 16px !important; }

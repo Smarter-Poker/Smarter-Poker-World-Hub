@@ -86,7 +86,7 @@ body,
   content: '';
   position: fixed;
   inset: 0;
-  background: url('/circuit-brain-bg.png') center/cover no-repeat;
+  background: url('/circuit-brain-bg.webp') center/cover no-repeat;
   opacity: 0.25;
   z-index: 1;
   pointer-events: none;

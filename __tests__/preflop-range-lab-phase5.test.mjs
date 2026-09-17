@@ -25,7 +25,7 @@ test('leak analysis and keyboard wiring clean up and avoid native-control double
   // interactive-target guard; text entry keeps its own narrower guard.
   assert.match(
     PAGE,
-    /closest\('button, a, input, select, textarea, \[contenteditable="true"\], \[role="grid"\]'\)/
+    /closest\(\s*'button, a, input, select, textarea, \[contenteditable="true"\], \[role="grid"\]'\s*\)/
   );
   assert.match(PAGE, /closest\('input, select, textarea, \[contenteditable="true"\]'\)/);
   assert.match(PAGE, /\(e\.metaKey \|\| e\.ctrlKey\).*e\.key\.toLowerCase\(\) === 'z'/s);
@@ -34,7 +34,10 @@ test('leak analysis and keyboard wiring clean up and avoid native-control double
 test('mobile Range Lab has a sticky editing command strip with recoverable clear', () => {
   assert.match(PAGE, /className="preflop-lab-command-strip"/);
   // Mobile phase 2: every command fires a haptic before its handler.
-  assert.match(PAGE, /onClick=\{\(\) => \{ haptic\('light'\); handleUndo\(\); \}\}/);
+  assert.match(
+    PAGE,
+    /onClick=\{\(\) => \{\s*haptic\('light'\);\s*handleUndo\(\);\s*\}\}/
+  );
   assert.match(PAGE, /handleRedo\(\)/);
   assert.match(PAGE, /handleClearRange\(\)/);
   assert.match(PAGE, /className="preflop-lab-command-actions"/);

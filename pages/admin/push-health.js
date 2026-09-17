@@ -7,8 +7,7 @@
  * results would show green while every phone stayed silent.
  */
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
-import { getAccessToken } from '../../src/lib/authUtils';
+import usePushHealth from '../../src/hooks/usePushHealth';
 
 const STATUS_LABEL = {
     ok: 'Reachable',
@@ -28,6 +27,7 @@ const REASON_LABEL = {
     too_stale_to_deliver: 'Too old to be useful',
     time_budget_exhausted: 'Deferred to next run',
     unknown: 'Unknown',
+    digested_into: 'Included In A Digest',
 };
 
 // user_choice and not_enrolled are EXPECTED. Only `fault` means we are broken.
@@ -52,24 +52,7 @@ const STATUS_COLOR = {
 };
 
 export default function PushHealthPage() {
-    const [data, setData] = useState(null);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const token = getAccessToken();
-                const res = await fetch('/api/admin/push-health-data', {
-                    headers: token ? { Authorization: `Bearer ${token}` } : {},
-                });
-                const json = await res.json();
-                if (!res.ok) { setError(json?.error || `Failed (${res.status})`); return; }
-                setData(json);
-            } catch (e) {
-                setError(e?.message || 'Failed to load');
-            }
-        })();
-    }, []);
+    const { data, error } = usePushHealth();
 
     return (
         <>
@@ -84,16 +67,17 @@ export default function PushHealthPage() {
                     {error && <p style={{ color: '#FCA5A5', marginTop: 20 }}>{error}</p>}
                     {!data && !error && <p style={{ color: '#6B7280', marginTop: 20 }}>Loading...</p>}
 
-                    {data && (
+                    {data && !error && (
                         <>
+                            <p style={{ color: '#9CA3AF', fontSize: 12 }}>Checked {new Date(data.observedAt).toLocaleString()}. Counts Include Every Matching Record.</p>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 20 }}>
                                 <Stat label="VAPID configured" value={data.config.configured ? 'Yes' : 'NO'} bad={!data.config.configured} />
                                 <Stat label="Keys match" value={data.config.keyMatches ? 'Yes' : 'NO'} bad={!data.config.keyMatches} />
                                 <Stat label="Active devices" value={data.subscriptions.active} />
                                 <Stat label="Unconfirmed devices" value={data.subscriptions.zombies} bad={data.subscriptions.zombies > 0} />
                                 <Stat label="Sent (24h)" value={data.outbox.sentLast24h} />
-                                <Stat label="Queue backlog" value={data.outbox.pending} bad={data.outbox.pending > 250} />
-                                <Stat label="Failed" value={data.outbox.failed} bad={data.outbox.failed > 0} />
+                                <Stat label="Queue backlog" value={data.outbox.pending + data.outbox.processing} bad={data.outbox.pending + data.outbox.processing > 250} />
+                                <Stat label="Failed (All Time)" value={data.outbox.failed} bad={data.outbox.failed > 0} />
                                 <Stat
                                     label="Dispatcher last ran"
                                     value={data.dispatch.minutesSince == null ? 'never' : `${data.dispatch.minutesSince}m ago`}
@@ -113,8 +97,8 @@ export default function PushHealthPage() {
                                 <>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 12 }}>
                                         <Stat label="Queued" value={data.funnel.queued} />
-                                        <Stat label="Unreachable" value={data.funnel.unreachable ?? 0} />
-                                        <Stat label="Addressable" value={data.funnel.addressable ?? 0} />
+                                        <Stat label="Unreachable" value={data.funnel.unreachable} />
+                                        <Stat label="Addressable" value={data.funnel.addressable} />
                                         <Stat label="Sent" value={data.funnel.sent} />
                                         <Stat label="Suppressed" value={data.funnel.suppressed} />
 
@@ -124,7 +108,7 @@ export default function PushHealthPage() {
                                             // never had anywhere to go, and counting it as a
                                             // failed send reads 0% while every real send works.
                                             label="Send rate (of addressable)"
-                                            value={data.funnel.deliveryRate == null ? 'n/a' : `${data.funnel.deliveryRate}%`}
+                                            value={data.funnel.addressableDeliveryRate == null ? 'n/a' : `${data.funnel.addressableDeliveryRate}%`}
                                         />
                                         <Stat
                                             label="Devices confirming"

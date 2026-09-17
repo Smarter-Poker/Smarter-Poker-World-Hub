@@ -147,6 +147,7 @@ test('the subscribe route accepts a native token without keys, and never dials i
     // the host allowlist runs only for webpush
     const fcmBranch = src.slice(src.indexOf("if (transport === 'fcm') {"), src.indexOf('} else {', src.indexOf("if (transport === 'fcm') {")));
     assert.ok(!fcmBranch.includes('validatePushEndpoint'));
-    assert.ok(src.includes("transport === 'webpush' && !timingSafeEquals(auth, row.auth)"));
-    assert.ok(src.includes('transport,\n                    platform,'));
+    assert.ok(src.includes('changePushSubscription(supabase, user.id,'));
+    assert.ok(src.includes('endpoint, p256dh, auth, transport, platform'));
+    assert.ok(!src.includes(".from('push_subscriptions')"), 'ownership changes belong to the atomic service contract');
 });

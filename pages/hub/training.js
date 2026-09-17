@@ -373,8 +373,8 @@ export default function TrainingPage() {
   return (
     <PageTransition disableInitialAnimation>
       <SEOHead
-        title="Training - Smarter.Poker"
-        description="One-tap GTO training. Personalised daily plan, leak detection, and 100+ scenario-based games coached by Jarvis."
+        title="GTO Poker Training: Free Drills And Leak Detection"
+        description="Free GTO Poker Training On Smarter.Poker: One-Tap Drills, A Personalised Daily Plan, Leak Detection And 100+ Scenario-Based Games Coached By Jarvis. No Real-Money Gambling."
         canonical="/hub/training"
       />
 
@@ -800,9 +800,13 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
 function renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading, recommendationLoading }) {
   const greet = authUser
     ? `Welcome Back${authUser?.name ? `, ${authUser.name}` : ''}.`
-    : 'Build Better Decisions, One Hand At A Time.';
+    : 'GTO Poker Training: Build Better Decisions, One Hand At A Time.';
+  // While the plan loads the heading is the greeting alone; the sub-line
+  // under it already says "Loading your daily plan". A crawler reads the
+  // server HTML, where loading is the only state, and a heading that ends in
+  // a loading message is what it took away (AEO phase 1, 2026-09-17).
   if (statsLoading || recommendationLoading || (authUser && !stats && !statsError)) {
-    return <>{greet} Loading Your Daily Plan…</>;
+    return <>{greet}</>;
   }
   if (authUser && (statsError || !stats)) {
     return <>{greet} Your Training Summary Is Temporarily Unavailable.</>;
@@ -1501,7 +1505,7 @@ function GlobalStyle() {
         color: #eef9ff;
         background:
           linear-gradient(rgba(3, 10, 19, .82), rgba(3, 10, 19, .94)),
-          url('/circuit-brain-bg.png') center top / cover fixed,
+          url('/circuit-brain-bg.webp') center top / cover fixed,
           #030811;
         border-left: 1px solid rgba(103, 220, 255, .24);
         border-right: 1px solid rgba(103, 220, 255, .24);
@@ -1855,7 +1859,7 @@ function GlobalStyle() {
           border-right: 0;
           background:
             linear-gradient(rgba(3, 10, 19, .86), rgba(3, 10, 19, .96)),
-            url('/circuit-brain-bg.png') 44% top / auto 900px repeat-y,
+            url('/circuit-brain-bg.webp') 44% top / auto 900px repeat-y,
             #030811;
         }
         .sp-main > section + section { margin-top: 24px; }

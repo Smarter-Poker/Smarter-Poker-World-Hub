@@ -210,7 +210,7 @@ function PlayingCard({ card, size = 'inline' }) {
     const config = SUIT_CONFIG[suit] || SUIT_CONFIG.s;
 
     const sizes = {
-        inline: { width: 16, height: 24, fontSize: 12 },
+        inline: { width: 16, height: 24, fontSize: 11 },
         small: { width: 36, height: 50, fontSize: 12 },
         medium: { width: 52, height: 72, fontSize: 16 },
         large: { width: 68, height: 94, fontSize: 20 },
@@ -713,7 +713,7 @@ export default function StrategyTrivia({ mode }) {
         // entry point shows.
         return (
             <PageTransition>
-                <div style={{ minHeight: '100dvh', background: '#0a1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ minHeight: '100vh', background: '#0a1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <TriviaSkeleton label={`Loading ${config.title}`} />
                 </div>
             </PageTransition>
@@ -1175,7 +1175,7 @@ export default function StrategyTrivia({ mode }) {
 
             <style>{`
                 .strategy-trivia {
-                    height: 100dvh;
+                    height: 100vh;
                     height: 100dvh;
                     overflow: hidden;
                     background: linear-gradient(135deg, #0a0e1a 0%, #0d1525 40%, #0a1628 70%, #060b14 100%);
@@ -1484,7 +1484,7 @@ export default function StrategyTrivia({ mode }) {
 
                 .category-badge {
                     display: inline-block;
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.7);
                     text-transform: uppercase;
                     letter-spacing: 1.5px;
@@ -1665,7 +1665,7 @@ export default function StrategyTrivia({ mode }) {
                     border-radius: 10px;
                 }
                 .coaching-notes__head {
-                    font-size: 12px;
+                    font-size: 11px;
                     letter-spacing: 1.5px;
                     text-transform: uppercase;
                     color: rgba(255, 255, 255, 0.5);
@@ -1760,12 +1760,12 @@ export default function StrategyTrivia({ mode }) {
                     .timer-ring-progress { transition: none; }
                 }
 
-                @media (max-width: 600px) {
+                @media (max-width: 480px) {
                     .game-frame { padding: 12px; border-radius: 14px; }
                     .game-header { padding: 10px 14px; margin-bottom: 14px; }
                     .question-text { font-size: 17px; margin-bottom: 18px; }
                     .option { padding: 12px 14px; font-size: 14px; gap: 10px; }
-                    .lobby-cost-strip { font-size: 12px; padding: 8px 10px; }
+                    .lobby-cost-strip { font-size: 11px; padding: 8px 10px; }
                 }
             `}</style>
         </PageTransition >

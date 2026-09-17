@@ -34,7 +34,7 @@ description: Live testing guidelines. Fast execution for minor UI/CSS updates vi
 ## Test Account
 
 - **Email:** `daniel@bekavactrading.com`
-- **Password:** `<TEST_USER_PASSWORD — see .env.local, never commit>`
+- **Password:** `<use the configured authorized test-account interface; never read or print credential values>`
 
 ## Browser Automation for Agents
 

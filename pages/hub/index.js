@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -126,6 +127,12 @@ export default function HubPage() {
                 description="Access All Smarter.Poker Features From One Hub: GTO Training, Poker Near Me, Bankroll Tracking, Trivia, News, Social, And More."
                 canonical="/hub"
             />
+            <Head>
+                {/* The hub's largest paint is the circuit-brain background that
+                    WorldHub sets from JavaScript. Preloading it lets the fetch
+                    start with the HTML instead of after the bundle runs. */}
+                <link rel="preload" as="image" href="/circuit-brain-bg.webp" />
+            </Head>
             <UniversalHeader
                 pageDepth={1}
                 hideLeftIcon

@@ -174,7 +174,7 @@ function NewsBoxFallback({ article }) {
                 }
 
                 .box-excerpt {
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.45);
                     margin: 0;
                 }
@@ -500,7 +500,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                     padding: 4px 8px;
                     background: rgba(34, 197, 94, 0.9);
                     border-radius: 6px;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 600;
                     color: #fff;
                     z-index: 10;
@@ -602,7 +602,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                    page rule no longer wins; declare the intended values here so
                    the rendered result is unchanged. */
                 .box-excerpt {
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.45);
                     margin: 2px 0 4px;
                     line-height: 1.4;
@@ -616,7 +616,7 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    font-size: 12px;
+                    font-size: 11px;
                     color: rgba(255, 255, 255, 0.5);
                     white-space: nowrap;
                     overflow: hidden;
@@ -699,21 +699,6 @@ function NewsBoxCard({ article, index, onOpen, isBookmarked, onBookmark, onShare
 
                     .box-meta {
                         font-size: 12px;
-                    }
-
-                    /* Always visible on a phone (no hover), and a 44px target.
-                       The page's read-later chip sits to the left of this
-                       pair, so its right offset in pages/hub/news.js and
-                       LiveWireStyles.js is derived from these two widths. */
-                    .box-actions {
-                        opacity: 1;
-                    }
-
-                    .box-actions button {
-                        width: 44px;
-                        height: 44px;
-                        min-width: 44px;
-                        min-height: 44px;
                     }
                 }
             `}</style>

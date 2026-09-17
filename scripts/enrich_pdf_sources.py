@@ -1,5 +1,4 @@
 import json
-import os
 import urllib.request
 import io
 import re
@@ -7,9 +6,7 @@ import pdfplumber
 import time
 
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-if not SUPABASE_KEY:
-    raise SystemExit("SUPABASE_SERVICE_ROLE_KEY is required")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 h = {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'}
 read_h = {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
 
@@ -37,6 +34,7 @@ pdf_cache = {}
 stats = {'stack': 0, 'gtd': 0, 'late': 0, 'updated': 0}
 
 import hashlib
+import os
 
 from scrapling import StealthyFetcher
 session = StealthyFetcher(auto_match=True)

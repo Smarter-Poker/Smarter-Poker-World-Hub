@@ -224,7 +224,7 @@ function RarityBadge({ rarity }: { rarity: string }) {
 function DiamondIcon() {
     return (
         <img
-            src="/images/diamond.png"
+            src="/images/diamond.webp"
             alt="Diamond"
             style={{ width: 20, height: 20, display: 'inline-block', verticalAlign: 'middle' }}
         />

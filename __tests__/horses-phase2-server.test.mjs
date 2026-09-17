@@ -4,7 +4,7 @@
  * Behaviour tests with fake I/O, in the shape the Phase 1 suites established:
  * the real modules run, every database call goes to a fake query builder that
  * RECORDS and APPLIES the filters and ranges it is handed, and nothing here
- * touches Supabase, Sentry or the network.
+ * touches Supabase, retired error provider or the network.
  *
  * What is asserted, and why each one matters:
  *
@@ -3203,14 +3203,15 @@ test('approve-cashout: only the platform-override path is gated, and the row say
 
 test('contract: approve-cashout raises an approval only inside the platform-override branch', () => {
   const text = source(path.join(ROOT, 'pages', 'api', 'club-arena', 'approve-cashout.js'));
-  const guard = text.indexOf('if (viaPlatformOverride) {');
+  const guard = text.indexOf("if (action === 'approve' && viaPlatformOverride) {");
   const request = text.indexOf('await requireApproval(');
+  const branchEnd = text.indexOf('\n    }', guard);
   assert.ok(guard > -1, 'the gate must be explicit in the source');
-  assert.ok(request > guard, 'requireApproval must sit inside that branch, not in front of every caller');
+  assert.ok(request > guard && request < branchEnd, 'requireApproval must sit inside the approval-only override branch');
   // The audit rows carry the path, so the trail can say in what capacity a
   // cashout was actioned rather than only by whom.
   assert.match(text, /auth_path: authPath/);
-  assert.match(text, /approval_gated: viaPlatformOverride/);
+  assert.match(text, /approval_gated: action === 'approve' && viaPlatformOverride/);
 });
 
 // ---------------------------------------------------------- stable-admin
@@ -3381,24 +3382,29 @@ test('contract: mint calls requireApproval BEFORE the money RPC and marks it exe
 test('contract: the cashout route is wired the same way and keeps its own auth', () => {
   const file = path.join(ROOT, 'pages', 'api', 'club-arena', 'approve-cashout.js');
   const text = source(file);
+  const iAuth = text.indexOf('await authenticateCashout(req, db)');
+  const iLookup = text.indexOf('await lookupCashoutReceipt(client, context)');
   const iRequest = text.indexOf('await requireApproval(');
-  const iRpc = text.indexOf("rpc('fn_approve_cashout_atomic'");
+  const iPending = text.indexOf('return approvalPendingResponse(');
+  const iRpc = text.indexOf('await dispatchCashout(client, context)');
   const iMark = text.indexOf('await markApprovalExecuted(');
-  assert.ok(iRequest > -1 && iRpc > -1 && iMark > -1);
-  assert.ok(iRequest < iRpc, 'requireApproval must run before the cashout RPC');
+  assert.ok(iAuth > -1 && iLookup > -1 && iRequest > -1 && iPending > -1 && iRpc > -1 && iMark > -1);
+  assert.ok(iAuth < iLookup && iLookup < iRequest, 'only the authenticated exact receipt can bypass current business gates');
+  assert.ok(iRequest < iPending && iPending < iRpc, 'pending approval must return before the cashout RPC');
   assert.ok(iMark > iRpc, 'markApprovalExecuted must run after it');
   assert.match(text, /kind: 'cashout'/);
-  // Minimal diff: this route still verifies its own caller, by design.
-  assert.match(text, /getServerUserWithFallback/, 'the club-arena route keeps its own auth');
-  assert.match(text, /loadOperatorPolicy\(/, 'it must read the policy the same way the console does');
-  // The cancel branch stays ungated: blocking a refund would be a narrowing.
-  const cancelIndex = text.indexOf("if (action === 'cancel')");
-  assert.ok(cancelIndex > -1);
-  assert.equal(
-    text.indexOf('await requireApproval(', cancelIndex),
-    -1,
-    'returning a player their own chips must never need a second operator'
-  );
+  assert.match(text, /const client = cashoutUserClient\(auth\.token\);/);
+  assert.match(text, /actorId: auth\.actorId, operationId: auth\.operationId, clubId: cashout\.club_id, cashoutId/);
+  const bridge = source(path.join(ROOT, 'src', 'lib', 'club-arena', 'cashoutBridge.js'));
+  assert.match(bridge, /await getServerUserWithFallback\(req, admin\)/, 'the shared bridge verifies this route caller');
+  assert.match(bridge, /req\.body\.expectedActorId\.toLowerCase\(\) !== user\.id\.toLowerCase\(\)/);
+  assert.match(bridge, /Authorization: `Bearer \$\{token\}`/);
+  assert.match(text, /const policyRow = checked\(await db\.from\('ca_operator_policy'\)/, 'policy read errors must refuse');
+  assert.match(text, /policy: normalizeOperatorPolicy\(policyRow\)/, 'the console policy normalizer remains shared');
+  // Staff decline uses the same dispatch; only approval through the platform
+  // override can require a second operator.
+  assert.match(text, /if \(action === 'approve' && viaPlatformOverride\) \{\s*approval = await requireApproval\(/);
+  assert.match(text, /kind: action === 'approve' \? 'approval' : 'decline'/);
 });
 
 /**
@@ -3442,8 +3448,18 @@ test('contract: no money route reaches its RPC without the approvals wrapper', (
   assert.equal((mint.match(/db\.rpc\('fn_ca_burn'/g) || []).length, 1);
   assert.equal((mint.match(/await requireApproval\(/g) || []).length, 1);
   const cashout = source(path.join(ROOT, 'pages', 'api', 'club-arena', 'approve-cashout.js'));
-  assert.equal((cashout.match(/rpc\('fn_approve_cashout_atomic'/g) || []).length, 1);
+  assert.equal((cashout.match(/await dispatchCashout\(client, context\)/g) || []).length, 1);
+  assert.doesNotMatch(cashout, /\.rpc\(/, 'the route has no alternate direct payer');
   assert.equal((cashout.match(/await requireApproval\(/g) || []).length, 1);
+  const receipt = source(path.join(ROOT, 'src', 'lib', 'club-arena', 'cashoutReceipt.mjs'));
+  const start = receipt.indexOf('export async function dispatchCashout(');
+  const end = receipt.indexOf('export async function lookupCashoutReceipt(', start);
+  assert.ok(start > -1 && end > start);
+  const dispatch = receipt.slice(start, end);
+  assert.equal((dispatch.match(/await client\.rpc\(/g) || []).length, 1);
+  assert.match(dispatch, /context\.kind === 'approval' \? 'fn_cashout_approve_v2' : 'fn_cashout_release_v2'/);
+  assert.match(dispatch, /p_expected_actor_id: context\.actorId, p_op_id: context\.operationId, p_note: context\.note/);
+  assert.match(dispatch, /return validateCashoutReceipt\(response\.data, context\);/);
 });
 
 test('contract: the Phase 2 files obey the house rules', () => {

@@ -1,0 +1,52 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  IndexNow Submit - after a merge to main, tell Bing which public pages changed
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# AEO PHASE 1 (2026-09-17). See scripts/indexnow-submit.mjs for what is
+# submitted and why. This job is a notification, not a release stage: it runs
+# after the protected merge, never gates a build or a publication, does not
+# poll or retry, and a failure is a log line (continue-on-error). The Vercel
+# production build the merge triggered may still be running when the ping
+# lands; Bing fetches on its own schedule, so that is fine.
+#
+# No secrets: the IndexNow key is public by design (served at
+# https://smarter.poker/<key>.txt).
+name: IndexNow Submit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pages/**'
+      - 'src/components/landing/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indexnow-submit
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    name: Submit changed public URLs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # HEAD and its first parent are all the range needs.
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Submit URLs whose source changed in this push
+        # main only ever receives one squash or merge commit per pull request,
+        # so HEAD~1..HEAD (first parent) is exactly that pull request's change.
+        # The first version compared github.event.before..sha and fell back to
+        # this on every run anyway (the before sha was reported unavailable
+        # after the checkout); one range, no fallback, same answer.
+        run: node scripts/indexnow-submit.mjs --range "HEAD~1..HEAD"

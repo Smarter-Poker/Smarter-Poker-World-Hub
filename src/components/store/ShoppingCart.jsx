@@ -71,7 +71,7 @@ export default function ShoppingCartComponent({
         }}
       >
         <img
-          src="/images/cart-icon.jpg"
+          src="/images/cart-icon.webp"
           alt="Shopping Cart"
           style={{
             width: '100%',
@@ -210,7 +210,7 @@ export default function ShoppingCartComponent({
                     }}
                   >
                     <img
-                      src="/images/cart-icon.png"
+                      src="/images/cart-icon.webp"
                       alt="Cart"
                       style={{
                         width: 64,
@@ -262,7 +262,7 @@ export default function ShoppingCartComponent({
                               }}
                             >
                               <img
-                                src="/images/diamond.png"
+                                src="/images/diamond.webp"
                                 alt="Diamond"
                                 style={{
                                   width: 20,
@@ -490,7 +490,7 @@ export default function ShoppingCartComponent({
                         }}
                         className={styles.secondaryAction}
                       >
-                        <img src="/images/diamond.png" alt="" style={{ width: 20, height: 20 }} />
+                        <img src="/images/diamond.webp" alt="" style={{ width: 20, height: 20 }} />
                         {isProcessing ? 'Processing...' : 'Pay with Diamonds'}
                       </button>
                     )}

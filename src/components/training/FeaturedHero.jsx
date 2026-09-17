@@ -111,7 +111,7 @@ const styles = {
     backgroundImage: {
         position: 'absolute',
         inset: 0,
-        backgroundImage: 'url("/cards/training.png")',
+        backgroundImage: 'url("/cards/training.webp")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         opacity: 0.4,

@@ -1,5 +1,40 @@
-# Smarter.Poker — robots.txt
+# Smarter.Poker - robots.txt
 # https://smarter.poker/robots.txt
+#
+# CRAWLER POLICY (AEO phase 1, 2026-09-17). One rule set, restated per bot.
+#
+# A robots.txt group is exclusive: a crawler that finds its own User-agent
+# group ignores the `*` group entirely. The previous file gave GPTBot,
+# ChatGPT-User, Google-Extended, PerplexityBot and ClaudeBot a bare
+# `Allow: /`, which quietly lifted every Disallow below for exactly those
+# bots. Every named group now carries the identical Disallow list as `*`;
+# __tests__/robots-crawler-policy.law.test.mjs pins the parity.
+#
+# Which bots are named and why (vendor docs as of September 2026):
+#   Search-index crawlers decide whether a page can be CITED in an answer:
+#     OAI-SearchBot (ChatGPT search), Claude-SearchBot (Claude), PerplexityBot,
+#     meta-webindexer (Meta AI), bingbot (Copilot and, through Bing, ChatGPT),
+#     Googlebot (AI Overviews and AI Mode), Applebot (Siri, Spotlight).
+#   User-triggered fetchers open a page when a person asks; vendors say
+#     robots.txt may not apply to them, so they are listed for intent only:
+#     ChatGPT-User, Claude-User, Perplexity-User, meta-externalfetcher.
+#   Training crawlers are allowed on purpose. Blocking them does not affect
+#     citation; allowing them keeps the brand in the models' own knowledge:
+#     GPTBot, ClaudeBot, meta-externalagent, Amazonbot, Applebot-Extended,
+#     Google-Extended (a token, not a bot; it never affects Search).
+#
+# Content-Signal is the Cloudflare/IETF robots.txt convention for AI use.
+# The site is not behind Cloudflare; the line states the policy machine-readably
+# for any crawler that honours it.
+#
+# ACCOUNT-ONLY PATHS (2026-09-17, discoverability phase 1). Messenger,
+# notifications, settings, profile edit, the store cart/orders/wishlist, a
+# player's own reels and trivia settings all need a session: a crawler lands
+# on the login page. They left the sitemap on 2026-09-16; disallowing them
+# here stops every crawler spending its budget on login redirects. Restated
+# in every group, like the rest of the list.
+
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 User-agent: *
 Allow: /
@@ -12,22 +47,420 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
-# AI Crawlers — Welcome
-User-agent: GPTBot
-Allow: /
+# -- Search-index crawlers (these decide what an AI answer can cite) ----------
 
-User-agent: ChatGPT-User
+User-agent: Googlebot
 Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
-User-agent: Google-Extended
+User-agent: bingbot
 Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: meta-webindexer
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: Applebot
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+# -- User-triggered fetchers (a person asked for the page) -------------------
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: Claude-User
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: meta-externalfetcher
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+# -- Training crawlers (allowed on purpose, see the note above) --------------
+
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
-# Sitemap
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: meta-externalagent
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /commander/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /clear-cache
+Disallow: /hub/reset-auth
+Disallow: /hub/header-test
+Disallow: /hub/god-mode-demo
+Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
+
+# Sitemaps. The arena's is generated by its own build from the pages it
+# prerenders (Smarter-Poker-Club-Arena scripts/generate-arena-sitemap.mjs).
 Sitemap: https://smarter.poker/sitemap.xml
+Sitemap: https://smarter.poker/hub/club-arena/sitemap.xml

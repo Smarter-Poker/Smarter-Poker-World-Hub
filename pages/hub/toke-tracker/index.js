@@ -1,53 +1,45 @@
 /**
- * TOKE TRACKER - Landing Page
- *
- * Mobile phase 11 (docs/mobile-standard/ROLLOUT-PLAN.md): rebuilt on
- * HubPageShell and the phase 0a foundation. The page owns no header, no
- * bottom pad and no 100vh; the shell and pages/_app.js own those. Preference
- * state moved to src/hooks/useTokePrefs (it was copied into all five pages).
- * Layout lives in src/styles/worlds/toke-tracker.css, scoped to .toke-page.
+ * TOKE TRACKER — Landing Page
+ * 4 clickable icon cards routing to dedicated sub-pages
  */
 
-import { useCallback, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import HubPageShell from '../../../src/components/ui/HubPageShell';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import { useHaptics } from '../../../src/hooks/useHaptics';
-import { useTokePrefs } from '../../../src/hooks/useTokePrefs';
-
-const UniversalHeader = dynamic(() => import('../../../src/components/ui/UniversalHeader'), { ssr: false });
-const HamburgerMenu = dynamic(() => import('../../../src/components/ui/HamburgerMenu'), { ssr: false });
+import PageTransition from '../../../src/components/transitions/PageTransition';
+import { supabase } from '../../../src/lib/supabase';
 
 const CARDS = [
     {
         id: 'shift',
         title: 'Shift Tracker',
         subtitle: 'Clock In, Track Downs, Log Tokes',
-        image: '/images/toke-shift.png',
+        image: '/images/toke-shift.webp',
         route: '/hub/toke-tracker/shift',
     },
     {
         id: 'analytics',
         title: 'Analytics',
         subtitle: 'Earnings, Hourly Rates, Trends',
-        image: '/images/toke-analytics.png',
+        image: '/images/toke-analytics.webp',
         route: '/hub/toke-tracker/analytics',
     },
     {
         id: 'vault',
         title: 'Dealer Vault',
         subtitle: 'Tax Docs, Licenses, W-2s',
-        image: '/images/toke-vault.png',
+        image: '/images/toke-vault.webp',
         route: '/hub/toke-tracker/vault',
     },
     {
         id: 'venues',
         title: 'Venue Intel',
         subtitle: 'Venue Performance, Shift Calendar',
-        image: '/images/toke-venues.png',
+        image: '/images/toke-venues.webp',
         route: '/hub/toke-tracker/venues',
     },
 ];
@@ -55,72 +47,190 @@ const CARDS = [
 export default function TokeTrackerLanding() {
     const router = useRouter();
     const { user } = useAvatar();
+    const userId = user?.id;
+    const [mounted, setMounted] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const haptic = useHaptics();
-    const { tokePrefs, menuHandlers } = useTokePrefs(user?.id);
+    const [tokePrefs, setTokePrefs] = useState({
+        shiftNotifications: true,
+        autoSaveShifts: true,
+        downTimerAlerts: true
+    });
 
-    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, menuHandlers);
+    useEffect(() => { setMounted(true); }, []);
 
-    const openCard = useCallback((route) => {
-        haptic('light');
-        router.push(route);
-    }, [haptic, router]);
+    // Load preferences from Supabase
+    useEffect(() => {
+        if (!userId) return;
+        supabase.from('profiles').select('settings').eq('id', userId).maybeSingle()
+            .then(({ data }) => {
+                if (data?.settings?.tokeTracker) {
+                    setTokePrefs(prev => ({ ...prev, ...data.settings.tokeTracker }));
+                }
+            })
+            .catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+    }, [userId]);
+
+    // Save preference to Supabase + emit bus event
+    const updatePref = useCallback(async (key, value) => {
+        let newPrefs;
+        setTokePrefs(prev => {
+            newPrefs = { ...prev, [key]: value };
+            return newPrefs;
+        });
+        await new Promise(r => setTimeout(r, 0));
+        if (!newPrefs) return;
+        // Cross-tab sync
+        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
+        // Persist to localStorage
+        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch (e) { console.warn('[App] Handled exception:', e); }
+        // Persist to Supabase
+        if (!userId) return;
+        try {
+
+            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
+            const settings = profile?.settings || {};
+            settings.tokeTracker = newPrefs;
+            const { error: err_profiles_i27c1 } = await supabase.from('profiles').update({ settings }).eq('id', userId);
+            if (err_profiles_i27c1) console.warn('[Supabase] Silent mutation failed in profiles:', err_profiles_i27c1.message);
+        } catch (err) {
+            console.warn('[TokeTracker] Failed to save preference:', err);
+        }
+    }, [userId]);
+
+    // Listen for cross-tab sync
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.detail) setTokePrefs(e.detail);
+        };
+        window.addEventListener('toke-settings-sync', handler);
+        return () => window.removeEventListener('toke-settings-sync', handler);
+    }, []);
+
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
+        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
+        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
+        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
+    });
+
+    if (!mounted) return null;
 
     return (
-        <>
+        <PageTransition>
             <SEOHead
                 title="Toke Tracker - Dealer Income Management"
                 description="Track shifts, analyze earnings, store documents, and monitor venue performance."
                 canonical="/hub/toke-tracker"
             />
-            <HubPageShell
-                className="toke"
-                maxWidth={560}
-                background="#18191a"
-                header={<UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />}
-            >
-                <div className="toke-bg-grid" />
-                <div className="toke-page">
-                    <h1 className="toke-page-title" data-tutorial="title" style={{ textAlign: 'center', fontSize: 28 }}>Toke Tracker</h1>
-                    <p className="toke-page-subtitle" style={{ textAlign: 'center', letterSpacing: '0.12em' }}>Your Complete Dealer Operating System</p>
+            <div style={s.page}>
+                <div style={s.bgGrid} />
+                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
 
-                    <div className="toke-landing-grid" data-tutorial="cards">
-                        {CARDS.map((card) => (
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
+
+                <div style={s.content}>
+                    <h1 style={s.pageTitle}>Toke Tracker</h1>
+                    <p style={s.pageSubtitle}>Your Complete Dealer Operating System</p>
+
+                    <div style={s.grid}>
+                        {CARDS.map((card, i) => (
                             <button
                                 key={card.id}
-                                type="button"
-                                onClick={() => openCard(card.route)}
-                                style={s.card}
-                                aria-label={`${card.title}: ${card.subtitle}`}
+                                onClick={() => router.push(card.route)}
+                                style={{
+                                    ...s.card,
+                                    animationDelay: `${i * 0.1}s`,
+                                }}
                             >
-                                <span style={s.imageFrame}>
-                                    <span style={s.imageGlow} />
-                                    <img src={card.image} alt="" style={s.cardImage} loading="eager" />
-                                </span>
-                                <span style={s.cardTitle}>{card.title}</span>
-                                <span style={s.cardSubtitle}>{card.subtitle}</span>
-                                <span style={s.arrow} aria-hidden="true">&rarr;</span>
+                                {/* Image Frame */}
+                                <div style={s.imageFrame}>
+                                    <div style={s.imageGlow} />
+                                    <img
+                                        src={card.image}
+                                        alt={card.title}
+                                        style={s.cardImage}
+                                        loading="eager"
+                                    />
+                                </div>
+
+                                {/* Text */}
+                                <h3 style={s.cardTitle}>{card.title}</h3>
+                                <p style={s.cardSubtitle}>{card.subtitle}</p>
+
+                                {/* Hover arrow */}
+                                <span style={s.arrow}>→</span>
                             </button>
                         ))}
                     </div>
                 </div>
-            </HubPageShell>
+            </div>
 
-            <HamburgerMenu
-                isOpen={menuOpen}
-                onClose={() => setMenuOpen(false)}
-                direction="left"
-                theme="dark"
-                user={user}
-                showProfile
-                menuItems={menuConfig.menuItems}
-                bottomLinks={menuConfig.bottomLinks}
-            />
-        </>
+            <style>{`
+                @keyframes cardFadeIn {
+                    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+                    to   { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                .toke-card-hover:hover { transform: translateY(-4px) scale(1.02) !important; }
+            `}</style>
+    </PageTransition>
     );
 }
 
 const s = {
+    page: {
+        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+        background: '#18191a',
+        position: 'relative',
+    },
+    bgGrid: {
+        position: 'fixed',
+        inset: 0,
+        backgroundImage: `
+            linear-gradient(rgba(0,212,255,0.015) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,212,255,0.015) 1px, transparent 1px)
+        `,
+        backgroundSize: '24px 24px',
+        pointerEvents: 'none',
+        zIndex: 0,
+    },
+    content: {
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: 560,
+        margin: '0 auto',
+        padding: '20px 16px 40px',
+    },
+    pageTitle: {
+        fontFamily: "var(--font-orbitron), 'Inter', sans-serif",
+        fontSize: 28,
+        fontWeight: 800,
+        letterSpacing: '0.08em',
+        color: '#e4e6eb',
+        margin: '16px 0 4px',
+        textAlign: 'center',
+    },
+    pageSubtitle: {
+        fontFamily: "'Rajdhani', 'Inter', sans-serif",
+        fontSize: 14,
+        color: '#b0b3b8',
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        textAlign: 'center',
+        margin: '0 0 28px',
+    },
+    grid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 14,
+    },
     card: {
         position: 'relative',
         display: 'flex',
@@ -132,14 +242,14 @@ const s = {
         borderRadius: 16,
         cursor: 'pointer',
         overflow: 'hidden',
+        transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+        animation: 'cardFadeIn 0.5s ease-out both',
         WebkitTapHighlightColor: 'transparent',
     },
     imageFrame: {
         position: 'relative',
-        display: 'block',
         width: '100%',
         aspectRatio: '1',
-        maxWidth: '100%',
         overflow: 'hidden',
         borderRadius: '14px 14px 0 0',
     },
@@ -150,7 +260,12 @@ const s = {
         pointerEvents: 'none',
         zIndex: 1,
     },
-    cardImage: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+    cardImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        display: 'block',
+    },
     cardTitle: {
         fontFamily: "'Rajdhani', 'Inter', sans-serif",
         fontSize: 16,
@@ -161,9 +276,10 @@ const s = {
         textTransform: 'uppercase',
     },
     cardSubtitle: {
-        fontFamily: 'var(--font-inter), sans-serif',
+        fontFamily: "var(--font-inter), sans-serif",
         fontSize: 12,
         color: '#b0b3b8',
+        margin: 0,
         lineHeight: 1.3,
         textAlign: 'center',
         padding: '0 10px',
@@ -175,5 +291,6 @@ const s = {
         fontSize: 18,
         color: 'rgba(0,212,255,0.5)',
         fontWeight: 700,
+        transition: 'color 0.2s, transform 0.2s',
     },
 };

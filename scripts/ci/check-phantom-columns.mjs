@@ -28,7 +28,8 @@
  *   - .select('a, b, c')     only when the string has NO parentheses — an
  *                            embed like `profiles:owner_id(...)` mixes other
  *                            tables' columns in, so those selects are skipped
- *                            wholesale. `alias:col` takes the col. Entries
+ *                            wholesale. `alias:col` and `col::type` retain
+ *                            the base column, including `alias:col::type`. Entries
  *                            containing * -> . " ! are skipped.
  *   - .eq/.neq/.gt/.gte/.lt/.lte/.like/.ilike/.is/.in/.contains/.order/
  *     .filter/.not           first argument, only when it is a plain string
@@ -56,6 +57,7 @@ import { fileURLToPath } from 'node:url';
 import { resilientFetch } from './lib/resilient-fetch.mjs';
 import { fromCalls, lineIndex } from './lib/from-calls.mjs';
 import { writeColumns } from './lib/phantom-column-write-parser.mjs';
+import { selectColumns } from './lib/phantom-column-select-parser.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ALLOWLIST_PATH = path.join(REPO_ROOT, 'scripts', 'ci', 'supabase-invariants.allowlist.json');
@@ -122,23 +124,6 @@ function balanced(src, openIdx) {
     }
   }
   return [null, -1];
-}
-
-/** Column names from a .select('...') string. Empty array when unparseable. */
-function selectColumns(arg) {
-  const m = arg.match(/^\s*['"`]([\s\S]*?)['"`]\s*(,|$)/);
-  if (!m) return [];
-  const body = m[1];
-  if (body.includes('(')) return []; // embeds mix in other tables' columns
-  const cols = [];
-  for (let part of body.split(',')) {
-    part = part.trim();
-    if (!part || part === '*') continue;
-    if (part.includes(':')) part = part.split(':').pop().trim(); // alias:col
-    if (/[*.>"!\s]/.test(part)) continue; // json paths, casts, embeds, oddities
-    if (IDENT.test(part)) cols.push(part);
-  }
-  return cols;
 }
 
 /** First-arg column from a filter method. null when not a plain identifier. */

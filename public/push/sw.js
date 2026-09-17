@@ -29,7 +29,7 @@
  * still open any URL on the origin.
  */
 
-const SP_PUSH_SW = 'sp-push-dedicated-v1';
+const SP_PUSH_SW = 'sp-push-dedicated-v2-authenticated-rotation';
 
 self.addEventListener('install', () => {
     // Nothing to cache. Take over immediately rather than waiting for every
@@ -145,6 +145,22 @@ self.addEventListener('push', (event) => {
         }
     }
 
+    // Older in-flight accounting payloads can contain private invoice text.
+    // These markers only restrict presentation; they never establish access.
+    const details = data?.data && typeof data.data === 'object' ? data.data : {};
+    const accounting = data?.event === 'accounting_invoice' || details.event === 'accounting_invoice' ||
+        data?.accountingNotificationId != null || details.accountingNotificationId != null ||
+        (typeof data?.tag === 'string' && data.tag.startsWith('accounting:'));
+    if (accounting) {
+        data = {
+            title: 'New Accounting Notice', body: 'Open Smarter Poker To View',
+            url: data.url || '/hub/messenger', tag: data.tag || undefined, renotify: false,
+            icon: '/notification-icon.png', badge: '/notification-icon.png',
+            event: 'accounting_invoice', outboxId: details.outboxId ?? data.outboxId,
+            accountingNotificationId: details.accountingNotificationId ?? data.accountingNotificationId,
+        };
+    }
+
     const title = toTitleCase(data.title || 'Smarter Poker');
     const url = data.url || '/hub';
 
@@ -161,6 +177,7 @@ self.addEventListener('push', (event) => {
             url,
             event: data.event || null,
             outboxId: data.outboxId || null,
+            accountingNotificationId: data.accountingNotificationId || null,
             expiresAt: typeof data.expiresAt === 'number' ? data.expiresAt : null,
         },
         vibrate: data.vibrate || [120, 60, 120],
@@ -186,7 +203,9 @@ self.addEventListener('push', (event) => {
             .then(() => self.registration.showNotification(title, options))
             // A rejected showNotification means the OS refused these options.
             // Retry with the bare minimum rather than showing nothing at all.
-            .catch(() => self.registration.showNotification(title, { body: options.body }))
+            .catch(() => self.registration.showNotification(title, {
+                body: options.body, data: options.data, tag: options.tag, renotify: false,
+            }))
             .then(() => {
                 try {
                     if (self.navigator && self.navigator.setAppBadge) {
@@ -229,11 +248,13 @@ self.addEventListener('notificationclick', (event) => {
 
     const url = (event.notification.data && event.notification.data.url) || '/hub';
 
-    const samePath = (a, b) => {
+    const sameDestination = (a, b) => {
         try {
             const x = new URL(a, self.location.origin);
             const y = new URL(b, self.location.origin);
-            return x.pathname.replace(/\/+$/, '') === y.pathname.replace(/\/+$/, '');
+            return x.origin === y.origin &&
+                x.pathname.replace(/\/+$/, '') === y.pathname.replace(/\/+$/, '') &&
+                x.search === y.search && x.hash === y.hash;
         } catch (e) {
             return false;
         }
@@ -242,14 +263,19 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         self.clients
             .matchAll({ type: 'window', includeUncontrolled: true })
-            .then((clients) => {
+            .then(async (clients) => {
                 for (const c of clients) {
                     if ('focus' in c) {
-                        c.focus();
-                        if ('navigate' in c && url && !samePath(c.url, url)) {
-                            try { c.navigate(url); } catch (e) { /* ignore */ }
+                        if (url && !sameDestination(c.url, url)) {
+                            if ('navigate' in c) {
+                                try {
+                                    const navigated = await c.navigate(url);
+                                    if (navigated) return navigated.focus();
+                                } catch (e) { /* open the exact destination below */ }
+                            }
+                            return self.clients.openWindow ? self.clients.openWindow(url) : null;
                         }
-                        return null;
+                        return c.focus();
                     }
                 }
                 return self.clients.openWindow ? self.clients.openWindow(url) : null;
@@ -260,7 +286,8 @@ self.addEventListener('notificationclick', (event) => {
 
 /*
  * The browser can rotate a subscription without telling the page. Re-register
- * from here so the server learns the new endpoint even if the app is closed.
+ * locally here. Server rotation now requires authenticated account authority;
+ * a sessionless refusal waits for foreground authenticated enrollment.
  */
 self.addEventListener('pushsubscriptionchange', (event) => {
     event.waitUntil(
@@ -290,7 +317,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                     }
                 } catch (e) { /* ignore */ }
 
-                await fetch('/api/push/rotate', {
+                const rotationResponse = await fetch('/api/push/rotate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -300,7 +327,20 @@ self.addEventListener('pushsubscriptionchange', (event) => {
                         oldKeys,
                     }),
                 });
-                console.log(`[${SP_PUSH_SW}] subscription self-healed`);
+                if (!rotationResponse.ok) {
+                    console.warn('[push] Rotation unconfirmed; authenticated enrollment is required.');
+                    return;
+                }
+                const outcome = await rotationResponse.json();
+                const receipt = outcome && outcome.receipt;
+                if (outcome.ok !== true || outcome.rotated !== true || !receipt ||
+                    receipt.schema_version !== 1 || receipt.success !== true ||
+                    receipt.old_endpoint !== (event.oldSubscription && event.oldSubscription.endpoint) ||
+                    receipt.endpoint !== sub.endpoint || receipt.transport !== 'webpush') {
+                    console.warn('[push] Rotation receipt unconfirmed; authenticated enrollment is required.');
+                    return;
+                }
+                console.log('[push] Server confirmed subscription rotation.');
             } catch (err) {
                 console.warn(`[${SP_PUSH_SW}] self-heal failed:`, err && err.message);
             }

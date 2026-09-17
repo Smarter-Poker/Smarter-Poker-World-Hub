@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';

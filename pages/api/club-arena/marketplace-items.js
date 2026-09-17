@@ -15,7 +15,7 @@ const { isUUID } = require('../../../src/lib/club-arena/validate');
 const MAX_ACTIVE_SHOP_ITEMS = 500;
 const { isDeliverableShopItem } = require('../../../src/lib/club-arena/shopItemRules');
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import { getClubItemEffectivePrice } from '../../../src/lib/store/clubCardCheckout.mjs';
 import {
@@ -448,8 +448,8 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (_sentryErr) {
-      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+    } catch (_reportError) {
+      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
     }
     console.warn('[API Error]', err);
     if (!res.headersSent)

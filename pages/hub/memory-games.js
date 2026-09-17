@@ -1954,7 +1954,7 @@ export default function MemoryGamesPage() {
                     data-tutorial="jarvis"
                   >
                     <div className="preflop-jarvis-medallion" aria-hidden="true">
-                      <img src="/images/jarvis-avatar-new.png" alt="" />
+                      <img src="/images/jarvis-avatar-new.webp" alt="" />
                     </div>
                     <div className="preflop-smart-copy">
                       <div className="preflop-panel-kicker">

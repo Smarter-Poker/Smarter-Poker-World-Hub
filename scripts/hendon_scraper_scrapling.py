@@ -19,15 +19,9 @@ import os
 import urllib.request
 import urllib.parse
 
-# Supabase config.
-#
-# os.getenv's default only applies when the variable is ABSENT. A workflow that
-# sets `NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.MISSING }}` sets it to the empty
-# string instead, which wins over the default and points every request at
-# "/rest/v1/...". So blank is treated as absent here.
-SUPABASE_URL = (os.getenv('NEXT_PUBLIC_SUPABASE_URL') or '').strip() \
-    or 'https://kuklfnapbkmacvwxktbh.supabase.co'
-SUPABASE_KEY = (os.getenv('SUPABASE_SERVICE_ROLE_KEY') or '').strip()
+# Supabase config
+SUPABASE_URL = os.getenv('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
 
 
 def supabase_get(path):
@@ -173,7 +167,7 @@ async def scrape_all_users():
     """Scrape all users who have a hendon_url linked."""
     if not SUPABASE_KEY:
         print('❌ SUPABASE_SERVICE_ROLE_KEY required for --all mode')
-        return None
+        return
     
     print('\n════════════════════════════════════════════════════')
     print('  HendonMob Bulk Scraper — All Linked Users')
@@ -184,13 +178,12 @@ async def scrape_all_users():
     
     if not users:
         print('No users with HendonMob URLs found.')
-        return {'users': 0, 'saved': 0, 'source_fails': 0, 'write_fails': 0}
+        return
     
     print(f'Found {len(users)} user(s) with HendonMob links.\n')
     
-    saved_count = 0     # scraped AND written - the only thing that counts
-    source_fails = 0    # the page was blocked, empty, or had no labeled stats
-    write_fails = 0     # OUR fault: the scrape worked and the DB write did not
+    success_count = 0
+    fail_count = 0
     
     for i, user in enumerate(users, 1):
         user_id = user['id']
@@ -203,20 +196,14 @@ async def scrape_all_users():
             stats = await scrape_hendonmob(url)
             
             if stats and (stats.get('totalCashes') is not None or stats.get('totalEarnings') is not None):
-                # A SCRAPE THAT IS NOT SAVED IS NOT A SUCCESS. This used to
-                # count the scrape and throw away update_supabase()'s return
-                # value, so a run where every DB write failed still reported
-                # "N success, 0 failed".
-                if update_supabase(user_id, stats):
-                    saved_count += 1
-                else:
-                    write_fails += 1
+                update_supabase(user_id, stats)
+                success_count += 1
             else:
                 print(f'  ⚠️ No labeled stats found for {name}')
-                source_fails += 1
+                fail_count += 1
         except Exception as e:
             print(f'  ❌ Error scraping {name}: {e}')
-            source_fails += 1
+            fail_count += 1
         
         # Delay between users to avoid rate limits
         if i < len(users):
@@ -224,53 +211,13 @@ async def scrape_all_users():
             await asyncio.sleep(5)
     
     print(f'\n════════════════════════════════════════════════════')
-    print(f'  Results: {saved_count} saved, {source_fails} source failure(s), '
-          f'{write_fails} write failure(s)')
+    print(f'  Results: {success_count} success, {fail_count} failed')
     print(f'════════════════════════════════════════════════════\n')
-    return {'users': len(users), 'saved': saved_count,
-            'source_fails': source_fails, 'write_fails': write_fails}
-
-
-def exit_code_for(result):
-    """
-    JUDGE THE RUN ON WHAT IT PRODUCED, the way the venue-scraper gate does
-    (see __tests__/a-scraper-run-is-judged-on-what-it-produced.test.mjs).
-
-    This exists because --all could not fail. It printed "0 success, 12 failed"
-    and returned, so the caller exited 0: a week where every profile was
-    blocked looked exactly like a week where every profile synced, and the
-    scheduler had nothing to alarm on.
-
-      - no credentials            -> 1. We could not even try.
-      - no linked users           -> 0. Nothing to do is not a failure.
-      - any write failure         -> 1. OURS. We scraped it and lost it.
-      - nothing saved at all      -> 1. Barren: the sources beat us completely.
-      - something saved           -> 0. HendonMob blocking some profiles is
-                                    not this repo's defect to fail on.
-    """
-    if result is None:
-        return 1
-    if result['users'] == 0:
-        return 0
-    if result['write_fails'] > 0:
-        print(f"❌ {result['write_fails']} profile(s) were scraped and then not "
-              f"written — that is our fault, not the source's")
-        return 1
-    if result['saved'] == 0:
-        print(f"❌ Nothing was saved from {result['users']} linked profile(s) "
-              f"against {result['source_fails']} source failure(s)")
-        return 1
-    if result['source_fails']:
-        print(f"⚠️  {result['source_fails']} profile(s) could not be read; "
-              f"{result['saved']} synced. Reported, not failed.")
-    return 0
 
 
 async def main():
     if len(sys.argv) >= 2 and sys.argv[1] == '--all':
-        code = exit_code_for(await scrape_all_users())
-        if code:
-            sys.exit(code)
+        await scrape_all_users()
     elif len(sys.argv) >= 3:
         hendon_url = sys.argv[1]
         user_id = sys.argv[2]

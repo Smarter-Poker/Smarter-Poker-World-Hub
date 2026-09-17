@@ -8,6 +8,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import {
   Shield,
   Clock,
@@ -190,22 +191,34 @@ export default function ResponsibleGamingPage() {
     }
   }
 
+  // The head is rendered in BOTH branches (2026-09-17): this page is public
+  // and indexed, and a crawler that reads the server HTML met the loading
+  // spinner with the app's default head - no title, description, canonical or
+  // schema of its own - because SEOHead sat below this early return.
+  const head = (
+    <SEOHead
+      title="Responsible Gaming"
+      description="Responsible Gaming Tools On Club Commander: Session Limits, Cooling Off Periods, Self Exclusion And Support Resources For Live Poker Players."
+      canonical="/hub/commander/responsible-gaming"
+      jsonLd={commanderBreadcrumbs('Responsible Gaming', '/hub/commander/responsible-gaming')}
+    />
+  );
+
   if (loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
+      <>
+        {head}
+        <div className="cmd-page flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        </div>
+      </>
     );
   }
 
   return (
     <CommanderPageShell>
     <>
-      <SEOHead
-                title="Responsible Gaming"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+      {head}
 
       <div className="cmd-page">
         {/* Save Message */}

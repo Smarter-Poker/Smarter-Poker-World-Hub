@@ -44,7 +44,7 @@ post-deploy SHA verification, and has produced duplicate and out-of-order
 deployments here before. Redeploy the way everything else deploys:
 
 ```bash
-bash scripts/git-safe-push.sh "chore(stripe): rotate webhook secret"
+# Follow PUBLISHING.md using the owned branch, ordinary hooks and protected PR.
 ```
 
 If nothing needs committing, change the environment variable in the Vercel

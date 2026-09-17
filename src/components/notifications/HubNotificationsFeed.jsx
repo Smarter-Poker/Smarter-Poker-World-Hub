@@ -333,7 +333,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 const parsed = readNotificationCache(cached, getAuthUser()?.id);
                 if (parsed?.length) {
                     setNotifications(parsed);
-                    setLoading(false);
+                    setLoading(false); // Skip shimmer — show cached data immediately
                     hasCacheRef.current = true;
                 }
             }
@@ -470,6 +470,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
                 try {
                     const sliced = next.slice(0, 30);
+                    // Preserve _cache_ts so the 5-min TTL check on next load doesn't discard this cache
+                    if (sliced.length > 0 && !sliced[0]._cache_ts) sliced[0] = { ...sliced[0], _cache_ts: Date.now() };
                     localStorage.setItem('sp-notif-cache', JSON.stringify(sliced));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 return next;

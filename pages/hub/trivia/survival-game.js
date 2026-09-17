@@ -805,7 +805,7 @@ export default function SurvivalGamePage() {
 
             <PageTransition>
                 <div style={{
-                    minHeight: '100dvh', width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
+                    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                     background: "#0a0e1a",
                     backgroundColor: '#000000',
                     padding: '20px'
@@ -921,7 +921,7 @@ export default function SurvivalGamePage() {
                                                 <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
                                                     {isCompleted ? 'Done' : isUnlocked ? lvl.level : 'Locked'}
                                                 </div>
-                                                <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '4px' }}>
+                                                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>
                                                     {lvl.accuracyRequired}%
                                                 </div>
                                             </button>
@@ -1131,7 +1131,7 @@ export default function SurvivalGamePage() {
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 gap: '3px',
-                                                fontSize: '12px',
+                                                fontSize: '11px',
                                                 color: 'rgba(255,255,255,0.6)',
                                                 marginLeft: '8px'
                                             }}>
@@ -1215,7 +1215,7 @@ export default function SurvivalGamePage() {
                                                             border: 'none',
                                                             borderRadius: '8px',
                                                             color: 'white',
-                                                            fontSize: '12px',
+                                                            fontSize: '11px',
                                                             cursor: 'pointer',
                                                             textTransform: 'capitalize'
                                                         }}
@@ -1378,7 +1378,7 @@ export default function SurvivalGamePage() {
                                             >
                                                 <span style={{ fontSize: '20px' }}>⏭️</span>
                                                 <span>Skip</span>
-                                                <span style={{ fontSize: '12px', color: isVip ? '#22c55e' : '#fbbf24' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
+                                                <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#fbbf24' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
                                             </button>
                                         </div>
                                     )}

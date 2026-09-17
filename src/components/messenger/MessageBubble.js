@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
 import AccountingInvoiceCard from './AccountingInvoiceCard';
+import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -842,7 +843,8 @@ export function MessageBubble({
 
                         // Union weekly square-up, delivered into the club inbox.
                         const meta = message.media_metadata || message.metadata;
-                        if (message.message_type === 'invoice' && meta?.accounting_verified && meta?.kind === 'accounting_invoice') {
+                        if (message.message_type === 'invoice' && meta?.kind === 'accounting_invoice' &&
+                            (meta?.accounting_verified === true || isUnverifiedCorrectionPlaceholder(meta))) {
                             return <AccountingInvoiceCard meta={meta} content={content} theme={C} />;
                         }
                         if (message.message_type === 'invoice' && meta?.accounting_verified && meta?.kind === 'union_invoice') {

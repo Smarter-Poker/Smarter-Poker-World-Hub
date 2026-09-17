@@ -127,7 +127,10 @@ test('B-1: the 202 body approve-cashout sends is a pending approval; its 200 is 
 
 test('B-1: submitCashout reads the body, keeps a pending row, and reports an unclosed trail', async () => {
   const src = await read(INDEX);
-  const submit = block(src, 'const submitCashout = useCallback(async () => {');
+  const start = src.indexOf('const submitCashout = useCallback(async () => {');
+  const end = src.indexOf('const loadApplications = useCallback(', start);
+  assert.ok(start > 0 && end > start, 'read the whole cashout callback through its next declaration');
+  const submit = src.slice(start, end);
   assert.match(submit, /const body = await authFetch\('\/api\/club-arena\/approve-cashout'/);
   assert.match(submit, /if \(isPendingApproval\(body\)\) \{/);
   // The pending branch tags the row and RETURNS before the filter that
@@ -140,8 +143,10 @@ test('B-1: submitCashout reads the body, keeps a pending row, and reports an unc
   assert.match(submit, /body\.trailClosed === false/);
   assert.match(
     submit,
-    /The Cashout Went Through But The Approval Row Could Not Be Closed\. Check The Audit Trail\./,
+    /The Chip Transfer Is Confirmed\. The Approval Or Audit Follow-Up Still Needs Attention\./,
   );
+  assert.match(submit, /body\.trailStatus === 'not_checked'/);
+  assert.match(submit, /The Original Chip Transfer Is Confirmed\. Its Audit Follow-Up Has Not Been Rechecked\./);
 });
 
 test('B-1: a tagged cashout row renders a Waiting For Approval pill instead of its buttons', async () => {

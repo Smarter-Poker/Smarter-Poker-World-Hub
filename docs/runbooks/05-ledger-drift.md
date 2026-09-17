@@ -9,7 +9,7 @@
 - `/api/admin/ledger/drift-check` returns non-zero variance.
 - Any user-visible balance inconsistency reported in support (e.g.
   balance visible on World Hub differs from Club Arena).
-- Sentry fingerprint: `ledger_post_imbalance`.
+- Error signature: `ledger_post_imbalance`.
 
 **This is always at minimum SEV-2. Financial integrity is the single
 most important invariant the platform maintains.**

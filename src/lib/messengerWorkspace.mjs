@@ -60,7 +60,7 @@ async function accountingMap(db, ids, userId) {
             .select('conversation_id,scope_id,recipient_id,sender_id,issuer_type,last_discussion_at')
             .in('conversation_id', ids.slice(start, start + 100)));
         if (records.length) {
-            const { data: visibility, error } = await db.rpc('fn_messenger_accounting_threads', {
+            const { data: visibility, error } = await db.rpc('fn_messenger_private_accounting_threads', {
                 p_user_id: userId, p_conversation_ids: records.map(record => record.conversation_id),
             });
             if (error || !Array.isArray(visibility)) fail(503, 'Invoice Threads Unavailable');
@@ -163,17 +163,36 @@ export async function getMessengerWorkspace(db, userId, request) {
     if (resolvedId && !conversation) fail(404, 'Conversation Unavailable');
     let weeklySummary = null;
     if (club?.canManage && folder === 'invoices') {
-        const periods = await rows(db.from('settlement_periods').select('id,end_at')
-            .eq('club_id', club.id).not('union_id', 'is', null).lte('end_at', new Date().toISOString())
-            .order('end_at', { ascending: false }).limit(1));
+        // The period's recorded book decides union versus standalone scope.
+        // Current membership does not decide where historical rake was earned.
+        const periods = await rows(db.from('settlement_periods').select('id,club_id,union_id,start_at,end_at')
+            .eq('club_id', club.id).lte('end_at', new Date().toISOString())
+            .order('end_at', { ascending: false }).limit(2));
         if (periods.length) {
-            const { data: report, error: reportError } = await db.rpc('fn_club_weekly_accounting_summary', { p_period_id: periods[0].id });
-            if (reportError || !report || report.club_id !== club.id) fail(503, 'Weekly Statement Unavailable');
+            const period = periods[0];
+            // Two recorded books ending together require a canonical combined
+            // statement. Do not pick one arbitrarily or add money in Messenger.
+            if (periods[1] && Date.parse(periods[1].end_at) === Date.parse(period.end_at)) fail(503, 'Weekly Statement Unavailable');
+            // Authorization and canonical summary run in one database snapshot.
+            // This trusted server must pass the JWT actor, not rely on its own
+            // service-role bypass or a prior membership query remaining current.
+            const { data: receipt, error: reportError } = await db.rpc('fn_messenger_private_weekly_summary', {
+                p_user_id: userId, p_club_id: club.id, p_period_id: period.id,
+            });
+            const report = receipt?.summary;
+            const sameTime = (left, right) => Number.isFinite(Date.parse(left)) && Date.parse(left) === Date.parse(right);
+            if (reportError || receipt?.contract_version !== 1 || receipt.user_id !== userId ||
+                receipt.club_id !== club.id || receipt.period_id !== period.id || !report ||
+                period.club_id !== club.id || report.period_id !== period.id || report.club_id !== club.id ||
+                report.union_id !== period.union_id || report.accounting_version !== 3 || report.currency !== 'CHIPS' ||
+                report.scope_kind !== (period.union_id === null ? 'club' : 'union') ||
+                report.scope_id !== (period.union_id === null ? club.id : period.union_id) ||
+                !sameTime(report.period_start, period.start_at) || !sameTime(report.period_end, period.end_at) ||
+                !['needs_reconciliation', 'complete'].includes(report.status)) fail(503, 'Weekly Statement Unavailable');
             // Delivered complete statements are already in the invoice inbox.
             // This preview keeps unresolved posted amounts visible without certifying them.
             if (report.status === 'needs_reconciliation') {
-                const { source_ledger_ids: _sources, ...summary } = report;
-                weeklySummary = summary;
+                weeklySummary = report;
             }
         }
     }
@@ -181,6 +200,18 @@ export async function getMessengerWorkspace(db, userId, request) {
         workspace: club ? 'club' : 'social', clubId: club?.id || null, folder };
 }
 
+
+export async function readMessengerMessages(db, userId, request) {
+    await getMessengerWorkspace(db, userId, { workspace: 'resolve', conversationId: request.conversationId });
+    // The private reader name is an installation contract: an older database
+    // cannot silently supply the participant-only invoice reader.
+    const { data, error } = await db.rpc('fn_messenger_private_message_page', {
+        p_user_id: userId, p_conversation_id: request.conversationId,
+        p_before: request.before || null, p_before_id: request.beforeId || null, p_limit: request.limit,
+    });
+    if (error || !Array.isArray(data)) fail(error?.code === '42501' ? 403 : 503, 'Messages Unavailable');
+    return data;
+}
 
 export async function searchMessengerWorkspace(db, userId, request, limit = 50) {
     if (typeof request.query !== 'string' || request.query.trim().length < 2 || request.query.length > 500 ||
@@ -192,7 +223,7 @@ export async function searchMessengerWorkspace(db, userId, request, limit = 50) 
     const ids = request.conversationId ? [workspace.conversation.id] : workspace.conversations.map(conversation => conversation.id);
     if (!ids.length) return [];
     if (ids.length > 500) fail(503, 'Choose A Smaller Search Scope');
-    const { data, error } = await db.rpc('fn_messenger_search_messages', {
+    const { data, error } = await db.rpc('fn_messenger_private_search_messages', {
         p_user_id: userId, p_conversation_ids: ids, p_query: request.query.trim(), p_limit: limit,
     });
     if (error || !Array.isArray(data)) fail(error?.code === '42501' ? 403 : 503, 'Message Search Unavailable');

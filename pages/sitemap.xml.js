@@ -29,6 +29,11 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 ].join(', ');
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
+// ACCOUNT-ONLY PAGES ARE NOT IN THE SITEMAP (2026-09-16). Messenger,
+// notifications, settings, profile edit, the store cart/orders/wishlist and a
+// player's own reels all need a session; a crawler lands on the login page
+// and Search Console files each one as an error. A sitemap is a list of pages
+// worth indexing, not a list of routes.
 const staticPages = [
   // Landing
   { path: '/', priority: '1.0', changefreq: 'weekly' },
@@ -64,16 +69,27 @@ const staticPages = [
   { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/club-arena', priority: '0.8', changefreq: 'weekly' },
+  // Poker Arena is NOT listed here (discoverability phase 2, 2026-09-17).
+  // The arena publishes its own sitemap from what it prerenders, dated from
+  // its git history, at https://smarter.poker/hub/club-arena/sitemap.xml
+  // (Smarter-Poker-Club-Arena scripts/generate-arena-sitemap.mjs), and
+  // public/robots.txt names it beside this one. Two repositories no longer
+  // keep one hand-typed list.
+  // Club Commander, player side. The pages that need no session and were
+  // noindex until 2026-09-16 (see pages/hub/commander/index.js). Pages that
+  // show one player's own rewards, services, profile or history stay out.
+  { path: '/hub/commander', priority: '0.9', changefreq: 'daily' },
+  { path: '/hub/commander/venues', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/commander/tournaments', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/commander/home-games', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/commander/leagues', priority: '0.6', changefreq: 'weekly' },
+  { path: '/hub/commander/faq', priority: '0.6', changefreq: 'monthly' },
+  { path: '/hub/commander/responsible-gaming', priority: '0.5', changefreq: 'monthly' },
   { path: '/hub/promotions', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/reels', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/lives', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/messenger', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/notifications', priority: '0.3', changefreq: 'weekly' },
   { path: '/hub/help', priority: '0.5', changefreq: 'monthly' },
-  { path: '/hub/settings', priority: '0.3', changefreq: 'monthly' },
   { path: '/hub/profile', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/profile-edit', priority: '0.3', changefreq: 'monthly' },
   { path: '/hub/avatars', priority: '0.4', changefreq: 'monthly' },
   { path: '/hub/article', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/pages', priority: '0.5', changefreq: 'weekly' },
@@ -89,7 +105,6 @@ const staticPages = [
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/trivia/achievements', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/trivia/stats', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/trivia/settings', priority: '0.3', changefreq: 'monthly' },
 
   // Hub — Training sub-pages
   { path: '/hub/training/achievements', priority: '0.5', changefreq: 'weekly' },
@@ -105,20 +120,11 @@ const staticPages = [
   { path: '/hub/training/reports', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/training/aggregate', priority: '0.5', changefreq: 'weekly' },
 
-  // Hub — Diamond Store sub-pages
-  { path: '/hub/diamond-store/cart', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/diamond-store/orders', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/diamond-store/wishlist', priority: '0.4', changefreq: 'weekly' },
-
   // Hub — Preflop Charts sub-pages
   { path: '/hub/preflop-charts/achievements', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/preflop-charts/leaderboard', priority: '0.5', changefreq: 'daily' },
   { path: '/hub/preflop-charts/stats', priority: '0.4', changefreq: 'weekly' },
   { path: '/hub/preflop-charts/tutorial', priority: '0.5', changefreq: 'monthly' },
-
-  // Hub — Reels sub-pages
-  { path: '/hub/reels/saved', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/reels/my-reels', priority: '0.4', changefreq: 'weekly' },
 
   // Hub — News sub-pages
   { path: '/hub/news/sources', priority: '0.5', changefreq: 'weekly' },
@@ -412,13 +418,27 @@ ${urls
   .map(
     (url) => `  <url>
     <loc>${SITE_URL}${url.path}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${url.changefreq}</changefreq>
+${sitemapLastmodLine(url.lastmod)}    <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
   </url>`
   )
   .join('\n')}
 </urlset>`;
+}
+
+// LASTMOD IS EVIDENCE, NOT A TIMESTAMP OF GENERATION (AEO phase 1, 2026-09-17).
+// Every entry used to carry today's date, so the file said that 1,000 pages
+// changed every day. Bing's sitemap guidance for AI search says a lastmod set
+// to generation time is ignored and the sitemap discounted; AI engines weight
+// freshness, so a fake date is worse than none. An entry now carries lastmod
+// only when its source has real change evidence (venue verification and scrape
+// times through buildPokerVenueSitemapUrls); otherwise the element is omitted,
+// which the sitemap protocol permits.
+function sitemapLastmodLine(lastmod) {
+  if (!lastmod) return '';
+  const time = new Date(lastmod).getTime();
+  if (!Number.isFinite(time) || time <= 0) return '';
+  return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
 }
 
 export async function getServerSideProps({ res }) {

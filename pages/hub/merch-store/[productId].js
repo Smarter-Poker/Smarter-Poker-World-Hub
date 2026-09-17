@@ -9,9 +9,9 @@ import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt'
 import { createClient as createServerClient } from '../../../src/lib/supabaseServerClient';
 
 const STATIC_DETAIL_IMAGES = {
-  'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.png'],
-  'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.png'],
-  'hat-diamond': ['/images/merch/neural-steel/print/brain-spade-embroidery.png'],
+  'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.webp'],
+  'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.webp'],
+  'hat-diamond': ['/images/merch/neural-steel/print/brain-spade-embroidery.webp'],
 };
 
 function publicImage(value) {

@@ -108,4 +108,4 @@ Output always contains `PLAYWRIGHT_TEST:PASS` or `PLAYWRIGHT_TEST:FAIL` and `CON
 ## Test Credentials
 
 - **Email:** `daniel@bekavactrading.com`
-- **Password:** `<TEST_USER_PASSWORD — see .env.local, never commit>`
+- **Password:** `<use the configured authorized test-account interface; never read or print credential values>`

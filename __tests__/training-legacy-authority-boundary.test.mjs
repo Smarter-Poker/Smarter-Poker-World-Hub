@@ -87,7 +87,7 @@ async function loadRoute(path, { client, user = { id: USER_ID } } = {}) {
       clampPagination: (value) => ({ limit: Number(value) || 20 }),
       reconcileAnswerKey: (value) => value,
     },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/training/leaderboardPeriod.mjs': {
       getLeaderboardPeriodKey: () => 'alltime',
     },

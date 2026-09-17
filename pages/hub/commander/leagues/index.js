@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
@@ -171,8 +172,9 @@ export default function LeaguesPage() {
     <>
       <SEOHead
         title="Poker Leagues"
-        description="Smarter.Poker - The Future Of The Game."
-        noindex={true}
+        description="Season Long Poker Leagues At Club Commander Venues With Points Standings, Schedules And Leaderboards For Every Member."
+        canonical="/hub/commander/leagues"
+        jsonLd={commanderBreadcrumbs('Poker Leagues', '/hub/commander/leagues')}
       />
 
       <div className="cmd-page">

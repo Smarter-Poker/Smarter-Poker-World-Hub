@@ -26,7 +26,7 @@ const {
   requireEmailVerified,
   requireEmailVerifiedByUserId,
 } = require('../../../src/lib/emailVerifiedGate');
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import {
@@ -562,8 +562,8 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (_sentryErr) {
-      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+    } catch (_reportError) {
+      console.warn('[App] Handled exception:', _reportError?.message || _reportError);
     }
     console.warn('[API Error]', err);
     if (!res.headersSent)

@@ -74,7 +74,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
         <>
             {/* Sidebar Trigger Button */}
             <button onClick={handleOpen} style={styles.triggerBtn}>
-                <img src="/images/jarvis-avatar.png" alt="Jarvis" style={styles.triggerAvatar} />
+                <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={styles.triggerAvatar} />
                 <div style={styles.triggerText}>
                     <span style={styles.triggerTitle}>Jarvis Insights {!allowed && '🔒'}</span>
                 </div>
@@ -109,7 +109,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
                             {/* Modal Header */}
                             <div style={styles.modalHeader}>
                                 <div style={styles.modalTitleRow}>
-                                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={styles.modalAvatar} />
+                                    <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={styles.modalAvatar} />
                                     <div>
                                         <h2 style={styles.modalTitle}>Jarvis Insights</h2>
                                         <p style={styles.modalSubtitle}>AI-Powered Bankroll Analysis</p>

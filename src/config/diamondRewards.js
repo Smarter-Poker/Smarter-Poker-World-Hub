@@ -492,14 +492,8 @@ export const REWARDS = {
   },
 
   // ─────────────────────────────────────────────────────────────────────────
-  // REFERRAL — separate budget line, exempt from the daily cap, and (Dan
-  // 2026-09-14) with NO daily referral limit: Club Arena migration
-  // 20260914105353_diamond_spins_earning_guide_and_uncapped_qualified_referrals
-  // set diamond_reward_catalog.referral_qualified.max_per_day to NULL and the
-  // qualified_referrals engine cap to NULL. award_diamonds_v2 reads the
-  // database, so this row says the same thing (CHECK 9 compares the two).
-  // The monthly figure below is the referral service's own rule, not a
-  // catalog column.
+  // REFERRAL — separate budget line, exempt from the daily cap, but hard
+  // capped at 10 qualified referrals per month (2,500 ◆ = $25 max exposure).
   // ─────────────────────────────────────────────────────────────────────────
   referral_qualified: {
     key: 'referral_qualified',
@@ -507,7 +501,7 @@ export const REWARDS = {
     description:
       'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 Diamonds to you, 100 Diamonds to them, up to 20 qualified referrals per month.',
     diamonds: 500,
-    maxPerDay: null,
+    maxPerDay: null, // Preserve the existing live catalog; restoration does not roll back reward data.
     monthlyMax: 20,
     category: 'referral',
     countsTowardDailyCap: false,

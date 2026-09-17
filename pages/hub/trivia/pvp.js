@@ -1289,7 +1289,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
             <style>{`
                 .pvp-page {
-                    min-height: 100dvh;
+                    min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
@@ -1903,7 +1903,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
                 .ellipsis-pulse {
                     animation: ellipsisPulse 1.5s infinite;
-                    font-size: 12px;
+                    font-size: 10px;
                     letter-spacing: 0.5px;
                     text-transform: uppercase;
                     color: rgba(255, 255, 255, 0.45);
@@ -2019,6 +2019,15 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                     .panel-btn-secondary {
                         font-size: 0.75rem;
                         padding: 10px 18px;
+                    }
+                }
+
+                @media (max-width: 400px) {
+                    .panel-title {
+                        font-size: 1.8rem;
+                    }
+                    .panel-stat-row {
+                        font-size: 0.7rem;
                     }
                 }
 

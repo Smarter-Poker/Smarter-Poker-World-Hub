@@ -38,7 +38,7 @@ while IFS=$'\t' read -u 9 -r ID NAME IP TYPE LOC; do
     echo "=== last 5 logins ==="; last -n 5 2>/dev/null; echo
     echo "=== systemd units running ==="; systemctl list-units --state=running --no-pager --no-legend 2>/dev/null | head -60; echo
     echo "=== systemd unit files matching app patterns ==="
-    systemctl list-unit-files --no-pager --no-legend 2>/dev/null | grep -Ei "(sp-|openclaw|workers|transcode|club-|sentry|caddy|nginx)" | head -40
+    systemctl list-unit-files --no-pager --no-legend 2>/dev/null | grep -Ei "(sp-|openclaw|workers|transcode|club-|caddy|nginx)" | head -40
     echo
     echo "=== docker ps -a ==="; docker ps -a --format "{{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Ports}}" 2>/dev/null; echo
     echo "=== docker images ==="; docker images --format "{{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}" 2>/dev/null | head -20; echo

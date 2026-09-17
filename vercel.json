@@ -660,6 +660,23 @@
         {
           "key": "Pragma",
           "value": ""
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        }
+      ]
+    },
+    {
+      "source": "/hub/club-arena/sitemap.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=300, stale-while-revalidate=300"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noarchive"
         }
       ]
     },
@@ -673,6 +690,10 @@
         {
           "key": "Pragma",
           "value": ""
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
         }
       ]
     }
@@ -688,10 +709,6 @@
     },
     {
       "path": "/api/cron/signup-probe-restricted",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/sentry-signup-bridge",
       "schedule": "*/15 * * * *"
     },
     {

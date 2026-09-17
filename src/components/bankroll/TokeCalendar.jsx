@@ -15,20 +15,12 @@ import {
 } from '../../lib/bankroll/calendarSelectors';
 import toast from '../../stores/toastStore';
 import { supabase } from '../../lib/supabase';
-import { useHaptics } from '../../hooks/useHaptics';
-import { useModalHistory } from '../../hooks/useModalHistory';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
 ];
-const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// How many months open by default (mobile phase 11). Twelve full 44px grids
-// is 3,000px of calendar on a phone that has nothing booked; these are the
-// months a dealer is scheduling into, and every month holding an event is
-// added to them whatever the number says.
-const INITIAL_MONTHS = 3;
+const DAYS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function getCalendarDays(year, month) {
     // month is 0-indexed
@@ -40,28 +32,16 @@ function getCalendarDays(year, month) {
     return days;
 }
 
-function TokeCalendar({ userId, onSheetOpenChange }) {
+function TokeCalendar({ userId }) {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+    const [expandedMonth, setExpandedMonth] = useState(null); // 0-indexed
     const [selectedDate, setSelectedDate] = useState(null); // 'YYYY-MM-DD'
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEventDetail, setShowEventDetail] = useState(null); // event object
     const [addForm, setAddForm] = useState({ title: '', venue_name: '', notes: '', alert_enabled: true });
     const [saving, setSaving] = useState(false);
-    const [showAllMonths, setShowAllMonths] = useState(false);
-    const haptic = useHaptics();
-
-    // Mobile phase 11: the phone back gesture closes a sheet instead of
-    // leaving the page, and the page above stops its pull-to-refresh while
-    // either sheet is open.
-    const closeAddModal = useCallback(() => setShowAddModal(false), []);
-    const closeEventDetail = useCallback(() => setShowEventDetail(null), []);
-    useModalHistory(showAddModal, closeAddModal);
-    useModalHistory(Boolean(showEventDetail), closeEventDetail);
-    useEffect(() => {
-        onSheetOpenChange?.(showAddModal || Boolean(showEventDetail));
-    }, [showAddModal, showEventDetail, onSheetOpenChange]);
 
     const isMountedRef = useRef(true);
     useEffect(() => {
@@ -122,7 +102,6 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
 
     const handleDateClick = (year, month, day) => {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        haptic('light');
 
         // If events exist, show first event detail; otherwise open add modal
         if (eventMap[dateStr]?.length > 0) {
@@ -203,29 +182,7 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
         }
     };
 
-    // ALWAYS-DISPLAYED (mobile phase 11). Every month used to render a
-    // condensed 7-column grid inside a card one third of the phone wide,
-    // which made each day a 15px tap target, and the real 44px grid only
-    // appeared for the ONE month you expanded. Now there is one grid, always
-    // the full one, and the year is bounded the way the Video Library bounds
-    // its rows: the months you are likely to want plus every month that has
-    // something in it, then a button that shows the rest.
     const monthsInYear = Array.from({ length: 12 }, (_, i) => i);
-
-    const monthHasEvents = (monthIdx) => events.some(ev =>
-        ev.event_date?.startsWith(`${currentYear}-${String(monthIdx + 1).padStart(2, '0')}`)
-    );
-
-    const firstDefaultMonth = currentYear === today.getFullYear()
-        ? Math.min(today.getMonth(), 12 - INITIAL_MONTHS)
-        : 0;
-    const isDefaultMonth = (monthIdx) =>
-        monthIdx >= firstDefaultMonth && monthIdx < firstDefaultMonth + INITIAL_MONTHS;
-
-    const visibleMonths = showAllMonths
-        ? monthsInYear
-        : monthsInYear.filter(m => isDefaultMonth(m) || monthHasEvents(m));
-    const hiddenMonthCount = monthsInYear.length - visibleMonths.length;
 
     return (
         <div style={calStyles.wrapper}>
@@ -239,27 +196,16 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                     </div>
                 </div>
                 <div style={calStyles.yearNav}>
-                    <button
-                        type="button"
-                        onClick={() => setCurrentYear(y => y - 1)}
-                        style={calStyles.navBtn}
-                        aria-label={`Show ${currentYear - 1}`}
-                    >&lsaquo;</button>
+                    <button onClick={() => setCurrentYear(y => y - 1)} style={calStyles.navBtn}>‹</button>
                     <span style={calStyles.yearLabel}>{currentYear}</span>
-                    <button
-                        type="button"
-                        onClick={() => setCurrentYear(y => y + 1)}
-                        style={calStyles.navBtn}
-                        aria-label={`Show ${currentYear + 1}`}
-                    >&rsaquo;</button>
+                    <button onClick={() => setCurrentYear(y => y + 1)} style={calStyles.navBtn}>›</button>
                 </div>
             </div>
 
             {/* Events count badge */}
             {events.length > 0 && (
                 <div style={calStyles.eventsBadge}>
-                    {/* One text node: see the note in DealerVault's header. */}
-                    {`${events.filter(e => e.event_date >= todayStr).length} Upcoming Event${events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} This Year`}
+                    {events.filter(e => e.event_date >= todayStr).length} Upcoming event{events.filter(e => e.event_date >= todayStr).length !== 1 ? 's' : ''} This Year
                 </div>
             )}
 
@@ -267,10 +213,10 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                 <div style={calStyles.loading}>Loading Calendar...</div>
             ) : (
                 /* 12-Month Year Grid */
-                <>
-                <div className="toke-cal-year-grid" style={calStyles.yearGrid}>
-                    {visibleMonths.map(monthIdx => {
+                <div style={calStyles.yearGrid}>
+                    {monthsInYear.map(monthIdx => {
                         const days = getCalendarDays(currentYear, monthIdx);
+                        const isExpanded = expandedMonth === monthIdx;
                         const monthEvents = days
                             .filter(d => d !== null)
                             .flatMap(d => {
@@ -280,69 +226,103 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                         const hasEvents = monthEvents.length > 0;
 
                         return (
-                            <div key={monthIdx} style={calStyles.monthCard}>
-                                <h4 style={calStyles.monthHeader}>
+                            <div key={monthIdx} style={{ ...calStyles.monthCard, ...(isExpanded ? calStyles.monthCardExpanded : {}) }}>
+                                {/* Month header */}
+                                <button
+                                    style={calStyles.monthHeader}
+                                    onClick={() => setExpandedMonth(isExpanded ? null : monthIdx)}
+                                >
                                     <span style={{ ...calStyles.monthName, ...(hasEvents ? { color: '#f59e0b' } : {}) }}>
                                         {MONTHS[monthIdx]}
                                     </span>
                                     {hasEvents && (
                                         <span style={calStyles.monthDot}>{monthEvents.length}</span>
                                     )}
-                                </h4>
+                                    <span style={{ ...calStyles.monthChevron, transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                                </button>
 
-                                {/* One grid, always the full one, 44px days. */}
-                                <div style={calStyles.fullGrid}>
-                                    {DAY_HEADERS.map(d => (
-                                        <div key={d} style={calStyles.fullDayHeader}>{d}</div>
-                                    ))}
-                                    {days.map((day, i) => {
-                                        if (day === null) return <div key={`blank-${i}`} />;
-                                        const ds = `${currentYear}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                        const dayEvs = eventMap[ds] || [];
-                                        const isToday = ds === todayStr;
-                                        const isPast = ds < todayStr;
-                                        return (
-                                            <button
-                                                key={day}
-                                                type="button"
-                                                className="toke-cal-day"
-                                                onClick={() => handleDateClick(currentYear, monthIdx, day)}
-                                                disabled={isPast && dayEvs.length === 0}
-                                                aria-label={`${MONTHS[monthIdx]} ${day}, ${currentYear}${dayEvs.length ? `: ${dayEvs.map(e => e.title).join(', ')}` : ''}`}
-                                                style={{
-                                                    ...calStyles.fullDay,
-                                                    ...(isToday ? calStyles.fullDayToday : {}),
-                                                    ...(isPast ? calStyles.fullDayPast : {}),
-                                                }}
-                                            >
-                                                <span style={calStyles.fullDayNum}>{day}</span>
-                                                {dayEvs.map(ev => (
-                                                    <span key={ev.id} style={calStyles.eventPill}>
-                                                        {ev.title}
-                                                    </span>
+                                {/* Mini calendar grid (always visible in condensed form) */}
+                                {!isExpanded && (
+                                    <div style={calStyles.miniGrid}>
+                                        {DAYS_SHORT.map((d, i) => (
+                                            <div key={i} style={calStyles.miniDayHeader}>{d}</div>
+                                        ))}
+                                        {days.map((day, i) => {
+                                            if (day === null) return <div key={`blank-${i}`} />;
+                                            const ds = `${currentYear}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                            const hasEv = !!eventMap[ds];
+                                            const isToday = ds === todayStr;
+                                            return (
+                                                <div
+                                                    key={day}
+                                                    onClick={() => handleDateClick(currentYear, monthIdx, day)}
+                                                    style={{
+                                                        ...calStyles.miniDay,
+                                                        ...(isToday ? calStyles.miniDayToday : {}),
+                                                        ...(hasEv ? calStyles.miniDayHasEvent : {}),
+                                                    }}
+                                                    title={hasEv ? eventMap[ds].map(e => e.title).join(', ') : undefined}
+                                                >
+                                                    {day}
+                                                    {hasEv && <div style={calStyles.miniDot} />}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Expanded month view */}
+                                <AnimatePresence>
+                                    {isExpanded && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            style={{ overflow: 'hidden' }}
+                                        >
+                                            {/* Full day-of-week headers */}
+                                            <div style={calStyles.fullGrid}>
+                                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                                    <div key={d} style={calStyles.fullDayHeader}>{d}</div>
                                                 ))}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                {days.map((day, i) => {
+                                                    if (day === null) return <div key={`blank-${i}`} />;
+                                                    const ds = `${currentYear}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                    const dayEvs = eventMap[ds] || [];
+                                                    const isToday = ds === todayStr;
+                                                    const isPast = ds < todayStr;
+                                                    return (
+                                                        <div
+                                                            key={day}
+                                                            onClick={() => handleDateClick(currentYear, monthIdx, day)}
+                                                            style={{
+                                                                ...calStyles.fullDay,
+                                                                ...(isToday ? calStyles.fullDayToday : {}),
+                                                                ...(isPast ? calStyles.fullDayPast : {}),
+                                                            }}
+                                                        >
+                                                            <span style={calStyles.fullDayNum}>{day}</span>
+                                                            {dayEvs.map(ev => (
+                                                                <div key={ev.id} style={calStyles.eventPill}
+                                                                    onClick={e => { e.stopPropagation(); setShowEventDetail(ev); }}
+                                                                >
+                                                                    {ev.alert_enabled ? '' : ''}{ev.title}
+                                                                </div>
+                                                            ))}
+                                                            {!isPast && dayEvs.length === 0 && (
+                                                                <div style={calStyles.addHint}>+</div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         );
                     })}
                 </div>
-
-                {(hiddenMonthCount > 0 || showAllMonths) && (
-                    <button
-                        type="button"
-                        className="toke-show-more"
-                        style={calStyles.showMoreBtn}
-                        onClick={() => { haptic('light'); setShowAllMonths(v => !v); }}
-                    >
-                        {showAllMonths
-                            ? 'Show Fewer Months'
-                            : `Show All Twelve Months Of ${currentYear}`}
-                    </button>
-                )}
-                </>
             )}
 
             {/* ── ADD EVENT MODAL ── */}
@@ -350,37 +330,22 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                 {showAddModal && selectedDate && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="bankroll-modal-overlay"
                         style={calStyles.overlay}
-                        onClick={closeAddModal}
+                        onClick={() => setShowAddModal(false)}
                     >
                         <motion.form
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bankroll-modal"
                             style={calStyles.modal}
                             onClick={e => e.stopPropagation()}
                             onSubmit={handleAddEvent}
                         >
-                            <span className="bankroll-sheet-handle" aria-hidden="true" />
-                            <div className="bankroll-modal-header" style={calStyles.modalHeader}>
-                                <div>
-                                    <h3 style={calStyles.modalTitle}>New Calendar Event</h3>
-                                    <div style={calStyles.modalDate}>
-                                        {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="bankroll-modal-close sp-icon-btn"
-                                    onClick={closeAddModal}
-                                    aria-label="Close"
-                                    style={calStyles.closeBtn}
-                                >&times;</button>
+                            <h3 style={calStyles.modalTitle}>New Calendar Event</h3>
+                            <div style={calStyles.modalDate}>
+                                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
 
-                            <div className="bankroll-modal-body" style={calStyles.modalBody}>
                             <label style={calStyles.label}>Event Title *</label>
                             <input
                                 type="text"
@@ -420,13 +385,11 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                                 </button>
                             </div>
 
-                            </div>
-
-                            <div className="bankroll-modal-footer" style={calStyles.modalFooter}>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                                 <button type="submit" disabled={saving} style={calStyles.submitBtn}>
-                                    {saving ? 'Saving...' : 'Add Event'}
+                                    {saving ? 'Saving...' : '+ Add Event'}
                                 </button>
-                                <button type="button" onClick={closeAddModal} style={calStyles.cancelBtn}>Cancel</button>
+                                <button type="button" onClick={() => setShowAddModal(false)} style={calStyles.cancelBtn}>Cancel</button>
                             </div>
                         </motion.form>
                     </motion.div>
@@ -438,35 +401,20 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                 {showEventDetail && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="bankroll-modal-overlay"
                         style={calStyles.overlay}
-                        onClick={closeEventDetail}
+                        onClick={() => setShowEventDetail(null)}
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bankroll-modal"
                             style={{ ...calStyles.modal, border: '2px solid rgba(245,158,11,0.35)' }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <span className="bankroll-sheet-handle" aria-hidden="true" />
-                            <div className="bankroll-modal-header" style={calStyles.modalHeader}>
-                                <div>
-                                    <h3 style={calStyles.modalTitle}>{showEventDetail.title}</h3>
-                                    <div style={calStyles.modalDate}>
-                                        {new Date(showEventDetail.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="bankroll-modal-close sp-icon-btn"
-                                    onClick={closeEventDetail}
-                                    aria-label="Close"
-                                    style={calStyles.closeBtn}
-                                >&times;</button>
+                            <h3 style={calStyles.modalTitle}>{showEventDetail.title}</h3>
+                            <div style={calStyles.modalDate}>
+                                {new Date(showEventDetail.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                             </div>
-                            <div className="bankroll-modal-body" style={calStyles.modalBody}>
                             {showEventDetail.venue_name && (
                                 <div style={{ color: '#B0B3B8', fontSize: 14, marginTop: 4 }}>
                                     {showEventDetail.venue_name}
@@ -478,17 +426,16 @@ function TokeCalendar({ userId, onSheetOpenChange }) {
                                 </div>
                             )}
                             <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
-                                {showEventDetail.alert_enabled ? 'Alert Enabled' : 'No Alert'}
+                                {showEventDetail.alert_enabled ? 'Alert enabled' : 'No alert'}
                             </div>
-                            </div>
-                            <div className="bankroll-modal-footer" style={calStyles.modalFooter}>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                                 <button onClick={() => handleShare(showEventDetail)} style={calStyles.shareBtn}>
                                     Share
                                 </button>
                                 <button onClick={() => handleDeleteEvent(showEventDetail.id)} style={calStyles.deleteBtn}>
                                     Delete
                                 </button>
-                                <button onClick={closeEventDetail} style={calStyles.cancelBtn}>Close</button>
+                                <button onClick={() => setShowEventDetail(null)} style={calStyles.cancelBtn}>Close</button>
                             </div>
                         </motion.div>
                     </motion.div>
@@ -512,13 +459,10 @@ const calStyles = {
     title: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
     subtitle: { fontSize: 13, color: '#64748b', marginTop: 1 },
     yearNav: { display: 'flex', alignItems: 'center', gap: 8 },
-    // 28x28 was the smallest control on the Venue Intel page (mobile phase 11).
     navBtn: {
         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-        color: '#E4E6EB', borderRadius: 6, width: 44, height: 44, minWidth: 44, minHeight: 44,
-        fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', lineHeight: 1, touchAction: 'manipulation',
-        WebkitTapHighlightColor: 'transparent',
+        color: '#E4E6EB', borderRadius: 6, width: 28, height: 28, fontSize: 18,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', lineHeight: 1,
     },
     yearLabel: { fontSize: 16, fontWeight: 700, color: '#f59e0b', minWidth: 44, textAlign: 'center' },
     eventsBadge: {
@@ -528,41 +472,60 @@ const calStyles = {
     },
     loading: { padding: 24, textAlign: 'center', color: '#64748b', fontSize: 14 },
 
-    // Year grid: one month per row on a phone (44px days need the width),
-    // two or three across on a desktop. The columns come from
-    // src/styles/worlds/toke-tracker.css so there is no fourth breakpoint.
+    // Year grid — 3 columns on mobile, 4 on wider
     yearGrid: {
         display: 'grid',
-        gap: 10,
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 8,
     },
     monthCard: {
         background: '#242526', border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 10, padding: '10px 8px',
+        borderRadius: 10, padding: '10px 8px', transition: 'border-color 0.2s',
+    },
+    monthCardExpanded: {
+        border: '1px solid rgba(245,158,11,0.3)',
+        gridColumn: '1 / -1', // span full row when expanded
     },
     monthHeader: {
-        display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-        margin: '0 0 6px', padding: 0,
+        display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+        background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 6,
     },
-    monthName: { fontSize: 14, fontWeight: 700, color: '#E4E6EB', letterSpacing: 0.3, flex: 1, textAlign: 'left' },
+    monthName: { fontSize: 12, fontWeight: 700, color: '#E4E6EB', letterSpacing: 0.3, flex: 1, textAlign: 'left' },
     monthDot: {
         fontSize: 12, background: '#f59e0b', color: '#000',
-        borderRadius: 10, minWidth: 18, height: 18,
+        borderRadius: 10, minWidth: 16, height: 16,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700,
     },
+    monthChevron: { fontSize: 12, color: '#64748b', transition: 'transform 0.2s' },
 
-    // The one day grid. Every day is a 44px button.
+    // Mini calendar
+    miniGrid: {
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1,
+    },
+    miniDayHeader: { fontSize: 12, color: '#64748b', textAlign: 'center', fontWeight: 600, paddingBottom: 2 },
+    miniDay: {
+        fontSize: 12, color: '#94a3b8', textAlign: 'center', cursor: 'pointer',
+        borderRadius: 3, padding: '1px 0', position: 'relative', lineHeight: '14px',
+        transition: 'background 0.15s',
+    },
+    miniDayToday: { background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontWeight: 700 },
+    miniDayHasEvent: { color: '#fff', fontWeight: 700, background: 'rgba(245,158,11,0.12)' },
+    miniDot: {
+        position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: 3, height: 3, background: '#f59e0b', borderRadius: '50%',
+    },
+
+    // Expanded full grid
     fullGrid: {
-        display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginTop: 6,
+        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginTop: 6,
     },
     fullDayHeader: { fontSize: 12, color: '#64748b', textAlign: 'center', fontWeight: 600, padding: '4px 0' },
     fullDay: {
-        fontSize: 13, color: '#94a3b8', textAlign: 'center', borderRadius: 6,
+        fontSize: 12, color: '#94a3b8', textAlign: 'center', borderRadius: 6,
         padding: '4px 2px', minHeight: 44, cursor: 'pointer',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-        background: 'none',
-        border: '1px solid rgba(255,255,255,0.04)',
-        position: 'relative', touchAction: 'manipulation',
-        WebkitTapHighlightColor: 'transparent',
+        border: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s',
+        position: 'relative',
     },
     fullDayToday: { background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: '#f59e0b' },
     fullDayPast: { opacity: 0.45 },
@@ -570,70 +533,51 @@ const calStyles = {
     eventPill: {
         fontSize: 12, background: 'rgba(245,158,11,0.2)', color: '#f59e0b',
         borderRadius: 4, padding: '1px 4px', fontWeight: 600, width: '100%',
-        textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        textAlign: 'left', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
     },
-    showMoreBtn: {
-        width: '100%', minHeight: 44, marginTop: 10,
-        background: 'rgba(245,158,11,0.08)', color: '#f59e0b',
-        border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10,
-        fontSize: 13, fontWeight: 700, cursor: 'pointer',
-        touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+    addHint: {
+        fontSize: 14, color: 'rgba(255,255,255,0.15)', lineHeight: 1, marginTop: 'auto',
     },
 
-    // Modals. The `bankroll-modal-*` classes on these elements are what make
-    // them bottom sheets at or below 600px (one 600px block owns that switch,
-    // in src/styles/worlds/bankroll.css).
+    // Modals
     overlay: {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     },
     modal: {
-        background: '#242526', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16,
-        padding: 0, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-    },
-    modalHeader: {
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-        gap: 12, padding: '20px 20px 8px',
-    },
-    modalBody: { padding: '0 20px 16px' },
-    modalFooter: {
-        display: 'flex', gap: 10, padding: '12px 20px 20px',
-        background: '#242526', borderTop: '1px solid rgba(255,255,255,0.07)',
-    },
-    closeBtn: {
-        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 8, color: '#E4E6EB', fontSize: 22, lineHeight: 1, cursor: 'pointer',
+        background: '#242526', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 24,
+        width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
     modalTitle: { fontSize: 20, fontWeight: 700, color: '#E4E6EB', margin: '0 0 8px' },
-    modalDate: { fontSize: 14, color: '#f59e0b', fontWeight: 600 },
+    modalDate: { fontSize: 14, color: '#f59e0b', fontWeight: 600, marginBottom: 16 },
     label: { fontSize: 13, fontWeight: 600, color: '#B0B3B8', marginBottom: 4, display: 'block' },
     input: {
         width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.5)',
         border: '2px solid rgba(255,255,255,0.15)', borderRadius: 8, color: '#fff',
-        fontSize: 16, minHeight: 44, outline: 'none', boxSizing: 'border-box',
+        fontSize: 14, outline: 'none', boxSizing: 'border-box',
     },
     alertRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
     alertLabel: { fontSize: 14, fontWeight: 600, color: '#E4E6EB' },
     toggleBtn: {
-        borderRadius: 8, padding: '6px 18px', minHeight: 44, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        borderRadius: 8, padding: '6px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
     },
     submitBtn: {
         flex: 1, background: '#f59e0b', color: '#000', border: 'none',
-        borderRadius: 10, padding: '12px 20px', minHeight: 44, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+        borderRadius: 10, padding: '12px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
     },
     shareBtn: {
         flex: 1, background: 'rgba(59,130,246,0.15)', color: '#3b82f6',
         border: '2px solid rgba(59,130,246,0.3)', borderRadius: 10,
-        padding: '10px 16px', minHeight: 44, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     deleteBtn: {
         background: 'rgba(239,68,68,0.15)', color: '#ef4444',
         border: '2px solid rgba(239,68,68,0.3)', borderRadius: 10,
-        padding: '10px 16px', minHeight: 44, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     cancelBtn: {
         background: 'transparent', color: '#94a3b8', border: '2px solid rgba(255,255,255,0.15)',
-        borderRadius: 10, padding: '10px 16px', minHeight: 44, fontSize: 13, cursor: 'pointer',
+        borderRadius: 10, padding: '10px 16px', fontSize: 13, cursor: 'pointer',
     },
 };
 

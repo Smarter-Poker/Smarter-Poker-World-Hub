@@ -71,7 +71,7 @@ async function loadSaveProgress({
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/training/trainingPersistence.mjs': {
       isTrainingPersistenceUnavailable: (error) => error?.trainingCode === 'TRAINING_PERSISTENCE_UNAVAILABLE',
       runTrainingPersistenceQuery: async (queryFactory) => {
@@ -138,7 +138,7 @@ async function loadSaveSession({ user = { id: USER_ID }, rpcResult, persistenceE
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { write: {} } },
     '../../../src/utils/trainingApiUtils': { withTiming: () => {} },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/training/trainingPersistence.mjs': {
       isTrainingPersistenceUnavailable: (error) => error?.trainingCode === 'TRAINING_PERSISTENCE_UNAVAILABLE',
       runTrainingPersistenceQuery: async (queryFactory) => {

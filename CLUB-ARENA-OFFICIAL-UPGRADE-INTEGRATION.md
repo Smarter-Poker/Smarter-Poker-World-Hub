@@ -1,3 +1,5 @@
+> Current execution authority: root `AGENTS.md`, `docs/agent-policy/OPERATING-LAW.md`, and `PUBLISHING.md`. This dated plan supplies scope/dependency context only; it does not assign new work or override current delivery policy.
+
 # Club Arena — Official Upgrade Layout & Integration
 
 **Owner:** Dan
@@ -18,7 +20,7 @@ Club Arena is architecturally 80% complete. The server-authoritative Bible-V8 mi
 2. **Bury `club-engine/`.** It is a stale frontend-only fork last touched 2026-04-06, with a README still pointing to the dead `club-engine.vercel.app`. Task #111 already documented it as superseded. Archive it.
 3. **Refactor `server/src/index.ts`.** It is a 162 KB / ~3,800-line monolith that owns every HTTP route, bootstrap path, and service wiring. Split into a thin HTTP router + per-concern modules before adding new features.
 4. **Formalize the client ↔ server protocol surface.** The game server exposes 17 HTTP routes plus a WebSocket `/ws/table/:tableId` (SNAPSHOT + RFC-6902 DELTA + EVENT). This is the ONLY contract the client needs. Everything else on the client should go through Supabase RPCs.
-5. **Harden the deploy pipeline's invariants.** The sync-to-world-hub → git-safe-push → Vercel auto-deploy + Hetzner SSH deploy split is working. The gaps are: (a) CA bundle budget CI gate (#155), (b) Sentry sourcemap upload on CA Vite builds (#133), (c) the `public/hub/club-arena/` asset migration to R2 (#44).
+5. **Harden the deploy pipeline's invariants.** The old cross-repository bundle sync is retired; use the component routes in `PUBLISHING.md`. The gaps are: (a) CA bundle budget CI gate (#155), (b) the `public/hub/club-arena/` asset migration to R2 (#44).
 
 No new services. No re-platforming. Just finish the consolidation.
 
@@ -151,7 +153,7 @@ Client implementation: `src/services/EngineStateClient.ts` + `src/hooks/useEngin
 3. **Tombstone files in CA root:** `dist.dead.47076/`, `prompts.stale.*`, `wipe_db.cjs.stale.*`, `patch_roomservice.js.stale.*`, and dozens of `.git/*.lock.stale.*`. Cosmetic but noisy.
 4. **Handoff-doc rot in CA root:** `ANTIGRAVITY-HANDOFF-*.md` × 5, `ANIMATION-FIX-HANDOFF.md`, `CHAT-HANDOFF-*.md`. These were from the old handoff workflow which Dan killed 2026-04-20 (no-handoffs override). Archive.
 5. **`club-engine/` repo:** deprecated fork. Task #111 already documented as superseded. Not yet archived on GitHub.
-6. **CA Sentry sourcemap upload:** Task #133 open — Vite build does not upload sourcemaps, so Sentry stack traces from CA are minified.
+6. **External telemetry upload retired:** Task #133 is cancelled by the owner's September 16, 2026 removal instruction; do not restore its build plugin or credentials.
 7. **CA bundle size >5 MB** breaks CI "Build & Type Safety" on main — Task #155 open.
 8. **CA static assets → R2:** Task #44 in_progress — 95 MB in `public/hub/club-arena/` should move to R2 CDN to shave Vercel bandwidth.
 
@@ -247,9 +249,9 @@ Developer push                     CI / Vercel                          Producti
 ──────────────                     ───────────                          ──────────
 
 cd ~/Documents/club-arena          agent-open-pr.yml opens the PR       (no Vercel deploy)
-git push origin HEAD:fix/<slug>    agent-autopilot.yml merges it        ─────── ▲
+git push origin HEAD:fix/<slug>    agent completes protected merge        ─────── ▲
                                    publish-club-arena.yml rsyncs                 │
-YOUR JOB ENDS HERE.                dist/ to ca-static.smarter.poker              │
+CONTINUE THROUGH LIVE PROOF.                dist/ to ca-static.smarter.poker              │
                                                                                   │
                                    World Hub rewrite                             │
                                    /hub/club-arena/:path* ──────────────▶  hub-vanguard
@@ -324,12 +326,12 @@ Gate U4: Both scripts pass against current HEAD. Any intentional exceptions are 
 
 | Step | Action | Blocks | Verify |
 |---|---|---|---|
-| U5.1 | Fix CA Sentry sourcemap upload in Vite build (Task #133) | nothing | CA release shows readable stack frames in Sentry |
-| U5.2 | Add CA bundle-size CI budget (Task #155) — fail build if main bundle > 5 MB | U5.1 done first | CI blocks an oversized change |
+| U5.1 | Cancelled: external telemetry upload removed by owner instruction (Task #133) | — | No external telemetry upload or credentials |
+| U5.2 | Add CA bundle-size CI budget (Task #155) — fail build if main bundle > 5 MB | none | CI blocks an oversized change |
 | U5.3 (**DEFERRED by Dan 2026-08-17**: zero real users, cost optimization only. Code side is done — MEDIA_BASE env flip in CA 45f2228ce; runbook in .agent/handoffs/2026-08-17-u5-3-r2-static-assets.md. Revisit when real traffic makes the Vercel bill matter. Do NOT resurrect before then.) | Move `public/hub/club-arena/` large static assets (cards, club-logos, avatar packs) to Cloudflare R2 (Task #44). Update SPA to load from R2 URL. | WH rewrites updated | Vercel bandwidth cut ≥ 50 MB/deploy |
 | U5.4 | **DONE 2026-09-03, differently and better.** This proposed consolidating the duplicate pipelines onto one sync script. What happened instead: BOTH scripts were deleted along with the vendored `public/hub/club-arena/` tree, and Club Arena now publishes to its own origin via `publish-club-arena.yml`. There is one way to ship a CA change and it is "push a branch". `tests/no-commit-left-behind.law.test.ts` in the CA repo counts publishers and requires exactly one. | — | Met |
 
-Gate U5: Sentry stack traces are readable, CA bundle ≤ 5 MB, R2 URLs return 200, all deploys go through one script.
+Gate U5: existing application error handling remains functional, CA bundle ≤ 5 MB, R2 URLs return 200, all deploys go through one script.
 
 ### Phase U6 — Documentation consolidation
 
@@ -376,7 +378,7 @@ Every phase above is reversible:
 - **U2 dual-engine kill** is committed caller-by-caller. Any regression reverts one commit, not the whole phase.
 - **U3 monolith split** is route-by-route and byte-identical — the `router.ts` switch can be replaced with the old `index.ts` block.
 - **U4 CI gates** start as non-blocking warnings; if they false-positive, they stay warnings until fixed.
-- **U5 deploys** are each small and separately verifiable against the Vercel/Sentry dashboards.
+- **U5 deploys** are each small and separately verifiable against the deployment records and existing application logs.
 - **U6 doc archival** is `git mv` only.
 
 No database migrations are required by this plan. No schema changes. No Supabase project move. No Hetzner server move. No Vercel project move. The architecture is already the target — this plan just finishes arriving at it.
@@ -400,7 +402,7 @@ git push origin HEAD:refs/heads/fix/<slug>
 ```
 
 That is the whole job. `agent-open-pr.yml` opens the pull request,
-`agent-autopilot.yml` merges it when the six required checks are green, and
+The authorized agent completes protected merge when the actual required checks pass, and
 `publish-club-arena.yml` rsyncs `dist/` to `ca-static.smarter.poker`. Confirm:
 
 ```bash
@@ -440,14 +442,14 @@ Verify: `SELECT * FROM supabase_migrations.schema_migrations ORDER BY version DE
 |---|---|---|
 | #115 | Deep audit: club-arena vs club-engine + optimal rebuild plan | **this document** |
 | #111 | Document club-engine as superseded in build tracker | U1.3 + U1.4 |
-| #133 | Fix Club Arena Sentry sourcemap upload in Vite build | U5.1 |
+| #133 | Cancelled by owner: external telemetry upload | Retired in U5.1 |
 | #155 | Fix CA bundle size >5 MB breaking CI | U5.2 |
 | #44 | Phase 1.8 — Move Club Arena static assets to R2 | U5.3 |
 
 Tasks this plan does **not** discharge (they are orthogonal):
 
 - #117 update local git remotes to new PAT (ops, not architecture)
-- #138, #140, #144, #147, #154, #105 — Sentry autofix pipeline audit (separate system)
+- #138, #140, #144, #147, #154, #105 — obsolete external telemetry automation; retired by the owner's removal instruction.
 
 ---
 
@@ -457,7 +459,7 @@ If any of the following become true, stop the phase in flight, do not advance:
 
 1. Live hand count/hour on staging drops below 80 (baseline ~85 h/h) for more than 10 minutes.
 2. `reconcile_ledger_nightly()` reports any `critical_count > 0` after the day's run.
-3. Sentry issue-creation rate > 10× the prior week's median.
+3. Existing application logs show a new sustained error increase after the change; investigate against the release baseline.
 4. Any of the 9 bug categories documented in 2026-04-15 (stranded-writer or phantom-table) resurfaces.
 5. Vercel build minutes > 25 min on main for more than one deploy in a row.
 6. Hetzner container restart count > 2 in any rolling hour (indicates crash loop).
@@ -493,7 +495,7 @@ it LEFT is below — the live deployment/upgrade TODO, each item with an owner
 
 2. **[HUMAN, ~free] No external uptime monitoring.** Nothing watches
    `smarter.poker` or `engine.smarter.poker` from OUTSIDE the failure domain.
-   Every current signal (publish-watchdog, engine-watchdog, Sentry) runs
+   Every current signal (publish-watchdog, engine-watchdog) runs
    inside the same infrastructure it watches. A free external monitor
    (UptimeRobot / BetterStack) on both URLs closes the "the thing that would
    have told us was also down" gap. 5 minutes to set up.
@@ -515,7 +517,7 @@ it LEFT is below — the live deployment/upgrade TODO, each item with an owner
    the gh/git token's failure stops `gh` and git-over-HTTPS on the Mac at once
    with no alarm. NEEDED: one secrets-inventory with expiry dates for EVERY
    credential (GitHub App key, both PATs, Supabase keys, Vercel token, Hetzner
-   SSH keys, Sentry, OneSignal, TURN secret), and a proactive expiry
+   SSH keys, OneSignal, TURN secret), and a proactive expiry
    watchdog that opens an issue N days before any of them lapse.
 
 ## Already-tracked open items (carried forward)

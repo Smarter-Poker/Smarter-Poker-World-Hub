@@ -43,7 +43,7 @@ const SLIDES = [
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_32_zero_competition.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_33_exit.png' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_34_milestones.png' },
-    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_35_why_now.png' },
+    { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_35_why_now.webp' },
     { type: 'full-image', bgImage: '/images/leaflocator/ll_slide_36_the_ask.png' },
 ];
 

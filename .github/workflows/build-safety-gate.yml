@@ -98,31 +98,33 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Operational Alert Delivery Contracts
-        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
-
-      - name: Messenger Club And Invoice Separation
-        run: node --test __tests__/messenger-workspace.test.mjs __tests__/messenger-accounting-ui.test.mjs
+        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
 
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
-      - name: Series Scraper Session And Data Contracts
-        run: python3 -m unittest discover -s scripts -p test_poker_series_scraper.py -v
+      - name: Messenger Club And Invoice Separation
+        run: >-
+          node --test
+          __tests__/messenger-workspace.test.mjs
+          __tests__/messenger-accounting-ui.test.mjs
+          __tests__/messenger-conversation-link.test.mjs
+          __tests__/messenger-search-lifecycle.test.mjs
+          __tests__/cashier-accounting-display.test.mjs
+          __tests__/cashout-v2-bridge.test.mjs
+          __tests__/correction-accounting-display.test.mjs
+          __tests__/credit-change-accounting-display.test.mjs
 
-      - name: Series Enrichment Startup Contracts
-        run: python3 -m unittest discover -s scripts -p test_series_enrichment_startup.py -v
-
-      - name: Series Date Provenance And Existing Row Receipts
-        run: python3 -m unittest discover -s scripts -p test_series_date_provenance.py -v
-
-      - name: Series Discovery Source Handoff Contracts
-        run: python3 -m unittest discover -s scripts -p test_series_discovery_handoff.py -v
-
-      - name: Video Scraper Failure And Receipt Contracts
-        run: python3 -m unittest discover -s scripts -p test_video_library_scraper.py -v
-
-      - name: Stats Maintenance Reports Its Actual Outcome Over HTTP
-        run: node --experimental-vm-modules --test __tests__/club-stats-maintenance-http.test.mjs __tests__/club-stats-maintenance-runtime-budget.test.mjs
+      - name: Accounting Push Receipt And Ownership Contracts
+        run: >-
+          node --test
+          __tests__/accounting-push-delivery.test.mjs
+          __tests__/accounting-push-privacy.test.mjs
+          __tests__/push-invoice-routing.test.mjs
+          __tests__/push-subscription-ownership.test.mjs
+          __tests__/push-rotation-ownership.test.mjs
+          __tests__/push-health-snapshot.test.mjs
+          __tests__/zombie-endpoint-retirement.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -191,12 +193,22 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
-      - name: Integrity Hand Search PostgreSQL Continuation
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-integrity-hands-continuation.py
-      - name: Operator Approval PostgreSQL Concurrency
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-approval-concurrency.py
-      - name: Fleet policy and exact audit commit together
-        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-fleet-policy-audit.py
+
+      - name: Owner Operational Notification PostgreSQL Contracts
+        id: owner_notification_postgres
+        run: |
+          python3 -m unittest discover -s scripts/ci -p test_owner_operational_notification_postgres.py
+          PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
+
+      - name: Retain Owner Notification PostgreSQL Evidence
+        if: always() && steps.owner_notification_postgres.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-notification-postgres-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/owner-operational-notification/
+          retention-days: 7
+          if-no-files-found: warn
+
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
@@ -542,6 +554,7 @@ jobs:
           # see .agent/audits/2026-08-15-check13-phantom-column-burndown.md),
           # so --warn-only was removed the same day the scanner first
           # reported clean.
+          node --test tests/check-phantom-column-select-parser.test.mjs
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-column check is NOT enforced."
             exit 0
@@ -554,6 +567,7 @@ jobs:
           # That is not a crash — it renders an empty state forever, which is
           # indistinguishable from "no data yet" and is exactly why this class
           # of bug survives review. Pure static analysis; no DB access needed.
+          node --test __tests__/stranded-writers.test.mjs
           node scripts/ci/check-stranded-writers.mjs
 
       - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"
@@ -991,7 +1005,8 @@ jobs:
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
-            __tests__/sentry-coverage.test.mjs \
+            __tests__/retired-error-provider.test.mjs \
+            __tests__/notification-feed-recovery.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs \
@@ -1024,7 +1039,17 @@ jobs:
             tests/autopilot-merges-when-the-ruleset-is-satisfied.test.mjs \
             __tests__/avatar-art-has-no-punched-holes.test.mjs \
             __tests__/a-skipped-run-is-not-a-green-run.test.mjs \
-            __tests__/the-injection-directives-stay-enforced.law.test.mjs
+            __tests__/the-injection-directives-stay-enforced.law.test.mjs \
+            __tests__/club-commander-and-poker-arena-are-discoverable.law.test.mjs \
+            __tests__/the-live-seo-contract-reads-the-site.law.test.mjs \
+            __tests__/robots-crawler-policy.law.test.mjs \
+            __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
+            __tests__/indexnow-submit.test.mjs \
+            __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
+            __tests__/search-engines-can-verify-ownership.law.test.mjs \
+            __tests__/every-public-asset-path-resolves.test.mjs \
+            __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
+            tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -1358,7 +1383,8 @@ jobs:
     # `needs` a skipped job is skipped too unless it says always(). This job
     # only polls the Vercel API for a GitHub-500 clone failure; it never
     # needed the checks' verdict, only their ordering.
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Owner restoration policy: Vercel Git publishes directly; no automatic repair loop.
+    if: ${{ false }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 

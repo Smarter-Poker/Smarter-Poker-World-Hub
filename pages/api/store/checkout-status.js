@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 const { inspectStripeRuntime } = require('../../../src/lib/store/stripeRuntimeMode');
 
 let _supabase = null;
@@ -232,10 +232,10 @@ export default async function handler(req, res) {
   } catch (err) {
     try {
       reportApiError(err, req);
-    } catch (sentryError) {
+    } catch (reportingError) {
       console.warn(
         '[checkout-status] Error reporting failed:',
-        sentryError?.message || sentryError
+        reportingError?.message || reportingError
       );
     }
     if (err?.type === 'StripeInvalidRequestError') {

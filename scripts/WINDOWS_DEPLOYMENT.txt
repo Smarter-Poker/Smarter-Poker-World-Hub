@@ -52,24 +52,6 @@ range files, and Pio executable before starting solver work.
 Controller-delivered release bundle
 ------------------------------------
 
-Run the builder only on a trusted POSIX controller using macOS or Linux. It is
-not supported on Windows, and M1/M2 must never execute it. Windows solver
-workers consume the controller-delivered exact five-file directory only.
-
-On that trusted controller, build the five-file directory from immutable Git
-object bytes with `scripts/preflop-deep/build_release_bundle.py`. Supply an
-exact protected-main ancestor commit, the independently observed 40-character
-protected-main commit through `--protected-main-commit`, a new absolute output
-directory, and the independently verified Pio version/binary checksum. The
-builder requires its canonical `refs/remotes/origin/main` to equal that separate
-controller attestation; refresh and verify the canonical remote before running
-it. The builder rejects dirty
-working-tree substitution, non-ancestor commits, symlinks/reparse points,
-pre-existing output, Git replacement/graft/environment substitution, corrupt object
-bytes, missing payloads, oversized files, and checksum drift. Its JSON receipt
-records the controller-attested protected-main commit and contains no HMAC or
-database credential.
-
 The worker must not fetch source from private GitHub raw URLs. It has no
 GitHub credential and no network fallback for pipeline distribution.
 

@@ -114,7 +114,7 @@ async function loadHandler({
 
   const dependencyExports = {
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
       getServerUserWithFallback: async () =>
         user ? { user, error: null } : { user: null, error: new Error('unauthorized') },

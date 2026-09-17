@@ -591,11 +591,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
        by the API. Sent only with a first page, so it is not overwritten with
        `null` by a Load More. */
   const [lifetime, setLifetime] = useState(null);
-  /* on_hand / sendable / collateral / in_arena from the same first-page read.
-     null until read, and null when the API could not read it - the Send
-     panel then falls back to the balance check and says nothing it does not
-     know (10.86). THE DIAMOND ARENA IS DIAMONDS ONLY. */
-  const [walletSummary, setWalletSummary] = useState(null);
   /* The tab the in-flight request belongs to. A ref, not the state value,
        because `fetchTransactions` must keep one identity: it is what the
        balance-event subscriptions and the pull-to-refresh are built from, and
@@ -858,7 +853,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           if (data.counts) setServerCounts(data.counts);
           // Only a first page carries it; never clear it on a Load More.
           if (data.lifetime) setLifetime(data.lifetime);
-          if (offset === 0) setWalletSummary(data.summary ?? null);
 
           if (offset === 0) {
             // Merge the fresh first page into any already-loaded pages so
@@ -973,28 +967,14 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
   }, [transactions]);
 
   // ── ENH-D: Keyboard accessibility: Escape to close ──
-  /* ESCAPE BACKS OUT ONE LAYER, NOT ALL OF THEM (2026-09-13). With the
-     Confirm Transfer dialog or a gate popup open, Escape used to close the
-     whole wallet - so a keyboard user backing out of "Send 500 Diamonds?"
-     lost the modal, the recipient and the amount together. The innermost
-     surface is what Escape dismisses; the wallet closes on the next press. */
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key !== 'Escape') return;
-      if (popupData) {
-        setPopupData(null);
-        return;
-      }
-      if (confirmTransfer) {
-        setConfirmTransfer(null);
-        return;
-      }
-      onClose();
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, popupData, confirmTransfer]);
+  }, [isOpen, onClose]);
 
   // ── ENH-F: Persist filter selection ──
   const handleFilterChange = useCallback(
@@ -1101,15 +1081,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     }
     if (amount > (balance ?? 0)) {
       setTransferError('Insufficient diamond balance');
-      return;
-    }
-    /* The server refuses purchased diamonds still inside the refund window
-       (insufficient_transferable_diamonds). Say so here, in the player's own
-       terms, before the round trip. Only when the figure was read. */
-    if (walletSummary && amount > walletSummary.sendable) {
-      setTransferError(
-        `Only ${walletSummary.sendable.toLocaleString()} Diamonds Can Be Sent Right Now. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
-      );
       return;
     }
     // #5: Show confirmation dialog first
@@ -1483,13 +1454,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
    * wallet displaying 50, that lifetime headline was built from 12% of the
    * ledger, and it moved every time the player pressed Load More.
    *
-   * `lifetime.earned` / `.spent` are summed IN SQL over the whole ledger by
-   * /api/store/diamond-transactions (`fn_diamond_lifetime_totals`, the same
-   * RPC the Club Arena wallet reads, so one ledger cannot report two
-   * lifetimes); `lifetime.exact` says the SQL sum answered. The week, month
-   * and gift breakdowns still come from the API's 5,000 most recent rows, and
-   * `lifetime.truncated` says when that window was full. `null` means none of
-   * it could be computed, and the panel says so rather than showing zeros.
+   * `lifetime` is summed over the whole ledger by
+   * /api/store/diamond-transactions, by the sign of the amount, with the same
+   * 5,000 ceiling Club Arena uses - so the two wallets cannot report
+   * different lifetimes for the same ledger. `null` means it could not be
+   * computed, and the panel says so rather than showing zeros.
    */
   const stats = useMemo(() => {
     if (!lifetime) return null;
@@ -1995,14 +1964,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                 {transferRecipient && (
                   <div>
                     <div className={styles.sendFieldLabel}>Amount</div>
-                    {walletSummary && (
-                      <div className={styles.sendHint} role="status">
-                        {`Sendable: ${walletSummary.sendable.toLocaleString()} Diamonds`}
-                        {walletSummary.collateral > 0
-                          ? `. ${walletSummary.collateral.toLocaleString()} Bought Recently Are Held Until The Refund Window Closes.`
-                          : ''}
-                      </div>
-                    )}
                     <div className={styles.sendAmountRow}>
                       <div className={`${styles.sendField} ${styles.sendFieldGrow}`}>
                         <input

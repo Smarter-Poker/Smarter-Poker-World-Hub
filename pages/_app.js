@@ -26,7 +26,6 @@ import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
-import '../src/styles/worlds/toke-tracker.css';
 import '../src/styles/tutorial.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
@@ -267,6 +266,7 @@ const HUB_ROUTES_WITHOUT_SHARED_HEADER = new Set([
   '/hub/my-tournaments',
   '/hub/poker-brain',
   '/hub/poker-near-me',
+  '/hub/poker-tools',
   '/hub/poker/table/[tableId]',
   '/hub/post/[id]',
   '/hub/profile',
@@ -703,29 +703,17 @@ function NavigationGuard({ children }) {
       setIsNavigating(true);
     };
 
-    const handleComplete = (_url, { shallow = false } = {}) => {
+    const handleComplete = () => {
       // Remove the hiding class
       document.body.classList.remove('page-transitioning');
       setIsNavigating(false);
-      // Scroll to the very top so the global header is always visible.
-      //
-      // Not on a SHALLOW change (mobile phase 6, 2026-09-13). A shallow
-      // replace is a page updating its own ?query in place, the same page,
-      // the same scroll position; Next's own router already declines to
-      // reset scroll for one (router.js: shouldScroll = options.scroll ??
-      // !isValidShallowRoute). This handler ignored that and yanked the
-      // reader to the top 100ms after every filter chip, search box and
-      // section anchor that records itself in the address bar. On /hub/news
-      // it undid the section scroll the tap had just made: the anchor row
-      // scrolled to Events, then the page went back to 0.
-      if (!shallow) {
-        window.scrollTo(0, 0);
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            window.scrollTo({ top: 0, behavior: 'instant' });
-          });
-        }, 100);
-      }
+      // Scroll to the very top so the global header is always visible
+      window.scrollTo(0, 0);
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        });
+      }, 100);
       // ═══════════════════════════════════════════════════════════════════
       // SCROLL SAFETY VALVE — Clear any stale overflow:hidden left by
       // modals, reels, or overlays that failed to restore body scroll
@@ -1036,16 +1024,23 @@ export default function App({ Component, pageProps }) {
                 <meta key="og-type" property="og:type" content="website" />
                 <meta key="og-locale" property="og:locale" content="en_US" />
                 <meta key="og-url" property="og:url" content="https://smarter.poker" />
-                <meta key="og-title" property="og:title" content="Smarter.Poker | The Future Of The Game" />
-                <meta key="og-description" property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-                <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-default.png" />
+                <meta key="og-title" property="og:title" content="Smarter.Poker: Free Poker Training, Private Clubs And Live Games" />
+                <meta key="og-description" property="og:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
+                {/* og-card.jpg is the 1200x630 hero crop of og-default.png
+                    (2026-09-17). The full poster is 1200x2151; every social
+                    card crops to about 1.91:1, so it showed a random band of
+                    the poster. The crop shows the title, the tagline and the
+                    table. og-default.png stays for the pages that still name
+                    it. */}
+                <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-card.jpg" />
                 <meta key="og-image-width" property="og:image:width" content="1200" />
-                <meta key="og-image-height" property="og:image:height" content="2151" />
+                <meta key="og-image-height" property="og:image:height" content="630" />
+                <meta key="og-image-type" property="og:image:type" content="image/jpeg" />
                 <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-site" name="twitter:site" content="@SmarterPoker" />
-                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
-                <meta key="twitter-description" name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-                <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-default.png" />
+                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker: Free Poker Training, Private Clubs And Live Games" />
+                <meta key="twitter-description" name="twitter:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
+                <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-card.jpg" />
               </>
             )}
 
@@ -1273,15 +1268,10 @@ export default function App({ Component, pageProps }) {
   );
 }
 
-// Report Web Vitals to Sentry for performance monitoring
+// Keep local development Web Vitals and route-scoped first-party analytics.
 export function reportWebVitals({ id, name, label, value }) {
   try {
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.metrics?.distribution(name, value, {
-        tags: { id, label },
-        unit: name === 'CLS' ? 'none' : 'millisecond',
-      });
-    }
+
     // Also log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);

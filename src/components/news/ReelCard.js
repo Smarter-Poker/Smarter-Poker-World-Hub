@@ -180,7 +180,7 @@ function ReelCardBody({ reel, onClick }) {
                     background: rgba(0, 0, 0, 0.75);
                     backdrop-filter: blur(4px);
                     border-radius: 6px;
-                    font-size: 12px;
+                    font-size: 10px;
                     font-weight: 600;
                     color: #fff;
                     white-space: nowrap;
@@ -205,7 +205,7 @@ function ReelCardBody({ reel, onClick }) {
                 }
 
                 .reel-meta {
-                    font-size: 12px;
+                    font-size: 10px;
                     color: rgba(255, 255, 255, 0.5);
                 }
             `}</style>

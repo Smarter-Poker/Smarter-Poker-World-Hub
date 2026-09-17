@@ -168,7 +168,7 @@
 | PostHog MCP | SUGGESTED | User needs to connect |
 | Vercel MCP | CONNECTED | Can deploy, read logs |
 | Supabase | IN CODEBASE | Via env vars, not MCP |
-| Sentry | IN CODEBASE | Error tracking active |
+| First-party error diagnostics | IN CODEBASE | Existing application and crash logs |
 | GitHub | VIA CLI | gh commands available |
 
 ---
@@ -820,7 +820,7 @@ Deep V8 Bible engine invariants (deck shuffling, fairness math, settlement math,
 
 Migration: `20260503_phase39_drop_unused_indexes.sql`. Calendar lock through 2026-05-14 was overconservative — `pg_stat_database.stats_reset = NULL` showed scan stats accumulated since DB creation 2026-01-06 (~4 months). All 43 targeted indexes had idx_scan=0 over the full 4-month window, not just the recent soak.
 
-Dropped 43 indexes, ~200MB freed. Excluded 3: `mv_active_poker_locations_geog`, `mv_active_poker_locations_activity` (materialized-view refresh might need them even if user queries don't), and `autofix_attempts_status_next_retry_idx` (recently added by sentry autofix automation, may need warm-up).
+Dropped 43 indexes, ~200MB freed. Excluded 3: `mv_active_poker_locations_geog`, `mv_active_poker_locations_activity` (materialized-view refresh might need them even if user queries don't), and `autofix_attempts_status_next_retry_idx` (recently added by former error automation, may need warm-up).
 
 ## PHASE 40 — Messenger "pivot" closed (2026-05-03)
 
@@ -911,7 +911,7 @@ Net publication: 59 → 56 (3 fewer than baseline). Estimated $60-120/mo savings
 
 **Why shelved rather than deleted:** Permanent deletion of Vercel projects is an irreversible action the agent won't take without explicit user direction, and the project is already effectively inert (`live: false`, no custom domain, only `.vercel.app` subdomains). The sibling `club-arena` project already serves the Club Arena frontend in production, so no functionality is lost.
 
-**If reviving:** fresh GITHUB_TOKEN required (the one in `.env` is currently 401). Pull `Smarter-Poker/Club-Arena-Design` locally, reproduce the vite build, diagnose the TS errors in `PlayerStatsDashboard`, `ClubDashboard`, `MessagingService`, `ReferralService`, `SocialEnhancementsService`, then push. Or redirect the backing repo's content into `club-arena` if the work is no longer distinct.
+**If explicitly assigned to revive this work:** verify current configured authenticated access; the old `.env` credential snapshot is historical, not an instruction to read or rotate credentials. Pull `Smarter-Poker/Club-Arena-Design` locally, reproduce the vite build, diagnose the TS errors in `PlayerStatsDashboard`, `ClubDashboard`, `MessagingService`, `ReferralService`, `SocialEnhancementsService`, then push. Or redirect the backing repo's content into `club-arena` if the work is no longer distinct.
 
 ---
 

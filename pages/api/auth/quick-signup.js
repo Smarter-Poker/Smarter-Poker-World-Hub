@@ -23,7 +23,7 @@
  */
 
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 // [2026-07-25] .trim() is load-bearing: the prod Vercel value of
 // NEXT_PUBLIC_SUPABASE_ANON_KEY ends with a literal "\n". Untrimmed, the

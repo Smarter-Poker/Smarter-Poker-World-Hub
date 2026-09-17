@@ -197,7 +197,7 @@ export default function SurvivalModeGame({
                     }} />
                 </div>
                 <span style={{ fontWeight: 'bold' }}>{multiplier}x</span>
-                <span style={{ fontSize: '12px', opacity: 0.6 }}>{5 - (streak % 5)} To Next</span>
+                <span style={{ fontSize: '11px', opacity: 0.6 }}>{5 - (streak % 5)} To Next</span>
             </div>
 
             {/* Question Card */}

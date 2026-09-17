@@ -4,18 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 const TOTAL = 12;
 
 const SLIDES = [
-  { id: 's1',  img: '/usrobots/slide01.jpg', overlay: 'linear-gradient(105deg,rgba(0,0,0,.82) 0%,rgba(5,13,40,.7) 40%,rgba(0,0,0,.25) 100%)',  cls: 'sc-left-center' },
-  { id: 's2',  img: '/usrobots/slide02.jpg', overlay: 'linear-gradient(to right,rgba(0,0,0,.88),rgba(0,0,0,.6) 55%,rgba(0,0,0,.3))',              cls: 'sc-left-center' },
-  { id: 's3',  img: '/usrobots/slide03.jpg', overlay: 'linear-gradient(to right,rgba(0,0,0,0) 40%,rgba(0,0,0,.9))',                                cls: 'sc-right-center' },
-  { id: 's4',  img: '/usrobots/slide04.jpg', overlay: 'linear-gradient(to top,rgba(0,0,0,.92),rgba(0,0,0,.5) 55%,rgba(0,0,0,.2))',                 cls: 'sc-bottom-center' },
-  { id: 's5',  img: '/usrobots/slide05.jpg', overlay: 'rgba(0,0,0,.58)',                                                                            cls: 'sc-center-center' },
-  { id: 's6',  img: '/usrobots/slide06.jpg', overlay: 'linear-gradient(to right,rgba(0,0,0,.88),rgba(0,0,0,.5) 55%,rgba(0,0,0,.1))',               cls: 'sc-left-center' },
-  { id: 's7',  img: '/usrobots/slide07.jpg', overlay: 'linear-gradient(to left,rgba(0,0,0,.88),rgba(0,0,0,.35) 60%,rgba(0,0,0,.05))',              cls: 'sc-right-center' },
-  { id: 's8',  img: '/usrobots/slide08.jpg', overlay: 'linear-gradient(to top,rgba(0,0,0,.9),rgba(0,0,0,.5) 55%,rgba(0,0,0,.1))',                  cls: 'sc-bottom-center' },
-  { id: 's9',  img: '/usrobots/slide09.jpg', overlay: 'rgba(0,0,0,.62)',                                                                            cls: 'sc-center-center' },
-  { id: 's10', img: '/usrobots/slide10.jpg', overlay: 'linear-gradient(135deg,rgba(0,0,0,.9),rgba(10,5,0,.65))',                                    cls: 'sc-center-center' },
-  { id: 's11', img: '/usrobots/slide11.jpg', overlay: 'rgba(0,0,0,.62)',                                                                            cls: 'sc-center-center' },
-  { id: 's12', img: '/usrobots/slide12.jpg', overlay: 'linear-gradient(to left,rgba(0,0,0,.9),rgba(0,0,0,.45) 55%,rgba(0,0,0,.1))',                cls: 'sc-right-center' },
+  { id: 's1',  img: '/usrobots/slide01.webp', overlay: 'linear-gradient(105deg,rgba(0,0,0,.82) 0%,rgba(5,13,40,.7) 40%,rgba(0,0,0,.25) 100%)',  cls: 'sc-left-center' },
+  { id: 's2',  img: '/usrobots/slide02.webp', overlay: 'linear-gradient(to right,rgba(0,0,0,.88),rgba(0,0,0,.6) 55%,rgba(0,0,0,.3))',              cls: 'sc-left-center' },
+  { id: 's3',  img: '/usrobots/slide03.webp', overlay: 'linear-gradient(to right,rgba(0,0,0,0) 40%,rgba(0,0,0,.9))',                                cls: 'sc-right-center' },
+  { id: 's4',  img: '/usrobots/slide04.webp', overlay: 'linear-gradient(to top,rgba(0,0,0,.92),rgba(0,0,0,.5) 55%,rgba(0,0,0,.2))',                 cls: 'sc-bottom-center' },
+  { id: 's5',  img: '/usrobots/slide05.webp', overlay: 'rgba(0,0,0,.58)',                                                                            cls: 'sc-center-center' },
+  { id: 's6',  img: '/usrobots/slide06.webp', overlay: 'linear-gradient(to right,rgba(0,0,0,.88),rgba(0,0,0,.5) 55%,rgba(0,0,0,.1))',               cls: 'sc-left-center' },
+  { id: 's7',  img: '/usrobots/slide07.webp', overlay: 'linear-gradient(to left,rgba(0,0,0,.88),rgba(0,0,0,.35) 60%,rgba(0,0,0,.05))',              cls: 'sc-right-center' },
+  { id: 's8',  img: '/usrobots/slide08.webp', overlay: 'linear-gradient(to top,rgba(0,0,0,.9),rgba(0,0,0,.5) 55%,rgba(0,0,0,.1))',                  cls: 'sc-bottom-center' },
+  { id: 's9',  img: '/usrobots/slide09.webp', overlay: 'rgba(0,0,0,.62)',                                                                            cls: 'sc-center-center' },
+  { id: 's10', img: '/usrobots/slide10.webp', overlay: 'linear-gradient(135deg,rgba(0,0,0,.9),rgba(10,5,0,.65))',                                    cls: 'sc-center-center' },
+  { id: 's11', img: '/usrobots/slide11.webp', overlay: 'rgba(0,0,0,.62)',                                                                            cls: 'sc-center-center' },
+  { id: 's12', img: '/usrobots/slide12.webp', overlay: 'linear-gradient(to left,rgba(0,0,0,.9),rgba(0,0,0,.45) 55%,rgba(0,0,0,.1))',                cls: 'sc-right-center' },
 ];
 
 /* ── tiny helpers ─────────────────────────────────── */

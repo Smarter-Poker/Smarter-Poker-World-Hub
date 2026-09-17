@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { useRouter } from 'next/router';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import {
@@ -248,10 +249,11 @@ export default function PlayerTournamentsHub() {
     <CommanderPageShell>
     <>
       <SEOHead
-                title="Tournaments"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+        title="Live Poker Tournaments"
+        description="Upcoming Live Poker Tournaments At Club Commander Venues: Buy Ins, Guarantees, Structures And Start Times, With Online Registration From Your Phone."
+        canonical="/hub/commander/tournaments"
+        jsonLd={commanderBreadcrumbs('Live Poker Tournaments', '/hub/commander/tournaments')}
+      />
 
       <div className="cmd-page">
         {/* Notification Banner */}

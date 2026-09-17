@@ -12,7 +12,7 @@ export default function DiamondIcon({
 }) {
     return (
         <img
-            src="/images/diamond.png"
+            src="/images/diamond.webp"
             alt="Diamond"
             width={size}
             height={size}

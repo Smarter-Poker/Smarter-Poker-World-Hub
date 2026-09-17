@@ -125,7 +125,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                     background:
                         radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--game-accent) 12%, transparent), transparent 36%),
                         linear-gradient(rgba(1,4,6,.84), rgba(1,4,6,.94)),
-                        url('/circuit-brain-bg.png') center / cover no-repeat,
+                        url('/circuit-brain-bg.webp') center / cover no-repeat,
                         #010405;
                     box-shadow: inset 0 0 26px #000, 0 10px 26px rgba(0,0,0,.65);
                 }

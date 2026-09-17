@@ -1193,8 +1193,7 @@ export default function TournamentsPage() {
 
             <style>{`
                 .tournaments-page {
-                    min-height: 100dvh;
-                    overflow-x: clip;
+                    min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
                     background-color: #000000;
                     font-family: 'Inter', -apple-system, sans-serif;
@@ -1469,18 +1468,18 @@ export default function TournamentsPage() {
                     margin: 0 0 16px;
                 }
 
-                /* MOBILE PHASE 7 (docs/mobile-standard): the bracket was a
-                   sideways rail (flex, overflow-x auto, snap points) so a
-                   four-round bracket on a phone was three rounds off screen.
-                   Rounds are a grid that wraps on desktop and stack as a
-                   round-by-round list on a phone: round heading, then its
-                   match cards, every round on the page. */
                 .bracket-rounds {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    display: flex;
                     gap: 16px;
+                    overflow-x: auto;
+                    /* Momentum scrolling + snap so 4-round brackets stay
+                       browsable on a phone instead of crushing to nothing. */
+                    -webkit-overflow-scrolling: touch;
+                    scroll-snap-type: x proximity;
                     padding-bottom: 12px;
                 }
+
+                .bracket-round { scroll-snap-align: start; }
 
                 .prize-breakdown {
                     margin-top: 20px;
@@ -1522,7 +1521,8 @@ export default function TournamentsPage() {
                 }
 
                 .bracket-round {
-                    min-width: 0;
+                    min-width: 180px;
+                    flex-shrink: 0;
                 }
 
                 .bracket-round.active {
@@ -1994,19 +1994,19 @@ export default function TournamentsPage() {
                     }
                 }
 
+                @media (max-width: 400px) {
+                    .panel-title {
+                        font-size: 1.8rem;
+                    }
+                    .panel-stat-row {
+                        font-size: 0.7rem;
+                    }
+                }
 
                 /* ===== MOBILE OPTIMIZATION ===== */
                 @media (max-width: 768px) {
                     .content {
                         padding: 60px 0 20px;
-                    }
-
-                    .bracket-rounds {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .bracket-round.active {
-                        padding: 10px;
                     }
 
                     .lobby-image-wrapper {

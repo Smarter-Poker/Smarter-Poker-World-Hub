@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
+import useMessengerConversationLink from '../../src/hooks/useMessengerConversationLink';
 import { broadcastSync } from '../../src/lib/broadcastSync';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -23,6 +24,8 @@ const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalH
 const ReportBugWidget = dynamic(() => import('../../src/components/ui/ReportBugWidget'), { ssr: false });
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import useMessengerSearch from '../../src/hooks/useMessengerSearch';
+import { resolveMessengerClubEntry } from '../../src/lib/messengerClubEntry.mjs';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -356,7 +359,6 @@ function MessengerPage() {
     const [otherTyping, setOtherTyping] = useState(false);
     // New enhanced features
     const [messageSearchQuery, setMessageSearchQuery] = useState('');
-    const [messageSearchResults, setMessageSearchResults] = useState([]);
     const [showMessageSearch, setShowMessageSearch] = useState(false);
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -510,7 +512,6 @@ function MessengerPage() {
     const searchTimeout = useRef(null);
     const searchInputRef = useRef(null);
     const typingTimeout = useRef(null);
-    const messageSearchTimeout = useRef(null);
     const activeConversationRef = useRef(null);
     const profileCacheRef = useRef(new Map()); // Cache sender profiles to avoid repeated fetches (LRU, max 50)
     const PROFILE_CACHE_MAX = 50;
@@ -734,7 +735,7 @@ function MessengerPage() {
     }, [user?.id, router.query]);
 
     const resolveConversationRef = useRef(null);
-    resolveConversationRef.current = async (conversationId, draftText = '') => {
+    resolveConversationRef.current = async (conversationId, draftText = '', controls = {}) => {
         const accountId = user?.id;
         const requestScope = workspaceRef.current;
         try {
@@ -744,26 +745,35 @@ function MessengerPage() {
                 body: JSON.stringify({ workspace: 'resolve', conversationId }),
             });
             const result = await response.json();
-            if (workspaceRef.current !== requestScope) return;
-            if (!response.ok || !result.success) throw new Error(result.error || 'Conversation Unavailable');
+            if (workspaceRef.current !== requestScope || controls.isCurrent?.() === false) return;
+            if (!response.ok || !result.success || result.conversation?.id !== conversationId
+                || !Array.isArray(result.clubs) || !Array.isArray(result.conversations)
+                || !result.conversations.some(conversation => conversation.id === conversationId)
+                || !['messages', 'invoices'].includes(result.folder)) {
+                throw new Error(result.error || 'Conversation Unavailable');
+            }
+            controls.onResolved?.();
             setClubAccess({ userId: accountId, clubs: result.clubs });
             setWorkspaceSelection({ clubId: result.clubId, folder: result.folder });
             setConversations(result.conversations);
             setPendingConversationId(result.conversation.id);
             if (draftText) setConversationDraft(draftText);
         } catch (error) {
-            if (workspaceRef.current === requestScope) setToast({ type: 'error', message: error.message });
+            if (workspaceRef.current === requestScope && controls.isCurrent?.() !== false) setToast({ type: 'error', message: error.message });
         }
     };
+    useMessengerConversationLink({
+        userId: user?.id, scope: workspaceKey, conversation: router.query.conversation, draft: router.query.draft,
+        resolve: (...args) => resolveConversationRef.current(...args),
+    });
     const lastHandledConvLink = useRef(null);
     useEffect(() => {
         if (!user?.id) return;
-        const { conversation, recipientId, draft } = router.query;
-        const key = `${user.id}:${conversation || recipientId || ''}`;
-        if ((!conversation && !recipientId) || lastHandledConvLink.current === key) return;
+        const { conversation, recipientId } = router.query;
+        const key = `${user.id}:${recipientId || ''}`;
+        if (conversation || !recipientId || lastHandledConvLink.current === key) return;
         lastHandledConvLink.current = key;
-        if (conversation) resolveConversationRef.current(conversation, typeof draft === 'string' ? draft : '');
-        else if (recipientId) {
+        if (recipientId) {
             (async () => {
                 const { data } = await supabase.from('profiles').select('id,username,full_name,avatar_url').eq('id', recipientId).maybeSingle();
                 if (data) await handleStartConversation(data);
@@ -1017,45 +1027,26 @@ function MessengerPage() {
         return () => { cancelled = true; };
     }, [user?.id]);
 
-    // ── Search across every conversation, not just by contact name ──
-    //
-    // The sidebar filter only ever matched the other person's name, so there
-    // was no way to find a message by what it said. /api/messenger/global-search
-    // does exactly that - auth'd, LIKE-escaped, rate limited, capped at 30 -
-    // and had zero callers since the day it was written. This is its caller.
-    const [messageHits, setMessageHits] = useState([]);
-    const [messageHitsLoading, setMessageHitsLoading] = useState(false);
-
-    useEffect(() => {
-        const q = (searchQuery || '').trim();
-        if (q.length < 2) { setMessageHits([]); setMessageHitsLoading(false); return; }
-        let cancelled = false;
-        setMessageHitsLoading(true);
-        const t = setTimeout(async () => {
-            try {
-                const token = getAccessToken();
-                const resp = await authedFetch('/api/messenger/global-search', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    body: JSON.stringify({ query: q, workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
-                });
-                const json = await resp.json();
-                if (!cancelled) {
-                    const visible = new Set(conversationsRef.current.map(c => c.id));
-                    setMessageHits(json?.success ? (json.results || []).filter(m => visible.has(m.conversation_id)) : []);
-                }
-            } catch (e) {
-                console.warn('[Messenger] Message search failed:', e?.message || e);
-                if (!cancelled) setMessageHits([]);
-            } finally {
-                if (!cancelled) setMessageHitsLoading(false);
-            }
-        }, 300);
-        return () => { cancelled = true; clearTimeout(t); };
-    }, [searchQuery, workspaceKey]);
+    const sidebarSearch = useMessengerSearch({
+        query: searchQuery,
+        scope: user?.id ? workspaceKey : null,
+        url: '/api/messenger/global-search',
+        payload: { workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection },
+        request: authedFetch,
+    });
+    const visibleSearchConversations = new Set(conversations.map(conversation => conversation.id));
+    const messageHits = sidebarSearch.results.filter(message => visibleSearchConversations.has(message.conversation_id));
+    const messageHitsLoading = sidebarSearch.loading;
+    const messageHitsError = sidebarSearch.error;
+    const conversationSearch = useMessengerSearch({
+        query: messageSearchQuery,
+        scope: user?.id && showMessageSearch && activeConversation?.id
+            ? `${workspaceKey}:${activeConversation.id}` : null,
+        url: '/api/messenger/search-messages',
+        payload: { conversationId: activeConversation?.id },
+        request: authedFetch,
+    });
+    const messageSearchResults = conversationSearch.results.filter(message => message.conversation_id === activeConversation?.id);
 
     const handleToggleBlock = useCallback(async (targetUserId, shouldBlock) => {
         if (!targetUserId || !user?.id) return;
@@ -1768,6 +1759,8 @@ function MessengerPage() {
     const handleSelectConversation = async (conversation) => {
         activeConversationRef.current = conversation;
         setActiveConversation(conversation);
+        setMessageSearchQuery('');
+        setShowMessageSearch(false);
         setComposeFocus(false); // Reset auto-focus so switching chats doesn't pop the mobile keyboard
         setShowScrollDown(false); // Phase 3 BUGFIX: Reset FAB when switching conversations
         if (isMobile) setShowSidebar(false);
@@ -2699,34 +2692,6 @@ function MessengerPage() {
         }
     };
 
-    // Handle message search within a conversation
-    const handleMessageSearch = useCallback((query) => {
-        if (messageSearchTimeout.current) clearTimeout(messageSearchTimeout.current);
-
-        if (!query || query.length < 2 || !activeConversation) {
-            setMessageSearchResults([]);
-            return;
-        }
-
-        messageSearchTimeout.current = setTimeout(async () => {
-            try {
-                const resp = await authedFetch('/api/messenger/search-messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        conversationId: activeConversation.id,
-                        query,
-                    }),
-                });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const data = await resp.json();
-                setMessageSearchResults(data.results || []);
-            } catch (e) {
-                console.warn('Message search error:', e);
-            }
-        }, 300);
-    }, [activeConversation]);
-
     // ════════════════════════════════════════════════════════████████████████
     // 🟢🔴 REAL-TIME PRESENCE: WebSocket-based online/offline tracking
     // Uses Supabase Realtime Presence channel for instant green/red dot updates
@@ -3017,9 +2982,9 @@ function MessengerPage() {
         setShowPushPrompt(false);
     }, [persistPushPromptHandled]);
 
-    const enterClubWorkspace = (club) => {
+    const enterClubWorkspace = (club, folder = 'messages') => {
         if (!club || !joinedClubs.some(c => c.id === club.id)) return;
-        setWorkspaceSelection({ clubId: club.id, folder: 'messages' });
+        setWorkspaceSelection({ clubId: club.id, folder: folder === 'invoices' ? 'invoices' : 'messages' });
         const page = club.canManage && ownedPages.find(p => p.id === club.pageId);
         if (page) switchToClub(page);
         else switchToPersonal();
@@ -3031,13 +2996,13 @@ function MessengerPage() {
     // A URL selects only among clubs the server has confirmed this user joined.
     const handledClubEntry = useRef(null);
     useEffect(() => {
-        const requested = router.query.clubId || router.query.forceIdentity;
-        if (!requested || handledClubEntry.current === requested || router.query.conversation) return;
-        const club = joinedClubs.find(c => c.id === requested || c.pageId === requested);
-        if (!club) return;
-        handledClubEntry.current = requested;
-        enterClubWorkspace(club);
-    }, [joinedClubs, router.query.clubId, router.query.forceIdentity, router.query.conversation]);
+        const entry = resolveMessengerClubEntry(joinedClubs, router.query);
+        if (!entry) return;
+        const key = `${user?.id}:${entry.club.id}:${entry.folder}`;
+        if (handledClubEntry.current === key) return;
+        handledClubEntry.current = key;
+        enterClubWorkspace(entry.club, entry.folder);
+    }, [user?.id, joinedClubs, router.query.clubId, router.query.forceIdentity, router.query.folder, router.query.conversation]);
 
     /*
      * ITEM 13 (2026-09-08): next.config.js redirects /hub/live-help to
@@ -4153,7 +4118,7 @@ function MessengerPage() {
                                             color: C.textSec,
                                         }}>
                                             Messages
-                                            {messageHitsLoading ? '' : ` (${messageHits.length})`}
+                                            {messageHitsLoading || messageHitsError ? '' : ` (${messageHits.length})`}
                                         </div>
 
                                         {messageHitsLoading && (
@@ -4162,7 +4127,8 @@ function MessengerPage() {
                                             </div>
                                         )}
 
-                                        {!messageHitsLoading && messageHits.length === 0 && (
+                                        {messageHitsError && <div role="status" style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>{messageHitsError}</div>}
+                                        {!messageHitsLoading && !messageHitsError && messageHits.length === 0 && (
                                             <div style={{ padding: '6px 16px', fontSize: 13, color: C.textSec }}>
                                                 No Messages Match That.
                                             </div>
@@ -4275,7 +4241,7 @@ function MessengerPage() {
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 {/* Jarvis Avatar */}
-                                <Image src="/images/jarvis-avatar.png" alt="Jarvis AI" width={48} height={48} style={{
+                                <Image src="/images/jarvis-avatar.webp" alt="Jarvis AI" width={48} height={48} style={{
                                     width: 48,
                                     height: 48,
                                     borderRadius: '50%',
@@ -4391,7 +4357,7 @@ function MessengerPage() {
                                         : <Link href={`/hub/user/${otherUser.username}`}><Avatar src={otherUser.avatar_url} name={activeTitle} size={40} online={otherUserStatus === 'online'} /></Link>}
 
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
+                                        <div style={{ color: C.text, fontWeight: 600, fontSize: 15 }}>{activeTitle}</div>
                                         <div style={{ fontSize: 12, color: otherUserStatus === 'online' ? C.green : C.textSec }}>
                                             {activeConversation.isAccounting ? 'Invoices And Accounting Discussions' : otherUserStatus === 'online' ? 'Active Now' : otherUserLastSeen ? `Active ${(() => {
                                                 const diff = Date.now() - new Date(otherUserLastSeen).getTime();
@@ -4471,13 +4437,13 @@ function MessengerPage() {
                                                     value={messageSearchQuery}
                                                     onChange={e => {
                                                         setMessageSearchQuery(e.target.value);
-                                                        handleMessageSearch(e.target.value);
                                                     }}
                                                     placeholder="Search In This Conversation..."
                                                     style={{
                                                         flex: 1,
                                                         border: 'none',
                                                         background: 'transparent',
+                                                        color: C.text,
                                                         padding: '8px 0',
                                                         fontSize: 14,
                                                         outline: 'none',
@@ -4485,7 +4451,7 @@ function MessengerPage() {
                                                 />
                                                 {messageSearchQuery && (
                                                     <button
-                                                        onClick={() => { setMessageSearchQuery(''); setMessageSearchResults([]); }}
+                                                        onClick={() => { setMessageSearchQuery(''); }}
                                                         style={{
                                                             background: 'none', border: 'none', cursor: 'pointer',
                                                             color: C.textSec, fontSize: 14,
@@ -4494,6 +4460,11 @@ function MessengerPage() {
                                                 )}
                                             </div>
 
+                                            {messageSearchQuery.trim().length >= 2 && (
+                                                <div role="status" style={{ padding: '6px 0', fontSize: 13, color: C.textSec }}>
+                                                    {conversationSearch.loading ? 'Searching...' : conversationSearch.error || (messageSearchResults.length === 0 ? 'No Messages Match That.' : '')}
+                                                </div>
+                                            )}
                                             {/* Search Results Dropdown */}
                                             {messageSearchResults.length > 0 && (
                                                 <div style={{
@@ -4523,7 +4494,6 @@ function MessengerPage() {
                                                                 el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                                 setShowMessageSearch(false);
                                                                 setMessageSearchQuery('');
-                                                                setMessageSearchResults([]);
                                                             }}
                                                             style={{
                                                                 padding: '10px 12px',

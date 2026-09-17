@@ -1,7 +1,6 @@
 {
   "version": 4,
-  "execution_scope": "training_backlog",
-  "pipeline_bundle_checksum": "dca3028ac60fd8dce4de930afbc5880657ae38cb167a6bda2a9e49155a780faf",
+  "pipeline_bundle_checksum": "ac8fe43980a68f20341fd6d80179a752a896c5987dac7e1d864789353b2da05c",
   "range_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "artifact_combo_order": "card=rank*4+suit; combo=b*(b-1)/2+a; 2c2d=0..AhAs=1325",
   "source_combo_order_schema": "piosolver.show_hand_order.v1",
@@ -270,6 +269,6 @@
     "run_machine.py": "650ffd00161e0013d6942720fa7c3c0318734b1b8707c02ead35cad46a26d2c2",
     "tree_gen.py": "f38072c0888bff9204345c582e61fc35bda899ec5ca769c413d2a49e020753d4",
     "pio_harvest.py": "371da761a2a529b2fb6508750aeff2f84d7950b02176806a07bfa382d60598a7",
-    "orchestrate.py": "53629334a68e2060c9ed761f156b0d1d3f3cecc0833d6ff3c98ee300cf6368f3"
+    "orchestrate.py": "6a4e12d34cddb6298893738a1f0718b40371265842a9f5bc3a9039384a20a3bd"
   }
 }

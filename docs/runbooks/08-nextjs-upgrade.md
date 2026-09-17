@@ -47,15 +47,6 @@ node -p "require('./package.json').dependencies.next"
 # These MUST all be the same major version
 ```
 
-### 3. Check Sentry Compatibility
-
-```bash
-# Verify @sentry/nextjs peer dep includes the new Next.js version
-node -p "require('./node_modules/@sentry/nextjs/package.json').peerDependencies"
-```
-
-If `next` isn't in the Sentry peer dep range, wait for a Sentry release before upgrading.
-
 ### 4. Check ESLint Peer Deps
 
 ```bash
@@ -91,7 +82,7 @@ Every result must either:
 | `package.json` → `dev/clean:dev/nuke:dev` | `next dev --webpack` |
 | `package-lock.json` root dep | Must match after `npm install` |
 | `vercel.json` → `buildCommand` | `next build --webpack` |
-| `scripts/git-safe-push.sh` (both) | `next build --webpack` |
+| Retired shared-clone push script (historical only) | `next build --webpack` |
 | `scripts/dev-watchdog.sh` | `next dev --webpack` |
 | `.github/workflows/e2e-tests.yml` | `npx next build --webpack` |
 
@@ -154,7 +145,6 @@ npm run lint 2>&1 | head -20
 
 Other packages where pinning is recommended:
 - `react` / `react-dom` — major version changes break lifecycle APIs
-- `@sentry/nextjs` — Sentry releases can change source map behavior
 
 ---
 
@@ -170,7 +160,7 @@ bash scripts/setup-npm-auth.sh ghp_yourTokenHere
 npm install && echo "✅ Auth OK"
 ```
 
-Without this, `npm install` fails with a 401, and the local build gate in `git-safe-push.sh` cannot run.
+Without this, `npm install` fails with a 401, and the required build cannot run; use the owned-worktree route in `PUBLISHING.md`.
 
 ---
 

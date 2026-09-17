@@ -20,20 +20,12 @@ test('mobile cards stay stacked with artwork before descriptions at a denser 4:3
 
     assert.ok(cardMarkup.indexOf('mode-image-card__art') < cardMarkup.indexOf('mode-image-card__body'));
     assert.match(LOBBY, /\.mode-image-card__art \{[\s\S]*?aspect-ratio: 4 \/ 3;/);
-    // PIN MOVED (mobile phase 7, 2026-09-14): the phone block is at 768px.
-    assert.match(LOBBY, /@media \(max-width: 768px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
-    assert.match(LOBBY, /@media \(max-width: 768px\)[\s\S]*?\.mode-image-card__art \{[\s\S]*?aspect-ratio: 4 \/ 3;/);
+    assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
+    assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card__art \{[\s\S]*?aspect-ratio: 4 \/ 3;/);
 });
 
-test('mobile browsing keeps every filter on screen and removes touch-only hover drift', () => {
-    // PIN MOVED (mobile phase 7, 2026-09-14). This used to pin the filter
-    // RAIL: a sticky strip under the header that scrolled sideways (715px of
-    // chips in 357px at 375). The always-displayed standard forbids the rail;
-    // the filters are a wrapping grid, two columns on a phone, and a block two
-    // rows tall is not pinned under the header.
-    assert.match(LOBBY, /\.mode-filters \{[\s\S]*?display: grid;/);
-    assert.match(LOBBY, /@media \(max-width: 768px\)[\s\S]*?\.mode-filters \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-    assert.doesNotMatch(LOBBY, /\.mode-filters \{[^}]*position: sticky/);
+test('mobile browsing retains the filter rail and removes touch-only hover drift', () => {
+    assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-filters \{[\s\S]*?position: sticky;[\s\S]*?env\(safe-area-inset-top/);
     assert.match(HUB_CSS, /overflow-x: clip;/);
     assert.doesNotMatch(HUB_CSS, /overflow-x: hidden;/);
     assert.match(LOBBY, /touch-action: manipulation/);

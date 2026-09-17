@@ -42,7 +42,6 @@ not runnable inputs):
 
 ```json
 {
-  "execution_scope": "bounded_canary",
   "release_gate": { "solver_ready": false, "bounded_canary_ready": true },
   "bounded_canary_contracts_schema": "training-solver-bounded-canary-contracts.v1",
   "bounded_canary_contracts_sha256": "<sha256-of-canonical-contract-array>",
@@ -60,18 +59,6 @@ not runnable inputs):
   }]
 }
 ```
-
-`execution_scope` is sealed by the manifest checksum. A bounded release must
-use `bounded_canary` and contain only the phases referenced by the exact M1 and
-M2 canary contracts. A backlog release must use `training_backlog` and still
-cover all 18 approved chip-EV family/stack contracts. Flipping
-`solver_ready` on a partial canary manifest can therefore never authorize
-backlog work.
-
-The signed worker wire contract is `smarter-poker.solver-worker.v2`. Version 2
-requires the manifest-derived `admission_mode` in every signed envelope; the
-gateway rejects v1 instead of guessing whether an old worker intended backlog
-or bounded-canary authority.
 
 PioSOLVER's postflop objective is chip EV. A family name containing `icm` does
 not make the output ICM-aware, so the worker rejects ICM-labelled phases until

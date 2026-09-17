@@ -1,9 +1,0 @@
-# A refreshed series browser must become the current session
-
-Daily Poker Series Auto-Pilot run 34797229749 failed on source 0599ca23d28. At 02:03:40 UTC, drift detection closed the old browser and opened a replacement. The next fetch immediately logged `Context manager has been closed`; retries then raised `cannot start sync Playwright inside a running event loop`. The circuit breaker terminated the pass at series 19/186 with zero events written.
-
-`fetch_with_retry` deliberately follows `CURRENT_SESSION` when a previous source replaced a failed browser. The drift and six-hour refresh branches did not update that reference, so their next fetch selected the closed predecessor. Its retry tried to create a second synchronous Playwright driver while the replacement remained active. Publishing the successfully started session inside `create_session` establishes the same handoff for every caller, including future refresh paths. A failed start does not publish a replacement.
-
-48 offline contracts pass, including two new lifecycle regressions. A separate native Python 3.13.13 probe used actual Scrapling/Playwright and a local HTTP server: the exact published predecessor factory reproduced the running-event-loop failure; the corrected factory fetched both drift and six-hour pages with HTTP 200, the expected bodies and the current replacement. All owned browser sessions and the fixture server were closed; no production source or database was queried by the native probe. The required Build Safety Gate now runs the series contract suite.
-
-This repairs the session handoff. It does not certify the 186-series cohort, its source identities, previously rejected writes or unrelated unresolved-source failures. A source-matched production run must still establish whether the particular crash is gone, with any other failures preserved.

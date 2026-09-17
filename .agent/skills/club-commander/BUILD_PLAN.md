@@ -1230,7 +1230,7 @@ Week 21-22: Performance & Security
 ├── [ ] Load testing
 ├── [ ] Security audit
 ├── [ ] Rate limiting
-├── [ ] Error monitoring (Sentry)
+├── [ ] Error diagnostics (existing first-party logs)
 ├── [ ] Performance optimization
 └── [ ] Backup/recovery testing
 

@@ -122,7 +122,7 @@ export default function SessionHandReview({ userId }) {
             {/* Header */}
             <div style={styles.header}>
                 <div style={styles.headerTitle}>
-                    <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%' }} />
+                    <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%' }} />
                     <span>AI HAND REVIEW</span>
                 </div>
                 <a
@@ -152,7 +152,7 @@ export default function SessionHandReview({ userId }) {
                 {filteredHands.length === 0 ? (
                     <div style={styles.emptyState}>
                         <div style={styles.emptyIconContainer}>
-                            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+                            <img src="/images/jarvis-avatar.webp" alt="Jarvis" style={{ width: 36, height: 36, borderRadius: '50%' }} />
                         </div>
                         <p style={styles.emptyTitle}>NO ANALYZED HANDS</p>
                         <p style={styles.emptyHintText}>Complete Hand Analysis In Training Hub To See Hands Here</p>
