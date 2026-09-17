@@ -79,6 +79,32 @@ test('the training heading never ends in a loading message', () => {
   assert.match(src, /GTO Poker Training: Build Better Decisions, One Hand At A Time\./);
 });
 
+test('every public page title fits a search result once SEOHead has added the site name', () => {
+  // The raw string in the source is not what ships: SEOHead appends
+  // " | Smarter.Poker" unless the title already names the site. Two titles
+  // shipped at 80 and 86 characters while each measured under 70 on its own
+  // (2026-09-17). These are the public product pages a search result names.
+  const PUBLIC_PAGES = [
+    'pages/index.js',
+    'pages/hub/training.js',
+    'pages/hub/commander/index.js',
+    'pages/hub/home-games.js',
+    'pages/hub/bankroll-manager.js',
+  ];
+  for (const file of PUBLIC_PAGES) {
+    const title = read(file).match(/<SEOHead[\s\S]{0,400}?title="([^"]+)"/)?.[1];
+    assert.ok(title, `${file} passes a title to SEOHead`);
+    const shipped = renderedTitle(title);
+    assert.ok(shipped.length <= 70, `${file} ships ${shipped.length} characters: ${shipped}`);
+    assert.doesNotMatch(shipped, /\u2014/, `${file}: no em dash`);
+    assert.equal(
+      (shipped.match(/Smarter\.Poker/g) || []).length,
+      1,
+      `${file} names the site once: ${shipped}`,
+    );
+  }
+});
+
 test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB', () => {
   const file = path.join(ROOT, 'public/images/og-default.png');
   const buf = fs.readFileSync(file);

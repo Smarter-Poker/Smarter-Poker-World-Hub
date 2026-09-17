@@ -83492,7 +83492,8 @@
       "realtime": [],
       "tests": [
         "__tests__/no-slide-to-see.law.test.mjs",
-        "__tests__/page-tutorials.test.mjs"
+        "__tests__/page-tutorials.test.mjs",
+        "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
       ]
     },
     {
