@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 135,
+    "tests": 136,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 357,
     "routeStateCells": 752,
@@ -61079,6 +61079,7 @@
     "__tests__/robots-crawler-policy.law.test.mjs",
     "__tests__/scroll-lock.test.mjs",
     "__tests__/the-app-reopens-where-you-left-it.test.mjs",
+    "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
     "__tests__/training-acl-closeout-authority.test.mjs",
     "__tests__/training-advisor-followup-migration.test.mjs",
     "__tests__/training-analysis-suite-phase-8.test.mjs",
@@ -78645,7 +78646,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
+      ]
     },
     {
       "file": "src/components/store/DiamondInPlayBalance.jsx",
@@ -83364,6 +83367,7 @@
       "tests": [
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-mobile-upgrades.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -83420,6 +83424,7 @@
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/no-slide-to-see.law.test.mjs",
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-hub-outage-honesty.test.mjs",

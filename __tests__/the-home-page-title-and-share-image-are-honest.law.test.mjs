@@ -45,6 +45,15 @@ test('the home page title names the site once and says what the product is', () 
   assert.match(description, /No Real-Money Gambling/, 'says what it is not');
 });
 
+test('the training page title says what it is instead of "Training - Smarter.Poker"', () => {
+  const src = read('pages/hub/training.js');
+  const title = src.match(/<SEOHead\s+title="([^"]+)"/)?.[1];
+  assert.ok(title, 'pages/hub/training.js passes a title to SEOHead');
+  assert.match(title, /GTO Poker Training/);
+  assert.doesNotMatch(title, /Smarter\.Poker/, 'SEOHead adds the site name once');
+  assert.ok(title.length <= 70, `fits a result heading: ${title.length} characters`);
+});
+
 test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB', () => {
   const file = path.join(ROOT, 'public/images/og-default.png');
   const buf = fs.readFileSync(file);
