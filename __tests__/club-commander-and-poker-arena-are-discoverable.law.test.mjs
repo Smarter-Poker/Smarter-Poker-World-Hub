@@ -65,7 +65,7 @@ test('the FAQ ships a FAQPage schema built from the rendered questions', () => {
   assert.match(src, /'@type': 'FAQPage'/);
   assert.match(src, /FAQ_CATEGORIES\.flatMap/);
   assert.ok(src.indexOf('const FAQ_CATEGORIES = [') < src.indexOf('const FAQ_JSON_LD'), 'FAQ_JSON_LD must be declared after FAQ_CATEGORIES');
-  assert.match(src, /jsonLd=\{FAQ_JSON_LD\}/);
+  assert.match(src, /jsonLd=\{\[FAQ_JSON_LD, commanderBreadcrumbs\(/);
 });
 
 test('the Club Commander hub carries SoftwareApplication schema', () => {
@@ -106,3 +106,16 @@ test('robots.txt keeps /hub/commander crawlable and llms.txt names both products
     assert.ok(llms.includes(url), `llms.txt lacks ${url}`);
   }
 });
+
+test('every public Club Commander sub-page carries a BreadcrumbList that hangs off /hub/commander', () => {
+  const helper = read('src/lib/seo/commanderBreadcrumbs.js');
+  assert.match(helper, /'@type': 'BreadcrumbList'/);
+  assert.match(helper, /item: `\$\{SITE_URL\}\/hub\/commander`/);
+  for (const [file, canonical] of Object.entries(PUBLIC_COMMANDER_PAGES)) {
+    if (canonical === '/hub/commander') continue;
+    const src = read(file);
+    assert.match(src, /import \{ commanderBreadcrumbs \} from '[./]+\/src\/lib\/seo\/commanderBreadcrumbs'/, `${file} imports the helper`);
+    assert.ok(src.includes(`commanderBreadcrumbs('`) && src.includes(`', '${canonical}')`), `${file} passes its own canonical path`);
+  }
+});
+
