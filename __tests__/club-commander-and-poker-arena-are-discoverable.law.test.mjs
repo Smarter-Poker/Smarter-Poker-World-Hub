@@ -151,3 +151,15 @@ test('the responsible gaming page renders its head before its loading return', (
   assert.ok(src.indexOf('{head}', loading) > -1, 'the loading branch must render the head');
 });
 
+test('the arena sitemap is not served with the origin noindex header', () => {
+  // ca-static.smarter.poker sends X-Robots-Tag: noindex, nofollow on every
+  // response so the bare origin host is never indexed. vercel.json overrides
+  // it for extension-less arena paths (the pages); the sitemap has an
+  // extension and needs its own rule, or the leaked header rides along.
+  const cfg = JSON.parse(read('vercel.json'));
+  const rule = cfg.headers.find((h) => h.source === '/hub/club-arena/sitemap.xml');
+  assert.ok(rule, 'vercel.json has no header rule for the arena sitemap');
+  const xr = rule.headers.find((h) => h.key === 'X-Robots-Tag');
+  assert.ok(xr && !/noindex/.test(xr.value), 'the arena sitemap must not be noindex');
+});
+
