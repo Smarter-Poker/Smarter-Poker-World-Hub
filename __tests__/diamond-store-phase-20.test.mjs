@@ -19,6 +19,24 @@ test('client-only storefront header reserves the approved artwork footprint befo
   assert.match(shell, /position:\s*sticky/);
 });
 
+test('Club Shop account markup stays server-identical until browser hydration completes', async () => {
+  const store = await read('pages/hub/diamond-store.js');
+  assert.match(store, /const \[storeClientReady, setStoreClientReady\] = useState\(false\)/);
+  assert.match(store, /useEffect\(\(\) => \{\s*setStoreClientReady\(true\);\s*\}, \[\]\)/);
+  assert.match(
+    store,
+    /const committedStoreAccountId = storeClientReady\s*\? contextUser\?\.id \|\| \(authInitializing \? user\?\.id \|\| getAuthUser\(\)\?\.id \|\| null : null\)\s*: null/
+  );
+  assert.match(store, /const clubShopAuthPending = !storeClientReady \|\| authInitializing/);
+  const pendingIndex = store.indexOf('{clubShopAuthPending ? (');
+  const signedOutIndex = store.indexOf(': !committedStoreAccountId ? (');
+  assert.ok(pendingIndex >= 0, 'the hydration-stable loading branch must remain rendered');
+  assert.ok(
+    signedOutIndex > pendingIndex,
+    'the hydration-stable loading branch must run before signed-in versus signed-out markup'
+  );
+});
+
 test('Club Shop administration uses one guarded accessible delete dialog', async () => {
   const store = await read('pages/hub/diamond-store.js');
   assert.doesNotMatch(store, /\b(?:window\.)?confirm\s*\(/);
