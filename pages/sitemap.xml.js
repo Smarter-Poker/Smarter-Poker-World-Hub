@@ -423,13 +423,27 @@ ${urls
   .map(
     (url) => `  <url>
     <loc>${SITE_URL}${url.path}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${url.changefreq}</changefreq>
+${sitemapLastmodLine(url.lastmod)}    <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
   </url>`
   )
   .join('\n')}
 </urlset>`;
+}
+
+// LASTMOD IS EVIDENCE, NOT A TIMESTAMP OF GENERATION (AEO phase 1, 2026-09-17).
+// Every entry used to carry today's date, so the file said that 1,000 pages
+// changed every day. Bing's sitemap guidance for AI search says a lastmod set
+// to generation time is ignored and the sitemap discounted; AI engines weight
+// freshness, so a fake date is worse than none. An entry now carries lastmod
+// only when its source has real change evidence (venue verification and scrape
+// times through buildPokerVenueSitemapUrls); otherwise the element is omitted,
+// which the sitemap protocol permits.
+function sitemapLastmodLine(lastmod) {
+  if (!lastmod) return '';
+  const time = new Date(lastmod).getTime();
+  if (!Number.isFinite(time) || time <= 0) return '';
+  return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
 }
 
 export async function getServerSideProps({ res }) {

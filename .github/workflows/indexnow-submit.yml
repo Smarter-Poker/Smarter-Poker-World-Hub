@@ -1,0 +1,56 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  IndexNow Submit - after a merge to main, tell Bing which public pages changed
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# AEO PHASE 1 (2026-09-17). See scripts/indexnow-submit.mjs for what is
+# submitted and why. This job is a notification, not a release stage: it runs
+# after the protected merge, never gates a build or a publication, does not
+# poll or retry, and a failure is a log line (continue-on-error). The Vercel
+# production build the merge triggered may still be running when the ping
+# lands; Bing fetches on its own schedule, so that is fine.
+#
+# No secrets: the IndexNow key is public by design (served at
+# https://smarter.poker/<key>.txt).
+name: IndexNow Submit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pages/**'
+      - 'src/components/landing/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indexnow-submit
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    name: Submit changed public URLs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The push event carries the pre-merge SHA; two commits of history are
+          # not enough for a squash of many files, so fetch the full range.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Submit URLs whose source changed in this push
+        env:
+          RANGE: ${{ github.event.before }}..${{ github.sha }}
+        run: |
+          if git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
+            node scripts/indexnow-submit.mjs --range "$RANGE"
+          else
+            echo "indexnow: base commit unavailable (force push or first push); submitting the head commit only"
+            node scripts/indexnow-submit.mjs --range "${{ github.sha }}~1..${{ github.sha }}"
+          fi
