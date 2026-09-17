@@ -1,5 +1,7 @@
 # Publishing through the restored providers
 
+**Non-engine delivery: push, publish, verify and finish without waiting for `:55`.** Apply the maintenance cutover only to an actual engine replacement or a specifically identified dependency on new engine behavior. A Club Arena client using existing engine APIs, an unrelated pending engine release, and a generic engine-health check do not create that dependency. Required checks and normal client publication/live proof still apply.
+
 Read [AGENTS.md](AGENTS.md) and [the operating law](docs/agent-policy/OPERATING-LAW.md), including immediate failed-deployment recovery.
 
 Current owner instruction, September 17, 2026. This is the active publication procedure for local and cloud agents. It supersedes older root-only authority, numbered delivery queues, stop-after-push directions, retired local-build procedures and reliance on disabled agent autopilot.
@@ -59,3 +61,7 @@ On the owner's Mac, also read /Users/smarter.poker/Documents/AGENTS.md and /User
 ## Failed or interrupted deployment
 
 Follow the operating law's failure classification immediately. Repair build/test/preflight failures without waiting for a maintenance hour; reattach to an unknown owning operation; verify or recover missing proof without restarting a healthy deployed version. A cutover needs the existing durable maintenance certificate and full proof/rollback budget. Record failure, fix-ready, retry submission, admission and verification times separately. The additional certified engine recovery opportunity is a required implementation improvement, not a capability supplied by these Markdown changes. Do not extend a freeze or reduce safety reserves to force a retry.
+
+## Publication timing
+
+Push ready changes, run checks, complete protected merge, build and stage as soon as their prerequisites pass, throughout the hour. Do not hold these stages until `:55`. World Hub and Club Arena client publication have no hourly gate. Only game-engine activation uses its certified maintenance window; the immutable image must be prepared beforehand, followed by immediate live identity, behavior and rollback-budget verification at cutover. Commander and shared-package delivery retain their own component rules above. See the operating law for failed-attempt recovery.

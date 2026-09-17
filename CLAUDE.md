@@ -1,3 +1,5 @@
+**Non-engine delivery: push, publish, verify and finish without waiting for `:55`.** Apply the maintenance cutover only to an actual engine replacement or a specifically identified dependency on new engine behavior. A Club Arena client using existing engine APIs, an unrelated pending engine release, and a generic engine-health check do not create that dependency. Required checks and normal client publication/live proof still apply.
+
 > **Current owner instruction (September 17):** Use [PUBLISHING.md](PUBLISHING.md) for the active push, protected merge, publication and live-verification procedure. Each authorized agent owns its delivery independently and may work and publish in parallel. There is no restoration-owner approval or numbered release queue. This later owner instruction supersedes conflicting historical release directions below. Retired local/custom publishers, autopilot, watchdog/repair release paths and external error telemetry remain inactive. Preserve required technical checks, production safeguards and other agents’ work.
 
 # Smarter-Poker-World-Hub -- Agent Instructions
@@ -205,7 +207,7 @@ Workflow: State approach in 3 lines. Execute. Follow [PUBLISHING.md](PUBLISHING.
 
 ### Tier 3: Architecture (30+ min)
 Database migrations, new API routes, cross-component refactors, auth/payment changes.
-Workflow: Write implementation plan. Get user approval. Execute. Verify. Deploy.
+Workflow: Record a scoped implementation plan. Execute work already authorized; ask only for a material decision outside that authority. Verify and follow PUBLISHING.md through delivery.
 
 For Tier 1-2: Do NOT read Knowledge Items, skills, or workflows.
 For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` first.
@@ -221,8 +223,8 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 
 ### Tier 2 (Logic Changes)
 1. Follow [PUBLISHING.md](PUBLISHING.md)
-2. If confident: done
-3. If unsure: browser-test with test account, then report
+2. Run the relevant checks and verify the affected behavior with evidence.
+3. Use configured authorized test access when browser verification is required, then report the actual result.
 
 ### Tier 3 (Architecture)
 1. Run `npm run build` locally first
@@ -232,8 +234,7 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 5. Verify deployment via Vercel MCP or dashboard
 
 ### Test Account
-Email: `daniel@bekavactrading.com` / Password: `<configured authorized test-account access; never print credential values>`
-All features unlocked. Works on localhost and production.
+Use the configured authorized service/test identity through its owning client. Never assume Dan's personal account is a test account, read environment-file values, print credentials or change configured secrets. Establish actual access before a required signed-in check.
 
 ---
 
@@ -354,7 +355,7 @@ User logs into smarter.poker, all sub-apps share the session.
 7. Mobile-first. 375px width first, then scale up.
 8. Never stop to ask for permission to do obvious work.
 9. When corrected, change course immediately. Do not defend the rejected path.
-10. Write it down. Read `.memory/` at session start, update at session end.
+10. Retain the current task checkpoint and evidence. Read relevant prior context; update persistent memory only when explicitly authorized.
 11. No exceptions. Every rule, every task, every session.
 12. Never ask "should I?" -- just do it. Only stop for genuine forks.
 13. **Preserve work in an owned checkout.** Commit explicit paths with normal hooks and follow `PUBLISHING.md`. Do not rely on or restart any reset loop or shared-clone push service.
@@ -471,15 +472,9 @@ Fixed and backfilled in `20260827_horses_are_players_law.sql`, along with two
 others found in the same sweep: horses were exempt from nit eviction, and a
 lone horse was denied a dealing engine that a lone human would have received.
 
-### The one open item Dan must decide
+### Decided retention exception
 
-`sp_prune_hand_history` keeps human hands forever and prunes horse-only hands
-after `hand_history_retention_policy.horse_retention_days` (currently 7). That
-is a STORAGE policy, not player treatment: `hand_history` is already 3.6 GB
-over 1.57M hands, 99.95% horse-only, growing ~221k hands/day (~0.5 GB/day if
-never pruned). It was left in place and raised with Dan rather than changed
-silently, because the honest answer is that equal retention has a real
-infrastructure cost. **The knob is a config row — Dan sets it, not an agent.**
+The owner retained seven-day horse-only hand history and indefinite human-hand history, as recorded in Club Arena CLAUDE.md section 10.5. This is an approved storage exception, not an unresolved permission request or unequal gameplay treatment. Preserve the configured retention policy; a new change remains the owner's decision.
 
 ---
 
@@ -579,8 +574,9 @@ called a global `signOut()`; every Club Arena table he opened said
 Every code path was correct. The change left no commit, no log line and no
 notification.
 
-An agent may READ a credential from the place AGENT-PLAYBOOK.md names, and may
-say which place a value belongs in. An agent may NOT write, rotate, paste or
+An agent may use an already configured credential through its owning client
+and inspect authorized location metadata. Never read environment-file values,
+scrape credentials from another repository or print secret contents. An agent may NOT write, rotate, paste or
 "correct" a credential in Vercel, Supabase, GitHub Actions, a `.env` on a
 server, or anywhere else - **not even to fix an outage it can see.** Those edits
 are Dan's, and they are the one class of change where being wrong is invisible
@@ -595,7 +591,7 @@ value when the variable is set; `[ -n "$VAR" ] && echo set` does not. A secret
 echoed into a transcript is a secret that must now be rotated, and the rotation
 is Dan's.
 
-**Nothing watched for this until now.** `scripts/ci/check-vercel-env-drift.mjs`
+**Historical detector description; not current release authority.** `scripts/ci/check-vercel-env-drift.mjs`
 records the SHAPE of the environment - key, target, type, `updatedAt`, never a
 value, never `?decrypt=true` - against `scripts/ci/vercel-env-baseline.json`,
 and `publish-watchdog.yml` raises an issue naming any variable whose timestamp
@@ -674,8 +670,7 @@ but NO new entries are permitted. The 16 overflow jobs are already on Hetzner.
 1. Add the handler under `pages/api/cron/<name>.js` following the existing
    pattern (check `Authorization` header against `process.env.CRON_SECRET`,
    use `src/lib/supabaseServerClient.js`).
-2. Add the schedule entry to `scripts/openclaw-cron-dispatcher.py` — cron
-   expression + URL path + human-readable name. Commit to main.
+2. Add the explicitly authorized schedule entry to `scripts/openclaw-cron-dispatcher.py` with its expression, URL and name. Deliver through an owned branch and protected merge under PUBLISHING.md.
 3. Deploy the dispatcher to Hetzner: `bash scripts/deploy-openclaw.sh`
    (script scp's the updated Python file, restarts systemd, and tails
    `journalctl -u openclaw` to verify the new job registered).
@@ -723,9 +718,9 @@ GitHub's environment to execute:
   Arena merge. `scripts/ci/check-no-vercel-deploy.mjs` allows NO deploy-hook
   caller. Do not re-add it.
 - `vercel-uniqueness-check.yml`
-- `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
-- `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
-- `vercel-deploy-retry.yml` — already present in the CHECK 6c allowlist but previously missing from this list; recorded here to remove the doc/CI drift.
+- **Historical, inactive release entry:** `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
+- **Historical, inactive release entry:** `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
+- **Historical, inactive release entry:** `vercel-deploy-retry.yml` — already present in the CHECK 6c allowlist but previously missing from this list; recorded here to remove the doc/CI drift.
 - **Historical, inactive release entry:** `agent-autopilot.yml` — formerly an every-10-minutes sweep that enables squash auto-merge
   on open pull requests and refreshes a branch only when it cannot merge as it
   stands. It is CI-side work by definition: it operates on GitHub pull requests
