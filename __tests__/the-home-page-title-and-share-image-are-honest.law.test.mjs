@@ -24,6 +24,42 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
+/**
+ * What the browser tab and the search result actually show. SEOHead appends
+ * " | Smarter.Poker" unless the title already names the site, so a raw title
+ * that measures 63 characters on its own ships as 80 (2026-09-17).
+ */
+/**
+ * The pixel size of a WebP, without a dependency: the Build Safety Gate runs
+ * these tests with `node --test` and no install. Handles the three chunk
+ * layouts (lossy VP8, lossless VP8L, extended VP8X).
+ */
+function webpSize(buf) {
+  assert.equal(buf.subarray(0, 4).toString('latin1'), 'RIFF', 'a RIFF container');
+  assert.equal(buf.subarray(8, 12).toString('latin1'), 'WEBP', 'a WebP file');
+  const tag = buf.subarray(12, 16).toString('latin1');
+  if (tag === 'VP8X') {
+    return {
+      width: 1 + (buf.readUIntLE(24, 3) & 0xffffff),
+      height: 1 + (buf.readUIntLE(27, 3) & 0xffffff),
+    };
+  }
+  if (tag === 'VP8 ') {
+    // Key-frame header: 3-byte frame tag, the 0x9d 0x01 0x2a start code,
+    // then width and height as 14-bit little-endian values.
+    assert.equal(buf.readUIntLE(23, 3), 0x2a019d, 'a WebP key frame');
+    return { width: buf.readUInt16LE(26) & 0x3fff, height: buf.readUInt16LE(28) & 0x3fff };
+  }
+  if (tag === 'VP8L') {
+    assert.equal(buf[20], 0x2f, 'a VP8L signature');
+    const bits = buf.readUInt32LE(21);
+    return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+  }
+  throw new Error(`unknown WebP chunk ${tag}`);
+}
+
+const renderedTitle = (title) => (title.includes('Smarter.Poker') ? title : `${title} | Smarter.Poker`);
+
 test('SEOHead does not suffix a title that already names the site', () => {
   const src = read('vendor/commander-shared/src/components/seo/SEOHead.js');
   assert.match(src, /title\.includes\(SITE_NAME\)\s*\?\s*title/);
@@ -37,7 +73,7 @@ test('the home page title names the site once and says what the product is', () 
   assert.equal(title.split('Smarter.Poker').length - 1, 1, `names the site once: ${title}`);
   assert.match(title, /Poker/, 'says what it is');
   assert.doesNotMatch(title, /The Future Of The Game/, 'a slogan is not a title');
-  assert.ok(title.length <= 70, `fits a result heading: ${title.length} characters`);
+  assert.ok(renderedTitle(title).length <= 70, `fits a result heading: ${renderedTitle(title)}`);
   assert.doesNotMatch(title, /—/, 'no em dash');
   const description = src.match(/<SEOHead[\s\S]*?description="([^"]+)"/)?.[1];
   assert.ok(description && description.length >= 120 && description.length <= 320, 'a definition-length description');
@@ -51,7 +87,7 @@ test('the training page title says what it is instead of "Training - Smarter.Pok
   assert.ok(title, 'pages/hub/training.js passes a title to SEOHead');
   assert.match(title, /GTO Poker Training/);
   assert.doesNotMatch(title, /Smarter\.Poker/, 'SEOHead adds the site name once');
-  assert.ok(title.length <= 70, `fits a result heading: ${title.length} characters`);
+  assert.ok(renderedTitle(title).length <= 70, `fits a result heading: ${renderedTitle(title)}`);
 });
 
 test('the fonts come from next/font: no Google Fonts stylesheet on the home page, no preconnect in the document', () => {
@@ -70,6 +106,57 @@ test('the training heading never ends in a loading message', () => {
   const src = read('pages/hub/training.js');
   assert.doesNotMatch(src, /\{greet\} Loading/);
   assert.match(src, /GTO Poker Training: Build Better Decisions, One Hand At A Time\./);
+});
+
+test('every public page title fits a search result once SEOHead has added the site name', () => {
+  // The raw string in the source is not what ships: SEOHead appends
+  // " | Smarter.Poker" unless the title already names the site. Two titles
+  // shipped at 80 and 86 characters while each measured under 70 on its own
+  // (2026-09-17). These are the public product pages a search result names.
+  const PUBLIC_PAGES = [
+    'pages/index.js',
+    'pages/hub/training.js',
+    'pages/hub/commander/index.js',
+    'pages/hub/home-games.js',
+    'pages/hub/bankroll-manager.js',
+  ];
+  for (const file of PUBLIC_PAGES) {
+    const title = read(file).match(/<SEOHead[\s\S]{0,400}?title="([^"]+)"/)?.[1];
+    assert.ok(title, `${file} passes a title to SEOHead`);
+    const shipped = renderedTitle(title);
+    assert.ok(shipped.length <= 70, `${file} ships ${shipped.length} characters: ${shipped}`);
+    assert.doesNotMatch(shipped, /\u2014/, `${file}: no em dash`);
+    assert.equal(
+      (shipped.match(/Smarter\.Poker/g) || []).length,
+      1,
+      `${file} names the site once: ${shipped}`,
+    );
+  }
+});
+
+test('the hero reserves its own space before the image arrives', () => {
+  // Without intrinsic dimensions the browser gives the hero a zero-height
+  // box, and the shimmer beside it reserved 180% of the width while the file
+  // is 179.21%: measured on production, CLS 0.797 at phone width.
+  const src = read('pages/index.js');
+  const at = src.indexOf('landing-hero.webp');
+  assert.ok(at > 0, 'pages/index.js renders the hero image');
+  const img = src.slice(src.lastIndexOf('<img', at), src.indexOf('/>', at) + 2);
+  const width = Number(img.match(/width=\{(\d+)\}/)?.[1]);
+  const height = Number(img.match(/height=\{(\d+)\}/)?.[1]);
+  assert.ok(width && height, 'the hero carries intrinsic width and height');
+
+  // They must match the file, or the reserved box is the wrong shape.
+  const { width: actualWidth, height: actualHeight } = webpSize(
+    fs.readFileSync(path.join(ROOT, 'public/images/landing-hero.webp')),
+  );
+  assert.equal(width, actualWidth, 'declared width matches the file');
+  assert.equal(height, actualHeight, 'declared height matches the file');
+
+  // And the placeholder must not add or remove layout height of its own.
+  const shimmer = src.match(/shimmer: \{[\s\S]*?\},/)?.[0] || '';
+  assert.doesNotMatch(shimmer, /paddingBottom/, 'the shimmer does not reserve a band in the flow');
+  assert.match(shimmer, /position: 'absolute'/, 'the shimmer is an overlay');
 });
 
 test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB', () => {
