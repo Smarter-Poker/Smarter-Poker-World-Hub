@@ -69,20 +69,12 @@ const staticPages = [
   { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },
-  // Poker Arena (Club Arena SPA, its own origin behind one rewrite). Only the
-  // surfaces a signed-out visitor can read: the landing page, the help centre
-  // and the legal documents. Every signed-in arena route is noindex
-  // (club-arena src/lib/seo.ts) and must not appear here.
-  { path: '/hub/club-arena', priority: '0.9', changefreq: 'weekly' },
-  { path: '/hub/club-arena/help', priority: '0.6', changefreq: 'monthly' },
-  // /hub/club-arena/legal (the workspace index) is the one public arena route
-  // the arena does not prerender (its module graph needs Supabase); a crawler
-  // that cannot run JavaScript gets the landing shell there. The four documents
-  // it links to are listed and prerendered; the index is not listed.
-  { path: '/hub/club-arena/legal/tos', priority: '0.3', changefreq: 'yearly' },
-  { path: '/hub/club-arena/legal/privacy', priority: '0.3', changefreq: 'yearly' },
-  { path: '/hub/club-arena/legal/fair-gaming', priority: '0.4', changefreq: 'yearly' },
-  { path: '/hub/club-arena/legal/promotions', priority: '0.3', changefreq: 'yearly' },
+  // Poker Arena is NOT listed here (discoverability phase 2, 2026-09-17).
+  // The arena publishes its own sitemap from what it prerenders, dated from
+  // its git history, at https://smarter.poker/hub/club-arena/sitemap.xml
+  // (Smarter-Poker-Club-Arena scripts/generate-arena-sitemap.mjs), and
+  // public/robots.txt names it beside this one. Two repositories no longer
+  // keep one hand-typed list.
   // Club Commander, player side. The pages that need no session and were
   // noindex until 2026-09-16 (see pages/hub/commander/index.js). Pages that
   // show one player's own rewards, services, profile or history stay out.

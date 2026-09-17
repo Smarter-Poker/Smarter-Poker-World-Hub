@@ -88,11 +88,13 @@ test('an array of schemas becomes a @graph, not an object with numeric keys', ()
   assert.ok(!/'@context': 'https:\/\/schema\.org',\s*\.\.\.jsonLd,/.test(src), 'the spread that produced numeric keys is gone');
 });
 
-test('the sitemap lists the public arena and commander pages and no account-only pages', () => {
+test('the sitemap lists the public commander pages, no account-only pages, and no arena pages (the arena publishes its own)', () => {
   const src = read('pages/sitemap.xml.js');
-  for (const p of ['/hub/club-arena', '/hub/club-arena/help', '/hub/club-arena/legal/fair-gaming', ...Object.values(PUBLIC_COMMANDER_PAGES)]) {
+  for (const p of Object.values(PUBLIC_COMMANDER_PAGES)) {
     assert.ok(src.includes(`path: '${p}'`), `sitemap lacks ${p}`);
   }
+  assert.ok(!/path: '\/hub\/club-arena/.test(src), 'arena URLs belong to the arena sitemap now');
+  assert.match(read('public/robots.txt'), /Sitemap: https:\/\/smarter\.poker\/hub\/club-arena\/sitemap\.xml/);
   for (const p of ['/hub/messenger', '/hub/notifications', '/hub/settings', '/hub/profile-edit', '/hub/diamond-store/cart', '/hub/diamond-store/orders', '/hub/diamond-store/wishlist', '/hub/reels/saved', '/hub/reels/my-reels', '/hub/trivia/settings']) {
     assert.ok(!src.includes(`path: '${p}'`), `sitemap still lists account-only ${p}`);
   }
@@ -147,5 +149,17 @@ test('the responsible gaming page renders its head before its loading return', (
   const loading = src.indexOf('if (loading) {');
   assert.ok(head > -1 && loading > -1 && head < loading, 'SEOHead must be built before the loading branch');
   assert.ok(src.indexOf('{head}', loading) > -1, 'the loading branch must render the head');
+});
+
+test('the arena sitemap is not served with the origin noindex header', () => {
+  // ca-static.smarter.poker sends X-Robots-Tag: noindex, nofollow on every
+  // response so the bare origin host is never indexed. vercel.json overrides
+  // it for extension-less arena paths (the pages); the sitemap has an
+  // extension and needs its own rule, or the leaked header rides along.
+  const cfg = JSON.parse(read('vercel.json'));
+  const rule = cfg.headers.find((h) => h.source === '/hub/club-arena/sitemap.xml');
+  assert.ok(rule, 'vercel.json has no header rule for the arena sitemap');
+  const xr = rule.headers.find((h) => h.key === 'X-Robots-Tag');
+  assert.ok(xr && !/noindex/.test(xr.value), 'the arena sitemap must not be noindex');
 });
 
