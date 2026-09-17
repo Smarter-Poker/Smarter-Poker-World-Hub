@@ -52,12 +52,27 @@ echo "  SMARTER.POKER PRE-PUSH SAFETY GATE"
 echo "═══════════════════════════════════════════════════════"
 echo ""
 
-# Get list of changed files compared to remote
-REMOTE="$1"
-URL="$2"
+# Inspect the complete candidate relative to its protected base, not an
+# arbitrary five-commit tail. The working bytes must be the pushed bytes.
+command -v node >/dev/null 2>&1 || { echo "PUSH BLOCKED: Node.js is required."; exit 1; }
+CANDIDATE=$(git rev-parse --verify HEAD) || exit 1
+git diff --quiet HEAD -- || { echo "PUSH BLOCKED: commit tracked changes before checking the candidate."; exit 1; }
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+    [ "$local_sha" = "$CANDIDATE" ] || { echo "PUSH BLOCKED: check each pushed revision in its own checkout."; exit 1; }
+done
+PUSH_BASE=$(git merge-base "$CANDIDATE" refs/remotes/origin/main) || {
+    echo "PUSH BLOCKED: fetch the protected main reference before checking."; exit 1;
+}
+CHANGED_FILES=$(git diff --name-only "$PUSH_BASE" "$CANDIDATE") || exit 1
 
-# Get files changed in the commits being pushed
-CHANGED_FILES=$(git diff --name-only HEAD~5..HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null)
+# Native module files are checked by Node; application JS/JSX uses Babel below.
+for file in $(printf '%s\n' "$CHANGED_FILES" | grep -E '\.(mjs|cjs)$'); do
+    node --check "$file" || exit 1
+done
+if printf '%s\n' "$CHANGED_FILES" | grep -qE '(^|/)(AGENTS|CLAUDE|AGENT-PLAYBOOK|PUBLISHING)\.md$|^docs/agent-policy/|^\.agent/|^scripts/hooks/pre-push-js-safety\.sh$|^\.husky/pre-push$'; then
+    node --test tests/the-deploy-docs-name-the-live-route.test.mjs || exit 1
+fi
 
 if [ -z "$CHANGED_FILES" ]; then
     echo -e "${GREEN}✓ No changed files detected. Push allowed.${NC}"
@@ -69,6 +84,17 @@ JS_FILES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | gre
 if [ -z "$JS_FILES" ]; then
     echo -e "${GREEN}✓ No JS/TS files changed. Push allowed.${NC}"
     exit 0
+fi
+
+# An unavailable parser is not a successful syntax check. Resolve from this
+# checkout's installed locked dependencies before any application-code checks.
+node -e "require.resolve('@babel/parser')" >/dev/null 2>&1 || {
+    echo "PUSH BLOCKED: install locked private dependencies; @babel/parser is unavailable."
+    exit 1
+}
+if printf '%s\n' "$JS_FILES" | grep -qE '\.(ts|tsx)$' && [ ! -x node_modules/.bin/tsc ]; then
+    echo "PUSH BLOCKED: install locked private dependencies; TypeScript is unavailable."
+    exit 1
 fi
 
 echo "Checking $(echo "$JS_FILES" | wc -l | tr -d ' ') changed file(s)..."
@@ -279,10 +305,6 @@ echo "CHECK 5: Syntax validation (Babel for JSX-containing .js, node -c for pure
 
 if command -v node &> /dev/null; then
     SYNTAX_ERRORS=0
-    # Files this run could NOT verify because Babel was unavailable and the file
-    # contains JSX (node -c cannot parse JSX). Counted and reported, never fatal.
-    JSX_UNVERIFIED=0
-    JSX_UNVERIFIED_FILES=""
     # Locate Babel parser from the project. NOT "always available": a git
     # worktree and a fresh clone both have .git but no node_modules, and this
     # resolves to empty there. See the fallback in CHECK 5 below.
@@ -374,42 +396,8 @@ try{
                 ERRORS=$((ERRORS + 1))
             fi
         else
-            # ── NO BABEL AVAILABLE ────────────────────────────────────────
-            # Reached ONLY when @babel/parser did not resolve, which is any
-            # checkout without node_modules: a fresh clone, CI before `npm ci`,
-            # and every `git worktree` (a worktree shares .git but NOT
-            # node_modules).
-            #
-            # node -c is JSX-BLIND. It does not merely miss broken JSX, it
-            # REJECTS VALID JSX outright with "Unexpected token '<'". So the old
-            # unconditional fallback turned a missing dev dependency into a hard
-            # push block on perfectly good files.
-            #
-            # Measured 2026-08-30: a push from a worktree failed on
-            # vendor/commander-shared/src/components/seo/SEOHead.js — valid,
-            # unmodified, and nothing to do with the change being pushed. A gate
-            # that blocks correct code is worse than no gate, because the
-            # documented escape is `--no-verify`, which skips every OTHER check
-            # in this file too.
-            #
-            # So: hand a file to node -c only when it plainly contains no JSX.
-            # Anything JSX-shaped is SKIPPED and reported as unverified rather
-            # than failed. The Babel path above is the real gate and still runs
-            # everywhere it matters (developer machines, and CI after install).
-            if grep -qE '(</[A-Za-z]|/>|<[A-Z][A-Za-z0-9]*[[:space:]/>]|<>)' "$file" 2>/dev/null; then
-                JSX_UNVERIFIED=$((JSX_UNVERIFIED + 1))
-                JSX_UNVERIFIED_FILES="${JSX_UNVERIFIED_FILES}
-      ${file}"
-            else
-                PARSE_OUTPUT=$(node -c "$file" 2>&1)
-                if [ $? -ne 0 ]; then
-                    echo -e "${RED}  ✗ SYNTAX ERROR: ${file}${NC}"
-                    echo "    $PARSE_OUTPUT" | head -3
-                    echo ""
-                    SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
-                    ERRORS=$((ERRORS + 1))
-                fi
-            fi
+            echo "PUSH BLOCKED: Babel became unavailable during verification."
+            exit 1
         fi
     done
 
@@ -417,16 +405,9 @@ try{
         echo -e "${GREEN}  ✓ All files pass syntax check (Babel for JSX-containing, node -c for pure .js).${NC}"
     fi
 
-    # Say plainly when the gate could not do its job. Silence here would be the
-    # worst outcome: a run that verified nothing must not look like a clean run.
-    if [ "$JSX_UNVERIFIED" -gt 0 ]; then
-        echo -e "${YELLOW}  ⚠ ${JSX_UNVERIFIED} JSX file(s) NOT syntax-checked — @babel/parser is not installed in this checkout.${NC}"
-        echo -e "${YELLOW}    node -c cannot parse JSX, so these were skipped rather than failed.${NC}"
-        echo -e "${YELLOW}    Run 'npm install' here (a git worktree has no node_modules of its own) to restore full coverage.${NC}"
-        echo -e "${YELLOW}${JSX_UNVERIFIED_FILES}${NC}" | head -11
-    fi
 else
-    echo -e "${YELLOW}  ⚠ Node.js not found. Skipping syntax validation.${NC}"
+    echo "PUSH BLOCKED: Node.js became unavailable during verification."
+    exit 1
 fi
 echo ""
 
@@ -544,7 +525,8 @@ if [ -n "$TS_FILES" ]; then
     [ -f "$TSC_BIN" ] || TSC_BIN="$(pwd)/node_modules/.bin/tsc"
 
     if [ ! -f "$TSC_BIN" ]; then
-        echo -e "${YELLOW}  ⚠ tsc not found. Skipping TypeScript check.${NC}"
+        echo "PUSH BLOCKED: TypeScript became unavailable during verification."
+        exit 1
     else
         echo "  Running tsc --noEmit --skipLibCheck (this takes ~15s)..."
 
@@ -800,7 +782,7 @@ if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}  PUSH BLOCKED: ${ERRORS} fatal error(s) found.${NC}"
     echo -e "${RED}  Fix the issues above before pushing.${NC}"
     echo ""
-    echo "  To bypass in an emergency: git push --no-verify"
+    echo "  Repair the failure and rerun the ordinary push; do not bypass hooks."
     echo "═══════════════════════════════════════════════════════"
     exit 1
 fi

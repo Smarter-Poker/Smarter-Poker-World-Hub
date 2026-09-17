@@ -51,8 +51,7 @@ forbidden-actions list.
 Quick rule: if you're about to run `gh repo create`, click Vercel
 "Import Project", create a second Supabase project "for X", or make a
 second OAuth client in any provider's console — STOP. The existing
-canonical thing is what you write into. If it doesn't fit, ask Dan,
-don't create something new.
+canonical thing is what you write into. Resolve the assigned requirement in its canonical home; do not create parallel infrastructure as a delivery workaround.
 
 ### 1.2 Assigned database changes and maintenance
 
@@ -210,7 +209,7 @@ Database migrations, new API routes, cross-component refactors, auth/payment cha
 Workflow: Record a scoped implementation plan. Execute work already authorized; ask only for a material decision outside that authority. Verify and follow PUBLISHING.md through delivery.
 
 For Tier 1-2: Do NOT read Knowledge Items, skills, or workflows.
-For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` first.
+For Tier 3: Read the current owner policy, operating law, hardening standard and scoped references in `docs/agent-policy/REFERENCE-INDEX.md`. Historical memory notes do not override those maintained instructions.
 
 ---
 
@@ -234,7 +233,7 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 5. Verify deployment via Vercel MCP or dashboard
 
 ### Test Account
-Use the configured authorized service/test identity through its owning client. Never assume Dan's personal account is a test account, read environment-file values, print credentials or change configured secrets. Establish actual access before a required signed-in check.
+Use the configured authorized service/test identity through its owning client. Never assume Dan's personal account is a test account, read environment-file values or print credentials. Necessary assigned secret repairs follow the current owner policy. Establish actual access before a required signed-in check.
 
 ---
 
@@ -386,8 +385,7 @@ image needs to be fixed" was read as "show the ring" - the disc was removed,
 the photo was seated in the ring's aperture, and tests were written calling
 the disc "a shape drawn over approved artwork". Every later agent obeyed those
 tests and fixed everything except the ring. If a request about the profile
-image seems to call for showing the ring, it does not - ask Dan before touching
-the disc. "NO BOXES OVER HEADER ICONS" is about focus rings on icons; the disc
+image seems to call for showing the ring, it does not - preserve the disc under the current product rule unless the assigned change explicitly changes that requirement. "NO BOXES OVER HEADER ICONS" is about focus rings on icons; the disc
 is its one deliberate exception. Club Arena carries the identical rule
 (`tests/the-header-portrait-frame-is-a-hairline.law.test.ts`, `docs/LAWS.md`).
 
@@ -522,8 +520,7 @@ and say plainly what you did. You do not open with a question.
    and why they got what they got. If you cannot write it, you do not
    understand the case well enough to settle it.
 
-Fail any one and it goes to Dan as options with their costs and your
-recommendation, never as a question.
+If any invariant lacks proof, investigate and repair it before the financial write. Continue independent assigned work and report a genuinely unavailable input precisely; no renewed approval gate is required.
 
 ### When the evidence disagrees with itself, prefer the witness that was there
 
@@ -540,15 +537,13 @@ in the header, the audit note under `.agent/audits/`, the `financial_alerts`
 row resolved with a `resolution` note saying what was accepted and why, and the
 code fix that stops it recurring.
 
-### Still Dan's, and only Dan's
+### Financial scope and immutable records
 
-- **Anything that sets what players are owed in FUTURE events**: prices, rake,
-  guarantees, payout structures, retention policy. Fixing what a past event
-  owes is yours. Deciding what the next one owes is his.
-- **Money leaving the platform**: withdrawals, payment providers, anything a
-  bank sees.
-- **Rewriting or deleting a settled record to make a number look tidy.**
-  Correct it forward with a row that says what changed.
+Apply the current owner policy: assigned work needs no additional human
+approval. Preserve established business rules, authorized scope and financial
+invariants. Do not add unrelated future-event pricing or external payments to
+a repair. Never rewrite or delete settled history to make a number look tidy;
+use the existing traceable correction path.
 
 ---
 
@@ -560,44 +555,22 @@ After a PR merges, later branch commits need an owned follow-up branch and PR. I
 
 Required checks must actually execute and their results must be readable for the candidate revision. A missing or inaccessible result is unknown, not passing. Use configured Actions run/job evidence when another interface lacks check access. Historical watchdog reporting is not release authority; those retired workflows must not be reactivated. Retain the owning run and applicable result in the task checkpoint.
 
-## 10.85 AGENTS NEVER SET A CREDENTIAL (2026-09-06, BINDING)
+## 10.85 CREDENTIAL AUTHORITY
 
-Identical in the Club Arena CLAUDE.md as section 10.84, because the variable
-that caused the outage lives in THIS repo's Vercel project and the tables it
-broke are in that one.
+Necessary credential/configuration repairs within the assigned work require no
+additional human approval under the September 17 owner policy. Use the existing
+service identity, intended permissions and canonical secret store through an
+authorized supported tool. Verify the affected authentication/check result.
+Check access and secret metadata early; an unavailable key must not stop
+independent delivery work. Follow explicit tool handoff requirements and name
+their source instead of inventing a new owner approval.
 
-**The twenty-two hours began with one environment variable.** On 2026-09-03 at
-20:15 UTC `PROBE_LOGIN_EMAIL` on `hub-vanguard` was pointed at Dan's own
-account. `/api/cron/login-probe` signed in as him every fifteen minutes and
-called a global `signOut()`; every Club Arena table he opened said
-"Reconnecting To The Table" until somebody worked it out by hand the next day.
-Every code path was correct. The change left no commit, no log line and no
-notification.
+Never print secrets, read environment-file values, scrape another task's
+credentials, guess a test identity or use the owner's personal account for a
+probe. Keep synthetic sessions scoped locally. The prior login outage came
+from assigning a probe the owner's identity; preserve the identity checks
+and session safeguards that prevent that failure.
 
-An agent may use an already configured credential through its owning client
-and inspect authorized location metadata. Never read environment-file values,
-scrape credentials from another repository or print secret contents. An agent may NOT write, rotate, paste or
-"correct" a credential in Vercel, Supabase, GitHub Actions, a `.env` on a
-server, or anywhere else - **not even to fix an outage it can see.** Those edits
-are Dan's, and they are the one class of change where being wrong is invisible
-to every test in these repos.
-
-If a credential is wrong: say which one, say where it lives, and say what SHAPE
-the value should have (an address under `@probe.smarter.poker`, the service
-identity, a 64-character secret). Never the value.
-
-**And an agent never PRINTS one either.** `echo "${VAR:-missing}"` prints the
-value when the variable is set; `[ -n "$VAR" ] && echo set` does not. A secret
-echoed into a transcript is a secret that must now be rotated, and the rotation
-is Dan's.
-
-**Historical detector description; not current release authority.** `scripts/ci/check-vercel-env-drift.mjs`
-records the SHAPE of the environment - key, target, type, `updatedAt`, never a
-value, never `?decrypt=true` - against `scripts/ci/vercel-env-baseline.json`,
-and `publish-watchdog.yml` raises an issue naming any variable whose timestamp
-moved. A change is not assumed to be wrong; it is assumed to be UNSEEN, which
-is what 2026-09-03 was. Pinned by
-`__tests__/an-env-var-cannot-change-unseen.law.test.mjs`.
 
 ---
 
@@ -698,7 +671,7 @@ but NO new entries are permitted. The 16 overflow jobs are already on Hetzner.
   `bash scripts/deploy-openclaw.sh`.** The repo file and the production
   file on Hetzner must never drift.
 
-### 11.4 Exceptions (must be explicitly approved by Dan)
+### 11.4 Existing schedule inventory
 
 The following `.github/workflows/*.yml` files DO have legitimate `schedule:`
 triggers because they run CI-side work (not application logic) and need

@@ -184,9 +184,9 @@ Every task has four required fields:
 | Type | Use For | Autonomy |
 |------|---------|----------|
 | `auto` | Everything the agent can do independently | Fully autonomous |
-| `checkpoint:human-verify` | Visual/functional verification | Pauses for user |
-| `checkpoint:decision` | Implementation choices | Pauses for user |
-| `checkpoint:human-action` | Truly unavoidable manual steps (rare) | Pauses for user |
+| `checkpoint:human-verify` | Visual/functional verification | Agent performs and records actual checks |
+| `checkpoint:decision` | Implementation choices | Resolve within the assigned requirements; ask only for missing information |
+| `checkpoint:human-action` | Explicit tool handoff or unavailable input | Blocks only the dependent action |
 
 **Automation-first rule:** If the agent CAN do it via CLI/API, the agent MUST do it. Checkpoints verify AFTER automation, not replace it.
 
@@ -671,92 +671,7 @@ must_haves:
 </goal_backward>
 
 <checkpoints>
-
-## Checkpoint Types
-
-**checkpoint:human-verify (90% of checkpoints)**
-Human confirms the agent's automated work works correctly.
-
-Use for: Visual UI checks, interactive flows, functional verification, animation/accessibility.
-
-```xml
-<task type="checkpoint:human-verify" gate="blocking">
-  <what-built>[What the agent automated]</what-built>
-  <how-to-verify>
-    [Exact steps to test - URLs, commands, expected behavior]
-  </how-to-verify>
-  <resume-signal>Type "approved" or describe issues</resume-signal>
-</task>
-```
-
-**checkpoint:decision (9% of checkpoints)**
-Human makes implementation choice affecting direction.
-
-Use for: Technology selection, architecture decisions, design choices.
-
-```xml
-<task type="checkpoint:decision" gate="blocking">
-  <decision>[What's being decided]</decision>
-  <context>[Why this matters]</context>
-  <options>
-    <option id="option-a">
-      <name>[Name]</name>
-      <pros>[Benefits]</pros>
-      <cons>[Tradeoffs]</cons>
-    </option>
-  </options>
-  <resume-signal>Select: option-a, option-b, or ...</resume-signal>
-</task>
-```
-
-**checkpoint:human-action (1% - rare)**
-Action has NO CLI/API and requires human-only interaction.
-
-Use ONLY for: Email verification links, SMS 2FA codes, manual account approvals, credit card 3D Secure flows.
-
-Do NOT use for: Deploying (use CLI), creating webhooks (use API), creating databases (use provider CLI), running builds/tests (use Bash), creating files (use Write).
-
-## Authentication Gates
-
-When the agent tries CLI/API and gets auth error → creates checkpoint → user authenticates → the agent retries. Auth gates are created dynamically, NOT pre-planned.
-
-## Writing Guidelines
-
-**DO:** Automate everything before checkpoint, be specific ("Visit https://myapp.vercel.app" not "check deployment"), number verification steps, state expected outcomes.
-
-**DON'T:** Ask human to do work the agent can automate, mix multiple verifications, place checkpoints before automation completes.
-
-## Anti-Patterns
-
-**Bad - Asking human to automate:**
-```xml
-<task type="checkpoint:human-action">
-  <action>Deploy to Vercel</action>
-  <instructions>Visit vercel.com, import repo, click deploy...</instructions>
-</task>
-```
-Why bad: Vercel has a CLI. the agent should run `vercel --yes`.
-
-**Bad - Too many checkpoints:**
-```xml
-<task type="auto">Create schema</task>
-<task type="checkpoint:human-verify">Check schema</task>
-<task type="auto">Create API</task>
-<task type="checkpoint:human-verify">Check API</task>
-```
-Why bad: Verification fatigue. Combine into one checkpoint at end.
-
-**Good - Single verification checkpoint:**
-```xml
-<task type="auto">Create schema</task>
-<task type="auto">Create API</task>
-<task type="auto">Create UI</task>
-<task type="checkpoint:human-verify">
-  <what-built>Complete auth flow (schema + API + UI)</what-built>
-  <how-to-verify>Test full flow: register, login, access protected page</how-to-verify>
-</task>
-```
-
+Follow root AGENTS.md, PUBLISHING.md and .agent/get-shit-done/references/checkpoints.md. Perform assigned implementation decisions and actual verification directly. No additional human approval or automatic approval substitute is permitted. Inspect supported access first; request only a genuinely unavailable input or explicit higher-priority tool handoff, naming its source. Continue all independent work and preserve the owning operation. Never print secrets, scrape environment files, skip required checks, invent success or add a new publisher. This file does not authorize delegation or an unrelated product phase.
 </checkpoints>
 
 <tdd_integration>
@@ -1180,7 +1095,7 @@ Verify each plan fits context budget: 2-3 tasks, ~50% target. Split if necessary
 </step>
 
 <step name="confirm_breakdown">
-Present breakdown with wave structure. Wait for confirmation in interactive mode. Auto-approve in yolo mode.
+Present the verified scoped breakdown and continue assigned work. Neither interactive confirmation nor auto-approval replaces actual validation.
 </step>
 
 <step name="write_phase_prompt">

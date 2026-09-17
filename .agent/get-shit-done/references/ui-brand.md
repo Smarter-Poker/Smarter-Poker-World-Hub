@@ -27,7 +27,7 @@ Use for major workflow transitions.
 
 ## Checkpoint Boxes
 
-User action required. 62-character width.
+Evidence update or genuinely unavailable input. No approval gate.
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -42,7 +42,7 @@ User action required. 62-character width.
 ```
 
 **Types:**
-- `CHECKPOINT: Verification Required` → `→ Type "approved" or describe issues`
+- `CHECKPOINT: Verification Required` → Agent runs the outstanding check and records its result
 - `CHECKPOINT: Decision Required` → `→ Select: option-a / option-b`
 - `CHECKPOINT: Action Required` → `→ Type "done" when complete`
 
@@ -55,7 +55,7 @@ User action required. 62-character width.
 ✗  Failed / Missing / Blocked
 ◆  In Progress
 ○  Pending
-⚡ Auto-approved
+◆ Verification underway
 ⚠  Warning
 🎉 Milestone complete (only in banner)
 ```

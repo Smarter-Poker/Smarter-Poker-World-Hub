@@ -411,7 +411,7 @@ npm test -- --grep "$PHASE_TEST_PATTERN" 2>&1 | grep -q "passing"
 3. **Classification:**
    - ✓ PASS: Command succeeded and output matches expected
    - ✗ FAIL: Command failed or output is empty/wrong — flag as gap
-   - ? SKIP: Can't test without running server/external service — route to human verification (Step 8)
+   - ? SKIP: Can't test without running server/external service — record the unverified dependency and continue direct verification (Step 8)
 
 **Spot-check constraints:**
 - Each check must complete in under 10 seconds
@@ -419,21 +419,9 @@ npm test -- --grep "$PHASE_TEST_PATTERN" 2>&1 | grep -q "passing"
 - Do not modify state (no writes, no mutations, no side effects)
 - If the project has no runnable entry points yet, skip with: "Step 7b: SKIPPED (no runnable entry points)"
 
-## Step 8: Identify Human Verification Needs
+## Step 8: Complete direct verification
 
-**Always needs human:** Visual appearance, user flow completion, real-time behavior, external service integration, performance feel, error message clarity.
-
-**Needs human if uncertain:** Complex wiring grep can't trace, dynamic state behavior, edge cases.
-
-**Format:**
-
-```markdown
-### 1. {Test Name}
-
-**Test:** {What to do}
-**Expected:** {What should happen}
-**Why human:** {Why can't verify programmatically}
-```
+Visual, interactive, real-time, external-service and dynamic behavior require actual observation through supported tools. They are not human-only checks. If a scoped read-only verifier cannot execute a required check, return the exact gap and prepared verification to its owning agent; the owner finishes eligible checks directly. Record genuinely unavailable access precisely. Do not substitute approval, empty responses or source inspection for behavior proof.
 
 ## Step 9: Determine Overall Status
 
@@ -441,7 +429,7 @@ npm test -- --grep "$PHASE_TEST_PATTERN" 2>&1 | grep -q "passing"
 
 **Status: gaps_found** — One or more truths FAILED, artifacts MISSING/STUB, key links NOT_WIRED, or blocker anti-patterns found.
 
-**Status: human_needed** — All automated checks pass but items flagged for human verification.
+**Status: human_needed** — All automated checks pass but required direct checks are still unverified.
 
 **Score:** `verified_truths / total_truths`
 
@@ -556,7 +544,7 @@ human_verification: # Only if status: human_needed
 | File | Line | Pattern | Severity | Impact |
 | ---- | ---- | ------- | -------- | ------ |
 
-### Human Verification Required
+### Direct Verification Outstanding
 
 {Items needing human testing — detailed format for user}
 
@@ -595,12 +583,12 @@ All must-haves verified. Phase goal achieved. Ready to proceed.
 Structured gaps in VERIFICATION.md frontmatter for `/gsd-plan-phase --gaps`.
 
 {If human_needed:}
-### Human Verification Required
+### Direct Verification Outstanding
 {N} items need human testing:
 1. **{Test name}** — {what to do}
    - Expected: {what should happen}
 
-Automated checks passed. Awaiting human verification.
+Automated checks passed. Complete the remaining direct checks before reporting success.
 ```
 
 </output>
@@ -615,7 +603,7 @@ Automated checks passed. Awaiting human verification.
 
 **Structure gaps in YAML frontmatter** for `/gsd-plan-phase --gaps`.
 
-**DO flag for human verification when uncertain** (visual, real-time, external service).
+**DO resolve uncertain behavior with direct verification** (visual, real-time, external service); report actual unavailable access.
 
 **Keep verification fast.** Use grep/file checks, not running the app.
 
@@ -686,7 +674,7 @@ return <div>No messages</div>  // Always shows "no messages"
 - [ ] Requirements coverage assessed (if applicable)
 - [ ] Anti-patterns scanned and categorized
 - [ ] Behavioral spot-checks run on runnable code (or skipped with reason)
-- [ ] Human verification items identified
+- [ ] Outstanding direct verification identified and assigned to the delivery owner
 - [ ] Overall status determined
 - [ ] Gaps structured in YAML frontmatter (if gaps_found)
 - [ ] Re-verification metadata included (if previous existed)

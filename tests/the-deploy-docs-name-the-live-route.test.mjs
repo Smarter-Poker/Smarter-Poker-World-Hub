@@ -234,3 +234,19 @@ test('first-open guides do not reinstate retired release or environment directio
         }
     }
 });
+
+// The existing required publication gate also verifies local pre-push refusal.
+import "../__tests__/pre-push-typescript-baseline-safety.test.mjs";
+
+
+test('active agent templates cannot restore human gates or hook bypass directions', () => {
+  const retired = /Always needs human:|Require human-verify checkpoint|Only return this after human verification|Wait for confirmation[.]|Use [`]?--no-verify[`]? on (?:all )?(?:git )?commits/i;
+  function inspect(directory) {
+    for (const entry of readdirSync(join(ROOT, directory), { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) inspect(path);
+      else if (entry.isFile() && path.endsWith('.md')) assert.doesNotMatch(read(path), retired, path);
+    }
+  }
+  for (const directory of ['.agent/agents', '.agent/get-shit-done', '.agent/skills', '.agent/workflows']) inspect(directory);
+});

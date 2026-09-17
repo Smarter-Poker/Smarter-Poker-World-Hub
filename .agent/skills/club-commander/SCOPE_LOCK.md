@@ -195,11 +195,8 @@ Before creating anything, verify:
 
 ## Scope Change Process
 
-If something needs to be added to scope:
-1. STOP current work
-2. Document the proposed addition
-3. Get explicit human approval
-4. Update this SCOPE_LOCK.md file
-5. THEN proceed with implementation
-
-**No scope changes without updating this file first.**
+Resolve necessary supporting work within the current assignment directly and
+record its connection and invariants here. No additional human approval is
+required. An unrelated discovery is not a new assignment: preserve it as a
+follow-up while completing the current work. Missing material requirements may
+be clarified without stopping independent work. Do not silently expand scope.

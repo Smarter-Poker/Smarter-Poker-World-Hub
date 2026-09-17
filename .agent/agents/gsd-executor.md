@@ -94,8 +94,8 @@ For each task:
    - Track completion + commit hash for Summary
 
 2. **If `type="checkpoint:*"`:**
-   - STOP immediately — return structured checkpoint message
-   - A fresh agent will be spawned to continue
+   - Perform the verification or resolve the assigned decision directly
+   - Record only actual unavailable inputs; continue independent work without a new-agent prerequisite
 
 3. After all tasks: run overall verification, confirm success criteria, document deviations
 </step>
@@ -137,20 +137,20 @@ No user permission needed for Rules 1-3.
 
 ---
 
-**RULE 4: Ask about architectural changes**
+**RULE 4: Verify architectural scope**
 
 **Trigger:** Fix requires significant structural modification
 
 **Examples:** New DB table (not column), major schema changes, new service layer, switching libraries/frameworks, changing auth approach, new infrastructure, breaking API changes
 
-**Action:** STOP → return checkpoint with: what found, proposed change, why needed, impact, alternatives. **User decision required.**
+**Action:** Record the necessary change, scope, impact and alternatives. Implement decisions already required by the assignment; request only genuinely missing requirements. Do not create unrelated infrastructure or waive required checks.
 
 ---
 
 **RULE PRIORITY:**
-1. Rule 4 applies → STOP (architectural decision)
+1. Rule 4 applies → verify the actual assigned boundary
 2. Rules 1-3 apply → Fix automatically
-3. Genuinely unsure → Rule 4 (ask)
+3. Uncertain scope → inspect current requirements, then identify any missing input
 
 **Edge cases:**
 - Missing validation → Rule 2 (security)
@@ -170,7 +170,7 @@ Only auto-fix issues DIRECTLY caused by the current task's changes. Pre-existing
 
 **FIX ATTEMPT LIMIT:**
 Track auto-fix attempts per task. After 3 auto-fix attempts on a single task:
-- STOP fixing — document remaining issues in SUMMARY.md under "Deferred Issues"
+- Reassess the root cause and record the actual remaining dependency; do not mark required unfinished work complete
 - Continue to the next task (or return checkpoint if blocked)
 - Do NOT restart the build to find more issues
 </deviation_rules>
@@ -186,18 +186,7 @@ Do NOT continue reading. Analysis without action is a stuck signal.
 </analysis_paralysis_guard>
 
 <authentication_gates>
-**Auth errors during `type="auto"` execution are gates, not failures.**
-
-**Indicators:** "Not authenticated", "Not logged in", "Unauthorized", "401", "403", "Please run {tool} login", "Set {ENV_VAR}"
-
-**Protocol:**
-1. Recognize it's an auth gate (not a bug)
-2. STOP current task
-3. Return checkpoint with type `human-action` (use checkpoint_return_format)
-4. Provide exact auth steps (CLI commands, where to get keys)
-5. Specify verification command
-
-**In Summary:** Document auth gates as normal flow, not deviations.
+Follow root AGENTS.md, PUBLISHING.md and .agent/get-shit-done/references/checkpoints.md. Perform assigned implementation decisions and actual verification directly. No additional human approval or automatic approval substitute is permitted. Inspect supported access first; request only a genuinely unavailable input or explicit higher-priority tool handoff, naming its source. Continue all independent work and preserve the owning operation. Never print secrets, scrape environment files, skip required checks, invent success or add a new publisher. This file does not authorize delegation or an unrelated product phase.
 </authentication_gates>
 
 <auto_mode_detection>
@@ -212,37 +201,7 @@ Auto mode is active if either `AUTO_CHAIN` or `AUTO_CFG` is `"true"`. Store the 
 </auto_mode_detection>
 
 <checkpoint_protocol>
-
-**CRITICAL: Automation before verification**
-
-Before any `checkpoint:human-verify`, ensure verification environment is ready. If plan lacks server startup before checkpoint, ADD ONE (deviation Rule 3).
-
-For full automation-first patterns, server lifecycle, CLI handling:
-**See @.agent/get-shit-done/references/checkpoints.md**
-
-**Quick reference:** Users NEVER run CLI commands. Users ONLY visit URLs, click UI, evaluate visuals, provide secrets. the agent does all automation.
-
----
-
-**Auto-mode checkpoint behavior** (when `AUTO_CFG` is `"true"`):
-
-- **checkpoint:human-verify** → Auto-approve. Log `⚡ Auto-approved: [what-built]`. Continue to next task.
-- **checkpoint:decision** → Auto-select first option (planners front-load the recommended choice). Log `⚡ Auto-selected: [option name]`. Continue to next task.
-- **checkpoint:human-action** → STOP normally. Auth gates cannot be automated — return structured checkpoint message using checkpoint_return_format.
-
-**Standard checkpoint behavior** (when `AUTO_CFG` is not `"true"`):
-
-When encountering `type="checkpoint:*"`: **STOP immediately.** Return structured checkpoint message using checkpoint_return_format.
-
-**checkpoint:human-verify (90%)** — Visual/functional verification after automation.
-Provide: what was built, exact verification steps (URLs, commands, expected behavior).
-
-**checkpoint:decision (9%)** — Implementation choice needed.
-Provide: decision context, options table (pros/cons), selection prompt.
-
-**checkpoint:human-action (1% - rare)** — Truly unavoidable manual step (email link, 2FA code).
-Provide: what automation was attempted, single manual step needed, verification command.
-
+Follow root AGENTS.md, PUBLISHING.md and .agent/get-shit-done/references/checkpoints.md. Perform assigned implementation decisions and actual verification directly. No additional human approval or automatic approval substitute is permitted. Inspect supported access first; request only a genuinely unavailable input or explicit higher-priority tool handoff, naming its source. Continue all independent work and preserve the owning operation. Never print secrets, scrape environment files, skip required checks, invent success or add a new publisher. This file does not authorize delegation or an unrelated product phase.
 </checkpoint_protocol>
 
 <checkpoint_return_format>
@@ -285,7 +244,7 @@ If spawned as continuation agent (`<completed_tasks>` in prompt):
 1. Verify previous commits exist: `git log --oneline -5`
 2. DO NOT redo completed tasks
 3. Start from resume point in prompt
-4. Handle based on checkpoint type: after human-action → verify it worked; after human-verify → continue; after decision → implement selected option
+4. Handle based on checkpoint type: after human-action → verify it worked; after human-verify → perform and record actual verification, then continue; after decision → implement selected option
 5. If another checkpoint hit → return with ALL completed tasks (previous + new)
 </continuation_handling>
 

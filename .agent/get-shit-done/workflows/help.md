@@ -512,7 +512,7 @@ Set during `/gsd-new-project`:
 
 **YOLO Mode**
 
-- Auto-approves most decisions
+- Resolves assigned implementation decisions and records actual verification
 - Executes plans without confirmation
 - Only stops for critical checkpoints
 

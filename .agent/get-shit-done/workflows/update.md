@@ -1,5 +1,5 @@
 <purpose>
-Check for GSD updates via npm, display changelog for versions between installed and latest, obtain user confirmation, and execute clean installation with cache clearing.
+Check for GSD updates via npm, display changelog for versions between installed and latest, verify the assigned update scope and preserve local changes, then execute clean installation with cache clearing.
 </purpose>
 
 <required_reading>
@@ -187,12 +187,12 @@ You're ahead of the latest release (development version?).
 Exit.
 </step>
 
-<step name="show_changes_and_confirm">
+<step name="show_changes_and_verify">
 **If update available**, fetch and show what's new BEFORE updating:
 
 1. Fetch changelog from GitHub raw URL
 2. Extract entries between installed and latest versions
-3. Display preview and ask for confirmation:
+3. Display the update preview and verify its scope:
 
 ```
 ## GSD Update Available
@@ -233,13 +233,7 @@ Your custom files in other locations are preserved:
 If you've modified any GSD files directly, they'll be automatically backed up to `gsd-local-patches/` and can be reapplied with `/gsd-reapply-patches` after the update.
 ```
 
-Use AskUserQuestion:
-- Question: "Proceed with update?"
-- Options:
-  - "Yes, update now"
-  - "No, cancel"
-
-**If user cancels:** Exit.
+When the update is assigned, preserve and verify local patches before the clean install, then continue without another approval. Do not overwrite another task's work. A new explicit cancellation stops this update. If a required input or tool handoff is unavailable, report it precisely and continue independent work.
 </step>
 
 <step name="run_update">
@@ -281,7 +275,7 @@ The SessionStart hook (`gsd-check-update.js`) writes to the detected runtime's c
 </step>
 
 <step name="display_result">
-Format completion message (changelog was already shown in confirmation step):
+Format completion message (changelog was already shown in the preview step):
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -317,7 +311,7 @@ Run /gsd-reapply-patches to merge your modifications into the new version.
 - [ ] Update skipped if already current
 - [ ] Changelog fetched and displayed BEFORE update
 - [ ] Clean install warning shown
-- [ ] User confirmation obtained
+- [ ] Assigned update scope verified and local changes preserved
 - [ ] Update executed successfully
 - [ ] Restart reminder shown
 </success_criteria>
