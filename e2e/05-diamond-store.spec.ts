@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from '@playwright/test';
+import { test, expect, type Locator, type Page, type Route } from '@playwright/test';
 
 const AXE_PATH = require.resolve('axe-core/axe.min.js');
 const COPY_AUDIT_CLUB_ID = '00000000-0000-4000-8000-000000000093';
@@ -6,6 +6,9 @@ const COPY_AUDIT_CLUB_ITEM_ID = '00000000-0000-4000-8000-000000000094';
 const COPY_AUDIT_CARD_QUOTE = {
   packageId: 'phase-audit',
   quantity: 1,
+  unitPriceCents: 1500,
+  baseDiamonds: 1500,
+  bonusDiamonds: 0,
   cardCharge: 15,
   cardChargeCents: 1500,
   diamondsPurchased: 1500,
@@ -39,6 +42,19 @@ const MARKETPLACE_COPY_ROUTES = [
   '/hub/club-shop',
   `/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}`,
 ] as const;
+
+async function expectMarketplaceCopyStrategy(main: Locator, path: string) {
+  await expect.poll(
+    () => main.getAttribute('data-title-case-strategy'),
+    { message: `${path} should render inside a Marketplace copy boundary` },
+  ).toMatch(/^(?:css|normalized)$/);
+  if ((await main.getAttribute('data-title-case-strategy')) === 'css') {
+    await expect.poll(
+      () => main.evaluate((element) => getComputedStyle(element).textTransform),
+      { message: `${path} should inherit the CSS Title Case strategy` },
+    ).toBe('capitalize');
+  }
+}
 
 async function installMarketplaceAuditSession(page: Page) {
   // Private cart, order, wishlist, and membership routes need the same
@@ -76,6 +92,7 @@ async function installMarketplaceAuditSession(page: Page) {
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        accountId: '00000000-0000-4000-8000-000000000022',
         clubId: COPY_AUDIT_CLUB_ID,
         balance: 5000,
         role: 'owner',
@@ -85,8 +102,19 @@ async function installMarketplaceAuditSession(page: Page) {
           name: 'Verified Club Detail',
           description: 'Every Dynamic Word Follows The Marketplace Copy Contract',
           price: 1500,
+          effective_price: 1500,
+          list_price: 1500,
           category: 'Time Banks',
+          item_type: 'time_bank',
+          grant_spec: { type: 'time_bank', qty: 1 },
+          stackable: true,
           available: true,
+          availability_reason: null,
+          card_checkout_available: true,
+          card_checkout_reason: null,
+          on_sale: false,
+          purchase_count: 0,
+          my_purchase_count: 0,
           card_quote: COPY_AUDIT_CARD_QUOTE,
         }],
       }),
@@ -177,11 +205,10 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await expect(main).toBeVisible();
       // Authenticated commerce pages briefly own a deliberately minimal
       // loading main while their local cart or ledger hydrates. Wait for the
-      // real Marketplace shell before asserting its inherited copy contract.
-      await expect.poll(
-        () => main.evaluate((element) => getComputedStyle(element).textTransform),
-        { message: `${path} should render inside the Title Case Marketplace shell` },
-      ).toBe('capitalize');
+      // real Marketplace shell before asserting either its CSS or normalized
+      // copy contract. Identity-bearing subpages deliberately avoid blanket
+      // CSS recasing so order ids, URLs, and user content stay exact.
+      await expectMarketplaceCopyStrategy(main, path);
       expect(await main.innerText()).not.toMatch(/[\u2013\u2014]/u);
       expect(await page.title()).not.toMatch(/[\u2013\u2014]/u);
       await expect(main.locator('a[target="_blank"]')).toHaveCount(0);
@@ -226,10 +253,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       await page.goto(path, { waitUntil: 'domcontentloaded' });
       const main = page.locator('main');
       await expect(main).toBeVisible();
-      await expect.poll(
-        () => main.evaluate((element) => getComputedStyle(element).textTransform),
-        { message: `${path} should render before its accessibility audit` },
-      ).toBe('capitalize');
+      await expectMarketplaceCopyStrategy(main, path);
       await page.addScriptTag({ path: AXE_PATH });
       const violations = await page.evaluate(async () => {
         const axe = (window as typeof window & {
@@ -641,6 +665,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
   test('club item detail reviews one diamond settlement before submitting it', async ({ page }) => {
     const clubId = '00000000-0000-4000-8000-000000000013';
     const itemId = '00000000-0000-4000-8000-000000000014';
+    const userId = '00000000-0000-4000-8000-000000000015';
     await page.addInitScript(() => {
       const user = { id: '00000000-0000-4000-8000-000000000015', email: 'phase13@example.test', role: 'authenticated' };
       window.localStorage.setItem('smarter-poker-auth', JSON.stringify({
@@ -657,15 +682,28 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        accountId: userId,
         clubId,
+        role: 'player',
         balance: 5000,
         items: [{
           id: itemId,
           name: 'Phase 13 Time Bank',
           description: 'Verified test item',
           price: 1500,
+          effective_price: 1500,
+          list_price: 1500,
           category: 'Time Banks',
+          item_type: 'time_bank',
+          grant_spec: { type: 'time_bank', qty: 1 },
+          stackable: true,
           available: true,
+          availability_reason: null,
+          card_checkout_available: true,
+          card_checkout_reason: null,
+          on_sale: false,
+          purchase_count: 0,
+          my_purchase_count: 0,
           card_quote: COPY_AUDIT_CARD_QUOTE,
         }],
       }),
@@ -673,11 +711,24 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     let purchaseRequests = 0;
     await page.route('**/api/club-arena/marketplace-purchase', async (route) => {
       purchaseRequests += 1;
+      const requestId = route.request().headers()['x-idempotency-key'];
       await new Promise((resolve) => setTimeout(resolve, 75));
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true, newBalance: 3500, pricePaid: 1500 }),
+        body: JSON.stringify({
+          success: true,
+          accountId: userId,
+          requestId,
+          clubId,
+          itemId,
+          purchaseId: '00000000-0000-4000-8000-000000000016',
+          newBalance: 3500,
+          pricePaid: 1500,
+          currency: 'diamonds',
+          duplicate: false,
+          item: { name: 'Phase 13 Time Bank', type: 'time_bank' },
+        }),
       });
     });
 
@@ -700,11 +751,17 @@ test.describe('5. Storefront Routes And Design Contract', () => {
     let checkoutRequests = 0;
     let checkoutBody: Record<string, unknown> | null = null;
     let checkoutRequestId = '';
+    const checkoutSessionId = 'cs_test_clubdetailbinding123';
+    const checkoutUrl = `https://checkout.stripe.com/c/pay/${checkoutSessionId}`;
+    await page.route('https://checkout.stripe.com/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><title>Verified Stripe Checkout</title>',
+    }));
     await page.route('**/api/store/create-checkout-session', async (route) => {
       checkoutRequests += 1;
       checkoutBody = await route.request().postDataJSON();
       checkoutRequestId = route.request().headers()['x-checkout-request-id'] || '';
-      const requestOrigin = new URL(route.request().url()).origin;
       await new Promise((resolve) => setTimeout(resolve, 75));
       await route.fulfill({
         status: 200,
@@ -712,7 +769,10 @@ test.describe('5. Storefront Routes And Design Contract', () => {
         body: JSON.stringify({
           success: true,
           data: {
-            url: `${requestOrigin}/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}?clubId=${COPY_AUDIT_CLUB_ID}&canceled=true`,
+            session_id: checkoutSessionId,
+            request_id: checkoutRequestId,
+            url: checkoutUrl,
+            offer: (checkoutBody as { offerConfirmation?: unknown })?.offerConfirmation,
           },
         }),
       });
@@ -728,9 +788,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       button.click();
       button.click();
     });
-    await expect(page).toHaveURL(
-      new RegExp(`/hub/club-shop/${COPY_AUDIT_CLUB_ITEM_ID}\\?clubId=${COPY_AUDIT_CLUB_ID}&canceled=true$`),
-    );
+    await expect(page).toHaveURL(checkoutUrl);
 
     expect(checkoutRequests).toBe(1);
     expect(checkoutRequestId).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
@@ -850,10 +908,19 @@ test.describe('5. Storefront Routes And Design Contract', () => {
           data: {
             status: 'complete',
             sessionId,
+            accountId: userId,
             type: 'merchandise',
             paymentStatus: 'paid',
+            sessionStatus: 'complete',
             amountTotal: 5999,
             currency: 'usd',
+            label: null,
+            purchaseKind: null,
+            itemId: null,
+            diamonds: null,
+            walletBalance: null,
+            redemptionStatus: null,
+            redemptionError: null,
             requestId: 'phase23-card-request-0001',
             orderId,
             orderSource: 'merchandise',
@@ -1020,6 +1087,7 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        accountId: userId,
         clubId,
         role: 'owner',
         balance: 5000,
@@ -1028,7 +1096,20 @@ test.describe('5. Storefront Routes And Design Contract', () => {
           name: 'Phase 20 Time Bank',
           description: 'Operator dialog test item',
           price: 500,
+          effective_price: 500,
+          list_price: 500,
           category: 'Time Banks',
+          item_type: 'time_bank',
+          grant_spec: { type: 'time_bank', qty: 1 },
+          stackable: true,
+          available: true,
+          availability_reason: null,
+          card_checkout_available: false,
+          card_checkout_reason: 'unsupported_item_price',
+          card_quote: null,
+          on_sale: false,
+          purchase_count: 0,
+          my_purchase_count: 0,
         }],
         purchases: [],
       }),

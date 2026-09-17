@@ -1,27 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { acquireScrollLock } from '../../lib/scrollLock';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import styles from './MerchPurchaseDialog.module.css';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const fmt = (value) => Number(value || 0).toLocaleString('en-US');
+const emptyShipping = () => ({
+  name: '',
+  line1: '',
+  line2: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: 'US',
+});
 
 export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel, onConfirm }) {
   const dialogRef = useRef(null);
   const returnFocusRef = useRef(null);
   const busyRef = useRef(busy);
   const onCancelRef = useRef(onCancel);
-  const [shipping, setShipping] = useState({
-    name: '',
-    line1: '',
-    line2: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    country: 'US',
-  });
+  const [shipping, setShipping] = useState(emptyShipping);
+  const purchaseIdentity = purchase
+    ? [
+        purchase.commerceIntent?.userId || '',
+        purchase.product?.catalogId || purchase.product?.key || '',
+        purchase.variant?.id || '',
+        purchase.purchaseRequestId || '',
+      ].join(':')
+    : '';
 
   useEffect(() => {
     busyRef.current = busy;
@@ -30,6 +40,10 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
   useEffect(() => {
     onCancelRef.current = onCancel;
   }, [onCancel]);
+
+  useEffect(() => {
+    setShipping(emptyShipping());
+  }, [purchaseIdentity]);
 
   useEffect(() => {
     if (!purchase) return undefined;
@@ -111,16 +125,7 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
         aria-describedby="merch-purchase-dialog-description"
         tabIndex={-1}
       >
-        <div className={styles.rail} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-
         <header className={styles.header}>
-          <div className={styles.seal} aria-hidden="true">
-            Secure
-          </div>
           <div>
             <span>Diamond Authorization</span>
             <h2 id="merch-purchase-dialog-title">Confirm Merchandise Order</h2>
@@ -136,113 +141,120 @@ export default function MerchPurchaseDialog({ purchase, balance, busy, onCancel,
           </button>
         </header>
 
-        <p id="merch-purchase-dialog-description" className={styles.description}>
-          Review The Order Before Diamonds Leave Your Balance.
-        </p>
+        <div className={styles.panelBody}>
+          <p id="merch-purchase-dialog-description" className={styles.description}>
+            Review The Order Before Diamonds Leave Your Balance.
+          </p>
 
-        <dl className={styles.ledger}>
-          <div>
-            <dt>Item</dt>
-            <dd>{purchase.product.name}</dd>
-          </div>
-          {purchase.variant && (
+          <dl className={styles.ledger}>
             <div>
-              <dt>Option</dt>
-              <dd>{purchase.variant.label}</dd>
+              <dt>Item</dt>
+              <dd>{marketplaceCopy(purchase.product.name)}</dd>
             </div>
+            {purchase.variant && (
+              <div>
+                <dt>Option</dt>
+                <dd>{marketplaceCopy(purchase.variant.label)}</dd>
+              </div>
+            )}
+            <div>
+              <dt>Quantity</dt>
+              <dd>{fmt(purchase.quantity)}</dd>
+            </div>
+            <div>
+              <dt>Available Balance</dt>
+              <dd>{fmt(balance)} Diamonds</dd>
+            </div>
+          </dl>
+
+          <div className={styles.total}>
+            <span>Order Total</span>
+            <strong>{fmt(purchase.cost)} Diamonds</strong>
+          </div>
+
+          {shippingRequired && (
+            <fieldset className={styles.shipping}>
+              <legend>Shipping Destination</legend>
+              <label className={styles.full}>
+                <span>Full Name</span>
+                <input
+                  data-preserve-case="true"
+                  autoComplete="name"
+                  value={shipping.name}
+                  onChange={updateShipping('name')}
+                  required
+                />
+              </label>
+              <label className={styles.full}>
+                <span>Address</span>
+                <input
+                  data-preserve-case="true"
+                  autoComplete="address-line1"
+                  value={shipping.line1}
+                  onChange={updateShipping('line1')}
+                  required
+                />
+              </label>
+              <label className={styles.full}>
+                <span>Apartment / Suite (Optional)</span>
+                <input
+                  data-preserve-case="true"
+                  autoComplete="address-line2"
+                  value={shipping.line2}
+                  onChange={updateShipping('line2')}
+                />
+              </label>
+              <label>
+                <span>City</span>
+                <input
+                  data-preserve-case="true"
+                  autoComplete="address-level2"
+                  value={shipping.city}
+                  onChange={updateShipping('city')}
+                  required
+                />
+              </label>
+              <label>
+                <span>State / Province</span>
+                <input
+                  data-preserve-case="true"
+                  autoComplete="address-level1"
+                  value={shipping.state}
+                  onChange={updateShipping('state')}
+                  required
+                />
+              </label>
+              <label>
+                <span>Postal Code</span>
+                <input
+                  data-preserve-case="true"
+                  autoComplete="postal-code"
+                  value={shipping.postalCode}
+                  onChange={updateShipping('postalCode')}
+                  required
+                />
+              </label>
+              <label>
+                <span>Country</span>
+                <select
+                  data-preserve-case="true"
+                  autoComplete="country"
+                  value={shipping.country}
+                  onChange={updateShipping('country')}
+                >
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                </select>
+              </label>
+            </fieldset>
           )}
-          <div>
-            <dt>Quantity</dt>
-            <dd>{fmt(purchase.quantity)}</dd>
-          </div>
-          <div>
-            <dt>Available Balance</dt>
-            <dd>{fmt(balance)} Diamonds</dd>
-          </div>
-        </dl>
 
-        <div className={styles.total}>
-          <span>Order Total</span>
-          <strong>
-            {fmt(purchase.cost)} Diamonds
-          </strong>
+          <p className={styles.notice}>
+            {shippingRequired
+              ? 'Confirming Deducts The Diamonds And Sends This Order To Secure Fulfillment.'
+              : 'Confirming Places The Order And Deducts The Diamonds Immediately.'}
+          </p>
         </div>
-
-        {shippingRequired && (
-          <fieldset className={styles.shipping}>
-            <legend>Shipping Destination</legend>
-            <label className={styles.full}>
-              <span>Full Name</span>
-              <input
-                autoComplete="name"
-                value={shipping.name}
-                onChange={updateShipping('name')}
-                required
-              />
-            </label>
-            <label className={styles.full}>
-              <span>Address</span>
-              <input
-                autoComplete="address-line1"
-                value={shipping.line1}
-                onChange={updateShipping('line1')}
-                required
-              />
-            </label>
-            <label className={styles.full}>
-              <span>Apartment / Suite (Optional)</span>
-              <input
-                autoComplete="address-line2"
-                value={shipping.line2}
-                onChange={updateShipping('line2')}
-              />
-            </label>
-            <label>
-              <span>City</span>
-              <input
-                autoComplete="address-level2"
-                value={shipping.city}
-                onChange={updateShipping('city')}
-                required
-              />
-            </label>
-            <label>
-              <span>State / Province</span>
-              <input
-                autoComplete="address-level1"
-                value={shipping.state}
-                onChange={updateShipping('state')}
-                required
-              />
-            </label>
-            <label>
-              <span>Postal Code</span>
-              <input
-                autoComplete="postal-code"
-                value={shipping.postalCode}
-                onChange={updateShipping('postalCode')}
-                required
-              />
-            </label>
-            <label>
-              <span>Country</span>
-              <select
-                autoComplete="country"
-                value={shipping.country}
-                onChange={updateShipping('country')}
-              >
-                <option value="US">United States</option>
-                <option value="CA">Canada</option>
-              </select>
-            </label>
-          </fieldset>
-        )}
-
-        <p className={styles.notice}>
-          {shippingRequired
-            ? 'Confirming Deducts The Diamonds And Sends This Order To Secure Fulfillment.'
-            : 'Confirming Places The Order And Deducts The Diamonds Immediately.'}
-        </p>
 
         <footer className={styles.actions}>
           <button type="button" className={styles.cancel} onClick={onCancel} disabled={busy}>

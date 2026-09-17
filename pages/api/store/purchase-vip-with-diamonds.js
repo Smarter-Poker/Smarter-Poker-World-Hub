@@ -4,13 +4,14 @@ import { createHash } from 'node:crypto';
  * Purchase a VIP MEMBERSHIP with diamonds
  * POST /api/store/purchase-vip-with-diamonds
  *
- * Body: { plan: 'monthly' | 'yearly' | 'lifetime', idempotencyKey?: string }
+ * Body: { plan: 'monthly' | 'yearly' | 'lifetime', offerConfirmation,
+ *         idempotencyKey?: string }
  *       (or the X-Idempotency-Key header)
  *
- * The client sends a plan KEY ONLY — never a price and never an amount.
- * The diamond cost is resolved server-side from VIP_MEMBERSHIP in
- * src/data/diamondStoreData.js at the platform rate of 100 diamonds per USD
- * (1 diamond = $0.01), so there is exactly one source of truth for the price.
+ * The client confirms the exact integer Diamond cost it reviewed. The server
+ * still resolves authoritative pricing from VIP_MEMBERSHIP and refuses a new
+ * debit if those values differ. Exact historical retries replay before the
+ * current-price comparison.
  *
  * This replaces the browser-side purchaseVipWithDiamonds() in
  * commander-shared/src/lib/gates/premiumFeatureGate.js, which wrote
@@ -21,37 +22,44 @@ import { createHash } from 'node:crypto';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
+const {
+  requireEmailVerified,
+  requireEmailVerifiedByUserId,
+} = require('../../../src/lib/emailVerifiedGate');
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import {
-    BLOCKING_RECURRING_VIP_STATUSES,
-    STRIPE_VIP_AUTHORITY,
-    classifyStripeCheckoutSessionForVip,
-    classifyStripeSubscriptionForVip,
+  exactJsonValueMatches,
+  vipDiamondOfferConfirmation,
+} from '../../../src/lib/store/verifiedCheckoutUrl.mjs';
+import {
+  BLOCKING_RECURRING_VIP_STATUSES,
+  STRIPE_VIP_AUTHORITY,
+  classifyStripeCheckoutSessionForVip,
+  classifyStripeSubscriptionForVip,
 } from '../../../src/lib/store/vipPurchaseGuards.mjs';
 const { inspectStripeRuntime } = require('../../../src/lib/store/stripeRuntimeMode');
 
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!url || !key) throw new Error('VIP purchase database is not configured');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('VIP purchase database is not configured');
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
 }
 
 const stripe = process.env.STRIPE_SECRET_KEY
-    ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2023-10-16',
-        timeout: 15000,
-        maxNetworkRetries: 2,
-        telemetry: false
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+      timeout: 15000,
+      maxNetworkRetries: 2,
+      telemetry: false,
     })
-    : null;
+  : null;
 
 // 1 diamond = $0.01 — see src/config/diamondRewards.js
 const DIAMONDS_PER_DOLLAR = 100;
@@ -79,8 +87,8 @@ const INTERVAL_DAYS = { day: 1, week: 7, month: 30, year: 365 };
 
 // Sanity band on the derived cost. Guards against a corrupted/edited catalog
 // entry silently selling annual VIP for 1 diamond (or charging 5,000,000).
-const MIN_COST_DIAMONDS = 100;      // $1
-const MAX_COST_DIAMONDS = 100000;   // $1,000
+const MIN_COST_DIAMONDS = 100; // $1
+const MAX_COST_DIAMONDS = 100000; // $1,000
 
 /**
  * Resolve the plan definition and derive its diamond cost from the real USD
@@ -88,459 +96,477 @@ const MAX_COST_DIAMONDS = 100000;   // $1,000
  * unusable — we never fall back to a hardcoded second copy of the price.
  */
 function resolvePlan(planKey) {
-    if (!SUPPORTED_PLANS.includes(planKey)) return null;
-    const plan = VIP_MEMBERSHIP && VIP_MEMBERSHIP[planKey];
-    /* `isDiamondCost` was the Daily Pass's marker - it meant "this plan's
+  if (!SUPPORTED_PLANS.includes(planKey)) return null;
+  const plan = VIP_MEMBERSHIP && VIP_MEMBERSHIP[planKey];
+  /* `isDiamondCost` was the Daily Pass's marker - it meant "this plan's
        `price` is already denominated in diamonds", and it was refused here
        because this route derives the diamond cost from a USD price. The Daily
        Pass is retired and no plan carries the flag any more; the guard stays
        as a tripwire in case one ever does. */
-    if (!plan || plan.isDiamondCost) return null;
+  if (!plan || plan.isDiamondCost) return null;
 
-    const usd = Number(plan.price);
-    if (!Number.isFinite(usd) || usd <= 0) return null;
+  const usd = Number(plan.price);
+  if (!Number.isFinite(usd) || usd <= 0) return null;
 
-    // $19.99 -> 1999, $199.99 -> 19999
-    const cost = Math.round(usd * DIAMONDS_PER_DOLLAR);
-    if (!Number.isInteger(cost) || cost < MIN_COST_DIAMONDS || cost > MAX_COST_DIAMONDS) return null;
+  // $19.99 -> 1999, $199.99 -> 19999
+  const cost = Math.round(usd * DIAMONDS_PER_DOLLAR);
+  if (!Number.isInteger(cost) || cost < MIN_COST_DIAMONDS || cost > MAX_COST_DIAMONDS) return null;
 
-    // A lifetime term has no day count, and that is not a failure to resolve.
-    const lifetime = plan.interval === 'lifetime';
-    const days = lifetime ? null : INTERVAL_DAYS[plan.interval];
-    if (!lifetime && !days) return null;
+  // A lifetime term has no day count, and that is not a failure to resolve.
+  const lifetime = plan.interval === 'lifetime';
+  const days = lifetime ? null : INTERVAL_DAYS[plan.interval];
+  if (!lifetime && !days) return null;
 
-    return { key: planKey, id: plan.id, name: plan.name, usd, cost, days, lifetime };
+  return { key: planKey, id: plan.id, name: plan.name, usd, cost, days, lifetime };
 }
 
 // ── Idempotency ───────────────────────────────────────────────────────────
-// Two layers:
-//   1. A DB-level reference_id. add_diamonds_to_balance refuses any
-//      reference_id it has already written (returns duplicate:true), which is
-//      the only layer that survives across serverless instances.
-//   2. A short in-memory double-submit guard keyed on the same reference id,
-//      so a same-millisecond double-click gets a clean 409 instead of racing
-//      into the DB.
-const IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
+// The durable request row and atomic database RPC are the sole authority for
+// replay and concurrency. A process-local cache cannot coordinate serverless
+// instances and must never decide financial truth.
 const KEY_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
 
-const _submissions = new Map(); // referenceId -> { state, status, body, expiresAt }
-let _reaperStarted = false;
-function ensureReaper() {
-    if (_reaperStarted || typeof setInterval === 'undefined') return;
-    _reaperStarted = true;
-    const t = setInterval(() => {
-        const now = Date.now();
-        for (const [k, v] of _submissions) if (now >= v.expiresAt) _submissions.delete(k);
-    }, 60 * 1000);
-    if (t && t.unref) t.unref();
-}
-
 function readClientKey(req) {
-    const header = req.headers && req.headers['x-idempotency-key'];
-    const body = req.body && req.body.idempotencyKey;
-    const raw = (typeof header === 'string' && header) || (typeof body === 'string' && body) || null;
-    if (!raw) return { key: null, invalid: false };
-    const trimmed = raw.trim();
-    if (!KEY_PATTERN.test(trimmed)) return { key: null, invalid: true };
-    return { key: trimmed, invalid: false };
+  const header = req.headers && req.headers['x-idempotency-key'];
+  const body = req.body && req.body.idempotencyKey;
+  const headerWasSent = header !== undefined;
+  const bodyWasSent = body !== undefined;
+  if ((headerWasSent && typeof header !== 'string') || (bodyWasSent && typeof body !== 'string')) {
+    return { key: null, invalid: true };
+  }
+  const headerKey = typeof header === 'string' ? header.trim() : '';
+  const bodyKey = typeof body === 'string' ? body.trim() : '';
+  if (headerKey && bodyKey && headerKey !== bodyKey) {
+    return { key: null, invalid: true };
+  }
+  const key = headerKey || bodyKey || null;
+  if (!key) return { key: null, invalid: false };
+  if (!KEY_PATTERN.test(key)) return { key: null, invalid: true };
+  return { key, invalid: false };
 }
 
 /**
- * Reference id = user + plan + client key. When the client sends no key we
- * fall back to a coarse time bucket so a double-click still collapses onto one
- * reference id (and therefore one charge) instead of billing twice.
+ * Reference id = user + client key. Requests without a valid client key are
+ * refused before any database work.
  */
 function buildReferenceId(userId, clientKey) {
-    return 'vip-diamonds:' + userId + ':' + clientKey;
+  return 'vip-diamonds:' + userId + ':' + clientKey;
 }
 
-function successBody(plan, cost, purchaseResult, idempotent = false) {
-    return {
-        success: true,
-        idempotent: idempotent || !!purchaseResult.duplicate,
-        duplicate: idempotent || !!purchaseResult.duplicate,
-        isVip: true,
-        plan: plan.key,
-        tier: purchaseResult.tier || plan.key,
-        cost,
-        daysAdded: plan.days,
-        expiresAt: purchaseResult.expires_at,
-        newBalance: purchaseResult.new_balance
-    };
+function successBody(plan, cost, purchaseResult, accountId, requestId, idempotent = false) {
+  return {
+    success: true,
+    accountId,
+    requestId,
+    idempotent: idempotent || !!purchaseResult.duplicate,
+    duplicate: idempotent || !!purchaseResult.duplicate,
+    isVip: true,
+    plan: plan.key,
+    tier: purchaseResult.tier || plan.key,
+    cost,
+    daysAdded: plan.days,
+    expiresAt: purchaseResult.expires_at,
+    newBalance: purchaseResult.new_balance,
+  };
 }
 
 export default async function handler(req, res) {
   try {
-      setPrivateCommerceResponse(res);
-      if (req.method !== 'POST') {
-          res.setHeader('Allow', 'POST');
-          return res.status(405).json({ success: false, error: 'Method not allowed' });
+    setPrivateCommerceResponse(res);
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+
+    let referenceId = null;
+
+    try {
+      // ── Auth: userId comes from the token, never from the body ───────
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'Authorization required' });
       }
 
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-
-      ensureReaper();
-      let referenceId = null;
-
-      try {
-          // ── Auth: userId comes from the token, never from the body ───────
-          const authHeader = req.headers.authorization;
-          if (!authHeader || !authHeader.startsWith('Bearer ')) {
-              return res.status(401).json({ success: false, error: 'Authorization required' });
-          }
-
-          const { user, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-          if (authErr || !user || !user.id) {
-              return res.status(401).json({ success: false, error: 'Invalid session' });
-          }
-
-          // Email must be verified before any real-value action.
-          // The fast local-JWT path in serverAuth returns { id, email, role, aud }
-          // with NO email_confirmed_at, so the synchronous gate alone would 403
-          // every caller. Fall back to the auth.users lookup in that case.
-          let emailGate = requireEmailVerified(user);
-          if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
-              emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
-          }
-          if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
-
-          if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > 512) {
-              return res.status(413).json({ success: false, error: 'Request body too large' });
-          }
-          const allowedFields = new Set(['plan', 'idempotencyKey']);
-          const unknownFields = Object.keys(req.body || {})
-              .filter((field) => !allowedFields.has(field));
-          if (unknownFields.length > 0) {
-              return res.status(400).json({
-                  success: false,
-                  error: `Unknown fields: ${unknownFields.join(', ')}`
-              });
-          }
-
-          // ── Resolve the plan + cost SERVER-SIDE from the plan key ────────
-          const planKey = req.body && typeof req.body.plan === 'string' ? req.body.plan.trim().toLowerCase() : '';
-          if (!planKey) {
-              return res.status(400).json({ success: false, error: 'plan is required' });
-          }
-          // The Daily Pass was retired on 2026-09-05 (Dan: the terms are
-          // monthly, yearly and lifetime). Nothing was ever sold on it. An old
-          // cached bundle can still ask, so answer with the reason rather than
-          // a bare "unsupported plan".
-          if (planKey === 'daily') {
-              return res.status(410).json({
-                  success: false,
-                  error: 'The VIP Daily Pass has been retired. VIP is monthly, yearly or lifetime.',
-                  supported: SUPPORTED_PLANS
-              });
-          }
-          // Likewise for the old name of the yearly term, so a stale client
-          // that still says 'annual' gets the membership it asked for.
-          if (planKey === 'annual') {
-              return res.status(400).json({
-                  success: false,
-                  error: 'The annual plan is now called yearly.',
-                  supported: SUPPORTED_PLANS,
-                  renamedTo: 'yearly'
-              });
-          }
-
-          const plan = resolvePlan(planKey);
-          if (!plan) {
-              return res.status(400).json({
-                  success: false,
-                  error: 'Unsupported VIP plan',
-                  supported: SUPPORTED_PLANS
-              });
-          }
-          const COST = plan.cost;
-
-          // ── Idempotency key ──────────────────────────────────────────────
-          const { key: clientKey, invalid: keyInvalid } = readClientKey(req);
-          if (keyInvalid || !clientKey) {
-              return res.status(400).json({
-                  success: false,
-                  error: 'A valid X-Idempotency-Key is required (8-128 chars, letters/digits/._:- only)'
-              });
-          }
-          referenceId = buildReferenceId(user.id, clientKey);
-          const requestHash = createHash('sha256')
-              .update(JSON.stringify({ plan: plan.key, cost: COST, days: plan.days }))
-              .digest('hex');
-
-          // In-memory double-submit guard.
-          const prior = _submissions.get(referenceId);
-          if (prior && Date.now() < prior.expiresAt) {
-              if (prior.requestHash !== requestHash) {
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'This idempotency key is already bound to another VIP plan.',
-                      code: 'IDEMPOTENCY_CONFLICT'
-                  });
-              }
-              if (prior.state === 'processing') {
-                  referenceId = null; // not ours to release
-                  return res.status(409).json({
-                      success: false,
-                      error: 'A VIP purchase with this idempotency key is already in progress.',
-                      duplicate: true
-                  });
-              }
-              const replay = { ...prior.body, idempotent: true };
-              referenceId = null;
-              return res.status(prior.status).json(replay);
-          }
-          _submissions.set(referenceId, { requestHash, state: 'processing', status: 0, body: null, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
-
-          const remember = (status, body) => {
-              if (!referenceId) return;
-              _submissions.set(referenceId, { requestHash, state: 'done', status, body, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
-              referenceId = null;
-          };
-
-          // A settled request is immutable and must replay before any current
-          // Card eligibility check. Otherwise a member who bought with
-          // Diamonds and later opened a Card subscription could receive a
-          // conflict when safely retrying the original completed request.
-          const { data: durableRequest, error: durableReadError } = await getSupabase()
-              .from('vip_diamond_purchase_requests')
-              .select('user_id, request_hash, response')
-              .eq('reference_id', referenceId)
-              .maybeSingle();
-          if (durableReadError) {
-              _submissions.delete(referenceId);
-              referenceId = null;
-              return res.status(503).json({
-                  success: false,
-                  error: 'VIP Purchase State Could Not Be Verified. Please Try Again.',
-                  code: 'VIP_PURCHASE_STATE_UNAVAILABLE'
-              });
-          }
-          if (durableRequest) {
-              if (durableRequest.user_id !== user.id || durableRequest.request_hash !== requestHash) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'This Idempotency Key Is Already Bound To Another VIP Plan.',
-                      code: 'IDEMPOTENCY_CONFLICT'
-                  });
-              }
-              if (!durableRequest.response?.success) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(503).json({
-                      success: false,
-                      error: 'VIP Purchase State Could Not Be Verified. Please Try Again.',
-                      code: 'VIP_PURCHASE_STATE_UNAVAILABLE'
-                  });
-              }
-              const replayBody = successBody(plan, COST, durableRequest.response, true);
-              remember(200, replayBody);
-              return res.status(200).json(replayBody);
-          }
-
-          // Stripe is the authority when a Checkout session or subscription
-          // has not reached the local webhook ledger yet. Any uncertainty must
-          // fail closed before Diamonds are debited. The reciprocal database
-          // claim guard still closes a Card checkout that begins after these
-          // reads and before the atomic Diamond RPC.
-          const { data: eligibilityProfile, error: profileReadError } = await getSupabase()
-              .from('profiles')
-              .select('stripe_customer_id')
-              .eq('id', user.id)
-              .maybeSingle();
-          if (profileReadError || !eligibilityProfile) {
-              _submissions.delete(referenceId);
-              referenceId = null;
-              return res.status(503).json({
-                  success: false,
-                  error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
-                  code: 'VIP_ELIGIBILITY_UNAVAILABLE'
-              });
-          }
-          if (eligibilityProfile.stripe_customer_id) {
-              const stripeRuntime = inspectStripeRuntime(process.env, {
-                  requirePublishable: false,
-              });
-              if (!stripe || !stripeRuntime.ready) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(503).json({
-                      success: false,
-                      error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
-                      code: 'VIP_ELIGIBILITY_UNAVAILABLE'
-                  });
-              }
-              let stripeSubscriptions;
-              let openSessions;
-              try {
-                  [stripeSubscriptions, openSessions] = await Promise.all([
-                      stripe.subscriptions.list({
-                          customer: eligibilityProfile.stripe_customer_id,
-                          status: 'all',
-                          limit: 100
-                      }),
-                      stripe.checkout.sessions.list({
-                          customer: eligibilityProfile.stripe_customer_id,
-                          status: 'open',
-                          limit: 100
-                      })
-                  ]);
-              } catch (stripeEligibilityError) {
-                  console.warn('[Purchase VIP Diamonds] Stripe eligibility check failed:', stripeEligibilityError?.message || stripeEligibilityError);
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(503).json({
-                      success: false,
-                      error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
-                      code: 'VIP_ELIGIBILITY_UNAVAILABLE'
-                  });
-              }
-              if (stripeSubscriptions?.has_more || openSessions?.has_more) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(503).json({
-                      success: false,
-                      error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
-                      code: 'VIP_ELIGIBILITY_UNAVAILABLE'
-                  });
-              }
-              const knownVipPriceIds = [
-                  process.env.STRIPE_VIP_MONTHLY_PRICE_ID,
-                  process.env.STRIPE_VIP_YEARLY_PRICE_ID,
-              ];
-              const blockingStripeSubscriptions = (stripeSubscriptions?.data || [])
-                  .filter((subscription) => (
-                      BLOCKING_RECURRING_VIP_STATUSES.includes(subscription?.status)
-                  ));
-              const subscriptionAuthorities = blockingStripeSubscriptions.map((subscription) => (
-                  classifyStripeSubscriptionForVip(subscription, { knownVipPriceIds })
-              ));
-              const activeCardSubscription = subscriptionAuthorities.includes(STRIPE_VIP_AUTHORITY.VIP);
-              if (activeCardSubscription) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'Cancel Your Active Recurring VIP Plan Before Purchasing VIP With Diamonds.',
-                      code: 'ACTIVE_SUBSCRIPTION_EXISTS'
-                  });
-              }
-              if (subscriptionAuthorities.includes(STRIPE_VIP_AUTHORITY.UNKNOWN)) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(503).json({
-                      success: false,
-                      error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
-                      code: 'VIP_ELIGIBILITY_UNAVAILABLE'
-                  });
-              }
-              const checkoutAuthorities = (openSessions?.data || []).map(
-                  (session) => classifyStripeCheckoutSessionForVip(session)
-              );
-              const openCardCheckout = checkoutAuthorities.includes(STRIPE_VIP_AUTHORITY.VIP);
-              if (openCardCheckout) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'A Card VIP Checkout Is Already Open For This Account.',
-                      code: 'CARD_CHECKOUT_EXISTS'
-                  });
-              }
-              if (checkoutAuthorities.includes(STRIPE_VIP_AUTHORITY.UNKNOWN)) {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(503).json({
-                      success: false,
-                      error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
-                      code: 'VIP_ELIGIBILITY_UNAVAILABLE'
-                  });
-              }
-          }
-
-          // Durable replay is resolved inside this RPC before current Card
-          // eligibility. New purchases then acquire the same profile row lock
-          // as Card checkout claims before the unchanged debit, ledger, tier,
-          // and expiry settlement. This ordering means an already completed
-          // request remains replayable without opening a cross-method race.
-          const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc('purchase_vip_with_diamonds_atomic_v3', {
-              p_user_id: user.id,
-              p_cost: COST,
-              p_days: plan.days,
-              p_plan: plan.key,
-              p_description: `${plan.name} (${COST} diamonds)`,
-              p_reference_id: referenceId,
-              p_request_hash: requestHash
-          });
-
-          if (purchaseError) {
-              console.warn('[Purchase VIP Diamonds] Atomic purchase failed:', purchaseError);
-              _submissions.delete(referenceId);
-              referenceId = null;
-              return res.status(500).json({ success: false, error: 'Failed to process payment' });
-          }
-          if (!purchaseResult?.success) {
-              if (purchaseResult?.error === 'reference_conflict') {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'This idempotency key is already bound to another VIP plan.',
-                      code: 'IDEMPOTENCY_CONFLICT'
-                  });
-              }
-              if (purchaseResult?.error === 'card_checkout_exists') {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'A Card VIP Checkout Is Already Open For This Account.',
-                      code: 'CARD_CHECKOUT_EXISTS'
-                  });
-              }
-              if (purchaseResult?.error === 'active_card_subscription') {
-                  _submissions.delete(referenceId);
-                  referenceId = null;
-                  return res.status(409).json({
-                      success: false,
-                      error: 'Cancel Your Active Recurring VIP Plan Before Purchasing VIP With Diamonds.',
-                      code: 'ACTIVE_SUBSCRIPTION_EXISTS'
-                  });
-              }
-              const isLifetime = purchaseResult?.error === 'already_lifetime';
-              const body = {
-                  success: false,
-                  error: isLifetime
-                      ? 'Lifetime VIP already includes this membership'
-                      : purchaseResult?.error === 'insufficient_diamonds'
-                      ? 'Insufficient diamonds'
-                      : (purchaseResult?.error || 'Failed to process payment'),
-                  required: COST,
-                  current: purchaseResult?.new_balance
-              };
-              _submissions.delete(referenceId);
-              referenceId = null;
-              return res.status(isLifetime ? 409 : purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500).json(body);
-          }
-
-          const body = successBody(plan, COST, purchaseResult);
-          remember(200, body);
-          return res.status(200).json(body);
-
-      } catch (err) {
-          console.warn('[Purchase VIP Diamonds] Fatal Error:', err);
-          if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-      } finally {
-          // Never leave a key stuck in 'processing' — that would lock the user
-          // out of retrying for the whole TTL.
-          if (referenceId) _submissions.delete(referenceId);
+      const { user, error: authErr } = await getServerUserWithFallback(req, getSupabase());
+      if (authErr || !user || !user.id) {
+        return res.status(401).json({ success: false, error: 'Invalid session' });
       }
 
+      // Email must be verified before any real-value action.
+      // The fast local-JWT path in serverAuth returns { id, email, role, aud }
+      // with NO email_confirmed_at, so the synchronous gate alone would 403
+      // every caller. Fall back to the auth.users lookup in that case.
+      let emailGate = requireEmailVerified(user);
+      if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
+        emailGate = await requireEmailVerifiedByUserId(getSupabase(), user.id);
+      }
+      if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+
+      if (Buffer.byteLength(JSON.stringify(req.body || {}), 'utf8') > 1024) {
+        return res.status(413).json({ success: false, error: 'Request body too large' });
+      }
+      const allowedFields = new Set(['plan', 'offerConfirmation', 'idempotencyKey']);
+      const unknownFields = Object.keys(req.body || {}).filter(
+        (field) => !allowedFields.has(field)
+      );
+      if (unknownFields.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Unknown fields: ${unknownFields.join(', ')}`,
+        });
+      }
+
+      // ── Resolve the plan + cost SERVER-SIDE from the plan key ────────
+      const planKey =
+        req.body && typeof req.body.plan === 'string' ? req.body.plan.trim().toLowerCase() : '';
+      if (!planKey) {
+        return res.status(400).json({ success: false, error: 'plan is required' });
+      }
+      // The Daily Pass was retired on 2026-09-05 (Dan: the terms are
+      // monthly, yearly and lifetime). Nothing was ever sold on it. An old
+      // cached bundle can still ask, so answer with the reason rather than
+      // a bare "unsupported plan".
+      if (planKey === 'daily') {
+        return res.status(410).json({
+          success: false,
+          error: 'The VIP Daily Pass has been retired. VIP is monthly, yearly or lifetime.',
+          supported: SUPPORTED_PLANS,
+        });
+      }
+      // Likewise for the old name of the yearly term, so a stale client
+      // that still says 'annual' gets the membership it asked for.
+      if (planKey === 'annual') {
+        return res.status(400).json({
+          success: false,
+          error: 'The annual plan is now called yearly.',
+          supported: SUPPORTED_PLANS,
+          renamedTo: 'yearly',
+        });
+      }
+
+      const plan = resolvePlan(planKey);
+      if (!plan) {
+        return res.status(400).json({
+          success: false,
+          error: 'Unsupported VIP plan',
+          supported: SUPPORTED_PLANS,
+        });
+      }
+      const COST = plan.cost;
+
+      // ── Idempotency key ──────────────────────────────────────────────
+      const { key: clientKey, invalid: keyInvalid } = readClientKey(req);
+      if (keyInvalid || !clientKey) {
+        return res.status(400).json({
+          success: false,
+          error: 'A valid X-Idempotency-Key is required (8-128 chars, letters/digits/._:- only)',
+        });
+      }
+      referenceId = buildReferenceId(user.id, clientKey);
+      const boundPurchaseResponse = (body) => ({
+        ...body,
+        accountId: user.id,
+        requestId: clientKey,
+      });
+      const offerConfirmation = vipDiamondOfferConfirmation(user.id, req.body?.offerConfirmation);
+      if (
+        !offerConfirmation ||
+        !exactJsonValueMatches(req.body?.offerConfirmation, offerConfirmation) ||
+        offerConfirmation.plan !== plan.key
+      ) {
+        return res.status(400).json(
+          boundPurchaseResponse({
+            success: false,
+            error: 'The Reviewed VIP Price Could Not Be Verified. Review This Plan Again.',
+            code: 'OFFER_CONFIRMATION_REQUIRED',
+          })
+        );
+      }
+      const requestHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            plan: plan.key,
+            cost: offerConfirmation.cost,
+            days: plan.days,
+          })
+        )
+        .digest('hex');
+
+      // A settled request is immutable and must replay before any current
+      // Card eligibility check. Otherwise a member who bought with
+      // Diamonds and later opened a Card subscription could receive a
+      // conflict when safely retrying the original completed request.
+      const { data: durableRequest, error: durableReadError } = await getSupabase()
+        .from('vip_diamond_purchase_requests')
+        .select('user_id, request_hash, response')
+        .eq('reference_id', referenceId)
+        .maybeSingle();
+      if (durableReadError) {
+        return res.status(503).json(
+          boundPurchaseResponse({
+            success: false,
+            error: 'VIP Purchase State Could Not Be Verified. Please Try Again.',
+            code: 'VIP_PURCHASE_STATE_UNAVAILABLE',
+          })
+        );
+      }
+      if (durableRequest) {
+        if (durableRequest.user_id !== user.id || durableRequest.request_hash !== requestHash) {
+          return res.status(409).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'This Idempotency Key Is Already Bound To Another VIP Plan.',
+              code: 'IDEMPOTENCY_CONFLICT',
+            })
+          );
+        }
+        if (!durableRequest.response?.success) {
+          return res.status(503).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'VIP Purchase State Could Not Be Verified. Please Try Again.',
+              code: 'VIP_PURCHASE_STATE_UNAVAILABLE',
+            })
+          );
+        }
+        const replayBody = successBody(
+          plan,
+          offerConfirmation.cost,
+          durableRequest.response,
+          user.id,
+          clientKey,
+          true
+        );
+        return res.status(200).json(replayBody);
+      }
+
+      if (offerConfirmation.cost !== COST) {
+        return res.status(409).json(
+          boundPurchaseResponse({
+            success: false,
+            error: 'The VIP Price Changed. Review The Current Plan Before Purchasing.',
+            code: 'OFFER_PRICE_CHANGED',
+            reviewed: offerConfirmation.cost,
+            current: COST,
+          })
+        );
+      }
+
+      // Stripe is the authority when a Checkout session or subscription
+      // has not reached the local webhook ledger yet. Any uncertainty must
+      // fail closed before Diamonds are debited. The reciprocal database
+      // claim guard still closes a Card checkout that begins after these
+      // reads and before the atomic Diamond RPC.
+      const { data: eligibilityProfile, error: profileReadError } = await getSupabase()
+        .from('profiles')
+        .select('stripe_customer_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profileReadError || !eligibilityProfile) {
+        return res.status(503).json(
+          boundPurchaseResponse({
+            success: false,
+            error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+            code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+          })
+        );
+      }
+      if (eligibilityProfile.stripe_customer_id) {
+        const stripeRuntime = inspectStripeRuntime(process.env, {
+          requirePublishable: false,
+        });
+        if (!stripe || !stripeRuntime.ready) {
+          return res.status(503).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+            })
+          );
+        }
+        let stripeSubscriptions;
+        let openSessions;
+        try {
+          [stripeSubscriptions, openSessions] = await Promise.all([
+            stripe.subscriptions.list({
+              customer: eligibilityProfile.stripe_customer_id,
+              status: 'all',
+              limit: 100,
+            }),
+            stripe.checkout.sessions.list({
+              customer: eligibilityProfile.stripe_customer_id,
+              status: 'open',
+              limit: 100,
+            }),
+          ]);
+        } catch (stripeEligibilityError) {
+          console.warn(
+            '[Purchase VIP Diamonds] Stripe eligibility check failed:',
+            stripeEligibilityError?.message || stripeEligibilityError
+          );
+          return res.status(503).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+            })
+          );
+        }
+        if (stripeSubscriptions?.has_more || openSessions?.has_more) {
+          return res.status(503).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+            })
+          );
+        }
+        const knownVipPriceIds = [
+          process.env.STRIPE_VIP_MONTHLY_PRICE_ID,
+          process.env.STRIPE_VIP_YEARLY_PRICE_ID,
+        ];
+        const blockingStripeSubscriptions = (stripeSubscriptions?.data || []).filter(
+          (subscription) => BLOCKING_RECURRING_VIP_STATUSES.includes(subscription?.status)
+        );
+        const subscriptionAuthorities = blockingStripeSubscriptions.map((subscription) =>
+          classifyStripeSubscriptionForVip(subscription, { knownVipPriceIds })
+        );
+        const activeCardSubscription = subscriptionAuthorities.includes(STRIPE_VIP_AUTHORITY.VIP);
+        if (activeCardSubscription) {
+          return res.status(409).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'Cancel Your Active Recurring VIP Plan Before Purchasing VIP With Diamonds.',
+              code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+            })
+          );
+        }
+        if (subscriptionAuthorities.includes(STRIPE_VIP_AUTHORITY.UNKNOWN)) {
+          return res.status(503).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+            })
+          );
+        }
+        const checkoutAuthorities = (openSessions?.data || []).map((session) =>
+          classifyStripeCheckoutSessionForVip(session)
+        );
+        const openCardCheckout = checkoutAuthorities.includes(STRIPE_VIP_AUTHORITY.VIP);
+        if (openCardCheckout) {
+          return res.status(409).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'A Card VIP Checkout Is Already Open For This Account.',
+              code: 'CARD_CHECKOUT_EXISTS',
+            })
+          );
+        }
+        if (checkoutAuthorities.includes(STRIPE_VIP_AUTHORITY.UNKNOWN)) {
+          return res.status(503).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'VIP Purchase Eligibility Could Not Be Verified. Please Try Again.',
+              code: 'VIP_ELIGIBILITY_UNAVAILABLE',
+            })
+          );
+        }
+      }
+
+      // Durable replay is resolved inside this RPC before current Card
+      // eligibility. New purchases then acquire the same profile row lock
+      // as Card checkout claims before the unchanged debit, ledger, tier,
+      // and expiry settlement. This ordering means an already completed
+      // request remains replayable without opening a cross-method race.
+      const { data: purchaseResult, error: purchaseError } = await getSupabase().rpc(
+        'purchase_vip_with_diamonds_atomic_v3',
+        {
+          p_user_id: user.id,
+          p_cost: COST,
+          p_days: plan.days,
+          p_plan: plan.key,
+          p_description: `${plan.name} (${COST} diamonds)`,
+          p_reference_id: referenceId,
+          p_request_hash: requestHash,
+        }
+      );
+
+      if (purchaseError) {
+        console.warn('[Purchase VIP Diamonds] Atomic purchase failed:', purchaseError);
+        return res.status(500).json(
+          boundPurchaseResponse({
+            success: false,
+            error: 'Failed to process payment',
+          })
+        );
+      }
+      if (!purchaseResult?.success) {
+        if (purchaseResult?.error === 'reference_conflict') {
+          return res.status(409).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'This idempotency key is already bound to another VIP plan.',
+              code: 'IDEMPOTENCY_CONFLICT',
+            })
+          );
+        }
+        if (purchaseResult?.error === 'card_checkout_exists') {
+          return res.status(409).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'A Card VIP Checkout Is Already Open For This Account.',
+              code: 'CARD_CHECKOUT_EXISTS',
+            })
+          );
+        }
+        if (purchaseResult?.error === 'active_card_subscription') {
+          return res.status(409).json(
+            boundPurchaseResponse({
+              success: false,
+              error: 'Cancel Your Active Recurring VIP Plan Before Purchasing VIP With Diamonds.',
+              code: 'ACTIVE_SUBSCRIPTION_EXISTS',
+            })
+          );
+        }
+        const isLifetime = purchaseResult?.error === 'already_lifetime';
+        const body = boundPurchaseResponse({
+          success: false,
+          error: isLifetime
+            ? 'Lifetime VIP already includes this membership'
+            : purchaseResult?.error === 'insufficient_diamonds'
+              ? 'Insufficient diamonds'
+              : purchaseResult?.error || 'Failed to process payment',
+          required: COST,
+          current: purchaseResult?.new_balance,
+          code: isLifetime
+            ? 'ALREADY_LIFETIME'
+            : purchaseResult?.error === 'insufficient_diamonds'
+              ? 'INSUFFICIENT_DIAMONDS'
+              : undefined,
+        });
+        return res
+          .status(isLifetime ? 409 : purchaseResult?.error === 'insufficient_diamonds' ? 400 : 500)
+          .json(body);
+      }
+
+      const body = successBody(plan, COST, purchaseResult, user.id, clientKey);
+      return res.status(200).json(body);
+    } catch (err) {
+      console.warn('[Purchase VIP Diamonds] Fatal Error:', err);
+      if (!res.headersSent)
+        return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    try {
+      reportApiError(err, req);
+    } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+    }
     console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!res.headersSent)
+      return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

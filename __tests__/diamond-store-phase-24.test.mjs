@@ -8,14 +8,17 @@ import test from 'node:test';
 import './marketplace-phase-8-lifetime-entitlements.test.mjs';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 test('Settings routes VIP lifecycle work to the canonical same-surface command center', async () => {
   const settings = await read('pages/hub/settings.js');
 
   assert.match(settings, /router\.push\('\/hub\/vip-membership\/manage'\)/);
   assert.match(settings, />\s*Manage Membership\s*</);
-  assert.match(settings, /router\.push\(`\/hub\/diamond-store\/orders\/\$\{encodeURIComponent\(order\.id\)\}\?source=merchandise`\)/);
+  assert.match(
+    settings,
+    /router\.push\(`\/hub\/diamond-store\/orders\/\$\{encodeURIComponent\(order\.id\)\}\?source=merchandise`\)/
+  );
   assert.doesNotMatch(settings, /target=["']_blank["']/);
   assert.doesNotMatch(settings, /CancelVipModal|showCancelModal|cancelStep/);
   assert.equal(
@@ -26,13 +29,17 @@ test('Settings routes VIP lifecycle work to the canonical same-surface command c
 });
 
 test('no Marketplace surface claims an unwired VIP retention discount', async () => {
-  const sources = (await Promise.all([
-    'pages/hub/settings.js',
-    'pages/hub/vip-membership.js',
-    'pages/hub/vip-membership/manage.js',
-    'pages/api/store/cancel-vip.js',
-    'pages/api/store/switch-vip-plan.js',
-  ].map(read))).join('\n');
+  const sources = (
+    await Promise.all(
+      [
+        'pages/hub/settings.js',
+        'pages/hub/vip-membership.js',
+        'pages/hub/vip-membership/manage.js',
+        'pages/api/store/cancel-vip.js',
+        'pages/api/store/switch-vip-plan.js',
+      ].map(read)
+    )
+  ).join('\n');
 
   assert.doesNotMatch(sources, /50% Off|Discount Applied|actual Stripe coupon|Claim 50% Off/i);
 });
@@ -43,8 +50,11 @@ test('VIP lifecycle requests terminate and safely replay the same intent', async
   assert.match(manage, /MEMBERSHIP_ACTION_TIMEOUT_MS = 20_000/);
   assert.match(manage, /const controller = new AbortController\(\)/);
   assert.match(manage, /signal: controller\.signal/);
-  assert.match(manage, /actionIntentRef\.current\.intent !== intent/);
-  assert.match(manage, /'X-Idempotency-Key': actionIntentRef\.current\.key/);
+  assert.match(manage, /retainedMembershipAction\(expectedAccountId, endpoint, body\)/);
+  assert.match(manage, /membershipActionKeys\.get\(identity\)/);
+  assert.match(manage, /membershipActionKeys\.set\(identity, key\)/);
+  assert.match(manage, /const \{ identity: intentIdentity, key: intentKey \} = retainedAction/);
+  assert.match(manage, /'X-Idempotency-Key': intentKey/);
   assert.match(manage, /Membership Change Timed Out/);
   assert.match(manage, /actionControllerRef\.current\?\.abort\(\)/);
 });
@@ -71,7 +81,10 @@ test('card membership mutations are private, bounded, and Stripe-idempotent', as
     assert.match(source, /req\.headers\['x-idempotency-key'\]/);
     assert.match(source, /A valid X-Idempotency-Key header is required/);
     assert.match(source, /const normalizedClientKey = clientKey\.trim\(\)/);
-    assert.match(source, /\{ idempotencyKey: `vip-(?:cancel|switch):\$\{userId\}:\$\{normalizedClientKey\}` \}/);
+    assert.match(
+      source,
+      /\{ idempotencyKey: `vip-(?:cancel|switch):\$\{userId\}:\$\{normalizedClientKey\}` \}/
+    );
   }
 
   assert.match(cancel, /CANCELLATION_REASONS/);

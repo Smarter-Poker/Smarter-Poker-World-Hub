@@ -147,7 +147,7 @@ export const REWARDS = {
     key: 'daily_login',
     label: 'Daily Login',
     description:
-      'Show up every day. Day 1 pays 5 ◆ and each consecutive day adds 2 ◆, up to 25 ◆ at day 11+. Miss a day and the streak resets to 5.',
+      'Show up every day. Day 1 pays 5 Diamonds and each consecutive day adds 2 Diamonds, up to 25 Diamonds at day 11+. Miss a day and the streak resets to 5.',
     diamonds: 5,
     maxDiamonds: 25,
     scaling: {
@@ -186,8 +186,7 @@ export const REWARDS = {
   hand_of_the_day: {
     key: 'hand_of_the_day',
     label: 'Hand Of The Day',
-    description:
-      'Analyze the featured hand and lock in your line before the solution reveals.',
+    description: 'Analyze the featured hand and lock in your line before the solution reveals.',
     diamonds: 10,
     maxPerDay: 1,
     category: 'daily',
@@ -204,8 +203,7 @@ export const REWARDS = {
   first_training_session: {
     key: 'first_training_session',
     label: 'First Training Session',
-    description:
-      'Complete your very first GTO training session. A one-time welcome to the grind.',
+    description: 'Complete your very first GTO training session. A one-time welcome to the grind.',
     diamonds: 15,
     maxPerDay: 1,
     category: 'training',
@@ -219,8 +217,7 @@ export const REWARDS = {
   training_level_complete: {
     key: 'training_level_complete',
     label: 'Training Level Complete',
-    description:
-      'Clear a training level at a passing score. Up to 3 levels per day pay out.',
+    description: 'Clear a training level at a passing score. Up to 3 levels per day pay out.',
     diamonds: 8,
     maxPerDay: 3,
     category: 'training',
@@ -279,7 +276,8 @@ export const REWARDS = {
     icon: 'Star',
     gate: 'free',
     oncePerTarget: true,
-    verifyNote: 'One payout per video id per user, forever. Un-favoriting does not refund a new claim.',
+    verifyNote:
+      'One payout per video id per user, forever. Un-favoriting does not refund a new claim.',
   },
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -288,8 +286,7 @@ export const REWARDS = {
   social_post: {
     key: 'social_post',
     label: 'Create A Post',
-    description:
-      'Post a hand, a result, or a thought to the feed. Two posts per day pay out.',
+    description: 'Post a hand, a result, or a thought to the feed. Two posts per day pay out.',
     diamonds: 10,
     maxPerDay: 2,
     category: 'social',
@@ -305,8 +302,7 @@ export const REWARDS = {
   share_content: {
     key: 'share_content',
     label: 'Share Content',
-    description:
-      'Share a post, score card, or hand outside the app. Two shares per day pay out.',
+    description: 'Share a post, score card, or hand outside the app. Two shares per day pay out.',
     diamonds: 10,
     maxPerDay: 2,
     category: 'social',
@@ -321,8 +317,7 @@ export const REWARDS = {
   strategy_comment: {
     key: 'strategy_comment',
     label: 'Strategy Comment',
-    description:
-      'Leave a substantive strategy comment on a hand or post. Three per day pay out.',
+    description: 'Leave a substantive strategy comment on a hand or post. Three per day pay out.',
     diamonds: 3,
     maxPerDay: 3,
     category: 'social',
@@ -373,7 +368,7 @@ export const REWARDS = {
     key: 'venue_review',
     label: 'Venue Review',
     description:
-      'Review a poker room you actually played. One payout per venue, ever - 25 ◆ for real, useful intel.',
+      'Review a poker room you actually played. One payout per venue, ever - 25 Diamonds for real, useful intel.',
     diamonds: 25,
     maxPerDay: 1,
     category: 'engagement',
@@ -389,7 +384,7 @@ export const REWARDS = {
   birthday: {
     key: 'birthday',
     label: 'Birthday Bonus',
-    description: 'Happy birthday from Smarter.Poker - 100 ◆, once a year.',
+    description: 'Happy birthday from Smarter.Poker - 100 Diamonds, once a year.',
     diamonds: 100,
     maxPerDay: 1,
     category: 'engagement',
@@ -399,7 +394,7 @@ export const REWARDS = {
     icon: 'Cake',
     gate: 'free',
     verifyNote:
-      'Birth date must be locked at signup and immutable afterwards, or this is a 100 ◆/day faucet.',
+      'Birth date must be locked at signup and immutable afterwards, or this is a 100 Diamonds/day faucet.',
   },
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -484,7 +479,7 @@ export const REWARDS = {
   first_purchase: {
     key: 'first_purchase',
     label: 'First Purchase',
-    description: 'Thanks for your first purchase - here is 25 ◆ back. Paid once, ever.',
+    description: 'Thanks for your first purchase - here are 25 Diamonds back. Paid once, ever.',
     diamonds: 25,
     maxPerDay: 1,
     category: 'profile',
@@ -510,7 +505,7 @@ export const REWARDS = {
     key: 'referral_qualified',
     label: 'Qualified Referral',
     description:
-      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 ◆ to you, 100 ◆ to them, up to 20 qualified referrals per month.',
+      'A player you referred verified their email AND phone, and logged in on 5 separate days. 500 Diamonds to you, 100 Diamonds to them, up to 20 qualified referrals per month.',
     diamonds: 500,
     maxPerDay: null,
     monthlyMax: 20,
@@ -528,7 +523,7 @@ export const REWARDS = {
   referral_referee: {
     key: 'referral_referee',
     label: 'Welcome Bonus',
-    description: 'You joined with a friend’s invite code - here is 100 ◆ to start.',
+    description: 'You joined with a friend’s invite code - here are 100 Diamonds to start.',
     diamonds: 100,
     maxPerDay: 1,
     category: 'referral',
@@ -543,7 +538,7 @@ export const REWARDS = {
   referral_vip_conversion: {
     key: 'referral_vip_conversion',
     label: 'Referral Went VIP',
-    description: 'A player you referred bought a VIP membership. 500 ◆ bonus.',
+    description: 'A player you referred bought a VIP membership. Earn 500 Diamonds as a bonus.',
     diamonds: 500,
     maxPerDay: 20,
     monthlyMax: 20,
@@ -564,7 +559,7 @@ export const REWARDS = {
   vip_stipend: {
     key: 'vip_stipend',
     label: 'VIP Monthly Stipend',
-    description: '500 ◆ credited every month for as long as your VIP membership is active.',
+    description: '500 Diamonds credited every month for as long as your VIP membership is active.',
     diamonds: 500,
     maxPerDay: 1,
     oncePerMonth: true,
@@ -605,14 +600,14 @@ export const REWARDS = {
     key: 'streak_reward',
     label: 'Training Streak Milestone',
     description:
-      'Milestone reward for maintaining a consecutive training streak - up to 10,000 ◆ for a 365-day run.',
-    diamonds: 0,                // variable; server passes amount in metadata.streak_diamonds
+      'Milestone reward for maintaining a consecutive training streak - up to 10,000 Diamonds for a 365-day run.',
+    diamonds: 0, // variable; server passes amount in metadata.streak_diamonds
     maxDiamonds: 10000,
-    monthlyDiamondCap: 1000,   // $10/user/month ceiling; 10k milestone defers whole if over budget
+    monthlyDiamondCap: 1000, // $10/user/month ceiling; 10k milestone defers whole if over budget
     category: 'training',
     countsTowardDailyCap: false,
     lifetime: false,
-    oncePerTarget: true,        // p_target_id = `streak_<userId>_<milestoneDays>` — one claim per milestone
+    oncePerTarget: true, // p_target_id = `streak_<userId>_<milestoneDays>` — one claim per milestone
     icon: 'Flame',
     gate: 'free',
     serverOnly: true,
@@ -624,10 +619,10 @@ export const REWARDS = {
     key: 'daily_bonus',
     label: 'Daily Training Bonus',
     description:
-      'Daily login training bonus - base plus consecutive-streak multiplier, up to 125 ◆/day.',
-    diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
+      'Daily login training bonus - base plus consecutive-streak multiplier, up to 125 Diamonds/day.',
+    diamonds: 0, // variable; server passes amount in metadata.bonus_diamonds
     maxDiamonds: 125,
-    monthlyDiamondCap: 3750,   // 125/day × 30
+    monthlyDiamondCap: 3750, // 125/day × 30
     category: 'training',
     // MIRROR OF THE DATABASE ROW (2026-09-07). The Daily Club Arena Bonus
     // (Club Arena migration the_daily_bonus_lives_inside_the_diamond_caps)
@@ -671,8 +666,8 @@ export const REWARDS = {
     key: 'daily_bonus_boost',
     label: 'Daily Bonus Boost',
     description:
-      'Boosted claim on the Club Arena daily bonus sheet. Pays the boosted tile amount, drawn from the same 125 ◆/day family ceiling as the daily bonus itself.',
-    diamonds: 0,                // variable; server passes amount in metadata.bonus_diamonds
+      'Boosted claim on the Club Arena daily bonus sheet. Pays the boosted tile amount, drawn from the same 125 Diamonds/day family ceiling as the daily bonus itself.',
+    diamonds: 0, // variable; server passes amount in metadata.bonus_diamonds
     maxDiamonds: 125,
     category: 'daily',
     countsTowardDailyCap: true,
@@ -690,9 +685,9 @@ export const REWARDS = {
     label: 'Training Session Reward',
     description:
       'Per-session training reward for completing a GTO training level or the Hand of the Day.',
-    diamonds: 0,                // variable (8–25 ◆ per session); server passes amount in metadata.reward_diamonds
+    diamonds: 0, // variable (8–25 ◆ per session); server passes amount in metadata.reward_diamonds
     maxDiamonds: 50,
-    monthlyDiamondCap: 1500,   // 50/day × 30 generous headroom; own budget
+    monthlyDiamondCap: 1500, // 50/day × 30 generous headroom; own budget
     category: 'training',
     countsTowardDailyCap: false,
     lifetime: false,
@@ -706,15 +701,14 @@ export const REWARDS = {
   achievement: {
     key: 'achievement',
     label: 'Achievement Unlocked',
-    description:
-      'One-time reward for unlocking a training achievement. Amount is DB-driven.',
-    diamonds: 0,                // variable; server passes amount in metadata.achievement_diamonds
+    description: 'One-time reward for unlocking a training achievement. Amount is DB-driven.',
+    diamonds: 0, // variable; server passes amount in metadata.achievement_diamonds
     maxDiamonds: 500,
-    monthlyDiamondCap: 1000,   // $10/user/month across all achievements
+    monthlyDiamondCap: 1000, // $10/user/month across all achievements
     category: 'training',
     countsTowardDailyCap: false,
     lifetime: false,
-    oncePerTarget: true,        // p_target_id = achievement_id — one claim per achievement per user
+    oncePerTarget: true, // p_target_id = achievement_id — one claim per achievement per user
     icon: 'Trophy',
     gate: 'free',
     serverOnly: true,
@@ -725,11 +719,10 @@ export const REWARDS = {
   challenge: {
     key: 'challenge',
     label: 'Challenge Completed',
-    description:
-      'Reward for completing a recurring training challenge. Amount is DB-driven.',
-    diamonds: 0,                // variable; server passes amount in metadata.challenge_diamonds
+    description: 'Reward for completing a recurring training challenge. Amount is DB-driven.',
+    diamonds: 0, // variable; server passes amount in metadata.challenge_diamonds
     maxDiamonds: 500,
-    monthlyDiamondCap: 1000,   // $10/user/month across all challenges
+    monthlyDiamondCap: 1000, // $10/user/month across all challenges
     category: 'training',
     countsTowardDailyCap: false,
     lifetime: false,
@@ -745,7 +738,7 @@ export const REWARDS = {
     label: 'Trivia Tournament Prize',
     description:
       'Prize for placing in a Smarter.Poker trivia tournament. Amount determined by prize pool.',
-    diamonds: 0,                // variable prize pool; server passes amount in metadata.prize_diamonds
+    diamonds: 0, // variable prize pool; server passes amount in metadata.prize_diamonds
     maxDiamonds: 10000,
     // monthlyDiamondCap intentionally absent — uncapped per Dan's decision 2026-08-06.
     // The 2.5M platform circuit breaker (PLATFORM_MONTHLY_BUDGET) still applies
@@ -753,7 +746,7 @@ export const REWARDS = {
     category: 'training',
     countsTowardDailyCap: false,
     lifetime: false,
-    oncePerTarget: true,        // p_target_id = `<tournamentId>_<userId>` — one prize per tournament placement
+    oncePerTarget: true, // p_target_id = `<tournamentId>_<userId>` — one prize per tournament placement
     icon: 'Medal',
     gate: 'free',
     serverOnly: true,
@@ -768,7 +761,7 @@ export const REWARDS = {
     key: 'easter_egg',
     label: 'Hidden Achievement',
     description:
-      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map - 5 to 500 ◆ by rarity, drawing on a separate 1000 ◆ monthly egg budget that sits outside your daily cap.',
+      'Discover a hidden achievement. Amount comes from the EASTER_EGGS map - 5 to 500 Diamonds by rarity, drawing on a separate 1,000 Diamonds monthly egg budget that sits outside your daily cap.',
     diamonds: 0,
     maxDiamonds: 500,
     amountFrom: 'EASTER_EGGS',
@@ -1663,7 +1656,7 @@ export function assertCatalogIntegrity() {
     }
     // No single uncapped action may pay more than the free monthly cap.
     if (ceiling > MONTHLY_CAP.free) {
-      problems.push(`REWARDS.${key} pays ${ceiling} ◆, above the free monthly cap`);
+      problems.push(`REWARDS.${key} Pays ${ceiling} Diamonds, Above The Free Monthly Cap`);
     }
   }
 
@@ -1674,7 +1667,7 @@ export function assertCatalogIntegrity() {
       problems.push(`EASTER_EGGS.${key}.rarity "${e.rarity}" is not a known band`);
     } else if (e.diamonds < band.min || e.diamonds > band.max) {
       problems.push(
-        `EASTER_EGGS.${key} pays ${e.diamonds} ◆, outside the ${e.rarity} band ${band.min}-${band.max}`,
+        `EASTER_EGGS.${key} Pays ${e.diamonds} Diamonds, Outside The ${e.rarity} Band ${band.min}-${band.max}`
       );
     }
     // The binding ceiling on one egg is EASTER_EGG_MAX_SINGLE (c_egg_max_single
@@ -1696,7 +1689,7 @@ export function assertCatalogIntegrity() {
   // The daily cap must actually bind, otherwise it is decoration.
   if (maxDailyEarnable() <= DAILY_CAP.free) {
     problems.push(
-      `maxDailyEarnable() = ${maxDailyEarnable()} does not exceed DAILY_CAP.free = ${DAILY_CAP.free}; the cap no longer binds`,
+      `maxDailyEarnable() = ${maxDailyEarnable()} does not exceed DAILY_CAP.free = ${DAILY_CAP.free}; the cap no longer binds`
     );
   }
   if (DAILY_CAP.free * 30 !== MONTHLY_CAP.free) {
@@ -1709,7 +1702,9 @@ export function assertCatalogIntegrity() {
     problems.push('REFERRAL.referee disagrees with REWARDS.referral_referee.diamonds');
   }
   if (REFERRAL.vipConversionBonus !== REWARDS.referral_vip_conversion.diamonds) {
-    problems.push('REFERRAL.vipConversionBonus disagrees with REWARDS.referral_vip_conversion.diamonds');
+    problems.push(
+      'REFERRAL.vipConversionBonus disagrees with REWARDS.referral_vip_conversion.diamonds'
+    );
   }
 
   if (problems.length) {

@@ -26,11 +26,11 @@ const stripe = process.env.STRIPE_SECRET_KEY
   : null;
 
 function publicStatus(session, recordStatus) {
-  if (session.status === 'expired') return 'failed';
   if (session.payment_status === 'paid') {
     if (['completed', 'paid', 'processing', 'active'].includes(recordStatus)) return 'complete';
     return 'pending';
   }
+  if (session.status === 'expired') return 'failed';
   if (session.status === 'complete') return 'pending';
   return 'pending';
 }
@@ -57,16 +57,14 @@ async function lookupRecord(session, userId) {
     const [purchaseResult, profileResult] = await Promise.all([
       getSupabase()
         .from('diamond_purchases')
-        .select('id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, stripe_checkout_session_id, metadata')
+        .select(
+          'id, user_id, package_name, diamonds_amount, bonus_diamonds, price_usd, status, stripe_checkout_session_id, metadata'
+        )
         .eq('id', session.metadata.purchase_id)
         .eq('user_id', userId)
         .eq('stripe_checkout_session_id', session.id)
         .maybeSingle(),
-      getSupabase()
-        .from('profiles')
-        .select('diamonds')
-        .eq('id', userId)
-        .maybeSingle(),
+      getSupabase().from('profiles').select('diamonds').eq('id', userId).maybeSingle(),
     ]);
     const { data, error } = purchaseResult;
     if (error) throw error;
@@ -75,12 +73,13 @@ async function lookupRecord(session, userId) {
     const redemptionResult = data?.metadata?.redemption_result || null;
     const isClubShop = redemptionIntent?.kind === 'club_shop';
     const rawWalletBalance = profileResult.data?.diamonds;
-    const walletBalance = profileResult.data
-      && rawWalletBalance !== null
-      && rawWalletBalance !== ''
-      && Number.isSafeInteger(Number(rawWalletBalance))
-      ? Number(rawWalletBalance)
-      : null;
+    const walletBalance =
+      profileResult.data &&
+      rawWalletBalance !== null &&
+      rawWalletBalance !== '' &&
+      Number.isSafeInteger(Number(rawWalletBalance))
+        ? Number(rawWalletBalance)
+        : null;
     return data
       ? {
           status: data.status,
@@ -109,20 +108,23 @@ async function lookupRecord(session, userId) {
       .eq('stripe_checkout_session_id', session.id)
       .maybeSingle();
     if (error) throw error;
-    return data ? {
-      status: data.status,
-      orderId: data.id,
-      orderSource: 'merchandise',
-      label: 'Merchandise Order',
-      cartItems: normalizedCartSnapshot(
-        data.metadata?.cart_snapshot || (Array.isArray(data.items) ? data.items : []).map((item) => ({
-          kind: 'merchandise',
-          id: item?.id,
-          variantId: item?.variantId || item?.variant_id || null,
-          quantity: item?.quantity,
-        }))
-      ),
-    } : null;
+    return data
+      ? {
+          status: data.status,
+          orderId: data.id,
+          orderSource: 'merchandise',
+          label: 'Merchandise Order',
+          cartItems: normalizedCartSnapshot(
+            data.metadata?.cart_snapshot ||
+              (Array.isArray(data.items) ? data.items : []).map((item) => ({
+                kind: 'merchandise',
+                id: item?.id,
+                variantId: item?.variantId || item?.variant_id || null,
+                quantity: item?.quantity,
+              }))
+          ),
+        }
+      : null;
   }
 
   if (type === 'vip_lifetime' && session.metadata?.purchase_id) {
@@ -134,19 +136,20 @@ async function lookupRecord(session, userId) {
       .eq('stripe_checkout_session_id', session.id)
       .maybeSingle();
     if (error) throw error;
-    return data ? {
-      status: data.status,
-      orderId: data.id,
-      orderSource: 'vip',
-      label: 'Lifetime VIP Membership',
-      cartItems: [],
-    } : null;
+    return data
+      ? {
+          status: data.status,
+          orderId: data.id,
+          orderSource: 'vip',
+          label: 'Lifetime VIP Membership',
+          cartItems: [],
+        }
+      : null;
   }
 
   if (session.mode === 'subscription') {
-    const subscriptionId = typeof session.subscription === 'string'
-      ? session.subscription
-      : session.subscription?.id;
+    const subscriptionId =
+      typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
     if (!subscriptionId) return null;
     const { data, error } = await getSupabase()
       .from('vip_subscriptions')
@@ -155,13 +158,15 @@ async function lookupRecord(session, userId) {
       .eq('stripe_subscription_id', subscriptionId)
       .maybeSingle();
     if (error) throw error;
-    return data ? {
-      status: data.status,
-      orderId: data.id,
-      orderSource: 'vip',
-      label: 'VIP Membership',
-      cartItems: [],
-    } : null;
+    return data
+      ? {
+          status: data.status,
+          orderId: data.id,
+          orderSource: 'vip',
+          label: 'VIP Membership',
+          cartItems: [],
+        }
+      : null;
   }
 
   return null;
@@ -181,12 +186,14 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, error: 'Sign in to verify this purchase' });
     }
     const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id.trim() : '';
-    if (!/^cs_(?:test_|live_)?[A-Za-z0-9]{12,}$/.test(sessionId)) {
+    if (!/^cs_(?:test|live)_[A-Za-z0-9]{6,255}$/.test(sessionId)) {
       return res.status(400).json({ success: false, error: 'Invalid checkout reference' });
     }
     const stripeRuntime = inspectStripeRuntime(process.env, { requirePublishable: false });
     if (!stripe || !stripeRuntime.ready) {
-      return res.status(503).json({ success: false, error: 'Payment status is temporarily unavailable' });
+      return res
+        .status(503)
+        .json({ success: false, error: 'Payment status is temporarily unavailable' });
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -202,8 +209,11 @@ export default async function handler(req, res) {
       data: {
         status,
         sessionId: session.id,
-        type: session.metadata?.type || (session.mode === 'subscription' ? 'subscription' : 'purchase'),
+        accountId: user.id,
+        type:
+          session.metadata?.type || (session.mode === 'subscription' ? 'subscription' : 'purchase'),
         paymentStatus: session.payment_status,
+        sessionStatus: session.status,
         amountTotal: session.amount_total,
         currency: session.currency || 'usd',
         label: record?.label || null,
@@ -223,7 +233,10 @@ export default async function handler(req, res) {
     try {
       reportApiError(err, req);
     } catch (sentryError) {
-      console.warn('[checkout-status] Error reporting failed:', sentryError?.message || sentryError);
+      console.warn(
+        '[checkout-status] Error reporting failed:',
+        sentryError?.message || sentryError
+      );
     }
     if (err?.type === 'StripeInvalidRequestError') {
       return res.status(404).json({ success: false, error: 'Checkout reference not found' });

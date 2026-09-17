@@ -13,7 +13,7 @@ import {
 } from '../src/lib/store/diamondStorefrontCatalog.mjs';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 function packageRows() {
   return [
@@ -39,7 +39,7 @@ function packageRows() {
 test('one normalized database row drives display, submission, and Stripe cents', () => {
   const catalog = normalizeDiamondPackageRows(packageRows());
   const displayed = projectDiamondStorefrontPackages(catalog);
-  const offer = displayed.find(pkg => pkg.id === 'micro');
+  const offer = displayed.find((pkg) => pkg.id === 'micro');
   const charged = resolveDiamondPackage({ packageId: offer.id }, catalog);
 
   assert.deepEqual(
@@ -61,6 +61,22 @@ test('one normalized database row drives display, submission, and Stripe cents',
   assert.equal(offer.price, 1.25);
   assert.equal(sameDiamondStorefrontOffer(offer, { ...offer }), true);
   assert.equal(sameDiamondStorefrontOffer(offer, { ...offer, priceCents: 126 }), false);
+});
+
+test('storefront projection never exposes an internal package key as its display name', () => {
+  const [offer] = projectDiamondStorefrontPackages({
+    internal_package_key: {
+      diamonds: 100,
+      bonus: 0,
+      price: 1,
+      priceCents: 100,
+      name: 'internal_package_key',
+    },
+  });
+
+  assert.equal(offer.id, 'internal_package_key');
+  assert.equal(offer.name, 'Diamond Package');
+  assert.doesNotMatch(offer.name, /internal|package key/i);
 });
 
 test('active database additions and removals replace rather than merge with fallback offers', async () => {
@@ -87,7 +103,10 @@ test('active database additions and removals replace rather than merge with fall
     cacheMs: 0,
   });
   assert.equal(result.source, 'database');
-  assert.deepEqual(result.packages.map(pkg => pkg.id), ['ultra']);
+  assert.deepEqual(
+    result.packages.map((pkg) => pkg.id),
+    ['ultra']
+  );
   assert.equal(result.packages[0].priceCents, 72500);
   assert.equal(Object.hasOwn(result.packages[0], 'priceUsd'), false);
   assert.equal(Object.hasOwn(result, 'supabase'), false);

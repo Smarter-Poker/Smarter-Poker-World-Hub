@@ -23,13 +23,21 @@
  * Marketplace console artwork while all product and commerce behavior remains here.
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useId,
+  useMemo,
+  useRef,
+} from 'react';
 import Link from 'next/link';
 
 import styles from '../diamond-store/diamondStoreStyles';
 import merchStyles from './MerchStore.module.css';
 import { MERCHANDISE } from '../../data/diamondStoreData';
-import { getAccessToken } from '../../lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
 import useDiamondBalance from '../../hooks/useDiamondBalance';
 import { broadcastSync } from '../../lib/broadcastSync';
@@ -38,13 +46,27 @@ import { captureStoreEvent } from '../../lib/store/storeAnalytics';
 import {
   clearCommerceRequestId,
   getOrCreateCommerceRequestId,
+  inspectCommerceRequestRecovery,
+  replaceCommerceRequestId,
 } from '../../lib/store/checkoutIntentStore';
 import MerchPurchaseDialog from './MerchPurchaseDialog';
 import { wishlistService } from '../../services/preferences-service';
 import useCartStore from '../../stores/cartStore';
 import { supabase } from '../../lib/supabase';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import { resolveReviewedMerchArt } from '../../lib/store/merchProductArt';
 import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
+import {
+  checkoutRequestReplacementRequired,
+  merchandiseCheckoutOfferConfirmation,
+  merchandiseDiamondOfferConfirmation,
+  normalizeVerifiedCheckoutSession,
+} from '../../lib/store/verifiedCheckoutUrl.mjs';
+import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
+import {
+  classifyMerchDiamondPurchaseRefusal,
+  normalizeVerifiedMerchDiamondPurchase,
+} from '../../lib/store/verifiedCommerceResponse.mjs';
 
 // ── Economy constants (mirror of the server) ──────────────────────────────
 // 1 diamond = $0.01 → 100 diamonds per USD. purchase-with-diamonds.js uses the
@@ -54,6 +76,7 @@ const DIAMONDS_PER_DOLLAR = 100;
 const MAX_QTY = 10;
 
 const CATALOG_URL = '/api/store/merch-catalog';
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 const NEURAL_STEEL_MERCH = {
   'hoodie-neural': {
@@ -76,41 +99,8 @@ const NEURAL_STEEL_MERCH = {
   },
 };
 
-// The original tabletop rows were seeded before their product photography
-// existed. A single production atlas gives each one a real, deterministic
-// physical-product bay without issuing legacy /merch/*.jpg requests.
-const LEGACY_TABLETOP_ATLAS = {
-  'card-protector-gold': '0% center',
-  'card-protector-black': '33.333% center',
-  'deck-premium': '66.667% center',
-  'chip-set-100': '100% center',
-  'chip-set-500': '100% center',
-};
-
-// These paths were seeded before their product photography was shipped. Let
-// the card render its deliberate category placeholder immediately instead of
-// issuing a guaranteed 404 and swapping to the same placeholder afterward.
-// Keep this list exact so future catalog images at other /merch paths render
-// normally.
-const UNSHIPPED_MERCH_IMAGES = new Set([
-  '/merch/card-protector-gold.jpg',
-  '/merch/card-protector-black.jpg',
-  '/merch/hoodie-neural.jpg',
-  '/merch/tshirt-gto.jpg',
-  '/merch/hat-diamond.jpg',
-  '/merch/deck-premium.jpg',
-  '/merch/chip-set-100.jpg',
-  '/merch/chip-set-500.jpg',
-]);
-
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const usd = (n) => `$${(Number(n) || 0).toFixed(2)}`;
-const productAnchorId = (value) =>
-  `merch-product-${String(value || 'item')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')}`;
-
 function firstFiniteNumber(candidates) {
   for (const c of candidates) {
     if (c === null || c === undefined || c === '') continue;
@@ -144,7 +134,7 @@ function firstBoolean(candidates) {
 // `catalogId` was null on every line item, and buildLineItem() sent
 // { name, price, quantity } with no id. Both checkout endpoints then priced
 // from that client-supplied `price`, so a $199.99 chip set could be bought for
-// $0.50, or 19,999 ◆ for 50 ◆. The server-side price oracle was live and
+// $0.50, or 19,999 Diamonds for 50 Diamonds. The server-side price oracle was live and
 // correct the whole time; nothing ever reached it from this component.
 // pages/hub/diamond-store/cart.js passed the slug through unmodified and was
 // therefore repriced correctly, which is why the two storefronts disagreed.
@@ -172,15 +162,10 @@ function stockOf(raw) {
 
 function normalizeVariant(raw, index) {
   if (raw === null || raw === undefined) return null;
-  if (typeof raw === 'string' || typeof raw === 'number') {
-    return {
-      key: `v${index}-${raw}`,
-      id: null,
-      label: marketplaceCopy(raw),
-      stock: null,
-      inStock: true,
-    };
-  }
+  // Primitive values in older payloads are display labels, not authoritative
+  // merchandise_item_variants identifiers. Exclude them from the purchasable
+  // set instead of guessing that a size label or SKU is a checkout id.
+  if (typeof raw !== 'object' || Array.isArray(raw)) return null;
   const size = firstString([raw.size]);
   const color = firstString([raw.color, raw.colour]);
   const composedLabel = [color, size].filter(Boolean).join(' / ');
@@ -195,6 +180,10 @@ function normalizeVariant(raw, index) {
       composedLabel,
     ]) || `Option ${index + 1}`;
   const id = firstString([raw.id, raw.variant_id, raw.sku]);
+  // A selected variant must carry the exact server-owned checkout identifier.
+  // Rendering an id-less option would let the shopper select it while both
+  // checkout paths submit the parent item without the required variantId.
+  if (!id) return null;
   const { stock, inStock } = stockOf(raw);
   const priceUsd = firstFiniteNumber([raw.price_usd, raw.priceUsd, raw.price, raw.usd_price]);
   const explicitDiamonds = firstFiniteNumber([
@@ -250,7 +239,11 @@ function normalizeProduct(raw, index, source) {
         ? raw.sizes
         : [];
   const variants = rawVariants.map(normalizeVariant).filter(Boolean);
-  const hasVariants = firstBoolean([raw.has_variants, raw.hasVariants]) ?? variants.length > 0;
+  // Preserve the server's declaration even when every supplied entry is an
+  // unsafe legacy primitive or otherwise lacks an authoritative identifier.
+  // That leaves the product visibly unavailable instead of silently selling
+  // its parent row as though it never had selectable variants.
+  const hasVariants = firstBoolean([raw.has_variants, raw.hasVariants]) ?? rawVariants.length > 0;
 
   const own = stockOf(raw);
   // With variants, the product is sellable while ANY variant has stock.
@@ -258,8 +251,9 @@ function normalizeProduct(raw, index, source) {
     variants.length > 0 ? own.inStock && variants.some((v) => v.inStock) : own.inStock;
 
   const branded = rawId ? NEURAL_STEEL_MERCH[rawId] : null;
-  const image =
-    branded?.image || firstString([raw.image_url, raw.imageUrl, raw.image, raw.thumbnail]);
+  const reviewedArt = resolveReviewedMerchArt(rawId);
+  const approvedImage = branded?.image || reviewedArt.image;
+  const atlasPosition = reviewedArt.atlasPosition;
   const fulfillmentProvider = firstString([
     raw.fulfillment_provider,
     raw.fulfillmentProvider,
@@ -284,8 +278,9 @@ function normalizeProduct(raw, index, source) {
     description: marketplaceCopy(
       branded?.description || firstString([raw.description, raw.subtitle, raw.blurb]) || ''
     ),
-    image: image && !UNSHIPPED_MERCH_IMAGES.has(image) ? image : null,
-    atlasPosition: rawId ? LEGACY_TABLETOP_ATLAS[rawId] || null : null,
+    image: approvedImage || null,
+    atlasPosition,
+    mediaApproved: Boolean(approvedImage || atlasPosition),
     category: (
       firstString([raw.category, raw.product_type, raw.collection]) || 'merch'
     ).toLowerCase(),
@@ -328,7 +323,7 @@ const CATEGORY_LABELS = {
   lifestyle: 'Lifestyle Gear',
   merch: 'More Gear',
 };
-const categoryLabel = (key) => CATEGORY_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+const categoryLabel = (key) => CATEGORY_LABELS[key] || marketplaceCopy(key);
 const STATIC_PRODUCTS = MERCHANDISE.map((row, index) =>
   normalizeProduct(row, index, 'static')
 ).filter(Boolean);
@@ -376,6 +371,14 @@ function MerchProductCard({
   onBuyDiamonds,
   mediaPriority = false,
 }) {
+  const reactCardId = useId();
+  const productDomToken =
+    String(product.catalogId || product.key || reactCardId)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || reactCardId.replace(/[^a-z0-9_-]+/gi, '-');
+  const cardDomId = `merch-product-${productDomToken}`;
   const [variantKey, setVariantKey] = useState(() => {
     const first =
       product.variants.find((v) => v.inStock && v.fulfillmentReady) ||
@@ -400,12 +403,14 @@ function MerchProductCard({
     ? variant?.fulfillmentReady === true
     : product.fulfillmentReady === true;
   const fulfillmentUnavailable = !fulfillmentReady;
+  const mediaUnavailable = !product.mediaApproved || (Boolean(product.image) && imageFailed);
   const soldOut =
     !product.inStock ||
     variantOutOfStock ||
     optionsUnavailable ||
     liveAvailabilityRequired ||
-    fulfillmentUnavailable;
+    fulfillmentUnavailable ||
+    mediaUnavailable;
 
   // Respect a known per-variant / per-product stock level as well as the
   // server's hard 1..10 clamp.
@@ -424,18 +429,18 @@ function MerchProductCard({
   const thisBusy = busyKey === product.key;
   const shortBy = Math.max(0, diamondCost - Number(balance || 0));
   const cannotAfford = hasUser && shortBy > 0;
-  const titleId = `merch-${String(product.key || product.name)
-    .replace(/[^a-z0-9]+/gi, '-')
-    .toLowerCase()}-title`;
+  const titleId = `${cardDomId}-title`;
 
   const diamondDisabled = soldOut || busy || cannotAfford;
   const availabilityReason = liveAvailabilityRequired
     ? 'Live Availability Required'
     : optionsUnavailable
       ? 'Options Temporarily Unavailable'
-      : fulfillmentUnavailable
-        ? 'Fulfillment Setup Required'
-        : 'Sold Out';
+      : mediaUnavailable
+        ? 'Product Artwork Requires Review'
+        : fulfillmentUnavailable
+          ? 'Fulfillment Setup Required'
+          : 'Sold Out';
   const diamondReason = soldOut
     ? availabilityReason
     : cannotAfford
@@ -444,7 +449,8 @@ function MerchProductCard({
 
   return (
     <article
-      id={productAnchorId(product.catalogId || product.key)}
+      id={cardDomId}
+      data-merch-product-card="true"
       aria-labelledby={titleId}
       className={`${merchStyles.productCard} ${soldOut ? merchStyles.productCardUnavailable : ''}`}
       style={{
@@ -453,22 +459,13 @@ function MerchProductCard({
         flexDirection: 'column',
       }}
     >
-      {/* Image / placeholder */}
+      {/* Only reviewed product photography may represent a sellable item. */}
       <div className={merchStyles.mediaBay}>
-        {product.image && !imageFailed ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            loading={mediaPriority ? 'eager' : 'lazy'}
-            decoding="async"
-            onError={() => setImageFailed(true)}
-            className={merchStyles.productImage}
-          />
-        ) : product.atlasPosition ? (
+        {product.atlasPosition && !imageFailed ? (
           <div
             role="img"
             aria-label={product.name}
-            className={merchStyles.productImage}
+            className={`${merchStyles.productImage} ${merchStyles.atlasProductImage}`}
             style={{
               backgroundImage: "url('/images/merch/neural-steel/legacy-tabletop-atlas.webp')",
               backgroundPosition: product.atlasPosition,
@@ -477,13 +474,18 @@ function MerchProductCard({
               filter: 'contrast(1.04) saturate(1.04)',
             }}
           />
+        ) : product.image && !imageFailed ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            loading={mediaPriority ? 'eager' : 'lazy'}
+            decoding="async"
+            onError={() => setImageFailed(true)}
+            className={merchStyles.productImage}
+          />
         ) : (
-          <div
-            role="img"
-            aria-label={`${product.name} Image Pending`}
-            className={merchStyles.mediaPending}
-          >
-            Product Image Pending
+          <div className={merchStyles.mediaUnavailable} role="status">
+            Product Artwork Requires Review
           </div>
         )}
         {soldOut && (
@@ -570,24 +572,24 @@ function MerchProductCard({
           <div className={merchStyles.quantityControl}>
             <button
               type="button"
-              aria-label={`Decrease quantity of ${product.name}`}
+              aria-label={`Decrease Quantity Of ${product.name}`}
               onClick={() => setQty((q) => Math.max(1, Math.min(q, maxQty) - 1))}
               disabled={soldOut || clampedQty <= 1}
               className={merchStyles.quantityButton}
             >
-              <span aria-hidden="true">−</span>
+              Less
             </button>
             <output aria-live="polite" className={merchStyles.quantityValue}>
               {clampedQty}
             </output>
             <button
               type="button"
-              aria-label={`Increase quantity of ${product.name}`}
+              aria-label={`Increase Quantity Of ${product.name}`}
               onClick={() => setQty((q) => Math.min(maxQty, Math.min(q, maxQty) + 1))}
               disabled={soldOut || clampedQty >= maxQty}
               className={merchStyles.quantityButton}
             >
-              <span aria-hidden="true">+</span>
+              More
             </button>
           </div>
           {clampedQty > 1 && (
@@ -601,7 +603,7 @@ function MerchProductCard({
         <div className={merchStyles.purchaseControls}>
           <div className={merchStyles.purchasePair}>
             <Link
-              href={`/hub/merch-store/${product.catalogId || product.key}`}
+              href={`/hub/merch-store/${encodeURIComponent(product.catalogId || product.key)}`}
               aria-label={`View ${product.name} Details`}
               className={`${merchStyles.actionControl} ${merchStyles.actionSecondary}`}
             >
@@ -633,7 +635,7 @@ function MerchProductCard({
             type="button"
             onClick={() => onBuyDiamonds(product, variant, clampedQty)}
             disabled={diamondDisabled}
-            title={diamondReason || `Pay ${fmt(diamondCost)} diamonds`}
+            title={diamondReason || `Pay ${fmt(diamondCost)} Diamonds`}
             aria-label={`Buy ${product.name} With ${fmt(diamondCost)} Diamonds`}
             className={`${merchStyles.actionControl} ${merchStyles.actionDiamond}`}
           >
@@ -664,7 +666,13 @@ export default function MerchStore({
   catalogCategory = null,
 }) {
   const initialProducts = useMemo(() => {
-    const normalized = initialProduct ? normalizeProduct(initialProduct, 0, 'catalog') : null;
+    const normalized = initialProduct
+      ? normalizeProduct(
+          initialProduct,
+          0,
+          initialProduct.catalogVerified === true ? 'catalog' : 'static'
+        )
+      : null;
     return normalized ? [normalized] : STATIC_PRODUCTS;
   }, [initialProduct]);
   // Render the verified static lineup on the server and during the live
@@ -672,7 +680,9 @@ export default function MerchStore({
   // slow catalog request no longer leaves the whole page as a loading panel.
   const [products, setProducts] = useState(() => initialProducts);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(() => !initialProduct);
+  const [usingFallback, setUsingFallback] = useState(
+    () => !initialProduct || initialProduct.catalogVerified !== true
+  );
   const [loadError, setLoadError] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
   const [pendingDiamondPurchase, setPendingDiamondPurchase] = useState(null);
@@ -684,6 +694,14 @@ export default function MerchStore({
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortMode, setSortMode] = useState('featured');
   const mountedRef = useRef(true);
+  const activeAccountIdRef = useRef(user?.id || null);
+  const diamondPurchaseAttemptRef = useRef(0);
+  const diamondPurchaseAbortRef = useRef(null);
+  const cardCheckoutAttemptRef = useRef(0);
+  const cardCheckoutAbortRef = useRef(null);
+  const cardCheckoutProcessingRef = useRef(false);
+  const wishlistMutationAttemptRef = useRef(0);
+  const wishlistMutationProcessingRef = useRef(false);
   // Close the event-loop gap before React can render disabled controls. This
   // prevents a fast double click from starting two Stripe sessions or two
   // diamond requests with different server idempotency windows.
@@ -697,7 +715,25 @@ export default function MerchStore({
     setBusyKey(key);
   }, []);
 
-  const { balance, refreshBalance, setBalance } = useDiamondBalance(user?.id || null);
+  useIsomorphicLayoutEffect(() => {
+    activeAccountIdRef.current = user?.id || null;
+    diamondPurchaseAttemptRef.current += 1;
+    cardCheckoutAttemptRef.current += 1;
+    wishlistMutationAttemptRef.current += 1;
+    diamondPurchaseAbortRef.current?.abort();
+    diamondPurchaseAbortRef.current = null;
+    cardCheckoutAbortRef.current?.abort();
+    cardCheckoutAbortRef.current = null;
+    cardCheckoutProcessingRef.current = false;
+    wishlistMutationProcessingRef.current = false;
+    busyRef.current = false;
+    setBusyKey(null);
+    setWishlistBusyKey(null);
+    setWishlistIds(new Set());
+    setPendingDiamondPurchase(null);
+  }, [user?.id]);
+
+  const { balance, setBalance } = useDiamondBalance(user?.id || null);
 
   useEffect(() => {
     if (!authResolved) return;
@@ -730,8 +766,8 @@ export default function MerchStore({
 
   useEffect(() => {
     let cancelled = false;
+    setWishlistIds(new Set());
     if (!user?.id) {
-      setWishlistIds(new Set());
       return () => {
         cancelled = true;
       };
@@ -739,10 +775,14 @@ export default function MerchStore({
     wishlistService
       .getWishlist(user.id)
       .then((items) => {
-        if (!cancelled) setWishlistIds(new Set((items || []).map((item) => item.product_id)));
+        if (!cancelled && activeAccountIdRef.current === user.id) {
+          setWishlistIds(new Set((items || []).map((item) => item.product_id)));
+        }
       })
       .catch((error) => {
-        console.warn('[MerchStore] Wishlist load failed:', error?.message || error);
+        if (!cancelled && activeAccountIdRef.current === user.id) {
+          console.warn('[MerchStore] Wishlist load failed:', error?.message || error);
+        }
       });
     return () => {
       cancelled = true;
@@ -753,6 +793,15 @@ export default function MerchStore({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      diamondPurchaseAttemptRef.current += 1;
+      diamondPurchaseAbortRef.current?.abort();
+      diamondPurchaseAbortRef.current = null;
+      cardCheckoutAttemptRef.current += 1;
+      cardCheckoutAbortRef.current?.abort();
+      cardCheckoutAbortRef.current = null;
+      cardCheckoutProcessingRef.current = false;
+      wishlistMutationAttemptRef.current += 1;
+      wishlistMutationProcessingRef.current = false;
     };
   }, []);
 
@@ -809,7 +858,7 @@ export default function MerchStore({
         // an unavailable refresh must not replace the selected product with a
         // generic static catalog that may not contain it.
         setProducts(initialProducts);
-        setUsingFallback(!initialProduct);
+        setUsingFallback(!initialProduct || initialProduct.catalogVerified !== true);
         setLoadError(failure);
         captureStoreEvent('catalog_fallback', { reason: failure || 'empty' });
       }
@@ -971,21 +1020,37 @@ export default function MerchStore({
   const toggleWishlist = useCallback(
     async (product) => {
       const token = requireSignedIn();
-      if (!token || !user?.id || wishlistBusyKey) return;
+      if (!token || !user?.id || wishlistBusyKey || wishlistMutationProcessingRef.current) return;
+      const expectedAccountId = user.id;
+      if (
+        activeAccountIdRef.current !== expectedAccountId ||
+        getAuthUser()?.id !== expectedAccountId
+      ) {
+        showStoreToast('error', 'Your Signed-In Account Changed. Review This Wishlist Again.');
+        return;
+      }
       const productId = product.catalogId || product.key;
       const wasSaved = wishlistIds.has(productId);
+      const attemptId = ++wishlistMutationAttemptRef.current;
+      wishlistMutationProcessingRef.current = true;
+      const attemptIsCurrent = () =>
+        mountedRef.current &&
+        wishlistMutationAttemptRef.current === attemptId &&
+        activeAccountIdRef.current === expectedAccountId &&
+        getAuthUser()?.id === expectedAccountId;
       setWishlistBusyKey(product.key);
       try {
         if (wasSaved) {
-          await wishlistService.removeFromWishlist(user.id, productId);
+          await wishlistService.removeFromWishlist(expectedAccountId, productId);
         } else {
-          await wishlistService.addToWishlist(user.id, {
+          await wishlistService.addToWishlist(expectedAccountId, {
             id: productId,
             type: 'merchandise',
             name: product.name,
             price: product.priceUsd,
           });
         }
+        if (!attemptIsCurrent()) return;
         setWishlistIds((current) => {
           const next = new Set(current);
           if (wasSaved) next.delete(productId);
@@ -994,10 +1059,14 @@ export default function MerchStore({
         });
         showStoreToast('success', wasSaved ? 'Removed From Wishlist' : 'Saved To Wishlist');
       } catch (error) {
+        if (!attemptIsCurrent()) return;
         console.warn('[MerchStore] Wishlist update failed:', error?.message || error);
         showStoreToast('error', 'Wishlist Could Not Be Updated. Please Try Again.');
       } finally {
-        if (mountedRef.current) setWishlistBusyKey(null);
+        if (attemptIsCurrent()) {
+          wishlistMutationProcessingRef.current = false;
+          setWishlistBusyKey(null);
+        }
       }
     },
     [requireSignedIn, user?.id, wishlistBusyKey, wishlistIds]
@@ -1006,9 +1075,13 @@ export default function MerchStore({
   // ── Card checkout → Stripe ────────────────────────────────────────────
   const handleBuyCard = useCallback(
     async (product, variant, quantity) => {
-      if (busyRef.current) return;
-      const token = requireSignedIn();
-      if (!token) return;
+      if (busyRef.current || cardCheckoutProcessingRef.current) return;
+      if (!requireSignedIn()) return;
+      const authUser = getAuthUser();
+      if (!authUser?.id || authUser.id !== user?.id) {
+        showStoreToast('error', 'Your Signed-In Account Changed. Review This Purchase Again.');
+        return;
+      }
       if (product.variants.length > 0 && !variant) {
         showStoreToast('error', 'Please Choose A Size Or Option First.');
         return;
@@ -1022,10 +1095,39 @@ export default function MerchStore({
         return;
       }
 
+      const expectedAccountId = authUser.id;
+      const unitPriceUsd = firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0;
+      const offerConfirmation = merchandiseCheckoutOfferConfirmation(expectedAccountId, [
+        {
+          id: product.catalogId || product.key,
+          variantId: variant?.id || null,
+          quantity,
+          price: unitPriceUsd,
+        },
+      ]);
+      if (!offerConfirmation) {
+        showStoreToast(
+          'error',
+          'The Current Merchandise Offer Could Not Be Verified. Review It Again.'
+        );
+        return;
+      }
+
+      const attemptId = ++cardCheckoutAttemptRef.current;
+      cardCheckoutAbortRef.current?.abort();
+      const controller = new AbortController();
+      cardCheckoutAbortRef.current = controller;
+      cardCheckoutProcessingRef.current = true;
+      const attemptIsCurrent = () =>
+        mountedRef.current &&
+        !controller.signal.aborted &&
+        cardCheckoutAttemptRef.current === attemptId &&
+        activeAccountIdRef.current === expectedAccountId &&
+        getAuthUser()?.id === expectedAccountId;
       setStoreBusy(product.key);
       const commerceIntent = {
         scope: `merch-${product.catalogId || product.key}`,
-        userId: user.id,
+        userId: expectedAccountId,
         paymentMethod: 'card',
         intent: {
           productId: product.catalogId || product.key,
@@ -1033,8 +1135,7 @@ export default function MerchStore({
           quantity,
         },
       };
-      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
-      const unitPriceUsd = firstFiniteNumber([variant?.priceUsd, product.priceUsd]) || 0;
+      let checkoutRequestId = null;
       captureStoreEvent('checkout_started', {
         route: 'merch',
         type: 'merchandise',
@@ -1042,23 +1143,33 @@ export default function MerchStore({
         quantity,
         value_usd: unitPriceUsd * quantity,
       });
-      const post = (includePrice) =>
+      const post = (includePrice, accessToken) =>
         boundedCommerceFetch('/api/store/create-checkout-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${accessToken}`,
             'X-Checkout-Request-ID': checkoutRequestId,
           },
+          signal: controller.signal,
           body: JSON.stringify({
             type: 'merchandise',
             items: [buildLineItem(product, variant, quantity, { includePrice })],
+            offerConfirmation,
           }),
         });
 
       try {
-        let res = await post(false);
+        const authorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+          signal: controller.signal,
+        });
+        if (!authorization || !attemptIsCurrent()) {
+          throw new Error('Your Signed-In Account Changed. Review This Purchase Again.');
+        }
+        checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
+        let res = await post(false, authorization.accessToken);
         let data = await res.json().catch(() => null);
+        if (!attemptIsCurrent()) return;
 
         // Compatibility retry: the deployed endpoint still demands a price
         // on every line item. Retry once with the displayed price: for a
@@ -1070,8 +1181,9 @@ export default function MerchStore({
           product.catalogId &&
           (code === 'INVALID_PRICE' || code === 'INVALID_ITEM')
         ) {
-          res = await post(true);
+          res = await post(true, authorization.accessToken);
           data = await res.json().catch(() => null);
+          if (!attemptIsCurrent()) return;
         }
 
         if (!res.ok || !data?.success) {
@@ -1079,8 +1191,19 @@ export default function MerchStore({
           checkoutError.code = errorCodeOf(data);
           throw checkoutError;
         }
-        if (!data.data?.url) {
-          throw new Error('Checkout Session Missing Redirect URL');
+        const checkoutSession = normalizeVerifiedCheckoutSession(
+          data,
+          checkoutRequestId,
+          offerConfirmation
+        );
+        if (!checkoutSession) {
+          throw new Error('Checkout Session Could Not Be Bound To This Purchase Request.');
+        }
+        const confirmedAuthorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+          signal: controller.signal,
+        });
+        if (!confirmedAuthorization || !attemptIsCurrent()) {
+          throw new Error('Your Signed-In Account Changed. The Checkout Link Was Not Opened.');
         }
         captureStoreEvent('checkout_session_created', {
           route: 'merch',
@@ -1088,10 +1211,16 @@ export default function MerchStore({
           product: product.catalogId || product.key,
         });
         // Leave the busy state on through the navigation.
-        window.location.href = data.data.url;
+        if (!attemptIsCurrent()) return;
+        window.location.assign(checkoutSession.url);
       } catch (err) {
-        if (err?.code === 'CHECKOUT_EXPIRED') {
-          clearCommerceRequestId(commerceIntent);
+        if (err?.name === 'AbortError' || !attemptIsCurrent()) return;
+        if (checkoutRequestReplacementRequired(err) && checkoutRequestId) {
+          try {
+            replaceCommerceRequestId({ ...commerceIntent, expectedRequestId: checkoutRequestId });
+          } catch (replacementError) {
+            err = replacementError;
+          }
         }
         console.warn('[MerchStore] Card checkout failed:', err?.message || err);
         captureStoreEvent('checkout_failed', { route: 'merch', type: 'merchandise' });
@@ -1099,7 +1228,15 @@ export default function MerchStore({
           'error',
           marketplaceCopy(err?.message || 'Could Not Start Checkout. Please Try Again.')
         );
-        if (mountedRef.current) setStoreBusy(null);
+      } finally {
+        if (
+          cardCheckoutAbortRef.current === controller &&
+          cardCheckoutAttemptRef.current === attemptId
+        ) {
+          cardCheckoutAbortRef.current = null;
+          cardCheckoutProcessingRef.current = false;
+          setStoreBusy(null);
+        }
       }
     },
     [requireSignedIn, buildLineItem, setStoreBusy, user?.id]
@@ -1111,6 +1248,11 @@ export default function MerchStore({
       if (busyRef.current) return;
       const token = requireSignedIn();
       if (!token) return;
+      const authUser = getAuthUser();
+      if (!authUser?.id || authUser.id !== user?.id) {
+        showStoreToast('error', 'Your Signed-In Account Changed. Review This Purchase Again.');
+        return;
+      }
       if (product.variants.length > 0 && !variant) {
         showStoreToast('error', 'Please Choose A Size Or Option First.');
         return;
@@ -1120,16 +1262,24 @@ export default function MerchStore({
         firstFiniteNumber([variant?.priceDiamonds, product.priceDiamonds]) ||
         Math.ceil(unitPriceUsd * DIAMONDS_PER_DOLLAR);
       const cost = unitPriceDiamonds * quantity;
-      if (Number(balance || 0) < cost) {
+      const offerConfirmation = merchandiseDiamondOfferConfirmation(authUser.id, [
+        {
+          id: product.catalogId || product.key,
+          variantId: variant?.id || null,
+          quantity,
+          unitDiamonds: unitPriceDiamonds,
+        },
+      ]);
+      if (!offerConfirmation || offerConfirmation.totalDiamonds !== cost) {
         showStoreToast(
           'error',
-          `Not Enough Diamonds: ${fmt(cost)} Needed, You Have ${fmt(balance)}.`
+          'The Current Diamond Price Could Not Be Verified. Review This Product Again.'
         );
         return;
       }
       const commerceIntent = {
         scope: `merch-diamonds-${product.catalogId || product.key}`,
-        userId: user.id,
+        userId: authUser.id,
         paymentMethod: 'diamonds',
         intent: {
           productId: product.catalogId || product.key,
@@ -1137,15 +1287,49 @@ export default function MerchStore({
           quantity,
         },
       };
-      setPendingDiamondPurchase({
-        product,
-        variant,
-        quantity,
-        cost,
-        requiresShipping: product.requiresShipping !== false,
-        commerceIntent,
-        purchaseRequestId: getOrCreateCommerceRequestId(commerceIntent),
-      });
+      let recovery;
+      let purchaseRequestId;
+      try {
+        recovery = inspectCommerceRequestRecovery(commerceIntent);
+        if (recovery.status === 'terms-changed') {
+          throw new Error(
+            'An Earlier Protected Purchase Uses Different Terms. Verify It Before Starting Another.'
+          );
+        }
+        const purchaseWasResumed = recovery.status === 'recoverable';
+        if (!purchaseWasResumed && Number(balance || 0) < cost) {
+          showStoreToast(
+            'error',
+            `Not Enough Diamonds: ${fmt(cost)} Needed, You Have ${fmt(balance)}.`
+          );
+          return;
+        }
+        purchaseRequestId = purchaseWasResumed
+          ? recovery.requestId
+          : getOrCreateCommerceRequestId(commerceIntent);
+        if (!purchaseRequestId) {
+          throw new Error('Secure Purchase Recovery Could Not Verify The Protected Request.');
+        }
+        setPendingDiamondPurchase({
+          product,
+          variant,
+          quantity,
+          cost,
+          requiresShipping: product.requiresShipping !== false,
+          commerceIntent,
+          purchaseRequestId,
+          purchaseWasResumed,
+          offerConfirmation,
+        });
+      } catch (error) {
+        showStoreToast(
+          'error',
+          marketplaceCopy(
+            error?.message || 'Secure Purchase Recovery Is Unavailable. Please Try Again.'
+          )
+        );
+        return;
+      }
       captureStoreEvent('diamond_purchase_reviewed', {
         route: 'merch',
         product: product.catalogId || product.key,
@@ -1159,63 +1343,163 @@ export default function MerchStore({
   const confirmDiamondPurchase = useCallback(
     async (shipping = null) => {
       if (!pendingDiamondPurchase || busyRef.current) return;
-      const token = requireSignedIn();
-      if (!token) {
+      const expectedAccountId = pendingDiamondPurchase.commerceIntent?.userId || null;
+      const authUser = getAuthUser();
+      if (
+        !expectedAccountId ||
+        !authUser?.id ||
+        authUser.id !== expectedAccountId ||
+        activeAccountIdRef.current !== expectedAccountId
+      ) {
         setPendingDiamondPurchase(null);
+        showStoreToast('error', 'Your Signed-In Account Changed. Review This Purchase Again.');
         return;
       }
 
-      const { product, variant, quantity, cost } = pendingDiamondPurchase;
+      const { product, variant, quantity, cost, offerConfirmation } = pendingDiamondPurchase;
+      const purchaseWasResumed = pendingDiamondPurchase.purchaseWasResumed === true;
+      const attemptId = ++diamondPurchaseAttemptRef.current;
+      diamondPurchaseAbortRef.current?.abort();
+      const controller = new AbortController();
+      diamondPurchaseAbortRef.current = controller;
+      const attemptIsCurrent = () =>
+        mountedRef.current &&
+        !controller.signal.aborted &&
+        diamondPurchaseAttemptRef.current === attemptId &&
+        activeAccountIdRef.current === expectedAccountId &&
+        getAuthUser()?.id === expectedAccountId;
 
       setStoreBusy(product.key);
-      captureStoreEvent('diamond_purchase_started', {
-        route: 'merch',
-        product: product.catalogId || product.key,
-        quantity,
-        diamonds: cost,
-      });
       try {
+        const authorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+          signal: controller.signal,
+        });
+        if (!authorization || !attemptIsCurrent()) {
+          throw new Error('Your Signed-In Account Changed. Review This Purchase Again.');
+        }
+        const durableRequestId = getOrCreateCommerceRequestId(
+          pendingDiamondPurchase.commerceIntent
+        );
+        if (durableRequestId !== pendingDiamondPurchase.purchaseRequestId) {
+          setPendingDiamondPurchase((current) =>
+            current?.commerceIntent === pendingDiamondPurchase.commerceIntent
+              ? { ...current, purchaseRequestId: durableRequestId, purchaseWasResumed: true }
+              : current
+          );
+          throw new Error('Secure Purchase Recovery Was Refreshed. Review And Confirm Again.');
+        }
+        captureStoreEvent('diamond_purchase_started', {
+          route: 'merch',
+          product: product.catalogId || product.key,
+          quantity,
+          diamonds: cost,
+        });
+        setPendingDiamondPurchase((current) =>
+          current?.commerceIntent === pendingDiamondPurchase.commerceIntent
+            ? { ...current, purchaseWasResumed: true }
+            : current
+        );
+        const purchaseLine = buildLineItem(product, variant, quantity, { includePrice: false });
         const res = await boundedCommerceFetch('/api/store/purchase-with-diamonds', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'X-Idempotency-Key': pendingDiamondPurchase.purchaseRequestId,
+            Authorization: `Bearer ${authorization.accessToken}`,
+            'X-Idempotency-Key': durableRequestId,
           },
-          // The diamond endpoint prices catalogued items entirely from
-          // merchandise_items, so no price is sent for them.
+          signal: controller.signal,
+          // The server still prices from the locked catalog. This immutable
+          // confirmation is the exact total the player reviewed, so a reprice
+          // is refused before any Diamond debit instead of silently charging
+          // the new amount.
           body: JSON.stringify({
-            items: [buildLineItem(product, variant, quantity, { includePrice: false })],
+            items: [purchaseLine],
+            offerConfirmation,
             ...(pendingDiamondPurchase.requiresShipping ? { shipping } : {}),
           }),
         });
         const data = await res.json().catch(() => null);
+        const confirmedAuthorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+          signal: controller.signal,
+        });
+        if (!confirmedAuthorization || !attemptIsCurrent()) {
+          throw new Error(
+            'Your Signed-In Account Changed. The Original Purchase Still Needs Verification.'
+          );
+        }
 
         if (!res.ok || !data?.success) {
+          const refusal = classifyMerchDiamondPurchaseRefusal(res.status, data, {
+            accountId: expectedAccountId,
+            requestId: durableRequestId,
+          });
+          if (refusal.definitive && !purchaseWasResumed) {
+            try {
+              const replacementRequestId = replaceCommerceRequestId({
+                ...pendingDiamondPurchase.commerceIntent,
+                expectedRequestId: durableRequestId,
+              });
+              setPendingDiamondPurchase((current) =>
+                current?.commerceIntent === pendingDiamondPurchase.commerceIntent
+                  ? {
+                      ...current,
+                      purchaseRequestId: replacementRequestId,
+                      purchaseWasResumed: false,
+                    }
+                  : current
+              );
+            } catch (persistenceError) {
+              setPendingDiamondPurchase(null);
+              throw persistenceError;
+            }
+          }
           const details = data?.details;
           if (details && details.required != null && details.current != null) {
-            throw new Error(
+            const insufficientError = new Error(
               `Not Enough Diamonds: ${fmt(details.required)} Needed, You Have ${fmt(details.current)}` +
                 (details.shortfall != null ? ` (${fmt(details.shortfall)} short).` : '.')
             );
+            insufficientError.definitive = refusal.definitive;
+            throw insufficientError;
           }
-          throw new Error(errorMessageOf(data, res.status));
+          const purchaseError = new Error(errorMessageOf(data, res.status));
+          purchaseError.definitive = refusal.definitive;
+          throw purchaseError;
         }
 
-        const replayed = data.idempotent === true;
-        const spent = Number(data.data?.diamonds_spent) || cost;
+        const verifiedPurchase = normalizeVerifiedMerchDiamondPurchase(data, {
+          accountId: expectedAccountId,
+          requestId: durableRequestId,
+          units: quantity,
+          diamondsSpent: cost,
+          items: [purchaseLine],
+        });
+        if (!verifiedPurchase) {
+          throw new Error(
+            'Purchase Status Is Uncertain. Confirm Again To Verify The Original Order.'
+          );
+        }
+        const replayed = verifiedPurchase.idempotent;
+        const spent = verifiedPurchase.diamondsSpent;
+        const recoveryRetired = clearCommerceRequestId({
+          ...pendingDiamondPurchase.commerceIntent,
+          expectedRequestId: durableRequestId,
+        });
         captureStoreEvent('diamond_purchase_complete', {
           route: 'merch',
           product: product.catalogId || product.key,
           quantity,
           diamonds_spent: spent,
           idempotent: replayed,
+          recovery_retired: recoveryRetired,
         });
         showStoreToast(
-          'success',
-          replayed
-            ? 'Order Already Placed: No Additional Diamonds Were Deducted.'
-            : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
+          recoveryRetired ? 'success' : 'warning',
+          recoveryRetired
+            ? replayed
+              ? 'Order Already Placed: No Additional Diamonds Were Deducted.'
+              : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
+            : 'Order Was Placed And Your Balance Was Updated, But Secure Purchase Recovery Could Not Be Cleared. Do Not Submit This Purchase Again.'
         );
         try {
           new Audio('/sounds/purchase-success.mp3')
@@ -1226,39 +1510,34 @@ export default function MerchStore({
         }
 
         if (!replayed) busEmit.diamondsSpent(spent, 'Merch Store Purchase');
-        clearCommerceRequestId(pendingDiamondPurchase.commerceIntent);
-        if (data.data?.new_balance != null) setBalance(Number(data.data.new_balance));
+        setBalance(verifiedPurchase.newBalance);
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
         broadcastSync('smarter_poker_chips_sync', 'refresh');
-        refreshBalance();
         if (mountedRef.current) setPendingDiamondPurchase(null);
         // Stock may have moved: pull the catalog again.
         if (mountedRef.current) setReloadToken((t) => t + 1);
       } catch (err) {
         console.warn('[MerchStore] Diamond purchase failed:', err?.message || err);
+        if (!attemptIsCurrent()) return;
         showStoreToast(
           'error',
           marketplaceCopy(err?.message || 'Diamond Purchase Failed. Please Try Again.')
         );
       } finally {
-        if (mountedRef.current) setStoreBusy(null);
+        if (diamondPurchaseAbortRef.current === controller) {
+          diamondPurchaseAbortRef.current = null;
+          setStoreBusy(null);
+        }
       }
     },
-    [
-      pendingDiamondPurchase,
-      requireSignedIn,
-      buildLineItem,
-      refreshBalance,
-      setBalance,
-      setStoreBusy,
-    ]
+    [pendingDiamondPurchase, buildLineItem, setBalance, setStoreBusy, user?.id]
   );
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <>
       <style jsx global>{`
-        article[id^='merch-product-']:target {
+        article[data-merch-product-card='true']:target {
           outline: 2px solid #8befff;
           outline-offset: 5px;
           box-shadow:
@@ -1266,7 +1545,7 @@ export default function MerchStore({
             0 24px 58px rgba(0, 168, 255, 0.42) !important;
         }
         @media (prefers-reduced-motion: reduce) {
-          article[id^='merch-product-']:target {
+          article[data-merch-product-card='true']:target {
             scroll-behavior: auto;
           }
         }
@@ -1333,6 +1612,7 @@ export default function MerchStore({
             <label className={merchStyles.searchControl}>
               <span className="sr-only">Search Marketplace Gear</span>
               <input
+                data-preserve-case="true"
                 type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}

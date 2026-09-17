@@ -13,6 +13,7 @@ const SHOWCASE = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const SHOWCASE_CSS = read('src/components/diamond-store/SmarterStoreShowcase.module.css');
 const MERCH = read('src/components/store/MerchStore.jsx');
 const MERCH_CSS = read('src/components/store/MerchStore.module.css');
+const MERCH_ART = read('src/lib/store/merchProductArt.js');
 const STATUS_PANEL = read('src/components/diamond-store/CheckoutStatusPanel.jsx');
 const STATUS_CSS = read('src/components/diamond-store/CheckoutStatusPanel.module.css');
 const LEGACY_STYLES = read('src/components/diamond-store/diamondStoreStyles.js');
@@ -56,16 +57,27 @@ test('Stripe checkout creation is request-idempotent, ambiguity-safe, and termin
 });
 
 test('card merchandise orders preserve catalog and variant IDs for stock fulfillment', () => {
-  assert.match(CHECKOUT, /id:\s*item\.id,[\s\S]*?variantId:\s*item\.variantId \|\| item\.variant_id/);
+  assert.match(
+    CHECKOUT,
+    /id:\s*item\.id,[\s\S]*?variantId:\s*item\.variantId \|\| item\.variant_id/
+  );
   const resolvedIndex = CHECKOUT.indexOf('const resolvedItems = items.map((item) =>');
   const reuseIndex = CHECKOUT.indexOf('resolvedItems,', resolvedIndex);
   const orderIndex = CHECKOUT.indexOf(".from('merchandise_orders')", resolvedIndex);
   const itemsIndex = CHECKOUT.indexOf('items: resolvedItems', resolvedIndex);
-  assert.ok(resolvedIndex > -1 && reuseIndex > resolvedIndex && orderIndex > reuseIndex && itemsIndex > orderIndex);
+  assert.ok(
+    resolvedIndex > -1 &&
+      reuseIndex > resolvedIndex &&
+      orderIndex > reuseIndex &&
+      itemsIndex > orderIndex
+  );
 });
 
 test('the merch page server-renders a static lineup while refreshing the live catalog', () => {
-  assert.doesNotMatch(STORE, /dynamic\(\(\) => import\('\.\.\/\.\.\/src\/components\/store\/MerchStore'\), \{\s*ssr: false/);
+  assert.doesNotMatch(
+    STORE,
+    /dynamic\(\(\) => import\('\.\.\/\.\.\/src\/components\/store\/MerchStore'\), \{\s*ssr: false/
+  );
   assert.match(MERCH, /const STATIC_PRODUCTS = MERCHANDISE/);
   assert.match(MERCH, /return normalized \? \[normalized\] : STATIC_PRODUCTS/);
   assert.match(MERCH, /useState\(\(\) => initialProducts\)/);
@@ -73,11 +85,14 @@ test('the merch page server-renders a static lineup while refreshing the live ca
   assert.match(MERCH, /Verifying Live Prices, Options, And Stock/);
   assert.doesNotMatch(MERCH, /\{!loading && sections\.map/);
   assert.match(MERCH, /catalog_fallback/);
-  assert.match(MERCH_CSS, /\.quantityButton\s*\{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?height:\s*44px;/);
+  assert.match(
+    MERCH_CSS,
+    /\.quantityButton\s*\{[\s\S]*?width:\s*66px;[\s\S]*?min-width:\s*66px;[\s\S]*?height:\s*44px;/
+  );
 });
 
 test('seeded merch image placeholders do not issue guaranteed production 404s', () => {
-  assert.match(MERCH, /const UNSHIPPED_MERCH_IMAGES = new Set/);
+  assert.match(MERCH_ART, /const UNSHIPPED_MERCH_IMAGES = new Set/);
   for (const path of [
     '/merch/card-protector-gold.jpg',
     '/merch/card-protector-black.jpg',
@@ -88,16 +103,27 @@ test('seeded merch image placeholders do not issue guaranteed production 404s', 
     '/merch/chip-set-100.jpg',
     '/merch/chip-set-500.jpg',
   ]) {
-    assert.match(MERCH, new RegExp(path.replaceAll('/', '\\/').replace('.', '\\.')));
+    assert.match(MERCH_ART, new RegExp(path.replaceAll('/', '\\/').replace('.', '\\.')));
   }
-  assert.match(MERCH, /image: image && !UNSHIPPED_MERCH_IMAGES\.has\(image\) \? image : null/);
+  assert.match(
+    MERCH_ART,
+    /\.filter\(\s*\(item\) =>\s*item\?\.id && item\?\.image && !UNSHIPPED_MERCH_IMAGES\.has\(item\.image\)\s*\)/
+  );
+  assert.match(MERCH, /resolveReviewedMerchArt\(rawId\)/);
 });
 
 test('all store routes own canonical and social metadata', () => {
   assert.match(STORE, /rel="canonical"/);
   assert.match(STORE, /type="application\/ld\+json"/);
   assert.match(STORE, /'@type': 'CollectionPage'/);
-  for (const field of ['og:title', 'og:description', 'og:url', 'og:image', 'twitter:title', 'twitter:image']) {
+  for (const field of [
+    'og:title',
+    'og:description',
+    'og:url',
+    'og:image',
+    'twitter:title',
+    'twitter:image',
+  ]) {
     assert.match(STORE, new RegExp(field.replace(':', '\\:')));
   }
   for (const route of Object.values({

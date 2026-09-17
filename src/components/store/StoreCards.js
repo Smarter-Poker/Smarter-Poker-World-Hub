@@ -11,9 +11,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
       onClick={() => onSelect(pkg.id)}
       style={{
         position: 'relative',
-        background: isSelected
-          ? 'linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(36, 96, 126, 0.2))'
-          : 'rgba(255, 255, 255, 0.05)',
+        background: isSelected ? 'rgba(0, 212, 255, 0.14)' : 'rgba(255, 255, 255, 0.05)',
         border: isSelected
           ? '2px solid #00D4FF'
           : pkg.popular
@@ -35,13 +33,13 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             position: 'absolute',
             top: -10,
             right: 16,
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+            background: '#020508',
             color: '#0a1628',
             fontSize: 10,
             fontWeight: 700,
             padding: '4px 10px',
             borderRadius: 10,
-            textTransform: 'uppercase',
+            textTransform: 'capitalize',
           }}
         >
           Popular
@@ -55,13 +53,13 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
             position: 'absolute',
             top: -10,
             ...(pkg.popular ? { left: 16 } : { right: 16 }),
-            background: 'linear-gradient(135deg, #00d4ff, #007fbd)',
+            background: '#020508',
             color: '#0a1628',
             fontSize: 10,
             fontWeight: 700,
             padding: '4px 10px',
             borderRadius: 10,
-            textTransform: 'uppercase',
+            textTransform: 'capitalize',
           }}
         >
           +5% Bonus
@@ -71,7 +69,8 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
         <div>
           <div
             style={{
-              fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+              fontFamily:
+                "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
               fontSize: 24,
               fontWeight: 700,
               color: '#00D4FF',
@@ -115,7 +114,7 @@ export function PackageCard({ pkg, onSelect, isSelected, onAddToCart }) {
           width: '100%',
           marginTop: 12,
           padding: '10px 16px',
-          background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+          background: 'transparent',
           border: 'none',
           borderRadius: 8,
           color: '#fff',
@@ -138,7 +137,7 @@ export function VIPCard({ plan, isSelected, onSelect }) {
      it says "One Payment" instead. Without this a term with no `interval`
      rendered "/undefined". */
   const lifetime = plan.interval === 'lifetime';
-  const term = lifetime ? 'One Payment' : `/${plan.interval}`;
+  const term = lifetime ? 'One Payment' : `/${marketplaceCopy(plan.interval)}`;
   const spokenTerm = lifetime
     ? 'One Payment, Never Expires'
     : `Per ${marketplaceCopy(plan.interval)}`;
@@ -191,7 +190,7 @@ export function MerchCard({ item, onSelect }) {
         className={styles.merchCardMedia}
         style={{
           height: 120,
-          background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(36, 96, 126, 0.1))',
+          background: '#020508',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

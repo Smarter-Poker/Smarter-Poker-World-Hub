@@ -4,17 +4,20 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 const require = createRequire(import.meta.url);
 const readiness = require('../src/lib/store/marketplaceReadiness.js');
 
 test('readiness retries transient failures and avoids full-table exact counts', async () => {
   let attempts = 0;
-  const result = await readiness.withTransientRetry(() => {
-    attempts += 1;
-    if (attempts === 1) throw new Error('cold connection');
-    return 'healthy';
-  }, { delayMs: 0 });
+  const result = await readiness.withTransientRetry(
+    () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error('cold connection');
+      return 'healthy';
+    },
+    { delayMs: 0 }
+  );
   assert.equal(result, 'healthy');
   assert.equal(attempts, 2);
 
@@ -36,9 +39,15 @@ test('catalog readiness detects its bound with one sentinel row', async () => {
   const client = {
     from(table) {
       const query = {
-        select() { return query; },
-        eq() { return query; },
-        order() { return query; },
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        order() {
+          return query;
+        },
         async range(start, end) {
           return { data: rows[table].slice(start, end + 1), error: null };
         },
@@ -63,7 +72,7 @@ test('catalog readiness detects its bound with one sentinel row', async () => {
 test('private checkout status authenticates before validating an opaque reference', async () => {
   const source = await read('pages/api/store/checkout-status.js');
   const auth = source.indexOf('getServerUserWithFallback(req, getSupabase())');
-  const validation = source.indexOf("const sessionId = typeof req.query.session_id");
+  const validation = source.indexOf('const sessionId = typeof req.query.session_id');
   assert.ok(auth > -1);
   assert.ok(validation > auth);
 });
@@ -83,7 +92,10 @@ test('Club Shop sales burn buyer Diamonds and never create a club commission', a
     migration.indexOf('CREATE OR REPLACE FUNCTION public.fn_redeem_shop_item')
   );
   assert.doesNotMatch(purchaseFunction, /commission|revenue_share|club_owner|affiliate|payout/i);
-  assert.match(vercelIgnore, /!\/supabase\/migrations\/20260829130000_club_shop_atomic_purchase\.sql/);
+  assert.match(
+    vercelIgnore,
+    /!\/supabase\/migrations\/20260829130000_club_shop_atomic_purchase\.sql/
+  );
 });
 
 test('deployment verification covers every account subpage and purchase authorization boundary', async () => {
@@ -98,7 +110,8 @@ test('deployment verification covers every account subpage and purchase authoriz
     '/api/store/purchase-vip-with-diamonds',
     '/api/club-arena/marketplace-purchase',
     '/api/store/merch-catalog',
-  ]) assert.ok(verifier.includes(marker), `missing deployment probe: ${marker}`);
+  ])
+    assert.ok(verifier.includes(marker), `missing deployment probe: ${marker}`);
   assert.match(verifier, /--require-performance/);
   assert.match(verifier, /MARKETPLACE_MAX_LATENCY_MS/);
 });
@@ -116,6 +129,8 @@ test('marketplace detail media is an in-page, keyboard-dismissible gallery', asy
   assert.doesNotMatch(detail, /fetchpriority=/);
   assert.doesNotMatch(detail, /target=["']_blank["']/);
   assert.match(css, /\.mediaDialog/);
-  assert.match(product, /metadata\.gallery_images/);
+  assert.match(product, /resolveReviewedMerchArt/);
+  assert.match(product, /STATIC_DETAIL_IMAGES/);
+  assert.doesNotMatch(product, /metadata\.gallery_images/);
   assert.match(product, /galleryImages=\{galleryImages\}/);
 });

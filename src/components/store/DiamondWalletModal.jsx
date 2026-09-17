@@ -59,10 +59,7 @@ import {
   getOrCreateCommerceRequestId,
 } from '../../lib/store/checkoutIntentStore';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
-import {
-  formatWalletDescriptionParts,
-  titleCaseWalletText as toTitleCase,
-} from '../../lib/store/walletDescription.mjs';
+import { formatWalletDescriptionParts } from '../../lib/store/walletDescription.mjs';
 // #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
 import styles from './DiamondWalletModal.module.css';
 
@@ -152,14 +149,8 @@ const TX_TYPES = {
 function txConfigFor(rawType) {
   const known = rawType ? TX_TYPES[rawType] : undefined;
   if (known) return known;
-  const text = String(rawType || '').replace(/[_-]+/g, ' ').trim();
-  if (!text) return { label: 'Diamond Movement' };
-  const label = text
-    .split(/\s+/)
-    .map((w) => (w === w.toUpperCase() ? w.toLowerCase() : w))
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-  return { label };
+  const text = String(rawType || '').trim();
+  return { label: text ? marketplaceCopy(text) : 'Diamond Movement' };
 }
 
 const FILTER_OPTIONS = [
@@ -282,7 +273,7 @@ function showConfettiAnimation() {
   container.id = 'wallet-confetti';
   container.style.cssText =
     'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;';
-  const colors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#f43f5e', '#FFD700'];
+  const colors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#d7edf7', '#FFD700'];
   for (let i = 0; i < 60; i++) {
     const p = document.createElement('div');
     const c = colors[i % colors.length];
@@ -1174,7 +1165,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         data = { error: `Server error ${res.status}. Please try again.` };
       }
       if (data.success) {
-        clearCommerceRequestId(transferIntent);
+        clearCommerceRequestId({ ...transferIntent, expectedRequestId: transferRequestId });
         const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
         const successMsg = `Sent ${amount} Diamonds To ${recipient.display_name || recipient.username}${tierLabel}!`;
         setTransferSuccess(successMsg);
@@ -1236,7 +1227,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         successTimeoutRef.current = setTimeout(() => setTransferSuccess(''), 4000);
       } else {
         if (data.idempotencyTerminal === true) {
-          clearCommerceRequestId(transferIntent);
+          clearCommerceRequestId({ ...transferIntent, expectedRequestId: transferRequestId });
         }
         const errMsg = data.error || 'Transfer failed';
         if (data?.gateType) {
@@ -1719,6 +1710,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           <div className={styles.searchWrap}>
             <div className={styles.searchField}>
               <input
+                data-preserve-case="true"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1903,6 +1895,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       )}
                       <div className={styles.sendField}>
                         <input
+                          data-preserve-case="true"
                           type="text"
                           value={friendSearch}
                           onChange={(e) => setFriendSearch(e.target.value)}
@@ -2345,13 +2338,21 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     narrowing produced the blank, and offers to undo it.
                 */}
                 <div className={styles.stateTitle}>
-                  {searchQuery
-                    ? `No Loaded Transactions Match "${searchQuery}"`
-                    : dateRange !== 'all'
-                      ? `Nothing In The ${DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label || 'Selected Range'}`
-                      : filter === 'all'
-                        ? 'No Transactions Yet'
-                        : `No ${FILTER_OPTIONS.find((o) => o.value === filter)?.label || ''} Yet`}
+                  {searchQuery ? (
+                    <>
+                      No Loaded Transactions Match "
+                      <span data-preserve-case="true" data-user-content="true">
+                        {searchQuery}
+                      </span>
+                      "
+                    </>
+                  ) : dateRange !== 'all' ? (
+                    `Nothing In The ${DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label || 'Selected Range'}`
+                  ) : filter === 'all' ? (
+                    'No Transactions Yet'
+                  ) : (
+                    `No ${FILTER_OPTIONS.find((o) => o.value === filter)?.label || ''} Yet`
+                  )}
                 </div>
                 {/* The way out of a filter the player may have forgotten. */}
                 {(searchQuery || dateRange !== 'all') && (
@@ -2420,7 +2421,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div
                       key={tx.id}
                       role="listitem"
-                      aria-label={`${config.label}: ${isPositive ? '+' : ''}${tx.amount ?? 0} diamonds`}
+                      aria-label={`${config.label}: ${isPositive ? '+' : ''}${tx.amount ?? 0} Diamonds`}
                       onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
                       /* R8-I11: Swipe-to-copy gesture (mobile) */
                       onTouchStart={(e) => {
@@ -2452,7 +2453,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       <div className={styles.txRowMain}>
                         {/* Details */}
                         <div className={styles.txBody}>
-                          <div className={styles.txLabel}>{toTitleCase(config.label)}</div>
+                          <div className={styles.txLabel}>{marketplaceCopy(config.label)}</div>
                           <div className={styles.txDesc}>
                             <WalletDescription value={tx.description || config.label} />
                           </div>
@@ -2484,7 +2485,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                           <div className={styles.txDetailGrid}>
                             <div>
                               <span className={styles.txDetailKey}>Type: </span>
-                              <span className={styles.txDetailValue}>{toTitleCase(txType)}</span>
+                              <span className={styles.txDetailValue}>{config.label}</span>
                             </div>
                             <div>
                               <span className={styles.txDetailKey}>Date: </span>
@@ -2493,7 +2494,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {tx.reference_id && (
                               <div className={styles.txDetailWide}>
                                 <span className={styles.txDetailKey}>Ref: </span>
-                                <span className={styles.txDetailRef}>{tx.reference_id}</span>
+                                <span className={styles.txDetailRef} data-preserve-case="true">
+                                  {tx.reference_id}
+                                </span>
                               </div>
                             )}
                             {tx.description && tx.description !== config.label && (
@@ -2537,7 +2540,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     >
                       {loadingMore
                         ? 'Loading...'
-                        : `Load More (${transactions.length} of ${total})`}
+                        : `Load More (${transactions.length} Of ${total})`}
                     </button>
                   </div>
                 )}

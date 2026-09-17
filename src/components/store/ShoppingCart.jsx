@@ -313,7 +313,7 @@ export default function ShoppingCartComponent({
                                 : updateQuantity(item.id, item.quantity - 1)
                             }
                             style={{
-                              width: 28,
+                              minWidth: 56,
                               height: 28,
                               borderRadius: 6,
                               background: 'rgba(255, 255, 255, 0.1)',
@@ -324,8 +324,9 @@ export default function ShoppingCartComponent({
                               fontWeight: 700,
                             }}
                             className={styles.quantityButton}
+                            aria-label={`Decrease Quantity Of ${marketplaceCopy(item.name || 'Item')}`}
                           >
-                            −
+                            Less
                           </button>
                           <span
                             style={{
@@ -347,7 +348,7 @@ export default function ShoppingCartComponent({
                             }
                             aria-label={`Increase Quantity Of ${marketplaceCopy(item.name || 'Item')}`}
                             style={{
-                              width: 28,
+                              minWidth: 56,
                               height: 28,
                               borderRadius: 6,
                               background: 'rgba(255, 255, 255, 0.1)',
@@ -360,7 +361,7 @@ export default function ShoppingCartComponent({
                             }}
                             className={styles.quantityButton}
                           >
-                            +
+                            More
                           </button>
                         </div>
 
@@ -430,7 +431,7 @@ export default function ShoppingCartComponent({
                     style={{
                       width: '100%',
                       padding: '16px 24px',
-                      background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+                      background: '#02070b',
                       border: 'none',
                       borderRadius: 12,
                       color: '#fff',
@@ -472,7 +473,7 @@ export default function ShoppingCartComponent({
                           width: '100%',
                           marginTop: 10,
                           padding: '14px 24px',
-                          background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                          background: '#02070b',
                           border: 'none',
                           borderRadius: 12,
                           color: '#000',

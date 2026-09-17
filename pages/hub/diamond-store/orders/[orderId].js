@@ -1,14 +1,17 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { ArrowLeft, Gem, PackageCheck, ReceiptText } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import MarketplaceDetailExperience from '../../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../../src/components/store/MarketplaceDetailExperience.module.css';
-import { marketplaceCopy } from '../../../../src/lib/store/marketplaceCopy';
-import { authedFetch, useRequireAuth } from '../../../../src/lib/authUtils';
+import { MarketplaceConsoleStatusRow } from '../../../../src/components/marketplace-console/MarketplaceConsole';
+import { marketplaceCarrierName, marketplaceCopy } from '../../../../src/lib/store/marketplaceCopy';
+import { authedFetch, getAuthUser, useRequireAuth } from '../../../../src/lib/authUtils';
+import { useAvatar } from '../../../../src/contexts/AvatarContext';
+import accountControls from '../marketplace-account-controls.module.css';
 
 const MARKETPLACE_RECEIPT_TIMEOUT_MS = 20000;
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export const ORDER_SOURCES = Object.freeze({
   diamonds: true,
@@ -19,7 +22,7 @@ export const ORDER_SOURCES = Object.freeze({
 });
 
 function formatDate(value) {
-  if (!value || Number.isNaN(Date.parse(value))) return 'Not recorded';
+  if (!value || Number.isNaN(Date.parse(value))) return 'Not Recorded';
   return new Date(value).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -37,9 +40,13 @@ function formatAmount(amount, currency) {
 
 export default function MarketplaceReceiptPage({ routeOrderId = null }) {
   const router = useRouter();
-  const routerOrderId = Array.isArray(router.query.orderId) ? router.query.orderId[0] : router.query.orderId;
+  const routerOrderId = Array.isArray(router.query.orderId)
+    ? router.query.orderId[0]
+    : router.query.orderId;
   const rawOrderId = routerOrderId || routeOrderId;
-  const rawSource = Array.isArray(router.query.source) ? router.query.source[0] : router.query.source;
+  const rawSource = Array.isArray(router.query.source)
+    ? router.query.source[0]
+    : router.query.source;
   const source = Object.hasOwn(ORDER_SOURCES, rawSource || '') ? rawSource : null;
   const canonical = rawOrderId
     ? `/hub/diamond-store/orders/${encodeURIComponent(rawOrderId)}`
@@ -48,64 +55,117 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
   // valid receipt link returns without enough context to load its record.
   const authReturnPath = source ? `${canonical}?source=${encodeURIComponent(source)}` : canonical;
   const { user, checking } = useRequireAuth(authReturnPath);
+  const { user: contextUser, initializing: authInitializing } = useAvatar();
+  const synchronousAccountId = getAuthUser()?.id || null;
+  const committedAccountId =
+    contextUser?.id === synchronousAccountId
+      ? contextUser.id
+      : authInitializing || checking
+        ? user?.id === synchronousAccountId
+          ? user.id
+          : synchronousAccountId
+        : null;
   const [loadedRecord, setRecord] = useState(null);
-  const [state, setState] = useState({ kind: 'loading', message: 'Reading verified commerce record…' });
+  const [state, setState] = useState({
+    kind: 'loading',
+    message: 'Reading Verified Commerce Record...',
+  });
   const [retryAttempt, setRetryAttempt] = useState(0);
   const requestRef = useRef(0);
+  const requestAbortRef = useRef(null);
+  const activeAccountIdRef = useRef(committedAccountId);
   // Effects run after paint. Route-key the rendered record as well as aborting
   // requests so receipt A can never flash under receipt B's URL for one frame.
   const record =
     loadedRecord?._routeSource === source &&
     loadedRecord?._routeOrderId === String(rawOrderId || '') &&
-    loadedRecord?._ownerId === user?.id
+    loadedRecord?._ownerId === committedAccountId
       ? loadedRecord
       : null;
 
-  useEffect(() => {
-    const requestId = ++requestRef.current;
+  useIsomorphicLayoutEffect(() => {
+    activeAccountIdRef.current = committedAccountId;
+    requestRef.current += 1;
+    requestAbortRef.current?.abort();
+    requestAbortRef.current = null;
     setRecord(null);
-    if (!router.isReady || checking || !user?.id) return;
+    setState({
+      kind: 'loading',
+      message: committedAccountId
+        ? 'Reading Verified Commerce Record...'
+        : 'Verifying The Active Marketplace Account...',
+    });
+  }, [committedAccountId]);
+
+  useEffect(() => {
+    if (!router.isReady || checking || authInitializing || !committedAccountId) return undefined;
     if (!rawOrderId || !source) {
+      setRecord(null);
       setState({ kind: 'invalid', message: 'This Receipt Link Is Missing A Valid Order Type.' });
-      return;
+      return undefined;
     }
+
+    const expectedAccountId = committedAccountId;
+    if (activeAccountIdRef.current !== expectedAccountId || getAuthUser()?.id !== expectedAccountId)
+      return undefined;
+
+    const requestId = ++requestRef.current;
+    requestAbortRef.current?.abort();
     const controller = new AbortController();
+    requestAbortRef.current = controller;
+    const operationOwnsCurrentAccount = () =>
+      requestRef.current === requestId &&
+      requestAbortRef.current === controller &&
+      activeAccountIdRef.current === expectedAccountId;
+    const attemptIsCurrent = () =>
+      !controller.signal.aborted &&
+      operationOwnsCurrentAccount() &&
+      getAuthUser()?.id === expectedAccountId;
+    const errorCommitIsCurrent = () =>
+      operationOwnsCurrentAccount() && getAuthUser()?.id === expectedAccountId;
     let timedOut = false;
     const timeout = window.setTimeout(() => {
       timedOut = true;
       controller.abort();
     }, MARKETPLACE_RECEIPT_TIMEOUT_MS);
-    setState({ kind: 'loading', message: 'Reading verified commerce record…' });
+    setRecord(null);
+    setState({ kind: 'loading', message: 'Reading Verified Commerce Record...' });
     authedFetch(
       `/api/store/order-ledger?source=${encodeURIComponent(source)}&id=${encodeURIComponent(rawOrderId)}`,
       { cache: 'no-store', signal: controller.signal }
     )
       .then(async (response) => {
         const payload = await response.json().catch(() => null);
-        if (requestId !== requestRef.current) return;
+        if (!operationOwnsCurrentAccount()) return;
         if (controller.signal.aborted) {
           if (timedOut) throw new Error('Receipt verification timed out');
           return;
         }
+        if (!attemptIsCurrent()) return;
         if (response.status === 404) {
           setRecord(null);
-          setState({ kind: 'missing', message: 'No order matching this private receipt was found.' });
+          setState({
+            kind: 'missing',
+            message: 'No Order Matching This Private Receipt Was Found.',
+          });
           return;
         }
         if (!response.ok || !payload?.success || !payload?.data?.order) {
           throw new Error(payload?.error || 'Receipt unavailable');
         }
+        if (!attemptIsCurrent()) return;
         setRecord({
           ...payload.data.order,
           _routeSource: source,
           _routeOrderId: String(rawOrderId),
-          _ownerId: user.id,
+          _ownerId: expectedAccountId,
         });
-        setState({ kind: 'ready', message: 'Verified server-owned commerce record.' });
+        setState({ kind: 'ready', message: 'Verified Server-Owned Commerce Record.' });
       })
       .catch((error) => {
-        if (requestId !== requestRef.current) return;
+        if (!operationOwnsCurrentAccount()) return;
         if (error?.name === 'AbortError' && !timedOut) return;
+        if (!errorCommitIsCurrent()) return;
         setRecord(null);
         setState({
           kind: 'error',
@@ -114,13 +174,25 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
             : 'The Receipt Could Not Be Loaded. Try Again From Order History.',
         });
       })
-      .finally(() => window.clearTimeout(timeout));
+      .finally(() => {
+        window.clearTimeout(timeout);
+        if (requestAbortRef.current === controller) requestAbortRef.current = null;
+      });
     return () => {
       window.clearTimeout(timeout);
-      requestRef.current += 1;
       controller.abort();
+      if (requestRef.current === requestId) requestRef.current += 1;
+      if (requestAbortRef.current === controller) requestAbortRef.current = null;
     };
-  }, [checking, rawOrderId, retryAttempt, router.isReady, source, user?.id]);
+  }, [
+    authInitializing,
+    checking,
+    committedAccountId,
+    rawOrderId,
+    retryAttempt,
+    router.isReady,
+    source,
+  ]);
 
   const timeline = useMemo(() => {
     if (!record) return [];
@@ -144,8 +216,10 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
 
   const isMembershipStatus = source === 'vip' || record?.recordType === 'membership_status';
   const isCardFundedClubPurchase = record?.recordType === 'card_funded_club_purchase';
-  const title = record?.title || (isMembershipStatus ? 'Private VIP Membership Record' : 'Private Marketplace Receipt');
-  const orderLabel = rawOrderId ? String(rawOrderId).slice(0, 12).toUpperCase() : 'PENDING';
+  const title =
+    record?.title ||
+    (isMembershipStatus ? 'Private VIP Membership Record' : 'Private Marketplace Receipt');
+  const orderLabel = rawOrderId ? String(rawOrderId).slice(0, 12) : 'Pending';
   const image =
     source === 'merchandise'
       ? '/images/store-v3/merch-hero.webp'
@@ -153,7 +227,7 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
         ? '/images/store-v3/vip-hero.webp'
         : source === 'club'
           ? '/images/store-v3/club-shop-hero.webp'
-        : '/images/store-v3/diamond-vault-hero.webp';
+          : '/images/store-v3/diamond-vault-hero.webp';
 
   return (
     <MarketplaceDetailExperience
@@ -166,18 +240,28 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
       breadcrumbs={[
         { label: 'Marketplace', href: '/hub/diamond-store' },
         { label: 'Orders', href: '/hub/diamond-store/orders' },
-        { label: `${isMembershipStatus ? 'Membership' : 'Receipt'} ${orderLabel}`, href: canonical },
+        {
+          label: isMembershipStatus ? 'Membership Receipt' : 'Marketplace Receipt',
+          href: canonical,
+        },
       ]}
       diamondPrice={record?.currency === 'diamonds' ? record.amount : null}
       price={record?.currency === 'usd' ? record.amount / 100 : null}
       status={record?.status || state.message}
+      presentation="record"
       actions={
         <>
-          <Link href="/hub/diamond-store/orders">
-            <ArrowLeft size={16} aria-hidden="true" /> Back To Orders
+          <Link
+            href="/hub/diamond-store/orders"
+            className={`${accountControls.action} ${accountControls.actionSecondary}`}
+          >
+            Back To Orders
           </Link>
-          <Link href="/hub/diamond-store">
-            <Gem size={16} aria-hidden="true" /> Marketplace
+          <Link
+            href="/hub/diamond-store"
+            className={`${accountControls.action} ${accountControls.actionPrimary}`}
+          >
+            Marketplace
           </Link>
         </>
       }
@@ -198,17 +282,19 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
         aria-busy={state.kind === 'loading'}
         className={detailStyles.detailCard}
       >
-        <h2>
-          <ReceiptText size={22} aria-hidden="true" />
-          {isMembershipStatus ? ' Membership Verification' : ' Receipt Verification'}
-        </h2>
+        <h2>{isMembershipStatus ? 'Membership Verification' : 'Receipt Verification'}</h2>
         <p>{marketplaceCopy(state.message)}</p>
-        <p>{isMembershipStatus ? 'Membership Record' : 'Receipt'} ID: <strong>{orderLabel}</strong></p>
+        <p>
+          {isMembershipStatus ? 'Membership Record' : 'Receipt'} ID:{' '}
+          <strong data-preserve-case="true" data-user-content="true">
+            {orderLabel}
+          </strong>
+        </p>
         {state.kind === 'error' && (
           <button
             type="button"
             onClick={() => setRetryAttempt((attempt) => attempt + 1)}
-            style={receiptStyles.retryButton}
+            className={`${accountControls.action} ${accountControls.actionPrimary} ${accountControls.detailAction}`}
           >
             Retry Receipt Verification
           </button>
@@ -218,11 +304,16 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
       {record && (
         <>
           {isCardFundedClubPurchase && (
-            <section className={detailStyles.detailCard} aria-labelledby="club-card-settlement-title">
+            <section
+              className={detailStyles.detailCard}
+              aria-labelledby="club-card-settlement-title"
+            >
               <h2 id="club-card-settlement-title">Club Shop Card Settlement</h2>
               <p>
-                Card Funding Added <strong>{Number(record.fundedDiamonds || 0).toLocaleString()} Diamonds</strong>.
-                {' '}The Item Authorized <strong>{Number(record.clubItemPrice || 0).toLocaleString()} Diamonds</strong>.
+                Card Funding Added{' '}
+                <strong>{Number(record.fundedDiamonds || 0).toLocaleString()} Diamonds</strong>. The
+                Item Authorized{' '}
+                <strong>{Number(record.clubItemPrice || 0).toLocaleString()} Diamonds</strong>.
               </p>
               {record.redemptionStatus === 'needs_review' && (
                 <p role="alert">
@@ -240,7 +331,9 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
                   <div key={`${item.name}-${index}`} style={receiptStyles.line}>
                     <span>
                       <strong>{marketplaceCopy(item.name)}</strong>
-                      {item.option && <small style={receiptStyles.option}>{item.option}</small>}
+                      {item.option && (
+                        <small style={receiptStyles.option}>{marketplaceCopy(item.option)}</small>
+                      )}
                     </span>
                     <span>x{item.quantity}</span>
                   </div>
@@ -271,25 +364,41 @@ export default function MarketplaceReceiptPage({ routeOrderId = null }) {
             </section>
 
             <section className={detailStyles.detailCard} aria-labelledby="receipt-timeline-title">
-              <h2 id="receipt-timeline-title">
-                <PackageCheck size={22} aria-hidden="true" /> Transaction Timeline
-              </h2>
+              <h2 id="receipt-timeline-title">Transaction Timeline</h2>
               <ol style={receiptStyles.timeline}>
                 {timeline.map(([label, date]) => (
                   <li key={label} style={receiptStyles.timelineItem}>
-                    <span>{label}</span>
-                    <time dateTime={date || undefined}>{formatDate(date)}</time>
+                    <MarketplaceConsoleStatusRow
+                      label={marketplaceCopy(label)}
+                      value={formatDate(date)}
+                      detail={date ? 'Verified Commerce Event' : 'Awaiting Carrier Update'}
+                    />
                   </li>
                 ))}
               </ol>
               {(record.carrier || record.trackingNumber) && (
                 <p>
-                  {record.carrier && <>Carrier: <strong>{record.carrier}</strong>. </>}
-                  {record.trackingNumber && <>Tracking: <strong>{record.trackingNumber}</strong>.</>}
+                  {record.carrier && (
+                    <>
+                      Carrier:{' '}
+                      <strong data-preserve-case="true">
+                        {marketplaceCarrierName(record.carrier)}
+                      </strong>
+                      .{' '}
+                    </>
+                  )}
+                  {record.trackingNumber && (
+                    <>
+                      Tracking: <strong data-preserve-case="true">{record.trackingNumber}</strong>.
+                    </>
+                  )}
                 </p>
               )}
               {record.trackingUrl && (
-                <a href={record.trackingUrl} style={receiptStyles.trackingLink}>
+                <a
+                  href={record.trackingUrl}
+                  className={`${accountControls.action} ${accountControls.actionSecondary} ${accountControls.detailAction}`}
+                >
                   Track Package On Carrier Site
                 </a>
               )}
@@ -338,32 +447,7 @@ const receiptStyles = {
   },
   timeline: { display: 'grid', gap: 12, margin: 0, padding: 0, listStyle: 'none' },
   timelineItem: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) auto',
-    gap: 16,
-    padding: '12px 14px',
-    borderLeft: '3px solid #00c8ff',
-    background: 'rgba(0,168,232,0.08)',
-  },
-  trackingLink: {
-    display: 'inline-flex',
-    minHeight: 44,
-    alignItems: 'center',
-    marginTop: 8,
-    padding: '0 14px',
-    border: '1px solid #8ed9eb',
-    color: '#dff9ff',
-    textDecoration: 'none',
-  },
-  retryButton: {
-    minHeight: 44,
-    marginTop: 12,
-    padding: '0 16px',
-    border: '1px solid #8ed9eb',
-    borderRadius: 0,
-    background: 'linear-gradient(180deg, #1b7692, #04121b 34%, #0d4256)',
-    color: '#f3fcff',
-    fontWeight: 700,
-    cursor: 'pointer',
+    display: 'block',
+    minWidth: 0,
   },
 };

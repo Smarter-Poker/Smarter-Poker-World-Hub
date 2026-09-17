@@ -7,78 +7,234 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { wishlistService } from '../../../src/services/preferences-service';
 import toast from '../../../src/stores/toastStore';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { useRequireAuth } from '../../../src/lib/authUtils';
+import { getAuthUser, useRequireAuth } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
-import { Heart, RefreshCw, ShoppingBag, Trash2 } from 'lucide-react';
+import {
+  MarketplaceConsolePanel,
+  MarketplaceConsoleStatusRow,
+} from '../../../src/components/marketplace-console/MarketplaceConsole';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
+import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt';
+import accountControls from './marketplace-account-controls.module.css';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function Wishlist() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/wishlist');
+  const { user: contextUser, initializing: authInitializing } = useAvatar();
   useTrainingBus('diamond-store-wishlist');
-  const [wishlist, setWishlist] = useState([]);
+  const synchronousAccountId = getAuthUser()?.id || null;
+  const committedAccountId =
+    contextUser?.id === synchronousAccountId
+      ? contextUser.id
+      : authInitializing || authChecking
+        ? user?.id === synchronousAccountId
+          ? user.id
+          : synchronousAccountId
+        : null;
+  const [loadedWishlist, setWishlist] = useState([]);
+  const [wishlistOwnerId, setWishlistOwnerId] = useState(null);
+  const wishlist = wishlistOwnerId === committedAccountId ? loadedWishlist : [];
+  const changingOwner = Boolean(committedAccountId) && wishlistOwnerId !== committedAccountId;
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [removeError, setRemoveError] = useState(null);
+  const projectedLoadError = wishlistOwnerId === committedAccountId ? loadError : null;
+  const projectedRemoveError = wishlistOwnerId === committedAccountId ? removeError : null;
   const [removingId, setRemovingId] = useState(null);
+  const activeAccountIdRef = useRef(committedAccountId);
   const loadRequestRef = useRef(0);
+  const loadAbortRef = useRef(null);
+  const removeRequestRef = useRef(0);
+  const removeAbortRef = useRef(null);
+  const removeBusyRef = useRef(false);
 
-  useEffect(() => {
-    if (authChecking || !user?.id) return;
-    loadWishlist();
-  }, [authChecking, user?.id]);
+  useIsomorphicLayoutEffect(() => {
+    activeAccountIdRef.current = committedAccountId;
+    loadRequestRef.current += 1;
+    loadAbortRef.current?.abort();
+    loadAbortRef.current = null;
+    removeRequestRef.current += 1;
+    removeAbortRef.current?.abort();
+    removeAbortRef.current = null;
+    removeBusyRef.current = false;
+    setWishlist([]);
+    setWishlistOwnerId(committedAccountId);
+    setLoadError(null);
+    setRemoveError(null);
+    setRemovingId(null);
+    setLoading(Boolean(committedAccountId));
+  }, [committedAccountId]);
 
-  const loadWishlist = async () => {
+  const loadWishlist = useCallback(async () => {
+    const expectedAccountId = committedAccountId;
+    if (
+      !expectedAccountId ||
+      activeAccountIdRef.current !== expectedAccountId ||
+      getAuthUser()?.id !== expectedAccountId
+    )
+      return;
     const requestId = ++loadRequestRef.current;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    const generationOwnsCurrentAccount = () =>
+      loadRequestRef.current === requestId && activeAccountIdRef.current === expectedAccountId;
+    const operationOwnsCurrentAccount = () =>
+      generationOwnsCurrentAccount() && loadAbortRef.current === controller;
+    const attemptIsCurrent = () =>
+      !controller.signal.aborted &&
+      operationOwnsCurrentAccount() &&
+      getAuthUser()?.id === expectedAccountId;
+    const commitIsCurrent = () =>
+      !controller.signal.aborted &&
+      generationOwnsCurrentAccount() &&
+      getAuthUser()?.id === expectedAccountId;
+    const errorCommitIsCurrent = () => generationOwnsCurrentAccount();
+    let operationSettled = false;
     setLoading(true);
     setLoadError(null);
     try {
-      const items = await wishlistService.getWishlist(user.id);
+      const items = await wishlistService.getWishlist(expectedAccountId);
+      if (!attemptIsCurrent()) return;
       let catalogById = {};
       try {
         const response = await fetch('/api/store/merch-catalog', {
           headers: { Accept: 'application/json' },
+          signal: controller.signal,
         });
+        if (!attemptIsCurrent()) return;
         const body = response.ok ? await response.json() : null;
+        if (!attemptIsCurrent()) return;
         const catalog = Array.isArray(body?.data?.items) ? body.data.items : [];
         catalogById = Object.fromEntries(catalog.map((item) => [item.id, item]));
       } catch (catalogError) {
+        if (!operationOwnsCurrentAccount()) return;
+        if (catalogError?.name === 'AbortError') return;
         console.warn('Could not enrich wishlist from live catalog:', catalogError);
       }
-      if (requestId !== loadRequestRef.current) return;
-      setWishlist(
-        (Array.isArray(items) ? items : []).map((item) => ({
+      if (!attemptIsCurrent()) return;
+      operationSettled = true;
+      setWishlist((current) => {
+        if (!commitIsCurrent()) return current;
+        return (Array.isArray(items) ? items : []).map((item) => ({
           ...item,
           catalog: catalogById[item.product_id] || null,
-        }))
-      );
+        }));
+      });
     } catch (error) {
-      if (requestId !== loadRequestRef.current) return;
+      if (!operationOwnsCurrentAccount()) return;
+      if (error?.name === 'AbortError') return;
+      operationSettled = true;
       console.warn('Error loading wishlist:', error);
-      setLoadError('Your Wishlist Could Not Be Loaded. Check Your Connection And Try Again.');
+      setLoadError((current) =>
+        errorCommitIsCurrent()
+          ? 'Your Wishlist Could Not Be Loaded. Check Your Connection And Try Again.'
+          : current
+      );
     } finally {
-      if (requestId === loadRequestRef.current) setLoading(false);
+      if (loadRequestRef.current === requestId && loadAbortRef.current === controller) {
+        loadAbortRef.current = null;
+        if (!operationSettled) {
+          setLoadError((current) =>
+            errorCommitIsCurrent()
+              ? 'Your Account Changed Before The Wishlist Could Be Verified. Retry The Secure Read.'
+              : current
+          );
+        }
+        if (activeAccountIdRef.current === expectedAccountId) {
+          setLoading((current) => (errorCommitIsCurrent() ? false : current));
+        }
+      }
     }
-  };
+  }, [committedAccountId]);
 
-  const removeFromWishlist = async (productId) => {
-    if (removingId) return;
-    setRemovingId(productId);
-    try {
-      await wishlistService.removeFromWishlist(user.id, productId);
-      setWishlist((prev) => prev.filter((item) => item.product_id !== productId));
-      toast.success('Removed From Wishlist');
-    } catch (error) {
-      console.warn('Error removing from wishlist:', error);
-      toast.error('Could Not Remove Item. Please Try Again.');
-    } finally {
-      setRemovingId(null);
-    }
-  };
+  const removeFromWishlist = useCallback(
+    async (productId) => {
+      const expectedAccountId = committedAccountId;
+      if (
+        removeBusyRef.current ||
+        !expectedAccountId ||
+        wishlistOwnerId !== expectedAccountId ||
+        activeAccountIdRef.current !== expectedAccountId ||
+        getAuthUser()?.id !== expectedAccountId
+      )
+        return;
+      const requestId = ++removeRequestRef.current;
+      removeAbortRef.current?.abort();
+      const controller = new AbortController();
+      removeAbortRef.current = controller;
+      removeBusyRef.current = true;
+      const generationOwnsCurrentAccount = () =>
+        removeRequestRef.current === requestId && activeAccountIdRef.current === expectedAccountId;
+      const operationOwnsCurrentAccount = () =>
+        generationOwnsCurrentAccount() && removeAbortRef.current === controller;
+      const attemptIsCurrent = () =>
+        !controller.signal.aborted &&
+        operationOwnsCurrentAccount() &&
+        getAuthUser()?.id === expectedAccountId;
+      const commitIsCurrent = () =>
+        !controller.signal.aborted &&
+        generationOwnsCurrentAccount() &&
+        getAuthUser()?.id === expectedAccountId;
+      const errorCommitIsCurrent = () => generationOwnsCurrentAccount();
+      setRemovingId(productId);
+      setRemoveError(null);
+      try {
+        // This service call cannot accept an AbortSignal. It may still finish for
+        // the captured account, but every browser-side effect below is fenced.
+        await wishlistService.removeFromWishlist(expectedAccountId, productId);
+        if (!attemptIsCurrent()) return;
+        setWishlist((current) =>
+          commitIsCurrent() ? current.filter((item) => item.product_id !== productId) : current
+        );
+        toast.success('Removed From Wishlist');
+      } catch (error) {
+        if (!operationOwnsCurrentAccount()) return;
+        if (error?.name === 'AbortError') return;
+        if (getAuthUser()?.id !== expectedAccountId) return;
+        console.warn('Error removing from wishlist:', error);
+        setRemoveError((current) =>
+          errorCommitIsCurrent() ? 'Could Not Remove Item. Please Try Again.' : current
+        );
+        toast.error('Could Not Remove Item. Please Try Again.');
+      } finally {
+        if (removeRequestRef.current === requestId && removeAbortRef.current === controller) {
+          removeAbortRef.current = null;
+          removeBusyRef.current = false;
+          if (activeAccountIdRef.current === expectedAccountId) {
+            setRemovingId((current) => (errorCommitIsCurrent() ? null : current));
+          }
+        }
+      }
+    },
+    [committedAccountId, wishlistOwnerId]
+  );
+
+  useEffect(() => {
+    if (authChecking || authInitializing || !committedAccountId) return;
+    void loadWishlist();
+  }, [authChecking, authInitializing, committedAccountId, loadWishlist]);
+
+  useEffect(
+    () => () => {
+      loadRequestRef.current += 1;
+      loadAbortRef.current?.abort();
+      loadAbortRef.current = null;
+      removeRequestRef.current += 1;
+      removeAbortRef.current?.abort();
+      removeAbortRef.current = null;
+      removeBusyRef.current = false;
+    },
+    []
+  );
 
   return (
     <PageTransition>
@@ -98,34 +254,58 @@ export default function Wishlist() {
           title="Wishlist"
           description="Keep A Shortlist Of Gear And Marketplace Access, Then Return To The Live Product Page For Current Options, Availability, And Payment Choice."
         >
-          {loading ? (
-            <div role="status" aria-live="polite" style={styles.loadingContainer}>
-              <div style={styles.spinner}></div>
-              <p style={styles.loadingText}>Loading Wishlist...</p>
-              <style>{`@keyframes dsSpin { to { transform: rotate(360deg); } }`}</style>
+          {loading || changingOwner || !committedAccountId ? (
+            <div role="status" aria-live="polite">
+              <MarketplaceConsolePanel title="Verifying Wishlist">
+                <MarketplaceConsoleStatusRow
+                  label="Private Wishlist"
+                  value="Loading Saved Gear"
+                  detail="Binding Saved Items To Your Active Account"
+                  live
+                />
+              </MarketplaceConsolePanel>
             </div>
-          ) : loadError ? (
-            <div role="alert" style={styles.emptyState}>
-              <Heart size={46} color="#ff5f6d" aria-hidden="true" />
-              <h2 style={styles.emptyTitle}>Could Not Load Wishlist</h2>
-              <p style={styles.emptyText}>{marketplaceCopy(loadError)}</p>
-              <button type="button" onClick={loadWishlist} style={styles.retryButton}>
-                <RefreshCw size={15} aria-hidden="true" /> Retry Wishlist
-              </button>
+          ) : projectedLoadError ? (
+            <div role="alert">
+              <MarketplaceConsolePanel
+                title="Could Not Load Wishlist"
+                primaryAction={{ label: 'Retry Wishlist', onClick: loadWishlist }}
+              >
+                <MarketplaceConsoleStatusRow
+                  label="Wishlist Status"
+                  value="Secure Read Failed"
+                  detail={marketplaceCopy(projectedLoadError)}
+                  valueInk="red"
+                />
+              </MarketplaceConsolePanel>
             </div>
           ) : wishlist.length === 0 ? (
-            <div style={styles.emptyState}>
-              <Heart size={46} color="#607d8e" aria-hidden="true" />
-              <h2 style={styles.emptyTitle}>Your Wishlist Is Empty</h2>
-              <p style={styles.emptyText}>Save Marketplace Gear To Build A Shortlist Here.</p>
-              <Link href="/hub/merch-store" style={styles.shopButton}>
-                Browse Merch
-              </Link>
-            </div>
+            <MarketplaceConsolePanel
+              title="Your Wishlist Is Empty"
+              primaryAction={{ label: 'Browse Merch', href: '/hub/merch-store' }}
+            >
+              <MarketplaceConsoleStatusRow
+                label="Private Wishlist"
+                value="No Saved Items"
+                detail="Save Marketplace Gear To Build A Shortlist Here"
+              />
+            </MarketplaceConsolePanel>
           ) : (
             <div style={styles.wishlistGrid}>
+              {projectedRemoveError && (
+                <div role="alert" style={styles.gridNotice}>
+                  <MarketplaceConsoleStatusRow
+                    label="Wishlist Update"
+                    value="Item Was Not Removed"
+                    detail={marketplaceCopy(projectedRemoveError)}
+                    valueInk="red"
+                    live
+                  />
+                </div>
+              )}
               {wishlist.map((item) => {
                 const catalog = item.catalog;
+                const productArt = resolveReviewedMerchArt(String(item.product_id || ''));
                 const priceUsd = Number(catalog?.price_usd ?? item.product_price) || 0;
                 const priceDiamonds = Number(catalog?.price_diamonds) || Math.ceil(priceUsd * 100);
                 const destination =
@@ -136,45 +316,65 @@ export default function Wishlist() {
                       : `/hub/merch-store/${encodeURIComponent(item.product_id)}`;
                 return (
                   <article key={item.id ?? item.product_id} style={styles.wishlistItem}>
-                    <div style={styles.productMedia}>
-                      {catalog?.image_url ? (
-                        <img
-                          src={catalog.image_url}
-                          alt={marketplaceCopy(item.product_name)}
-                          style={styles.productImage}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <ShoppingBag size={42} color="#698494" aria-hidden="true" />
-                      )}
-                    </div>
-                    <div style={styles.productBody}>
-                      <span style={styles.productType}>
-                        {marketplaceCopy(catalog?.category || item.product_type || 'Marketplace')}
-                      </span>
-                      <h2 style={styles.productName}>{marketplaceCopy(catalog?.name || item.product_name)}</h2>
-                      <div style={styles.priceRow}>
-                        <span style={styles.price}>${priceUsd.toFixed(2)}</span>
-                        <span style={styles.diamondPrice}>
-                          {priceDiamonds.toLocaleString()} Diamonds
+                    <div aria-hidden="true" style={styles.wishlistFrameTop} />
+                    <div style={styles.wishlistFrameBody}>
+                      <div style={styles.productMedia}>
+                        {productArt.image && !productArt.atlasPosition ? (
+                          <img
+                            src={productArt.image}
+                            alt={marketplaceCopy(item.product_name)}
+                            style={styles.productImage}
+                            loading="lazy"
+                          />
+                        ) : productArt.image && productArt.atlasPosition ? (
+                          <div
+                            role="img"
+                            aria-label={marketplaceCopy(item.product_name)}
+                            style={{
+                              ...styles.productAtlasImage,
+                              backgroundImage: `url(${productArt.image})`,
+                              backgroundPosition: productArt.atlasPosition,
+                            }}
+                          />
+                        ) : (
+                          <span role="status" style={styles.productFallback}>
+                            Product Artwork Requires Review
+                          </span>
+                        )}
+                      </div>
+                      <div style={styles.productBody}>
+                        <span style={styles.productType}>
+                          {marketplaceCopy(catalog?.category || item.product_type || 'Marketplace')}
                         </span>
-                      </div>
-                      <div style={styles.actions}>
-                        <Link href={destination} style={styles.viewButton}>
-                          View Live Item
-                        </Link>
-                        <button
-                          type="button"
-                          aria-label={`Remove ${marketplaceCopy(item.product_name)} From Wishlist`}
-                          onClick={() => removeFromWishlist(item.product_id)}
-                          disabled={removingId === item.product_id}
-                          style={styles.removeButton}
-                        >
-                          <Trash2 size={15} aria-hidden="true" />
-                          {removingId === item.product_id ? 'Removing…' : 'Remove'}
-                        </button>
+                        <h2 style={styles.productName}>
+                          {marketplaceCopy(catalog?.name || item.product_name)}
+                        </h2>
+                        <div style={styles.priceRow}>
+                          <span style={styles.price}>${priceUsd.toFixed(2)}</span>
+                          <span style={styles.diamondPrice}>
+                            {priceDiamonds.toLocaleString()} Diamonds
+                          </span>
+                        </div>
+                        <div style={styles.actions}>
+                          <Link
+                            href={destination}
+                            className={`${accountControls.action} ${accountControls.actionPrimary}`}
+                          >
+                            View Live Item
+                          </Link>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${marketplaceCopy(item.product_name)} From Wishlist`}
+                            onClick={() => removeFromWishlist(item.product_id)}
+                            disabled={removingId === item.product_id}
+                            className={`${accountControls.action} ${accountControls.actionDanger}`}
+                          >
+                            {removingId === item.product_id ? 'Removing' : 'Remove'}
+                          </button>
+                        </div>
                       </div>
                     </div>
+                    <div aria-hidden="true" style={styles.wishlistFrameBottom} />
                   </article>
                 );
               })}
@@ -205,11 +405,45 @@ const styles = {
     gap: '20px',
   },
   wishlistItem: {
-    overflow: 'hidden',
-    background: 'linear-gradient(145deg, #172933, #050a0f 34%, #010305)',
-    border: '1px solid #526f80',
-    borderRadius: 0,
-    boxShadow: 'inset 0 1px 0 rgba(235,251,255,0.38), inset 0 0 0 4px #03080c',
+    display: 'flex',
+    width: '100%',
+    maxWidth: 900,
+    minWidth: 0,
+    flexDirection: 'column',
+    justifySelf: 'center',
+    overflow: 'visible',
+    containerType: 'inline-size',
+    backgroundColor: '#000000',
+  },
+  wishlistFrameTop: {
+    width: '100%',
+    aspectRatio: '900 / 143',
+    flex: '0 0 auto',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/top.png')",
+    backgroundPosition: 'top center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% auto',
+  },
+  wishlistFrameBody: {
+    display: 'flex',
+    minHeight: '12cqw',
+    flex: '1 1 auto',
+    flexDirection: 'column',
+    padding: '0 7.2cqw 3.4cqw',
+    backgroundColor: '#000000',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/mid.png')",
+    backgroundPosition: 'top center',
+    backgroundRepeat: 'repeat-y',
+    backgroundSize: '100% auto',
+  },
+  wishlistFrameBottom: {
+    width: '100%',
+    aspectRatio: '900 / 139',
+    flex: '0 0 auto',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/bottom.png')",
+    backgroundPosition: 'bottom center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% auto',
   },
   productMedia: {
     display: 'flex',
@@ -217,18 +451,32 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderBottom: '1px solid #476273',
-    background:
-      'radial-gradient(circle at 50% 35%, rgba(0,190,255,0.14), transparent 48%), #02070b',
+    backgroundColor: '#000000',
   },
   productImage: { width: '100%', height: '100%', objectFit: 'cover' },
+  productAtlasImage: {
+    width: 105,
+    height: 210,
+    flex: '0 0 auto',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '400% 100%',
+  },
+  productFallback: {
+    color: '#9edcf0',
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontSize: 17,
+    fontWeight: 800,
+    letterSpacing: '0.08em',
+  },
   productBody: { display: 'flex', minHeight: 210, flexDirection: 'column', padding: '18px' },
   productType: {
     color: '#7f9aa9',
-    fontFamily: 'IBM Plex Mono, monospace',
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 9,
     letterSpacing: '0.14em',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
   },
   productName: { margin: '10px 0 14px', color: '#edfaff', fontSize: 18, fontWeight: 700 },
   priceRow: {
@@ -247,73 +495,5 @@ const styles = {
     marginTop: 'auto',
     paddingTop: 20,
   },
-  viewButton: {
-    display: 'inline-flex',
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '9px 12px',
-    background: 'linear-gradient(180deg, #dff9ff, #6da7bc 48%, #1c4b61)',
-    border: '1px solid #9cd7e8',
-    color: '#06131a',
-    fontSize: 11,
-    fontWeight: 800,
-    textDecoration: 'none',
-    textTransform: 'uppercase',
-  },
-  removeButton: {
-    display: 'inline-flex',
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: '9px 12px',
-    background: 'rgba(255, 68, 68, 0.06)',
-    border: '1px solid rgba(255, 95, 109, 0.55)',
-    color: '#ff7b87',
-    borderRadius: 0,
-    cursor: 'pointer',
-  },
-  emptyState: { textAlign: 'center', padding: '80px 24px' },
-  emptyTitle: { fontSize: '24px', fontWeight: 600, marginBottom: '8px' },
-  emptyText: { color: '#9ca3af', marginBottom: '24px' },
-  shopButton: {
-    display: 'inline-block',
-    padding: '12px 32px',
-    background: '#00E0FF',
-    color: '#FFFFFF',
-    borderRadius: 0,
-    textDecoration: 'none',
-    fontWeight: 600,
-  },
-  loadingContainer: {
-    textAlign: 'center',
-    padding: '80px 24px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  spinner: {
-    width: '48px',
-    height: '48px',
-    border: '4px solid rgba(255, 255, 255, 0.15)',
-    borderTopColor: '#00E0FF',
-    borderRadius: '50%',
-    animation: 'dsSpin 1s linear infinite',
-  },
-  loadingText: { marginTop: '16px', color: '#9ca3af' },
-  retryButton: {
-    display: 'inline-flex',
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: '10px 18px',
-    border: '1px solid #8adff0',
-    borderRadius: 0,
-    background: 'linear-gradient(180deg, #dff9ff, #6da7bc 48%, #1c4b61)',
-    color: '#06131a',
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
+  gridNotice: { gridColumn: '1 / -1' },
 };

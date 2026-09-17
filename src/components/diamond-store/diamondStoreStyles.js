@@ -3,7 +3,201 @@
 // Imported by pages/hub/diamond-store.js AND the extracted tab components in
 // this directory (MerchTab, VIPTab, ClubShopTab, RewardsTab). Edit here only.
 // ═══════════════════════════════════════════════════════════════════════════
+const CONTROL_FONT =
+  "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif";
+const ANGULAR_CONTROL_CLIP =
+  'polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px)';
+const PAINTED_CONTROL = {
+  display: 'inline-flex',
+  minHeight: 44,
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: 0,
+  borderRadius: 0,
+  backgroundColor: 'transparent',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: '100% 100%',
+  boxShadow: 'none',
+  clipPath: ANGULAR_CONTROL_CLIP,
+  color: '#E9FAFF',
+  cursor: 'pointer',
+  fontFamily: CONTROL_FONT,
+  fontSize: 13,
+  fontWeight: 800,
+  letterSpacing: '0.025em',
+  lineHeight: 1.1,
+  textAlign: 'center',
+  textDecoration: 'none',
+  textShadow: '0 1px 2px #000',
+};
+const ANGULAR_METAL_PLATE = {
+  border: 0,
+  borderRadius: 0,
+  backgroundColor: '#02070B',
+  backgroundImage: "url('/images/marketplace-console-v1/shark-panel/bay.png')",
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: '100% 100%',
+  boxShadow: 'none',
+  clipPath: 'none',
+};
+
 const styles = {
+  paintedPrimaryAction: {
+    ...PAINTED_CONTROL,
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
+  },
+  paintedSecondaryAction: {
+    ...PAINTED_CONTROL,
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
+  },
+  rewardStatusFrame: {
+    ...ANGULAR_METAL_PLATE,
+    borderColor: '#466B7E',
+    clipPath:
+      'polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px)',
+  },
+  rewardMultiplierPlate: {
+    ...PAINTED_CONTROL,
+    display: 'inline-grid',
+    minWidth: 104,
+    minHeight: 36,
+    placeItems: 'center',
+    margin: '2px 3px',
+    padding: '6px 12px',
+    border: 0,
+    borderRadius: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
+    boxShadow: 'none',
+    clipPath: 'none',
+    color: '#8FEAFF',
+    fontFamily: CONTROL_FONT,
+    fontSize: 10,
+    fontWeight: 800,
+    letterSpacing: '0.025em',
+    textShadow: '0 1px 2px #000',
+  },
+  rewardMultiplierPlateGold: {
+    border: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
+    boxShadow: 'none',
+    color: '#FFE589',
+  },
+  vipPriceDeck: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  vipPricePlate: {
+    ...ANGULAR_METAL_PLATE,
+    minWidth: 142,
+    padding: '12px 20px',
+    textAlign: 'center',
+  },
+  vipPricePlateGold: {
+    border: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
+    boxShadow: 'none',
+  },
+  vipPlanAction: {
+    ...PAINTED_CONTROL,
+    minWidth: 196,
+    marginTop: 12,
+    padding: '12px 30px',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-primary.png')",
+    color: '#F6DF7A',
+  },
+  clubSuccessStatus: {
+    ...ANGULAR_METAL_PLATE,
+    position: 'fixed',
+    top: 80,
+    left: '50%',
+    zIndex: 9999,
+    maxWidth: 'min(680px, calc(100vw - 32px))',
+    minHeight: 52,
+    padding: '14px 30px',
+    transform: 'translateX(-50%)',
+    borderColor: '#63E7FF',
+    color: '#DDFBFF',
+    fontFamily: CONTROL_FONT,
+    fontSize: 15,
+    fontWeight: 800,
+    letterSpacing: '0.02em',
+    textAlign: 'center',
+    textShadow: '0 1px 2px #000',
+  },
+  clubBalanceStatus: {
+    display: 'inline-flex',
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '8px 18px',
+    border: 0,
+    borderRadius: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% 100%',
+    boxShadow: 'none',
+    clipPath: 'none',
+    color: '#9BF4FF',
+    fontFamily: CONTROL_FONT,
+    fontSize: 13,
+    fontWeight: 800,
+    letterSpacing: '0.025em',
+    textShadow: '0 1px 2px #000',
+  },
+  clubEmptyState: {
+    ...ANGULAR_METAL_PLATE,
+    maxWidth: 520,
+    margin: '0 auto',
+    padding: '36px 28px',
+    textAlign: 'center',
+  },
+  clubLedgerViewport: {
+    overflowX: 'auto',
+    border: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/spade-console/mid.png')",
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% 100%',
+    boxShadow: 'none',
+    clipPath: 'none',
+  },
+  clubLedgerTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    background: 'transparent',
+  },
+  clubCategoryPlate: {
+    display: 'inline-flex',
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '5px 12px',
+    border: 0,
+    borderRadius: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% 100%',
+    boxShadow: 'none',
+    clipPath: 'none',
+    color: '#B9EFFF',
+    fontFamily: CONTROL_FONT,
+    fontSize: 10,
+    fontWeight: 800,
+    letterSpacing: '0.025em',
+  },
   container: {
     minHeight: '100vh',
     paddingBottom: 70,
@@ -21,10 +215,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundImage: `
-            linear-gradient(rgba(0, 212, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 212, 255, 0.02) 1px, transparent 1px)
-            `,
+    backgroundImage: 'none',
     backgroundSize: '60px 60px',
     pointerEvents: 'none',
   },
@@ -35,7 +226,7 @@ const styles = {
     width: '100%',
     height: '100%',
     transform: 'translate(-50%, -50%)',
-    background: 'radial-gradient(ellipse at center, rgba(0, 212, 255, 0.1), transparent 60%)',
+    background: 'transparent',
     pointerEvents: 'none',
   },
   header: {
@@ -77,7 +268,7 @@ const styles = {
     color: '#00D4FF',
   },
   tabButtonActiveVIP: {
-    background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(66, 133, 244, 0.2))',
+    background: '#102438',
     border: '1px solid #1877F2',
     color: '#1877F2',
   },
@@ -95,7 +286,8 @@ const styles = {
     cursor: 'pointer',
   },
   pageTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
     color: '#E4E6EB',
@@ -153,7 +345,7 @@ const styles = {
   },
   purchaseButton: {
     padding: '14px 40px',
-    background: 'linear-gradient(135deg, #00D4FF, #0088cc)',
+    background: '#087a9b',
     border: 'none',
     borderRadius: 12,
     color: '#fff',
@@ -167,7 +359,8 @@ const styles = {
     marginBottom: 40,
   },
   earnTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 24,
     fontWeight: 700,
     color: '#fff',
@@ -229,9 +422,12 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     gap: 32,
-    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1))',
-    border: '1px solid rgba(255, 215, 0, 0.3)',
-    borderRadius: 16,
+    background: '#02070B',
+    border: '1px solid #78691A',
+    borderRadius: 0,
+    boxShadow: 'inset 0 1px 0 rgba(255,238,142,0.28), 0 14px 28px rgba(0,0,0,0.54)',
+    clipPath:
+      'polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px)',
     padding: '20px 32px',
     marginBottom: 32,
   },
@@ -241,7 +437,8 @@ const styles = {
     alignItems: 'center',
   },
   capNumber: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 36,
     fontWeight: 700,
     color: '#FFD700',
@@ -249,7 +446,7 @@ const styles = {
   capLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
     letterSpacing: 1,
   },
   capDivider: {
@@ -263,17 +460,31 @@ const styles = {
   },
   multiplierItem: {
     display: 'flex',
+    minWidth: 112,
+    minHeight: 58,
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: '8px 14px',
+    border: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% 100%',
+    boxShadow: 'none',
+    clipPath: 'none',
   },
   multiplierValue: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 24,
     fontWeight: 700,
     color: '#00d4ff',
   },
   multiplierValueGold: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 24,
     fontWeight: 700,
     color: '#FFD700',
@@ -286,7 +497,8 @@ const styles = {
     marginBottom: 32,
   },
   payoutTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 18,
     fontWeight: 600,
     color: '#fff',
@@ -370,7 +582,7 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   rewardsSubTabActive: {
-    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+    background: '#102438',
     color: '#fff',
     border: '1px solid transparent',
   },
@@ -424,12 +636,13 @@ const styles = {
     fontSize: 32,
     fontWeight: 700,
     color: '#00d4ff',
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
   quickStatLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
     letterSpacing: '0.5px',
   },
 
@@ -445,7 +658,8 @@ const styles = {
     fontWeight: 700,
     color: '#E4E6EB',
     marginBottom: 16,
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
   rewardList: {
     display: 'flex',
@@ -491,7 +705,7 @@ const styles = {
   levelBadge: {
     display: 'inline-block',
     padding: '4px 12px',
-    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+    background: '#102438',
     borderRadius: 6,
     fontSize: 13,
     fontWeight: 700,
@@ -546,7 +760,8 @@ const styles = {
     fontWeight: 700,
     color: '#FFD700',
     marginBottom: 12,
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
   eggTrigger: {
     fontSize: 12,
@@ -562,42 +777,47 @@ const styles = {
     fontWeight: 700,
     color: '#E4E6EB',
     marginBottom: 20,
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
   },
   // Rarity Badge Styles
   rarityBadge: {
-    display: 'inline-block',
-    padding: '4px 12px',
-    borderRadius: 6,
+    display: 'inline-flex',
+    minWidth: 88,
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '5px 14px',
+    borderRadius: 0,
+    border: 0,
+    backgroundColor: '#02070B',
+    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/button-secondary.png')",
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '100% 100%',
+    boxShadow: 'none',
+    clipPath: 'none',
+    fontFamily: CONTROL_FONT,
     fontSize: 10,
-    fontWeight: 700,
+    fontWeight: 800,
     marginBottom: 8,
-    letterSpacing: '0.5px',
+    letterSpacing: '0.04em',
+    textShadow: '0 1px 2px #000',
   },
   rarityCommon: {
-    background: 'rgba(158, 158, 158, 0.2)',
-    border: '1px solid rgba(158, 158, 158, 0.4)',
-    color: '#9E9E9E',
+    color: '#D1D9DE',
   },
   rarityUncommon: {
-    background: 'rgba(0, 180, 255, 0.2)',
-    border: '1px solid rgba(0, 180, 255, 0.4)',
-    color: '#58D9FF',
+    color: '#8FE8FF',
   },
   rarityRare: {
-    background: 'rgba(33, 150, 243, 0.2)',
-    border: '1px solid rgba(33, 150, 243, 0.4)',
-    color: '#2196F3',
+    color: '#78D8FF',
   },
   rarityEpic: {
-    background: 'rgba(0, 212, 255, 0.2)',
-    border: '1px solid rgba(0, 212, 255, 0.4)',
-    color: '#00D4FF',
+    color: '#B7F6FF',
   },
   rarityLegendary: {
-    background: 'rgba(255, 152, 0, 0.2)',
-    border: '1px solid rgba(255, 152, 0, 0.4)',
-    color: '#FF9800',
+    color: '#FFE589',
   },
 
   easterSection: {
@@ -605,7 +825,8 @@ const styles = {
     marginBottom: 24,
   },
   easterTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 18,
     fontWeight: 600,
     color: '#fff',
@@ -636,7 +857,7 @@ const styles = {
     fontSize: 11,
     fontWeight: 700,
     color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
   },
   categoryName: {
     fontSize: 13,
@@ -720,7 +941,7 @@ const styles = {
   },
   exDiamondsEpic: {
     marginLeft: 'auto',
-    color: '#ff6b9d',
+    color: '#b9d7e5',
     fontWeight: 600,
   },
   exDiamondsLegendary: {
@@ -734,12 +955,11 @@ const styles = {
     marginBottom: 32,
   },
   vipTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 32,
     fontWeight: 700,
-    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    color: '#C0E0FF',
     marginBottom: 12,
   },
   vipSubtitle: {
@@ -759,7 +979,7 @@ const styles = {
   },
   vipSubscribeButton: {
     padding: '16px 48px',
-    background: 'linear-gradient(135deg, #1877F2, #4285F4)',
+    background: '#102438',
     border: 'none',
     borderRadius: 12,
     color: '#fff',
@@ -777,7 +997,8 @@ const styles = {
     marginBottom: 32,
   },
   benefitsTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 20,
     fontWeight: 600,
     color: '#E4E6EB',
@@ -797,12 +1018,13 @@ const styles = {
     fontSize: 20,
   },
   benefitsCategoryLabel: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 13,
     fontWeight: 700,
     color: '#FFFFFF',
     letterSpacing: '0.08em',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
   },
   benefitsGrid: {
     display: 'grid',
@@ -814,9 +1036,6 @@ const styles = {
     alignItems: 'center',
     gap: 12,
     padding: '14px 16px',
-    background: 'rgba(24, 119, 242, 0.1)',
-    border: '1px solid rgba(24, 119, 242, 0.2)',
-    borderRadius: 10,
   },
   benefitIcon: {
     fontSize: 24,
@@ -858,26 +1077,28 @@ const styles = {
   valueBoxHighlight: {
     textAlign: 'center',
     padding: '16px 32px',
-    background: 'linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(66, 133, 244, 0.2))',
+    background: 'rgba(24, 119, 242, 0.14)',
     borderRadius: 12,
     border: '2px solid #1877F2',
   },
   valueLabel: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
     letterSpacing: 1,
     marginBottom: 4,
   },
   valueAmount: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
     color: 'rgba(255, 255, 255, 0.3)',
     textDecoration: 'line-through',
   },
   vipPrice: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
     color: '#1877F2',
@@ -888,7 +1109,8 @@ const styles = {
   },
   // MERCHANDISE STYLES
   merchTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 28,
     fontWeight: 700,
     color: '#E4E6EB',
@@ -898,7 +1120,8 @@ const styles = {
     marginBottom: 32,
   },
   merchCategoryTitle: {
-    fontFamily: "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
+    fontFamily:
+      "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
     fontSize: 18,
     fontWeight: 600,
     color: '#E4E6EB',

@@ -50,6 +50,64 @@
   margin-top: 16px;
 }
 
+.heroProduct {
+  grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+}
+
+/* Informational subpages keep their own content hierarchy. They share the
+   marketplace materials, not the product gallery or a duplicated display bay. */
+.heroReward,
+.heroMembership,
+.heroRecord {
+  position: relative;
+  isolation: isolate;
+  grid-template-columns: minmax(0, 1fr);
+  width: min(100%, 1000px);
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background-color: #000;
+  container-type: inline-size;
+}
+
+.heroReward::before,
+.heroMembership::before,
+.heroRecord::before {
+  position: absolute;
+  z-index: 0;
+  top: 34.8cqw;
+  right: 0;
+  bottom: 7.2cqw;
+  left: 0;
+  content: '';
+  background-color: #000;
+  background-image: url('/images/marketplace-console-v1/spade-console/mid.png');
+  background-position: top center;
+  background-repeat: repeat-y;
+  background-size: 100% auto;
+  pointer-events: none;
+}
+
+.heroReward::after,
+.heroMembership::after,
+.heroRecord::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: '';
+  background-image:
+    url('/images/marketplace-console-v1/spade-console/top.png'),
+    url('/images/marketplace-console-v1/spade-console/bottom-foot.png');
+  background-position:
+    top center,
+    bottom center;
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+  pointer-events: none;
+}
+
 .mediaFrame {
   position: relative;
   min-height: 520px;
@@ -69,6 +127,39 @@
   object-fit: contain;
 }
 
+.spriteMedia,
+.spriteMediaExpanded {
+  background-color: #000;
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+  filter: contrast(1.05) saturate(1.08);
+}
+
+.spriteMedia {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100%, 520px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.spriteMediaExpanded {
+  width: min(92vw, 92vh, 1200px);
+  aspect-ratio: 1;
+}
+
+.spriteMedia.spriteMediaPortrait {
+  width: min(50%, 260px);
+  aspect-ratio: 1 / 2;
+}
+
+.spriteMediaExpanded.spriteMediaPortrait {
+  width: auto;
+  height: min(92vh, 1200px);
+  aspect-ratio: 1 / 2;
+}
+
 .inspectButton,
 .closeMedia,
 .actions :is(a, button) {
@@ -81,12 +172,13 @@
   border: 0;
   color: #f4f7fb;
   background-color: transparent;
-  background-image: url('/images/marketplace-console-v1/action/action-primary-shell.png');
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
   font:
-    800 13px var(--font-roboto-condensed), 'Roboto Condensed',
+    800 13px var(--font-roboto-condensed),
+    'Roboto Condensed',
     'Arial Narrow',
     sans-serif;
   text-decoration: none;
@@ -137,6 +229,19 @@
   object-fit: cover;
 }
 
+.mediaRailCrop {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  background-repeat: no-repeat;
+}
+
+.mediaRailCrop.spriteMediaPortrait {
+  width: 50%;
+  margin-inline: auto;
+}
+
 .mediaDialog {
   position: fixed;
   z-index: 10000;
@@ -163,19 +268,26 @@
   min-width: 126px;
 }
 
-.mediaBadge {
-  position: absolute;
-  right: 18px;
-  bottom: 14px;
-  color: #9aa5b3;
-  font-size: 12px;
-  font-weight: 750;
-}
-
 .commandPanel {
+  position: relative;
+  z-index: 1;
   align-self: center;
   min-width: 0;
   padding: 32px 0;
+}
+
+.commandPanel.commandPanelWide {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12.8cqw 10.5cqw 7.2cqw;
+}
+
+.heroMembership .eyebrow {
+  color: #e3bd67;
+}
+
+.heroRecord .eyebrow {
+  color: #a9c5d4;
 }
 
 .eyebrow {

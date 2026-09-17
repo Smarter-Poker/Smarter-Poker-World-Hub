@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 test('checkout verification fails closed when a settlement record lookup fails', async () => {
   const source = await read('pages/api/store/checkout-status.js');
@@ -25,11 +25,11 @@ test('checkout verification fails closed when a settlement record lookup fails',
 
 test('Club Shop card returns terminate explicitly when Stripe reports failure', async () => {
   const source = await read('pages/hub/club-shop/[itemId].js');
-  const failed = source.indexOf("body?.data?.status === 'failed'");
-  const complete = source.indexOf("body?.data?.status === 'complete'");
+  const failed = source.indexOf("receipt.status === 'failed'");
+  const complete = source.indexOf("receipt.status === 'complete'");
   assert.ok(failed > -1 && failed < complete);
   const branch = source.slice(failed, complete);
-  assert.match(branch, /No item was granted/);
+  assert.match(branch, /No Item Was Granted/);
   assert.match(branch, /clearCommerceRequestById/);
   assert.match(branch, /router\.replace/);
   assert.match(branch, /return;/);
@@ -57,7 +57,7 @@ test('reward detail readouts describe earnings rather than purchase settlement',
   assert.match(
     transition,
     /if \(disableInitialAnimation\) \{[\s\S]*?<div className=\{className\}/,
-    'first-frame storefront content must use the static, opacity-safe path',
+    'first-frame storefront content must use the static, opacity-safe path'
   );
 });
 
@@ -85,19 +85,26 @@ test('fulfillment keeps semantic text controls inside the approved marketplace c
     read('pages/hub/merch-store/fulfillment.js'),
     read('pages/hub/merch-store/fulfillment.module.css'),
   ]);
-  assert.doesNotMatch(source, /lucide-react|<(?:CheckCircle2|Gem|PackageCheck|RefreshCw|ShieldCheck|Truck|X)\b/);
+  assert.doesNotMatch(
+    source,
+    /lucide-react|<(?:CheckCircle2|Gem|PackageCheck|RefreshCw|ShieldCheck|Truck|X)\b/
+  );
   assert.match(source, />\s*Refresh Queue\s*</);
   assert.match(source, />\s*Start Processing\s*</);
   assert.match(source, />\s*Mark Shipped\s*</);
   assert.match(source, />\s*Mark Delivered\s*</);
   assert.match(source, />\s*Close\s*</);
   assert.match(css, /font-family: var\(--font-roboto-condensed\), 'Roboto Condensed'/);
-  assert.match(css, /font-family: var\(--font-ibm-plex-mono\), 'IBM Plex Mono'/);
-  assert.match(css, /marketplace-console-v1\/navigation\/nav-shell\.png/);
+  assert.match(css, /font-family: var\(--font-inter\), Inter/);
+  assert.doesNotMatch(css, /IBM Plex Mono|ui-monospace|\bmonospace\b/);
   assert.match(css, /marketplace-console-v1\/shark-panel\/button-primary\.png/);
   assert.match(css, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
-  assert.match(css, /marketplace-console-v1\/shark-panel\/bay\.png/);
-  assert.doesNotMatch(css, /:hover|(?:linear|radial|conic)-gradient|border-radius|box-shadow/);
+  assert.doesNotMatch(
+    css,
+    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.png/
+  );
+  assert.match(css, /linear-gradient|box-shadow/);
+  assert.doesNotMatch(css, /:hover|border-radius/);
 });
 
 test('production verification exercises canonical cache behavior and ships Phase 19', async () => {

@@ -50,13 +50,16 @@ test('checkout return verification retries slow fulfillment and cancels stale re
   assert.match(STORE, /controller\.abort\(\)/);
   const clearIndex = STORE.indexOf(
     'clearCheckoutTransport();',
-    STORE.indexOf("setCheckoutReturn({ status: 'verifying' })")
+    STORE.indexOf("setCheckoutReturn({ status: 'verifying', sessionId: rawSession })")
   );
   const fetchIndex = STORE.indexOf('/api/store/checkout-status?session_id=', clearIndex);
   assert.ok(
     clearIndex > -1 && fetchIndex > clearIndex,
     'checkout transport must clear before verification fetch'
   );
+  assert.match(STORE, /controller\.signal\.removeEventListener\('abort', settle\)/);
+  assert.match(STORE, /normalizeVerifiedCheckoutStatus\(body, \{/);
+  assert.doesNotMatch(STORE, /receipt: body\.data/);
 });
 
 test('checkout status is visible before the catalog and receives focus when it changes', () => {
@@ -126,6 +129,14 @@ test('live merchandise variants keep their labels, prices, stock, and selection 
   assert.match(MERCH, /variant\?\.priceDiamonds,[\s\S]*?product\.priceDiamonds/);
   assert.match(MERCH, /product\.source !== 'catalog'/);
   assert.match(MERCH, /Options Temporarily Unavailable/);
+  assert.match(MERCH, /if \(typeof raw !== 'object' \|\| Array\.isArray\(raw\)\) return null/);
+  assert.match(MERCH, /const id = firstString\(\[raw\.id, raw\.variant_id, raw\.sku\]\)/);
+  assert.match(MERCH, /if \(!id\) return null/);
+  assert.match(
+    MERCH,
+    /const hasVariants = firstBoolean\(\[raw\.has_variants, raw\.hasVariants\]\) \?\? rawVariants\.length > 0/
+  );
+  assert.match(MERCH, /if \(variant\.id\) item\.variantId = variant\.id/);
 });
 
 test('store purchase controls close synchronous double-submit gaps', () => {
@@ -136,9 +147,20 @@ test('store purchase controls close synchronous double-submit gaps', () => {
     STORE,
     /if \(!purchaseTarget \|\| !targetClubId \|\| clubShopProcessingRef\.current\) return/
   );
-  assert.match(STORE, /purchaseRequestId:[\s\S]*getOrCreateCommerceRequestId\(commerceIntent\)/);
-  assert.match(STORE, /clearCommerceRequestId\(purchaseTarget\.commerceIntent\)/);
-  assert.match(STORE, /const idempotencyKey = purchaseTarget\.purchaseRequestId/);
+  assert.match(STORE, /purchaseRequestId\s*=\s*getOrCreateCommerceRequestId\(commerceIntent\)/);
+  assert.match(
+    STORE,
+    /clearCommerceRequestId\(\{[\s\S]{0,140}\.\.\.purchaseTarget\.commerceIntent,[\s\S]{0,100}expectedRequestId: idempotencyKey/
+  );
+  assert.match(
+    STORE,
+    /const idempotencyKey = getOrCreateCommerceRequestId\(purchaseTarget\.commerceIntent\)/
+  );
+  assert.match(STORE, /idempotencyKey !== purchaseTarget\.purchaseRequestId/);
+  assert.match(
+    STORE,
+    /Purchase Status Is Uncertain\. Confirm Again To Verify The Original Purchase\./
+  );
 });
 
 test('physical merch and Club Shop items expose both card and diamond purchase paths', () => {
@@ -170,9 +192,15 @@ test('Club Shop currency, authoritative availability, refresh, and atomic purcha
 });
 
 test('diamond merch returns the locked RPC balance and verifies refund business results', () => {
-  assert.match(MERCH_PURCHASE, /new_balance: Number\.isFinite\(Number\(result\?\.new_balance\)\)/);
+  assert.match(MERCH_PURCHASE, /const result = normalizeSuccessfulPurchaseResult\(/);
+  assert.match(
+    MERCH_PURCHASE,
+    /!Number\.isSafeInteger\(raw\.new_balance\)\s*\|\|\s*raw\.new_balance < 0/
+  );
+  assert.match(MERCH_PURCHASE, /new_balance: result\.new_balance/);
   assert.match(MERCH_PURCHASE, /purchase_merch_with_diamonds_atomic/);
-  assert.match(MERCH_PURCHASE, /if \(!result\.success\)/);
+  assert.match(MERCH_PURCHASE, /if \(!parsedResult\.success\)/);
+  assert.match(MERCH_PURCHASE, /if \(!result\)/);
   assert.match(MERCH_PURCHASE, /reference_conflict/);
 });
 

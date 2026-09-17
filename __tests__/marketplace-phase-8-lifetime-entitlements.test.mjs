@@ -59,6 +59,7 @@ test('Lifetime benefit copy cannot imply excluded financial or physical products
   assert.doesNotMatch(lifetimeBenefits, /Club Creation|Transferable/);
   assert.doesNotMatch(lifetimeBenefits, /2,000|2000|90 Days/);
   assert.doesNotMatch(lifetimeBenefits, /\u2014/);
+  assert.doesNotMatch(lifetimeBenefits, /icon:\s*['"][◆♦✓]['"]|[◆♦]/);
 });
 
 test('Lifetime copy is title cased and keeps ordinary eligibility distinct from free value', () => {
@@ -95,10 +96,7 @@ test('the comparison subpage uses plan-specific counts and names Lifetime extras
   assert.match(compare, /const benefits = getVipBenefitsForPlan\(plan\.interval\)/);
   assert.match(compare, /\? 'Permanent Full VIP Access'/);
   assert.doesNotMatch(compare, /Permanent Of Full VIP Access/);
-  assert.match(
-    compare,
-    /Includes All \{benefits\.length\} Included Benefits For This Plan/
-  );
+  assert.match(compare, /Includes All \{benefits\.length\} Included Benefits For This Plan/);
   assert.match(compare, /Unlimited Throwables, Rabbit Hunts, And Standard Time Banks/);
   assert.match(
     compare,

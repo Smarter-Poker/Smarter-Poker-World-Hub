@@ -1,64 +1,220 @@
 .console {
   position: relative;
   margin-bottom: 14px;
-  padding: 28px;
-  overflow: hidden;
-  border: 1px solid #6d8c9c;
-  background:
-    linear-gradient(90deg, rgba(0, 200, 255, .08) 1px, transparent 1px) 0 0 / 42px 42px,
-    radial-gradient(circle at 78% 0, rgba(0, 200, 255, .15), transparent 30%),
-    linear-gradient(160deg, #112530, #020508 58%);
-  box-shadow: inset 0 0 0 5px #020609, inset 0 0 0 6px rgba(105, 148, 169, .42);
+  padding: 18px 0 8px;
+  background: #000;
+  color: #c4d6df;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
-.console::before {
-  position: absolute;
-  top: 0;
-  left: 9%;
-  width: 34%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #8befff, transparent);
-  box-shadow: 0 0 18px #00c8ff;
-  content: '';
+.consoleHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding-inline: clamp(2px, 2vw, 22px);
 }
 
-.consoleHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
-.consoleHeader h2 { margin: 8px 0 0; color: #effdff; font: 800 clamp(28px, 4vw, 42px)/.95 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; }
-.consoleHeader p { max-width: 650px; margin: 8px 0 0; }
+.consoleHeader h2 {
+  margin: 8px 0 0;
+  color: #effdff;
+  font:
+    800 clamp(28px, 4vw, 42px) / 0.95 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.consoleHeader p {
+  max-width: 650px;
+  margin: 8px 0 0;
+}
 
 .kicker,
 .integrityBadge {
   display: inline-flex;
-  min-height: 38px;
+  min-height: 44px;
   align-items: center;
-  padding: 7px 14px;
+  justify-content: center;
+  padding: 7px 18px;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
   color: #dffaff;
-  background: transparent url('/images/marketplace-console-v1/navigation/nav-shell.png') center / 100% 100% no-repeat;
-  font: 800 11px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  font:
+    800 11px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.055em;
+  text-transform: capitalize;
 }
 
-.integrityBadge { min-height: 44px; padding-inline: 20px; white-space: nowrap; }
+.integrityBadge {
+  min-width: 150px;
+  white-space: nowrap;
+}
 
-.circuitGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
-.circuit { padding: 20px; border: 1px solid #355a6c; background: rgba(0, 5, 9, .82); }
-.circuitHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-.circuitHeader span, .signalGrid span, .rewardSignal span { display: block; color: #9db6c2; font: 800 10px/1.1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
-.circuitHeader strong { display: block; margin-top: 7px; color: #eaffff; font: 800 18px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
-.circuitHeader b { color: #8befff; font: 800 25px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; }
-.progressTrack { height: 12px; margin-top: 15px; overflow: hidden; border: 1px solid #325365; background: #000; }
-.progressTrack span { display: block; height: 100%; background: linear-gradient(90deg, #0a5f85, #00c8ff 70%, #dffaff); box-shadow: 0 0 16px rgba(0, 200, 255, .75); transition: width .35s ease; }
-.circuit small { display: block; margin-top: 10px; color: #8ca4af; font: 700 10px/1.35 var(--font-ibm-plex-mono), 'IBM Plex Mono', ui-monospace, monospace; }
+.circuitGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
 
-.signalGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
-.signalGrid div { padding: 16px; border-top: 1px solid #00c8ff; background: #03080c; }
-.signalGrid strong { display: block; margin-top: 8px; color: #eaffff; font: 800 17px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
+.circuit {
+  display: grid;
+  grid-template-columns: 22% minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  aspect-ratio: 1800 / 386;
+  padding: 4.2% 5.2% 4.2% 2.5%;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+    100% 100% no-repeat;
+}
 
-.rewardSignal { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(240px, 1.4fr) auto; gap: 18px; align-items: center; margin-top: 12px; padding: 18px; border: 1px solid #806c18; background: linear-gradient(90deg, rgba(255, 215, 0, .1), rgba(0, 0, 0, .72)); }
-.rewardSignal strong { display: block; margin-top: 7px; color: #ffe45e; font: 800 18px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
-.rewardSignal p { margin: 0; }
+.circuitGauge {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  color: #8befff;
+  font:
+    800 clamp(18px, 3vw, 28px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.circuitBody {
+  min-width: 0;
+  padding-left: clamp(12px, 2.1vw, 24px);
+}
+
+.circuitHeader span,
+.signalGrid span,
+.rewardSignal span {
+  display: block;
+  color: #9db6c2;
+  font:
+    800 10px/1.1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.055em;
+  text-transform: capitalize;
+}
+
+.circuitHeader strong {
+  display: block;
+  margin-top: 5px;
+  color: #eaffff;
+  font:
+    800 clamp(13px, 1.6vw, 18px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-transform: capitalize;
+}
+
+.progressTrack {
+  height: 10px;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid #325365;
+  background: #000;
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  background: #00c8ff;
+  box-shadow: 0 0 16px rgba(0, 200, 255, 0.75);
+  transition: width 0.35s ease;
+}
+
+.circuit small {
+  display: block;
+  margin-top: 7px;
+  color: #8ca4af;
+  font:
+    700 10px/1.25 var(--font-inter),
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+.signalGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.signalGrid div {
+  display: grid;
+  align-content: center;
+  min-height: 76px;
+  aspect-ratio: 348 / 114;
+  padding: 12px 14px;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+}
+
+.signalGrid strong {
+  display: block;
+  margin-top: 7px;
+  color: #eaffff;
+  font:
+    800 clamp(13px, 1.5vw, 17px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-transform: capitalize;
+}
+
+.signalGrid strong[data-preserve-case='true'] {
+  text-transform: none;
+}
+
+.rewardSignal {
+  display: grid;
+  grid-template-columns: 22% minmax(0, 1fr) minmax(130px, 20%);
+  align-items: center;
+  width: 100%;
+  aspect-ratio: 1800 / 386;
+  margin-top: 12px;
+  padding: 4.2% 5.2% 4.2% 2.5%;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+    100% 100% no-repeat;
+}
+
+.rewardSignal > div {
+  padding-inline: 8%;
+  text-align: center;
+}
+
+.rewardSignal strong {
+  display: block;
+  margin-top: 7px;
+  color: #ffe45e;
+  font:
+    800 clamp(13px, 1.6vw, 18px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-transform: capitalize;
+}
+
+.rewardSignal p {
+  margin: 0;
+  padding-inline: clamp(12px, 2vw, 28px);
+}
 
 .rewardSignal button,
 .statePanel :is(button, a) {
@@ -66,7 +222,7 @@
   min-height: 46px;
   align-items: center;
   justify-content: center;
-  padding: 10px 26px;
+  padding: 10px 20px;
   border: 0;
   background-color: transparent;
   background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
@@ -74,34 +230,107 @@
   background-repeat: no-repeat;
   background-size: 100% 100%;
   color: #eafaff;
-  font: 800 13px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
-  letter-spacing: .025em;
+  font:
+    800 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.025em;
   text-align: center;
   text-decoration: none;
-  text-shadow: 0 1px 2px #000;
+  text-transform: capitalize;
   cursor: pointer;
 }
 
-.statePanel :is(button, a) { background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png'); }
+.statePanel :is(button, a) {
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+}
 
-.statePanel { display: flex; min-height: 170px; align-items: center; justify-content: center; gap: 16px; margin-top: 22px; padding: 28px; border: 1px solid #355a6c; background: rgba(0, 4, 8, .82); color: #b8d0da; }
-.statePanel strong { color: #effdff; font: 800 20px/1 var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; }
-.statePanel p { margin: 5px 0 12px; }
-.console :is(button, a):focus-visible { outline: 2px solid #8befff; outline-offset: 3px; }
+.statePanel {
+  display: grid;
+  place-items: center;
+  width: min(440px, 100%);
+  aspect-ratio: 1105 / 1133;
+  margin: 22px auto 0;
+  padding: 18%;
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.png') center /
+    100% 100% no-repeat;
+  color: #b8d0da;
+  text-align: center;
+}
+
+.statePanel strong {
+  color: #effdff;
+  font:
+    800 20px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-transform: capitalize;
+}
+
+.statePanel p {
+  margin: 8px 0 14px;
+}
+
+.console :is(button, a):focus-visible {
+  outline: 2px solid #8befff;
+  outline-offset: 3px;
+}
 
 @media (max-width: 780px) {
-  .console { padding: 22px 16px; }
-  .consoleHeader { display: block; }
-  .integrityBadge { margin-top: 12px; }
-  .circuitGrid, .signalGrid { grid-template-columns: 1fr 1fr; }
-  .rewardSignal { grid-template-columns: 1fr; }
+  .console {
+    padding-inline: 0;
+  }
+
+  .consoleHeader {
+    display: block;
+  }
+
+  .integrityBadge {
+    margin-top: 12px;
+  }
+
+  .circuitGrid,
+  .signalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rewardSignal {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(440px, 100%);
+    aspect-ratio: 1105 / 1133;
+    margin-inline: auto;
+    padding: 17%;
+    background-image: url('/images/marketplace-console-v1/utility/utility-shell.png');
+    text-align: center;
+  }
+
+  .rewardSignal > div,
+  .rewardSignal p {
+    padding-inline: 0;
+  }
+
+  .rewardSignal button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 460px) {
-  .circuitGrid, .signalGrid { grid-template-columns: 1fr; }
-  .rewardSignal button, .statePanel :is(button, a) { width: 100%; }
+  .signalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statePanel :is(button, a) {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .console * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .console * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

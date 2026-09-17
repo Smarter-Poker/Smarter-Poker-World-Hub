@@ -66,7 +66,7 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
 
   const config = COPY[state.status] || COPY.failed;
   const receipt = state.receipt || null;
-  const reference = receipt?.sessionId ? receipt.sessionId.slice(-12).toUpperCase() : null;
+  const reference = receipt?.sessionId ? receipt.sessionId.slice(-12) : null;
   const amount = amountLabel(receipt);
   const receiptHref = checkoutReceiptHref(receipt);
 
@@ -110,7 +110,9 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
             {reference && (
               <div>
                 <dt>Reference</dt>
-                <dd>{reference}</dd>
+                <dd data-preserve-case="true" data-user-content="true">
+                  {reference}
+                </dd>
               </div>
             )}
           </dl>
@@ -134,7 +136,12 @@ export default function CheckoutStatusPanel({ state, onDismiss, onRetry }) {
         )}
       </div>
       {state.status !== 'verifying' && (
-        <button type="button" className={styles.dismiss} onClick={onDismiss} aria-label="Dismiss Checkout Status">
+        <button
+          type="button"
+          className={styles.dismiss}
+          onClick={onDismiss}
+          aria-label="Dismiss Checkout Status"
+        >
           Dismiss
         </button>
       )}

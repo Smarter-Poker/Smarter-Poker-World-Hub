@@ -1,8 +1,8 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 /**
  * /api/club-arena/manage-shop
- * 
- * GET  ?clubId=xxx — List shop items for club (admin view with stats)
+ *
+ * GET  ?clubId=xxx: List shop items for club (admin view with stats)
  * POST { action: 'create'|'update'|'delete'|'toggle', clubId, ... }
  * Auth: Bearer token, admin/owner for writes
  */
@@ -11,28 +11,30 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 import {
-    getMaximumCardFundedClubItemPrice,
-    loadActiveDiamondPackageCatalog,
+  getMaximumCardFundedClubItemPrice,
+  loadActiveDiamondPackageCatalog,
 } from '../../../src/lib/store/diamondPackageCatalog.mjs';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
 
 const {
-    VALID_CATEGORIES,
-    ITEM_TYPE_BY_CATEGORY,
-    GRANT_TYPES,
-    buildGrantSpec,
-    normalizeImageUrl,
-    itemHasSales,
-    HAS_SALES_ERROR,
-    enforceAllThrowablesMutation,
+  VALID_CATEGORIES,
+  ITEM_TYPE_BY_CATEGORY,
+  GRANT_TYPES,
+  buildGrantSpec,
+  normalizeImageUrl,
+  itemHasSales,
+  HAS_SALES_ERROR,
+  enforceAllThrowablesMutation,
+  enforceFulfillableMutation,
+  normalizePurchaseCategory,
 } = require('../../../src/lib/club-arena/shopItemRules');
 const {
-    PRIMARY_SHOP_CURRENCY,
-    LEGACY_SHOP_CURRENCY,
-    summarizeShopPurchases,
-    totalsForCurrency,
-    buildLedgerCompleteness,
+  PRIMARY_SHOP_CURRENCY,
+  LEGACY_SHOP_CURRENCY,
+  summarizeShopPurchases,
+  totalsForCurrency,
+  buildLedgerCompleteness,
 } = require('../../../src/lib/club-arena/shopReporting');
 
 const REPORT_PAGE_SIZE = 1000;
@@ -40,44 +42,44 @@ const MAX_REPORT_ROWS = 50000;
 
 /** '' / null => clear (NULL). undefined => leave alone. Else a bounded int. */
 function normalizeOptionalInt(raw, { min = 0, max = 1000000, label = 'value' } = {}) {
-    if (raw === undefined) return { skip: true };
-    if (raw === null || String(raw).trim() === '') return { value: null };
-    const n = Math.floor(Number(raw));
-    if (!Number.isFinite(n) || n < min || n > max) {
-        return { error: `${label} must be an integer between ${min} and ${max} (blank to clear)` };
-    }
-    return { value: n };
+  if (raw === undefined) return { skip: true };
+  if (raw === null || String(raw).trim() === '') return { value: null };
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n < min || n > max) {
+    return { error: `${label} must be an integer between ${min} and ${max} (blank to clear)` };
+  }
+  return { value: n };
 }
 
 /** '' / null => clear. undefined => leave alone. Else a valid ISO timestamp. */
 function normalizeTimestamp(raw, label) {
-    if (raw === undefined) return { skip: true };
-    if (raw === null || String(raw).trim() === '') return { value: null };
-    const d = new Date(String(raw));
-    if (Number.isNaN(d.getTime())) return { error: `${label} must be a valid date` };
-    return { value: d.toISOString() };
+  if (raw === undefined) return { skip: true };
+  if (raw === null || String(raw).trim() === '') return { value: null };
+  const d = new Date(String(raw));
+  if (Number.isNaN(d.getTime())) return { error: `${label} must be a valid date` };
+  return { value: d.toISOString() };
 }
 
 /** '' / null / undefined => unlimited (NULL). Otherwise a non-negative integer. */
 function normalizeStock(raw) {
-    if (raw === undefined) return { skip: true };
-    if (raw === null || String(raw).trim() === '') return { value: null };
-    const n = Math.floor(Number(raw));
-    if (!Number.isFinite(n) || n < 0 || n > 1000000) {
-        return { error: 'stock must be a non-negative integer (blank = unlimited)' };
-    }
-    return { value: n };
+  if (raw === undefined) return { skip: true };
+  if (raw === null || String(raw).trim() === '') return { value: null };
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n < 0 || n > 1000000) {
+    return { error: 'stock must be a non-negative integer (blank = unlimited)' };
+  }
+  return { value: n };
 }
 
 let _supabase = null;
 function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
 }
 
 async function loadMaximumCardFundedPrice() {
@@ -134,17 +136,17 @@ async function loadPurchaseLedger(clubId) {
 export default async function handler(req, res) {
   try {
     setPrivateCommerceResponse(res);
-    if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       if (!applyRateLimit(req, res, LIMITS.write)) return;
     } else if (!applyRateLimit(req, res, LIMITS.read)) {
       // The GET returns items plus a bounded, stable-paged purchase report.
       return;
     }
 
-  // Idempotency guard — prevents duplicate mutations from laggy mobile networks
-  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-    if (checkIdempotency(req, res)) return;
-  }
+    // Idempotency guard: prevents duplicate mutations from laggy mobile networks
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+      if (checkIdempotency(req, res)) return;
+    }
 
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
@@ -157,12 +159,13 @@ export default async function handler(req, res) {
 
     try {
       // ═══════════════════════════════════════════════════════════
-      // GET — List shop items with purchase counts
+      // GET: List shop items with purchase counts
       // ═══════════════════════════════════════════════════════════
       if (req.method === 'GET') {
         const clubId = req.query.clubId;
         if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
-        if (!isUUID(clubId)) return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+        if (!isUUID(clubId))
+          return res.status(400).json({ success: false, error: 'Invalid clubId format' });
 
         const { data: member, error: memberError } = await getSupabase()
           .from('club_members')
@@ -204,7 +207,7 @@ export default async function handler(req, res) {
         const diamondTotals = totalsForCurrency(summary, PRIMARY_SHOP_CURRENCY);
         const legacyChipTotals = totalsForCurrency(summary, LEGACY_SHOP_CURRENCY);
 
-        const enriched = (items || []).map(item => {
+        const enriched = (items || []).map((item) => {
           const itemCurrencies = summary.byItem[item.id]?.byCurrency || {};
           const itemDiamonds = itemCurrencies[PRIMARY_SHOP_CURRENCY] || {
             sales: 0,
@@ -214,7 +217,10 @@ export default async function handler(req, res) {
             refunded: 0,
             net: 0,
           };
-          const totalSales = Object.values(itemCurrencies).reduce((sum, value) => sum + value.sales, 0);
+          const totalSales = Object.values(itemCurrencies).reduce(
+            (sum, value) => sum + value.sales,
+            0
+          );
           const refundedSales = Object.values(itemCurrencies).reduce(
             (sum, value) => sum + value.refundedSales,
             0
@@ -254,11 +260,13 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════
-      // POST — Create/Update/Delete/Toggle shop items
+      // POST: Create/Update/Delete/Toggle shop items
       // ═══════════════════════════════════════════════════════════
       if (req.method === 'POST') {
-        const { action, clubId, itemId, name, description, price, category, imageUrl, isActive } = req.body;
-        if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
+        const { action, clubId, itemId, name, description, price, category, imageUrl, isActive } =
+          req.body;
+        if (!clubId || !action)
+          return res.status(400).json({ success: false, error: 'clubId and action required' });
 
         const { data: member } = await getSupabase()
           .from('club_members')
@@ -282,21 +290,41 @@ export default async function handler(req, res) {
           }
           const listPrice = Number(price);
           if (!name?.trim() || !Number.isSafeInteger(listPrice) || listPrice <= 0) {
-            return res.status(400).json({ success: false, error: 'Name and positive price required' });
+            return res
+              .status(400)
+              .json({ success: false, error: 'Name and positive price required' });
           }
 
-          const cat = VALID_CATEGORIES.includes(category) ? category : 'Time Banks';
+          const normalizedCategory = normalizePurchaseCategory(category);
+          if (normalizedCategory.error) {
+            return res.status(400).json({
+              success: false,
+              error: normalizedCategory.error,
+              code: normalizedCategory.code,
+            });
+          }
+          const cat = normalizedCategory.value;
 
           const img = normalizeImageUrl(imageUrl);
           if (img.error) return res.status(400).json({ success: false, error: img.error });
 
-          const grant = buildGrantSpec(cat, req.body.grantType, req.body.grantQty, req.body.grantRef);
-          if (grant.error) return res.status(400).json({ success: false, error: grant.error });
+          const grant = buildGrantSpec(
+            cat,
+            req.body.grantType,
+            req.body.grantQty,
+            req.body.grantRef
+          );
+          if (grant.error) {
+            return res.status(400).json({ success: false, error: grant.error, code: grant.code });
+          }
 
           const stk = normalizeStock(req.body.stock);
           if (stk.error) return res.status(400).json({ success: false, error: stk.error });
 
-          const lim = normalizeOptionalInt(req.body.perUserLimit, { min: 1, label: 'perUserLimit' });
+          const lim = normalizeOptionalInt(req.body.perUserLimit, {
+            min: 1,
+            label: 'perUserLimit',
+          });
           if (lim.error) return res.status(400).json({ success: false, error: lim.error });
 
           const salePrice = normalizeOptionalInt(req.body.salePrice, {
@@ -304,16 +332,20 @@ export default async function handler(req, res) {
             max: 1000000000,
             label: 'salePrice',
           });
-          if (salePrice.error) return res.status(400).json({ success: false, error: salePrice.error });
+          if (salePrice.error)
+            return res.status(400).json({ success: false, error: salePrice.error });
           if (!salePrice.skip && salePrice.value !== null && salePrice.value > listPrice) {
-              return res.status(400).json({ success: false, error: 'salePrice cannot exceed price' });
+            return res.status(400).json({ success: false, error: 'salePrice cannot exceed price' });
           }
 
           let maximumCardFundedPrice;
           try {
             maximumCardFundedPrice = await loadMaximumCardFundedPrice();
           } catch (catalogError) {
-            console.warn('[manage-shop] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+            console.warn(
+              '[manage-shop] Diamond package catalog unavailable:',
+              catalogError?.message || catalogError
+            );
             return res.status(503).json({
               success: false,
               error: 'Current Card pricing could not be verified. Please try again.',
@@ -334,17 +366,22 @@ export default async function handler(req, res) {
           const until = normalizeTimestamp(req.body.availableUntil, 'availableUntil');
           if (until.error) return res.status(400).json({ success: false, error: until.error });
           if (from.value && until.value && new Date(until.value) <= new Date(from.value)) {
-              return res.status(400).json({ success: false, error: 'availableUntil must be after availableFrom' });
+            return res
+              .status(400)
+              .json({ success: false, error: 'availableUntil must be after availableFrom' });
           }
 
-          const sortOrder = normalizeOptionalInt(req.body.sortOrder, { min: -10000, max: 10000, label: 'sortOrder' });
-          if (sortOrder.error) return res.status(400).json({ success: false, error: sortOrder.error });
+          const sortOrder = normalizeOptionalInt(req.body.sortOrder, {
+            min: -10000,
+            max: 10000,
+            label: 'sortOrder',
+          });
+          if (sortOrder.error)
+            return res.status(400).json({ success: false, error: sortOrder.error });
 
-          // Consumables stack by default; permanent unlocks do not. An explicit
-          // boolean from the caller wins.
-          const derivedStackable = ['time_bank', 'throwable'].includes(grant.spec.type);
-          const stackable =
-              typeof req.body.stackable === 'boolean' ? req.body.stackable : derivedStackable;
+          // Every currently sellable category is consumable. Never allow an
+          // admin payload to turn purchase history into permanent ownership.
+          const stackable = true;
 
           const { data: item, error } = await getSupabase()
             .from('club_shop_items')
@@ -378,12 +415,15 @@ export default async function handler(req, res) {
 
           const { data: existingItem, error: existingItemError } = await getSupabase()
             .from('club_shop_items')
-            .select('name, description, category, item_type, grant_spec, image_url, is_active, stackable, per_user_limit, price, sale_price')
+            .select(
+              'name, description, category, item_type, grant_spec, image_url, is_active, stackable, per_user_limit, price, sale_price'
+            )
             .eq('id', itemId)
             .eq('club_id', clubId)
             .maybeSingle();
           if (existingItemError) throw existingItemError;
-          if (!existingItem) return res.status(404).json({ success: false, error: 'Item not found' });
+          if (!existingItem)
+            return res.status(404).json({ success: false, error: 'Item not found' });
 
           const throwableGuard = enforceAllThrowablesMutation('update', req.body, existingItem);
           if (throwableGuard.error) {
@@ -393,21 +433,41 @@ export default async function handler(req, res) {
               code: throwableGuard.code,
             });
           }
+          const fulfillmentBase = throwableGuard.managed
+            ? { ...existingItem, ...throwableGuard.updates }
+            : existingItem;
+          const fulfillmentGuard = enforceFulfillableMutation('update', req.body, fulfillmentBase);
+          if (fulfillmentGuard.error) {
+            return res.status(400).json({
+              success: false,
+              error: fulfillmentGuard.error,
+              code: fulfillmentGuard.code,
+            });
+          }
 
           const updates = {};
           if (name !== undefined) {
-            if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ success: false, error: 'Name cannot be empty' });
+            if (typeof name !== 'string' || !name.trim())
+              return res.status(400).json({ success: false, error: 'Name cannot be empty' });
             updates.name = name.trim().slice(0, 200);
           }
-          if (description !== undefined) updates.description = String(description ?? '').trim().slice(0, 500);
+          if (description !== undefined)
+            updates.description = String(description ?? '')
+              .trim()
+              .slice(0, 500);
           if (price !== undefined) {
             const p = Number(price);
-            if (!Number.isSafeInteger(p) || p <= 0) return res.status(400).json({ success: false, error: 'Positive integer price required' });
-            if (p > 1000000000) return res.status(400).json({ success: false, error: 'Price exceeds maximum' });
+            if (!Number.isSafeInteger(p) || p <= 0)
+              return res
+                .status(400)
+                .json({ success: false, error: 'Positive integer price required' });
+            if (p > 1000000000)
+              return res.status(400).json({ success: false, error: 'Price exceeds maximum' });
             updates.price = p;
           }
           if (category !== undefined) {
-            if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ success: false, error: 'Invalid category' });
+            if (!VALID_CATEGORIES.includes(category))
+              return res.status(400).json({ success: false, error: 'Invalid category' });
             updates.category = category;
             updates.item_type = ITEM_TYPE_BY_CATEGORY[category] || null;
           }
@@ -424,7 +484,10 @@ export default async function handler(req, res) {
           }
           if (req.body.stackable !== undefined) updates.stackable = !!req.body.stackable;
           {
-            const lim2 = normalizeOptionalInt(req.body.perUserLimit, { min: 1, label: 'perUserLimit' });
+            const lim2 = normalizeOptionalInt(req.body.perUserLimit, {
+              min: 1,
+              label: 'perUserLimit',
+            });
             if (lim2.error) return res.status(400).json({ success: false, error: lim2.error });
             if (!lim2.skip) updates.per_user_limit = lim2.value;
 
@@ -444,26 +507,43 @@ export default async function handler(req, res) {
             if (u2.error) return res.status(400).json({ success: false, error: u2.error });
             if (!u2.skip) updates.available_until = u2.value;
 
-            const so2 = normalizeOptionalInt(req.body.sortOrder, { min: -10000, max: 10000, label: 'sortOrder' });
+            const so2 = normalizeOptionalInt(req.body.sortOrder, {
+              min: -10000,
+              max: 10000,
+              label: 'sortOrder',
+            });
             if (so2.error) return res.status(400).json({ success: false, error: so2.error });
             if (!so2.skip) updates.sort_order = so2.value === null ? 0 : so2.value;
           }
           // The grant must travel with the category. If the caller changes the
           // category and says nothing about grants, derive the grant from the
           // NEW category rather than leaving a time-bank grant on an avatar.
-          if (req.body.grantType !== undefined || updates.category !== undefined) {
-            const cat = updates.category || category;
+          if (
+            req.body.grantType !== undefined ||
+            req.body.grantQty !== undefined ||
+            req.body.grantRef !== undefined ||
+            updates.category !== undefined
+          ) {
+            const cat = updates.category || existingItem.category;
             if (req.body.grantType !== undefined && !GRANT_TYPES.includes(req.body.grantType)) {
               // Silently downgrading an unknown type to 'none' turned a paid
               // item into one that grants nothing. Fail loudly instead.
               return res.status(400).json({ success: false, error: 'Invalid grantType' });
             }
-            const grant = buildGrantSpec(cat, req.body.grantType, req.body.grantQty, req.body.grantRef);
-            if (grant.error) return res.status(400).json({ success: false, error: grant.error });
+            const grant = buildGrantSpec(
+              cat,
+              req.body.grantType,
+              req.body.grantQty,
+              req.body.grantRef
+            );
+            if (grant.error) {
+              return res.status(400).json({ success: false, error: grant.error, code: grant.code });
+            }
             updates.grant_spec = grant.spec;
           }
           if (throwableGuard.managed) Object.assign(updates, throwableGuard.updates);
-          if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
+          if (Object.keys(updates).length === 0)
+            return res.status(400).json({ success: false, error: 'No fields to update' });
 
           const candidatePrice = updates.price ?? Number(existingItem.price);
           const candidateSalePrice = Object.prototype.hasOwnProperty.call(updates, 'sale_price')
@@ -476,15 +556,21 @@ export default async function handler(req, res) {
           try {
             maximumCardFundedPrice = await loadMaximumCardFundedPrice();
           } catch (catalogError) {
-            console.warn('[manage-shop] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+            console.warn(
+              '[manage-shop] Diamond package catalog unavailable:',
+              catalogError?.message || catalogError
+            );
             return res.status(503).json({
               success: false,
               error: 'Current Card pricing could not be verified. Please try again.',
               code: 'DIAMOND_PACKAGE_CATALOG_UNAVAILABLE',
             });
           }
-          if (!Number.isSafeInteger(candidatePrice) || candidatePrice <= 0
-              || candidatePrice > maximumCardFundedPrice) {
+          if (
+            !Number.isSafeInteger(candidatePrice) ||
+            candidatePrice <= 0 ||
+            candidatePrice > maximumCardFundedPrice
+          ) {
             return res.status(400).json({
               success: false,
               error: `Price must be between 1 and ${maximumCardFundedPrice.toLocaleString()} Diamonds`,
@@ -508,7 +594,7 @@ export default async function handler(req, res) {
 
           const { data: item } = await getSupabase()
             .from('club_shop_items')
-            .select('name, category, item_type, grant_spec, is_active, price')
+            .select('name, category, item_type, grant_spec, is_active, stackable, price')
             .eq('id', itemId)
             .eq('club_id', clubId)
             .maybeSingle();
@@ -523,6 +609,14 @@ export default async function handler(req, res) {
               code: throwableGuard.code,
             });
           }
+          const fulfillmentGuard = enforceFulfillableMutation('toggle', req.body, item);
+          if (fulfillmentGuard.error) {
+            return res.status(400).json({
+              success: false,
+              error: fulfillmentGuard.error,
+              code: fulfillmentGuard.code,
+            });
+          }
 
           const nextIsActive = !item.is_active;
           if (nextIsActive) {
@@ -530,7 +624,10 @@ export default async function handler(req, res) {
             try {
               maximumCardFundedPrice = await loadMaximumCardFundedPrice();
             } catch (catalogError) {
-              console.warn('[manage-shop] Diamond package catalog unavailable:', catalogError?.message || catalogError);
+              console.warn(
+                '[manage-shop] Diamond package catalog unavailable:',
+                catalogError?.message || catalogError
+              );
               return res.status(503).json({
                 success: false,
                 error: 'Current Card pricing could not be verified. Please try again.',
@@ -538,8 +635,11 @@ export default async function handler(req, res) {
               });
             }
             const storedPrice = Number(item.price);
-            if (!Number.isSafeInteger(storedPrice) || storedPrice <= 0
-                || storedPrice > maximumCardFundedPrice) {
+            if (
+              !Number.isSafeInteger(storedPrice) ||
+              storedPrice <= 0 ||
+              storedPrice > maximumCardFundedPrice
+            ) {
               return res.status(400).json({
                 success: false,
                 error: `Price must be between 1 and ${maximumCardFundedPrice.toLocaleString()} Diamonds before activation`,
@@ -600,12 +700,20 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'GET or POST only' });
     } catch (err) {
       console.warn('[manage-shop]', err);
-      return res.status(500).json({ success: false, error: 'Shop management failed', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
+      return res.status(500).json({
+        success: false,
+        error: 'Shop management failed',
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      });
     }
-
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    try {
+      reportApiError(err, req);
+    } catch (_sentryErr) {
+      console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+    }
     console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!res.headersSent)
+      return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

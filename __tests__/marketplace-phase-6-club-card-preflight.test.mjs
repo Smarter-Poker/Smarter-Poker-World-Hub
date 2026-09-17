@@ -17,7 +17,7 @@ import {
 } from '../src/lib/store/diamondPackageCatalog.mjs';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 const databaseRows = Object.entries(BUILT_IN_DIAMOND_PACKAGES).map(([packageKey, pkg]) => ({
   package_key: packageKey,
@@ -33,8 +33,12 @@ function packageSupabase(result) {
     from(table) {
       assert.equal(table, 'diamond_packages');
       return {
-        select() { return this; },
-        eq() { return Promise.resolve(result); },
+        select() {
+          return this;
+        },
+        eq() {
+          return Promise.resolve(result);
+        },
       };
     },
   };
@@ -86,17 +90,35 @@ test('Diamond package prices use exact Stripe cents and aggregate once', () => {
   assert.equal(parseUsdAmountToCents('19.99'), 1999);
   assert.equal(parseUsdAmountToCents('999999.99'), STRIPE_MAX_USD_UNIT_AMOUNT_CENTS);
   assert.equal(parseUsdAmountToCents('1000000.00'), null);
-  assert.throws(() => normalizeDiamondPackageRows([{
-    package_key: 'fractional',
-    display_name: 'Fractional',
-    diamonds: 100,
-    bonus_diamonds: 0,
-    price_usd: '1.005',
-  }]), /not usable/);
+  assert.throws(
+    () =>
+      normalizeDiamondPackageRows([
+        {
+          package_key: 'fractional',
+          display_name: 'Fractional',
+          diamonds: 100,
+          bonus_diamonds: 0,
+          price_usd: '1.005',
+        },
+      ]),
+    /not usable/
+  );
 
   const catalog = normalizeDiamondPackageRows([
-    { package_key: 'one', display_name: 'One', diamonds: 100, bonus_diamonds: 5, price_usd: '1.01' },
-    { package_key: 'two', display_name: 'Two', diamonds: 250, bonus_diamonds: 10, price_usd: '2.02' },
+    {
+      package_key: 'one',
+      display_name: 'One',
+      diamonds: 100,
+      bonus_diamonds: 5,
+      price_usd: '1.01',
+    },
+    {
+      package_key: 'two',
+      display_name: 'Two',
+      diamonds: 250,
+      bonus_diamonds: 10,
+      price_usd: '2.02',
+    },
   ]);
   const totals = getDiamondCheckoutTotals([
     { key: 'one', ...catalog.one, quantity: 2 },
@@ -120,10 +142,7 @@ test('every Diamond card purchase is rejected before Stripe when wallet credit w
 
 test('strict package reads fail closed and fallback reads never poison strict cache', async () => {
   const unavailable = packageSupabase({ data: null, error: new Error('offline') });
-  await assert.rejects(
-    loadActiveDiamondPackageCatalog(unavailable, { cacheMs: 0 }),
-    /offline/
-  );
+  await assert.rejects(loadActiveDiamondPackageCatalog(unavailable, { cacheMs: 0 }), /offline/);
   const fallback = await loadActiveDiamondPackageCatalog(unavailable, {
     allowFallback: true,
     cacheMs: 0,
@@ -147,7 +166,9 @@ test('strict package reads fail closed and fallback reads never poison strict ca
 
 test('Club Card checkout revalidates current price, package, membership, and availability before URL reuse', async () => {
   const checkout = await read('pages/api/store/create-checkout-session.js');
-  const preflightCall = checkout.indexOf('redemptionIntent = await preflightClubShopCardRedemption');
+  const preflightCall = checkout.indexOf(
+    'redemptionIntent = await preflightClubShopCardRedemption'
+  );
   const hashCall = checkout.indexOf('const checkoutIntentHash = computeCheckoutIntentHash');
   const existingUrlLookup = checkout.indexOf('const existingCheckout = await findExistingCheckout');
 
@@ -167,20 +188,27 @@ test('Club Card checkout revalidates current price, package, membership, and ava
   assert.match(checkout, /expected_price: expectedPrice/);
   assert.match(checkout, /package_quote:/);
   assert.match(checkout, /item_name:/);
-  assert.match(checkout, /const redemptionIdentity = redemptionIntent\?\.kind === 'club_shop'/);
+  assert.match(checkout, /const redemptionIdentity\s*=\s*redemptionIntent\?\.kind === 'club_shop'/);
   assert.match(checkout, /CARD_NOT_REQUIRED/);
   assert.match(checkout, /DIAMOND_WALLET_DEBT/);
-  assert.match(checkout, /!profile[\s\S]*?profile\.diamonds === null[\s\S]*?DIAMOND_WALLET_UNAVAILABLE/);
+  assert.match(
+    checkout,
+    /!profile[\s\S]*?profile\.diamonds === null[\s\S]*?DIAMOND_WALLET_UNAVAILABLE/
+  );
   assert.match(checkout, /type === 'diamonds'[\s\S]*?canCreditDiamondWallet/);
   assert.match(checkout, /DIAMOND_WALLET_CAPACITY_EXCEEDED/);
   assert.match(checkout, /unit_amount: pkg\.priceCents/);
   assert.match(checkout, /preparedCheckout\.checkoutTotals\.cardChargeUsd/);
   const capacityGate = checkout.indexOf('!canCreditDiamondWallet(');
   const customerCreate = checkout.indexOf('stripe.customers.create(');
-  const purchaseInsert = checkout.indexOf("from('diamond_purchases').insert(");
+  const purchaseInsert = checkout.search(/\.from\('diamond_purchases'\)\s*\.insert\(/);
   const stripeCreate = checkout.indexOf('stripe.checkout.sessions.create(');
-  assert.ok(capacityGate > -1 && capacityGate < customerCreate
-    && capacityGate < purchaseInsert && capacityGate < stripeCreate);
+  assert.ok(
+    capacityGate > -1 &&
+      capacityGate < customerCreate &&
+      capacityGate < purchaseInsert &&
+      capacityGate < stripeCreate
+  );
 });
 
 test('Club Shop catalog and both admin writers share the DB-backed Card price boundary', async () => {
@@ -194,8 +222,14 @@ test('Club Shop catalog and both admin writers share the DB-backed Card price bo
   assert.match(catalogApi, /availability_reason:/);
   assert.match(catalogApi, /card_quote:/);
   assert.match(catalogApi, /cardChargeCents:/);
-  assert.match(catalogApi, /const walletIsValid = Boolean\(profileRow\)/);
-  assert.match(catalogApi, /walletIsValid[\s\S]*?walletBalance >= 0[\s\S]*?getClubCardCheckoutQuoteFromCatalog/);
+  assert.match(
+    catalogApi,
+    /const walletIsValid\s*=\s*Boolean\(profileRow\)[\s\S]*?profileRow\.diamonds !== null[\s\S]*?Number\.isSafeInteger\(walletBalance\)/
+  );
+  assert.match(
+    catalogApi,
+    /walletIsValid[\s\S]*?walletBalance >= 0[\s\S]*?getClubCardCheckoutQuoteFromCatalog/
+  );
   assert.match(catalogApi, /maximumCardFundedPrice:/);
   for (const source of [manageApi, legacyAdminApi]) {
     assert.match(source, /loadActiveDiamondPackageCatalog/);
@@ -213,7 +247,10 @@ test('Club Shop catalog and both admin writers share the DB-backed Card price bo
   assert.match(migration, /REVOKE ALL ON TABLE public\.diamond_packages FROM PUBLIC, anon/);
   assert.match(migration, /GRANT ALL PRIVILEGES ON TABLE public\.diamond_packages TO service_role/);
   assert.match(migration, /GRANT SELECT ON TABLE public\.diamond_packages TO authenticated/);
-  assert.doesNotMatch(migration, /REVOKE ALL ON TABLE public\.diamond_packages FROM PUBLIC, anon, authenticated/);
+  assert.doesNotMatch(
+    migration,
+    /REVOKE ALL ON TABLE public\.diamond_packages FROM PUBLIC, anon, authenticated/
+  );
 });
 
 test('Diamond and merchandise Stripe ambiguity stays pending and recoverable', async () => {
@@ -222,7 +259,10 @@ test('Diamond and merchandise Stripe ambiguity stays pending and recoverable', a
   assert.match(checkout, /type === 'merchandise' && !checkoutRequestId/);
 
   const catchStart = checkout.indexOf('} catch (sessionError) {');
-  const linkStart = checkout.indexOf("if (type === 'subscription' && subscriptionClaim)", catchStart);
+  const linkStart = checkout.indexOf(
+    "if (type === 'subscription' && subscriptionClaim)",
+    catchStart
+  );
   const failureRecovery = checkout.slice(catchStart, linkStart);
   for (const type of ['diamonds', 'merchandise']) {
     const branchStart = failureRecovery.indexOf(`type === '${type}'`);
@@ -237,7 +277,10 @@ test('Diamond and merchandise Stripe ambiguity stays pending and recoverable', a
   for (const label of ['diamondSessionLinked', 'merchandiseSessionLinked']) {
     assert.match(checkout, new RegExp(`let ${label}`));
   }
-  assert.match(checkout, /\.eq\('stripe_checkout_session_id', session\.id\)[\s\S]*?\.maybeSingle\(\)/);
+  assert.match(
+    checkout,
+    /\.eq\('stripe_checkout_session_id', session\.id\)[\s\S]*?\.maybeSingle\(\)/
+  );
   assert.match(checkout, /recoveryError\.checkoutRetryable = true/);
 });
 
@@ -253,7 +296,10 @@ test('hidden Club Shop items cannot bypass the Card price boundary when reactiva
     ),
     legacyAdminApi.slice(
       legacyAdminApi.indexOf("if (action === 'toggle')"),
-      legacyAdminApi.indexOf("if (action === 'update')", legacyAdminApi.indexOf("if (action === 'toggle')"))
+      legacyAdminApi.indexOf(
+        "if (action === 'update')",
+        legacyAdminApi.indexOf("if (action === 'toggle')")
+      )
     ),
   ];
 

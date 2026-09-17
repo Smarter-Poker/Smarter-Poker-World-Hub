@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 const reconciliationSource = await read('src/lib/store/checkoutReconciliation.js');
 const reconciliation = await import(
@@ -35,20 +35,25 @@ test('verified checkout reconciliation removes only paid quantities', () => {
 });
 
 test('unmatched, malformed, and variant-distinct cart lines remain untouched', () => {
-  const cart = [{
-    id: 'shirt::medium',
-    catalogId: 'shirt',
-    variantId: 'medium',
-    type: 'Merchandise: Medium',
-    quantity: 2,
-  }];
-  assert.equal(reconciliation.reconcilePurchasedCart(cart, [
-    { kind: 'merchandise', id: 'shirt', variantId: 'large', quantity: 2 },
-    { kind: 'merchandise', id: 'shirt', variantId: 'medium', quantity: null },
-    { kind: 'merchandise', id: 'shirt', variantId: 'medium', quantity: 11 },
-    { kind: 'merchandise', id: '', quantity: 10 },
-    { kind: 'unknown', id: 'shirt', variantId: 'medium', quantity: 2 },
-  ]), cart);
+  const cart = [
+    {
+      id: 'shirt::medium',
+      catalogId: 'shirt',
+      variantId: 'medium',
+      type: 'Merchandise: Medium',
+      quantity: 2,
+    },
+  ];
+  assert.equal(
+    reconciliation.reconcilePurchasedCart(cart, [
+      { kind: 'merchandise', id: 'shirt', variantId: 'large', quantity: 2 },
+      { kind: 'merchandise', id: 'shirt', variantId: 'medium', quantity: null },
+      { kind: 'merchandise', id: 'shirt', variantId: 'medium', quantity: 11 },
+      { kind: 'merchandise', id: '', quantity: 10 },
+      { kind: 'unknown', id: 'shirt', variantId: 'medium', quantity: 2 },
+    ]),
+    cart
+  );
 });
 
 test('verified receipts build private same-surface destinations only', () => {
@@ -60,7 +65,10 @@ test('verified receipts build private same-surface destinations only', () => {
     reconciliation.checkoutReceiptHref({ orderSource: 'club', orderId: 'order_123' }),
     null
   );
-  assert.equal(reconciliation.checkoutReceiptHref({ orderSource: '__proto__', orderId: 'x' }), null);
+  assert.equal(
+    reconciliation.checkoutReceiptHref({ orderSource: '__proto__', orderId: 'x' }),
+    null
+  );
 });
 
 test('checkout status requires owner and session matched backing records', async () => {
@@ -111,7 +119,11 @@ test('checkout, order ledger, and receipt verification terminate and retry', asy
   ]);
   assert.match(storefront, /CHECKOUT_STATUS_REQUEST_TIMEOUT_MS/);
   assert.match(storefront, /Checkout Verification Timed Out/);
-  assert.match(storefront, /\['complete', 'failed'\]\.includes\(body\.data\?\.status\)/);
+  assert.match(storefront, /normalizeVerifiedCheckoutStatus\(body, \{/);
+  assert.match(storefront, /getAuthUser\(\)\?\.id !== expectedAccountId/);
+  assert.doesNotMatch(storefront, /receipt: body\.data/);
+  assert.doesNotMatch(storefront, /body\.data\?\.walletBalance/);
+  assert.match(storefront, /controller\.signal\.removeEventListener\('abort', settle\)/);
   assert.match(storefront, /setCheckoutVerificationAttempt/);
   assert.match(panel, /Verify Again/);
   assert.match(panel, /View Verified Receipt/);
@@ -120,6 +132,22 @@ test('checkout, order ledger, and receipt verification terminate and retry', asy
   assert.match(orders, /Order History Timed Out/);
   assert.match(receipt, /MARKETPLACE_RECEIPT_TIMEOUT_MS/);
   assert.match(receipt, /Retry Receipt Verification/);
+});
+
+test('checkout status classifies paid before expired and never claims unpaid completion', async () => {
+  const source = await read('pages/api/store/checkout-status.js');
+  const start = source.indexOf('function publicStatus');
+  const end = source.indexOf('\n\nfunction normalizedCartSnapshot', start);
+  assert.ok(start >= 0 && end > start);
+  const publicStatus = Function(`${source.slice(start, end)}; return publicStatus;`)();
+
+  assert.equal(publicStatus({ payment_status: 'paid', status: 'expired' }, null), 'pending');
+  assert.equal(
+    publicStatus({ payment_status: 'paid', status: 'expired' }, 'completed'),
+    'complete'
+  );
+  assert.equal(publicStatus({ payment_status: 'unpaid', status: 'expired' }, null), 'failed');
+  assert.equal(publicStatus({ payment_status: 'unpaid', status: 'complete' }, null), 'pending');
 });
 
 test('purchase assurance controls retain the approved cyan metal palette', async () => {

@@ -35,7 +35,7 @@
   border: 0;
   color: #e4e7ec;
   background-color: transparent;
-  background-image: url('/images/marketplace-console-v1/navigation/nav-shell.png');
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -61,10 +61,7 @@
 }
 
 .commandHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-  gap: clamp(18px, 4vw, 54px);
-  align-items: center;
+  display: block;
   width: min(100% - 24px, 1120px);
   margin: 0 auto;
   padding: clamp(18px, 4vw, 52px) 0;
@@ -108,80 +105,6 @@
   margin-top: 20px;
 }
 
-.operationsVisual {
-  position: relative;
-  width: 100%;
-  max-width: 420px;
-  aspect-ratio: 1;
-  justify-self: end;
-  overflow: hidden;
-  container-type: inline-size;
-  background-color: #000;
-  background-image: url('/images/store-v3/commerce-operations-atlas.webp');
-  background-position: 0 center;
-  background-repeat: no-repeat;
-  background-size: 300% 100%;
-}
-
-.stage[data-active='orders'] .operationsVisual {
-  background-position: 50% center;
-}
-
-.stage[data-active='wishlist'] .operationsVisual {
-  background-position: 100% center;
-}
-
-.stage[data-active='store'] .operationsVisual {
-  background-image: url('/images/store-v3/diamond-vault-hero.webp');
-  background-position: 58% center;
-  background-size: cover;
-}
-
-.visualReadout {
-  position: absolute;
-  right: 6%;
-  bottom: 6%;
-  left: 6%;
-  display: grid;
-  align-content: center;
-  grid-template-columns: auto 1fr;
-  gap: 2px 12px;
-  width: auto;
-  min-height: 68px;
-  padding: 10px 14px;
-  overflow: hidden;
-  background-color: rgb(0 5 9 / 88%);
-  text-align: left;
-}
-
-.bayCode {
-  grid-row: 1 / span 2;
-  align-self: center;
-  color: #45adff;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
-.visualReadout strong {
-  overflow: hidden;
-  color: #f4f7fb;
-  font-size: 17px;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.visualReadout small {
-  grid-column: 2;
-  overflow: hidden;
-  color: #9aa5b3;
-  font-size: 11px;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .contentDeck {
   width: min(100% - 24px, 1120px);
   margin: 0 auto;
@@ -204,19 +127,8 @@
   }
 
   .commandHeader {
-    grid-template-columns: minmax(0, 1fr);
     width: calc(100% - 20px);
     padding-top: 12px;
-  }
-
-  .operationsVisual {
-    width: min(100%, 390px);
-    justify-self: center;
-    grid-row: 1;
-  }
-
-  .headerCopy {
-    grid-row: 2;
   }
 
   .contentDeck {

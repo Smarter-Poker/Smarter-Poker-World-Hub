@@ -12,12 +12,17 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
 import { reportApiError } from '../../../src/lib/sentryWrap';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
+import { normalizeClubPurchaseRpcSuccess } from '../../../src/lib/store/clubCardCheckout.mjs';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
-const { requireEmailVerified, requireEmailVerifiedByUserId } = require('../../../src/lib/emailVerifiedGate');
+const {
+  requireEmailVerified,
+  requireEmailVerifiedByUserId,
+} = require('../../../src/lib/emailVerifiedGate');
 const { isUUID } = require('../../../src/lib/club-arena/validate');
+const { isDeliverableShopItem } = require('../../../src/lib/club-arena/shopItemRules');
 
 // Club Shop sales are platform-owned. The buyer's Diamonds are consumed by
 // the purchase RPC and no club, club owner, agent, or affiliate is credited.
@@ -41,8 +46,12 @@ const PURCHASE_ERRORS = {
   not_yet_available: ['This item is not on sale yet', 400],
   no_longer_available: ['This offer has ended', 400],
   sold_out: ['This item is sold out', 400],
-  already_owned: ['You already own an unused copy of this item. Redeem it before buying another.', 400],
+  already_owned: [
+    'You already own an unused copy of this item. Redeem it before buying another.',
+    400,
+  ],
   limit_reached: ['You have reached the purchase limit for this item', 400],
+  fulfillment_unavailable: ['This Item Does Not Have A Verified Digital Delivery.', 409],
   insufficient_diamonds: ['Insufficient diamonds', 400],
   price_changed: ['The Item Price Changed. Review The Current Price Before Purchasing.', 409],
   price_confirmation_required: ['Confirm The Current Item Price Before Purchasing.', 409],
@@ -67,39 +76,73 @@ export default async function handler(req, res) {
     }
 
     const clientKey = req.headers['x-idempotency-key'];
-    if (typeof clientKey !== 'string'
-        || !/^[A-Za-z0-9._:-]{8,180}$/.test(clientKey.trim())) {
+    if (typeof clientKey !== 'string' || !/^[A-Za-z0-9._:-]{8,180}$/.test(clientKey.trim())) {
       return res.status(400).json({
         success: false,
         error: 'A valid X-Idempotency-Key header is required',
       });
     }
+    const requestId = clientKey.trim();
+    const sendBoundFailure = (status, body = {}) =>
+      res.status(status).json({
+        ...body,
+        success: false,
+        accountId: user.id,
+        requestId,
+      });
 
     let emailGate = requireEmailVerified(user);
     if (!emailGate.ok && typeof user.email_confirmed_at === 'undefined') {
       emailGate = await requireEmailVerifiedByUserId(supabase, user.id);
     }
-    if (!emailGate.ok) return res.status(emailGate.status).json(emailGate.body);
+    if (!emailGate.ok) return sendBoundFailure(emailGate.status, emailGate.body);
 
     const allowed = new Set(['clubId', 'itemId', 'expectedPrice']);
     const bodyString = JSON.stringify(req.body || {});
     if (bodyString.length > 512) {
-      return res.status(413).json({ success: false, error: 'Request body too large' });
+      return sendBoundFailure(413, { error: 'Request body too large' });
     }
     const unknown = Object.keys(req.body || {}).filter((key) => !allowed.has(key));
     if (unknown.length) {
-      return res.status(400).json({ success: false, error: `Unknown fields: ${unknown.join(', ')}` });
+      return sendBoundFailure(400, { error: `Unknown fields: ${unknown.join(', ')}` });
     }
 
     const { clubId, itemId, expectedPrice } = req.body || {};
     if (!clubId || !itemId || expectedPrice == null) {
-      return res.status(400).json({ success: false, error: 'clubId, itemId, and expectedPrice required' });
+      return sendBoundFailure(400, { error: 'clubId, itemId, and expectedPrice required' });
     }
     if (!isUUID(clubId) || !isUUID(itemId)) {
-      return res.status(400).json({ success: false, error: 'Invalid clubId or itemId format' });
+      return sendBoundFailure(400, { error: 'Invalid clubId or itemId format' });
     }
     if (!Number.isInteger(expectedPrice) || expectedPrice < 0 || expectedPrice > 1000000000) {
-      return res.status(400).json({ success: false, error: 'Invalid expectedPrice' });
+      return sendBoundFailure(400, { error: 'Invalid expectedPrice' });
+    }
+
+    // Historical `none` rows remain visible on receipts, but a paid request
+    // must never reach the financial RPC unless this item has an executable
+    // digital grant. Admin mutations cannot turn a deliverable item back into
+    // a no-op, so this preflight and the retained grant snapshot agree.
+    const { data: fulfillmentItem, error: fulfillmentError } = await supabase
+      .from('club_shop_items')
+      .select('name, category, item_type, grant_spec, is_active, stackable')
+      .eq('club_id', clubId)
+      .eq('id', itemId)
+      .limit(1)
+      .maybeSingle();
+    if (fulfillmentError) {
+      return sendBoundFailure(503, {
+        error: 'Item Fulfillment Could Not Be Verified. Please Try Again.',
+        reason: 'verification_unavailable',
+      });
+    }
+    if (!fulfillmentItem) {
+      return sendBoundFailure(404, { error: 'Item Not Found', reason: 'not_found' });
+    }
+    if (!isDeliverableShopItem(fulfillmentItem)) {
+      return sendBoundFailure(409, {
+        error: PURCHASE_ERRORS.fulfillment_unavailable[0],
+        reason: 'fulfillment_unavailable',
+      });
     }
 
     // Bind the short response cache to the normalized intent. The permanent
@@ -119,9 +162,8 @@ export default async function handler(req, res) {
         // Availability and price failures are mutable. Release the short-lived
         // response-cache claim so the same confirmed intent can be retried,
         // while the purchase RPC's charge reference remains permanent.
-        shouldCacheResponse: (status, responseBody) => (
-          status >= 200 && status < 300 && responseBody?.success === true
-        ),
+        shouldCacheResponse: (status, responseBody) =>
+          status >= 200 && status < 300 && responseBody?.success === true,
       }
     );
     if (!proceed) return;
@@ -148,24 +190,100 @@ export default async function handler(req, res) {
     );
     if (purchaseError) throw purchaseError;
 
-    if (!result?.success) {
-      const code = String(result?.error || 'purchase_failed');
+    let settledResult = result;
+    if (!settledResult?.success) {
+      // A concurrent call can inspect the reference before the first call
+      // commits, wait on the user/item lock, and then return an availability
+      // refusal. Re-read the immutable purchase ledger before treating that
+      // refusal as pre-commit; rotating a committed request key would make the
+      // real purchase unrecoverable in the browser.
+      const { data: committedPurchase, error: committedPurchaseError } = await supabase
+        .from('club_shop_purchases')
+        .select('id, buyer_id, club_id, item_id, price_paid')
+        .eq('charge_reference', chargeReference)
+        .limit(1)
+        .maybeSingle();
+      if (committedPurchaseError) {
+        return sendBoundFailure(503, {
+          error:
+            'Purchase Status Could Not Be Verified. Confirm Again To Verify The Original Purchase.',
+          reason: 'verification_unavailable',
+        });
+      }
+      if (committedPurchase) {
+        if (
+          committedPurchase.buyer_id !== user.id ||
+          committedPurchase.club_id !== clubId ||
+          committedPurchase.item_id !== itemId ||
+          committedPurchase.price_paid !== expectedPrice
+        ) {
+          return sendBoundFailure(409, {
+            error: PURCHASE_ERRORS.reference_conflict[0],
+            code: 'IDEMPOTENCY_CONFLICT',
+            reason: 'reference_conflict',
+          });
+        }
+        const { data: committedWallet, error: committedWalletError } = await supabase
+          .from('profiles')
+          .select('diamonds')
+          .eq('id', user.id)
+          .limit(1)
+          .maybeSingle();
+        if (
+          committedWalletError ||
+          !committedWallet ||
+          !Number.isSafeInteger(committedWallet.diamonds) ||
+          committedWallet.diamonds < 0
+        ) {
+          return sendBoundFailure(503, {
+            error:
+              'Purchase Status Could Not Be Verified. Confirm Again To Verify The Original Purchase.',
+            reason: 'verification_unavailable',
+          });
+        }
+        settledResult = {
+          success: true,
+          duplicate: true,
+          purchase_id: committedPurchase.id,
+          new_balance: committedWallet.diamonds,
+          price_paid: committedPurchase.price_paid,
+          item_name: fulfillmentItem.name,
+          item_type: fulfillmentItem.item_type,
+        };
+      }
+    }
+
+    if (!settledResult?.success) {
+      const code = String(settledResult?.error || 'purchase_failed');
       const [message, status] = PURCHASE_ERRORS[code] || ['Purchase failed', 500];
       if (status >= 500) {
         throw new Error(`Atomic Club Shop purchase failed: ${code}`);
       }
-      return res.status(status).json({
-        success: false,
+      return sendBoundFailure(status, {
         error: message,
         code: code === 'reference_conflict' ? 'IDEMPOTENCY_CONFLICT' : undefined,
         reason: code,
         soldOut: code === 'sold_out',
         alreadyOwned: code === 'already_owned',
         limitReached: code === 'limit_reached',
-        limit: result?.limit,
-        currentPrice: result?.price,
-        expectedPrice: result?.expected_price,
+        limit: settledResult?.limit,
+        currentPrice: settledResult?.price,
+        expectedPrice: settledResult?.expected_price,
       });
+    }
+
+    // The RPC may have committed before its JSON response reaches this route.
+    // Never coerce or partially trust that financial receipt: an unverified
+    // success remains replayable under the same durable key instead of being
+    // shown as a completed purchase with invented zeroes or mismatched item
+    // copy.
+    const verifiedResult = normalizeClubPurchaseRpcSuccess(settledResult, {
+      price: expectedPrice,
+      name: fulfillmentItem.name,
+      itemType: fulfillmentItem.item_type,
+    });
+    if (!verifiedResult) {
+      throw new Error('Atomic Club Shop purchase returned an unverified receipt');
     }
 
     try {
@@ -173,35 +291,51 @@ export default async function handler(req, res) {
         actionType: 'marketplace_purchase',
         userId: user.id,
         clubId,
-        amount: Number(result.price_paid) || 0,
+        amount: verifiedResult.pricePaid,
         ip: extractIP(req),
         details: {
           itemId,
-          itemName: result.item_name,
-          itemType: result.item_type,
-          purchaseId: result.purchase_id,
+          itemName: verifiedResult.itemName,
+          itemType: verifiedResult.itemType,
+          purchaseId: verifiedResult.purchaseId,
           atomic: true,
+          duplicate: verifiedResult.duplicate,
           settlementModel: CLUB_SALE_SETTLEMENT_MODEL,
         },
       });
     } catch (auditError) {
       // The commerce transaction is already committed; audit failure must be
       // observable without falsely telling the buyer the purchase failed.
-      try { reportApiError(auditError, req); } catch (_reportError) { /* no-op */ }
-      console.warn('[marketplace-purchase] audit failed after commit:', auditError?.message || auditError);
+      try {
+        reportApiError(auditError, req);
+      } catch (_reportError) {
+        /* no-op */
+      }
+      console.warn(
+        '[marketplace-purchase] audit failed after commit:',
+        auditError?.message || auditError
+      );
     }
 
     return res.status(200).json({
       success: true,
-      purchaseId: result.purchase_id,
-      newBalance: Number(result.new_balance),
+      accountId: user.id,
+      requestId,
+      purchaseId: verifiedResult.purchaseId,
+      clubId,
+      itemId,
+      newBalance: verifiedResult.newBalance,
       currency: 'diamonds',
-      pricePaid: Number(result.price_paid) || 0,
-      duplicate: result.duplicate === true,
-      item: { name: result.item_name, type: result.item_type },
+      pricePaid: verifiedResult.pricePaid,
+      duplicate: verifiedResult.duplicate,
+      item: { name: verifiedResult.itemName, type: verifiedResult.itemType },
     });
   } catch (error) {
-    try { reportApiError(error, req); } catch (_reportError) { /* no-op */ }
+    try {
+      reportApiError(error, req);
+    } catch (_reportError) {
+      /* no-op */
+    }
     console.warn('[marketplace-purchase]', error);
     if (!res.headersSent) {
       return res.status(500).json({ success: false, error: 'Purchase failed' });
