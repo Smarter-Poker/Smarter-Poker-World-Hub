@@ -109,10 +109,27 @@ to 1,356 KB each.
   reset or fast-forward any of them. The audit itself worked in owned
   worktrees under /Volumes/SmarterWork/agent-work/perf-audit-2026-09-17/.
 
+## Measured after phase 2 landed
+
+Production served ce5a73c1 (which carries #1843) at 18:5x UTC. Same script,
+same page, mobile emulation, anonymous, two runs (JSON under
+lighthouse-after and lighthouse-after-run2 beside the baseline):
+
+| page | score | FCP | LCP | TBT | CLS | transfer |
+| --- | --- | --- | --- | --- | --- | --- |
+| /hub, before | 47 | 7.0 s | 7.0 s | 410 ms | 0 | 13,098 KiB |
+| /hub, after, run 1 | 50 | 8.4 s | 8.4 s | 280 ms | 0 | 2,794 KiB |
+| /hub, after, run 2 | 55 | 7.1 s | 7.2 s | 140 ms | 0 | 2,795 KiB |
+
+Transfer fell 79 percent. The paint timings move inside single-run variance
+on the throttled profile (the hub's first paint is bundle-bound, not
+image-bound); the byte figure is the stable one. Every committed WebP
+sibling answers 200 with image/webp from production, and the hub HTML
+carries the background preload.
+
 ## Verification gaps
 
 Live HTTP header checks (x-vercel-cache, content-encoding) could not be run
 from either shell available to the audit; CDN and compression verdicts come
 from configuration. The signed-in Lighthouse baseline for /hub/commander and
-/hub/club-arena/ needs a browser profile and was not taken. The after-merge
-Lighthouse run for phase 2 is owed once PR #1843 is live.
+/hub/club-arena/ needs a browser profile and was not taken. The after-merge Lighthouse run for phase 2 is recorded above.
