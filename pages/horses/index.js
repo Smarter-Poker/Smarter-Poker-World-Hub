@@ -1685,7 +1685,7 @@ export default function HorsesAdmin() {
     const readEpoch = caReqRef.current, overviewEpoch = cashoutReadEpoch.current;
     const isCurrent = () => scopeCurrent() && cashoutDialogEpoch.current === dialogEpoch &&
       caReqRef.current === readEpoch && cashoutReadEpoch.current === overviewEpoch;
-    if (!isCurrent()) { showNotification('Refresh this cashout in the original account.', 'error'); return; }
+    if (!isCurrent()) { showNotification('Refresh This Cashout In The Original Account.', 'error'); return; }
     const attempt = {};
     cashoutAttemptRef.current = attempt;
     setCashoutBusy(true);

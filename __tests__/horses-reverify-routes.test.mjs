@@ -265,11 +265,12 @@ test('contract: the five outside routes gate on the resolved permission, not the
     assert.doesNotMatch(text, /\['admin',\s*'superadmin',\s*'god'\]/, `${file} must not inline the legacy role literal`);
     assert.doesNotMatch(text, /ADMIN_ROLES/, `${file} must not keep its own role list`);
   }
-  // The non-operator doors are untouched: club agents, club admins, union
-  // leads and club_members roles still authorise exactly as before.
+  // The non-operator doors still bind the verified actor to the actual club
+  // agent, owner/membership or union authority.
   const cashout = source('pages/api/club-arena/approve-cashout.js');
-  assert.match(cashout, /const isAgent = cashout\.agent_id === user\.id;/);
-  assert.match(cashout, /\['owner', 'admin'\]\.includes\(callerMember\?\.role\)/);
+  assert.match(cashout, /const isAgent = cashout\.agent_id === auth\.actorId;/);
+  assert.match(cashout, /club\.owner_id === auth\.actorId \|\| \['owner',\s*'co_owner',\s*'admin'\]\.includes\(member\?\.role\)/);
+  assert.match(cashout, /typeof platformGate\?\.ok !== 'boolean' \|\| platformGate\.degraded === true/);
   assert.match(cashout, /from\('union_admins'\)/);
   const cheat = source('pages/api/club-arena/anti-cheat.js');
   assert.match(cheat, /\['owner', 'admin', 'super_agent'\]\.includes\(membership\.role\)/);
@@ -449,30 +450,37 @@ test('mint: the burn path closes its row the same way', async () => {
 
 // ---------------------------------------------- M-4 / M-6 / L-5: the cashout
 
-test('contract: approve-cashout closes the approval and audits BEFORE it notifies, and reads the answer', () => {
+test('contract: approve-cashout audits the canonical receipt and reports an unconfirmed trail without duplicate delivery', () => {
   const text = source('pages/api/club-arena/approve-cashout.js');
-  const iRpc = text.indexOf("rpc('fn_approve_cashout_atomic'");
+  const iRpc = text.indexOf('await dispatchCashout(client, context)');
   const iMark = text.indexOf('await markApprovalExecuted(');
-  const iAudit = text.indexOf("action: 'cashout.approve'");
-  const iNotify = text.indexOf('await notifyPlayer(', iRpc);
-  const iReturn = text.indexOf("action: 'approved'");
-  assert.ok(iRpc > -1 && iMark > -1 && iAudit > -1 && iNotify > -1 && iReturn > -1);
+  const iAudit = text.indexOf('const audit = await auditOperatorAction(', iMark);
+  const iLegacyAudit = text.indexOf('await logAudit(', iAudit);
+  const iReturn = text.indexOf('return res.status(200).json(', iLegacyAudit);
+  assert.ok(iRpc > -1 && iMark > -1 && iAudit > -1 && iLegacyAudit > -1 && iReturn > -1);
   assert.ok(iRpc < iMark, 'the row closes after the chips moved');
   assert.ok(iMark < iAudit, 'then the audit row');
-  assert.ok(iAudit < iNotify, 'and only THEN the network call (M-6)');
-  assert.ok(iNotify < iReturn);
+  assert.ok(iAudit < iLegacyAudit && iLegacyAudit < iReturn, 'both audit attempts precede the response');
   // M-4: the answer is read, and it reaches the row and the operator.
-  assert.match(text, /const mark = await markApprovalExecuted\(/);
+  assert.match(text, /let trailClosed = mark\?\.ok === true;/);
+  assert.match(text, /operation_id: receipt\.operationId, invoice_id: receipt\.cashier\.invoice_id/);
   assert.match(text, /trail_closed: trailClosed/);
-  assert.match(text, /mark_executed_refused: mark\.refused === true/);
-  assert.match(text, /approval_status: approvalStatusAfter/);
-  assert.match(text, /trailClosed,\s*\n\s*\}\);/, 'the response carries trailClosed');
-  // M-6: the push fetch cannot hang the lambda.
-  assert.match(text, /signal: AbortSignal\.timeout\(5000\)/);
-  // L-5: the cancel path ships no database sentence.
+  assert.match(text, /mark_executed_refused: mark\?\.refused === true/);
+  assert.match(text, /approval_status: approvalStatus/);
+  assert.match(text, /if \(audit\?\.ok !== true\) trailClosed = false;/);
+  assert.match(text, /catch \{ mark = \{ ok: false, reason: 'approval_close_unconfirmed' \}; \}/);
+  assert.match(text, /catch \{ trailClosed = false; \}/);
+  assert.match(text, /approvalStatus, trailClosed, followUpRequired: !trailClosed/);
+  assert.match(text, /legacyAuditStatus: 'unconfirmed', receipt/);
+  // M-6: mandatory delivery belongs to the database receipt transaction. The
+  // HTTP route must not send a duplicate notification after the chip commit.
+  assert.doesNotMatch(text, /notifyPlayer|\bfetch\(|fn_send_message|fn_approve_cashout_atomic|fn_cancel_cashout_atomic/);
+  // L-5: the shared boundary never returns an unrecognized database message.
   assert.doesNotMatch(text, /details: rpcErr\?\.message/);
-  assert.match(text, /The Cashout Could Not Be Cancelled/);
-  assert.match(text, /fn_cancel_cashout_atomic failed:`, rpcErr\.message/, 'it is logged under the request id');
+  assert.match(text, /catch \(error\) \{ return sendCashoutError\(res, error\); \}/);
+  const bridge = source('src/lib/club-arena/cashoutBridge.js');
+  assert.match(bridge, /const known = error instanceof CashoutBridgeError;/);
+  assert.match(bridge, /error: known \? error\.message : 'Cashout outcome is unconfirmed\./);
 });
 
 // ----------------------------------------------------- M-5: merch catalog
