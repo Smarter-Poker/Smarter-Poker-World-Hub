@@ -187,7 +187,7 @@ function TrainingGameTable({
         <div className="sp-club-hud-spacer" />
         <button type="button" className="sp-club-hud-button sp-club-stats" aria-label="Training Statistics">▥</button>
         <button type="button" className="sp-club-hud-button sp-club-chat" aria-label="Training Coach">▰</button>
-        <div className="sp-club-wallet"><img src="/images/diamond.png" alt="" /><span>{diamonds.toLocaleString()}</span></div>
+        <div className="sp-club-wallet"><img src="/images/diamond.webp" alt="" /><span>{diamonds.toLocaleString()}</span></div>
       </header>
 
       <main className="sp-club-game-stage">

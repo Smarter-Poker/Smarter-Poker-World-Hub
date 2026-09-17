@@ -902,7 +902,7 @@ export default function SignUpPage() {
               width: '100%',
               maxWidth: 'min(100vw, 71.4vh)',
               aspectRatio: '10 / 14',
-              backgroundImage: `url('/images/dynamic-signup-bg.jpg')`,
+              backgroundImage: `url('/images/dynamic-signup-bg.webp')`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',

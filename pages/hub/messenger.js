@@ -4745,7 +4745,7 @@ function MessengerPage() {
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 {/* Jarvis Avatar */}
-                                <Image src="/images/jarvis-avatar.png" alt="Jarvis AI" width={48} height={48} style={{
+                                <Image src="/images/jarvis-avatar.webp" alt="Jarvis AI" width={48} height={48} style={{
                                     width: 48,
                                     height: 48,
                                     borderRadius: '50%',

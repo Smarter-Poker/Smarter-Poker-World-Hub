@@ -1501,7 +1501,7 @@ function GlobalStyle() {
         color: #eef9ff;
         background:
           linear-gradient(rgba(3, 10, 19, .82), rgba(3, 10, 19, .94)),
-          url('/circuit-brain-bg.png') center top / cover fixed,
+          url('/circuit-brain-bg.webp') center top / cover fixed,
           #030811;
         border-left: 1px solid rgba(103, 220, 255, .24);
         border-right: 1px solid rgba(103, 220, 255, .24);
@@ -1855,7 +1855,7 @@ function GlobalStyle() {
           border-right: 0;
           background:
             linear-gradient(rgba(3, 10, 19, .86), rgba(3, 10, 19, .96)),
-            url('/circuit-brain-bg.png') 44% top / auto 900px repeat-y,
+            url('/circuit-brain-bg.webp') 44% top / auto 900px repeat-y,
             #030811;
         }
         .sp-main > section + section { margin-top: 24px; }

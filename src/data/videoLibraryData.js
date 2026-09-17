@@ -281,9 +281,9 @@ export const SOURCES = [
     // Top Vloggers
     { id: 'BRAD_OWEN', name: 'Brad Owen', logo: '/images/video-sources/brad_owen.webp' },
     { id: 'NEEME', name: 'Andrew Neeme', logo: '/images/video-sources/neeme.jpg' },
-    { id: 'RAMPAGE', name: 'Rampage Poker', logo: '/images/video-sources/rampage.jpg' },
-    { id: 'MARIANO', name: 'Mariano', logo: '/images/video-sources/mariano.jpg' },
-    { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: '/images/video-sources/wolfgang.jpg' },
+    { id: 'RAMPAGE', name: 'Rampage Poker', logo: '/images/video-sources/rampage.webp' },
+    { id: 'MARIANO', name: 'Mariano', logo: '/images/video-sources/mariano.webp' },
+    { id: 'WOLFGANG', name: 'Wolfgang Poker', logo: '/images/video-sources/wolfgang.webp' },
     { id: 'JOHNNIE', name: 'Johnnie Vibes', logo: '/images/video-sources/johnnie.jpg' },
     // Training/Strategy
     { id: 'JLITTLE', name: 'Jonathan Little', logo: '/images/video-sources/jlittle.jpg' },
@@ -294,6 +294,6 @@ export const SOURCES = [
     { id: 'NEGREANU', name: 'Daniel Negreanu', logo: '/images/video-sources/negreanu.jpg' },
     { id: 'HELLMUTH', name: 'Phil Hellmuth', logo: '/images/video-sources/hellmuth.jpg' },
     { id: 'IVEY', name: 'Phil Ivey', logo: '/images/video-sources/ivey.jpg' },
-    { id: 'DWAN', name: 'Tom Dwan', logo: '/images/video-sources/dwan.jpg' },
-    { id: 'GARRETT', name: 'Garrett Adelstein', logo: '/images/video-sources/garrett.jpg' },
+    { id: 'DWAN', name: 'Tom Dwan', logo: '/images/video-sources/dwan.webp' },
+    { id: 'GARRETT', name: 'Garrett Adelstein', logo: '/images/video-sources/garrett.webp' },
 ];

@@ -11,9 +11,9 @@ import { createClient as createServerClient } from '../../../src/lib/supabaseSer
 const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
 const FALLBACK_IMAGE = '/images/store-v3/merch-hero.webp';
 const STATIC_DETAIL_IMAGES = {
-  'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.png'],
-  'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.png'],
-  'hat-diamond': ['/images/merch/neural-steel/print/brain-spade-embroidery.png'],
+  'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.webp'],
+  'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.webp'],
+  'hat-diamond': ['/images/merch/neural-steel/print/brain-spade-embroidery.webp'],
 };
 
 function publicImage(value) {

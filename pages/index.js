@@ -30,22 +30,22 @@ const HOTSPOTS = [
   {
     id: 'global-connection', label: 'Global Connection',
     top: 36.5, left: 1, width: 48, height: 21,
-    action: 'overlay', image: '/images/global-connection.jpg', overlayKey: 'gc',
+    action: 'overlay', image: '/images/global-connection.webp', overlayKey: 'gc',
   },
   {
     id: 'elite-training', label: 'Elite Training',
     top: 36.5, left: 51, width: 48, height: 21,
-    action: 'overlay', image: '/images/elite-training.jpg', overlayKey: 'et',
+    action: 'overlay', image: '/images/elite-training.webp', overlayKey: 'et',
   },
   {
     id: 'bankroll-discovery', label: 'Bankroll And Discovery',
     top: 58.5, left: 1, width: 98, height: 15,
-    action: 'overlay', image: '/images/total-discovery.jpg', overlayKey: 'td',
+    action: 'overlay', image: '/images/total-discovery.webp', overlayKey: 'td',
   },
   {
     id: 'lifestyle-news', label: 'Lifestyle And News',
     top: 74.5, left: 1, width: 48, height: 24,
-    action: 'overlay', image: '/images/lifestyle-rewards.jpg', overlayKey: 'lr',
+    action: 'overlay', image: '/images/lifestyle-rewards.webp', overlayKey: 'lr',
   },
   {
     id: 'club-commander', label: 'Club Commander',
@@ -160,7 +160,7 @@ export default function LandingPage() {
         {/* ── FULL-WIDTH HERO IMAGE WITH HOTSPOTS ─────────────── */}
         <div style={styles.imageWrapper}>
           <img
-            src="/images/landing-hero.jpg"
+            src="/images/landing-hero.webp"
             alt="Smarter.Poker - The Future Of The Game"
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}

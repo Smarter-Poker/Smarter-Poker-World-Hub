@@ -24,12 +24,12 @@ const TIER_CONFIG: Record<string, { color: string; icon: string }> = {
     Bronze: { color: '#cd7f32', icon: '🥉' },
     Silver: { color: '#c0c0c0', icon: '🥈' },
     Gold: { color: '#ffd700', icon: '🥇' },
-    Platinum: { color: '#e5e4e2', icon: '<img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>' },
+    Platinum: { color: '#e5e4e2', icon: '<img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>' },
     Diamond: { color: '#00d4ff', icon: '💠' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> DIAMOND DISPLAY
+// <img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> DIAMOND DISPLAY
 // ─────────────────────────────────────────────────────────────────────────────
 function DiamondDisplay({ count }: { count: number }) {
     const [displayCount, setDisplayCount] = useState(count);
@@ -69,7 +69,7 @@ function DiamondDisplay({ count }: { count: number }) {
                 transition: 'box-shadow 0.3s ease',
             }}
         >
-            <span style={{ fontSize: 18 }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
+            <span style={{ fontSize: 18 }}><img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
             <span
                 style={{
                     fontFamily: 'Rajdhani, monospace',

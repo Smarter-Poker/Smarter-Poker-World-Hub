@@ -199,7 +199,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                         padding: '40px 20px',
                                         color: 'rgba(255, 255, 255, 0.5)'
                                     }}>
-                                        <img src="/images/cart-icon.png" alt="Cart" style={{ width: 64, height: 64, margin: '0 auto 16px', objectFit: 'contain', opacity: 0.5 }} />
+                                        <img src="/images/cart-icon.webp" alt="Cart" style={{ width: 64, height: 64, margin: '0 auto 16px', objectFit: 'contain', opacity: 0.5 }} />
                                         <p>Your Cart Is Empty</p>
                                     </div>
                                 ) : (
@@ -235,7 +235,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                                             color: '#1877F2',
                                                             margin: 0
                                                         }}>
-                                                            <img src="/images/diamond.png" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> {item.diamonds} Diamonds
+                                                            <img src="/images/diamond.webp" alt="Diamond" style={{ width: 20, height: 20, display: "inline-block", verticalAlign: "middle" }} /> {item.diamonds} Diamonds
                                                             {item.bonus > 0 && ` + ${item.bonus} Bonus`}
                                                         </p>
                                                     )}
@@ -427,7 +427,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                                             onMouseEnter={(e) => { if (!isProcessing) e.currentTarget.style.transform = 'scale(1.02)'; }}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                         >
-                                            <img src="/images/diamond.png" alt="" style={{ width: 20, height: 20 }} />
+                                            <img src="/images/diamond.webp" alt="" style={{ width: 20, height: 20 }} />
                                             {isProcessing ? 'Processing...' : 'Pay with Diamonds'}
                                         </button>
                                     )}

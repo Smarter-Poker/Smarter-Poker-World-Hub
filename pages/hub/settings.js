@@ -2322,7 +2322,7 @@ export default function SettingsPage() {
                                                         overflow: 'hidden', flexShrink: 0,
                                                     }}>
                                                         {entry.blocked?.avatar_url ? (
-                                                            <img src={entry.blocked.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <img src={entry.blocked.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                         ) : (
                                                             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, fontWeight: 600 }}>
                                                                 {(entry.blocked?.full_name || entry.blocked?.username || '?')[0].toUpperCase()}
