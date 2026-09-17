@@ -116,3 +116,29 @@ test('the sitemap and the Content-Signal line are declared once', () => {
 test('no em dash reaches a crawler', () => {
   assert.ok(!robots.includes('—'), 'robots.txt carries an em dash');
 });
+
+/**
+ * THE ARENA'S PUBLIC ADDRESS OVERRIDES THE ORIGIN'S NOINDEX HEADER.
+ *
+ * The Club Arena origin (ca-static.smarter.poker, infra/ca-origin/Caddyfile
+ * in the arena repo) answers every response with `X-Robots-Tag: noindex,
+ * nofollow` so its own host name is never indexed. Vercel proxies that header
+ * through the /hub/club-arena rewrite unchanged, and a header noindex beats an
+ * in-HTML `index, follow` meta, so the arena stayed de-indexed after its
+ * index.html was fixed (arena #4712). Nothing deploys that Caddyfile; the
+ * public address's robots policy belongs to the public host, so the two
+ * vercel.json header rules for the arena shell set the header to index. A
+ * route whose rendered meta says noindex is still noindex: the most
+ * restrictive directive wins.
+ */
+test('the two arena shell header rules in vercel.json set X-Robots-Tag to index', () => {
+  const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  const shellSources = ['/hub/club-arena', '/hub/club-arena/:path((?!.*\\.[\\w]+$).*)'];
+  for (const source of shellSources) {
+    const rule = vercel.headers.find((h) => h.source === source);
+    assert.ok(rule, `vercel.json has no header rule for ${source}`);
+    const robots = rule.headers.find((h) => h.key.toLowerCase() === 'x-robots-tag');
+    assert.ok(robots, `${source} does not set X-Robots-Tag`);
+    assert.match(robots.value, /^index, follow/, `${source} X-Robots-Tag must start with "index, follow"`);
+  }
+});
