@@ -3,10 +3,12 @@
  * Find and view poker rooms using Club Commander
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
+import { fetchVenueList } from '../../../../src/lib/commander/venueSeo';
+import Link from 'next/link';
 import LocationEnableModal from '../../../../src/components/ui/LocationEnableModal';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
@@ -24,10 +26,19 @@ import {
 function VenueCard({ venue, onSelect }) {
   const hasActiveGames = (venue.active_games || 0) > 0;
 
+  // A real link (the venue's own page) so a crawler can follow the directory
+  // into every venue; a person's tap still goes straight to check-in, as it
+  // always did. (Discoverability phase 4, 2026-09-17.)
   return (
-    <button
-      onClick={() => onSelect?.(venue)}
-      className="w-full cmd-panel p-4 text-left hover:border-[#22D3EE]/30 transition-shadow"
+    <Link
+      href={`/hub/commander/venues/${venue.id}`}
+      onClick={(e) => {
+        if (onSelect) {
+          e.preventDefault();
+          onSelect(venue);
+        }
+      }}
+      className="block w-full cmd-panel p-4 text-left hover:border-[#22D3EE]/30 transition-shadow"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -87,15 +98,56 @@ function VenueCard({ venue, onSelect }) {
         </div>
         <ChevronRight className="w-5 h-5 text-[#4A5E78]" />
       </div>
-    </button>
+    </Link>
   );
 }
 
-export default function VenueDiscoveryPage() {
+/**
+ * The first fifty venues are rendered on the server (discoverability phase
+ * 4, 2026-09-17): before this the server HTML was a header and a spinner, so
+ * every crawler saw an empty directory. The browser still refetches for the
+ * Live and Nearby filters exactly as before.
+ */
+export async function getServerSideProps({ res }) {
+  const { venues: initialVenues, status } = await fetchVenueList(50);
+  if (status === 'unavailable') {
+    // The API did not answer: the browser fetches as before, and a crawler
+    // is told to come back later rather than to index an empty directory.
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '120');
+  } else {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  }
+  return { props: { initialVenues } };
+}
+
+/** Breadcrumbs plus an ItemList of the server-rendered venues, each pointing at its own page. */
+function venuesJsonLd(initialVenues) {
+  const crumbs = commanderBreadcrumbs('Live Poker Rooms And Venues', '/hub/commander/venues');
+  if (!initialVenues.length) return crumbs;
+  return [
+    crumbs,
+    {
+      '@type': 'ItemList',
+      name: 'Live Poker Rooms And Venues On Club Commander',
+      numberOfItems: initialVenues.length,
+      itemListElement: initialVenues.map((v, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: v.name,
+        url: `https://smarter.poker/hub/commander/venues/${v.id}`,
+      })),
+    },
+  ];
+}
+
+export default function VenueDiscoveryPage({ initialVenues = [] }) {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [venues, setVenues] = useState([]);
+  const [loading, setLoading] = useState(initialVenues.length === 0);
+  const [venues, setVenues] = useState(initialVenues);
+  const serverListIsCurrent = useRef(initialVenues.length > 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = usePersistedState('sp-filters-commander-venues', 'all');
   const [userLocation, setUserLocation] = useState(null);
@@ -114,6 +166,13 @@ export default function VenueDiscoveryPage() {
         setShowLocationModal(true);
       }
     }
+    // The server already rendered the "all" list; do not replace it with a
+    // spinner on mount. Any filter or location change refetches as before.
+    if (serverListIsCurrent.current && filter === 'all' && !userLocation) {
+      serverListIsCurrent.current = false;
+      return () => _c.abort();
+    }
+    serverListIsCurrent.current = false;
     fetchVenues(userLocation);
     return () => _c.abort();
   }, [filter, userLocation]);
@@ -161,7 +220,7 @@ export default function VenueDiscoveryPage() {
         title="Live Poker Rooms And Venues"
         description="Browse Live Poker Rooms Running Club Commander, See Which Games Are Running And How Long The Wait Is, And Join A Waitlist Before You Leave The House."
         canonical="/hub/commander/venues"
-        jsonLd={commanderBreadcrumbs('Live Poker Rooms And Venues', '/hub/commander/venues')}
+        jsonLd={venuesJsonLd(initialVenues)}
       />
 
       <div className="cmd-page">
