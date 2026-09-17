@@ -373,7 +373,7 @@ export default function TrainingPage() {
   return (
     <PageTransition disableInitialAnimation>
       <SEOHead
-        title="GTO Poker Training: Free Drills, A Daily Plan And Leak Detection"
+        title="GTO Poker Training: Free Drills And Leak Detection"
         description="Free GTO Poker Training On Smarter.Poker: One-Tap Drills, A Personalised Daily Plan, Leak Detection And 100+ Scenario-Based Games Coached By Jarvis. No Real-Money Gambling."
         canonical="/hub/training"
       />
