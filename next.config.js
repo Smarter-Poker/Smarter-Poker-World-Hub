@@ -1152,6 +1152,22 @@ const nextConfig = {
            they exist, live the moment they are set. src/lib/app-links.js. */
         { source: '/.well-known/apple-app-site-association', destination: '/api/app-links/aasa' },
         { source: '/.well-known/assetlinks.json', destination: '/api/app-links/assetlinks' },
+        /* THE PUBLIC ARENA IS READABLE WITHOUT JAVASCRIPT (AEO phase 1,
+           2026-09-17). The arena build prerenders its indexable routes to
+           static files (arena scripts/prerender-public-routes.mjs writes
+           dist/help/index.html, dist/legal/<doc>/index.html and the landing
+           into dist/index.html). The origin's Caddy sends every extension-less
+           path to /index.html, so those files are reached only by naming
+           them here, before the catch-all. A route the arena does not
+           prerender is not listed; a release that lacks a listed file would
+           404, which is why the arena side ships first and the manifest at
+           /hub/club-arena/prerender-manifest.json is the live proof.
+           Pinned by tests/club-arena-public-routes-are-prerendered.test.mjs. */
+        { source: '/hub/club-arena/help', destination: 'https://ca-static.smarter.poker/help/index.html' },
+        {
+          source: '/hub/club-arena/legal/:doc(tos|privacy|fair-gaming|promotions)',
+          destination: 'https://ca-static.smarter.poker/legal/:doc/index.html',
+        },
         { source: '/hub/club-arena', destination: 'https://ca-static.smarter.poker/index.html' },
         { source: '/hub/club-arena/:path*', destination: 'https://ca-static.smarter.poker/:path*' },
         /* AD CREATIVES ARE SAME-ORIGIN (2026-09-03). A club owner's advert
