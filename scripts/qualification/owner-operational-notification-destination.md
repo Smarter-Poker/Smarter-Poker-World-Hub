@@ -1,0 +1,7 @@
+# Owner operational notification qualification
+
+The required GitHub Build Safety job invokes the maintained PG17 check directly. It uses13 fixed SQL inputs in `scripts/ci/probes/owner-operational-notification/` and the actual checkout component and qualifier. Their exact hashes and the original successful0013 provenance are in the fixture manifest. The fixture contains schema, policies and synthetic reserved principals; no live financial rows or credentials.
+
+A fresh owned Unix-socket cluster executes real notification routing, role/RLS checks, committed-original preservation, rollback observation, real Mint100 and linked12.34/7.66 settlement, genuine invoice/message/notification/push producers, visibility and duplicate replay. No simulated invoice producer supplies financial proof. SQL failure, source drift, cancellation and cleanup failure all fail the required check. The240-second work budget and30-second cleanup budget are finite; artifacts retain logs and the explicit result, never PGDATA.
+
+The existing installed routing component is migration20260916111614. Do not reinstall it merely because application code is replayed. Compare its fresh production catalog before publication. An isolated PG17 pass does not prove published API, browser, Realtime or notification display behavior; those are separate release checks. Retired external allocators, local workers and provider services are not execution paths.

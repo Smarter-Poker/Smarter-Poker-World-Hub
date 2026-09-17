@@ -76,7 +76,7 @@ export default async function handler(req, res) {
               // forever, so "Mark all read" cleared the badge and the next poll restored
               // it. The intent stated in the old comment was "neither flag set to true";
               // this is that intent, expressed correctly.
-              sb.from('notifications')
+              sb.from('personal_notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
                   .not('read', 'is', true)

@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         }
 
         const { count, error } = await getSupabase()
-            .from('notifications')
+            .from('personal_notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', uid)
             // AUDIT-FIX: must check BOTH columns to match feed.js / useUnreadCount hook.

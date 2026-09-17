@@ -54,6 +54,7 @@ import toast from '../../stores/toastStore';
 import { useState, useEffect, useId, useRef, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
+import { notificationCache, readNotificationCache } from '../../lib/notificationVisibility.mjs';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
 import useTrainingBus from '../../hooks/useTrainingBus';
 import { broadcastSync, listenBroadcast, BROADCAST_TAB_ID } from '../../lib/broadcastSync';
@@ -223,16 +224,14 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             const enriched = feedData.notifications || [];
             const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
 
-            if (mounted.current) {
+            if (mounted.current && getAuthUser()?.id === au.id) {
                 setNotifications(enriched);
                 setLoading(false);
 
                 // ── Cache with timestamp for 5-min TTL on next load ──
                 try {
                     const now = Date.now();
-                    localStorage.setItem('sp-notif-cache', JSON.stringify(
-                        enriched.slice(0, 30).map((n, i) => i === 0 ? { ...n, _cache_ts: now } : n)
-                    ));
+                    localStorage.setItem('sp-notif-cache', notificationCache(enriched, au.id, now));
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
 
@@ -331,11 +330,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         try {
             const cached = localStorage.getItem('sp-notif-cache');
             if (cached) {
-                const parsed = JSON.parse(cached);
-                // Discard if older than 5 minutes (300_000 ms)
-                const ts = parsed?.[0]?._cache_ts || 0;
-                const age = Date.now() - ts;
-                if (parsed && parsed.length > 0 && age < 300_000) {
+                const parsed = readNotificationCache(cached, getAuthUser()?.id);
+                if (parsed?.length) {
                     setNotifications(parsed);
                     setLoading(false); // Skip shimmer — show cached data immediately
                     hasCacheRef.current = true;

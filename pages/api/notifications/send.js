@@ -209,15 +209,30 @@ export default async function handler(req, res) {
           );
 
           const delivered = results.filter((r) => r.sent).length;
-          const queued = results.filter((r) => !r.sent && !r.skipped).length;
+          // A refused outbox AND inbox means nothing durable exists to retry.
+          // Preserve the other recipients' actual outcomes, and identify only
+          // the failed targets so a caller need not repeat successful sends.
+          const failedUserIds = finalUserIds.filter((_, index) =>
+              results[index].reason === 'operational_persistence_failed'
+          );
+          const failed = failedUserIds.length;
+          const queued = results.filter((r) => !r.sent && !r.skipped
+              && r.reason !== 'operational_persistence_failed').length;
           const skipped = results.filter((r) => r.skipped).length;
 
-          return res.status(200).json({
-              success: true,
+          return res.status(failed ? 503 : 200).json({
+              success: failed === 0,
               recipients: delivered,
               delivered,
               queued,
               skipped,
+              ...(failed ? {
+                  failed,
+                  failedUserIds,
+                  retryable: true,
+                  code: 'operational_persistence_failed',
+                  error: 'Operational alerts could not be durably stored. Retry only the failed recipients.',
+              } : {}),
               // Kept for callers that logged result.notificationId under OneSignal.
               notificationId: results.find((r) => r.outboxId)?.outboxId || null,
               callMeta: isCall ? { callType: callType || 'voice', roomName: roomName || '', callerId: callerId || '' } : undefined,
