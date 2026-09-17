@@ -36,21 +36,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The push event carries the pre-merge SHA; two commits of history are
-          # not enough for a squash of many files, so fetch the full range.
-          fetch-depth: 0
+          # HEAD and its first parent are all the range needs.
+          fetch-depth: 2
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Submit URLs whose source changed in this push
-        env:
-          RANGE: ${{ github.event.before }}..${{ github.sha }}
-        run: |
-          if git cat-file -e "${{ github.event.before }}^{commit}" 2>/dev/null; then
-            node scripts/indexnow-submit.mjs --range "$RANGE"
-          else
-            echo "indexnow: base commit unavailable (force push or first push); submitting the head commit only"
-            node scripts/indexnow-submit.mjs --range "${{ github.sha }}~1..${{ github.sha }}"
-          fi
+        # main only ever receives one squash or merge commit per pull request,
+        # so HEAD~1..HEAD (first parent) is exactly that pull request's change.
+        # The first version compared github.event.before..sha and fell back to
+        # this on every run anyway (the before sha was reported unavailable
+        # after the checkout); one range, no fallback, same answer.
+        run: node scripts/indexnow-submit.mjs --range "HEAD~1..HEAD"

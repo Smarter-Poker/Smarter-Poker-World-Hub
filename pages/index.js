@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
 import LandingProductSummary from '../src/components/landing/LandingProductSummary';
 
@@ -22,32 +23,32 @@ function triggerHaptic() {
 // ─────────────────────────────────────────────────────────────────────────────
 const HOTSPOTS = [
   {
-    id: 'join-now',
+    id: 'join-now', label: 'Join Now',
     top: 0, left: 0, width: 100, height: 36,
     action: 'navigate', href: '/auth/signup',
   },
   {
-    id: 'global-connection',
+    id: 'global-connection', label: 'Global Connection',
     top: 36.5, left: 1, width: 48, height: 21,
     action: 'overlay', image: '/images/global-connection.jpg', overlayKey: 'gc',
   },
   {
-    id: 'elite-training',
+    id: 'elite-training', label: 'Elite Training',
     top: 36.5, left: 51, width: 48, height: 21,
     action: 'overlay', image: '/images/elite-training.jpg', overlayKey: 'et',
   },
   {
-    id: 'bankroll-discovery',
+    id: 'bankroll-discovery', label: 'Bankroll And Discovery',
     top: 58.5, left: 1, width: 98, height: 15,
     action: 'overlay', image: '/images/total-discovery.jpg', overlayKey: 'td',
   },
   {
-    id: 'lifestyle-news',
+    id: 'lifestyle-news', label: 'Lifestyle And News',
     top: 74.5, left: 1, width: 48, height: 24,
     action: 'overlay', image: '/images/lifestyle-rewards.jpg', overlayKey: 'lr',
   },
   {
-    id: 'club-commander',
+    id: 'club-commander', label: 'Club Commander',
     top: 74.5, left: 51, width: 48, height: 24,
     action: 'navigate', href: '/hub/commander',
   },
@@ -143,13 +144,16 @@ export default function LandingPage() {
           <div style={styles.logo}>
             <span style={styles.logoText}>SMARTER.POKER</span>
           </div>
+          {/* AEO PHASE 1 (2026-09-17): real links, not buttons with a router
+              push. A crawler follows an href; it cannot click a button. Same
+              look, same destinations, now keyboard- and crawler-reachable. */}
           <div style={styles.navLinks}>
-            <button onClick={() => router.push('/auth/signup')} style={styles.navButton}>
+            <Link href="/auth/signup" style={styles.navButton}>
               Sign Up
-            </button>
-            <button onClick={() => router.push('/auth/login')} style={styles.navButtonPrimary}>
+            </Link>
+            <Link href="/auth/login" style={styles.navButtonPrimary}>
               Sign In
-            </button>
+            </Link>
           </div>
         </nav>
 
@@ -160,14 +164,27 @@ export default function LandingPage() {
             alt="Smarter.Poker - The Future Of The Game"
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
-            loading="lazy"
+            // The hero IS the largest contentful paint; lazy-loading it told the
+            // browser to fetch it last (AEO phase 1, 2026-09-17).
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             draggable={false}
           />
           {!heroLoaded && <div style={styles.shimmer} />}
           {heroLoaded && HOTSPOTS.map((spot) => (
             <div
               key={spot.id}
+              role={spot.action === 'navigate' ? 'link' : 'button'}
+              tabIndex={0}
+              aria-label={spot.label}
               onClick={() => handleHotspotClick(spot)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleHotspotClick(spot);
+                }
+              }}
               style={{
                 position: 'absolute',
                 top: `${spot.top}%`,
@@ -205,7 +222,16 @@ export default function LandingPage() {
                 OVERLAY_HOTSPOTS[overlay.overlayKey].map((spot) => (
                   <div
                     key={spot.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={spot.action === 'close' ? 'Back' : 'Sign Up'}
                     onClick={() => handleOverlayHotspotClick(spot)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOverlayHotspotClick(spot);
+                      }
+                    }}
                     style={{
                       position: 'absolute',
                       top: `${spot.top}%`,
@@ -294,6 +320,8 @@ const styles = {
   navLinks: { display: 'flex', gap: '8px' },
   navButton: {
     background: 'transparent',
+    display: 'inline-block',
+    textDecoration: 'none',
     border: '1px solid rgba(0, 198, 255, 0.4)',
     color: '#00c6ff',
     padding: '8px 18px',
@@ -305,6 +333,8 @@ const styles = {
   },
   navButtonPrimary: {
     background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
+    display: 'inline-block',
+    textDecoration: 'none',
     border: 'none',
     color: '#ffffff',
     padding: '8px 18px',
