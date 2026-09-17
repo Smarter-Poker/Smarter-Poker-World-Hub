@@ -64,7 +64,7 @@ done
 PUSH_BASE=$(git merge-base "$CANDIDATE" refs/remotes/origin/main) || {
     echo "PUSH BLOCKED: fetch the protected main reference before checking."; exit 1;
 }
-CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRT "$PUSH_BASE" "$CANDIDATE") || exit 1
+CHANGED_FILES=$(git diff --name-only "$PUSH_BASE" "$CANDIDATE") || exit 1
 
 # Native module files are checked by Node; application JS/JSX uses Babel below.
 for file in $(printf '%s\n' "$CHANGED_FILES" | grep -E '\.(mjs|cjs)$'); do

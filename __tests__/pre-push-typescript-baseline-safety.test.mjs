@@ -95,3 +95,15 @@ test('uncommitted tracked bytes cannot qualify the committed candidate', (t) => 
   assert.equal(result.status, 1);
   assert.match(result.stdout, /commit tracked changes/);
 });
+
+
+test('deleted source still enters candidate verification instead of an empty-change pass', (t) => {
+  const f = candidateFixture(t);
+  f.commit('deleted.js', 'export const value = 1;\n');
+  f.git('update-ref', 'refs/remotes/origin/main', f.git('rev-parse', 'HEAD'));
+  f.git('rm', 'deleted.js');
+  f.git('commit', '-m', 'remove source');
+  const result = f.run();
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /PUSH BLOCKED:.*@babel\/parser is unavailable/);
+});
