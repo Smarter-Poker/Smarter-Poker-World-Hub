@@ -8,6 +8,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import {
   Shield,
   Clock,
@@ -205,6 +206,7 @@ export default function ResponsibleGamingPage() {
         title="Responsible Gaming"
         description="Responsible Gaming Tools On Club Commander: Session Limits, Cooling Off Periods, Self Exclusion And Support Resources For Live Poker Players."
         canonical="/hub/commander/responsible-gaming"
+        jsonLd={commanderBreadcrumbs('Responsible Gaming', '/hub/commander/responsible-gaming')}
       />
 
       <div className="cmd-page">

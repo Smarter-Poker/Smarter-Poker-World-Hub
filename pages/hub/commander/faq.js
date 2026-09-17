@@ -6,6 +6,7 @@
  */
 import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../src/lib/seo/commanderBreadcrumbs';
 import Link from 'next/link';
 import CommanderPageShell from '../../../src/components/commander/CommanderPageShell';
 import {
@@ -399,7 +400,7 @@ export default function PlayerFAQPage() {
         title="Club Commander FAQ"
         description="Answers About Club Commander: Joining Poker Room Waitlists Remotely, Call Notifications, Tournament Registration, Home Games, Rewards And Comps, And Responsible Gaming Tools."
         canonical="/hub/commander/faq"
-        jsonLd={FAQ_JSON_LD}
+        jsonLd={[FAQ_JSON_LD, commanderBreadcrumbs('Club Commander FAQ', '/hub/commander/faq')]}
       />
 
       <div className="cmd-page min-h-screen">

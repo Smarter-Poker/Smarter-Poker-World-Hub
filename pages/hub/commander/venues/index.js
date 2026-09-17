@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import LocationEnableModal from '../../../../src/components/ui/LocationEnableModal';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
@@ -160,6 +161,7 @@ export default function VenueDiscoveryPage() {
         title="Live Poker Rooms And Venues"
         description="Browse Live Poker Rooms Running Club Commander, See Which Games Are Running And How Long The Wait Is, And Join A Waitlist Before You Leave The House."
         canonical="/hub/commander/venues"
+        jsonLd={commanderBreadcrumbs('Live Poker Rooms And Venues', '/hub/commander/venues')}
       />
 
       <div className="cmd-page">
