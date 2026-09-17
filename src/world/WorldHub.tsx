@@ -920,7 +920,7 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
                         left: 0,
                         width: '100%',
                         height: '100%',
-                        backgroundImage: `url('/circuit-brain-bg.png')`,
+                        backgroundImage: `url('/circuit-brain-bg.webp')`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         opacity: 0.2,

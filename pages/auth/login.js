@@ -484,7 +484,7 @@ export default function LoginPage() {
           width: '100%',
           maxWidth: 'min(100vw, 66.6dvh)',
           aspectRatio: '682 / 1024',
-          backgroundImage: `url('/images/dynamic-login-bg.jpg')`,
+          backgroundImage: `url('/images/dynamic-login-bg.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

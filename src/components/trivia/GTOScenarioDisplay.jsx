@@ -29,7 +29,7 @@ import { getAccessToken } from '../../lib/authUtils';
 import styles from './GTOScenarioDisplay.module.css';
 
 // Jarvis avatar - using the official persona
-const JARVIS_AVATAR = '/images/jarvis-avatar.png';
+const JARVIS_AVATAR = '/images/jarvis-avatar.webp';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

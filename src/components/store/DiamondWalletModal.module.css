@@ -1198,7 +1198,7 @@
   overflow: hidden;
   background:
     radial-gradient(ellipse at 50% -10%, rgba(0, 100, 220, 0.25) 0%, rgba(2, 8, 20, 0.4) 100%),
-    url('/images/diamond-wallet-bg-new.png') center/cover no-repeat;
+    url('/images/diamond-wallet-bg-new.webp') center/cover no-repeat;
   font-family: 'Inter', -apple-system, sans-serif;
   text-transform: capitalize;
   animation: walletFadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);

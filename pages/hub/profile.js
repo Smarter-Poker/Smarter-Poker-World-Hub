@@ -112,7 +112,7 @@ export default function ProfileRedirect() {
             <div style={{ textAlign: 'center' }}>
                 {/* Smarter.Poker logo with pulse animation */}
                 <img
-                    src="/smarter-poker-logo-transparent.png"
+                    src="/smarter-poker-logo-transparent.webp"
                     alt="Smarter.Poker"
                     width={72}
                     height={72}

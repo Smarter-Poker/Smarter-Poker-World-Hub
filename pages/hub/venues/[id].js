@@ -3106,7 +3106,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           color: '#00D4FF', zIndex: 4 - i, position: 'relative'
                         }}>
                           {p.avatar_url
-                            ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ? <img src={p.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             : (p.full_name || p.user_name || 'A').charAt(0).toUpperCase()
                           }
                         </div>
@@ -3252,7 +3252,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           fontSize: 12, fontWeight: 800, color: idx < 3 ? '#000' : '#fff', flexShrink: 0
                         }}>{idx + 1}</div>
                         {leader.avatar_url ? (
-                          <img src={leader.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                          <img src={leader.avatar_url} alt="" loading="lazy" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                         ) : (
                           <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
                             {(leader.full_name || leader.user_name || '?').charAt(0).toUpperCase()}

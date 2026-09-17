@@ -3,7 +3,7 @@
  * One-time notification shown to non-VIP users about per-game diamond costs
  * Dismisses permanently via localStorage + Supabase
  *
- * Uses a pre-rendered metal card PNG (/images/diamond-cost-popup.png)
+ * Uses a pre-rendered metal card PNG (/images/diamond-cost-popup.webp)
  * with invisible hit-target overlays on the "Got It!" and "Upgrade To VIP" buttons.
  *
  * 2026-05-07 - VIP-status race fix:
@@ -94,7 +94,7 @@ export default function GameCostPopup({ userId, pageKey, featureKey, isVip, cost
             >
                 {/* The pre-rendered metal card PNG */}
                 <img
-                    src="/images/diamond-cost-popup.png"
+                    src="/images/diamond-cost-popup.webp"
                     alt="Diamond Cost - Each game costs diamonds. VIP members play free."
                     style={s.cardImage}
                     draggable={false}

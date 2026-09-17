@@ -2135,7 +2135,7 @@ export function LiveStreamViewer({ stream, userId, user, onClose }) {
                 {/* STREAM-BUG-9 follow-up: 32px ≥ floating-reaction emoji (28px)
                             and 12px taller than the 20px reaction-button emoji glyphs. */}
                 <img
-                  src="/images/diamond.png"
+                  src="/images/diamond.webp"
                   alt=""
                   aria-hidden="true"
                   style={{ width: 32, height: 32, display: 'block' }}

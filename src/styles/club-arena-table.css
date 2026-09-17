@@ -45,7 +45,7 @@
    the rail.
 
    2026-09-08: AND THE ARTWORK DID NOT MATCH THEM. The copy at
-   /table-skins/club-arena-felt.png painted its table at 517x914 centred on
+   /table-skins/club-arena-felt.webp painted its table at 517x914 centred on
    (302.0, 505.5) when these percentages assume 565x980 centred on
    (302.5, 499.5) -- 8% too small and 6px low, so anything positioned by them
    would have landed inside the painted rail. Resampled onto the canonical box;
@@ -105,7 +105,7 @@
      inside public/hub/club-arena/assets/, but with a Vite content hash in its
      filename that changes on every Club Arena sync. Pointing at that would
      break this skin the next time somebody rebuilt an unrelated repo. */
-  --ca-felt-art: url('/table-skins/club-arena-felt.png');
+  --ca-felt-art: url('/table-skins/club-arena-felt.webp');
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

@@ -668,7 +668,7 @@ function getTablePortraitSrc(src) {
 
 // Convert card notation (e.g., 'Ah' for Ace of Hearts) to image path
 function getCardPath(card) {
-    if (!card || card.length < 2) return '/cards/back.png';
+    if (!card || card.length < 2) return '/cards/back.webp';
 
     const rankChar = card[0].toLowerCase();
     const suit = card[1].toLowerCase();

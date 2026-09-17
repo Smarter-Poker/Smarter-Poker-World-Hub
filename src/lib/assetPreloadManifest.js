@@ -32,13 +32,13 @@ export const POKER_ASSET_MANIFEST = Object.freeze({
     tableImages: Object.freeze([
         '/images/poker-table-vertical-nobg.png',
         '/images/poker-table-black-gold-nobg.png',
-        '/images/poker-table-horizontal-nobg.png',
+        '/images/poker-table-horizontal-nobg.webp',
         '/images/poker-table-vertical.png',
     ]),
 
     cardFaces: Object.freeze([
         ...buildCardPaths('/cards/optimized'),
-        '/cards/back.png',
+        '/cards/back.webp',
     ]),
 
     stickers: Object.freeze([
@@ -84,7 +84,7 @@ export const POKER_ASSET_MANIFEST = Object.freeze({
     ]),
 
     feltTextures: Object.freeze([
-        '/game/table.png',
+        '/game/table.webp',
         '/game/table_center.png',
         '/game/table_only.png',
         '/game/table_optimized.png',

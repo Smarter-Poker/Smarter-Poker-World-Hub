@@ -174,7 +174,7 @@ export default function JarvisDashboard() {
           {loading ? (
             <div style={styles.loading}>
               <Image
-                src="/images/jarvis-avatar.png"
+                src="/images/jarvis-avatar.webp"
                 alt="Jarvis"
                 width={1024}
                 height={682}
