@@ -1,0 +1,40 @@
+# DISCOVERABILITY PHASE 3 (2026-09-17). After every production deployment,
+# read the live site the way Googlebot does and hold it to the SEO contract:
+# /api/health reports this deployment; robots.txt names both sitemaps and
+# disallows the account-only paths; every named sitemap is a urlset; the home
+# page and every /hub/commander URL in the sitemap serve a title, an indexable
+# robots meta, an exact canonical, a description and a parseable JSON-LD
+# document (the home page's as a @graph); the share image is an image; and a
+# sample of the remaining sitemap URLs answer 200.
+#
+# Same trigger shape as personal-assistant-production-watchdog.yml: the
+# deployment_status event Vercel's GitHub integration sends, filtered to a
+# successful Production deployment. No schedule (cron governance).
+name: Live SEO Contract
+on:
+  deployment_status:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: live-seo-contract
+  cancel-in-progress: true
+jobs:
+  verify:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       contains(github.event.deployment_status.environment, 'Production'))
+    name: The Live SEO Contract Holds
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read production as Googlebot and hold it to the contract
+        run: node scripts/ci/check-live-seo-contract.mjs --sha "${{ github.event.deployment.sha || '' }}" --sample 40

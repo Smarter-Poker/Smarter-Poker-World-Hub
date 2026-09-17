@@ -1017,6 +1017,7 @@ jobs:
             __tests__/a-skipped-run-is-not-a-green-run.test.mjs \
             __tests__/the-injection-directives-stay-enforced.law.test.mjs \
             __tests__/club-commander-and-poker-arena-are-discoverable.law.test.mjs \
+            __tests__/the-live-seo-contract-reads-the-site.law.test.mjs \
             __tests__/robots-crawler-policy.law.test.mjs \
             __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
