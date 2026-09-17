@@ -1047,6 +1047,7 @@ jobs:
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
+            __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
