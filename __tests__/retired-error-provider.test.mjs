@@ -10,6 +10,19 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const provider = ['sen', 'try'].join('');
 const retired = new RegExp('@' + provider + '/|\\b' + provider + '[\\w.-]*|(?:NEXT_PUBLIC_|VITE_)?' + provider + '_[A-Z_]+|(?:get|with|reportTo)' + provider + '\\w*', 'i');
 
+const fixtureSchema = 'scripts/ci/probes/owner-operational-notification/inputs/schema.sql';
+function fixtureProviderReferences(source) {
+  // The captured first-party signup error table retains its inert historical
+  // timestamp column so the original archive function keeps its exact shape.
+  // Permit that one column only; every SDK, service, sequence and other use is checked.
+  const column = `"forwarded_to_${provider}" timestamp with time zone`;
+  const table = /CREATE TABLE (?:"public"\."signup_errors"|public\.signup_errors)\s*\([\s\S]*?\);/.exec(source);
+  if (table && table[0].includes(column)) {
+    source = source.replace(table[0], table[0].replace(column, '"historical_forwarded_at" timestamp with time zone'));
+  }
+  return new RegExp(`(^|[^a-z])${provider}|get${provider}|with${provider}|reportTo${provider}`, 'i').test(source);
+}
+
 function sourceFiles(dir) {
   return fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(dir, entry.name);
@@ -55,7 +68,21 @@ test('tracked source and guidance cannot reintroduce the retired provider', () =
   const result = spawnSync('git', ['grep', '-I', '-l', '-i', '-E', pattern, '--', '.', ...historicalSql.map((file) => `:!${file}`)], { cwd: root, encoding: 'utf8' });
   assert.equal(result.error, undefined);
   assert.ok(result.status === 0 || result.status === 1, result.stderr);
-  assert.equal(result.stdout.trim(), '', 'retired provider remains in tracked source or guidance');
+  const offenders = result.stdout.trim().split('\n').filter(Boolean).filter((file) =>
+    file !== fixtureSchema || fixtureProviderReferences(read(file)));
+  assert.deepEqual(offenders, [], 'retired provider remains in tracked source or guidance');
+});
+
+test('the captured schema permits only the inert first-party archive timestamp', () => {
+  const column = `"forwarded_to_${provider}" timestamp with time zone`;
+  const inert = `CREATE TABLE public.signup_errors (\n${column});`;
+  assert.equal(fixtureProviderReferences(inert), false);
+  assert.equal(fixtureProviderReferences(inert + `\nCREATE SEQUENCE public.${provider}_budget;`), true);
+  assert.equal(fixtureProviderReferences(inert + `\n-- import @${provider}/node`), true);
+  assert.equal(fixtureProviderReferences(inert + `\n${column}`), true);
+  assert.equal(fixtureProviderReferences(inert.replace('signup_errors', 'other_table')), true);
+  assert.equal(fixtureProviderReferences(inert.replace(column, column + `, "${provider}_token" text`)), true);
+  assert.equal(fixtureProviderReferences(read(fixtureSchema)), false);
 });
 
 test('existing first-party crash storage, auth error route and production guard remain wired', () => {
