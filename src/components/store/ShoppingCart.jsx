@@ -72,7 +72,7 @@ export default function ShoppingCartComponent({ onCheckout, onPayWithDiamonds, i
                 }}
             >
                 <img
-                    src="/images/cart-icon.jpg"
+                    src="/images/cart-icon.webp"
                     alt="Shopping Cart"
                     style={{
                         width: '100%',
