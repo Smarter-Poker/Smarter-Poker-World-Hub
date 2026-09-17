@@ -113,10 +113,10 @@ const styles = {
     margin: '0 auto',
     padding: '48px 20px 32px',
     color: '#e6ecf5',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif",
   },
   h1: {
-    fontFamily: "'Orbitron', sans-serif",
+    fontFamily: "var(--font-orbitron), sans-serif",
     fontSize: 'clamp(20px, 3vw, 30px)',
     fontWeight: 700,
     lineHeight: 1.25,
@@ -143,7 +143,7 @@ const styles = {
     padding: '18px 18px 16px',
   },
   h2: {
-    fontFamily: "'Orbitron', sans-serif",
+    fontFamily: "var(--font-orbitron), sans-serif",
     fontSize: 16,
     fontWeight: 600,
     margin: '0 0 8px',

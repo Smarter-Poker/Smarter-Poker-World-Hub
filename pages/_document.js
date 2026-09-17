@@ -17,9 +17,10 @@ export default class MyDocument extends Document {
                     {/* Supabase project API — every page's first DB/auth call goes here */}
                     <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
                     <link rel="dns-prefetch" href="https://kuklfnapbkmacvwxktbh.supabase.co" />
-                    {/* Google Fonts — loaded by many hub pages; preconnect cuts TLS latency */}
-                    <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
-                    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                    {/* No preconnect to Google Fonts: _app.js loads every font
+                        through next/font, which self-hosts them under
+                        /_next/static/media, so the two connections were opened
+                        on every page for nothing (AEO phase 1, 2026-09-17). */}
                     {/* The dns-prefetch to cdn.onesignal.com is gone. Its comment
                         claimed the SDK was "loaded on every page"; it had not been
                         loaded by any hub page since OneSignal was retired on

@@ -800,9 +800,13 @@ function Stat({ icon: Icon, label, value, unit, trend, sub, loading }) {
 function renderHeroHeadline({ authUser, stats, statsError, jarvisPick, statsLoading, recommendationLoading }) {
   const greet = authUser
     ? `Welcome Back${authUser?.name ? `, ${authUser.name}` : ''}.`
-    : 'Build Better Decisions, One Hand At A Time.';
+    : 'GTO Poker Training: Build Better Decisions, One Hand At A Time.';
+  // While the plan loads the heading is the greeting alone; the sub-line
+  // under it already says "Loading your daily plan". A crawler reads the
+  // server HTML, where loading is the only state, and a heading that ends in
+  // a loading message is what it took away (AEO phase 1, 2026-09-17).
   if (statsLoading || recommendationLoading || (authUser && !stats && !statsError)) {
-    return <>{greet} Loading Your Daily Plan…</>;
+    return <>{greet}</>;
   }
   if (authUser && (statsError || !stats)) {
     return <>{greet} Your Training Summary Is Temporarily Unavailable.</>;
