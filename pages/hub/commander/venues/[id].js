@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { fetchVenue, venueTitle, venueDescription, venueEntityPath, isPublicVenue } from '../../../../src/lib/commander/venueSeo';
+import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap, ExternalLink } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
@@ -42,14 +44,65 @@ function GameRow({ game, onJoinWaitlist }) {
   );
 }
 
-export default function VenueDetailPage() {
+/**
+ * The venue itself is rendered on the server (discoverability phase 4,
+ * 2026-09-17): before this the server HTML was a spinner under a placeholder
+ * "Venue Details" title marked noindex, so no crawler ever saw a venue. Live
+ * games, waitlists, promotions and reviews are still fetched in the browser
+ * exactly as before; only the venue's own words are in the HTML now.
+ */
+export async function getServerSideProps({ params, res }) {
+  const { venue: seoVenue, status } = await fetchVenue(params.id);
+  if (status === 'unavailable') {
+    // The API did not answer: the browser will fetch as before, but a
+    // crawler is told to come back later rather than to index a spinner.
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '120');
+  } else {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    if (status === 'not-found') res.statusCode = 404;
+  }
+  return { props: { seoVenue } };
+}
+
+/**
+ * One head for every branch of the page, so the title, description and
+ * canonical are in the server HTML whether the live data has arrived or not.
+ * The venue records are the poker-near-me venues table, and /hub/venues/[id]
+ * is the indexed entity page for the same venue, so this live-games view
+ * canonicalizes there instead of competing with it. A venue with no public
+ * entity page (a home game, or one that does not exist) stays out of the
+ * index.
+ */
+function VenueHead({ venue }) {
+  if (!isPublicVenue(venue)) {
+    return (
+      <SEOHead
+        title="Venue Not Found"
+        description="This Club Commander venue is not available. Browse every live poker room and venue on Smarter.Poker instead."
+        noindex={true}
+      />
+    );
+  }
+  return (
+    <SEOHead
+      title={venueTitle(venue)}
+      description={venueDescription(venue)}
+      canonical={venueEntityPath(venue)}
+      jsonLd={commanderBreadcrumbs(venue.name, `/hub/commander/venues/${venue.id}`)}
+    />
+  );
+}
+
+export default function VenueDetailPage({ seoVenue = null }) {
   const router = useRouter();
   const { id } = router.query;
 
-  const [venue, setVenue] = useState(null);
+  const [venue, setVenue] = useState(seoVenue);
   const [games, setGames] = useState([]);
   const [promotions, setPromotions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!seoVenue);
   const [reviews, setReviews] = useState([]);
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const [liveGames, setLiveGames] = useState([]);
@@ -101,7 +154,8 @@ export default function VenueDetailPage() {
       }
     } catch (err) {
       console.warn('Fetch failed:', err);
-      setVenue(null);
+      // Keep the server-rendered venue on the page when the live data fails.
+      if (!seoVenue) setVenue(null);
       setGames([]);
       setPromotions([]);
     } finally {
@@ -117,7 +171,7 @@ export default function VenueDetailPage() {
         if (sp) setSocialPageSlug(sp.slug || sp.id);
       }
     } catch (_) { /* non-critical */ }
-  }, [id]);
+  }, [id, seoVenue]);
 
   useEffect(() => {
     fetchData();
@@ -142,20 +196,26 @@ export default function VenueDetailPage() {
 
   if (loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
-      </div>
+      <>
+        <VenueHead venue={venue} />
+        <div className="cmd-page flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        </div>
+      </>
     );
   }
 
   if (!venue) {
     return (
-      <div className="cmd-page flex items-center justify-center p-4">
-        <div className="text-center">
-          <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
-          <p className="text-[#64748B]">Venue Not Found</p>
+      <>
+        <VenueHead venue={null} />
+        <div className="cmd-page flex items-center justify-center p-4">
+          <div className="text-center">
+            <MapPin className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+            <h1 className="text-[#64748B]">Venue Not Found</h1>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -164,11 +224,7 @@ export default function VenueDetailPage() {
   return (
     <CommanderPageShell>
     <>
-      <SEOHead
-                title="Venue Details"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+      <VenueHead venue={venue} />
 
       <div className="cmd-page">
         {/* Header */}
