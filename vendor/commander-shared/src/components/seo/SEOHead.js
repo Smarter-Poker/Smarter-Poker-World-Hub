@@ -18,7 +18,9 @@ import Head from 'next/head';
 
 const SITE_NAME = 'Smarter.Poker';
 const SITE_URL = 'https://smarter.poker';
-const DEFAULT_OG_IMAGE = 'https://smarter.poker/images/og-default.png';
+// 1200x630 hero crop (2026-09-17); og-default.png is a 1200x2151 poster that
+// every social card cropped to a random band.
+const DEFAULT_OG_IMAGE = 'https://smarter.poker/images/og-card.jpg';
 const TWITTER_HANDLE = '@SmarterPoker';
 
 /**
