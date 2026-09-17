@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const robots = fs.readFileSync(path.join(ROOT, 'public/robots.txt'), 'utf8');
+const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 /** Parse robots.txt into { agent: { allow: [], disallow: [] } } plus top-level lines. */
 function parseRobots(text) {
@@ -142,3 +143,18 @@ test('the two arena shell header rules in vercel.json set X-Robots-Tag to index'
     assert.match(robots.value, /^index, follow/, `${source} X-Robots-Tag must start with "index, follow"`);
   }
 });
+
+test('account-only paths are disallowed for every crawler (they resolve to the login page)', () => {
+  for (const [agent, group] of groups) {
+    for (const prefix of ['/hub/messenger', '/hub/notifications', '/hub/settings', '/hub/profile-edit', '/hub/diamond-store/cart', '/hub/reels/my-reels', '/hub/trivia/settings']) {
+      assert.ok(group.disallow.includes(prefix), `${agent} does not disallow ${prefix}`);
+    }
+  }
+});
+
+test('the bare Vercel production alias redirects to the canonical host', () => {
+  const src = read('next.config.js');
+  assert.match(src, /has: \[\{ type: 'host', value: 'hub-vanguard\.vercel\.app' \}\]/);
+  assert.match(src, /destination: 'https:\/\/smarter\.poker\/:path\*'/);
+});
+
