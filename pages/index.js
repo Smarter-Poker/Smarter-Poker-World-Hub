@@ -167,7 +167,9 @@ export default function LandingPage() {
             // The hero IS the largest contentful paint; lazy-loading it told the
             // browser to fetch it last (AEO phase 1, 2026-09-17).
             loading="eager"
-            fetchPriority="high"
+            // React 18 drops the camelCase form; the lowercase attribute reaches
+            // the DOM and the browser (React 19 accepts either).
+            fetchpriority="high"
             decoding="async"
             draggable={false}
           />

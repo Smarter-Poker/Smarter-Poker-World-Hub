@@ -75,7 +75,10 @@ const staticPages = [
   // (club-arena src/lib/seo.ts) and must not appear here.
   { path: '/hub/club-arena', priority: '0.9', changefreq: 'weekly' },
   { path: '/hub/club-arena/help', priority: '0.6', changefreq: 'monthly' },
-  { path: '/hub/club-arena/legal', priority: '0.4', changefreq: 'monthly' },
+  // /hub/club-arena/legal (the workspace index) is the one public arena route
+  // the arena does not prerender (its module graph needs Supabase); a crawler
+  // that cannot run JavaScript gets the landing shell there. The four documents
+  // it links to are listed and prerendered; the index is not listed.
   { path: '/hub/club-arena/legal/tos', priority: '0.3', changefreq: 'yearly' },
   { path: '/hub/club-arena/legal/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/hub/club-arena/legal/fair-gaming', priority: '0.4', changefreq: 'yearly' },
