@@ -532,6 +532,12 @@ export default function DiamondStorePage({
 
   const [user, setUser] = useState(null);
   const [authResolved, setAuthResolved] = useState(false);
+  // The server cannot see the browser's persisted Supabase session. Reading
+  // that session during the first client render made the Club Shop hydrate as
+  // authenticated over signed-out server markup, which triggered React 418 /
+  // 423 / 425 and forced a client-side replacement. Keep the first browser
+  // render identical to SSR, then resolve the account after hydration.
+  const [storeClientReady, setStoreClientReady] = useState(false);
   const activeStoreAccountRef = useRef(null);
   const diamondCardAttemptRef = useRef(0);
   const diamondCardAbortRef = useRef(null);
@@ -539,8 +545,14 @@ export default function DiamondStorePage({
   const vipCardAbortRef = useRef(null);
   const vipDiamondAttemptRef = useRef(0);
   const vipDiamondAbortRef = useRef(null);
-  const committedStoreAccountId =
-    contextUser?.id || (authInitializing ? user?.id || getAuthUser()?.id || null : null);
+  const committedStoreAccountId = storeClientReady
+    ? contextUser?.id || (authInitializing ? user?.id || getAuthUser()?.id || null : null)
+    : null;
+  const clubShopAuthPending = !storeClientReady || authInitializing;
+
+  useEffect(() => {
+    setStoreClientReady(true);
+  }, []);
 
   useIsomorphicLayoutEffect(() => {
     activeStoreAccountRef.current = committedStoreAccountId;
@@ -4548,7 +4560,15 @@ export default function DiamondStorePage({
                     </p>
                   </div>
 
-                  {!committedStoreAccountId ? (
+                  {clubShopAuthPending ? (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
+                    >
+                      Loading Club Shop...
+                    </div>
+                  ) : !committedStoreAccountId ? (
                     <div style={{ textAlign: 'center', padding: 40 }}>
                       <div
                         style={{
