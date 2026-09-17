@@ -27,8 +27,8 @@ Check if `--auto` flag is present in $ARGUMENTS.
 - After config: run Steps 6-9 automatically with smart defaults:
   - Research: Always yes
   - Requirements: Include all table stakes + features from provided document
-  - Requirements approval: Auto-approve
-  - Roadmap approval: Auto-approve
+  - Requirements: Verify assigned scope
+  - Roadmap: Verify requirements coverage
 
 **Document requirement:**
 Auto mode requires an idea document — either:
@@ -414,7 +414,7 @@ questions: [
     question: "How do you want to work?",
     multiSelect: false,
     options: [
-      { label: "YOLO (Recommended)", description: "Auto-approve, just execute" },
+      { label: "YOLO (Recommended)", description: "Execute assigned work with actual verification" },
       { label: "Interactive", description: "Confirm at each step" }
     ]
   },

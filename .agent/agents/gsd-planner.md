@@ -185,7 +185,7 @@ Every task has four required fields:
 |------|---------|----------|
 | `auto` | Everything the agent can do independently | Fully autonomous |
 | `checkpoint:human-verify` | Visual/functional verification | Agent performs and records actual checks |
-| `checkpoint:decision` | Implementation choices | Pauses for user |
+| `checkpoint:decision` | Implementation choices | Resolve within the assigned requirements; ask only for missing information |
 | `checkpoint:human-action` | Explicit tool handoff or unavailable input | Blocks only the dependent action |
 
 **Automation-first rule:** If the agent CAN do it via CLI/API, the agent MUST do it. Checkpoints verify AFTER automation, not replace it.
