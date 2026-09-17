@@ -59,7 +59,7 @@ export default async function handler(req, res) {
 
           // Fetch notifications
           let query = getSupabase()
-              .from('notifications')
+              .from('personal_notifications')
               .select('*')
               .eq('user_id', userId)
               .order('created_at', { ascending: false })
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
           if (error) {
               console.warn('[Notifications List] Error:', error);
-              return res.status(200).json({ success: true, notifications: [] });
+              return res.status(503).json({ success: false, error: 'Notifications Unavailable' });
           }
 
           return res.status(200).json({
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
       } catch (err) {
           console.warn('[Notifications List] Error:', err);
-          return res.status(200).json({ success: true, notifications: [] });
+          return res.status(503).json({ success: false, error: 'Notifications Unavailable' });
       }
 
   } catch (err) {

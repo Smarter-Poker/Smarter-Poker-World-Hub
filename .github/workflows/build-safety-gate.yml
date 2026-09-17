@@ -98,7 +98,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Operational Alert Delivery Contracts
-        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
+        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
 
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
@@ -170,6 +170,22 @@ jobs:
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
       - name: One Reaction Invokes One Notification Handler
         run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+
+      - name: Owner Operational Notification PostgreSQL Contracts
+        id: owner_notification_postgres
+        run: |
+          python3 -m unittest discover -s scripts/ci -p test_owner_operational_notification_postgres.py
+          PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
+
+      - name: Retain Owner Notification PostgreSQL Evidence
+        if: always() && steps.owner_notification_postgres.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-notification-postgres-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/owner-operational-notification/
+          retention-days: 7
+          if-no-files-found: warn
+
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
@@ -965,6 +981,7 @@ jobs:
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
             __tests__/retired-error-provider.test.mjs \
+            __tests__/notification-feed-recovery.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs \

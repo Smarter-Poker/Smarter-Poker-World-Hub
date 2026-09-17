@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "scope": "Isolated owner operational destination and genuine linked invoice preservation; no production access or connected API/Realtime proof",
+  "historicalBaseline": {
+    "sourceManifestSha256": "638d8a1ba6927538d9eede3819112f3754cffa9e778f3a01f1db10b8244f5280",
+    "receiptSha256": "1d0988d12d1ab8e950a5c23b103df5b5590cfafc98a111528b80d912027e2f5e",
+    "execution": "9bf3a3af-baa6-4d64-9993-8ba379aa0ce1"
+  },
+  "fixtureFiles": {
+    "scripts/ci/probes/owner-operational-notification/inputs/schema.sql": {
+      "sha256": "5a5966afca3b2c9699aba326baf5f32d6c0e1baa2ad09340feaa3b23f4d9dc0a",
+      "bytes": 2709616
+    },
+    "scripts/ci/probes/owner-operational-notification/principals.sql": {
+      "sha256": "db3ea6ce908e1540b281b0e5ad4fbde30440c5d09557b3542029681d7445cabf",
+      "bytes": 1554
+    },
+    "scripts/ci/probes/owner-operational-notification/inputs/access.sql": {
+      "sha256": "ad2cb0ddc955bd97c9ef719e9106aad9f55be5cf034e014d04c90b3a1667c541",
+      "bytes": 786489
+    },
+    "scripts/ci/probes/owner-operational-notification/inputs/policies.sql": {
+      "sha256": "075254070c905c0bac70a9bc5a0b3e938b5262f0e1a186ee2a56127da0f77698",
+      "bytes": 46690
+    },
+    "scripts/ci/probes/owner-operational-notification/provider-supplement.sql": {
+      "sha256": "f314167de1ba693305f878fa6d308ce119f3e28aaf51fbf94d71fac8fce4975c",
+      "bytes": 47886
+    },
+    "scripts/ci/probes/owner-operational-notification/provider-roles.sql": {
+      "sha256": "632811a7dd5283283a9637fab4fdb1338c946017ddde2b2aa06cb6653ebca349",
+      "bytes": 1457
+    },
+    "scripts/ci/probes/owner-operational-notification/provider-roles-check.sql": {
+      "sha256": "92db03bb138724e37c32293bea5cbf32fdadffcd2d9f512dac3b6f55c6f4e2f1",
+      "bytes": 2562
+    },
+    "scripts/ci/probes/owner-operational-notification/provider-check.sql": {
+      "sha256": "e3ce21fc27a18a01c0d6fc1af08f0330d46309f2acb00cc47fa3df567ff6bf3e",
+      "bytes": 287784
+    },
+    "scripts/ci/probes/owner-operational-notification/empty-provider-check.sql": {
+      "sha256": "f2dc7997a2b89194e0e837950f69fc6b269f30934896d658305cc21da14345c0",
+      "bytes": 1332
+    },
+    "scripts/ci/probes/owner-operational-notification/readback.sql": {
+      "sha256": "be11b5f51e911be5a0cd6b8d885153a36d643ef3d2ab2cec6a4fbbf2fdbd50b6",
+      "bytes": 1833
+    },
+    "scripts/ci/probes/owner-operational-notification/inputs/owner-notification-catalog-postimage.sql": {
+      "sha256": "f9f350377e5778e9ff50fe0d5b55278ba9178bc2bea3dd06eb33929293bda1d8",
+      "bytes": 4355
+    },
+    "scripts/ci/probes/owner-operational-notification/inputs/linked-invoice-positive.sql": {
+      "sha256": "c5a91baed4f83550c4db4b982f41c619054ae80d793332191c4d033065a2fa22",
+      "bytes": 16559
+    },
+    "scripts/ci/probes/owner-operational-notification/inputs/captured-financial-store-policy.sql": {
+      "sha256": "0dca50689e9a86efa5c61aafeb134dc721ef1690d4ff6828481e2fa1de79238c",
+      "bytes": 835
+    }
+  },
+  "checkoutInputs": {
+    "component": {
+      "path": "supabase/components/owner-operational-notification-destination.sql",
+      "sha256": "6bec28d663a8c191f864bce6d0051828db6137bdcbff419c6ad34a844b360a70",
+      "bytes": 13734,
+      "donorCommit": "01a6556bb5750132b89dbc2bebf1c543c5c21b38"
+    },
+    "qualifier": {
+      "path": "scripts/qualification/owner-operational-notification-destination.sql",
+      "sha256": "dc847ad578ba7acb3d6b2f037b0b6ab187bf4c0d8fb74b477fe165e089d92d24",
+      "bytes": 30941,
+      "donorCommit": "01a6556bb5750132b89dbc2bebf1c543c5c21b38"
+    }
+  },
+  "sequenceContract": {
+    "type": "bigint",
+    "start": "1",
+    "increment": "1",
+    "minimum": "1",
+    "maximum": "9223372036854775807",
+    "cache": "1",
+    "cycle": false
+  }
+}
