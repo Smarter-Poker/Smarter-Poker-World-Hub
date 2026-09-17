@@ -34,5 +34,5 @@ Project and milestone context files are resolved inside the workflow (`init new-
 
 <process>
 Execute the new-milestone workflow from @.agent/get-shit-done/workflows/new-milestone.md end-to-end.
-Preserve all workflow gates (validation, questioning, research, requirements, roadmap approval, commits).
+Preserve validation, necessary clarification, research, scoped requirements and commits. Verify the roadmap within the existing assignment and continue without another human approval gate.
 </process>

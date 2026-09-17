@@ -191,11 +191,7 @@ Categorize: 🛑 Blocker (prevents goal) | ⚠️ Warning (incomplete) | ℹ️ 
 </step>
 
 <step name="identify_human_verification">
-**Always needs human:** Visual appearance, user flow completion, real-time behavior (WebSocket/SSE), external service integration, performance feel, error message clarity.
-
-**Needs human if uncertain:** Complex wiring grep can't trace, dynamic state-dependent behavior, edge cases.
-
-Format each as: Test Name → What to do → Expected result → Why can't verify programmatically.
+The legacy step name identifies direct verification still required. Visual, interactive, real-time and external-service behavior must be observed through available authorized tools. Record each expected result and actual evidence. Uncertainty requires investigation, not an automatic human gate. Report a demonstrated missing capability and continue independent work.
 </step>
 
 <step name="determine_status">
@@ -203,7 +199,7 @@ Format each as: Test Name → What to do → Expected result → Why can't verif
 
 **gaps_found:** Any truth FAILED, artifact MISSING/STUB, key link NOT_WIRED, or blocker found.
 
-**human_needed:** All automated checks pass but human verification items remain.
+**human_needed:** Automated checks pass but direct behavior checks remain; perform them yourself before claiming completion.
 
 **Score:** `verified_truths / total_truths`
 </step>
@@ -223,7 +219,7 @@ If gaps_found:
 REPORT_PATH="$PHASE_DIR/${PHASE_NUM}-VERIFICATION.md"
 ```
 
-Fill template sections: frontmatter (phase/timestamp/status/score), goal achievement, artifact table, wiring table, requirements coverage, anti-patterns, human verification, gaps summary, fix plans (if gaps_found), metadata.
+Fill template sections: frontmatter (phase/timestamp/status/score), goal achievement, artifact table, wiring table, requirements coverage, anti-patterns, direct behavior verification, gaps summary, fix plans (if gaps_found), metadata.
 
 See .agent/get-shit-done/templates/verification-report.md for complete template.
 </step>
@@ -246,7 +242,7 @@ Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execu
 - [ ] All key links verified
 - [ ] Requirements coverage assessed (if applicable)
 - [ ] Anti-patterns scanned and categorized
-- [ ] Human verification items identified
+- [ ] Direct behavior checks completed or precise access blockers recorded
 - [ ] Overall status determined
 - [ ] Fix plans generated (if gaps_found)
 - [ ] VERIFICATION.md created with complete report

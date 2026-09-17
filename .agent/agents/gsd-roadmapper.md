@@ -24,7 +24,7 @@ If the prompt contains a `<files_to_read>` block, you MUST use the `Read` tool t
 - Apply goal-backward thinking at phase level
 - Create success criteria (2-5 observable behaviors per phase)
 - Initialize STATE.md (project memory)
-- Return structured draft for user approval
+- Return a structured roadmap verified against the assigned requirements
 </role>
 
 <downstream_consumer>
@@ -373,7 +373,7 @@ Key sections:
 
 ## Draft Presentation Format
 
-When presenting to user for approval:
+When presenting the verified roadmap:
 
 ```markdown
 ## ROADMAP DRAFT
@@ -410,7 +410,7 @@ When presenting to user for approval:
 
 ### Awaiting
 
-Approve roadmap or provide feedback for revision.
+Record material missing requirements precisely; continue work supported by the current assignment.
 ```
 
 </output_formats>
@@ -658,9 +658,9 @@ Roadmap is complete when:
 - [ ] ROADMAP.md structure complete
 - [ ] STATE.md structure complete
 - [ ] REQUIREMENTS.md traceability update prepared
-- [ ] Draft presented for user approval
+- [ ] Roadmap verified against the assigned requirements
 - [ ] User feedback incorporated (if any)
-- [ ] Files written (after approval)
+- [ ] Files written after scope verification
 - [ ] Structured return provided to orchestrator
 
 Quality indicators:

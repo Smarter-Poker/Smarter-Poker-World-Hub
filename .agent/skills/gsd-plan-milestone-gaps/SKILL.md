@@ -24,5 +24,5 @@ Original intent and current planning state are loaded on demand inside the workf
 
 <process>
 Execute the plan-milestone-gaps workflow from @.agent/get-shit-done/workflows/plan-milestone-gaps.md end-to-end.
-Preserve all workflow gates (audit loading, prioritization, phase grouping, user confirmation, roadmap updates).
+Preserve all workflow gates (audit loading, prioritization, phase grouping, scope verification, roadmap updates).
 </process>

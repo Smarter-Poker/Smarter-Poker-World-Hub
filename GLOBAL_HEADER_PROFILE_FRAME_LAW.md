@@ -79,6 +79,4 @@ one Dan was reporting, because the tests said the ring belonged there.
 The "NO BOXES OVER HEADER ICONS" rule (2026-09-01) is about focus rings on the
 icon buttons; the disc is the mask Dan asked for and is that rule's one
 deliberate exception. **If a request about the profile image seems to call
-for showing the ring, it does not - ask Dan before touching the disc.** If you
-find a written rule that contradicts this one, stop and ask; do not write a
-third law and do not delete either side on your own authority.
+for showing the ring, preserve the disc under the current product rule unless the assigned change explicitly changes that requirement.** Resolve conflicting text using the latest owner instruction and documented evidence; do not create a third contradictory rule or another approval gate.

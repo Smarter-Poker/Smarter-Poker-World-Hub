@@ -424,15 +424,11 @@ Success criteria:
 2. [criterion]
 ```
 
-**Ask for approval** via AskUserQuestion:
-- "Approve" — Commit and continue
-- "Adjust phases" — Tell me what to change
-- "Review full file" — Show raw ROADMAP.md
+Verify the roadmap against the existing assignment and recorded requirements,
+resolve ordinary choices and commit it without another approval gate. Ask only
+for materially missing requirements; continue independent work meanwhile.
 
-**If "Adjust":** Get notes, re-spawn roadmapper with revision context, loop until approved.
-**If "Review":** Display raw ROADMAP.md, re-ask.
-
-**Commit roadmap** (after approval):
+**Commit the verified roadmap:**
 ```bash
 node ".agent/get-shit-done/bin/gsd-tools.cjs" commit "docs: create milestone v[X.Y] roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
 ```

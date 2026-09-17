@@ -18,14 +18,14 @@ Every product surface has exactly one repo. Pushes go nowhere else.
 | Club Arena (engine + Vite frontend) | `Smarter-Poker/Smarter-Poker-Club-Arena` |
 | Cron handler execution | `Smarter-Poker/smarter-poker-workers` |
 | Cron scheduler config | `Smarter-Poker/Smarter-Poker-World-Hub` (`scripts/openclaw-cron-dispatcher.py`) |
-| Diamond Arena (CLOSED until Club Arena ships) | `Smarter-Poker/Smarter-Poker-Diamond-Arena` (do not push without Dan's go) |
+| Diamond Arena (only when assigned) | `Smarter-Poker/Smarter-Poker-Diamond-Arena` (requires an assigned scope, not another approval) |
 
 ## Rule 2 — Forbidden pushes
 
 - **NEVER push to `Smarter-Poker/Club-Arena-Design`.** Archived (read-only). Its content lives in `Smarter-Poker-Club-Arena` now.
 - **NEVER add `"crons":` to any `vercel.json`.** Vercel crons are policy-forbidden across the team. Use Open Claw → workers exclusively.
-- **NEVER create new Vercel projects** without an explicit Dan approval AND adding the row to `.agent/architecture/url-map.md` in the same PR.
-- **NEVER add a new local clone of an existing repo** to `~/Documents/`. Use the canonical clone (named exactly as listed in Rule 1).
+- **Preserve canonical Vercel projects.** A release does not authorize duplicate infrastructure. Any assigned architecture change must update the URL map and retain the owning provider safeguards.
+- **Use an owned worktree.** Follow the current owner SSD policy; preserve shared clones and other tasks' files. Do not create duplicate infrastructure or reactivate retired local publishers.
 
 ## Rule 3 — Forbidden code patterns
 
@@ -33,13 +33,14 @@ Every product surface has exactly one repo. Pushes go nowhere else.
 - Client-side PIN gates for admin surfaces — server-side cookie + HMAC only (Phase 3.6 enforced).
 - `export const runtime = 'edge'` on Pages Router routes that import `apiErrorHandler`, `supabaseServerClient`, or `serverAuth` — those are Node-only. Lesson from the 81-route revert in commit `683a8d380`.
 
-## Rule 4 — Verify after every push
+## Rule 4 — Complete the actual delivery
 
-After any push that touches production:
-
-1. Wait ~3 minutes for Vercel to build (or `bash server/deploy-hetzner.sh` for the engine).
-2. Probe at least three URLs from `.agent/architecture/url-map.md` and confirm 2xx/3xx.
-3. If state goes ERROR or any probe returns 5xx: revert immediately with `git revert <sha> && git push`. Do NOT let the autofix bot compound failed deploys (that pattern caused multiple session-ending incidents in April 2026).
+Follow root AGENTS.md, the operating law and PUBLISHING.md. Run applicable local
+prechecks, protected CI and merge, then verify the owning publisher, exact live
+component and affected behavior. Read actual results; no fixed sleep or automatic
+revert substitutes for diagnosis. Club Arena client publication is independent
+of World Hub and the engine maintenance window. Never invoke a retired server
+script, fallback publisher, watcher or repair loop.
 
 ## Rule 5 — One change per deploy
 
@@ -49,28 +50,25 @@ No stacked architectural changes. Every commit must be independently revertible.
 
 Hard evidence required: file paths, commit SHAs, HTTP status codes, deploy IDs. "Should be done" is not "done." This rule exists because the four-times-100% pattern of April 2026 (claim 100%, find it wasn't, revise, repeat) was caused by skipping verification.
 
-## Rule 7 — Diamond Arena is closed
+## Rule 7 — Preserve the actual product assignment
 
-No new feature work on `Smarter-Poker-Diamond-Arena` until Club Arena reaches 100% completion. The `diamond-arcade` Vercel project was deleted 2026-04-27 (no custom domain, scaffold-only). When Diamond reopens, treat it as a fresh build — don't reanimate the old crons.
+This instruction does not assign Diamond Arena development or another product phase. Follow the latest explicit assignment and current owner policy; do not infer a global release hold from this historical consolidation plan. Preserve canonical infrastructure and do not restore retired schedules.
 
-## Rule 8 — Approval boundaries
+## Rule 8 — Current owner authority
 
-Sandbox sessions can do, without further approval:
-- File operations on `~/Documents/` (move, edit, delete files NOT in graveyard restoration)
-- Read-only API calls to Vercel, GitHub, Supabase
-- URL probes against production (HEAD/GET only)
-- Drafting docs and pre-push hooks
+No additional human approval is required within assigned work. The current
+owner policy governs all repositories, worktrees and provider locations.
+Preserve required automated checks, financial integrity, secret handling,
+existing canonical infrastructure and higher-priority tool constraints. A policy
+file does not create unrelated assignments or bypass actual authentication.
 
-Sandbox sessions REQUIRE explicit Dan approval for:
-- Deleting Vercel projects (only the duplicates listed in this consolidation plan are pre-authorized)
-- Creating new Vercel projects
-- Archiving GitHub repos beyond what this plan already covers
-- Any change to `.github/workflows/build-safety-gate.yml` (DO NOT touch — new workflows only)
-- Any cron added to or removed from Open Claw's `WORKERS_PREFERRED` map
+## Rule 9 — Resolve blockers without abandoning independent work
 
-## Rule 9 — When stuck, stop
-
-If the next step requires a credential, server access, or domain knowledge you don't have, STOP and ask. Do not invent paths. Do not push commits with `-m "WIP"`. The platform's reliability comes from refusing to guess.
+Inspect configured access and documented metadata early. Diagnose failures,
+repair supported causes and finish every eligible step yourself. A pending
+credential input blocks only its dependent action; continue local checks,
+integration and independent publication. State a genuine unavailable input
+precisely, with its prepared next action. Never invent credentials or success.
 
 ## Rule 10 — Read this file before starting
 

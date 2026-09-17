@@ -33,14 +33,13 @@ Verify the work is ready to ship:
    ```bash
    VERIFICATION=$(cat ${PHASE_DIR}/*-VERIFICATION.md 2>/dev/null)
    ```
-   Check for `status: passed` or `status: human_needed` (with human approval).
-   If no VERIFICATION.md or status is `gaps_found`: warn and ask user to confirm.
+   Require actual completed verification. A legacy `human_needed` record means the agent must complete its outstanding checks. If evidence is absent or gaps remain, resolve them directly; no confirmation can waive a required check.
 
 2. **Clean working tree?**
    ```bash
    git status --short
    ```
-   If uncommitted changes exist: ask user to commit or stash first.
+   Preserve other work. Stage and commit the intended assigned files with normal hooks in the owned checkout; never stash another task's changes.
 
 3. **On correct branch?**
    ```bash

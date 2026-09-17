@@ -106,7 +106,7 @@ These gaps are optional. Include them?
 Create these {X} phases? (yes / adjust / defer all optional)
 ```
 
-Wait for user confirmation.
+Verify the proposed repairs against the existing assignment and continue directly; clarify only a materially missing requirement.
 
 ## 6. Update ROADMAP.md
 

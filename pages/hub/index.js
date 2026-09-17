@@ -64,20 +64,6 @@ export default function HubPage() {
     const [cardCustomizerOpen, setCardCustomizerOpen] = useState(false);
 
     // Special unlocked card IDs for this user (for the customizer panel)
-    // THE HUB SAYS WHAT IT IS BEFORE THE CAROUSEL BOOTS (AEO phase 3,
-    // 2026-09-17). WorldHub is `ssr: false`, so the server sends no part of
-    // it, and what it renders at runtime is a position:fixed layer over the
-    // whole viewport. Measured on production with scripts stripped, this
-    // page - priority 0.9, changefreq daily in the sitemap - carried 31
-    // words and NO heading for any crawler that does not run JavaScript.
-    //
-    // So the summary is rendered on the server, a real visitor reads it for
-    // the moment before the bundle boots (exactly as the prerendered Club
-    // Arena landing works), and it leaves the flow once the carousel is up
-    // so the page gains no scroll region behind that fixed layer.
-    const [hubInteractive, setHubInteractive] = useState(false);
-    useEffect(() => { setHubInteractive(true); }, []);
-
     const [unlockedSpecialIds, setUnlockedSpecialIds] = useState([]);
 
     useEffect(() => {
@@ -187,7 +173,19 @@ export default function HubPage() {
                 />
             </HubErrorBoundary>
 
-            {!hubInteractive && <HubPageSummary page="hub" as="h1" />}
+            {/* THE HUB SAYS WHAT IT IS (AEO phase 3, 2026-09-17). WorldHub is
+                `ssr: false`, so the server sends no part of it; measured on
+                production with scripts stripped, this page - priority 0.9,
+                changefreq daily in the sitemap - carried 31 words and NO
+                heading for any crawler that does not run JavaScript.
+
+                It stays in the flow for good. The first cut removed it once
+                the carousel mounted, and a page that adds 200 words to the
+                flow and then takes them away is a layout shift waiting to
+                happen: measured 0.95 on one load in three. The carousel is a
+                position:fixed layer over the whole viewport, so this sits
+                under it, out of the way, and a reader who scrolls finds it. */}
+            <HubPageSummary page="hub" as="h1" />
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
             <HubErrorBoundary name="World Hub">
