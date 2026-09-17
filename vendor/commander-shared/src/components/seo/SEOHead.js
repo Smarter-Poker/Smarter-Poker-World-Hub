@@ -108,10 +108,23 @@ export default function SEOHead({
 export const schemas = {
     organization: {
         '@type': 'Organization',
+        '@id': 'https://smarter.poker/#organization',
         name: 'Smarter.Poker',
+        alternateName: 'Smarter Poker',
+        // The legal entity named in /terms and /privacy. An AI engine that
+        // resolves "Smarter Poker" to a company needs this, or it lands on
+        // the unrelated Austrian consultancy that shares the trading name.
+        legalName: 'Smarter Software Inc.',
         url: 'https://smarter.poker',
         logo: 'https://smarter.poker/smarter-poker-logo.png',
-        sameAs: [],
+        // Only profiles that exist today. Add each new one (LinkedIn,
+        // Crunchbase, Wikidata, YouTube) the day it goes live, not before.
+        sameAs: ['https://github.com/Smarter-Poker'],
+        contactPoint: {
+            '@type': 'ContactPoint',
+            contactType: 'customer support',
+            email: 'support@smarter.poker',
+        },
         description: 'The Ultimate Poker Platform for GTO Training, Live Venue Discovery, Bankroll Tracking, and Community.',
     },
 
