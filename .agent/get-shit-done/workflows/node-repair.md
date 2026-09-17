@@ -59,7 +59,7 @@ If DECOMPOSE:
 
 <step name="execute_prune">
 If PRUNE:
-1. Mark task as skipped with justification
+1. Only remove an optional action proven unnecessary to the assigned acceptance criteria; never prune required work or checks
 2. Log to SUMMARY "Issues Encountered": `[Node Repair - PRUNE] Task [X]: [justification]`
 3. Continue to next task
 </step>
@@ -68,7 +68,7 @@ If PRUNE:
 If ESCALATE:
 1. Surface to user via verification_failure_gate with full repair history
 2. Present: what was tried (each RETRY/DECOMPOSE attempt), what the blocker is, options available
-3. Wait for user direction before continuing
+3. Personally diagnose the bounded repair failure and continue every executable assigned step. Request only genuinely missing information; do not introduce another approval gate.
 </step>
 
 </process>

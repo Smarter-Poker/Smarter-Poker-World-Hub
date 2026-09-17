@@ -1183,7 +1183,7 @@ Follow root AGENTS.md, PUBLISHING.md and .agent/get-shit-done/references/checkpo
 **Commit:** {hash}
 ```
 
-Only return this after human verification confirms the fix.
+Only return this after actual required workflow verification confirms the fix.
 
 ## INVESTIGATION INCONCLUSIVE
 

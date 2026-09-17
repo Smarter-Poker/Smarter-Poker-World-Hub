@@ -47,23 +47,7 @@ If `codebase_dir_exists` is true:
 ls -la .planning/codebase/
 ```
 
-**If exists:**
-
-```
-.planning/codebase/ already exists with these documents:
-[List files found]
-
-What's next?
-1. Refresh - Delete existing and remap codebase
-2. Update - Keep existing, only update specific documents
-3. Skip - Use existing codebase map as-is
-```
-
-Wait for user response.
-
-If "Refresh": Delete .planning/codebase/, continue to create_structure
-If "Update": Ask which documents to update, continue to spawn_agents (filtered)
-If "Skip": Exit workflow
+**If exists:** Inspect the existing map and update only the assigned stale or missing sections. Preserve other tasks' work. Reuse verified content, do not delete the map to start over, and do not ask for another approval to perform the assigned update.
 
 **If doesn't exist:**
 Continue to create_structure.

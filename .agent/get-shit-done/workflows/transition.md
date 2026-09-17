@@ -117,13 +117,7 @@ Phase [X] has incomplete plans:
 
 Do not skip required plans to obtain completion. Preserve evidence and resolve missing prerequisites directly; do not delete retained work or substitute approval for execution.
 
-Options:
-1. Continue current phase (execute remaining plans)
-2. Mark complete anyway (skip remaining plans)
-3. Review what's left
-```
-
-Wait for user decision.
+Continue the remaining assigned work and verify its outcomes. Review real dependencies and preserve a new explicit STOP. Required plans cannot be skipped to mark the phase complete.
 
 </step>
 

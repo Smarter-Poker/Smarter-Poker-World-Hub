@@ -83,7 +83,7 @@ Complete the assigned removal without another approval after verifying target ow
 RESULT=$(node ".agent/get-shit-done/bin/gsd-tools.cjs" phase remove "${target}")
 ```
 
-If the phase has executed plans (SUMMARY.md files), gsd-tools will error. Use `--force` only if the user confirms:
+If the phase has executed plans (SUMMARY.md files), gsd-tools will error. Do not force removal of retained executed work. A separately assigned removal must preserve its evidence and ownership before any supported removal operation:
 
 ```bash
 RESULT=$(node ".agent/get-shit-done/bin/gsd-tools.cjs" phase remove "${target}" --force)
