@@ -817,7 +817,7 @@ DEBUG_RESOLVED_DIR=.planning/debug/resolved
 
 ```markdown
 ---
-status: gathering | investigating | fixing | verifying | awaiting_human_verify | resolved
+status: gathering | investigating | fixing | verifying | verification_blocked | resolved
 trigger: "[verbatim user input]"
 created: [ISO timestamp]
 updated: [ISO timestamp]
@@ -881,7 +881,7 @@ files_changed: []
 ## Status Transitions
 
 ```
-gathering -> investigating -> fixing -> verifying -> awaiting_human_verify -> resolved
+gathering -> investigating -> fixing -> verifying -> verification_blocked -> resolved
                   ^            |           |                 |
                   |____________|___________|_________________|
                   (if verification fails or user reports issue)
@@ -999,7 +999,7 @@ Based on status:
 - "investigating" -> Continue investigation_loop from Current Focus
 - "fixing" -> Continue fix_and_verify
 - "verifying" -> Continue verification
-- "awaiting_human_verify" -> Wait for checkpoint response and either finalize or continue investigation
+- "verification_blocked" -> Resolve the specific access or evidence gap and continue direct verification
 </step>
 
 <step name="return_diagnosis">
@@ -1059,52 +1059,17 @@ Update status to "fixing".
 - Update status to "verifying"
 - Test against original Symptoms
 - If verification FAILS: status -> "investigating", return to investigation_loop
-- If verification PASSES: Update Resolution.verification, proceed to request_human_verification
+- If verification PASSES: Update Resolution.verification, proceed to verify_actual_outcome
 </step>
 
-<step name="request_human_verification">
-**Require user confirmation before marking resolved.**
-
-Update status to "awaiting_human_verify".
-
-Return:
-
-```markdown
-## CHECKPOINT REACHED
-
-**Type:** human-verify
-**Debug Session:** .planning/debug/{slug}.md
-**Progress:** {evidence_count} evidence entries, {eliminated_count} hypotheses eliminated
-
-### Investigation State
-
-**Current Hypothesis:** {from Current Focus}
-**Evidence So Far:**
-- {key finding 1}
-- {key finding 2}
-
-### Checkpoint Details
-
-**Need verification:** confirm the original issue is resolved in your real workflow/environment
-
-**Self-verified checks:**
-- {check 1}
-- {check 2}
-
-**How to check:**
-1. {step 1}
-2. {step 2}
-
-**Tell me:** "confirmed fixed" OR what's still failing
-```
-
-Do NOT move file to `resolved/` in this step.
+<step name="verify_actual_outcome">
+Perform the original affected workflow through available authorized tools and record actual results. Complete resolution only when the required evidence passes. If access prevents verification, record the exact unavailable input and continue independent work; do not add user confirmation as an acceptance criterion.
 </step>
 
 <step name="archive_session">
-**Archive resolved debug session after human confirmation.**
+**Archive the resolved debug session after actual end-to-end verification.**
 
-Only run this step when checkpoint response confirms the fix works end-to-end.
+Only run this step when the recorded evidence confirms the fix works end-to-end.
 
 Update status to "resolved".
 
@@ -1174,82 +1139,7 @@ Report completion and offer next steps.
 </execution_flow>
 
 <checkpoint_behavior>
-
-## When to Return Checkpoints
-
-Return a checkpoint when:
-- Investigation requires user action you cannot perform
-- Need user to verify something you can't observe
-- Need user decision on investigation direction
-
-## Checkpoint Format
-
-```markdown
-## CHECKPOINT REACHED
-
-**Type:** [human-verify | human-action | decision]
-**Debug Session:** .planning/debug/{slug}.md
-**Progress:** {evidence_count} evidence entries, {eliminated_count} hypotheses eliminated
-
-### Investigation State
-
-**Current Hypothesis:** {from Current Focus}
-**Evidence So Far:**
-- {key finding 1}
-- {key finding 2}
-
-### Checkpoint Details
-
-[Type-specific content - see below]
-
-### Awaiting
-
-[What you need from user]
-```
-
-## Checkpoint Types
-
-**human-verify:** Need user to confirm something you can't observe
-```markdown
-### Checkpoint Details
-
-**Need verification:** {what you need confirmed}
-
-**How to check:**
-1. {step 1}
-2. {step 2}
-
-**Tell me:** {what to report back}
-```
-
-**human-action:** Need user to do something (auth, physical action)
-```markdown
-### Checkpoint Details
-
-**Action needed:** {what user must do}
-**Why:** {why you can't do it}
-
-**Steps:**
-1. {step 1}
-2. {step 2}
-```
-
-**decision:** Need user to choose investigation direction
-```markdown
-### Checkpoint Details
-
-**Decision needed:** {what's being decided}
-**Context:** {why this matters}
-
-**Options:**
-- **A:** {option and implications}
-- **B:** {option and implications}
-```
-
-## After Checkpoint
-
-Orchestrator presents checkpoint to user, gets response, spawns fresh continuation agent with your debug file + user response. **You will NOT be resumed.**
-
+Follow root AGENTS.md, PUBLISHING.md and .agent/get-shit-done/references/checkpoints.md. Perform assigned implementation decisions and actual verification directly. No additional human approval or automatic approval substitute is permitted. Inspect supported access first; request only a genuinely unavailable input or explicit higher-priority tool handoff, naming its source. Continue all independent work and preserve the owning operation. Never print secrets, scrape environment files, skip required checks, invent success or add a new publisher. This file does not authorize delegation or an unrelated product phase.
 </checkpoint_behavior>
 
 <structured_returns>
@@ -1344,8 +1234,8 @@ Check for mode flags in prompt context:
 **goal: find_and_fix** (default)
 - Find root cause, then fix and verify
 - Complete full debugging cycle
-- Require human-verify checkpoint after self-verification
-- Archive session only after user confirmation
+- Verify the original affected workflow and retain evidence
+- Archive the session only after required outcomes are verified
 
 **Default mode (no flags):**
 - Interactive debugging with user

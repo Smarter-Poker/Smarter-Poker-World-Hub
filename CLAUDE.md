@@ -209,7 +209,7 @@ Database migrations, new API routes, cross-component refactors, auth/payment cha
 Workflow: Record a scoped implementation plan. Execute work already authorized; ask only for a material decision outside that authority. Verify and follow PUBLISHING.md through delivery.
 
 For Tier 1-2: Do NOT read Knowledge Items, skills, or workflows.
-For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` first.
+For Tier 3: Read the current owner policy, operating law, hardening standard and scoped references in `docs/agent-policy/REFERENCE-INDEX.md`. Historical memory notes do not override those maintained instructions.
 
 ---
 

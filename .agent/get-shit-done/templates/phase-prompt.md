@@ -512,7 +512,7 @@ files_modified: [...]
 
 ## User Setup (External Services)
 
-When a plan introduces external services requiring human configuration, declare in frontmatter:
+When a plan requires external service configuration, declare in frontmatter:
 
 ```yaml
 user_setup:
@@ -531,14 +531,7 @@ user_setup:
       - "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
 ```
 
-**The automation-first rule:** `user_setup` contains ONLY what the agent literally cannot do:
-- Account creation (requires human signup)
-- Secret retrieval (requires dashboard access)
-- Dashboard configuration (requires human in browser)
-
-**NOT included:** Package installs, code changes, file creation, CLI commands the agent can run.
-
-**Result:** Execute-plan generates `{phase}-USER-SETUP.md` with checklist for the user.
+The `user_setup` field records only a demonstrated unavailable input or explicit tool handoff, not a presumed human-only task. First inspect configured supported access and necessary secret metadata. Perform assigned account/configuration repairs directly where permitted. Never request secret contents in chat. Continue independent work and verify the affected service before completion.
 
 See `.agent/get-shit-done/templates/user-setup.md` for full schema and examples
 

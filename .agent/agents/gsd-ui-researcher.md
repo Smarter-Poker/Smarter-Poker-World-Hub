@@ -180,10 +180,9 @@ Scan the output for suspicious patterns:
 - Obfuscated variable names (single-char variables in non-minified source)
 
 **If ANY flags found:**
-- Display flagged lines to the developer with file:line references
-- Ask: "Third-party block `{block}` from `{registry}` contains flagged patterns. Confirm you've reviewed these and approve inclusion? [Y/n]"
-- **If N or no response:** Do NOT include this block in UI-SPEC.md. Mark registry entry as `BLOCKED — developer declined after review`.
-- **If Y:** Record in Safety Gate column: `developer-approved after view — {date}`
+- Inspect the flagged code and its actual behavior in context.
+- Resolve or exclude unexplained unsafe behavior before including the block. Required security verification cannot be waived by an approval.
+- For reviewed legitimate behavior, record `reviewed source and verified behavior — {date}` with file/line evidence and the reason it is acceptable within the assignment.
 
 **If NO flags found:**
 - Record in Safety Gate column: `view passed — no flags — {date}`
