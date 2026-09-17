@@ -160,6 +160,15 @@ export default function LandingPage() {
           <img
             src="/images/landing-hero.webp"
             alt="Smarter.Poker - The Future Of The Game"
+            // THE HERO RESERVES ITS OWN SPACE (2026-09-17). Without intrinsic
+            // dimensions the browser gives the image a zero-height box until
+            // the bytes arrive, and the shimmer below it reserved 180% of the
+            // width while the file is 179.21% (1116x2000). Whichever of the
+            // two settled first, the other moved the whole page: measured on
+            // production at phone width, CLS 0.797 on one load in six. With
+            // width and height the box is exact before the first byte.
+            width={1116}
+            height={2000}
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
             onLoad={() => setHeroLoaded(true)}
             // The hero IS the largest contentful paint; lazy-loading it told the
@@ -354,8 +363,13 @@ const styles = {
     userSelect: 'none',
   },
   shimmer: {
-    width: '100%',
-    paddingBottom: '180%',
+    // An OVERLAY, not a sibling in the flow. It used to reserve its own
+    // 180% band beside a zero-height image; removing it when the image
+    // arrived moved everything below it (2026-09-17). The image now owns
+    // the box and the shimmer sits on top of it until it paints.
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
     background: 'linear-gradient(90deg, #111827 25%, #1a2540 50%, #111827 75%)',
     backgroundSize: '200% 100%',
   },

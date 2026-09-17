@@ -29,6 +29,35 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
  * " | Smarter.Poker" unless the title already names the site, so a raw title
  * that measures 63 characters on its own ships as 80 (2026-09-17).
  */
+/**
+ * The pixel size of a WebP, without a dependency: the Build Safety Gate runs
+ * these tests with `node --test` and no install. Handles the three chunk
+ * layouts (lossy VP8, lossless VP8L, extended VP8X).
+ */
+function webpSize(buf) {
+  assert.equal(buf.subarray(0, 4).toString('latin1'), 'RIFF', 'a RIFF container');
+  assert.equal(buf.subarray(8, 12).toString('latin1'), 'WEBP', 'a WebP file');
+  const tag = buf.subarray(12, 16).toString('latin1');
+  if (tag === 'VP8X') {
+    return {
+      width: 1 + (buf.readUIntLE(24, 3) & 0xffffff),
+      height: 1 + (buf.readUIntLE(27, 3) & 0xffffff),
+    };
+  }
+  if (tag === 'VP8 ') {
+    // Key-frame header: 3-byte frame tag, the 0x9d 0x01 0x2a start code,
+    // then width and height as 14-bit little-endian values.
+    assert.equal(buf.readUIntLE(23, 3), 0x2a019d, 'a WebP key frame');
+    return { width: buf.readUInt16LE(26) & 0x3fff, height: buf.readUInt16LE(28) & 0x3fff };
+  }
+  if (tag === 'VP8L') {
+    assert.equal(buf[20], 0x2f, 'a VP8L signature');
+    const bits = buf.readUInt32LE(21);
+    return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
+  }
+  throw new Error(`unknown WebP chunk ${tag}`);
+}
+
 const renderedTitle = (title) => (title.includes('Smarter.Poker') ? title : `${title} | Smarter.Poker`);
 
 test('SEOHead does not suffix a title that already names the site', () => {
@@ -103,6 +132,31 @@ test('every public page title fits a search result once SEOHead has added the si
       `${file} names the site once: ${shipped}`,
     );
   }
+});
+
+test('the hero reserves its own space before the image arrives', () => {
+  // Without intrinsic dimensions the browser gives the hero a zero-height
+  // box, and the shimmer beside it reserved 180% of the width while the file
+  // is 179.21%: measured on production, CLS 0.797 at phone width.
+  const src = read('pages/index.js');
+  const at = src.indexOf('landing-hero.webp');
+  assert.ok(at > 0, 'pages/index.js renders the hero image');
+  const img = src.slice(src.lastIndexOf('<img', at), src.indexOf('/>', at) + 2);
+  const width = Number(img.match(/width=\{(\d+)\}/)?.[1]);
+  const height = Number(img.match(/height=\{(\d+)\}/)?.[1]);
+  assert.ok(width && height, 'the hero carries intrinsic width and height');
+
+  // They must match the file, or the reserved box is the wrong shape.
+  const { width: actualWidth, height: actualHeight } = webpSize(
+    fs.readFileSync(path.join(ROOT, 'public/images/landing-hero.webp')),
+  );
+  assert.equal(width, actualWidth, 'declared width matches the file');
+  assert.equal(height, actualHeight, 'declared height matches the file');
+
+  // And the placeholder must not add or remove layout height of its own.
+  const shimmer = src.match(/shimmer: \{[\s\S]*?\},/)?.[0] || '';
+  assert.doesNotMatch(shimmer, /paddingBottom/, 'the shimmer does not reserve a band in the flow');
+  assert.match(shimmer, /position: 'absolute'/, 'the shimmer is an overlay');
 });
 
 test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB', () => {
