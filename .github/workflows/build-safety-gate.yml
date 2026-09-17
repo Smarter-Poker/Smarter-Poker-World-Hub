@@ -1020,6 +1020,7 @@ jobs:
             __tests__/robots-crawler-policy.law.test.mjs \
             __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
+            __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
