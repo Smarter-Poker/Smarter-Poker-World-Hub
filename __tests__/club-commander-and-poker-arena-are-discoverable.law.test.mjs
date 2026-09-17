@@ -163,3 +163,58 @@ test('the arena sitemap is not served with the origin noindex header', () => {
   assert.ok(xr && !/noindex/.test(xr.value), 'the arena sitemap must not be noindex');
 });
 
+
+// DISCOVERABILITY PHASE 4 (2026-09-17): the venue directory and the venue
+// page render their words on the server, link to each other with real links,
+// and the venue page canonicalizes to the indexed entity page for the same
+// venue instead of hiding behind a placeholder noindex.
+
+test('the venue directory renders its first page of venues on the server and links each one', () => {
+  const src = read('pages/hub/commander/venues/index.js');
+  assert.match(src, /export async function getServerSideProps\(/, 'the directory must be server rendered');
+  assert.match(src, /fetchVenueList\(50\)/, 'the directory must ask the Commander API for its first page');
+  assert.match(src, /useState\(initialVenues\)/, 'the server list must seed the rendered list');
+  assert.ok(src.includes('href={`/hub/commander/venues/${venue.id}`}'), 'every card must be a real link to its venue page');
+  assert.match(src, /<Link\s+href=\{`\/hub\/commander\/venues\/\$\{venue\.id\}`\}/, 'the card must be a Link, not a button');
+  assert.match(src, /'@type': 'ItemList'/, 'the directory must describe its venues as an ItemList');
+  assert.match(src, /res\.statusCode = 503/, 'an unreachable API must answer 503, not an empty indexable directory');
+});
+
+test('the venue page renders the venue on the server with its own title, description and canonical to the entity page', () => {
+  const src = read('pages/hub/commander/venues/[id].js');
+  assert.match(src, /export async function getServerSideProps\(\{ params, res \}\)/, 'the venue page must be server rendered');
+  assert.match(src, /fetchVenue\(params\.id\)/);
+  assert.ok(!src.includes('title="Venue Details"'), 'the placeholder title is gone');
+  assert.ok(!src.includes(PLACEHOLDER), 'the placeholder description is gone');
+  assert.match(src, /title=\{venueTitle\(venue\)\}/);
+  assert.match(src, /description=\{venueDescription\(venue\)\}/);
+  assert.match(src, /canonical=\{venueEntityPath\(venue\)\}/, 'the canonical must be the entity page');
+  assert.match(src, /res\.statusCode = 404/, 'a venue that does not exist must be a real 404');
+  assert.match(src, /res\.statusCode = 503/, 'an unreachable API must answer 503');
+  // Every branch renders the head: loading, not found, and the venue itself.
+  const loading = src.indexOf('if (loading) {');
+  const notFound = src.indexOf('if (!venue) {');
+  assert.ok(loading > -1 && notFound > -1, 'the page keeps its loading and not-found branches');
+  assert.ok(src.indexOf('<VenueHead venue={venue} />', loading) > -1 && src.indexOf('<VenueHead venue={venue} />', loading) < notFound, 'the loading branch renders the head');
+  assert.ok(src.indexOf('<VenueHead venue={null} />', notFound) > -1, 'the not-found branch renders a noindex head');
+  assert.match(src, /noindex=\{true\}/, 'a venue with no public entity page stays out of the index');
+});
+
+test('the venue SEO helpers canonicalize to /hub/venues/[id], keep home games out of the index and return JSON-safe venues', async () => {
+  const mod = await import(path.join(ROOT, 'src/lib/commander/venueSeo.js'));
+  const v = mod.toSeoVenue({ id: '3109', name: ' Grand Victoria Casino ', city: 'Elgin', state: 'IL', venue_type: 'casino', rating: 70, poker_tables: null, hours_weekday: '24/7', stakes_spread: ['$1/$2', 7], active_games: 2 });
+  assert.equal(v.id, 3109);
+  assert.equal(v.name, 'Grand Victoria Casino');
+  assert.deepEqual(v.stakes_spread, ['$1/$2']);
+  assert.equal(v.hours, '24/7');
+  assert.equal(v.active_games, 2);
+  for (const [k, val] of Object.entries(v)) assert.notEqual(val, undefined, `${k} must be JSON-safe (null, not undefined)`);
+  assert.equal(mod.venueEntityPath(v), '/hub/venues/3109');
+  assert.equal(mod.venueTitle(v), 'Grand Victoria Casino Poker Room In Elgin, IL');
+  assert.ok(mod.venueDescription(v).length >= 60 && mod.venueDescription(v).length <= 200);
+  assert.equal(mod.isPublicVenue(v), true);
+  assert.equal(mod.isPublicVenue({ ...v, venue_type: 'home_game' }), false);
+  assert.equal(mod.isPublicVenue(null), false);
+  assert.equal(mod.toSeoVenue(null), null);
+  assert.deepEqual(await mod.fetchVenue('not-a-venue'), { venue: null, status: 'not-found' });
+});
