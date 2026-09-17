@@ -24,6 +24,13 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
+/**
+ * What the browser tab and the search result actually show. SEOHead appends
+ * " | Smarter.Poker" unless the title already names the site, so a raw title
+ * that measures 63 characters on its own ships as 80 (2026-09-17).
+ */
+const renderedTitle = (title) => (title.includes('Smarter.Poker') ? title : `${title} | Smarter.Poker`);
+
 test('SEOHead does not suffix a title that already names the site', () => {
   const src = read('vendor/commander-shared/src/components/seo/SEOHead.js');
   assert.match(src, /title\.includes\(SITE_NAME\)\s*\?\s*title/);
@@ -37,7 +44,7 @@ test('the home page title names the site once and says what the product is', () 
   assert.equal(title.split('Smarter.Poker').length - 1, 1, `names the site once: ${title}`);
   assert.match(title, /Poker/, 'says what it is');
   assert.doesNotMatch(title, /The Future Of The Game/, 'a slogan is not a title');
-  assert.ok(title.length <= 70, `fits a result heading: ${title.length} characters`);
+  assert.ok(renderedTitle(title).length <= 70, `fits a result heading: ${renderedTitle(title)}`);
   assert.doesNotMatch(title, /—/, 'no em dash');
   const description = src.match(/<SEOHead[\s\S]*?description="([^"]+)"/)?.[1];
   assert.ok(description && description.length >= 120 && description.length <= 320, 'a definition-length description');
@@ -51,7 +58,7 @@ test('the training page title says what it is instead of "Training - Smarter.Pok
   assert.ok(title, 'pages/hub/training.js passes a title to SEOHead');
   assert.match(title, /GTO Poker Training/);
   assert.doesNotMatch(title, /Smarter\.Poker/, 'SEOHead adds the site name once');
-  assert.ok(title.length <= 70, `fits a result heading: ${title.length} characters`);
+  assert.ok(renderedTitle(title).length <= 70, `fits a result heading: ${renderedTitle(title)}`);
 });
 
 test('the fonts come from next/font: no Google Fonts stylesheet on the home page, no preconnect in the document', () => {
