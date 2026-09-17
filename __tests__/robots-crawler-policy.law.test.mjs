@@ -105,10 +105,12 @@ test('the public product surfaces are crawlable', () => {
   }
 });
 
-test('the sitemap and the Content-Signal line are declared once', () => {
-  const sitemaps = topLevel.filter((l) => l.key === 'sitemap');
-  assert.equal(sitemaps.length, 1);
-  assert.equal(sitemaps[0].value, 'https://smarter.poker/sitemap.xml');
+test('both sitemaps and the Content-Signal line are declared once each', () => {
+  const sitemaps = topLevel.filter((l) => l.key === 'sitemap').map((l) => l.value);
+  assert.deepEqual(sitemaps, [
+    'https://smarter.poker/sitemap.xml',
+    'https://smarter.poker/hub/club-arena/sitemap.xml',
+  ]);
   const signals = topLevel.filter((l) => l.key === 'content-signal');
   assert.equal(signals.length, 1);
   assert.match(signals[0].value, /search=yes/);

@@ -668,6 +668,19 @@
       ]
     },
     {
+      "source": "/hub/club-arena/sitemap.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=300, stale-while-revalidate=300"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noarchive"
+        }
+      ]
+    },
+    {
       "source": "/hub/club-arena/:path((?!.*\\.[\\w]+$).*)",
       "headers": [
         {
