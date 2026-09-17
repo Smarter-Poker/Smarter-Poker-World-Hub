@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -63,6 +64,20 @@ export default function HubPage() {
     const [cardCustomizerOpen, setCardCustomizerOpen] = useState(false);
 
     // Special unlocked card IDs for this user (for the customizer panel)
+    // THE HUB SAYS WHAT IT IS BEFORE THE CAROUSEL BOOTS (AEO phase 3,
+    // 2026-09-17). WorldHub is `ssr: false`, so the server sends no part of
+    // it, and what it renders at runtime is a position:fixed layer over the
+    // whole viewport. Measured on production with scripts stripped, this
+    // page - priority 0.9, changefreq daily in the sitemap - carried 31
+    // words and NO heading for any crawler that does not run JavaScript.
+    //
+    // So the summary is rendered on the server, a real visitor reads it for
+    // the moment before the bundle boots (exactly as the prerendered Club
+    // Arena landing works), and it leaves the flow once the carousel is up
+    // so the page gains no scroll region behind that fixed layer.
+    const [hubInteractive, setHubInteractive] = useState(false);
+    useEffect(() => { setHubInteractive(true); }, []);
+
     const [unlockedSpecialIds, setUnlockedSpecialIds] = useState([]);
 
     useEffect(() => {
@@ -171,6 +186,8 @@ export default function HubPage() {
                     unlockedSpecialIds={unlockedSpecialIds}
                 />
             </HubErrorBoundary>
+
+            {!hubInteractive && <HubPageSummary page="hub" as="h1" />}
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
             <HubErrorBoundary name="World Hub">

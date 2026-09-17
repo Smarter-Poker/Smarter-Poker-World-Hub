@@ -21,6 +21,7 @@ const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueM
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 import HostHomeGameButton from '../../src/components/poker-near-me/HostHomeGameButton';
 import { homeGameUrl } from '../../src/lib/home-games/urls';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const PAGE_SIZE = 12;
 
@@ -1888,6 +1889,7 @@ export default function HomeGamesPage() {
                     }
                 ` }} />
             </div>
+            <HubPageSummary page="home-games" />
         </>
     );
 }

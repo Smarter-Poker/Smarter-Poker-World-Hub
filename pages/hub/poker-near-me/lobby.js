@@ -48,6 +48,7 @@ import { PodErrorBoundary } from '../../../src/components/poker-near-me/Controll
 // ─── Extracted Utilities (Bundle Splitting) ───
 import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../../src/components/poker-near-me/lobby/PnmSoundUtils';
 import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import {
   CHECKIN_BATCH_MAX_IDS,
   CHECKIN_BATCH_SIZE,
@@ -3794,6 +3795,7 @@ export default function PokerNearMeLobby() {
         }
       }
     `}</style>
+    <HubPageSummary page="poker-near-me" />
     </>
   );
 }
