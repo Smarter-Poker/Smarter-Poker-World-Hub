@@ -130,7 +130,7 @@ export const COMMANDER_ORB: OrbConfig = {
   label: 'Club Commander',
   gradient: ['#991111', '#440000'],
   imageUrl: '/cards/club-commander.webp?v=splash1',
-  description: 'MANAGE YOUR POKER ROOM - FULL COMMAND CENTER FOR YOUR VENUE',
+  description: 'MANAGE YOUR POKER ROOM FULL COMMAND CENTER FOR YOUR VENUE',
 };
 
 // Work Schedule & Dealer Downs — only shown to users linked as staff at a venue
