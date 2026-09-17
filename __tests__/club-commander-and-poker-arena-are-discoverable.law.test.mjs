@@ -119,3 +119,33 @@ test('every public Club Commander sub-page carries a BreadcrumbList that hangs o
   }
 });
 
+test('the default Open Graph image is a real 1200x630 card, declared as such', () => {
+  const jpg = fs.readFileSync(path.join(ROOT, 'public/images/og-card.jpg'));
+  // JPEG SOF0/SOF2 marker carries height then width, big-endian.
+  let i = 2;
+  let dims = null;
+  while (i < jpg.length) {
+    if (jpg[i] !== 0xff) break;
+    const marker = jpg[i + 1];
+    const len = jpg.readUInt16BE(i + 2);
+    if (marker === 0xc0 || marker === 0xc2) {
+      dims = { height: jpg.readUInt16BE(i + 5), width: jpg.readUInt16BE(i + 7) };
+      break;
+    }
+    i += 2 + len;
+  }
+  assert.deepEqual(dims, { width: 1200, height: 630 });
+  const app = read('pages/_app.js');
+  assert.match(app, /property="og:image" content="https:\/\/smarter\.poker\/images\/og-card\.jpg"/);
+  assert.match(app, /property="og:image:height" content="630"/);
+  assert.match(read('vendor/commander-shared/src/components/seo/SEOHead.js'), /DEFAULT_OG_IMAGE = 'https:\/\/smarter\.poker\/images\/og-card\.jpg'/);
+});
+
+test('the responsible gaming page renders its head before its loading return', () => {
+  const src = read('pages/hub/commander/responsible-gaming/index.js');
+  const head = src.indexOf('const head = (');
+  const loading = src.indexOf('if (loading) {');
+  assert.ok(head > -1 && loading > -1 && head < loading, 'SEOHead must be built before the loading branch');
+  assert.ok(src.indexOf('{head}', loading) > -1, 'the loading branch must render the head');
+});
+
