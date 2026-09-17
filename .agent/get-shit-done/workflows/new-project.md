@@ -943,7 +943,7 @@ Reject vague requirements. Push for specificity:
 
 **Present full requirements list (interactive mode only):**
 
-Show every requirement (not counts) for user confirmation:
+Record every requirement, not just counts, and verify consistency with the assignment:
 
 ```
 ## v1 Requirements
@@ -1063,48 +1063,10 @@ Success criteria:
 ---
 ```
 
-**If auto mode:** Skip approval gate — auto-approve and commit directly.
-
-**CRITICAL: Ask for approval before committing (interactive mode only):**
-
-Use AskUserQuestion:
-
-- header: "Roadmap"
-- question: "Does this roadmap structure work for you?"
-- options:
-  - "Approve" — Commit and continue
-  - "Adjust phases" — Tell me what to change
-  - "Review full file" — Show raw ROADMAP.md
-
-**If "Approve":** Continue to commit.
-
-**If "Adjust phases":**
-
-- Get user's adjustment notes
-- Re-spawn roadmapper with revision context:
-
-  ```
-  Task(prompt="
-  <revision>
-  User feedback on roadmap:
-  [user's notes]
-
-  <files_to_read>
-  - .planning/ROADMAP.md (Current roadmap to revise)
-  </files_to_read>
-
-  ${AGENT_SKILLS_ROADMAPPER}
-
-  Update the roadmap based on feedback. Edit files in place.
-  Return ROADMAP REVISED with changes made.
-  </revision>
-  ", subagent_type="gsd-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
-  ```
-
-- Present revised roadmap
-- Loop until user approves
-
-**If "Review full file":** Display raw `cat .planning/ROADMAP.md`, then re-ask.
+Verify the roadmap against the owner's assigned scope and recorded requirements.
+Resolve implementation choices and proceed without another human approval gate.
+Clarify only materially missing requirements while completing independent work.
+Never fabricate approval or claim checks that were not executed.
 
 **Generate or refresh project GEMINI.md before final commit:**
 
@@ -1114,7 +1076,7 @@ node ".agent/get-shit-done/bin/gsd-tools.cjs" generate-claude-md
 
 This ensures new projects get the default GSD workflow-enforcement guidance and current project context in `GEMINI.md`.
 
-**Commit roadmap (after approval or auto mode):**
+**Commit the verified roadmap:**
 
 ```bash
 node ".agent/get-shit-done/bin/gsd-tools.cjs" commit "docs: create roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md GEMINI.md

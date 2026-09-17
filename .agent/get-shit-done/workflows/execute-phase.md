@@ -371,48 +371,13 @@ Execute each selected wave in sequence. Within a wave: parallel if `PARALLELIZAT
 </step>
 
 <step name="checkpoint_handling">
-Plans with `autonomous: false` require user interaction.
-
-**Auto-mode checkpoint handling:**
-
-Read auto-advance config (chain flag + user preference):
-```bash
-AUTO_CHAIN=$(node ".agent/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-AUTO_CFG=$(node ".agent/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
-```
-
-When executor returns a checkpoint AND (`AUTO_CHAIN` is `"true"` OR `AUTO_CFG` is `"true"`):
-- **human-verify** → Auto-spawn continuation agent with `{user_response}` = `"approved"`. Log `⚡ Auto-approved checkpoint`.
-- **decision** → Auto-spawn continuation agent with `{user_response}` = first option from checkpoint details. Log `⚡ Auto-selected: [option]`.
-- **human-action** → Present to user (existing behavior below). Auth gates cannot be automated.
-
-**Standard flow (not auto-mode, or human-action type):**
-
-1. Spawn agent for checkpoint plan
-2. Agent runs until checkpoint task or auth gate → returns structured state
-3. Agent return includes: completed tasks table, current task + blocker, checkpoint type/details, what's awaited
-4. **Present to user:**
-   ```
-   ## Checkpoint: [Type]
-
-   **Plan:** 03-03 Dashboard Layout
-   **Progress:** 2/3 tasks complete
-
-   [Checkpoint Details from agent return]
-   [Awaiting section from agent return]
-   ```
-5. User responds: "approved"/"done" | issue description | decision selection
-6. **Spawn continuation agent (NOT resume)** using continuation-prompt.md template:
-   - `{completed_tasks_table}`: From checkpoint return
-   - `{resume_task_number}` + `{resume_task_name}`: Current task
-   - `{user_response}`: What user provided
-   - `{resume_instructions}`: Based on checkpoint type
-7. Continuation agent verifies previous commits, continues from resume point
-8. Repeat until plan completes or user stops
-
-**Why fresh agent, not resume:** Resume relies on internal serialization that breaks with parallel tool calls. Fresh agents with explicit state are more reliable.
-
-**Checkpoints in parallel waves:** Agent pauses and returns while other parallel agents may complete. Present checkpoint, spawn continuation, wait for all before next wave.
+Apply .agent/get-shit-done/references/checkpoints.md and the current owner policy.
+Recover the completed tasks, actual source and remaining evidence. Perform
+outstanding checks yourself; never invent an approved response or select a
+material decision merely because it is first. Ordinary implementation choices
+need no renewed approval. If access or a material requirement is missing, name
+it precisely and continue independent work. Delegation and new phases require
+actual task scope; this workflow does not create it.
 </step>
 
 <step name="aggregate_results">
@@ -610,70 +575,16 @@ grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
 | Status | Action |
 |--------|--------|
 | `passed` | → update_roadmap |
-| `human_needed` | Present items for human testing, get approval or feedback |
+| `human_needed` | Perform outstanding verification directly; record actual unavailable access |
 | `gaps_found` | Present gap summary, offer `/gsd-plan-phase {phase} --gaps ${GSD_WS}` |
 
 **If human_needed:**
-
-**Step A: Persist human verification items as UAT file.**
-
-Create `{phase_dir}/{phase_num}-HUMAN-UAT.md` using UAT template format:
-
-```markdown
----
-status: partial
-phase: {phase_num}-{phase_name}
-source: [{phase_num}-VERIFICATION.md]
-started: [now ISO]
-updated: [now ISO]
----
-
-## Current Test
-
-[awaiting human testing]
-
-## Tests
-
-{For each human_verification item from VERIFICATION.md:}
-
-### {N}. {item description}
-expected: {expected behavior from VERIFICATION.md}
-result: [pending]
-
-## Summary
-
-total: {count}
-passed: 0
-issues: 0
-pending: {count}
-skipped: 0
-blocked: 0
-
-## Gaps
-```
-
-Commit the file:
-```bash
-node ".agent/get-shit-done/bin/gsd-tools.cjs" commit "test({phase_num}): persist human verification items as UAT" --files "{phase_dir}/{phase_num}-HUMAN-UAT.md"
-```
-
-**Step B: Present to user:**
-
-```
-## ✓ Phase {X}: {Name} — Human Verification Required
-
-All automated checks passed. {N} items need human testing:
-
-{From VERIFICATION.md human_verification section}
-
-Items saved to `{phase_num}-HUMAN-UAT.md` — they will appear in `/gsd-progress` and `/gsd-audit-uat`.
-
-"approved" → continue | Report issues → gap closure
-```
-
-**If user says "approved":** Proceed to `update_roadmap`. The HUMAN-UAT.md file persists with `status: partial` and will surface in future progress checks until the user runs `/gsd-verify-work` on it.
-
-**If user reports issues:** Proceed to gap closure as currently implemented.
+Read the outstanding items from VERIFICATION.md and verify them with available
+authorized tools. Record actual evidence in the existing UAT/checkpoint record.
+If every applicable item passes, update the roadmap. If an item fails, repair
+it before advancing. An unavailable required check remains explicitly blocked;
+continue independent work without declaring the phase complete. No approval
+message can replace execution.
 
 **If gaps_found:**
 ```
@@ -833,7 +744,7 @@ For 1M+ context models, consider:
 
 <failure_handling>
 - **classifyHandoffIfNeeded false failure:** Agent reports "failed" but error is `classifyHandoffIfNeeded is not defined` → Claude Code bug, not GSD. Spot-check (SUMMARY exists, commits present) → if pass, treat as success
-- **Agent fails mid-plan:** Missing SUMMARY.md → report, ask user how to proceed
+- **Agent fails mid-plan:** Missing SUMMARY.md → recover actual owned files, commits and operation state; personally complete eligible work, preserving active writers and reporting only genuinely unavailable inputs
 - **Dependency chain breaks:** Wave 1 fails → Wave 2 dependents likely fail → user chooses attempt or skip
 - **All agents in wave fail:** Systemic issue → stop, report for investigation
 - **Checkpoint unresolvable:** "Skip this plan?" or "Abort phase execution?" → record partial progress in STATE.md

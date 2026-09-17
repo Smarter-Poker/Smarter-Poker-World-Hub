@@ -1,5 +1,5 @@
 <purpose>
-Generate unit and E2E tests for a completed phase based on its SUMMARY.md, CONTEXT.md, and implementation. Classifies each changed file into TDD (unit), E2E (browser), or Skip categories, presents a test plan for user approval, then generates tests following RED-GREEN conventions.
+Generate unit and E2E tests for a completed phase based on its SUMMARY.md, CONTEXT.md, and implementation. Classifies each changed file into TDD (unit), E2E (browser), or Skip categories, records a proportionate test plan within the assigned scope, then generates tests following RED-GREEN conventions.
 
 Users currently hand-craft `/gsd-quick` prompts for test generation after each phase. This workflow standardizes the process with proper classification, quality gates, and gap reporting.
 </purpose>
@@ -338,9 +338,9 @@ Present next steps:
 <success_criteria>
 - [ ] Phase artifacts loaded (SUMMARY.md, CONTEXT.md, optionally VERIFICATION.md)
 - [ ] All changed files classified into TDD/E2E/Skip categories
-- [ ] Classification presented to user and approved
+- [ ] Classification supported by actual changed behavior
 - [ ] Project test structure discovered (directories, conventions, runners)
-- [ ] Test plan presented to user and approved
+- [ ] Proportionate test plan verified against the assigned scope
 - [ ] TDD tests generated with arrange/act/assert structure
 - [ ] E2E tests generated targeting user scenarios
 - [ ] All tests executed — no untested tests marked as passing

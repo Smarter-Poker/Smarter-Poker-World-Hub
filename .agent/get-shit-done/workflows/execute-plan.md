@@ -43,13 +43,7 @@ PHASE=$(echo "$PLAN_PATH" | grep -oE '[0-9]+(\.[0-9]+)?-[0-9]+')
 # config settings can be fetched via gsd-tools config-get if needed
 ```
 
-<if mode="yolo">
-Auto-approve: `⚡ Execute {phase}-{plan}-PLAN.md [Plan X of Y for Phase Z]` → parse_segments.
-</if>
-
-<if mode="interactive" OR="custom with gates.execute_next_plan true">
-Present plan identification, wait for confirmation.
-</if>
+Identify the plan and verify that it belongs to the current assignment. Execute eligible work directly; do not add an interactive confirmation or auto-approval step. A genuinely missing requirement blocks only its dependent action.
 </step>
 
 <step name="record_start_time">
@@ -93,7 +87,7 @@ if [ -f .planning/current-agent-id.txt ]; then
 fi
 ```
 
-If interrupted: ask user to resume (Task `resume` parameter) or start fresh.
+If interrupted, recover the existing operation and checkpoint, verify ownership and continue eligible assigned work without another approval or duplicate operation.
 
 **Tracking protocol:** On spawn: write agent_id to `current-agent-id.txt`, append to agent-history.json: `{"agent_id":"[id]","task_description":"[desc]","phase":"[phase]","plan":"[plan]","segment":[num|null],"timestamp":"[ISO]","status":"spawned","completion_timestamp":null}`. On completion: status → "completed", set completion_timestamp, delete current-agent-id.txt. Prune: if entries > max_entries, remove oldest "completed" (never "spawned").
 
@@ -133,7 +127,7 @@ This IS the execution instructions. Follow exactly. If plan references CONTEXT.m
 node ".agent/get-shit-done/bin/gsd-tools.cjs" phases list --type summaries --raw
 # Extract the second-to-last summary from the JSON result
 ```
-If previous SUMMARY has unresolved "Issues Encountered" or "Next Phase Readiness" blockers: AskUserQuestion(header="Previous Issues", options: "Proceed anyway" | "Address first" | "Review previous").
+If the previous summary records unresolved blockers, verify their actual state and resolve dependencies before the affected step. Continue independent assigned work; never select "proceed anyway" to waive a required check.
 </step>
 
 <step name="execute">
@@ -144,7 +138,7 @@ Deviations are normal — handle via rules below.
 3. Per task:
    - **MANDATORY read_first gate:** If the task has a `<read_first>` field, you MUST read every listed file BEFORE making any edits. This is not optional. Do not skip files because you "already know" what's in them — read them. The read_first files establish ground truth for the task.
    - `type="auto"`: if `tdd="true"` → TDD execution. Implement with deviation rules + auth gates. Verify done criteria. Commit (see task_commit). Track hash for Summary.
-   - `type="checkpoint:*"`: STOP → checkpoint_protocol → wait for user → continue only after confirmation.
+   - `type="checkpoint:*"`: perform checkpoint_protocol, run actual verification and continue within scope; only a genuine unavailable input blocks its dependent action.
    - **MANDATORY acceptance_criteria check:** After completing each task, if it has `<acceptance_criteria>`, verify EVERY criterion before moving to the next task. Use grep, file reads, or CLI commands to confirm each criterion. If any criterion fails, fix the implementation before proceeding. Do not skip criteria or mark them as "will verify later".
 3. Run `<verification>` checks
 4. Confirm `<success_criteria>` met
@@ -159,18 +153,7 @@ Auth errors during execution are NOT failures — they're expected interaction p
 
 **Indicators:** "Not authenticated", "Unauthorized", 401/403, "Please run {tool} login", "Set {ENV_VAR}"
 
-**Protocol:**
-1. Recognize auth gate (not a bug)
-2. STOP task execution
-3. Create dynamic checkpoint:human-action with exact auth steps
-4. Wait for user to authenticate
-5. Verify credentials work
-6. Retry original task
-7. Continue normally
-
-**Example:** `vercel --yes` → "Not authenticated" → checkpoint asking user to `vercel login` → verify with `vercel whoami` → retry deploy → continue
-
-**In Summary:** Document as normal flow under "## Authentication Gates", not as deviations.
+**Protocol:** inspect supported configured access and documented secret metadata without exposing secrets. Repair necessary assigned configuration through its canonical identity and store. If an input or explicit tool handoff is unavailable, record the exact source and prepared action; pause only dependent operations and finish independent work. Verify authentication before retrying the same operation, preserving unknown outcomes. Follow PUBLISHING.md; do not introduce a fallback deployment command.
 
 </authentication_gates>
 
@@ -178,32 +161,7 @@ Auth errors during execution are NOT failures — they're expected interaction p
 
 ## Deviation Rules
 
-You WILL discover unplanned work. Apply automatically, track all for Summary.
-
-| Rule | Trigger | Action | Permission |
-|------|---------|--------|------------|
-| **1: Bug** | Broken behavior, errors, wrong queries, type errors, security vulns, race conditions, leaks | Fix → test → verify → track `[Rule 1 - Bug]` | Auto |
-| **2: Missing Critical** | Missing essentials: error handling, validation, auth, CSRF/CORS, rate limiting, indexes, logging | Add → test → verify → track `[Rule 2 - Missing Critical]` | Auto |
-| **3: Blocking** | Prevents completion: missing deps, wrong types, broken imports, missing env/config/files, circular deps | Fix blocker → verify proceeds → track `[Rule 3 - Blocking]` | Auto |
-| **4: Architectural** | Structural change: new DB table, schema change, new service, switching libs, breaking API, new infra | STOP → present decision (below) → track `[Rule 4 - Architectural]` | Ask user |
-
-**Rule 4 format:**
-```
-⚠️ Architectural Decision Needed
-
-Current task: [task name]
-Discovery: [what prompted this]
-Proposed change: [modification]
-Why needed: [rationale]
-Impact: [what this affects]
-Alternatives: [other approaches]
-
-Proceed with proposed change? (yes / different approach / defer)
-```
-
-**Priority:** Rule 4 (STOP) > Rules 1-3 (auto) > unsure → Rule 4
-**Edge cases:** missing validation → R2 | null crash → R1 | new table → R4 | new column → R1/2
-**Heuristic:** Affects correctness/security/completion? → R1-3. Maybe? → R4.
+Investigate connected defects needed to complete the assignment. Record the cause, minimal repair, affected behavior and verification. Necessary implementation decisions, including schema or architecture changes already required by the assignment, need no additional human approval. Preserve scope, canonical infrastructure, financial invariants and automated checks. An unrelated feature or new product phase is not assigned merely because it is discovered. Ask only for a material missing requirement that cannot be established from the current instructions; continue independent work.
 
 </deviation_rules>
 
@@ -313,27 +271,14 @@ If new untracked files appeared after running scripts or tools, decide for each:
 </task_commit>
 
 <step name="checkpoint_protocol">
-On `type="checkpoint:*"`: automate everything possible first. Checkpoints are for verification/decisions only.
-
-Display: `CHECKPOINT: [Type]` box → Progress {X}/{Y} → Task name → type-specific content → `YOUR ACTION: [signal]`
-
-| Type | Content | Resume signal |
-|------|---------|---------------|
-| human-verify (90%) | What was built + verification steps (commands/URLs) | "approved" or describe issues |
-| decision (9%) | Decision needed + context + options with pros/cons | "Select: option-id" |
-| human-action (1%) | What was automated + ONE manual step + verification plan | "done" |
-
-After response: verify if specified. Pass → continue. Fail → inform, wait. WAIT for user — do NOT hallucinate completion.
-
-See .agent/get-shit-done/references/checkpoints.md for details.
+Read .agent/get-shit-done/references/checkpoints.md. Complete the required
+verification directly, repair actual failures and record evidence. No human
+approval or fabricated auto-approval response satisfies a check. Clarify only
+missing requirements or access and continue independent work while pending.
 </step>
 
 <step name="checkpoint_return_for_orchestrator">
-When spawned via Task and hitting checkpoint: return structured state (cannot interact with user directly).
-
-**Required return:** 1) Completed Tasks table (hashes + files) 2) Current Task (what's blocking) 3) Checkpoint Details (user-facing content) 4) Awaiting (what's needed from user)
-
-Orchestrator parses → presents to user → spawns fresh continuation with your completed tasks state. You will NOT be resumed. In main context: use checkpoint_protocol above.
+If delegation was explicitly authorized, return actual completed work, hashes, evidence, pending operation identity and any precise unavailable input to the owning agent. Do not invent a human approval or new-agent prerequisite. The owner directly verifies results and completes eligible work. This workflow does not authorize spawning agents.
 </step>
 
 <step name="verification_failure_gate">
@@ -350,9 +295,9 @@ If `NODE_REPAIR` is `true`: invoke `@./.agent/get-shit-done/workflows/node-repai
 - PLAN_CONTEXT: adjacent task names + phase goal
 - REPAIR_BUDGET: `workflow.node_repair_budget` from config (default: 2)
 
-Node repair will attempt RETRY, DECOMPOSE, or PRUNE autonomously. Only reaches this gate again if repair budget is exhausted (ESCALATE).
+A bounded repair may retry a verified failed operation or decompose the investigation. It must not prune required scope, skip checks or silently lower acceptance criteria.
 
-If `NODE_REPAIR` is `false` OR repair returns ESCALATE: STOP. Present: "Verification failed for Task [X]: [name]. Expected: [criteria]. Actual: [result]. Repair attempted: [summary of what was tried]." Options: Retry | Skip (mark incomplete) | Stop (investigate). If skipped → SUMMARY "Issues Encountered".
+If an automatic repair stops, personally inspect the failure, compare the last successful equivalent and complete the smallest supported correction. Report expected versus actual evidence and a genuinely unavailable dependency. Continue independent work; never waive a required check, mark the failed delivery complete, or ask for another approval to investigate.
 </step>
 
 <step name="record_completion_time">

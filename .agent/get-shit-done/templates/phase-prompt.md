@@ -100,7 +100,7 @@ Output: [What artifacts will be created]
 <task type="checkpoint:human-verify" gate="blocking">
   <what-built>[What the agent built] - server running at [URL]</what-built>
   <how-to-verify>Visit [URL] and verify: [visual checks only, NO CLI commands]</how-to-verify>
-  <resume-signal>Type "approved" or describe issues</resume-signal>
+  <resume-signal>Continue only after actual verification passes; record missing access explicitly.</resume-signal>
 </task>
 
 </tasks>
@@ -201,10 +201,10 @@ Plan 02 in Wave 2 waits for Plan 01 in Wave 1 - genuine dependency on auth types
 wave: 3
 depends_on: ["01", "02"]
 files_modified: [src/components/Dashboard.tsx]
-autonomous: false  # Has checkpoint:human-verify
+autonomous: true  # Agent owns direct visual and behavioral verification
 ```
 
-Wave 3 runs after Waves 1 and 2. Pauses at checkpoint, orchestrator presents to user, resumes on approval.
+Wave 3 runs after its actual prerequisites. The assigned agent executes the verification and records evidence before continuing.
 
 </parallel_examples>
 
@@ -287,7 +287,7 @@ See `.agent/get-shit-done/references/tdd.md` for TDD plan structure.
 | Type | Use For | Autonomy |
 |------|---------|----------|
 | `auto` | Everything the agent can do independently | Fully autonomous |
-| `checkpoint:human-verify` | Visual/functional verification | Pauses, returns to orchestrator |
+| `checkpoint:human-verify` (legacy type) | Visual/functional verification | Agent executes checks and records actual evidence |
 | `checkpoint:decision` | Implementation choices | Pauses, returns to orchestrator |
 | `checkpoint:human-action` | Truly unavoidable manual steps (rare) | Pauses, returns to orchestrator |
 
@@ -413,7 +413,7 @@ Output: Working dashboard component.
 <task type="checkpoint:human-verify" gate="blocking">
   <what-built>Dashboard - server at http://localhost:3000</what-built>
   <how-to-verify>Visit localhost:3000/dashboard. Check: desktop grid, mobile stack, no scroll issues.</how-to-verify>
-  <resume-signal>Type "approved" or describe issues</resume-signal>
+  <resume-signal>Continue only after actual verification passes; record missing access explicitly.</resume-signal>
 </task>
 </tasks>
 
@@ -424,7 +424,7 @@ Output: Working dashboard component.
 
 <success_criteria>
 - All tasks completed
-- User approved visual layout
+- Agent verified the visual layout against the assigned requirements
 </success_criteria>
 
 <output>

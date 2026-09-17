@@ -11,7 +11,7 @@ Routes to the update workflow which handles:
 - Version detection (local vs global installation)
 - npm version checking
 - Changelog fetching and display
-- User confirmation with clean install warning
+- Assigned scope and local-change preservation checks with clean install preview
 - Update execution and cache clearing
 - Restart reminder
 </objective>
@@ -29,7 +29,7 @@ The workflow handles all logic including:
 3. Version comparison
 4. Changelog fetching and extraction
 5. Clean install warning display
-6. User confirmation
+6. Scope and preservation verification
 7. Update execution
 8. Cache clearing
 </process>

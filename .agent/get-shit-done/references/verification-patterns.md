@@ -11,7 +11,7 @@ A file existing does not mean the feature works. Verification must check:
 3. **Wired** - Connected to the rest of the system
 4. **Functional** - Actually works when invoked
 
-Levels 1-3 can be checked programmatically. Level 4 often requires human verification.
+Levels 1-3 can be checked programmatically. Level 4 requires direct behavioral verification with appropriate tools.
 </core_principle>
 
 <stub_detection>
@@ -556,43 +556,13 @@ Run these checks against each must-have artifact. Aggregate results into VERIFIC
 
 </automated_verification_script>
 
-<human_verification_triggers>
-
-## When to Require Human Verification
-
-Some things can't be verified programmatically. Flag these for human testing:
-
-**Always human:**
-- Visual appearance (does it look right?)
-- User flow completion (can you actually do the thing?)
-- Real-time behavior (WebSocket, SSE)
-- External service integration (Stripe, email sending)
-- Error message clarity (is the message helpful?)
-- Performance feel (does it feel fast?)
-
-**Human if uncertain:**
-- Complex wiring that grep can't trace
-- Dynamic behavior depending on state
-- Edge cases and error states
-- Mobile responsiveness
-- Accessibility
-
-**Format for human verification request:**
-```markdown
-## Human Verification Required
-
-### 1. Chat message sending
-**Test:** Type a message and click Send
-**Expected:** Message appears in list, input clears
-**Check:** Does message persist after refresh?
-
-### 2. Error handling
-**Test:** Disconnect network, try to send
-**Expected:** Error message appears, message not lost
-**Check:** Can retry after reconnect?
-```
-
-</human_verification_triggers>
+<behavior_verification>
+Verify visuals, user flows, realtime delivery, integration, errors, responsiveness
+and accessibility directly using the appropriate authorized tools. Static code
+checks alone may be insufficient; that does not make these human-only tasks.
+Record actual evidence and any precise unavailable capability. Follow the
+checkpoint reference; do not create a human approval gate or fabricate a pass.
+</behavior_verification>
 
 <checkpoint_automation_reference>
 

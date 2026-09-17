@@ -96,30 +96,11 @@ Outstanding verification items in this phase:
 These will carry forward as debt. Review: `/gsd-audit-uat`
 ```
 
-This does NOT block transition — it ensures the user sees the debt before confirming.
+Record non-blocking debt separately; unresolved required acceptance criteria still block completion.
 
 **If all plans complete:**
 
-<if mode="yolo">
-
-```
-⚡ Auto-approved: Transition Phase [X] → Phase [X+1]
-Phase [X] complete — all [Y] plans finished.
-
-Proceeding to mark done and advance...
-```
-
-Proceed directly to cleanup_handoff step.
-
-</if>
-
-<if mode="interactive" OR="custom with gates.confirm_transition true">
-
-Ask: "Phase [X] complete — all [Y] plans finished. Ready to mark done and move to Phase [X+1]?"
-
-Wait for confirmation before proceeding.
-
-</if>
+Verify required outcomes before marking the phase complete. Continue directly to cleanup_handoff; enter the next phase only when already assigned. No new approval is needed within the assignment, and a summary file alone does not prove completion.
 
 **If plans incomplete:**
 
@@ -134,7 +115,7 @@ Phase [X] has incomplete plans:
 - {phase}-02-SUMMARY.md ✗ Missing
 - {phase}-03-SUMMARY.md ✗ Missing
 
-⚠️ Safety rail: Skipping plans requires confirmation (destructive action)
+Do not skip required plans to obtain completion. Preserve evidence and resolve missing prerequisites directly; do not delete retained work or substitute approval for execution.
 
 Options:
 1. Continue current phase (execute remaining plans)

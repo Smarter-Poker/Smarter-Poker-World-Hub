@@ -203,7 +203,7 @@ Format each as: Test Name → What to do → Expected result → Why can't verif
 
 **gaps_found:** Any truth FAILED, artifact MISSING/STUB, key link NOT_WIRED, or blocker found.
 
-**human_needed:** All automated checks pass but human verification items remain.
+**human_needed:** Automated checks pass but direct behavior checks remain; perform them yourself before claiming completion.
 
 **Score:** `verified_truths / total_truths`
 </step>
@@ -223,7 +223,7 @@ If gaps_found:
 REPORT_PATH="$PHASE_DIR/${PHASE_NUM}-VERIFICATION.md"
 ```
 
-Fill template sections: frontmatter (phase/timestamp/status/score), goal achievement, artifact table, wiring table, requirements coverage, anti-patterns, human verification, gaps summary, fix plans (if gaps_found), metadata.
+Fill template sections: frontmatter (phase/timestamp/status/score), goal achievement, artifact table, wiring table, requirements coverage, anti-patterns, direct behavior verification, gaps summary, fix plans (if gaps_found), metadata.
 
 See .agent/get-shit-done/templates/verification-report.md for complete template.
 </step>
@@ -246,7 +246,7 @@ Orchestrator routes: `passed` → update_roadmap | `gaps_found` → create/execu
 - [ ] All key links verified
 - [ ] Requirements coverage assessed (if applicable)
 - [ ] Anti-patterns scanned and categorized
-- [ ] Human verification items identified
+- [ ] Direct behavior checks completed or precise access blockers recorded
 - [ ] Overall status determined
 - [ ] Fix plans generated (if gaps_found)
 - [ ] VERIFICATION.md created with complete report

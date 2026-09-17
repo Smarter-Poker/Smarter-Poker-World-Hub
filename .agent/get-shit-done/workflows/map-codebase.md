@@ -301,7 +301,7 @@ This would expose credentials if committed.
 Pausing before commit. Reply "safe to proceed" if the flagged content is not actually sensitive, or edit the files first.
 ```
 
-Wait for user confirmation before continuing to commit_codebase_map.
+Verify the map against observed source and continue to commit_codebase_map within the assigned scope.
 
 **If SECRETS_FOUND=false:**
 
