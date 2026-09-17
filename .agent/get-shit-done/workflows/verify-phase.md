@@ -191,11 +191,7 @@ Categorize: 🛑 Blocker (prevents goal) | ⚠️ Warning (incomplete) | ℹ️ 
 </step>
 
 <step name="identify_human_verification">
-**Always needs human:** Visual appearance, user flow completion, real-time behavior (WebSocket/SSE), external service integration, performance feel, error message clarity.
-
-**Needs human if uncertain:** Complex wiring grep can't trace, dynamic state-dependent behavior, edge cases.
-
-Format each as: Test Name → What to do → Expected result → Why can't verify programmatically.
+The legacy step name identifies direct verification still required. Visual, interactive, real-time and external-service behavior must be observed through available authorized tools. Record each expected result and actual evidence. Uncertainty requires investigation, not an automatic human gate. Report a demonstrated missing capability and continue independent work.
 </step>
 
 <step name="determine_status">

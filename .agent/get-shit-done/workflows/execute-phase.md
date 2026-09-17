@@ -235,11 +235,9 @@ Execute each selected wave in sequence. Within a wave: parallel if `PARALLELIZAT
        </objective>
 
        <parallel_execution>
-       You are running as a PARALLEL executor agent. Use --no-verify on all git
-       commits to avoid pre-commit hook contention with other agents. The
-       orchestrator validates hooks once after all agents complete.
-       For gsd-tools commits: add --no-verify flag.
-       For direct git commits: use git commit --no-verify -m "..."
+       If delegation was explicitly authorized, use an isolated owned worktree,
+       ordinary hooks and explicit paths. Resolve real contention through
+       supported ownership and isolation; never bypass hooks or share a writer.
        </parallel_execution>
 
        <execution_context>
@@ -303,15 +301,12 @@ Execute each selected wave in sequence. Within a wave: parallel if `PARALLELIZAT
    **This fallback applies automatically to all runtimes.** Claude Code's Task() normally
    returns synchronously, but the fallback ensures resilience if it doesn't.
 
-4. **Post-wave hook validation (parallel mode only):**
+4. **Verify integrated evidence:**
 
-   When agents committed with `--no-verify`, run pre-commit hooks once after the wave:
-   ```bash
-   # Run project's pre-commit hooks on the current state
-   git diff --cached --quiet || git stash  # stash any unstaged changes
-   git hook run pre-commit 2>&1 || echo "⚠ Pre-commit hooks failed — review before continuing"
-   ```
-   If hooks fail: report the failure and ask "Fix hook issues now?" or "Continue to next wave?"
+   Each owned commit must pass ordinary hooks. After integrating authorized
+   contributions, run the checks affected by that integration. Preserve other
+   worktrees and shared stash; never stash another task's changes or downgrade
+   a hook failure to a warning. Diagnose and fix required failures directly.
 
 5. **Report completion — spot-check claims first:**
 
@@ -320,7 +315,7 @@ Execute each selected wave in sequence. Within a wave: parallel if `PARALLELIZAT
    - Check `git log --oneline --all --grep="{phase}-{plan}"` returns ≥1 commit
    - Check for `## Self-Check: FAILED` marker
 
-   If ANY spot-check fails: report which plan failed, route to failure handler — ask "Retry plan?" or "Continue with remaining waves?"
+   If any spot-check fails, inspect and repair the actual defect. Continue independent assigned work while preserving unresolved required checks.
 
    If pass:
    ```

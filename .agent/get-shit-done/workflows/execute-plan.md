@@ -198,7 +198,7 @@ See `.agent/get-shit-done/references/tdd.md` for structure.
 Your commits may trigger pre-commit hooks. Auto-fix hooks handle themselves transparently — files get fixed and re-staged automatically.
 
 **If running as a parallel executor agent (spawned by execute-phase):**
-Use `--no-verify` on all commits. Pre-commit hooks cause build lock contention when multiple agents commit simultaneously (e.g., cargo lock fights in Rust projects). The orchestrator validates once after all agents complete.
+Use an isolated owned worktree and ordinary hooks. Resolve actual contention through supported isolation; never bypass checks or alter another task's writer.
 
 **If running as the sole executor (sequential mode):**
 If a commit is BLOCKED by a hook:
