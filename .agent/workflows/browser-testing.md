@@ -32,7 +32,7 @@ This is completely independent of the IDE browser and never fails due to the bro
 When you need to test any feature in the browser, use the following test account:
 
 - **Email:** `daniel@bekavactrading.com`
-- **Password:** `<TEST_USER_PASSWORD — see .env.local, never commit>`
+- **Password:** `<use the configured authorized test-account interface; never read or print credential values>`
 
 ---
 

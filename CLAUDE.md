@@ -2,96 +2,11 @@
 
 # Smarter-Poker-World-Hub -- Agent Instructions
 
-## ↗ START HERE: `AGENT-PLAYBOOK.md`
+## ↗ START HERE: current operating references
 
-**Before this file, before anything: read [`AGENT-PLAYBOOK.md`](./AGENT-PLAYBOOK.md).**
+Read root `AGENTS.md`, `AGENT-PLAYBOOK.md` and `docs/agent-policy/REFERENCE-INDEX.md` at task start and every resumption. They link to the current owner policy, operating law and hardening standard. Read `PUBLISHING.md` for delivery. Later owner instructions govern operating authority; the product and financial laws below remain applicable within the assigned scope. Historical programmes are not automatic assignments.
 
-Use [PUBLISHING.md](PUBLISHING.md) for the current release procedure.
-The playbook retains repository safeguards and historical context; its older
-release directions cannot override the September 17 owner instruction.
-
----
-
-
-ALL agents (Claude, AntiGravity, Cowork, any AI) MUST read this file at session start.
-This is the single source of truth for **this repo**. Updated 2026-04-29.
-
-**MANDATORY reading at session start, in this order:**
-0. `.agent/workflows/claude-mcp-push.md` — **how you push and publish on
-   your own.** No handoffs. No "review beats". Never ask the user to run a
-   deploy script. If your shell has no network route to GitHub, the GitHub
-   MCP server does — it runs natively on the Mac and is already
-   authenticated. Read this FIRST if you will change any file.
-1. `.agent/AGENT_BINDING_RULES.md` — the **short binding rules** on push,
-   publish, and branch protection. Every rule corresponds to a real
-   regression. Violations are auto-detected. Read this FIRST.
-2. `.agent/CLAUDE_AGENT_RULES.md` — the longer, version-controlled rule
-   book all agents share (RULES 1-12).
-3. `.agent/AGENT-OPERATIONS-GUIDE.md` — which shell you are in, how to push
-   and publish YOURSELF (no handoffs), where credentials live post-rotation,
-   verify-against-reality rules, the house bug shape, concurrency rules.
-   `.agent/SELF-PUBLISH-PROTOCOL.md` holds the push mechanics.
-
-Audit records go under `.agent/audits/`. (`.memory/` is public and tracked on main — NEVER put secrets in it.)
-
-`.agent/handoffs/` is **CLOSED for deploy, push, and build work.** A
-handoff is permitted ONLY for the genuine human-only exceptions listed in
-RULE 0 (consent, credentials, financial/legal, interactive 2FA). Never
-write a handoff — or leave files uncommitted — that asks a human or the
-next agent to push, build, or deploy your work. Uncommitted work is
-DESTROYED by the Antigravity `git reset --hard origin/main` loop.
-
-## RULE 0 (BINDING): No manual human work
-
-**Shipping is never "something you cannot do yourself."** Pushing,
-building, and deploying always have a route available to you:
-
-1. **GitHub MCP** (`create_or_update_file`, `push_files`) — runs natively
-   on the Mac, already authenticated, has network access. This is the
-   primary path for text and code, and it works even when your own shell
-   is network-blocked.
-2. **Normal Git in an owned worktree**: stage explicit paths, commit with
-   ordinary hooks, push the owned branch and complete the protected PR.
-   Background push services and shared-clone push scripts are retired.
-
-Never convert a deploy into a handoff, a "review beat", or a request that
-the user perform an already-authorized push or publication. The current procedure
-is [PUBLISHING.md](PUBLISHING.md); older push scripts do not override it.
-
-If you need something done that you cannot physically do yourself (token
-scope missing, dashboard-only setting, requires a different platform, etc.)
-you do NOT ask the human to do it manually. You write a self-contained
-**Antigravity handoff prompt** to `.agent/handoffs/YYYY-MM-DD-<slug>.md`
-that another agent (running with the right credentials/scope) can execute
-end-to-end. The full rule + handoff template is in
-`.memory/decisions/2026-04-29-no-manual-human-work.md`. `.memory/` is PUBLIC
-and tracked on main, so treat it as published: never put a credential in it.
-Still copy the salient parts into the handoff itself so the receiving agent
-does not depend on `.memory/`.
-
-Exceptions — things only a human can legitimately do:
-- Approve `request_access` on a new application (consent)
-- Provide credentials the agent has no path to obtain
-- Make a financial/legal decision
-- Settings that genuinely require interactive 2FA or biometric
-
-Everything else gets a handoff, not a "please do this".
-
-**Handoff delivery:** every handoff is BOTH (a) committed to
-`.agent/handoffs/YYYY-MM-DD-<slug>.md` AND (b) pasted into the same chat
-as a copy-pasteable Markdown block. Dan's standing preference is "always
-send handoffs inside this chat" — the on-disk file is the durable
-backup, the chat paste is the active delivery. Skipping (b) is a rule
-violation.
-
-**Platform-level plan** (World Hub + Club Arena + Club Engine + Supabase + Hetzner):
-`./CLUB-ARENA-OFFICIAL-UPGRADE-INTEGRATION.md`
-
-That document is the authoritative upgrade/integration plan and supersedes
-`POKERBROS-PARITY-UPGRADE-PLAN.md` plus every older upgrade/blueprint doc in
-the club-arena repo. If anything conflicts, the platform plan wins.
-
----
+Use the task’s existing handoff for continuity. Do not assume a reset loop is present or authorize one. An inaccessible credential or provider is a specific evidence gap, not permission to bypass safeguards or claim success. The platform upgrade plan is historical scope/dependency context, not authority above the current owner policy.
 
 ## 1. DEPLOYMENT PIPELINE (read this FIRST)
 
@@ -137,37 +52,11 @@ second OAuth client in any provider's console — STOP. The existing
 canonical thing is what you write into. If it doesn't fit, ask Dan,
 don't create something new.
 
-### 1.2 Mandatory End-of-Session Push
+### 1.2 Assigned database changes and maintenance
 
-Canonical rules live in `.agent/CLAUDE_AGENT_RULES.md` — RULE 1 (push), RULE 2
-(SQL), RULE 3 (identity). Read that file at session start.
+Only assigned database changes require migrations. Follow `.agent/workflows/migration-safety.md`, use the maintained naming/installation path, qualify compatibility, and verify the exact installed history and readback. Neither SQL-first nor SQL-last is a universal rule. Never replay an installed migration. The database safety requirements remain:
 
-Summary, every agent MUST do ALL THREE at the end of every session, no
-exceptions:
-
-1. **Deliver the assigned code.** Follow [PUBLISHING.md](PUBLISHING.md):
-   owned branch, PR, required checks, protected merge, Vercel Git publication
-   and actual live proof. Preserve scope; do not add unrelated work.
-
-2. **Write and apply SQL.** If the work touched data, schema, RLS, RPCs, or
-   anything in Supabase, save migrations under
-   `supabase/migrations/<YYYYMMDD>_<description>.sql` AND apply them to
-   production via the Supabase MCP `apply_migration` tool, never inside the
-   break window below. Confirm the migration appears by reading
-   `supabase_migrations.schema_migrations` with `execute_sql` (a SELECT, not
-   `list_migrations`; see below). Never apply schema changes via raw
-   `execute_sql` — migrations only, so the change is auditable.
-
-   For Tier-2+ migrations (anything beyond doc/comment changes), follow
-   the four-step protocol in `.agent/workflows/migration-safety.md`:
-   write from the `supabase/migrations/.template.sql` skeleton, run the
-   pre-flight checklist, apply, then run the post-apply assertions.
-   The template includes `DO $$ ... RAISE EXCEPTION ... $$` blocks so
-   the migration aborts on its own assumption violations. Tier 3
-   (DROP, ALTER COLUMN TYPE, RPC overload changes) MUST include a
-   pasted ROLLBACK section.
-
-   **NO DDL IN THE HOURLY BREAK WINDOW, :50-:03 UTC (2026-09-10, BINDING).**
+**NO DDL IN THE HOURLY BREAK WINDOW, :50-:03 UTC (2026-09-10, BINDING).**
    The database is shared with Club Arena, so its hourly maintenance break
    binds here: :53 announce, :55 freeze, ~:57 engine restart, :00 thaw
    (Club Arena CLAUDE.md section 13). A migration at 23:52 UTC on 2026-09-09
@@ -197,20 +86,6 @@ exceptions:
    A refusal's HINT cites Club Arena CLAUDE.md, Production DDL policy rule
    8: it is this rule. Reasoning: Club Arena
    `docs/changelog/2026-09-10-the-database-refuses-migrations-inside-the-break-window.md`.
-
-3. **Document substantive audits/incidents** under `.agent/audits/<YYYY-MM-DD>-<slug>.md`
-   so future agents can read what was investigated, what was fixed, and what
-   was deferred. Update `.agent/CLAUDE_AGENT_RULES.md` if a new operating rule
-   was learned.
-
-NEVER claim "the fix is documented" as success. Only "production
-`/api/health` serves SHA `<hash>` containing the new code" counts.
-
-Before pushing, verify the staged files make sense:
-1. Run `git status` to see what will be committed
-2. Confirm no build artifacts, temp files, or junk are included
-3. If files should be ignored, add them to `.gitignore` first
-4. Then push
 
 ### 1.3 Push, merge and publication
 
@@ -290,7 +165,7 @@ or its retired sync scripts return.
 
 ## 3. CODE SAFETY RULES (8 Immutable Rules)
 
-Violation of ANY rule = automatic rollback. Enforced by pre-push hooks and CI/CD.
+Preserve these code-safety rules and verify applicable enforcement. A violation requires diagnosis and correction through the protected route; do not infer that an automatic rollback occurred.
 
 1. **No `.single()`** -- Always `.maybeSingle()`. `.single()` throws PGRST116 on 0 rows.
 
@@ -357,7 +232,7 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 5. Verify deployment via Vercel MCP or dashboard
 
 ### Test Account
-Email: `daniel@bekavactrading.com` / Password: `<TEST_USER_PASSWORD — see .env.local, never commit>`
+Email: `daniel@bekavactrading.com` / Password: `<configured authorized test-account access; never print credential values>`
 All features unlocked. Works on localhost and production.
 
 ---
@@ -482,15 +357,7 @@ User logs into smarter.poker, all sub-apps share the session.
 10. Write it down. Read `.memory/` at session start, update at session end.
 11. No exceptions. Every rule, every task, every session.
 12. Never ask "should I?" -- just do it. Only stop for genuine forks.
-13. **Commit + push small, often.** Antigravity (and any other auto-sync agent
-    on Dan's Mac) periodically runs `git reset --hard origin/main`. Any
-    uncommitted edits OR local-only commits at the moment of that reset are
-    silently discarded — work is recoverable from the reflog (`git reflog`,
-    `git stash list`, `git cherry-pick <orphan-sha>`) but only briefly. Run
-    `bash scripts/git-safe-push.sh` after every meaningful change, not at
-    end of session. The reflog signature of an active reset loop is
-    repeated `reset: moving to origin/main` entries — `scripts/git-safe-push.sh`
-    Phase 0.7 warns when ≥2 are seen in the last 50 ops.
+13. **Preserve work in an owned checkout.** Commit explicit paths with normal hooks and follow `PUBLISHING.md`. Do not rely on or restart any reset loop or shared-clone push service.
 
 ---
 
@@ -690,47 +557,13 @@ code fix that stops it recurring.
 
 ---
 
-## 10.7 MERGED IS NOT LANDED (2026-09-06, BINDING)
+## 10.7 MERGED IS NOT LANDED
 
-**`agent-autopilot.yml` squash-merges the moment the required checks pass** -
-under two minutes on an asset-only change. A push made after that lands on a
-CLOSED pull request: the branch moves, the PR stays merged, `git push` exits 0,
-and the commits reach nobody.
+After a PR merges, later branch commits need an owned follow-up branch and PR. Inspect the actual PR and merged files; a successful push into a closed PR proves no integration. Follow `PUBLISHING.md` through live verification. Use ordinary hooks and inspect their supported behavior; never rely on disabled autopilot or undocumented override variables.
 
-**#1387 shipped 1 of its 3 commits this way.** The push reported success, the
-pull request reported merged, and the branch really did contain all three. The
-Global Footer E2E fix and two file deletions were not on `main`, and it was
-found hours later by accident.
+## 10.8 A CHECK THAT NOBODY CAN SEE IS NOT A CHECK
 
-1. **A follow-up commit needs a NEW BRANCH off current `main`.**
-   `scripts/guard-merged-branch.sh` refuses the push from `.husky/pre-push` and
-   prints the recovery. It fails OPEN on a missing token, no network, or an
-   unreadable answer. Override: `AGENT_MERGED_BRANCH_OK=1 git push ...`
-2. **Verify the FILES, not the tick**: `git cat-file -e origin/main:<path>`.
-   RULE 1 already says only production serving the sha counts as deployed; this
-   is that rule one step earlier.
-
----
-
-## 10.8 A CHECK THAT NOBODY CAN SEE IS NOT A CHECK (2026-09-06, BINDING)
-
-`Global Footer E2E` failed on EVERY run on `main` from 2026-09-04, found two
-days later by accident. Not in the `main: no rewinds` ruleset, so it blocked no
-merge and opened no issue. Twenty-odd merges landed on top of it. None of its
-three failures was in the footer - they were marketplace tests run by
-`npm run build`, each one a correct change that left its test behind.
-
-`scripts/ci/check-main-is-green.mjs`, in `publish-watchdog.yml`, now raises a
-single issue for any workflow red on `main` past a threshold **with no open
-issue naming it**. Workflows that fail deliberately to raise an alarm are
-reported as `loud` and never paged on - the first run caught `Publish Watchdog`
-doing exactly that, and treating it as a defect would have trained everyone to
-ignore the detector.
-
-It cannot live in Open Claw, for the reason section 11.4 already gives about
-this workflow: it asks GitHub about GitHub.
-
----
+Required checks must actually execute and their results must be readable for the candidate revision. A missing or inaccessible result is unknown, not passing. Use configured Actions run/job evidence when another interface lacks check access. Historical watchdog reporting is not release authority; those retired workflows must not be reactivated. Retain the owning run and applicable result in the task checkpoint.
 
 ## 10.85 AGENTS NEVER SET A CREDENTIAL (2026-09-06, BINDING)
 
@@ -801,16 +634,9 @@ whole time. Deleted 2026-09-04.
 A scheduler that lies about running is worse than none, because somebody stops
 watching the thing it claimed to watch.
 
-### Where it goes instead
+### Scheduled business work
 
-- **Application logic on a schedule** -> Open Claw on Hetzner. Add the handler
-  under `pages/api/cron/<name>.js`, register it in
-  `scripts/openclaw-cron-dispatcher.py`, deploy with
-  `bash scripts/deploy-openclaw.sh`. Full procedure in section 11.2.
-- **CI-side work that genuinely needs GitHub's environment** -> a workflow
-  `schedule:` trigger, and only if it is on the section 11.4 allowlist.
-- **A follow-up you want to make personally** -> do it now, or open an issue.
-  Never a timer. Club Arena Playbook 7b already forbids sitting on CI.
+Preserve unrelated existing business schedules. New scheduled functionality requires explicit task-specific owner instruction and the approved owning platform described in section 11. No watcher, timer, scheduled agent or repair job may initiate, advance, retry or certify a release. Follow the operating law for provider waits.
 
 ### What this does NOT forbid
 
@@ -824,7 +650,9 @@ vanish - not on Dan's own tooling.
 
 ---
 
-## 11. SCHEDULED JOBS / CRONS (binding — CI-enforced)
+## 11. SCHEDULED JOBS / CRONS (existing business behavior)
+
+This section does not authorize new scheduled work. The operating law and hardening standard prohibit scheduled release or repair mechanisms. New business schedules require explicit task-specific owner instruction; preserve unrelated existing ones.
 
 **All new scheduled jobs go to Open Claw on Hetzner. Never to `vercel.json`.**
 

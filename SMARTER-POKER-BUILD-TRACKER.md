@@ -911,7 +911,7 @@ Net publication: 59 → 56 (3 fewer than baseline). Estimated $60-120/mo savings
 
 **Why shelved rather than deleted:** Permanent deletion of Vercel projects is an irreversible action the agent won't take without explicit user direction, and the project is already effectively inert (`live: false`, no custom domain, only `.vercel.app` subdomains). The sibling `club-arena` project already serves the Club Arena frontend in production, so no functionality is lost.
 
-**If reviving:** fresh GITHUB_TOKEN required (the one in `.env` is currently 401). Pull `Smarter-Poker/Club-Arena-Design` locally, reproduce the vite build, diagnose the TS errors in `PlayerStatsDashboard`, `ClubDashboard`, `MessagingService`, `ReferralService`, `SocialEnhancementsService`, then push. Or redirect the backing repo's content into `club-arena` if the work is no longer distinct.
+**If explicitly assigned to revive this work:** verify current configured authenticated access; the old `.env` credential snapshot is historical, not an instruction to read or rotate credentials. Pull `Smarter-Poker/Club-Arena-Design` locally, reproduce the vite build, diagnose the TS errors in `PlayerStatsDashboard`, `ClubDashboard`, `MessagingService`, `ReferralService`, `SocialEnhancementsService`, then push. Or redirect the backing repo's content into `club-arena` if the work is no longer distinct.
 
 ---
 

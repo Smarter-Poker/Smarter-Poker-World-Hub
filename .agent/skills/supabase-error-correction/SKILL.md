@@ -74,7 +74,7 @@ grep -r "supabase" --include="*.js" --include="*.jsx" --include="*.ts" --include
 **RISK: NONE** - Just reading files
 
 ### Step 1.3: Configuration Audit
-Compare `.env` keys against Supabase dashboard:
+Verify credential names and configured provider access without reading `.env` values:
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY

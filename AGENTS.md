@@ -1,3 +1,9 @@
+## Required reading and precedence
+
+At task start, every resumption/context loss, and before final validation read [the owner policy](docs/agent-policy/OWNER-POLICY.md), [operating law](docs/agent-policy/OPERATING-LAW.md), [hardening standard](docs/agent-policy/HARDENING.md), and [reference index](docs/agent-policy/REFERENCE-INDEX.md), plus the actual task checkpoint and applicable path instructions. On the owner’s Mac read the current shared sources in `/Users/smarter.poker/Documents` as well. Later explicit owner directions take precedence over an older mirror. Use [PUBLISHING.md](PUBLISHING.md) for this repository's delivery route.
+
+Historical handoffs and programmes are evidence and dependency references, not standing release instructions. Do not restore revoked global freezes, human approval labels, numbered queues or retired publishers. Preserve specific task holds and actual schema/financial/maintenance safeguards.
+
 # Current owner publication instruction, September 17, 2026
 
 This is the active instruction for local and cloud agents. Read [PUBLISHING.md](PUBLISHING.md) for the push, protected merge, provider publication and live-verification procedure. This later owner instruction supersedes the earlier restoration-only authority, ordered replay holds and conflicting historical playbooks.
@@ -5,7 +11,7 @@ This is the active instruction for local and cloud agents. Read [PUBLISHING.md](
 - Each agent authorized to push and publish owns its assigned delivery through verified production. All workstreams may proceed in parallel. Do not wait for the restoration task, another numbered delivery or another manual release handoff.
 - Preserve actual code/schema dependencies, required technical checks, source review, financial invariants, transactional safeguards, maintenance boundaries and provider concurrency. Do not turn those safeguards into an unrelated-task queue.
 - Use owned worktrees and branches, ordinary hooks, an existing or new PR and protected squash merge. Preserve other agents' work, credentials, installed migration records and production user/game/financial data. Never reset shared checkouts or bypass a failing required check.
-- The owner removed the human-only `revert-approved` requirement. An authorized agent completes its own intentional-recovery acknowledgment and delivery; do not introduce another human approval label or a restoration-owner gate. Retain the applicable automatic technical safeguards.
+- The owner removed the human-only `revert-approved` requirement. An authorized agent reviews source findings and completes its delivery; do not introduce another human approval label or a restoration-owner gate. Retain the applicable automatic technical safeguards.
 - The restored routes are GitHub-hosted checks; World Hub Vercel Git source builds and production hosting in `hub-vanguard`; Club Arena GitHub client builds and Hetzner publication; and the existing GitHub/Hetzner engine release route. Provider compute required for authorized delivery is permitted. Do not use the retired custom-native or M3 production pipeline.
 - Existing agent autopilot, release watchdogs, scheduled repairs, local publishers and background push services remain inactive. Do not add a watcher, cron, reconciler or recurring agent to initiate, advance, retry or certify a release.
 - The removed external error-telemetry provider and its integrations remain retired. Never restore their SDKs, ingestion, build uploads, secrets, autofix routes or runtime calls when integrating application work. Preserve ordinary diagnostics, first-party records and financial/engine monitoring.

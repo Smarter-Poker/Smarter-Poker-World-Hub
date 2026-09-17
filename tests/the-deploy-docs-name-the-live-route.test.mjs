@@ -202,3 +202,35 @@ test('the deleted directory and its scripts are actually gone from disk', () => 
     assert.ok(!existsSync(join(ROOT, path)), `${path} is back - it must not be`);
   }
 });
+
+
+const POLICY_FILES = [
+  'OWNER-POLICY.md', 'OPERATING-LAW.md', 'HARDENING.md', 'REFERENCE-INDEX.md',
+];
+const FIRST_OPEN_DOCS = [
+  'AGENT-PLAYBOOK.md', 'AGENTS-PUSH-GUIDE.md', 'CLAUDE.md',
+  '.agents/rules/00-agent-playbook.md',
+];
+const RETIRED_ACTIVE_DIRECTIONS = [
+  /your job ends at [“"`]push a branch/i,
+  /autopilot (?:squash-)?merges (?:it |only |the moment)/i,
+  /gh[^\n]{0,20}is NOT installed/i,
+  /migrations[^\n]*will be applied by CI/i,
+  /root retains sole (?:integration|release)/i,
+];
+
+test('the root loader reaches the portable policy and every policy file exists', () => {
+    const loader = read('AGENTS.md');
+    for (const file of POLICY_FILES) {
+        assert.ok(loader.includes(`docs/agent-policy/${file}`));
+        assert.ok(read(`docs/agent-policy/${file}`).trim());
+    }
+});
+
+test('first-open guides do not reinstate retired release or environment directions', () => {
+    for (const file of FIRST_OPEN_DOCS) {
+        for (const retired of RETIRED_ACTIVE_DIRECTIONS) {
+            assert.doesNotMatch(read(file), retired, file);
+        }
+    }
+});
