@@ -103,6 +103,29 @@ jobs:
       - name: Local Scraper Runtime Integrity And Delivery
         run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
 
+      - name: Messenger Club And Invoice Separation
+        run: >-
+          node --test
+          __tests__/messenger-workspace.test.mjs
+          __tests__/messenger-accounting-ui.test.mjs
+          __tests__/messenger-conversation-link.test.mjs
+          __tests__/messenger-search-lifecycle.test.mjs
+          __tests__/cashier-accounting-display.test.mjs
+          __tests__/cashout-v2-bridge.test.mjs
+          __tests__/correction-accounting-display.test.mjs
+          __tests__/credit-change-accounting-display.test.mjs
+
+      - name: Accounting Push Receipt And Ownership Contracts
+        run: >-
+          node --test
+          __tests__/accounting-push-delivery.test.mjs
+          __tests__/accounting-push-privacy.test.mjs
+          __tests__/push-invoice-routing.test.mjs
+          __tests__/push-subscription-ownership.test.mjs
+          __tests__/push-rotation-ownership.test.mjs
+          __tests__/push-health-snapshot.test.mjs
+          __tests__/zombie-endpoint-retirement.test.mjs
+
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
 
@@ -531,6 +554,7 @@ jobs:
           # see .agent/audits/2026-08-15-check13-phantom-column-burndown.md),
           # so --warn-only was removed the same day the scanner first
           # reported clean.
+          node --test tests/check-phantom-column-select-parser.test.mjs
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-column check is NOT enforced."
             exit 0

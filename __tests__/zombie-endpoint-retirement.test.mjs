@@ -185,38 +185,15 @@ test('the newest row in a group is never retired', () => {
     assert.deepEqual(selectRetirable(rows, zombiesOf(rows), CUTOFF).map((r) => r.id), []);
 });
 
-/**
- * ── AN UNVERIFIED CALLER MAY NOT MUTE A DEVICE (2026-09-07) ────────────────
- *
- * `/api/push/rotate` is UNAUTHENTICATED by design - a service worker calls it
- * from `pushsubscriptionchange`, where no session exists - so proof of
- * possession of the old subscription's auth secret is the only thing between a
- * caller and somebody else's notifications.
- *
- * The same-device retire shipped as a bare `if (row.device_id)`, with no
- * `verified` check, reopening the hole the block thirty lines above it closes
- * and whose comment names it. Post a victim's `oldEndpoint` with your own
- * endpoint and no `oldKeys`: `verified` is false, the victim's `device_id` is
- * still copied onto the new row, and every live row for that device is
- * switched off. Strictly worse than the 2026-08-19 bug, which silenced one row.
- */
-test('the same-device retire requires proof of possession', () => {
-    const src = readFileSync(join(ROOT, 'pages/api/push/rotate.js'), 'utf8');
-
-    const at = src.indexOf('superseded_same_device');
-    assert.ok(at > -1, 'the same-device retire is gone');
-    // Walk back to the `if (...)` that opens the block and require `verified`.
-    const guard = src.lastIndexOf('if (', at);
-    const condition = src.slice(guard, src.indexOf('{', guard));
-    assert.match(
-        condition,
-        /verified\s*&&/,
-        `the same-device retire is gated on "${condition.trim()}" - without \`verified\` this ` +
-            'route is an unauthenticated mute button for any endpoint an attacker has learned'
-    );
-
-    // And the single-row retire above it keeps its own proof requirement.
-    assert.match(src, /const supersedes = verified && oldEndpoint !== endpoint;/);
+// Rotation now requires authenticated account authority and one CAS transaction.
+// An unverified worker call must not create even an inactive replacement.
+// Behavioral refusal coverage lives in push-rotation-ownership.test.mjs (UNRUN).
+test('rotation no longer exposes independent same-device retirement writes', () => {
+    const route = readFileSync(join(ROOT, 'pages/api/push/rotate.js'), 'utf8');
+    const adapter = readFileSync(join(ROOT, 'src/lib/push/subscription-rotation.mjs'), 'utf8');
+    assert.match(route, /getUser: getServerUserWithFallback/);
+    assert.match(adapter, /rpc\('fn_rotate_push_subscription'/);
+    assert.doesNotMatch(route + adapter, /\.(update|upsert)\(/);
 });
 
 test('a row with no user agent is never grouped with anything', () => {

@@ -1,7 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { searchMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { escapeLikeQuery } from '../../../src/utils/messageSanitizer';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
@@ -43,31 +43,11 @@ export default async function handler(req, res) {
           const user = authData?.user;
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-           // Search messages — only from conversations the user participates in
-           // Step 1: Get user's conversation IDs (cap at 500 to prevent URL overflow in .in())
-           const { data: participations } = await getSupabase()
-               .from('social_conversation_participants')
-               .select('conversation_id')
-               .eq('user_id', user.id)
-               .limit(500);
-
-           const convIds = (participations || []).map(p => p.conversation_id);
-           if (convIds.length === 0) {
-               return res.json({ success: true, results: [] });
-           }
-
-           // Step 2: Search messages in those conversations (escaped LIKE)
-           const escapedQuery = escapeLikeQuery(query);
-           const { data: messages, error: searchErr } = await getSupabase()
-               .from('social_messages')
-               .select('id, content, created_at, sender_id, conversation_id, is_deleted')
-               .in('conversation_id', convIds)
-               .ilike('content', `%${escapedQuery}%`)
-               .eq('is_deleted', false)
-               .order('created_at', { ascending: false })
-               .limit(30);
-
-          if (searchErr) throw searchErr;
+           // The same server workspace authority controls inboxes and search.
+           // Omitting a workspace means social messages, including legacy callers.
+           const messages = await searchMessengerWorkspace(getSupabase(), user.id, {
+               query, clubId, workspace: req.body.workspace, folder: req.body.folder,
+           }, 30);
 
           // Get unique sender IDs to fetch profiles
           const senderIds = [...new Set((messages || []).map(m => m.sender_id))];
@@ -82,6 +62,8 @@ export default async function handler(req, res) {
 
           const results = (messages || []).map(m => ({
               id: m.id,
+              message_type: m.message_type,
+              media_metadata: m.media_metadata,
               content: m.content,
               created_at: m.created_at,
               conversation_id: m.conversation_id,
@@ -92,11 +74,11 @@ export default async function handler(req, res) {
           return res.json({ success: true, results });
       } catch (e) {
           console.warn('[ANTIGRAVITY] Global Search Exception:', e);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
+          return res.status([400, 403, 404, 503].includes(e.status) ? e.status : 500).json({ success: false, error: 'Message Search Unavailable' });
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportingErr) { console.warn('[App] Handled exception:', _reportingErr?.message || _reportingErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

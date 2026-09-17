@@ -31,7 +31,7 @@
  * Measured on production before the fix: one account, 22 rows, 4 active for
  * 2 physical devices, every row device_id = NULL.
  *
- * Run: node --test __tests__/rotation-keeps-device-identity.test.mjs
+ * Source successor: protected execution only; revised assertions remain UNRUN.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,6 +41,7 @@ import { dirname, join } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ROTATE = readFileSync(join(ROOT, 'pages/api/push/rotate.js'), 'utf8');
+const ROTATION_ADAPTER = readFileSync(join(ROOT, 'src/lib/push/subscription-rotation.mjs'), 'utf8');
 const SUBSCRIBE = readFileSync(join(ROOT, 'pages/api/push/subscribe.js'), 'utf8');
 const HEALTH = readFileSync(join(ROOT, 'pages/api/cron/push-health.js'), 'utf8');
 const CONFIRMED_LEGACY_REPAIR = readFileSync(
@@ -53,73 +54,26 @@ function code(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 }
 
-test('rotate SELECTS device_id -- it cannot carry what it never read', () => {
-  const select = code(ROTATE).match(/\.select\(\s*'([^']*)'\s*\)/);
-  assert.ok(select, 'expected a .select() on the push_subscriptions lookup');
-  assert.match(
-    select[1],
-    /\bdevice_id\b/,
-    'rotate.js must select device_id. Without it `existing.device_id` is ' +
-      'undefined and the identity is dropped silently, with no error anywhere.'
-  );
+test('rotation carries recorded device and exact revision to its one atomic authority', () => {
+  const src = code(ROTATION_ADAPTER);
+  const select = src.match(/\.select\(\s*'([^']*)'\s*\)/);
+  assert.ok(select); assert.match(select[1], /\bdevice_id\b/); assert.match(select[1], /rotation_revision::text/);
+  assert.match(src, /device_id: source\.device_id/);
+  assert.match(src, /rpc\('fn_rotate_push_subscription'/);
+  assert.doesNotMatch(src, /\.(update|upsert)\(/);
 });
 
-test('rotate CARRIES device_id onto the replacement row', () => {
-  assert.match(
-    code(ROTATE),
-    /row\.device_id\s*=\s*existing\.device_id/,
-    'The rotated row must inherit the old row device_id, or it is exempt from ' +
-      'push_subscriptions_one_active_per_device_uidx forever and the phone ' +
-      'receives every notification twice.'
-  );
-});
-
-test('the retire runs BEFORE the upsert, or the unique index rejects it', () => {
-  // Ordering is not stylistic here. Once the new row carries device_id,
-  // inserting it while the old row is still is_active means two live rows for
-  // one (user_id, device_id) -- which the partial unique index refuses. The
-  // old code upserted first and retired second, which was correct ONLY while
-  // device_id was being dropped.
+test('rotation authenticates and delegates; compensation is forbidden', () => {
   const src = code(ROTATE);
-  const retire = src.indexOf("last_failure_reason: 'rotated'");
-  const upsert = src.indexOf("onConflict: 'user_id,endpoint'");
-  assert.ok(retire > -1, 'expected the rotated-row retire');
-  assert.ok(upsert > -1, 'expected the upsert');
-  assert.ok(
-    retire < upsert,
-    'The retire of the superseded row must come BEFORE the upsert of the ' +
-      'replacement. Reversed, the upsert violates ' +
-      'push_subscriptions_one_active_per_device_uidx and the rotation fails ' +
-      'outright -- taking the self-heal path down with it.'
-  );
+  assert.match(src, /getUser: getServerUserWithFallback/);
+  assert.match(src, /createPushRotationHandler/);
+  assert.doesNotMatch(src, /\.(update|upsert)\(/);
 });
 
-test('a failed upsert puts the retired row back', () => {
-  // The retire now happens first, so an upsert failure would otherwise leave
-  // the device with NO live subscription -- a silent unsubscribe, which is the
-  // exact failure this route exists to prevent.
-  const src = code(ROTATE);
-  const upsertErr = src.indexOf('if (upsertErr)');
-  assert.ok(upsertErr > -1, 'expected upsert error handling');
-  const tail = src.slice(upsertErr, upsertErr + 700);
-  assert.match(
-    tail,
-    /is_active:\s*true/,
-    'On upsert failure the previously retired row must be reactivated. ' +
-      'Retiring first without a rollback trades a duplicate banner for a dead ' +
-      'device, which is a worse bug than the one being fixed.'
-  );
-});
-
-test('subscribe.js still retires same-device rows before ITS upsert', () => {
-  // The invariant this whole fix rests on. If this ordering is ever reversed
-  // in subscribe.js, enrolment starts failing on the unique index for every
-  // device that re-subscribes.
+test('enrollment keeps its existing atomic ownership authority', () => {
   const src = code(SUBSCRIBE);
-  const retire = src.indexOf("'superseded_same_device'");
-  const upsert = src.indexOf("onConflict: 'user_id,endpoint'");
-  assert.ok(retire > -1 && upsert > -1, 'expected the same-device retire and the upsert');
-  assert.ok(retire < upsert, 'subscribe.js must retire the same-device rows before upserting');
+  assert.match(src, /await changePushSubscription/);
+  assert.doesNotMatch(src, /\.(update|upsert)\(/);
 });
 
 test('the device_id contract is still validated, not trusted', () => {

@@ -33,6 +33,7 @@ import { isPushConfigured } from '../../../src/lib/push/web-push';
 import { sendPush, SUBSCRIPTION_COLUMNS } from '../../../src/lib/push/send-push';
 import { recordSendFailure } from '../../../src/lib/push/push-deliver';
 import { routeOperationalPushRows, routeQueuedOperationalPushes } from '../../../src/lib/push/operational-push-routing.mjs';
+import { isAccountingPush, deliverAccountingPush, releaseAccountingPush } from '../../../src/lib/push/accounting-delivery';
 import { isTournamentReminder, deliverTournamentReminder } from '../../../src/lib/push/tournament-reminder-delivery';
 import { loadGateContext, gateDecision, needsDailyCount, countSentTodayBatch } from '../../../src/lib/push/push-gate';
 
@@ -175,7 +176,8 @@ async function handler(req, res) {
     }
     const runId = runRow?.id || null;
 
-    const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0, digested: 0 };
+    const stats = { requeued: 0, claimed: 0, sent: 0, failed: 0, skipped: 0, deactivated: 0, digested: 0, deferred: 0 };
+    let accountingFailures = 0;
 
     const finish = async (note) => {
         if (!runId) return;
@@ -280,6 +282,9 @@ async function handler(req, res) {
         };
 
         for (const row of rows) {
+            // Accounting uses strict, current preference/claim reads in its
+            // sender. Never let a default-allow read or digest consume a receipt.
+            if (isAccountingPush(row)) { deliverable.push(row); continue; }
             if (!row.recipient_user_id) { suppress(row, 'no_recipient'); continue; }
 
             const ageMs = Date.now() - Date.parse(row.created_at || 0);
@@ -337,6 +342,7 @@ async function handler(req, res) {
         const digestGroups = new Map();
         for (const row of deliverable) {
             if (!row.event || isTournamentReminder(row)) continue;
+            if (isAccountingPush(row)) continue;
             const key = `${row.recipient_user_id}|${row.event}`;
             if (!digestGroups.has(key)) digestGroups.set(key, []);
             digestGroups.get(key).push(row);
@@ -401,6 +407,11 @@ async function handler(req, res) {
             // still `processing`; requeue_stuck_push_outbox reclaims them.
             if (Date.now() - startedAt > TIME_BUDGET_MS) {
                 ranOutOfTime = true;
+                if (isAccountingPush(row)) {
+                    try { await releaseAccountingPush(supabase, row); stats.skipped += 1; }
+                    catch { stats.failed += 1; accountingFailures += 1; }
+                    continue;
+                }
                 // Give the attempt back. claim_push_outbox_batch already did
                 // attempts = attempts + 1 for this row, but nothing was actually
                 // attempted. Without the decrement a row unlucky enough to sit at
@@ -421,6 +432,14 @@ async function handler(req, res) {
 
             // Folded into a digest carrier above; already accounted for.
             if (absorbed.has(row.id)) continue;
+
+            if (isAccountingPush(row)) {
+                const outcome = await deliverAccountingPush(supabase, row);
+                for (const key of ['sent', 'skipped', 'failed', 'deactivated', 'deferred']) stats[key] += outcome[key];
+                if (outcome.uncertain) stats.failed += outcome.uncertain;
+                accountingFailures += outcome.failed + outcome.uncertain;
+                continue;
+            }
 
             if (isTournamentReminder(row)) {
                 const outcome = await deliverTournamentReminder(supabase, row);
@@ -534,8 +553,14 @@ async function handler(req, res) {
             }
         }
 
-        await finish(ranOutOfTime ? 'time_budget_exhausted' : null);
-        return res.status(routing.pending ? 503 : 200).json({ ok: routing.pending === 0, ...stats, slot });
+        const note = [ranOutOfTime && 'time_budget_exhausted', routing.pending > 0 && 'operational_inbox_pending',
+            accountingFailures > 0 && `accounting_delivery_incomplete:${accountingFailures}`,
+            stats.deferred > 0 && `accounting_deferred:${stats.deferred}`].filter(Boolean).join(' ');
+        await finish(note || null);
+        // Neither an unresolved operational destination nor an uncertain
+        // accounting receipt may be reported as a healthy dispatcher result.
+        const incomplete = routing.pending > 0 || accountingFailures > 0;
+        return res.status(incomplete ? 503 : 200).json({ ok: !incomplete, ...stats, slot });
     } catch (e) {
         await finish(`threw:${e?.message || e}`);
         return res.status(500).json({ error: e?.message || 'push-dispatch failed' });

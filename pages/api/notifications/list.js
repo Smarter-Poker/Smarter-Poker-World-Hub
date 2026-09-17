@@ -62,6 +62,7 @@ export default async function handler(req, res) {
               .from('personal_notifications')
               .select('*')
               .eq('user_id', userId)
+              .or('type.is.null,type.neq.accounting_invoice_detail')
               .order('created_at', { ascending: false })
               .limit(limit);
 

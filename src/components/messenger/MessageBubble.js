@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { defaultTheme } from './MessengerTheme';
 import { Avatar } from './Avatar';
+import AccountingInvoiceCard from './AccountingInvoiceCard';
+import { isUnverifiedCorrectionPlaceholder } from '../../lib/accountingMessage.mjs';
 import { getAccessToken, authedFetch } from '../../lib/authUtils';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -337,7 +339,8 @@ AudioMessage.displayName = 'AudioMessage';
 // the numbers rather than re-parsing prose. Anything that does not recognise
 // the type still shows the text, which is why both are sent.
 const statementMoney = (n) => {
-    const v = Number(n || 0);
+    const v = n === null || n === undefined ? NaN : Number(n);
+    if (!Number.isFinite(v)) return 'Not Available';
     return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
@@ -400,15 +403,15 @@ export function ClubStatementCard({ meta, isOwn, theme: C = defaultTheme }) {
             {open ? (
                 <div style={{ padding: '8px 12px 10px' }}>
                     {row('Rake generated', lines.rake_generated)}
-                    {row('Your rakeback', lines.rakeback_due, '(90%)')}
-                    {row('Union fee kept', lines.union_fee_kept, '(10%)')}
+                    {row('Your Rakeback', lines.rakeback_due)}
+                    {row('Union Fee Kept', lines.union_fee_kept)}
                     {row('Player win/loss', lines.players_won)}
                     {row('Settled in chips', lines.settled_in_chips)}
                     {lines.eco_enabled ? row('ECO adjustment', lines.eco_amount) : null}
                     {Number(lines.presettled || 0) !== 0 ? row('Payments received', lines.presettled) : null}
                     <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.45, color: isOwn ? 'rgba(255,255,255,0.65)' : C.textSec }}>
-                        Player Win/Loss And Rakeback Already Moved In Chips During The Week.
-                        The Amount Above Is What Is Left To Square Up.
+                        The Statement Separates Amounts Earned From Transfers Recorded.
+                        An Amount Due Is Not A Completed Payment.
                     </div>
                 </div>
             ) : null}
@@ -458,6 +461,7 @@ export function MessageBubble({
     theme: C = defaultTheme 
 }) {
     const senderIsVip = sender?.is_vip || false;
+    const isInvoice = message?.message_type === 'invoice';
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [reactions, setReactions] = useState(message?.reactions || []);
@@ -683,7 +687,7 @@ export function MessageBubble({
                             onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Delete For Me</button>
-                        {isOwn && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 300000 && (
+                        {isOwn && !isInvoice && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 300000 && (
                             <button
                                 onClick={() => {
                                     onEdit?.(message);
@@ -746,7 +750,7 @@ export function MessageBubble({
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Reply</button>
                         )}
-                        {isOwn && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 120000 && (
+                        {isOwn && !isInvoice && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 120000 && (
                         <button
                             onClick={() => {
                                 onUnsend?.(message.id);
@@ -767,7 +771,7 @@ export function MessageBubble({
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >Unsend</button>
                         )}
-                        {isOwn && (
+                        {isOwn && !isInvoice && (
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_everyone');
@@ -839,7 +843,11 @@ export function MessageBubble({
 
                         // Union weekly square-up, delivered into the club inbox.
                         const meta = message.media_metadata || message.metadata;
-                        if (message.message_type === 'invoice' && meta?.kind === 'union_invoice') {
+                        if (message.message_type === 'invoice' && meta?.kind === 'accounting_invoice' &&
+                            (meta?.accounting_verified === true || isUnverifiedCorrectionPlaceholder(meta))) {
+                            return <AccountingInvoiceCard meta={meta} content={content} theme={C} />;
+                        }
+                        if (message.message_type === 'invoice' && meta?.accounting_verified && meta?.kind === 'union_invoice') {
                             return <ClubStatementCard meta={meta} isOwn={isOwn} theme={C} />;
                         }
 

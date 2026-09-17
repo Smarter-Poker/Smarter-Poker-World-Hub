@@ -48,7 +48,7 @@ export async function loadGateContext(supabase, userIds, { strict = false } = {}
             .in('user_id', ids),
     ]);
 
-    if (strict && (prefsRes?.error || legacyRes?.error)) {
+    if (strict && (prefsRes?.error || legacyRes?.error || !Array.isArray(prefsRes?.data) || !Array.isArray(legacyRes?.data))) {
         throw new Error('Push preference lookup failed');
     }
 

@@ -120,8 +120,8 @@ test('both showNotification paths get the transform', () => {
   // renders untransformed copy.
   assert.match(WORKER, /const title = toTitleCase\(/, 'the title is not transformed');
   assert.match(WORKER, /body: toTitleCase\(/, 'the body is not transformed');
-  const fallback = WORKER.slice(WORKER.indexOf('showNotification(title, { body: options.body })'));
-  assert.ok(fallback.length > 0, 'the fallback showNotification call moved; re-check it uses the same vars');
+  assert.match(WORKER, /showNotification\(title,\s*\{\s*body: options\.body[,}]/,
+    'the fallback must use the same already-transformed title and body');
 });
 
 /**

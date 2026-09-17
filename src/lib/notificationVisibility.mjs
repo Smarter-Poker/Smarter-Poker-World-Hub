@@ -3,9 +3,13 @@
 const CACHE_VERSION = 3;
 const CACHE_MAX_AGE_MS = 300_000;
 
+export function isVisibleNotification(row) {
+    return !!row && row.type !== 'accounting_invoice_detail';
+}
+
 export function notificationCache(rows, userId, now = Date.now()) {
     if (!userId) return null;
-    const visible = rows.slice(0, 30);
+    const visible = rows.filter(isVisibleNotification).slice(0, 30);
     return JSON.stringify(visible.map((row, index) => index === 0 ? {
         ...row, _cache_ts: now, _cache_user: userId, _cache_version: CACHE_VERSION,
     } : row));
@@ -19,6 +23,6 @@ export function readNotificationCache(raw, userId, now = Date.now()) {
         const age = now - first?._cache_ts;
         if (!first || first._cache_version !== CACHE_VERSION || first._cache_user !== userId ||
             !Number.isFinite(age) || age < 0 || age >= CACHE_MAX_AGE_MS) return null;
-        return rows;
+        return rows.filter(isVisibleNotification);
     } catch { return null; }
 }

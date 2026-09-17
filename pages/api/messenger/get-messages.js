@@ -1,7 +1,9 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
+import { readMessengerMessages } from '../../../src/lib/messengerWorkspace.mjs';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { verifyAccountingMessage } from '../../../src/lib/accountingMessage.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -36,68 +38,27 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
-      const { conversationId, before, limit: reqLimit } = req.body;
+      const { conversationId, before, beforeId, limit: reqLimit } = req.body;
 
       if (!conversationId) {
           return res.status(400).json({ success: false, error: 'Missing conversationId' });
       }
 
       // Pagination: cap limit at 200
-      const pageLimit = Math.min(parseInt(reqLimit) || 100, 200);
+      const pageLimit = Math.max(1, Math.min(parseInt(reqLimit) || 100, 200));
+      if ((beforeId && !before) || (before && (typeof before !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(before) || !Number.isFinite(Date.parse(before)) || (beforeId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beforeId))))) {
+          return res.status(400).json({ success: false, error: 'Invalid Message Cursor' });
+      }
 
       try {
-          // First verify user is a participant in this conversation (security check)
-          const { data: participant, error: partError } = await getSupabase()
-              .from('social_conversation_participants')
-              .select('id')
-              .eq('conversation_id', conversationId)
-              .eq('user_id', userId)
-              .maybeSingle();
-
-          if (partError || !participant) {
-              return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });
-          }
-
-          // Fetch messages with sender profiles (with pagination support)
-          let query = getSupabase()
-              .from('social_messages')
-              .select(`
-                  id,
-                  content,
-                  message_type,
-                  media_metadata,
-                  created_at,
-                  updated_at,
-                  sender_id,
-                  is_deleted,
-                  is_edited,
-                  profiles:sender_id (id, username, avatar_url, is_vip)
-              `)
-              .eq('conversation_id', conversationId)
-              .eq('is_deleted', false);
-
-          // Pagination: load messages before a given timestamp
-          if (before) {
-              // Backward pagination: descending to get the N most recent before cursor
-              query = query.lt('created_at', before)
-                  .order('created_at', { ascending: false })
-                  .limit(pageLimit);
-          } else {
-              // Initial load: descending to get newest N, then reverse for display
-              query = query.order('created_at', { ascending: false })
-                  .limit(pageLimit);
-          }
-
-          const { data: messages, error } = await query;
-
-          if (error) {
-              console.warn('[ANTIGRAVITY] Error fetching messages:', error);
-              return res.status(500).json({ success: false, error: 'Internal server error' });
-          }
+          // The same workspace authority protects links, search and paging;
+          // the database also enforces visibility on individual attachments.
+          const messages = await readMessengerMessages(getSupabase(), userId, {
+              conversationId, before, beforeId, limit: pageLimit,
+          });
 
           // Reverse descending order to chronological ascending for display
           const sorted = [...(messages || [])].reverse();
-
           // Reactions, in ONE query for the whole page.
           //
           // This route never returned reactions, and the get_message_reactions
@@ -124,6 +85,34 @@ export default async function handler(req, res) {
           }
 
           const normalized = sorted.map(m => {
+              // Both assertions originate from the private reader. Identity
+              // alone permits an unavailable placeholder, never a paid card.
+              const privateMeta = m.media_metadata;
+              const hasPrivateReceipt = privateMeta?.accounting_verified === true ||
+                  (privateMeta?.invoice_identity_verified === true && privateMeta?.correction_unverified === true &&
+                      privateMeta?.accounting_verified === false && privateMeta?.correction_verified === false);
+              m = verifyAccountingMessage(m, hasPrivateReceipt ? {
+                  accounting_verified: privateMeta.accounting_verified,
+                  invoice_identity_verified: privateMeta.invoice_identity_verified,
+                  correction_unverified: privateMeta.correction_unverified,
+                  id: m.media_metadata.invoice_id, status: m.media_metadata.status,
+                  chips_transferred: m.media_metadata.chips_transferred,
+                  invoice_type: m.media_metadata.invoice_type,
+                  source_ledger_id: m.media_metadata.source_ledger_id,
+                  club_id: m.media_metadata.club_id, amount: m.media_metadata.amount,
+                  union_id: m.media_metadata.union_id,
+                  due_at: m.media_metadata.due_at, transferred_at: m.media_metadata.transferred_at,
+                  // Only the private reader can attest these fields from the
+                  // immutable cashier event joined to this exact invoice.
+                  cashier_verified: m.media_metadata.cashier_verified,
+                  cashier: m.media_metadata.cashier,
+                  // Correction proof is reconstructed by the same private
+                  // reader from the exact invoice and journal provenance.
+                  correction_verified: m.media_metadata.correction_verified,
+                  correction: m.media_metadata.correction,
+                  credit_change_verified: m.media_metadata.credit_change_verified,
+                  credit_change: m.media_metadata.credit_change,
+              } : null);
               let prof = m.profiles;
               if (m.media_metadata && m.media_metadata.is_club_identity && m.media_metadata.club_id) {
                   prof = {
@@ -150,11 +139,12 @@ export default async function handler(req, res) {
           });
       } catch (e) {
           console.warn('[ANTIGRAVITY] Exception:', e);
-          return res.status(500).json({ success: false, error: 'Internal server error' });
+          return res.status([400, 403, 404, 503].includes(e.status) ? e.status : 500)
+              .json({ success: false, error: 'Messages Unavailable' });
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_reportingErr) { console.warn('[App] Handled exception:', _reportingErr?.message || _reportingErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
