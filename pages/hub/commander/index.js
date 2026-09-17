@@ -198,10 +198,49 @@ export default function CommanderHub() {
 
   return (
     <>
+      {/* DISCOVERABILITY 2026-09-16: every /hub/commander page shipped
+          `noindex` with the placeholder site description, so Club Commander
+          did not exist to Google. The player-facing pages that need no
+          session (this hub, venues, tournaments, home games, leagues, the
+          FAQ, responsible gaming) are now indexable with their own
+          description, canonical and schema. Pages that show one player's
+          own data (rewards, services, profile, history...) stay noindex. */}
       <SEOHead
-        title="Club Commander"
-        description="Smarter.Poker - The Future Of The Game."
-        noindex={true}
+        title="Club Commander | Live Poker Room Waitlists, Tournaments And Home Games"
+        description="Find Live Poker Rooms Near You, Join Waitlists Remotely, Register For Tournaments And Home Games, Track Leagues And Earn Rewards At Venues Running Club Commander On Smarter.Poker."
+        canonical="/hub/commander"
+        jsonLd={[
+          {
+            '@type': 'SoftwareApplication',
+            '@id': 'https://smarter.poker/hub/commander#app',
+            name: 'Club Commander',
+            url: 'https://smarter.poker/hub/commander',
+            applicationCategory: 'BusinessApplication',
+            applicationSubCategory: 'Poker Room Management',
+            operatingSystem: 'Web, iOS, Android',
+            isAccessibleForFree: true,
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+            publisher: { '@type': 'Organization', name: 'Smarter.Poker', url: 'https://smarter.poker' },
+            description:
+              'Live poker room management for venues and players: remote waitlists, table and seat management, tournament registration and clocks, home games, leagues, dealer rotation, cashier and player rewards.',
+            featureList: [
+              'Remote Waitlists',
+              'Live Game Boards',
+              'Tournament Registration And Clock',
+              'Home Games',
+              'Poker Leagues',
+              'Player Rewards And Comps',
+              'Responsible Gaming Tools',
+            ],
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Smarter.Poker', item: 'https://smarter.poker' },
+              { '@type': 'ListItem', position: 2, name: 'Club Commander', item: 'https://smarter.poker/hub/commander' },
+            ],
+          },
+        ]}
       />
 
       <div className="cmd-page">

@@ -171,8 +171,8 @@ export default function LeaguesPage() {
     <>
       <SEOHead
         title="Poker Leagues"
-        description="Smarter.Poker - The Future Of The Game."
-        noindex={true}
+        description="Season Long Poker Leagues At Club Commander Venues With Points Standings, Schedules And Leaderboards For Every Member."
+        canonical="/hub/commander/leagues"
       />
 
       <div className="cmd-page">

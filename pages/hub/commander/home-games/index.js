@@ -258,10 +258,10 @@ export default function PlayerHomeGamesHub() {
     <CommanderPageShell>
     <>
       <SEOHead
-                title="Home Games"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+        title="Poker Home Games"
+        description="Find And Host Private Poker Home Games Through Club Commander: Invitations, Seat Requests, Schedules And Player Verification In One Place."
+        canonical="/hub/commander/home-games"
+      />
 
       <div className="cmd-page" data-pnm-home-games="true" data-pnm-realism="machined-v2" data-pnm-secondary-foundation="interaction-v1">
         {/* Notification Banner */}
