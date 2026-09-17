@@ -1,4 +1,5 @@
-import { validatePushEndpoint } from './push-endpoint';
+import { validatePushEndpoint } from './push-endpoint.js';
+import { accountingDisplayPayload } from './accounting-display.mjs';
 /**
  * web-push.js -- SERVER ONLY. Lowest-level VAPID sender.
  *
@@ -71,26 +72,10 @@ function ensureConfigured() {
 const DEFAULT_ICON = '/notification-icon.png';
 const DEFAULT_BADGE = '/notification-icon.png';
 
-/**
- * Send one push.
- *
- * @param {object} subscription { endpoint, p256dh, auth } or a raw PushSubscription JSON
- * @param {object} payload  { title, body, url, tag, icon, badge, requireInteraction, vibrate, actions, data }
- * @param {object} opts     { ttl, urgency, topic, timeoutMs }
- */
-export async function sendWebPush(subscription, payload = {}, opts = {}) {
-    const configError = ensureConfigured();
-    if (configError) return { ok: false, error: configError, expired: false };
-
-    const endpoint = subscription?.endpoint;
-    const p256dh = subscription?.p256dh || subscription?.keys?.p256dh;
-    const auth = subscription?.auth || subscription?.keys?.auth;
-
-    if (!endpoint || !p256dh || !auth) {
-        return { ok: false, error: 'Incomplete subscription (missing endpoint/p256dh/auth)', expired: true };
-    }
-
-    const body = {
+/** Build the actual provider body without configuration or a provider call. */
+export function buildWebPushPayload(payload = {}) {
+    payload = accountingDisplayPayload(payload);
+    return {
         title: String(payload.title || 'Smarter Poker').slice(0, 120),
         body: String(payload.body || '').slice(0, 500),
         url: payload.url || '/hub',
@@ -122,6 +107,26 @@ export async function sendWebPush(subscription, payload = {}, opts = {}) {
         renotify: payload.renotify === false ? false : undefined,
         sentAt: Date.now(),
     };
+}
+
+/**
+ * Send one push.
+ * @param {object} subscription { endpoint, p256dh, auth } or a raw PushSubscription JSON
+ * @param {object} payload { title, body, url, tag, icon, badge, requireInteraction, vibrate, actions, data }
+ * @param {object} opts { ttl, urgency, topic, timeoutMs }
+ */
+export async function sendWebPush(subscription, payload = {}, opts = {}) {
+    const configError = ensureConfigured();
+    if (configError) return { ok: false, error: configError, expired: false };
+
+    const endpoint = subscription?.endpoint;
+    const p256dh = subscription?.p256dh || subscription?.keys?.p256dh;
+    const auth = subscription?.auth || subscription?.keys?.auth;
+
+    if (!endpoint || !p256dh || !auth) {
+        return { ok: false, error: 'Incomplete subscription (missing endpoint/p256dh/auth)', expired: true };
+    }
+    const body = buildWebPushPayload(payload);
 
     // DEFENCE IN DEPTH -- validate immediately before dialling.
     //

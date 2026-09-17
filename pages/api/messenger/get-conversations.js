@@ -21,6 +21,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { getMessengerWorkspace } from '../../../src/lib/messengerWorkspace.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -66,6 +67,14 @@ export default async function handler(req, res) {
             return res.status(401).json({ success: false, error: 'Auth required' });
         }
         const userId = localUser.id;
+
+        if (req.body?.workspace) {
+            try {
+                return res.status(200).json(await getMessengerWorkspace(getSupabase(), userId, req.body));
+            } catch (error) {
+                return res.status(error.status || 500).json({ success: false, error: error.status ? error.message : 'Messenger Is Temporarily Unavailable' });
+            }
+        }
 
         // ── PRIMARY: fn_get_user_conversations ──
         // contextEntityId: null = Personal inbox, UUID = Club page inbox
@@ -350,7 +359,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, conversations: validConversations });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_reportingErr) { console.warn('[App] Handled exception:', _reportingErr?.message || _reportingErr); }
+        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         // eslint-disable-next-line no-console
         console.warn('[get-conversations]', err);
         if (!res.headersSent) {
