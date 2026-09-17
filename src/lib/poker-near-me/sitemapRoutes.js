@@ -22,6 +22,29 @@ export function isPokerDiscoveryRouteIndexable(slug) {
 }
 
 /**
+ * LASTMOD IS EVIDENCE, NOT A TIMESTAMP OF GENERATION (AEO phase 1, 2026-09-17).
+ * A venue entry carries the most recent verification or scrape time the
+ * directory holds for it; a state or city entry carries the newest of its
+ * venues. An entry with no evidence carries no lastmod at all. Bing states
+ * that a lastmod set to generation time is ignored and discounts the sitemap;
+ * every entry previously said "today".
+ */
+export function venueLastmod(venue) {
+  for (const candidate of [venue?.last_verified_at, venue?.last_scraped_at, venue?.updated_at]) {
+    if (!candidate) continue;
+    const time = new Date(candidate).getTime();
+    if (Number.isFinite(time) && time > 0) return new Date(time).toISOString();
+  }
+  return null;
+}
+
+function newerOf(a, b) {
+  if (!a) return b || null;
+  if (!b) return a;
+  return a > b ? a : b;
+}
+
+/**
  * Project the public venue directory into canonical sitemap entries.
  *
  * The caller is expected to pass the same integrity-filtered directory used by
@@ -31,8 +54,8 @@ export function isPokerDiscoveryRouteIndexable(slug) {
 export function buildPokerVenueSitemapUrls(venues = []) {
   const urls = [];
   const venueIds = new Set();
-  const states = new Set();
-  const cities = new Set();
+  const states = new Map();
+  const cities = new Map();
 
   for (const venue of Array.isArray(venues) ? venues : []) {
     const id = String(venue?.id ?? '').trim();
@@ -41,12 +64,14 @@ export function buildPokerVenueSitemapUrls(venues = []) {
     if (!id || !name || EXCLUDED_VENUE_TYPES.has(venueType)) continue;
     if (venue?.is_active === false || venue?.is_suppressed === true) continue;
 
+    const lastmod = venueLastmod(venue);
     if (!venueIds.has(id)) {
       venueIds.add(id);
       urls.push({
         path: `/hub/venues/${encodeURIComponent(id)}`,
         priority: '0.7',
         changefreq: 'daily',
+        ...(lastmod ? { lastmod } : {}),
       });
     }
 
@@ -54,23 +79,33 @@ export function buildPokerVenueSitemapUrls(venues = []) {
     if (!US_STATES_BY_CODE[state]) continue;
     const stateSlug = state.toLowerCase();
     if (!states.has(stateSlug)) {
-      states.add(stateSlug);
-      urls.push({
+      const entry = {
         path: `/hub/poker-near-me/in/${stateSlug}`,
         priority: '0.7',
         changefreq: 'daily',
-      });
+      };
+      states.set(stateSlug, entry);
+      urls.push(entry);
+    }
+    if (lastmod) {
+      const entry = states.get(stateSlug);
+      entry.lastmod = newerOf(entry.lastmod, lastmod);
     }
 
     const citySlug = cityTitleToSlug(venue?.city);
     const cityKey = `${stateSlug}/${citySlug}`;
     if (citySlug && !cities.has(cityKey)) {
-      cities.add(cityKey);
-      urls.push({
+      const entry = {
         path: `/hub/poker-near-me/in/${cityKey}`,
         priority: '0.6',
         changefreq: 'daily',
-      });
+      };
+      cities.set(cityKey, entry);
+      urls.push(entry);
+    }
+    if (citySlug && lastmod) {
+      const entry = cities.get(cityKey);
+      entry.lastmod = newerOf(entry.lastmod, lastmod);
     }
   }
 

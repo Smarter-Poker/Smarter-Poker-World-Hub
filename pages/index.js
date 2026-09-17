@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead, { schemas } from '../src/components/seo/SEOHead';
+import LandingProductSummary from '../src/components/landing/LandingProductSummary';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HAPTIC FEEDBACK
@@ -230,9 +231,14 @@ export default function LandingPage() {
           </div>
         )}
 
+        {/* ── PRODUCT SUMMARY (AEO phase 1) ─────────────────────
+           The one server-rendered block of words on the landing page:
+           H1, definition, one H2 per product. See the component header. */}
+        <LandingProductSummary />
+
         {/* ── FOOTER ──────────────────────────────────────────── */}
         <footer style={styles.footer}>
-          <span style={styles.footerText}>© 2025 Smarter.Poker - The Future Of The Game</span>
+          <span style={styles.footerText}>© {new Date().getFullYear()} Smarter.Poker - The Future Of The Game</span>
         </footer>
       </div>
 
