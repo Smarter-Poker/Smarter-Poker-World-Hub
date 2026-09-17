@@ -26,6 +26,13 @@
 # Content-Signal is the Cloudflare/IETF robots.txt convention for AI use.
 # The site is not behind Cloudflare; the line states the policy machine-readably
 # for any crawler that honours it.
+#
+# ACCOUNT-ONLY PATHS (2026-09-17, discoverability phase 1). Messenger,
+# notifications, settings, profile edit, the store cart/orders/wishlist, a
+# player's own reels and trivia settings all need a session: a crawler lands
+# on the login page. They left the sitemap on 2026-09-16; disallowing them
+# here stops every crawler spending its budget on login redirects. Restated
+# in every group, like the rest of the list.
 
 Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
@@ -40,6 +47,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 # -- Search-index crawlers (these decide what an AI answer can cite) ----------
 
@@ -54,6 +71,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: bingbot
 Allow: /
@@ -66,6 +93,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -78,6 +115,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Claude-SearchBot
 Allow: /
@@ -90,6 +137,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: PerplexityBot
 Allow: /
@@ -102,6 +159,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: meta-webindexer
 Allow: /
@@ -114,6 +181,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Applebot
 Allow: /
@@ -126,6 +203,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: DuckAssistBot
 Allow: /
@@ -138,6 +225,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 # -- User-triggered fetchers (a person asked for the page) -------------------
 
@@ -152,6 +249,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Claude-User
 Allow: /
@@ -164,6 +271,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Perplexity-User
 Allow: /
@@ -176,6 +293,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: meta-externalfetcher
 Allow: /
@@ -188,6 +315,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 # -- Training crawlers (allowed on purpose, see the note above) --------------
 
@@ -202,6 +339,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: ClaudeBot
 Allow: /
@@ -214,6 +361,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Google-Extended
 Allow: /
@@ -226,6 +383,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: meta-externalagent
 Allow: /
@@ -238,6 +405,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Amazonbot
 Allow: /
@@ -250,6 +427,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 User-agent: Applebot-Extended
 Allow: /
@@ -262,6 +449,16 @@ Disallow: /hub/reset-auth
 Disallow: /hub/header-test
 Disallow: /hub/god-mode-demo
 Disallow: /hub/godmode
+Disallow: /hub/messenger
+Disallow: /hub/notifications
+Disallow: /hub/settings
+Disallow: /hub/profile-edit
+Disallow: /hub/diamond-store/cart
+Disallow: /hub/diamond-store/orders
+Disallow: /hub/diamond-store/wishlist
+Disallow: /hub/reels/saved
+Disallow: /hub/reels/my-reels
+Disallow: /hub/trivia/settings
 
 # Sitemap
 Sitemap: https://smarter.poker/sitemap.xml

@@ -1072,6 +1072,17 @@ const nextConfig = {
   // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {
     return [
+      // DUPLICATE HOST (2026-09-17, discoverability phase 1). The bare Vercel
+      // production alias served the whole site with a 200 and no noindex, a
+      // full copy of smarter.poker for any crawler that found it. Preview
+      // deployments are already behind Vercel SSO with X-Robots-Tag: noindex;
+      // this alias is the one that was open. www already 308s to the apex.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'hub-vanguard.vercel.app' }],
+        destination: 'https://smarter.poker/:path*',
+        permanent: true,
+      },
       // Short-form auth URLs → canonical auth routes
       { source: '/login', destination: '/auth/login', permanent: true },
       { source: '/auth/sign' + 'in', destination: '/auth/login', permanent: true },
