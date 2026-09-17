@@ -1,0 +1,211 @@
+/**
+ * check-live-seo-contract - what a crawler gets from PRODUCTION, checked.
+ *
+ * DISCOVERABILITY PHASE 3 (2026-09-17). The SEO guarantees in this repo are
+ * pinned by tests that read source files. This one reads the deployed site,
+ * after every production deployment (deployment_status), the way Googlebot
+ * does, and refuses if the contract is broken:
+ *
+ *   1. /api/health must report the deployed commit (retried while the alias
+ *      moves), so the checks below are against THIS deployment;
+ *   2. /robots.txt must name both sitemaps and disallow the account-only
+ *      paths; every named sitemap must answer 200 and be a urlset;
+ *   3. the home page and every /hub/commander URL in the sitemap must serve
+ *      200 with a title, an indexable robots meta, its exact canonical, a
+ *      description and a parseable JSON-LD document; the home page's
+ *      JSON-LD must be a @graph (the numeric-keys bug of #1822);
+ *   4. the default share image must answer 200 as an image;
+ *   5. a sample of the remaining sitemap URLs must answer 200 (the full
+ *      list is hundreds of pages; a sample catches a broken section
+ *      without turning a deploy check into a crawl).
+ *
+ * Plain Node 20+, no dependencies, no hand-typed route list beyond '/'.
+ *
+ * USAGE  node scripts/ci/check-live-seo-contract.mjs [--sha <40 hex>] [--base https://smarter.poker] [--sample 40]
+ */
+const args = process.argv.slice(2);
+const opt = (name, fallback) => {
+  const i = args.indexOf(name);
+  return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
+};
+const BASE = opt('--base', 'https://smarter.poker').replace(/\/$/, '');
+const EXPECTED_SHA = opt('--sha', '');
+const SAMPLE = Number(opt('--sample', '40'));
+const UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html) smarter-poker-seo-contract';
+
+const problems = [];
+const notes = [];
+const fail = (msg) => problems.push(msg);
+
+async function get(url) {
+  const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}seo-contract=${Date.now()}`, {
+    headers: { 'user-agent': UA, 'cache-control': 'no-cache' },
+    redirect: 'manual',
+  });
+  const text = await res.text();
+  return { status: res.status, headers: res.headers, text };
+}
+
+const attr = (html, re) => {
+  const m = html.match(re);
+  return m ? m[1] : null;
+};
+
+export function inspectHead(html) {
+  const title = attr(html, /<title[^>]*>([^<]*)<\/title>/i);
+  const robots = attr(html, /<meta\s+name="robots"\s+content="([^"]*)"/i);
+  const canonical = attr(html, /<link\s+rel="canonical"\s+href="([^"]*)"/i);
+  const description = attr(html, /<meta\s+name="description"\s+content="([^"]*)"/i);
+  const ogImage = attr(html, /<meta\s+property="og:image"\s+content="([^"]*)"/i);
+  const ldRaw = attr(html, /<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
+  let ld = null;
+  let ldError = null;
+  if (ldRaw) {
+    try {
+      ld = JSON.parse(ldRaw);
+    } catch (e) {
+      ldError = e.message;
+    }
+  }
+  return { title, robots, canonical, description, ogImage, ld, ldError };
+}
+
+export function ldTypes(ld) {
+  if (!ld) return [];
+  const nodes = Array.isArray(ld['@graph']) ? ld['@graph'] : [ld];
+  return nodes.map((n) => n && n['@type']).filter(Boolean);
+}
+
+export function hasNumericKeys(ld) {
+  return !!ld && Object.keys(ld).some((k) => /^\d+$/.test(k));
+}
+
+export function parseSitemapLocs(xml) {
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+}
+
+export function parseRobots(text) {
+  const sitemaps = [];
+  const disallow = new Set();
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/#.*$/, '').trim();
+    const i = line.indexOf(':');
+    if (i < 0) continue;
+    const key = line.slice(0, i).trim().toLowerCase();
+    const value = line.slice(i + 1).trim();
+    if (key === 'sitemap') sitemaps.push(value);
+    if (key === 'disallow') disallow.add(value);
+  }
+  return { sitemaps, disallow };
+}
+
+async function waitForDeploy(sha) {
+  for (let i = 1; i <= 18; i += 1) {
+    try {
+      const { status, text } = await get(`${BASE}/api/health`);
+      if (status === 200) {
+        const info = JSON.parse(text);
+        if (!sha || info.commitSha === sha) {
+          notes.push(`/api/health reports ${info.commitSha} (${info.deploymentId})`);
+          return info.commitSha;
+        }
+        notes.push(`attempt ${i}: production serves ${info.commitSha}, waiting for ${sha}`);
+      } else notes.push(`attempt ${i}: /api/health ${status}`);
+    } catch (e) {
+      notes.push(`attempt ${i}: ${e.message}`);
+    }
+    await new Promise((r) => setTimeout(r, 10000));
+  }
+  fail(`/api/health never reported ${sha || 'a deployment'} within three minutes`);
+  return null;
+}
+
+async function checkPage(url, { expectGraph = false } = {}) {
+  const { status, headers, text } = await get(url);
+  if (status !== 200) return fail(`${url}: HTTP ${status}, expected 200`);
+  const xr = headers.get('x-robots-tag') || '';
+  if (/noindex/i.test(xr)) fail(`${url}: X-Robots-Tag says noindex (${xr})`);
+  const head = inspectHead(text);
+  if (!head.title) fail(`${url}: no <title>`);
+  if (!head.robots || !/^index,\s*follow/i.test(head.robots)) fail(`${url}: robots meta is ${JSON.stringify(head.robots)}, expected index, follow`);
+  if (head.canonical !== url) fail(`${url}: canonical is ${JSON.stringify(head.canonical)}, expected ${url}`);
+  if (!head.description || head.description.length < 40) fail(`${url}: description missing or under 40 characters`);
+  if (head.ldError) fail(`${url}: JSON-LD does not parse: ${head.ldError}`);
+  else if (!head.ld) fail(`${url}: no JSON-LD block`);
+  else {
+    if (hasNumericKeys(head.ld)) fail(`${url}: JSON-LD is an object with numeric keys (an array was spread into an object)`);
+    if (expectGraph && !Array.isArray(head.ld['@graph'])) fail(`${url}: JSON-LD is not a @graph`);
+    if (ldTypes(head.ld).length === 0) fail(`${url}: JSON-LD carries no @type`);
+  }
+  notes.push(`${url.replace(BASE, '') || '/'}: ok (${head.title}; ${ldTypes(head.ld).join(', ') || 'no schema'})`);
+  return head;
+}
+
+async function main() {
+  const sha = await waitForDeploy(EXPECTED_SHA);
+  if (!sha) return;
+
+  const robotsRes = await get(`${BASE}/robots.txt`);
+  if (robotsRes.status !== 200) fail(`/robots.txt: HTTP ${robotsRes.status}`);
+  const robots = parseRobots(robotsRes.text || '');
+  for (const want of [`${BASE}/sitemap.xml`, `${BASE}/hub/club-arena/sitemap.xml`]) {
+    if (!robots.sitemaps.includes(want)) fail(`/robots.txt does not name ${want}`);
+  }
+  for (const p of ['/hub/messenger', '/hub/settings', '/hub/notifications', '/api/']) {
+    if (!robots.disallow.has(p)) fail(`/robots.txt does not disallow ${p}`);
+  }
+
+  const allLocs = [];
+  for (const sm of robots.sitemaps) {
+    const r = await get(sm);
+    if (r.status !== 200) {
+      fail(`${sm}: HTTP ${r.status}`);
+      continue;
+    }
+    if (!/<urlset/.test(r.text)) fail(`${sm}: not a urlset`);
+    const locs = parseSitemapLocs(r.text);
+    if (locs.length === 0) fail(`${sm}: names no URLs`);
+    notes.push(`${sm}: ${locs.length} URLs`);
+    allLocs.push(...locs);
+  }
+
+  const home = await checkPage(`${BASE}/`, { expectGraph: true });
+  if (home?.ogImage) {
+    const img = await get(home.ogImage);
+    const type = img.headers.get('content-type') || '';
+    if (img.status !== 200 || !type.startsWith('image/')) fail(`share image ${home.ogImage}: HTTP ${img.status} ${type}`);
+    else notes.push(`share image ${home.ogImage}: ok (${type})`);
+  } else fail('/: no og:image');
+
+  const commander = allLocs.filter((u) => u.startsWith(`${BASE}/hub/commander`));
+  if (commander.length < 5) fail(`sitemap lists only ${commander.length} /hub/commander URLs; expected at least 5`);
+  for (const url of commander) await checkPage(url);
+
+  const rest = allLocs.filter((u) => !commander.includes(u) && u !== `${BASE}/` && !u.startsWith(`${BASE}/hub/club-arena`));
+  const step = Math.max(1, Math.floor(rest.length / SAMPLE));
+  const sample = rest.filter((_, i) => i % step === 0).slice(0, SAMPLE);
+  let bad = 0;
+  for (const url of sample) {
+    const r = await get(url);
+    if (r.status !== 200) {
+      bad += 1;
+      fail(`sitemap sample ${url}: HTTP ${r.status}`);
+    }
+  }
+  notes.push(`sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200`);
+}
+
+const invokedDirectly = process.argv[1] && new URL(`file://${process.argv[1]}`).pathname === new URL(import.meta.url).pathname;
+if (invokedDirectly) {
+  main()
+    .catch((e) => fail(`checker crashed: ${e.stack || e.message}`))
+    .finally(() => {
+      for (const n of notes) console.log(`  ${n}`);
+      if (problems.length) {
+        console.error('\nLIVE SEO CONTRACT BROKEN');
+        for (const p of problems) console.error(`  - ${p}`);
+        process.exit(1);
+      }
+      console.log('\nlive SEO contract: OK');
+    });
+}
