@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 133,
+    "tests": 135,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 357,
     "routeStateCells": 752,
@@ -61071,10 +61071,12 @@
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
+    "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
     "__tests__/page-tutorials.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
+    "__tests__/robots-crawler-policy.law.test.mjs",
     "__tests__/scroll-lock.test.mjs",
     "__tests__/the-app-reopens-where-you-left-it.test.mjs",
     "__tests__/training-acl-closeout-authority.test.mjs",
@@ -67768,6 +67770,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/indexnow-submit.test.mjs",
         "__tests__/training-request-deadline.test.mjs"
       ]
     },
@@ -83359,6 +83362,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-mobile-upgrades.test.mjs",
@@ -83413,6 +83417,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/indexnow-submit.test.mjs",
         "__tests__/no-slide-to-see.law.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/training-card-visual-contract.test.mjs",
