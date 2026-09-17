@@ -543,6 +543,7 @@ jobs:
           # That is not a crash — it renders an empty state forever, which is
           # indistinguishable from "no data yet" and is exactly why this class
           # of bug survives review. Pure static analysis; no DB access needed.
+          node --test __tests__/stranded-writers.test.mjs
           node scripts/ci/check-stranded-writers.mjs
 
       - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"

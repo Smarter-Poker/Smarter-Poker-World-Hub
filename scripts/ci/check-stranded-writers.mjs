@@ -63,6 +63,10 @@ const SERVER_WRITE_DIRS = ['pages/api', 'server', 'scripts', 'supabase'];
 const CLIENT_WRITE_DIRS = ['src'];
 const EXTS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.sql']);
 
+// Disposable SQL fixtures and qualification programs are not production supply.
+// Keep migrations/components and operational scripts in the trusted writer scan.
+const NON_PRODUCTION_PATHS = ['scripts/ci/probes/', 'scripts/qualification/'];
+
 const FOREIGN_PROJECT_PATHS = ['pages/api/mlb/', 'src/lib/mlb_data'];
 const FOREIGN_CLIENT_IDENTIFIERS = new Set(['mlbDb', 'mlbSupabase', 'mlbdb']);
 
@@ -135,6 +139,7 @@ function collect(dirs, { writesOnly = false, includeSql = false } = {}) {
     for (const file of walk(path.join(REPO_ROOT, dir))) {
       const rel = path.relative(REPO_ROOT, file).split(path.sep).join('/');
       if (FOREIGN_PROJECT_PATHS.some((p) => rel.startsWith(p))) continue;
+      if (NON_PRODUCTION_PATHS.some((p) => rel.startsWith(p))) continue;
       let src;
       try { src = fs.readFileSync(file, 'utf8'); } catch { continue; }
 
