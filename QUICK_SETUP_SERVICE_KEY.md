@@ -1,28 +1,5 @@
-# Quick Setup: Add Service Role Key
+# Configured access and credential handling
 
-**Current Blocker:** Missing `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`
+Read root `AGENTS.md`, `AGENT-PLAYBOOK.md` and `PUBLISHING.md`. Use the currently configured authenticated tool or credential store within the task’s authority. Verify actual access instead of assuming an old environment snapshot remains true. Never read, print or scrape `.env` credential values, token prefixes, remote URLs or sibling repositories.
 
-## 🔑 Get the Key (30 seconds)
-
-1. Open: https://supabase.com/dashboard/project/kuklfnapbkmacvwxktbh/settings/api
-2. Scroll to "Project API keys"
-3. Copy the **service_role** key (the secret one, not anon)
-
-## ✏️ Add to .env.local
-
-Open `/Users/smarter.poker/Documents/hub-vanguard/.env.local` and add:
-
-```bash
-SUPABASE_SERVICE_ROLE_KEY="paste-key-here"
-```
-
-## ⚡ Then I'll Auto-Execute
-
-Once the key is added, I'll:
-1. Start dev server (`npm run dev`)
-2. Hit seed endpoint (`/api/poker/seed`)
-3. Insert 30 venues + 77 tournaments
-4. Run census verification
-5. Report final numbers
-
-**Total time:** 2 minutes
+A failed interface is not proof that every authorized route is unavailable. Use another configured interface when available; record a specific unresolved scope or access failure without inventing credentials or changing provider settings outside authorization. The retired shared-clone push scripts and local/custom publishers are not fallbacks.

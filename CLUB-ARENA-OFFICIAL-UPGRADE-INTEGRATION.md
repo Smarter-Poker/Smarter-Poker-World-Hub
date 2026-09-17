@@ -1,3 +1,5 @@
+> Current execution authority: root `AGENTS.md`, `docs/agent-policy/OPERATING-LAW.md`, and `PUBLISHING.md`. This dated plan supplies scope/dependency context only; it does not assign new work or override current delivery policy.
+
 # Club Arena — Official Upgrade Layout & Integration
 
 **Owner:** Dan
@@ -18,7 +20,7 @@ Club Arena is architecturally 80% complete. The server-authoritative Bible-V8 mi
 2. **Bury `club-engine/`.** It is a stale frontend-only fork last touched 2026-04-06, with a README still pointing to the dead `club-engine.vercel.app`. Task #111 already documented it as superseded. Archive it.
 3. **Refactor `server/src/index.ts`.** It is a 162 KB / ~3,800-line monolith that owns every HTTP route, bootstrap path, and service wiring. Split into a thin HTTP router + per-concern modules before adding new features.
 4. **Formalize the client ↔ server protocol surface.** The game server exposes 17 HTTP routes plus a WebSocket `/ws/table/:tableId` (SNAPSHOT + RFC-6902 DELTA + EVENT). This is the ONLY contract the client needs. Everything else on the client should go through Supabase RPCs.
-5. **Harden the deploy pipeline's invariants.** The sync-to-world-hub → git-safe-push → Vercel auto-deploy + Hetzner SSH deploy split is working. The gaps are: (a) CA bundle budget CI gate (#155), (b) the `public/hub/club-arena/` asset migration to R2 (#44).
+5. **Harden the deploy pipeline's invariants.** The old cross-repository bundle sync is retired; use the component routes in `PUBLISHING.md`. The gaps are: (a) CA bundle budget CI gate (#155), (b) the `public/hub/club-arena/` asset migration to R2 (#44).
 
 No new services. No re-platforming. Just finish the consolidation.
 
@@ -247,9 +249,9 @@ Developer push                     CI / Vercel                          Producti
 ──────────────                     ───────────                          ──────────
 
 cd ~/Documents/club-arena          agent-open-pr.yml opens the PR       (no Vercel deploy)
-git push origin HEAD:fix/<slug>    agent-autopilot.yml merges it        ─────── ▲
+git push origin HEAD:fix/<slug>    agent completes protected merge        ─────── ▲
                                    publish-club-arena.yml rsyncs                 │
-YOUR JOB ENDS HERE.                dist/ to ca-static.smarter.poker              │
+CONTINUE THROUGH LIVE PROOF.                dist/ to ca-static.smarter.poker              │
                                                                                   │
                                    World Hub rewrite                             │
                                    /hub/club-arena/:path* ──────────────▶  hub-vanguard
@@ -400,7 +402,7 @@ git push origin HEAD:refs/heads/fix/<slug>
 ```
 
 That is the whole job. `agent-open-pr.yml` opens the pull request,
-`agent-autopilot.yml` merges it when the six required checks are green, and
+The authorized agent completes protected merge when the actual required checks pass, and
 `publish-club-arena.yml` rsyncs `dist/` to `ca-static.smarter.poker`. Confirm:
 
 ```bash
