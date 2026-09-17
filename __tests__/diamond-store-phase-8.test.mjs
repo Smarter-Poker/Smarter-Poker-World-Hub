@@ -29,7 +29,7 @@ test('merchandise order history exposes safe same-surface shipment tracking', ()
 test('realtime order refreshes are latest-request-wins', () => {
   assert.match(ORDERS, /const loadRequestRef = useRef\(0\)/);
   assert.match(ORDERS, /const requestId = \+\+loadRequestRef\.current/);
-  assert.match(ORDERS, /requestId !== loadRequestRef\.current/);
+  assert.match(ORDERS, /loadRequestRef\.current === requestId/);
 });
 
 test('diamond merchandise retries replay the original recorded order', () => {
@@ -39,7 +39,12 @@ test('diamond merchandise retries replay the original recorded order', () => {
   assert.match(PURCHASE, /idempotent: true/);
   assert.match(PURCHASE, /result\.duplicate/);
   assert.match(PURCHASE, /reference_conflict/);
-  assert.match(PURCHASE, /order_id: result\?\.order_id/);
+  assert.match(PURCHASE, /const result = normalizeSuccessfulPurchaseResult\(/);
+  assert.match(PURCHASE, /order_id: result\.order_id/);
+  assert.match(
+    PURCHASE,
+    /accountId: user\.id,[\s\S]*?requestId: clientKey,[\s\S]*?data: responseData\(result\)/
+  );
 });
 
 test('wishlist saves are conflict-safe and refreshes cannot commit stale results', () => {
@@ -51,14 +56,48 @@ test('wishlist saves are conflict-safe and refreshes cannot commit stale results
   assert.match(addWishlist, /onConflict: 'user_id,product_id'/);
   assert.match(addWishlist, /ignoreDuplicates: true/);
   assert.match(WISHLIST, /const loadRequestRef = useRef\(0\)/);
-  assert.match(WISHLIST, /requestId !== loadRequestRef\.current/);
+  assert.match(WISHLIST, /loadRequestRef\.current === requestId/);
+});
+
+test('orders and wishlist bind private state and async effects to the current account', () => {
+  for (const source of [ORDERS, WISHLIST]) {
+    assert.match(source, /useAvatar/);
+    assert.match(source, /const synchronousAccountId = getAuthUser\(\)\?\.id \|\| null/);
+    assert.match(source, /const committedAccountId =/);
+    assert.match(source, /contextUser\?\.id === synchronousAccountId/);
+    assert.match(source, /const activeAccountIdRef = useRef/);
+    assert.match(source, /useIsomorphicLayoutEffect\(\(\) => \{/);
+    assert.match(source, /getAuthUser\(\)\?\.id === expectedAccountId/);
+    assert.match(source, /\.current\?\.abort\(\)/);
+  }
+
+  assert.match(ORDERS, /ordersOwnerId === committedAccountId/);
+  assert.match(ORDERS, /loadRequestRef\.current === requestId/);
+  assert.match(ORDERS, /loadAbortRef\.current === controller/);
+  assert.match(ORDERS, /const projectedLoadError =/);
+  assert.match(ORDERS, /\) : projectedLoadError \? \(/);
+
+  assert.match(WISHLIST, /wishlistOwnerId === committedAccountId/);
+  assert.match(WISHLIST, /removeRequestRef\.current === requestId/);
+  assert.match(WISHLIST, /removeAbortRef\.current === controller/);
+  assert.match(WISHLIST, /if \(!attemptIsCurrent\(\)\) return/);
+  assert.match(WISHLIST, /projectedRemoveError &&[\s\S]{0,180}role="alert"/);
+  assert.match(WISHLIST, /wishlistService\.removeFromWishlist\(expectedAccountId, productId\)/);
 });
 
 test('wishlist merchandise links open the dedicated product page in the same surface', () => {
   assert.match(WISHLIST, /item\.product_type === 'diamond'/);
   assert.match(WISHLIST, /\/hub\/merch-store\/\$\{encodeURIComponent\(item\.product_id\)\}/);
-  assert.match(MERCH, /id=\{productAnchorId\(product\.catalogId \|\| product\.key\)\}/);
-  assert.match(MERCH, /article\[id\^='merch-product-'\]:target/);
+  assert.match(MERCH, /const reactCardId = useId\(\)/);
+  assert.match(
+    MERCH,
+    /const productDomToken\s*=[\s\S]{0,80}?String\(product\.catalogId \|\| product\.key \|\| reactCardId\)[\s\S]{0,180}?\.trim\(\)[\s\S]{0,100}?\.toLowerCase\(\)[\s\S]{0,140}?\.replace\(\/\[\^a-z0-9_\-\]\+\/g, '-'\)/
+  );
+  assert.match(MERCH, /const cardDomId = `merch-product-\$\{productDomToken\}`/);
+  assert.match(MERCH, /id=\{cardDomId\}/);
+  assert.match(MERCH, /aria-labelledby=\{titleId\}/);
+  assert.match(MERCH, /article\[data-merch-product-card='true'\]:target/);
+  assert.match(MERCH, /encodeURIComponent\(product\.catalogId \|\| product\.key\)/);
   assert.match(MERCH, /scrollMarginTop: 96/);
   assert.doesNotMatch(WISHLIST, /target=["']_blank|window\.open/);
 });
@@ -66,7 +105,7 @@ test('wishlist merchandise links open the dedicated product page in the same sur
 test('cart checkout errors preserve server guidance and accurately describe grouped packages', () => {
   assert.match(CART, /const checkoutErrorMessage/);
   assert.match(CART, /typeof data\?\.error === 'string'/);
-  assert.match(CART, /All diamond packages check out together/);
+  assert.match(CART, /All Diamond Packages Check Out Together/);
   assert.doesNotMatch(CART, /Diamond packages check out one at a time/);
   assert.match(CART, /if \(!replayed\) busEmit\.diamondsSpent/);
   assert.match(MERCH, /No Additional Diamonds Were Deducted/);

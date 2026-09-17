@@ -48,6 +48,7 @@ const SEND_PUSH = read('src/lib/push/send-push.js');
 const WEBPUSH = read('src/lib/push/web-push.js');
 const SW = read('public/push/sw.js');
 const SUBSCRIBE = read('pages/api/push/subscribe.js');
+const SUBSCRIPTION_OWNERSHIP = read('src/lib/push/subscription-ownership.mjs');
 const CLIENT = read('src/lib/push-client.js');
 const DISPATCHER = read('scripts/openclaw-cron-dispatcher.py');
 const SWEEP_ROUTE = read('pages/api/cron/waitlist-sweep.js');
@@ -215,18 +216,27 @@ test('a re-subscribe retires the endpoint it supersedes on the same device', () 
     const body = CLIENT.slice(at, CLIENT.indexOf('function deviceLabel()', at));
     assert.match(body, /catch \{\s*\n\s*return null;/);
 
-    assert.match(SUBSCRIBE, /\.eq\('device_id', deviceId\)/);
-    assert.match(SUBSCRIBE, /superseded_same_device/);
+    assert.match(SUBSCRIBE, /changePushSubscription\(supabase, user\.id, \{/);
     assert.match(SUBSCRIBE, /device_id: deviceId,/);
+    assert.match(
+        SUBSCRIPTION_OWNERSHIP,
+        /db\.rpc\('fn_change_push_subscription_ownership'/
+    );
 });
 
-test('the same-device retire runs BEFORE the upsert', () => {
-    // The partial unique index would otherwise reject the insert of a second
-    // live row for the same device, and the caller would see a confusing 500.
-    const retire = SUBSCRIBE.indexOf("superseded_same_device");
-    const upsert = SUBSCRIBE.indexOf("onConflict: 'user_id,endpoint'");
-    assert.ok(retire > -1 && upsert > -1, 'the subscribe path moved');
-    assert.ok(retire < upsert, 'the same-device retire must precede the upsert');
+test('the ownership handoff stays inside one fail-closed database transaction', () => {
+    // The service contract now owns retirement and replacement atomically.
+    // The route must not fall back to ordered table writes if that contract is
+    // unavailable, because either order can expose duplicate or partial state.
+    assert.match(
+        SUBSCRIPTION_OWNERSHIP,
+        /await db\.rpc\('fn_change_push_subscription_ownership'/
+    );
+    assert.doesNotMatch(SUBSCRIPTION_OWNERSHIP, /\.from\(/);
+    assert.match(SUBSCRIPTION_OWNERSHIP, /if \(error\)[\s\S]*status: conflict \? 409 : 503/);
+    const transaction = SUBSCRIBE.indexOf('await changePushSubscription');
+    const success = SUBSCRIBE.indexOf('return res.status(200)', transaction);
+    assert.ok(transaction > -1 && success > transaction, 'the atomic ownership receipt must precede success');
 });
 
 test('an unusable device id is ignored, never rejected', () => {

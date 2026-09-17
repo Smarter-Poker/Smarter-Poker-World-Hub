@@ -1,0 +1,144 @@
+.stack {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  z-index: 99998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(calc(100% - 24px), 680px);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.toast {
+  display: grid;
+  grid-template-columns: 22% minmax(0, 1fr) minmax(112px, 22%);
+  align-items: center;
+  width: 100%;
+  aspect-ratio: 1800 / 386;
+  padding: 4.2% 4.5% 4.2% 2.4%;
+  border: 0;
+  border-radius: 0;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
+  color: #f3fbff;
+  pointer-events: auto;
+  animation: storeToastIn 0.28s ease-out;
+}
+
+.success,
+.info {
+  --status-ink: #86efff;
+}
+
+.warning {
+  --status-ink: #ffe072;
+}
+
+.error {
+  --status-ink: #ff7281;
+}
+
+.status {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  color: var(--status-ink);
+  font:
+    800 clamp(10px, 1.7vw, 14px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.055em;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.message {
+  min-width: 0;
+  padding: 0 clamp(10px, 2.2vw, 24px);
+  color: #ecf8ff;
+  font:
+    700 clamp(12px, 1.7vw, 15px) / 1.35 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.dismiss {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  aspect-ratio: 348 / 114;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  color: #eaf9ff;
+  font:
+    800 11px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.035em;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid #9bf4ff;
+  outline-offset: 2px;
+}
+
+@keyframes storeToastIn {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .stack {
+    top: 68px;
+  }
+
+  .toast {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(360px, 100%);
+    aspect-ratio: 1105 / 1133;
+    padding: 18%;
+    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    text-align: center;
+  }
+
+  .status {
+    display: none;
+  }
+
+  .message {
+    padding-inline: 0;
+    font-size: 13px;
+  }
+
+  .dismiss {
+    min-height: 44px;
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

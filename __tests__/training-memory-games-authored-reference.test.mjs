@@ -27,10 +27,14 @@ function compile(relativePath, dependencies) {
     sourceType: 'module',
   }).code;
   const module = { exports: {} };
-  new Function('require', 'module', 'exports', compiled)((specifier) => {
-    assert.ok(Object.hasOwn(dependencies, specifier), `unexpected dependency: ${specifier}`);
-    return dependencies[specifier];
-  }, module, module.exports);
+  new Function('require', 'module', 'exports', compiled)(
+    (specifier) => {
+      assert.ok(Object.hasOwn(dependencies, specifier), `unexpected dependency: ${specifier}`);
+      return dependencies[specifier];
+    },
+    module,
+    module.exports
+  );
   return module.exports;
 }
 
@@ -60,7 +64,15 @@ function loadGenerator() {
     '../config/solverRanges': referenceCorpus,
     '../engines/PostflopScenarioGenerator': {
       generateAllPostflopScenarios: () => ({
-        8: [{ id: 'flop-local', level: 8, street: 'flop', practiceOnly: true, authority: 'illustrative_local_heuristic' }],
+        8: [
+          {
+            id: 'flop-local',
+            level: 8,
+            street: 'flop',
+            practiceOnly: true,
+            authority: 'illustrative_local_heuristic',
+          },
+        ],
         9: [],
         10: [],
       }),
@@ -69,11 +81,19 @@ function loadGenerator() {
 }
 
 test('Range Lab authority-boundary sources parse', () => {
-  for (const [file, source] of [[GENERATOR_FILE, GENERATOR], [DATABASE_FILE, DATABASE], [PAGE_FILE, PAGE]]) {
-    assert.doesNotThrow(() => parse(source, {
-      sourceType: 'module',
-      plugins: ['jsx', 'classProperties', 'optionalChaining', 'nullishCoalescingOperator'],
-    }), file);
+  for (const [file, source] of [
+    [GENERATOR_FILE, GENERATOR],
+    [DATABASE_FILE, DATABASE],
+    [PAGE_FILE, PAGE],
+  ]) {
+    assert.doesNotThrow(
+      () =>
+        parse(source, {
+          sourceType: 'module',
+          plugins: ['jsx', 'classProperties', 'optionalChaining', 'nullishCoalescingOperator'],
+        }),
+      file
+    );
   }
 });
 
@@ -94,19 +114,29 @@ test('every generated Levels 1-7 range carries explicit authored-practice proven
     assert.match(scenario.evidenceDisclosure, /authored local preflop reference/i);
   }
 
-  assert.ok(generator.pickWeightedHandFromScenario(catalog[1][0]), 'authored preflop practice remains playable');
-  assert.equal(generator.pickWeightedHandFromScenario(catalog[8][0]), null, 'postflop heuristic cannot enter preflop grading');
+  assert.ok(
+    generator.pickWeightedHandFromScenario(catalog[1][0]),
+    'authored preflop practice remains playable'
+  );
+  assert.equal(
+    generator.pickWeightedHandFromScenario(catalog[8][0]),
+    null,
+    'postflop heuristic cannot enter preflop grading'
+  );
 });
 
 test('the live Range Lab never presents the authored corpus as solver-exact authority', () => {
   assert.doesNotMatch(GENERATOR, /solverGenerated:\s*true/);
   assert.doesNotMatch(DATABASE, /PioSolver GTO data|fully solver-accurate/i);
-  assert.doesNotMatch(PAGE, /Core GTO Training|GTO RANGE COMMAND|Master GTO Ranges|Current GTO grade/i);
+  assert.doesNotMatch(
+    PAGE,
+    /Core GTO Training|GTO RANGE COMMAND|Master GTO Ranges|Current GTO grade/i
+  );
 
   assert.match(PAGE, /Authored Range Practice/);
-  assert.match(PAGE, /No Solver-Exact Or Account-Progress Claim/);
+  assert.match(PAGE, /No Solver-Exact Or Account-Progress\s+Claim/);
   assert.match(PAGE, /Free Local Practice \/ No Entry Fee/);
   assert.match(PAGE, /browser-owned answer map/);
   assert.match(PAGE, /cannot author sessions, ELO, challenge completions/);
-  assert.match(PAGE, /if \(!user\?\.id && economyReady\) DiamondEngine\.award\(totalReward\)/);
+  assert.match(PAGE, /if \(!user\?\.id && economyReady\)\s+DiamondEngine\.award\(totalReward\)/);
 });

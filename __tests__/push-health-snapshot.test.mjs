@@ -82,12 +82,12 @@ test('rendered dashboard shows exact accounting volume, observed time and unfini
 function readerFixture() {
  let actor={id:'admin-a'},state,effect,cleanup,authCallback,unsubscribed=false,writes=0;const requests=[],events=new Map();
  const react={useState:()=>[state||{userId:null,data:null,error:null},next=>{state=next;writes++;}],useEffect:cb=>{effect ||= cb;}};
- const useReader=compile('../src/hooks/usePushHealth.js',name=>{
+	 const readPushHealth=compile('../src/hooks/usePushHealth.js',name=>{
   if(name==='react')return react;if(name.endsWith('authUtils'))return {getAuthUser:()=>actor,getAccessToken:()=>actor?.id+'-token'};
   if(name.endsWith('/supabase'))return {supabase:{auth:{onAuthStateChange:cb=>{authCallback=cb;return {data:{subscription:{unsubscribe(){unsubscribed=true;}}}};}}}};
   if(name.endsWith('pushHealthSnapshot.mjs'))return {isPushHealthSnapshot};throw Error(name);
  },React,{fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve})),window:{addEventListener:(event,fn)=>events.set(event,fn),removeEventListener:event=>events.delete(event)}});
- return {requests,render:()=>useReader(),mount(){useReader();cleanup=effect();},unmount(){cleanup();},switch(id,event='SIGNED_IN'){actor=id?{id}:null;authCallback(event,id?{user:actor,access_token:id+'-token'}:null);},storageSwitch(id){actor=id?{id}:null;events.get('storage')({key:'smarter-poker-auth'});},setActor(id){actor=id?{id}:null;},hydrating(){authCallback('INITIAL_SESSION',null);},cleaned:()=>unsubscribed&&events.size===0,writes:()=>writes};
+	 return {requests,render:()=>readPushHealth(),mount(){readPushHealth();cleanup=effect();},unmount(){cleanup();},switch(id,event='SIGNED_IN'){actor=id?{id}:null;authCallback(event,id?{user:actor,access_token:id+'-token'}:null);},storageSwitch(id){actor=id?{id}:null;events.get('storage')({key:'smarter-poker-auth'});},setActor(id){actor=id?{id}:null;},hydrating(){authCallback('INITIAL_SESSION',null);},cleaned:()=>unsubscribed&&events.size===0,writes:()=>writes};
 }
 const goodResponse=()=>({ok:true,status:200,json:async()=>({...snapshot(),config:{configured:true,keyMatches:true}})});
 test('push health hides the prior account before a listener callback and ignores delayed old requests',async()=>{

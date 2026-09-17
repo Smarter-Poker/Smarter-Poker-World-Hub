@@ -52,8 +52,10 @@
   --vault-gold: #ffc93c;
   --vault-muted: #7f8c9b;
   --vault-radius: 8px;
-  --vault-font-display: 'Rajdhani', 'Roboto Condensed', Inter, system-ui, sans-serif;
-  --vault-font-label: 'Roboto Condensed', 'Rajdhani', Inter, system-ui, sans-serif;
+  --vault-font-display:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  --vault-font-label:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
 /* ── The rendered artwork and the live figures laid into it ─────────────── */
@@ -126,11 +128,9 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: 1px;
-  text-transform: uppercase;
-  background: linear-gradient(180deg, #ffffff 0%, #c0e0ff 40%, #0099ff 80%, #005bb5 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  text-transform: capitalize;
+  color: #c0e0ff;
+  -webkit-text-fill-color: #c0e0ff;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 12px rgba(0, 200, 255, 0.7));
 }
 
@@ -140,7 +140,7 @@
   font-size: clamp(10px, 2.5cqw, 14px);
   font-weight: 700;
   letter-spacing: 1.5px;
-  text-transform: uppercase;
+  text-transform: capitalize;
   text-shadow:
     0 2px 4px rgba(0, 0, 0, 0.9),
     0 0 8px rgba(0, 180, 255, 0.6);
@@ -200,7 +200,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-align: center;
-  background: linear-gradient(180deg, rgba(5, 10, 21, 0.86) 0%, #050a15 34%);
+  background: #050a15;
 }
 
 /* ── Search ─────────────────────────────────────────────────────────────── */
@@ -229,11 +229,6 @@
     0 0 0 2px rgba(0, 212, 255, 0.25);
 }
 
-.searchIcon {
-  flex-shrink: 0;
-  color: var(--vault-muted);
-}
-
 .searchInput {
   flex: 1;
   border: none;
@@ -241,7 +236,7 @@
   background: transparent;
   box-shadow: none;
   color: var(--vault-chrome-hot);
-  font-family: var(--vault-font-body, Inter, system-ui, sans-serif);
+  font-family: var(--vault-font-body, var(--font-inter), Inter, Arial, sans-serif);
   font-size: 13px;
   text-transform: capitalize;
 }
@@ -255,13 +250,16 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: none;
-  border-radius: 50%;
+  min-width: 48px;
+  min-height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--vault-gunmetal);
+  border-radius: 0;
   background: var(--vault-gunmetal);
   color: var(--vault-chrome);
-  font-size: 10px;
+  font: 800 10px/1 var(--vault-font-label);
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
   cursor: pointer;
 }
 
@@ -288,7 +286,7 @@
   padding: 8px 16px;
   overflow-x: auto;
   border-bottom: 1px solid var(--vault-gunmetal);
-  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  background: var(--vault-panel);
 }
 
 .rangeSelect {
@@ -325,8 +323,8 @@
   flex-shrink: 0;
   padding: 6px 14px;
   border: 1px solid var(--vault-gunmetal);
-  border-radius: 16px;
-  background: linear-gradient(180deg, #1a2430, #0e141c);
+  border-radius: 0;
+  background: #0e141c;
   color: var(--vault-chrome);
   font-family: var(--vault-font-label);
   font-size: 12px;
@@ -348,7 +346,7 @@
 
 .filterChipOn {
   border-color: rgba(0, 212, 255, 0.6);
-  background: linear-gradient(180deg, rgba(0, 212, 255, 0.18), rgba(0, 212, 255, 0.06));
+  background: #071822;
   color: var(--vault-cyan);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -364,7 +362,7 @@
 
 .statsToggleOn {
   border-color: rgba(65, 105, 225, 0.65);
-  background: linear-gradient(180deg, rgba(65, 105, 225, 0.2), rgba(65, 105, 225, 0.07));
+  background: #101b32;
   color: var(--vault-chrome-hot);
 }
 
@@ -381,9 +379,11 @@
   min-height: 44px;
   border: 1px solid var(--vault-gunmetal);
   border-radius: var(--vault-radius);
-  background: linear-gradient(180deg, #1a2430, #0e141c);
+  background: #0e141c;
   color: var(--vault-chrome);
-  font-size: 18px;
+  font: 800 11px/1 var(--vault-font-label);
+  letter-spacing: 0.06em;
+  text-transform: capitalize;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -406,7 +406,7 @@
 .sendPanel {
   padding: 12px 16px;
   border-bottom: 1px solid var(--vault-gunmetal);
-  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  background: var(--vault-panel);
   animation: walletFadeIn 0.2s ease;
 }
 
@@ -417,7 +417,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .sendRules {
@@ -461,12 +461,12 @@
 .sendMeterFill {
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--vault-cyan), #00a8e8);
+  background: var(--vault-cyan);
   transition: width 0.3s ease;
 }
 
 .sendMeterFillLow {
-  background: linear-gradient(90deg, var(--vault-gold), #d99a1c);
+  background: var(--vault-gold);
 }
 
 /* ── Send: recipient, amount, confirmation ──────────────────────────────── */
@@ -489,7 +489,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 /* The chosen friend, seated in a raised plate. */
@@ -500,7 +500,7 @@
   padding: 8px 12px;
   border: 1px solid rgba(0, 212, 255, 0.35);
   border-radius: 10px;
-  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-carbon));
+  background: var(--vault-carbon);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -566,7 +566,7 @@
   padding: 4px 10px;
   border: 1px solid var(--vault-gunmetal);
   border-radius: 12px;
-  background: linear-gradient(180deg, #1a2430, #0e141c);
+  background: #0e141c;
   color: var(--vault-chrome);
   font-size: 11px;
   font-weight: 600;
@@ -607,11 +607,6 @@
   flex: 1;
 }
 
-.sendFieldIcon {
-  flex-shrink: 0;
-  color: var(--vault-muted);
-}
-
 .sendInput {
   flex: 1;
   min-width: 0;
@@ -620,7 +615,7 @@
   background: transparent;
   box-shadow: none;
   color: var(--vault-chrome-hot);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 13px;
   text-transform: capitalize;
 }
@@ -732,24 +727,19 @@
   gap: 8px;
 }
 
-.sendAmountIcon {
-  flex-shrink: 0;
-  color: var(--vault-cyan);
-}
-
 /* The Send button: a lit chrome key. Disabled is dimmed, never hidden, so
    the player can see the control they are waiting on. */
 .sendGo {
   padding: 9px 18px;
   border: 1px solid rgba(0, 212, 255, 0.55);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(0, 212, 255, 0.22), rgba(0, 212, 255, 0.08));
+  background: #071822;
   color: var(--vault-chrome-hot);
   font-family: var(--vault-font-label);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   white-space: nowrap;
   cursor: pointer;
   box-shadow:
@@ -788,7 +778,7 @@
 
 .sendNoteError {
   background: rgba(248, 113, 113, 0.08);
-  color: #f87171;
+  color: #ff5b6e;
 }
 
 .sendNoteOk {
@@ -802,7 +792,7 @@
   padding: 12px 14px;
   border: 1px solid rgba(0, 212, 255, 0.35);
   border-radius: 10px;
-  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  background: var(--vault-panel);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   animation: walletFadeIn 0.15s ease;
 }
@@ -814,7 +804,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .sendConfirmText {
@@ -843,7 +833,7 @@
   padding: 7px 0;
   border: 1px solid var(--vault-gunmetal);
   border-radius: 8px;
-  background: linear-gradient(180deg, #1a2430, #0e141c);
+  background: #0e141c;
   color: var(--vault-chrome);
   font-family: var(--vault-font-label);
   font-size: 11px;
@@ -869,7 +859,7 @@
 .statsPanel {
   padding: 12px 16px;
   border-bottom: 1px solid var(--vault-gunmetal);
-  background: linear-gradient(180deg, var(--vault-panel-raised), var(--vault-panel));
+  background: var(--vault-panel);
   animation: walletFadeIn 0.2s ease;
 }
 
@@ -907,7 +897,7 @@
 
 .statsPlateIn {
   border-color: rgba(0, 212, 255, 0.3);
-  background: linear-gradient(180deg, rgba(0, 212, 255, 0.1), var(--vault-carbon));
+  background: rgba(0, 212, 255, 0.1);
 }
 
 .statsPlateOut {
@@ -930,7 +920,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .statsHeadingTight {
@@ -1061,13 +1051,13 @@
   padding: 7px 16px;
   border: 1px solid var(--vault-gunmetal);
   border-radius: 16px;
-  background: linear-gradient(180deg, #1a2430, #0e141c);
+  background: #0e141c;
   color: var(--vault-cyan);
   font-family: var(--vault-font-label);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   cursor: pointer;
 }
 
@@ -1114,22 +1104,34 @@
   padding: 12px 16px;
 }
 
-.txIcon {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--vault-gunmetal);
-  border-radius: 10px;
-  background: var(--vault-carbon);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
 .txBody {
   flex: 1;
   min-width: 0;
+}
+
+.vipMark,
+.emptyStateMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c8a65b;
+  border-radius: 0;
+  color: #f1d78d;
+  font: 800 10px/1 var(--vault-font-label);
+  letter-spacing: 0.08em;
+  text-transform: capitalize;
+}
+
+.vipMark {
+  flex-shrink: 0;
+  min-height: 18px;
+  padding: 0 4px;
+}
+
+.emptyStateMark {
+  min-height: 32px;
+  margin-bottom: 10px;
+  padding: 0 10px;
 }
 
 .txLabel {
@@ -1196,10 +1198,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% -10%, rgba(0, 100, 220, 0.25) 0%, rgba(2, 8, 20, 0.4) 100%),
-    url('/images/diamond-wallet-bg-new.webp') center/cover no-repeat;
-  font-family: 'Inter', -apple-system, sans-serif;
+  background: #020814 url('/images/diamond-wallet-bg-new.webp') center/cover no-repeat;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   text-transform: capitalize;
   animation: walletFadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1350,7 +1350,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .pullBannerArmed {
@@ -1375,12 +1375,6 @@
   padding: 30px 40px;
 }
 
-.stateGlyph {
-  margin-bottom: 10px;
-  font-size: 28px;
-  opacity: 0.5;
-}
-
 .stateText {
   margin-bottom: 14px;
   color: var(--vault-chrome);
@@ -1403,13 +1397,13 @@
   padding: 8px 20px;
   border: 1px solid rgba(0, 212, 255, 0.55);
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(0, 212, 255, 0.18), rgba(0, 212, 255, 0.06));
+  background: #071822;
   color: var(--vault-cyan);
   font-family: var(--vault-font-label);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   cursor: pointer;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -1454,7 +1448,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .groupHeaderRuled {
@@ -1500,7 +1494,7 @@
 
 .txDetailRef {
   color: var(--vault-chrome);
-  font-family: monospace;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: 10px;
 }
 
@@ -1509,7 +1503,7 @@
   padding: 3px 10px;
   border: 1px solid var(--vault-gunmetal);
   border-radius: 6px;
-  background: linear-gradient(180deg, #1a2430, #0e141c);
+  background: #0e141c;
   color: var(--vault-chrome);
   font-family: var(--vault-font-label);
   font-size: 10px;

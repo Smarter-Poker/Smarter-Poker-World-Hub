@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 136,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 358,
+    "possibleUnwiredFunctions": 364,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -4692,6 +4692,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -4721,6 +4722,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -4747,6 +4750,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -5911,6 +5915,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -5933,6 +5938,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -5952,6 +5959,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -6303,6 +6311,7 @@
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useTrainingProgress.js",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -6326,6 +6335,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -6345,6 +6356,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -6541,6 +6553,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -6570,6 +6583,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -6597,6 +6612,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -6812,6 +6828,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": []
@@ -6832,6 +6849,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -6849,6 +6868,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -8218,6 +8238,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": []
@@ -8239,6 +8260,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -8256,6 +8279,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -9450,6 +9474,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -9473,6 +9498,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -9492,6 +9519,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -9957,6 +9985,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -9981,6 +10010,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -10002,6 +10033,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -10200,6 +10232,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -10231,6 +10264,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -10258,6 +10293,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -10470,6 +10506,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": []
@@ -10490,6 +10527,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -10507,6 +10546,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -11803,6 +11843,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -11832,6 +11873,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -11857,6 +11900,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -12583,6 +12627,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -12621,6 +12666,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -12657,6 +12704,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -12919,6 +12967,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -12941,6 +12990,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -12960,6 +13011,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -15524,6 +15576,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -15550,6 +15603,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -15574,6 +15629,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -15775,6 +15831,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -15801,6 +15858,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -15824,6 +15883,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -16276,6 +16336,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": []
@@ -16296,6 +16357,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -16313,6 +16376,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -16668,6 +16732,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -16692,6 +16757,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -16712,6 +16779,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -16908,6 +16976,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -16931,6 +17000,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -16950,6 +17021,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -17141,6 +17213,7 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
@@ -17168,6 +17241,8 @@
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
+            "src/lib/store/marketplaceCopy.js",
             "src/lib/supabase.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/services/avatar-service.js",
@@ -17193,6 +17268,7 @@
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
             "src/lib/store/boundedCommerceFetch.js",
+            "src/lib/store/checkoutIntentStore.js",
             "src/lib/training/boundedTrainingFetch.js",
             "src/tutorials/personal-assistant.js"
           ],
@@ -35793,7 +35869,7 @@
         {
           "element": "button",
           "name": "Close",
-          "line": 1635,
+          "line": 1549,
           "handler": "onClose",
           "destination": null,
           "type": null,
@@ -35803,7 +35879,7 @@
         {
           "element": "button",
           "name": "Buy Diamonds",
-          "line": 1725,
+          "line": 1638,
           "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
           "destination": null,
           "type": "button",
@@ -35813,7 +35889,7 @@
         {
           "element": "button",
           "name": "Send Diamonds To A Friend",
-          "line": 1736,
+          "line": 1649,
           "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
           "destination": null,
           "type": "button",
@@ -35822,8 +35898,8 @@
         },
         {
           "element": "button",
-          "name": "Clear Search",
-          "line": 1778,
+          "name": "Clear",
+          "line": 1691,
           "handler": "() => setSearchQuery('')",
           "destination": null,
           "type": "button",
@@ -35833,7 +35909,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1818,
+          "line": 1726,
           "handler": "() => handleFilterChange(opt.value)",
           "destination": null,
           "type": "button",
@@ -35843,7 +35919,7 @@
         {
           "element": "button",
           "name": "Stats",
-          "line": 1840,
+          "line": 1748,
           "handler": "() => setShowStats((v) => !v)",
           "destination": null,
           "type": "button",
@@ -35853,7 +35929,7 @@
         {
           "element": "button",
           "name": "Choose A Different Friend",
-          "line": 1917,
+          "line": 1825,
           "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
           "destination": null,
           "type": "button",
@@ -35863,7 +35939,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1938,
+          "line": 1846,
           "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
           "destination": null,
           "type": "button",
@@ -35873,7 +35949,7 @@
         {
           "element": "button",
           "name": "Clear Search",
-          "line": 1969,
+          "line": 1877,
           "handler": "() => setFriendSearch('')",
           "destination": null,
           "type": "button",
@@ -35883,7 +35959,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2000,
+          "line": 1908,
           "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
           "destination": null,
           "type": "button",
@@ -35893,7 +35969,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2068,
+          "line": 1981,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -35903,7 +35979,7 @@
         {
           "element": "button",
           "name": "Cancel",
-          "line": 2130,
+          "line": 2042,
           "handler": "() => setConfirmTransfer(null)",
           "destination": null,
           "type": "button",
@@ -35913,7 +35989,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2137,
+          "line": 2049,
           "handler": "handleTransfer",
           "destination": null,
           "type": "button",
@@ -35923,7 +35999,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 2370,
+          "line": 2273,
           "handler": "() => fetchTransactions()",
           "destination": null,
           "type": "button",
@@ -35933,7 +36009,7 @@
         {
           "element": "button",
           "name": "Show Everything",
-          "line": 2407,
+          "line": 2320,
           "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
           "destination": null,
           "type": "button",
@@ -35943,7 +36019,7 @@
         {
           "element": "button",
           "name": "Get Your First Diamonds",
-          "line": 2430,
+          "line": 2343,
           "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
           "destination": null,
           "type": "button",
@@ -35953,7 +36029,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2567,
+          "line": 2473,
           "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
           "destination": null,
           "type": "button",
@@ -35963,7 +36039,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 2590,
+          "line": 2496,
           "handler": "() => fetchTransactions(transactions.length)",
           "destination": null,
           "type": "button",
@@ -36002,8 +36078,16 @@
       },
       "functions": [
         {
+          "name": "txConfigFor",
+          "line": 149,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getPersistedRecipients",
-          "line": 216,
+          "line": 196,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36011,7 +36095,7 @@
         },
         {
           "name": "persistRecipients",
-          "line": 225,
+          "line": 205,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36019,7 +36103,7 @@
         },
         {
           "name": "parseRateLimitError",
-          "line": 234,
+          "line": 214,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36027,7 +36111,7 @@
         },
         {
           "name": "copyReceiptToClipboard",
-          "line": 275,
+          "line": 255,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36035,7 +36119,7 @@
         },
         {
           "name": "showConfettiAnimation",
-          "line": 291,
+          "line": 271,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36043,7 +36127,7 @@
         },
         {
           "name": "getCachedTransactions",
-          "line": 482,
+          "line": 396,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36051,7 +36135,7 @@
         },
         {
           "name": "setCachedTransactions",
-          "line": 498,
+          "line": 412,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36059,7 +36143,7 @@
         },
         {
           "name": "getCachedBalance",
-          "line": 530,
+          "line": 444,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -36067,7 +36151,7 @@
         },
         {
           "name": "getDateGroup",
-          "line": 544,
+          "line": 458,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36075,7 +36159,7 @@
         },
         {
           "name": "getSkeletonCount",
-          "line": 562,
+          "line": 476,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36083,7 +36167,7 @@
         },
         {
           "name": "useAnimatedCounter",
-          "line": 609,
+          "line": 523,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36091,7 +36175,7 @@
         },
         {
           "name": "DiamondWalletModal",
-          "line": 653,
+          "line": 567,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -36099,23 +36183,15 @@
         },
         {
           "name": "WalletDescription",
-          "line": 258,
+          "line": 238,
           "references": 3,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "EmptyStateDiamond",
-          "line": 310,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "DonutChart",
-          "line": 376,
+          "line": 290,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36123,7 +36199,7 @@
         },
         {
           "name": "SkeletonRow",
-          "line": 570,
+          "line": 484,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -36131,7 +36207,7 @@
         },
         {
           "name": "tick",
-          "line": 631,
+          "line": 545,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36139,7 +36215,7 @@
         },
         {
           "name": "handleBalanceRefresh",
-          "line": 760,
+          "line": 674,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36147,7 +36223,7 @@
         },
         {
           "name": "handleBusEvent",
-          "line": 792,
+          "line": 706,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36155,7 +36231,7 @@
         },
         {
           "name": "handleKeyDown",
-          "line": 1058,
+          "line": 972,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -36166,7 +36242,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 1416,
+          "line": 1330,
           "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36174,7 +36250,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1773,
+          "line": 1686,
           "excerpt": "placeholder=\"Search Transactions...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36182,7 +36258,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 1963,
+          "line": 1871,
           "excerpt": "placeholder=\"Type A Friend's Name...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36190,7 +36266,7 @@
         },
         {
           "kind": "PLACEHOLDER",
-          "line": 2062,
+          "line": 1975,
           "excerpt": "placeholder=\"Enter Diamond Amount...\"",
           "disposition": "frozen-global-header-dependency",
           "review": "accepted",
@@ -36211,7 +36287,7 @@
         {
           "element": "button",
           "name": "Dismiss Store Message",
-          "line": 173,
+          "line": 108,
           "handler": "() => removeToast(toast.id)",
           "destination": null,
           "type": "button",
@@ -36259,15 +36335,15 @@
         },
         {
           "name": "StoreToast",
-          "line": 62,
-          "references": 2,
+          "line": 43,
+          "references": 3,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
           "name": "handler",
-          "line": 98,
+          "line": 80,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48434,9 +48510,9 @@
       },
       "states": {
         "loading": false,
-        "empty": false,
-        "error": false,
-        "retry": false,
+        "empty": true,
+        "error": true,
+        "retry": true,
         "offline": false,
         "stale": true,
         "success": false,
@@ -48447,7 +48523,7 @@
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
-        "deletes": 3,
+        "deletes": 1,
         "rpc": 0
       },
       "realtime": {
@@ -48459,71 +48535,151 @@
       "functions": [
         {
           "name": "normalizedScope",
-          "line": 8,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "stableValue",
-          "line": 15,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "commerceIntentIdentity",
-          "line": 32,
-          "references": 3,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "browserStorage",
-          "line": 44,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "validRecord",
-          "line": 54,
-          "references": 3,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "readRecords",
-          "line": 65,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "writeRecords",
-          "line": 76,
+          "line": 10,
           "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "stableValue",
+          "line": 19,
+          "references": 6,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "commerceIntentIdentity",
+          "line": 36,
+          "references": 6,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "commerceIntentSlotIdentity",
+          "line": 52,
+          "references": 5,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "parsedCommerceIntentIdentity",
+          "line": 67,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "recordSlotIdentity",
+          "line": 89,
+          "references": 7,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "browserStorage",
+          "line": 95,
+          "references": 7,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "validRecord",
+          "line": 105,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "readRecordEnvelope",
+          "line": 120,
+          "references": 10,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "writeRecords",
+          "line": 156,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "createRequestId",
-          "line": 91,
+          "line": 175,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "persistenceUnavailableError",
+          "line": 183,
+          "references": 8,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "unresolvedIntentError",
+          "line": 191,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "commerceIntentCapacityError",
+          "line": 199,
           "references": 2,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "persistAndVerifyRecord",
+          "line": 207,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "inspectCommerceRequestRecovery",
+          "line": 232,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "listCommerceRequestRecoverySlots",
+          "line": 258,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "getOrCreateCommerceRequestId",
-          "line": 98,
+          "line": 287,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "replaceCommerceRequestId",
+          "line": 337,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48531,7 +48687,7 @@
         },
         {
           "name": "clearCommerceRequestId",
-          "line": 128,
+          "line": 381,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48539,7 +48695,7 @@
         },
         {
           "name": "clearCommerceRequestById",
-          "line": 144,
+          "line": 409,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -48547,7 +48703,7 @@
         },
         {
           "name": "matches",
-          "line": 156,
+          "line": 421,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48555,7 +48711,10 @@
         }
       ],
       "possibleUnwiredFunctions": [
+        "inspectCommerceRequestRecovery",
+        "listCommerceRequestRecoverySlots",
         "getOrCreateCommerceRequestId",
+        "replaceCommerceRequestId",
         "clearCommerceRequestId",
         "clearCommerceRequestById"
       ],
@@ -48576,7 +48735,7 @@
       "states": {
         "loading": false,
         "empty": false,
-        "error": false,
+        "error": true,
         "retry": false,
         "offline": false,
         "stale": false,
@@ -48599,23 +48758,59 @@
       },
       "functions": [
         {
-          "name": "marketplaceCopy",
-          "line": 9,
+          "name": "protectMachineTokens",
+          "line": 91,
           "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceCopy",
+          "line": 108,
+          "references": 4,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceToastCopy",
+          "line": 126,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceFulfillmentStatus",
+          "line": 140,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceCarrierName",
+          "line": 151,
+          "references": 1,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "marketplaceStructuredData",
-          "line": 20,
+          "line": 157,
           "references": 3,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
-      "possibleUnwiredFunctions": [],
+      "possibleUnwiredFunctions": [
+        "marketplaceToastCopy",
+        "marketplaceFulfillmentStatus",
+        "marketplaceCarrierName"
+      ],
       "markers": []
     },
     {
@@ -48659,7 +48854,7 @@
       "functions": [
         {
           "name": "titleCaseWalletText",
-          "line": 8,
+          "line": 6,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -48667,7 +48862,7 @@
         },
         {
           "name": "formatLargeNumbers",
-          "line": 27,
+          "line": 11,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -48675,7 +48870,7 @@
         },
         {
           "name": "formatWalletDescriptionParts",
-          "line": 41,
+          "line": 25,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62015,7 +62210,7 @@
         "sessionStorage": 0,
         "inserts": 0,
         "updates": 0,
-        "deletes": 3,
+        "deletes": 1,
         "rpc": 0
       }
     },
@@ -65016,11 +65211,11 @@
       "effectRef": "src/components/store/DiamondInPlayBalance.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1635:1",
+      "id": "src/components/store/DiamondWalletModal.jsx:1549:1",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Close",
-      "line": 1635,
+      "line": 1549,
       "handler": "onClose",
       "destination": null,
       "type": null,
@@ -65029,11 +65224,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1725:2",
+      "id": "src/components/store/DiamondWalletModal.jsx:1638:2",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Buy Diamonds",
-      "line": 1725,
+      "line": 1638,
       "handler": "() => {\n                onClose();\n                onBuyClick?.();\n              }",
       "destination": null,
       "type": "button",
@@ -65042,11 +65237,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1736:3",
+      "id": "src/components/store/DiamondWalletModal.jsx:1649:3",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Send Diamonds To A Friend",
-      "line": 1736,
+      "line": 1649,
       "handler": "() => {\n                setShowTransfer((value) => !value);\n                fetchFriends();\n              }",
       "destination": null,
       "type": "button",
@@ -65055,11 +65250,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1778:4",
+      "id": "src/components/store/DiamondWalletModal.jsx:1691:4",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
-      "name": "Clear Search",
-      "line": 1778,
+      "name": "Clear",
+      "line": 1691,
       "handler": "() => setSearchQuery('')",
       "destination": null,
       "type": "button",
@@ -65068,11 +65263,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1818:5",
+      "id": "src/components/store/DiamondWalletModal.jsx:1726:5",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1818,
+      "line": 1726,
       "handler": "() => handleFilterChange(opt.value)",
       "destination": null,
       "type": "button",
@@ -65081,11 +65276,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1840:6",
+      "id": "src/components/store/DiamondWalletModal.jsx:1748:6",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Stats",
-      "line": 1840,
+      "line": 1748,
       "handler": "() => setShowStats((v) => !v)",
       "destination": null,
       "type": "button",
@@ -65094,11 +65289,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1917:7",
+      "id": "src/components/store/DiamondWalletModal.jsx:1825:7",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Choose A Different Friend",
-      "line": 1917,
+      "line": 1825,
       "handler": "() => {\n                          setTransferRecipient(null);\n                          setFriendSearch('');\n                          setTransferAmount('');\n                          setConfirmTransfer(null);\n                        }",
       "destination": null,
       "type": "button",
@@ -65107,11 +65302,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1938:8",
+      "id": "src/components/store/DiamondWalletModal.jsx:1846:8",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1938,
+      "line": 1846,
       "handler": "() => {\n                                setTransferRecipient(r);\n                                setFriendSearch('');\n                              }",
       "destination": null,
       "type": "button",
@@ -65120,11 +65315,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:1969:9",
+      "id": "src/components/store/DiamondWalletModal.jsx:1877:9",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Clear Search",
-      "line": 1969,
+      "line": 1877,
       "handler": "() => setFriendSearch('')",
       "destination": null,
       "type": "button",
@@ -65133,11 +65328,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2000:10",
+      "id": "src/components/store/DiamondWalletModal.jsx:1908:10",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2000,
+      "line": 1908,
       "handler": "() => {\n                                    setTransferRecipient(f);\n                                    setFriendSearch('');\n                                  }",
       "destination": null,
       "type": "button",
@@ -65146,11 +65341,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2068:11",
+      "id": "src/components/store/DiamondWalletModal.jsx:1981:11",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2068,
+      "line": 1981,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -65159,11 +65354,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2130:12",
+      "id": "src/components/store/DiamondWalletModal.jsx:2042:12",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Cancel",
-      "line": 2130,
+      "line": 2042,
       "handler": "() => setConfirmTransfer(null)",
       "destination": null,
       "type": "button",
@@ -65172,11 +65367,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2137:13",
+      "id": "src/components/store/DiamondWalletModal.jsx:2049:13",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2137,
+      "line": 2049,
       "handler": "handleTransfer",
       "destination": null,
       "type": "button",
@@ -65185,11 +65380,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2370:14",
+      "id": "src/components/store/DiamondWalletModal.jsx:2273:14",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Retry",
-      "line": 2370,
+      "line": 2273,
       "handler": "() => fetchTransactions()",
       "destination": null,
       "type": "button",
@@ -65198,11 +65393,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2407:15",
+      "id": "src/components/store/DiamondWalletModal.jsx:2320:15",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Show Everything",
-      "line": 2407,
+      "line": 2320,
       "handler": "() => {\n                      setSearchQuery('');\n                      setDateRange('all');\n                      try {\n                        localStorage.setItem(DATE_RANGE_CACHE_KEY, 'all');\n                      } catch (_) {\n                        console.warn('[App] Handled exception:', _?.message || _);\n                      }\n                    }",
       "destination": null,
       "type": "button",
@@ -65211,11 +65406,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2430:16",
+      "id": "src/components/store/DiamondWalletModal.jsx:2343:16",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "Get Your First Diamonds",
-      "line": 2430,
+      "line": 2343,
       "handler": "() => {\n                          onClose();\n                          onBuyClick?.();\n                        }",
       "destination": null,
       "type": "button",
@@ -65224,11 +65419,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2567:17",
+      "id": "src/components/store/DiamondWalletModal.jsx:2473:17",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2567,
+      "line": 2473,
       "handler": "async (e) => {\n                              e.stopPropagation();\n                              if (await copyReceiptToClipboard(tx)) {\n                                setCopiedTxId(tx.id);\n                                clearTimeout(copyTimerRef.current);\n                                copyTimerRef.current = setTimeout(() => setCopiedTxId(null), 2000);\n                              }\n                            }",
       "destination": null,
       "type": "button",
@@ -65237,11 +65432,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/DiamondWalletModal.jsx:2590:18",
+      "id": "src/components/store/DiamondWalletModal.jsx:2496:18",
       "file": "src/components/store/DiamondWalletModal.jsx",
       "element": "button",
       "name": "<dynamic>",
-      "line": 2590,
+      "line": 2496,
       "handler": "() => fetchTransactions(transactions.length)",
       "destination": null,
       "type": "button",
@@ -65250,11 +65445,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/StoreToast.jsx:173:1",
+      "id": "src/components/store/StoreToast.jsx:108:1",
       "file": "src/components/store/StoreToast.jsx",
       "element": "button",
       "name": "Dismiss Store Message",
-      "line": 173,
+      "line": 108,
       "handler": "() => removeToast(toast.id)",
       "destination": null,
       "type": "button",
@@ -69458,7 +69653,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -70295,7 +70490,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -70654,7 +70849,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -70971,7 +71166,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -71287,7 +71482,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -71970,7 +72165,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -72589,7 +72784,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -73005,7 +73200,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -73335,7 +73530,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -73649,7 +73844,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -74433,7 +74628,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -74971,7 +75166,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -75290,7 +75485,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -76575,7 +76770,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -76939,7 +77134,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -77307,7 +77502,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -77679,7 +77874,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -77995,7 +78190,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -78313,7 +78508,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -78895,7 +79090,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -80497,7 +80692,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         },
@@ -82336,7 +82531,7 @@
             "sessionStorage": 0,
             "inserts": 0,
             "updates": 0,
-            "deletes": 3,
+            "deletes": 1,
             "rpc": 0
           }
         }
@@ -84498,7 +84693,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1416,
+        "line": 1330,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84507,7 +84702,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1773,
+        "line": 1686,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84516,7 +84711,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1963,
+        "line": 1871,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -84525,7 +84720,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2062,
+        "line": 1975,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -90395,8 +90590,41 @@
       },
       {
         "file": "src/lib/store/checkoutIntentStore.js",
+        "name": "inspectCommerceRequestRecovery",
+        "line": 232,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/club-shop/[itemId].js",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js",
+          "src/components/store/MerchStore.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/checkoutIntentStore.js",
+        "name": "listCommerceRequestRecoverySlots",
+        "line": 258,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/checkoutIntentStore.js",
         "name": "getOrCreateCommerceRequestId",
-        "line": 98,
+        "line": 287,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90415,8 +90643,8 @@
       },
       {
         "file": "src/lib/store/checkoutIntentStore.js",
-        "name": "clearCommerceRequestId",
-        "line": 128,
+        "name": "replaceCommerceRequestId",
+        "line": 337,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90429,6 +90657,24 @@
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
           "pages/hub/memory-games.js",
+          "src/components/store/MerchStore.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/checkoutIntentStore.js",
+        "name": "clearCommerceRequestId",
+        "line": 381,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/club-shop/[itemId].js",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js",
           "src/components/store/DiamondWalletModal.jsx",
           "src/components/store/MerchStore.jsx"
         ]
@@ -90436,7 +90682,7 @@
       {
         "file": "src/lib/store/checkoutIntentStore.js",
         "name": "clearCommerceRequestById",
-        "line": 144,
+        "line": 409,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90450,9 +90696,57 @@
         ]
       },
       {
+        "file": "src/lib/store/marketplaceCopy.js",
+        "name": "marketplaceToastCopy",
+        "line": 126,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/store/StoreToast.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/marketplaceCopy.js",
+        "name": "marketplaceFulfillmentStatus",
+        "line": 140,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store/orders.js",
+          "pages/hub/merch-store/fulfillment.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/marketplaceCopy.js",
+        "name": "marketplaceCarrierName",
+        "line": 151,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store/orders.js",
+          "pages/hub/diamond-store/orders/[orderId].js",
+          "pages/hub/merch-store/fulfillment.js"
+        ]
+      },
+      {
         "file": "src/lib/store/walletDescription.mjs",
         "name": "formatWalletDescriptionParts",
-        "line": 41,
+        "line": 25,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93090,7 +93384,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1416,
+        "line": 1330,
         "excerpt": "// BALANCE-AUTHORITY: only as a placeholder when we have nothing :",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93099,7 +93393,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1773,
+        "line": 1686,
         "excerpt": "placeholder=\"Search Transactions...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93108,7 +93402,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 1963,
+        "line": 1871,
         "excerpt": "placeholder=\"Type A Friend's Name...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -93117,7 +93411,7 @@
       {
         "file": "src/components/store/DiamondWalletModal.jsx",
         "kind": "PLACEHOLDER",
-        "line": 2062,
+        "line": 1975,
         "excerpt": "placeholder=\"Enter Diamond Amount...\"",
         "disposition": "frozen-global-header-dependency",
         "review": "accepted",
@@ -98987,8 +99281,41 @@
       },
       {
         "file": "src/lib/store/checkoutIntentStore.js",
+        "name": "inspectCommerceRequestRecovery",
+        "line": 232,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/club-shop/[itemId].js",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js",
+          "src/components/store/MerchStore.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/checkoutIntentStore.js",
+        "name": "listCommerceRequestRecoverySlots",
+        "line": 258,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/checkoutIntentStore.js",
         "name": "getOrCreateCommerceRequestId",
-        "line": 98,
+        "line": 287,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99007,8 +99334,8 @@
       },
       {
         "file": "src/lib/store/checkoutIntentStore.js",
-        "name": "clearCommerceRequestId",
-        "line": 128,
+        "name": "replaceCommerceRequestId",
+        "line": 337,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99021,6 +99348,24 @@
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
           "pages/hub/memory-games.js",
+          "src/components/store/MerchStore.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/checkoutIntentStore.js",
+        "name": "clearCommerceRequestId",
+        "line": 381,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/club-shop/[itemId].js",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js",
           "src/components/store/DiamondWalletModal.jsx",
           "src/components/store/MerchStore.jsx"
         ]
@@ -99028,7 +99373,7 @@
       {
         "file": "src/lib/store/checkoutIntentStore.js",
         "name": "clearCommerceRequestById",
-        "line": 144,
+        "line": 409,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99042,9 +99387,57 @@
         ]
       },
       {
+        "file": "src/lib/store/marketplaceCopy.js",
+        "name": "marketplaceToastCopy",
+        "line": 126,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/store/StoreToast.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/store/marketplaceCopy.js",
+        "name": "marketplaceFulfillmentStatus",
+        "line": 140,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store/orders.js",
+          "pages/hub/merch-store/fulfillment.js"
+        ]
+      },
+      {
+        "file": "src/lib/store/marketplaceCopy.js",
+        "name": "marketplaceCarrierName",
+        "line": 151,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/diamond-store/orders.js",
+          "pages/hub/diamond-store/orders/[orderId].js",
+          "pages/hub/merch-store/fulfillment.js"
+        ]
+      },
+      {
         "file": "src/lib/store/walletDescription.mjs",
         "name": "formatWalletDescriptionParts",
-        "line": 41,
+        "line": 25,
         "references": 1,
         "exported": true,
         "defaultExport": false,

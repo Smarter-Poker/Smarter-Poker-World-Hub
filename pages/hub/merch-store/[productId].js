@@ -1,15 +1,13 @@
 import Link from 'next/link';
-import { ShoppingCart } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
 import MerchStore from '../../../src/components/store/MerchStore';
 import { MERCHANDISE } from '../../../src/data/diamondStoreData';
 import { useAuthUser } from '../../../src/lib/authUtils';
+import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt';
 import { createClient as createServerClient } from '../../../src/lib/supabaseServerClient';
 
-const LEGACY_IMAGE = '/images/merch/neural-steel/legacy-tabletop-atlas.webp';
-const FALLBACK_IMAGE = '/images/store-v3/merch-hero.webp';
 const STATIC_DETAIL_IMAGES = {
   'hoodie-neural': ['/images/merch/neural-steel/print/diamond-altitude.webp'],
   'tshirt-gto': ['/images/merch/neural-steel/print/royal-circuit.webp'],
@@ -17,15 +15,15 @@ const STATIC_DETAIL_IMAGES = {
 };
 
 function publicImage(value) {
-  if (typeof value !== 'string' || !value.trim()) return FALLBACK_IMAGE;
+  if (typeof value !== 'string' || !value.trim()) return null;
   const candidate = value.trim();
-  if (candidate.startsWith('/merch/')) return LEGACY_IMAGE;
+  if (candidate.startsWith('/merch/')) return null;
   if (candidate.startsWith('/') && !candidate.startsWith('//')) return candidate;
   try {
     const url = new URL(candidate);
-    return url.protocol === 'https:' ? url.toString() : FALLBACK_IMAGE;
+    return url.protocol === 'https:' ? url.toString() : null;
   } catch (_) {
-    return FALLBACK_IMAGE;
+    return null;
   }
 }
 
@@ -42,13 +40,20 @@ function publicGallery(primary, values = []) {
 
 function staticProduct(product) {
   if (!product) return null;
+  const art = resolveReviewedMerchArt(product.id);
   return {
     ...product,
-    image: publicImage(product.image),
-    galleryImages: publicGallery(product.image, STATIC_DETAIL_IMAGES[product.id]),
+    image: art.image,
+    imageCropPosition: art.atlasPosition,
+    galleryImages: publicGallery(
+      art.atlasPosition ? null : art.image,
+      STATIC_DETAIL_IMAGES[product.id]
+    ),
+    mediaApproved: art.reviewed,
     priceDiamonds: Math.round(Number(product.price || 0) * 100),
-    inStock: true,
-    fulfillmentReady: true,
+    catalogVerified: false,
+    inStock: false,
+    fulfillmentReady: false,
     automaticFulfillmentReady: false,
     fulfillmentProvider: null,
   };
@@ -62,7 +67,9 @@ async function catalogProduct(productId, signal) {
   const supabase = createServerClient(url, key);
   const { data: item, error } = await supabase
     .from('merchandise_items')
-    .select('id, name, description, category, image_url, price_usd, price_diamonds, stock, has_variants, metadata')
+    .select(
+      'id, name, description, category, image_url, price_usd, price_diamonds, stock, has_variants, metadata'
+    )
     .eq('id', productId)
     .eq('is_active', true)
     .abortSignal(signal)
@@ -81,6 +88,7 @@ async function catalogProduct(productId, signal) {
   if (variantError) return null;
 
   const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+  const art = resolveReviewedMerchArt(item.id);
   const fulfillmentProvider = metadata.fulfillment_provider || null;
   const fulfillmentReady = true;
   let automaticFulfillmentReady = false;
@@ -92,12 +100,17 @@ async function catalogProduct(productId, signal) {
     resolvePrintfulMapping = printful.resolvePrintfulMapping;
     if (printfulReady) {
       automaticFulfillmentReady = item.has_variants
-        ? (variants || []).some((variant) => Boolean(resolvePrintfulMapping(null, variant.metadata)))
+        ? (variants || []).some((variant) =>
+            Boolean(resolvePrintfulMapping(null, variant.metadata))
+          )
         : Boolean(resolvePrintfulMapping(metadata, null));
     }
   }
 
-  const variantStock = (variants || []).reduce((sum, variant) => sum + Math.max(0, Number(variant.stock) || 0), 0);
+  const variantStock = (variants || []).reduce(
+    (sum, variant) => sum + Math.max(0, Number(variant.stock) || 0),
+    0
+  );
   const inStock = item.has_variants
     ? variantStock > 0
     : item.stock == null || Number(item.stock) > 0;
@@ -109,15 +122,25 @@ async function catalogProduct(productId, signal) {
     name: item.name,
     description: item.description || 'Official Smarter.Poker marketplace equipment.',
     category: item.category || 'equipment',
-    image: publicImage(item.image_url),
-    galleryImages: publicGallery(item.image_url, metadata.gallery_images),
+    image: art.image,
+    imageCropPosition: art.atlasPosition,
+    // Live catalog metadata is operator-authored data, not reviewed product
+    // photography. Only exact, source-controlled galleries keyed by this
+    // catalog id may enter the product viewer, Open Graph, or JSON-LD.
+    galleryImages: publicGallery(
+      art.atlasPosition ? null : art.image,
+      STATIC_DETAIL_IMAGES[item.id]
+    ),
+    mediaApproved: art.reviewed,
+    catalogVerified: true,
     price,
     priceDiamonds: Math.max(1, Number(item.price_diamonds) || Math.ceil(price * 100)),
     inStock,
     hasVariants: item.has_variants === true,
     variants: (variants || []).map((variant) => {
       const variantPrice = Number(variant.price_usd);
-      const resolvedPrice = Number.isFinite(variantPrice) && variantPrice > 0 ? variantPrice : price;
+      const resolvedPrice =
+        Number.isFinite(variantPrice) && variantPrice > 0 ? variantPrice : price;
       return {
         id: variant.id,
         sku: variant.sku,
@@ -131,9 +154,9 @@ async function catalogProduct(productId, signal) {
         stock: Math.max(0, Number(variant.stock) || 0),
         fulfillmentReady: true,
         automaticFulfillmentReady:
-          fulfillmentProvider === 'printful'
-          && printfulReady
-          && Boolean(resolvePrintfulMapping?.(null, variant.metadata)),
+          fulfillmentProvider === 'printful' &&
+          printfulReady &&
+          Boolean(resolvePrintfulMapping?.(null, variant.metadata)),
       };
     }),
     fulfillmentReady,
@@ -163,21 +186,32 @@ async function boundedCatalogProduct(productId, timeoutMs = 5000) {
 export default function MerchProductDetail({ product }) {
   const { user, loading: authLoading } = useAuthUser();
   const diamondPrice = Number(product.priceDiamonds) || Math.round(Number(product.price) * 100);
-  const canonical = `/hub/merch-store/${product.id}`;
+  const canonical = `/hub/merch-store/${encodeURIComponent(String(product.id))}`;
   const image = publicImage(product.image);
-  const galleryImages = publicGallery(image, product.galleryImages);
-  const available = product.inStock !== false && product.fulfillmentReady === true;
+  const galleryImages = publicGallery(
+    product.imageCropPosition ? null : image,
+    product.galleryImages
+  );
+  const available =
+    product.catalogVerified === true &&
+    product.mediaApproved === true &&
+    product.inStock !== false &&
+    product.fulfillmentReady === true;
   const inventoryStatus = available
     ? 'Available For Card Or Diamonds'
-    : product.inStock === false
-      ? 'Sold Out'
-      : 'Preview: Fulfillment Pending';
+    : product.catalogVerified !== true
+      ? 'Preview: Live Catalog Verification Required'
+      : product.mediaApproved !== true
+        ? 'Unavailable: Product Artwork Requires Review'
+        : product.inStock === false
+          ? 'Sold Out'
+          : 'Preview: Fulfillment Pending';
 
   const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    image: galleryImages.map(absoluteImage),
+    ...(galleryImages.length ? { image: galleryImages.map(absoluteImage) } : {}),
     description: product.description,
     sku: product.id,
     brand: { '@type': 'Brand', name: 'Smarter.Poker' },
@@ -186,9 +220,7 @@ export default function MerchProductDetail({ product }) {
       url: `https://smarter.poker${canonical}`,
       priceCurrency: 'USD',
       price: Number(product.price).toFixed(2),
-      availability: available
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/OutOfStock',
+      availability: available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
     },
   };
@@ -196,9 +228,24 @@ export default function MerchProductDetail({ product }) {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Marketplace', item: 'https://smarter.poker/hub/diamond-store' },
-      { '@type': 'ListItem', position: 2, name: 'Merch Store', item: 'https://smarter.poker/hub/merch-store' },
-      { '@type': 'ListItem', position: 3, name: product.name, item: `https://smarter.poker${canonical}` },
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Marketplace',
+        item: 'https://smarter.poker/hub/diamond-store',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Merch Store',
+        item: 'https://smarter.poker/hub/merch-store',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.name,
+        item: `https://smarter.poker${canonical}`,
+      },
     ],
   };
 
@@ -209,6 +256,9 @@ export default function MerchProductDetail({ product }) {
       description={product.description}
       eyebrow={`${product.category} / neural steel collection`}
       image={image}
+      imageCropPosition={product.imageCropPosition || null}
+      imageCropGrid={product.imageCropPosition ? '4x1' : '4x3'}
+      imageCropShape={product.imageCropPosition ? 'portrait' : 'square'}
       galleryImages={galleryImages}
       imageAlt={`${product.name} in the Smarter.Poker neural steel collection`}
       breadcrumbs={[
@@ -219,11 +269,10 @@ export default function MerchProductDetail({ product }) {
       price={product.price}
       diamondPrice={diamondPrice}
       status={inventoryStatus}
+      presentation="product"
       actions={
         <>
-          <Link href="#purchase-console">
-            <ShoppingCart size={16} aria-hidden="true" /> Open Purchase Console
-          </Link>
+          <Link href="#purchase-console">Open Purchase Console</Link>
           <Link href="/hub/diamond-store/cart">Open Shared Cart</Link>
         </>
       }
@@ -234,7 +283,9 @@ export default function MerchProductDetail({ product }) {
         <section className={detailStyles.detailCard}>
           <h2>Casino-Grade Detail</h2>
           <p>
-            Built Around The Blackened-Steel, Cold-Blue-Light Visual System Used Across Smarter.Poker. This Item Is Presented With The Same Hard-Edged Frames And Verified Marketplace Controls As The Rest Of The Collection.
+            Built Around The Blackened-Steel, Cold-Blue-Light Visual System Used Across
+            Smarter.Poker. This Item Is Presented With The Same Hard-Edged Frames And Verified
+            Marketplace Controls As The Rest Of The Collection.
           </p>
           <ul>
             <li>Official Smarter.Poker Neural Steel Design</li>
@@ -245,15 +296,30 @@ export default function MerchProductDetail({ product }) {
         <section className={detailStyles.detailCard}>
           <h2>Purchase Protocol</h2>
           <p>
-            Add This Item To The Shared Marketplace Cart, Then Settle The Order With Stripe Or Your Smarter.Poker Diamond Wallet. Variant And Shipping Selections Are Confirmed Before The Order Is Finalized.
+            Add This Item To The Shared Marketplace Cart, Then Settle The Order With Stripe Or Your
+            Smarter.Poker Diamond Wallet. Variant And Shipping Selections Are Confirmed Before The
+            Order Is Finalized.
           </p>
-          <p>Diamond Equivalent: <strong>{diamondPrice.toLocaleString()} Diamonds</strong>.</p>
+          <p>
+            Diamond Equivalent: <strong>{diamondPrice.toLocaleString()} Diamonds</strong>.
+          </p>
         </section>
       </div>
       <div className={detailStyles.assuranceGrid}>
-        <div><strong>Secure Checkout</strong><span>Stripe-Hosted Card Settlement And Verified Wallet Authorization.</span></div>
-        <div><strong>Order Telemetry</strong><span>Track Order State From The Marketplace Orders Page.</span></div>
-        <div><strong>Same-Surface Flow</strong><span>Details, Cart, Checkout Return, And Account Records Remain Inside Smarter.Poker.</span></div>
+        <div>
+          <strong>Secure Checkout</strong>
+          <span>Stripe-Hosted Card Settlement And Verified Wallet Authorization.</span>
+        </div>
+        <div>
+          <strong>Order Telemetry</strong>
+          <span>Track Order State From The Marketplace Orders Page.</span>
+        </div>
+        <div>
+          <strong>Same-Surface Flow</strong>
+          <span>
+            Details, Cart, Checkout Return, And Account Records Remain Inside Smarter.Poker.
+          </span>
+        </div>
       </div>
       <section aria-labelledby="purchase-console-title">
         <div className={detailStyles.detailCard}>
@@ -299,7 +365,5 @@ export async function getStaticProps({ params }) {
     console.warn('[merch-product-detail] Live catalog lookup failed:', error?.message || error);
   }
   product ||= staticProduct(MERCHANDISE.find((item) => item.id === productId));
-  return product
-    ? { props: { product }, revalidate: 300 }
-    : { notFound: true, revalidate: 60 };
+  return product ? { props: { product }, revalidate: 300 } : { notFound: true, revalidate: 60 };
 }

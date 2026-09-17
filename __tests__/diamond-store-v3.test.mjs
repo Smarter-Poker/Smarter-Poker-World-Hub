@@ -33,13 +33,15 @@ test('keeps diamond values centered below art and buys through the existing chec
 });
 
 test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
-  for (const asset of [
-    'diamond-vault-hero.png',
-    'diamond-packages-sheet.png',
-  ]) {
+  for (const asset of ['diamond-vault-hero.png', 'diamond-packages-sheet.png']) {
     assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
   }
-  for (const asset of ['vip-hero.webp', 'merch-hero.webp', 'rewards-hero.webp', 'club-shop-hero.webp']) {
+  for (const asset of [
+    'vip-hero.webp',
+    'merch-hero.webp',
+    'rewards-hero.webp',
+    'club-shop-hero.webp',
+  ]) {
     assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
   }
   const radii = [...styles.matchAll(/border-radius:\s*([^;]+);/g)].map((match) => match[1].trim());
@@ -50,7 +52,7 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
 test('keeps every redesign rule outside the locked global header', () => {
   assert.match(
     page,
-    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}\s*>/
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
   );
   assert.doesNotMatch(page, /\.diamond-store-page button/);
   assert.doesNotMatch(page, /\.diamond-store-page a,/);

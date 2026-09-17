@@ -9,7 +9,21 @@
   --store-copy-muted: #a8b8c2;
   --store-void: #010306;
   --store-gold: #d7aa31;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   text-transform: capitalize;
+}
+
+.root :is(h1, h2, h3, h4, h5, h6, summary, button, a[href], label, th) {
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800;
+  letter-spacing: 0.012em;
+}
+
+/* Title Case applies to Marketplace prose, never to transaction identifiers,
+   tracking values, URLs, or customer-authored data. */
+.root :is([data-preserve-case='true'], [data-preserve-case='true'] *) {
+  text-transform: none !important;
 }
 
 /* The storefront header is intentionally client-only because it reads cached
@@ -32,21 +46,18 @@
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--store-cyan-edge) 42%, transparent);
-  background: linear-gradient(
-    180deg,
-    var(--store-metal-high),
-    var(--store-metal-low) 18%,
-    #020407 78%,
-    var(--store-metal-mid)
-  );
+  background: #050a0f;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     inset 0 -4px 12px #000,
     0 12px 26px #000;
   color: #d8faff;
   font:
-    700 13px 'IBM Plex Mono',
-    monospace;
+    700 13px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   letter-spacing: 0.08em;
 }
 
@@ -78,15 +89,7 @@
   margin: 34px auto 46px !important;
   padding: 34px 34px 46px !important;
   border: 1px solid #526e80;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(0, 190, 255, 0.055),
-      transparent 22%,
-      transparent 78%,
-      rgba(0, 190, 255, 0.035)
-    ),
-    linear-gradient(180deg, #0c1720 0, #03070b 42px, #010306 100%);
+  background: #010306;
   box-shadow:
     inset 0 1px 0 rgba(238, 252, 255, 0.48),
     inset 0 0 0 7px #02070b,
@@ -100,7 +103,7 @@
   inset: 16px 0 auto;
   height: 220px;
   border-top: 1px solid rgba(103, 151, 180, 0.22);
-  background: linear-gradient(180deg, rgba(24, 46, 61, 0.22), transparent);
+  background: rgba(24, 46, 61, 0.18);
   content: '';
   pointer-events: none;
 }
@@ -110,15 +113,8 @@
   z-index: -1;
   inset: 8px 8px auto;
   height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #85f1ff 22%,
-    #078ed6 50%,
-    #85f1ff 78%,
-    transparent
-  );
-  box-shadow: 0 0 14px rgba(0, 183, 255, 0.66);
+  background: transparent;
+  box-shadow: none;
   content: '';
   pointer-events: none;
 }
@@ -127,138 +123,13 @@
   display: none;
 }
 
-.sectionThreshold {
-  position: relative;
-  display: grid;
-  min-height: 236px;
-  grid-template-columns: minmax(300px, 0.95fr) minmax(0, 1.35fr);
-  align-items: stretch;
-  margin: -8px 0 30px;
-  overflow: hidden;
-  border: 1px solid #718896;
-  background: #010306;
-  box-shadow:
-    inset 0 1px 0 rgba(244, 253, 255, 0.58),
-    inset 0 0 0 6px #03080c,
-    inset 0 0 0 7px rgba(62, 91, 108, 0.72),
-    0 18px 40px #000;
-}
-
-.thresholdImage {
-  grid-column: 2;
-  grid-row: 1;
-  min-height: 236px;
-  background-image: url('/images/store-v3/marketplace-lower-suites-atlas.webp');
-  background-position: 0 center;
-  background-repeat: no-repeat;
-  background-size: 400% 100%;
-  filter: contrast(1.06) saturate(1.04);
-}
-
-.sectionThreshold[data-section='vip'] .thresholdImage {
-  background-position: 0 center;
-}
-
-.sectionThreshold[data-section='merch'] .thresholdImage {
-  background-position: 33.333% center;
-}
-
-.sectionThreshold[data-section='rewards'] .thresholdImage {
-  background-position: 66.667% center;
-}
-
-.sectionThreshold[data-section='club-shop'] .thresholdImage {
-  background-position: 100% center;
-}
-
-.thresholdCopy {
-  position: relative;
-  z-index: 2;
-  grid-column: 1;
-  grid-row: 1;
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 42px 30px;
-  background:
-    linear-gradient(90deg, rgba(3, 8, 12, 0.98) 0 78%, rgba(3, 8, 12, 0.82) 90%, transparent),
-    #020609;
-}
-
-.thresholdCopy::after {
-  position: absolute;
-  top: 25%;
-  right: -46px;
-  width: 72px;
-  height: 50%;
-  border-top: 1px solid #57bddf;
-  border-bottom: 1px solid #315b70;
-  background: linear-gradient(90deg, #050b10, transparent);
-  transform: skewX(-18deg);
-  content: '';
-}
-
-.thresholdCopy span {
-  color: #6eddf6;
-  font: 700 9px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.thresholdCopy h2 {
-  margin: 12px 0 8px;
-  color: #e9f8fb;
-  font: 500 clamp(27px, 4vw, 42px) 'Rajdhani', sans-serif;
-  letter-spacing: -0.025em;
-  line-height: 0.98;
-  text-transform: uppercase;
-}
-
-.thresholdCopy p {
-  max-width: 410px;
-  margin: 0;
-  color: #91a5af;
-  font: 500 13px/1.55 'Inter', sans-serif;
-}
-
-.thresholdReadout {
-  position: absolute;
-  z-index: 3;
-  right: 18px;
-  bottom: 17px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 9px;
-  border: 1px solid rgba(104, 162, 188, 0.56);
-  background: rgba(0, 5, 8, 0.82);
-  color: #7f98a4;
-  font: 700 8px 'IBM Plex Mono', monospace;
-  letter-spacing: 0.12em;
-}
-
-.thresholdReadout strong {
-  color: #63e7ff;
-  font: inherit;
-}
-
 .contentShell[data-store-section='vip'] {
-  background:
-    linear-gradient(120deg, rgba(215, 170, 49, 0.09), transparent 24%),
-    linear-gradient(180deg, #15150d 0, #050605 42px, #010306 100%);
+  background: #080805;
   border-color: #85743e;
 }
 
 .contentShell[data-store-section='vip']::after {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #fff0a6 24%,
-    #c99720 50%,
-    #fff0a6 76%,
-    transparent
-  );
+  background: #c99720;
   box-shadow: 0 0 14px rgba(215, 170, 49, 0.52);
 }
 
@@ -269,42 +140,209 @@
 .vipBenefits {
   position: relative;
   margin-top: 44px !important;
-  padding: 28px;
-  border: 1px solid #5e7482;
-  background: linear-gradient(135deg, rgba(215, 170, 49, 0.06), transparent 34%), #020609;
+  padding: 28px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.vipStatusBar {
+  min-height: 82px;
+  padding: 17px 26px !important;
+  border: 1px solid #79671d !important;
+  background: #020403 !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 244, 186, 0.22),
-    inset 0 0 0 5px #05090c;
+    inset 0 1px 0 rgba(255, 241, 165, 0.34),
+    inset 0 0 0 5px #050704,
+    0 15px 30px rgba(0, 0, 0, 0.55) !important;
+}
+
+.vipStatusBar > div:first-child {
+  padding-inline: 18px 4px;
+}
+
+.vipManageAction,
+.vipToolLink,
+.vipDiamondAction,
+.vipPrimaryFallback {
+  border: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  box-shadow: none !important;
+  color: #e9faff !important;
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 2px #000;
+}
+
+.vipManageAction {
+  min-width: 240px;
+  justify-content: center;
+  padding: 14px 30px !important;
+  color: #fff0aa !important;
+}
+
+.vipTools {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.vipToolLink {
+  min-width: 210px;
+  justify-content: center;
+  padding: 12px 28px !important;
+}
+
+.vipDiamondAction,
+.vipPrimaryFallback {
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') !important;
+}
+
+.vipDiamondAction {
+  min-width: min(360px, 92vw);
+  min-height: 54px;
+  justify-content: center;
+  padding: 13px 34px !important;
+  color: #ecfbff !important;
+}
+
+.vipPrimaryFallback {
+  min-height: 92px;
 }
 
 .premiumDataCard {
-  min-height: 118px;
-  border: 1px solid #4a6373 !important;
-  background:
-    linear-gradient(112deg, rgba(0, 188, 255, 0.08), transparent 36%),
-    linear-gradient(180deg, #0d1820, #020609 72%) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(228, 249, 255, 0.22),
-    inset 0 -5px 12px #000;
+  position: relative;
+  min-height: 220px;
+  padding: 10% 9% !important;
+  overflow: hidden;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.premiumDataFrame {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.premiumDataFrameTop,
+.premiumDataFrameBottom {
+  display: block;
+  width: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+}
+
+.premiumDataFrameTop {
+  aspect-ratio: 900 / 143;
+  background-image: url('/images/marketplace-console-v1/shark-panel/top.png');
+}
+
+.premiumDataFrameMid {
+  display: block;
+  min-height: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/mid.png') center top /
+    100% auto repeat-y;
+}
+
+.premiumDataFrameBottom {
+  aspect-ratio: 900 / 139;
+  background-image: url('/images/marketplace-console-v1/shark-panel/bottom.png');
+}
+
+.premiumDataCard > :not(.premiumDataFrame) {
+  position: relative;
+  z-index: 1;
+}
+
+.premiumDataCard :is(h3, h4, strong) {
+  color: #eefaff !important;
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+.vipBenefits .responsiveGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 
 .vipFaq {
   margin-top: 36px;
-  padding: 30px 30px 12px !important;
-  border: 1px solid #647b89 !important;
-  background: linear-gradient(180deg, #14212a, #03070b 48px) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(239, 252, 255, 0.34),
-    inset 0 0 0 6px #04080c;
+  padding: 30px 0 12px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.vipFaq > h2 {
+  margin: 0 0 20px;
+  color: #effdff;
+  font:
+    800 20px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-align: center;
 }
 
 .vipFaq details {
-  border-bottom-color: #314b5c !important;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1800 / 386;
+  align-content: center;
+  margin-bottom: 8px;
+  padding: 3.2% 7% 3.2% 24%;
+  overflow: hidden;
+  border: 0 !important;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
 }
 
 .vipFaq summary {
-  min-height: 52px;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
   color: #e8f3f8 !important;
+  font:
+    800 clamp(13px, 1.45vw, 16px) / 1.15 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  list-style: none;
+  cursor: pointer;
+}
+
+.vipFaq details > p {
+  margin: 2px 0 0;
+  padding: 0 !important;
+  color: #9db6c2;
+  font:
+    700 clamp(11px, 1.15vw, 14px) / 1.45 var(--font-inter),
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+.vipFaq summary::-webkit-details-marker {
+  display: none;
 }
 
 .merchSurface,
@@ -319,11 +357,14 @@
   margin: -4px 0 28px;
   color: #8fa9b9;
   font:
-    600 10px 'IBM Plex Mono',
-    monospace;
+    700 10px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   letter-spacing: 0.2em;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: capitalize;
   content: 'Authenticated Commerce Deck  /  Live Pricing  /  Secure Fulfillment';
 }
 
@@ -333,7 +374,7 @@
 
 .merchSurface :global(article) {
   border-color: #607a8b !important;
-  background: linear-gradient(155deg, #1e303b 0, #050a0f 29%, #010407 100%) !important;
+  background: #050a0f !important;
   box-shadow:
     inset 0 1px 0 rgba(236, 251, 255, 0.46),
     inset 0 0 0 5px #03080c,
@@ -353,46 +394,45 @@
 
 .merchSurface h3 {
   color: #edfaff !important;
-  font-family: 'Rajdhani', sans-serif !important;
-  letter-spacing: 0.02em;
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.012em;
 }
 
 .rewardsSurface [role='tablist'] {
-  border: 1px solid #526f82 !important;
-  background: linear-gradient(180deg, #2a3b46, #061019 22%, #020509 78%, #16252e) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.44),
-    inset 0 -3px 5px #000;
+  gap: 10px !important;
+  padding: 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .rewardsSurface [role='tab'] {
   min-height: 46px;
-  border: 1px solid #3f5969 !important;
+  border: 0 !important;
   border-radius: 0 !important;
-  background: linear-gradient(180deg, #263944, #071018 25%, #02060a 78%, #172732) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(230, 249, 255, 0.24),
-    inset 0 -3px 5px #000 !important;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
   color: #9bb0bc !important;
-  font-family: 'IBM Plex Mono', monospace !important;
-  letter-spacing: 0.04em;
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.025em;
 }
 
 .rewardsSurface [role='tab'][aria-selected='true'] {
-  border-color: #8edff1 !important;
-  background: linear-gradient(180deg, #b9edf7, #3b839f 38%, #103b50 74%, #1c607a) !important;
-  box-shadow:
-    inset 0 1px 0 #effcff,
-    inset 0 -3px 5px #031019,
-    0 0 18px rgba(0, 190, 255, 0.22) !important;
-  color: #02080c !important;
+  filter: brightness(1.22) saturate(1.3);
+  box-shadow: 0 0 18px rgba(0, 190, 255, 0.26) !important;
+  color: #9bf4ff !important;
 }
 
 .rewardsSurface [role='tabpanel'] {
   margin-top: 22px;
   padding: 30px !important;
   border: 1px solid #526d7e;
-  background: linear-gradient(125deg, rgba(0, 183, 255, 0.055), transparent 32%), #010406;
+  background: #010406;
   box-shadow:
     inset 0 1px 0 rgba(231, 250, 255, 0.26),
     inset 0 0 0 6px #04090d;
@@ -408,9 +448,7 @@
   overflow: hidden;
   border: 1px solid #587486 !important;
   border-radius: 0 !important;
-  background:
-    linear-gradient(118deg, rgba(0, 187, 255, 0.07), transparent 34%),
-    linear-gradient(180deg, #172832 0, #050a0f 28%, #010406 100%) !important;
+  background: #050a0f !important;
   box-shadow:
     inset 0 1px 0 rgba(235, 251, 255, 0.38),
     inset 0 0 0 5px #03080c,
@@ -426,8 +464,8 @@
   right: 18%;
   left: 18%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #7be9ff, transparent);
-  box-shadow: 0 0 10px rgba(0, 207, 255, 0.7);
+  background: transparent;
+  box-shadow: none;
   content: '';
   pointer-events: none;
 }
@@ -440,6 +478,80 @@
     0 12px 30px #000 !important;
 }
 
+.casinoDataCard :is(h3, h4),
+.casinoProductCard :is(h3, h4) {
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.012em;
+}
+
+.rewardsBoostMarker {
+  display: inline-grid;
+  width: 78px;
+  min-width: 78px;
+  min-height: 46px;
+  place-items: center;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  color: #8feaff;
+  font:
+    800 11px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 2px #000;
+}
+
+.rewardsBoostLayout {
+  min-height: 88px;
+  padding: 18px 28px !important;
+  border: 0 !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
+    no-repeat !important;
+  box-shadow: none !important;
+}
+
+.rewardsQuickStats {
+  gap: 10px !important;
+}
+
+.rewardsQuickStats > div {
+  min-width: 148px;
+  min-height: 82px;
+  justify-content: center;
+  padding: 16px 26px !important;
+  border: 0 !important;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat !important;
+}
+
+.rewardsCapBanner {
+  min-height: 118px;
+  padding: 25px 38px !important;
+  border: 0 !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
+    no-repeat !important;
+  box-shadow: none !important;
+}
+
+.rewardRow {
+  min-height: 82px;
+  padding: 16px 22px !important;
+  border: 0 !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
+    no-repeat !important;
+  box-shadow: none !important;
+}
+
+.rewardRow :is(a, span) {
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+}
+
 .casinoProductCard {
   min-height: 210px;
 }
@@ -450,18 +562,31 @@
 
 .clubShopSurface :is(input, select, textarea) {
   min-height: 44px;
-  border: 1px solid #526e80 !important;
+  border: 0 !important;
   border-radius: 0 !important;
-  background: linear-gradient(180deg, #13212a, #02070b 32%, #010305) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(225, 248, 255, 0.2),
-    inset 0 -3px 6px #000 !important;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
   color: #e9f7fb !important;
 }
 
 .clubShopSurface :is(button, [role='button']) {
   border-radius: 0 !important;
-  font-family: 'IBM Plex Mono', monospace !important;
+  font-family:
+    var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.015em;
+}
+
+.clubShopSurface [role='group'] button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
 }
 
 .clubShopSurface [aria-pressed='true'] {
@@ -470,6 +595,64 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.66),
     inset 0 -3px 5px #000,
     0 0 16px rgba(0, 202, 255, 0.22) !important;
+}
+
+.clubRecoveryNotice {
+  display: grid;
+  min-height: 118px;
+  gap: 8px;
+  align-content: center;
+  margin-bottom: 20px;
+  padding: 24px 34px;
+  border: 0;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/bay.png') center / 100% 100%
+    no-repeat;
+  box-shadow: none;
+  color: #b8cbd5;
+  font:
+    600 13px var(--font-inter),
+    Inter,
+    Arial,
+    sans-serif;
+  line-height: 1.5;
+}
+
+.clubRecoveryNotice strong {
+  color: #8feaff;
+  font:
+    800 16px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.025em;
+}
+
+.clubRecoverySlots {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.clubRecoverySlot {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 20px;
+  border: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  color: #e7f9ff;
+  font:
+    800 12px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 2px #000;
 }
 
 .clubItemGrid {
@@ -481,16 +664,24 @@
   min-width: 0;
   overflow: hidden;
   border: 1px solid #607a8b !important;
-  background: linear-gradient(155deg, #1d303b, #04090d 30%, #010305) !important;
+  background: #04090d !important;
   box-shadow:
     inset 0 1px 0 rgba(236, 251, 255, 0.48),
     inset 0 0 0 5px #02070b,
     inset 0 0 0 6px rgba(59, 87, 105, 0.76),
     0 18px 42px #000;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .clubProductMedia {
-  height: 236px !important;
+  position: relative;
+  display: flex;
+  height: auto !important;
+  aspect-ratio: 1;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid #5e798b;
   background: #010407 !important;
@@ -507,7 +698,73 @@
   background-repeat: no-repeat;
   background-size: 400% 300%;
   filter: contrast(1.05) saturate(1.08);
-  transform: scale(1.015);
+}
+
+.clubProductCutout {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  object-fit: contain;
+  filter: contrast(1.04) saturate(1.08);
+}
+
+.clubProductUnavailable,
+.dialogProductUnavailable {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #02070b;
+  color: #b9cbd4;
+  font:
+    800 11px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.clubItemCategory {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 7px 16px !important;
+  border: 0 !important;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat !important;
+  color: #e7f9ff !important;
+  font:
+    800 10px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif !important;
+  letter-spacing: 0.025em;
+  text-transform: capitalize !important;
+  text-shadow: 0 1px 2px #000;
+}
+
+.productFallback {
+  display: inline-grid;
+  min-width: 120px;
+  min-height: 44px;
+  place-items: center;
+  padding: 8px 18px;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  color: #b8eefa;
+  font:
+    800 11px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.05em;
 }
 
 .clubItemBody {
@@ -527,10 +784,13 @@
   margin-top: 5px;
   color: #8da3b0;
   font:
-    600 9px 'IBM Plex Mono',
-    monospace;
+    700 9px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
 
 .clubItemActions {
@@ -546,28 +806,140 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 1px solid #80bcd2;
-  background: linear-gradient(180deg, #547486, #0a1822 24%, #061019 76%, #294657);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.68),
-    inset 0 -3px 5px #000;
+  border: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
+    center / 100% 100% no-repeat;
+  box-shadow: none;
   color: #edfaff;
   font:
-    800 10px 'IBM Plex Mono',
-    monospace;
+    800 11px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px #000;
   cursor: pointer;
 }
 
 .clubItemActions button:last-child {
-  border-color: #b9ecf7;
-  background: linear-gradient(180deg, #d8f7ff, #629db5 42%, #1c526b);
-  color: #06121a;
+  border: 0;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  color: #eafaff;
 }
 
 .clubItemActions button:disabled {
   cursor: not-allowed;
   filter: grayscale(0.55);
   opacity: 0.62;
+}
+
+.clubAdminCreateAction,
+.clubAdminActions button,
+.clubAdminManagedStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  color: #edfaff;
+  font:
+    800 12px var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 2px #000;
+}
+
+.clubAdminStat,
+.clubAdminCreatePanel,
+.clubAdminRow {
+  border: 1px solid rgba(174, 206, 224, 0.32) !important;
+  border-radius: 2px !important;
+  background: #02070b !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(85, 214, 255, 0.065),
+    inset 0 1px rgba(255, 255, 255, 0.075),
+    0 12px 28px rgba(0, 0, 0, 0.34) !important;
+}
+
+.clubAdminStat {
+  min-height: 94px;
+}
+
+.clubAdminCreatePanel {
+  position: relative;
+  overflow: hidden;
+}
+
+.clubAdminCreatePanel :is(input, select) {
+  border: 1px solid rgba(169, 204, 224, 0.34) !important;
+  border-radius: 0 !important;
+  background: #02070b !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -5px 12px rgba(0, 0, 0, 0.38);
+  color: #edfaff !important;
+}
+
+.clubAdminRow {
+  position: relative;
+}
+
+.clubAdminOwnershipNotice {
+  border: 1px solid rgba(49, 201, 255, 0.2);
+  background: #02070b !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.clubAdminCreateAction {
+  width: 174px;
+  max-width: 100%;
+  aspect-ratio: 348 / 114;
+  padding: 10px 22px;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  cursor: pointer;
+}
+
+.clubAdminCreateAction:disabled,
+.clubAdminActions button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.55);
+  opacity: 0.62;
+}
+
+.clubAdminActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.clubAdminActions button {
+  width: 142px;
+  aspect-ratio: 348 / 114;
+  padding: 8px 16px;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  cursor: pointer;
+}
+
+.clubAdminActions button:last-child,
+.clubAdminManagedStatus {
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+}
+
+.clubAdminManagedStatus {
+  width: 190px;
+  max-width: 100%;
+  aspect-ratio: 348 / 114;
+  padding: 8px 18px;
+  color: #bdeeff;
 }
 
 .planRail,
@@ -591,12 +963,97 @@
 .dialogPanel {
   border-radius: 0 !important;
   border: 1px solid #7892a5 !important;
-  background: linear-gradient(180deg, #263641 0, #080e14 12%, #03070c 100%) !important;
+  background: #080e14 !important;
   box-shadow:
     inset 0 1px 0 rgba(236, 251, 255, 0.68),
     inset 0 0 0 5px #060c13,
     inset 0 0 0 6px #38566a,
     0 20px 55px #000 !important;
+}
+
+.dialogProductRow {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dialogProductMedia {
+  position: relative;
+  width: 96px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #65869a;
+  background: #010407;
+  box-shadow:
+    inset 0 1px 0 rgba(235, 251, 255, 0.34),
+    inset 0 0 0 4px #02070b;
+}
+
+.dialogProductImage,
+.dialogProductAtlas {
+  width: 100%;
+  height: 100%;
+}
+
+.dialogProductImage {
+  padding: 5px;
+  object-fit: contain;
+}
+
+.dialogProductAtlas {
+  background: url('/images/store-v3/club-shop-product-atlas-v2.webp') no-repeat;
+  background-size: 400% 300%;
+  filter: contrast(1.05) saturate(1.08);
+}
+
+.dialogPriceGrid,
+.dialogActions {
+  display: flex;
+  gap: 12px;
+}
+
+.dialogPriceGrid {
+  margin-bottom: 20px;
+}
+
+.dialogMetric {
+  border: 1px solid #4c6c7f;
+  background: #02070b !important;
+  box-shadow:
+    inset 0 1px 0 rgba(235, 251, 255, 0.24),
+    inset 0 0 0 3px #02070b;
+}
+
+.dialogActions > button {
+  min-height: 48px;
+  border: 0 !important;
+  color: #e9f8fc !important;
+  background: transparent center / 100% 100% no-repeat !important;
+}
+
+.dialogSecondaryAction {
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png') !important;
+}
+
+.dialogPrimaryAction {
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png') !important;
+}
+
+.dialogActions > button:disabled {
+  opacity: 0.52;
+  filter: saturate(0.45);
+}
+
+.vipMarketplaceLink {
+  min-height: 50px;
+  padding-inline: 34px !important;
+  border: 0 !important;
+  color: #f6df7a !important;
+  background: transparent url('/images/marketplace-console-v1/shark-panel/button-primary.png')
+    center / 100% 100% no-repeat !important;
+  text-shadow: 0 2px 3px #000;
 }
 
 .visuallyHidden {
@@ -626,34 +1083,12 @@
     inset-inline: 0;
   }
 
-  .sectionThreshold {
-    grid-template-columns: minmax(0, 1fr);
-    margin-inline: -4px;
+  .dialogProductRow {
+    grid-template-columns: 76px minmax(0, 1fr);
   }
 
-  .thresholdImage {
-    grid-column: 1;
-    min-height: min(64vw, 290px);
-    opacity: 0.82;
-  }
-
-  .thresholdCopy {
-    grid-column: 1;
-    justify-content: flex-end;
-    padding: 82px 22px 30px;
-    background: linear-gradient(180deg, transparent 5%, rgba(1, 4, 7, 0.72) 46%, #020609 88%);
-  }
-
-  .thresholdCopy::after {
-    display: none;
-  }
-
-  .thresholdCopy p {
-    max-width: 90%;
-  }
-
-  .thresholdReadout {
-    display: none;
+  .dialogProductMedia {
+    width: 76px;
   }
 
   .planRail {
@@ -752,6 +1187,45 @@
     padding: 20px 14px !important;
   }
 
+  .premiumDataCard {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center;
+    min-height: 250px;
+    padding: 14% 12% !important;
+  }
+
+  .vipFaq details {
+    display: block;
+    aspect-ratio: auto;
+    margin-bottom: 8px;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .vipFaq summary {
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: 348 / 114;
+    justify-content: center;
+    padding: 9% 15% !important;
+    background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+      center / 100% 100% no-repeat !important;
+    text-align: center;
+  }
+
+  .vipFaq details > p {
+    display: grid;
+    aspect-ratio: 1105 / 1133;
+    place-items: center;
+    margin: 8px 0 0;
+    padding: 18% !important;
+    background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
+      100% 100% no-repeat;
+    text-align: center;
+  }
+
   .merchSurface::before,
   .rewardsSurface::before {
     font-size: 8px;
@@ -762,8 +1236,16 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
+  .clubRecoveryNotice {
+    padding: 20px 16px;
+  }
+
+  .clubRecoverySlot {
+    width: 100%;
+  }
+
   .clubProductMedia {
-    height: min(72vw, 300px) !important;
+    height: auto !important;
   }
 
   .clubPriceActions {
@@ -774,6 +1256,12 @@
   .clubItemActions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 960px) {
+  .vipBenefits .responsiveGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 

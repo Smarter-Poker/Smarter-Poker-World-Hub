@@ -5,7 +5,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 test('Lifetime VIP derives one stable purchase row for every durable checkout request', async () => {
   const source = await read('pages/api/store/create-checkout-session.js');
@@ -31,9 +31,18 @@ test('Lifetime VIP recovery keeps ambiguous Stripe state and immediately links a
 
   assert.match(source, /\['diamonds', 'merchandise', 'vip_lifetime'\]\.includes\(type\)/);
   assert.match(source, /const lifetimeRecordId = deriveCheckoutRecordId\(/);
-  assert.match(source, /insert\(\{[\s\S]*?id: lifetimeRecordId,[\s\S]*?checkout_request_id: checkoutRequestId/);
-  assert.match(source, /isAmbiguousStripeCreateFailure\(sessionError\)[\s\S]*?sessionError\.checkoutRetryable = true/);
-  assert.match(source, /from\('vip_lifetime_purchases'\)[\s\S]*?update\(\{ stripe_checkout_session_id: session\.id \}\)/);
+  assert.match(
+    source,
+    /insert\(\{[\s\S]*?id: lifetimeRecordId,[\s\S]*?checkout_request_id: checkoutRequestId/
+  );
+  assert.match(
+    source,
+    /isAmbiguousStripeCreateFailure\(sessionError\)[\s\S]*?sessionError\.checkoutRetryable = true/
+  );
+  assert.match(
+    source,
+    /from\('vip_lifetime_purchases'\)[\s\S]*?update\(\{ stripe_checkout_session_id: session\.id \}\)/
+  );
   assert.match(source, /eq\('stripe_checkout_session_id', session\.id\)[\s\S]*?maybeSingle\(\)/);
   assert.match(source, /error\.checkoutRetryable \? 503 : 500/);
   assert.match(source, /code: error\.checkoutRetryable \? 'CHECKOUT_RECOVERY_PENDING'/);
@@ -44,7 +53,9 @@ test('Lifetime ownership blocks before a recovered URL and expired canceled rows
   const classifierStart = source.indexOf('function classifyStoredCheckout');
   const ownershipStart = source.indexOf('function vipOwnershipError');
   const handlerStart = source.indexOf('export default async function handler');
-  assert.ok(classifierStart > -1 && ownershipStart > classifierStart && handlerStart > ownershipStart);
+  assert.ok(
+    classifierStart > -1 && ownershipStart > classifierStart && handlerStart > ownershipStart
+  );
 
   const classifyStoredCheckout = vm.runInNewContext(
     `${source.slice(classifierStart, ownershipStart)}\nclassifyStoredCheckout`
@@ -62,7 +73,10 @@ test('Lifetime ownership blocks before a recovered URL and expired canceled rows
     { ...classifyStoredCheckout(row, 'same', { expired: true, sessionId: 'cs_expired' }) },
     { expired: true, sessionId: 'cs_expired' }
   );
-  assert.deepEqual({ ...classifyStoredCheckout(row, 'same', { initializing: true }) }, { conflict: true });
+  assert.deepEqual(
+    { ...classifyStoredCheckout(row, 'same', { initializing: true }) },
+    { conflict: true }
+  );
   assert.equal(vipOwnershipError('merchandise', { vip_tier: 'lifetime' }), null);
   assert.equal(
     vipOwnershipError('vip_lifetime', { vip_tier: 'lifetime' }).code,
@@ -70,15 +84,24 @@ test('Lifetime ownership blocks before a recovered URL and expired canceled rows
   );
 
   const ownershipCall = source.indexOf('const ownershipError = vipOwnershipError', handlerStart);
-  const recoveryCall = source.indexOf('const existingCheckout = await findExistingCheckout', handlerStart);
-  assert.ok(ownershipCall > handlerStart && ownershipCall < recoveryCall,
-    'Lifetime ownership must be evaluated before any recovered Checkout URL can return');
+  const recoveryCall = source.indexOf(
+    'const existingCheckout = await findExistingCheckout',
+    handlerStart
+  );
+  assert.ok(
+    ownershipCall > handlerStart && ownershipCall < recoveryCall,
+    'Lifetime ownership must be evaluated before any recovered Checkout URL can return'
+  );
 });
 
 test('Lifetime card price and active-session database guards are fixed and reproducible', async () => {
   const source = await read('pages/api/store/create-checkout-session.js');
-  const parityMigration = await read('supabase/migrations/20260905153833_vip_is_monthly_yearly_or_lifetime.sql');
-  const guardMigration = await read('supabase/migrations/20260906150000_marketplace_phase6_lifetime_and_fulfillment_guards.sql');
+  const parityMigration = await read(
+    'supabase/migrations/20260905153833_vip_is_monthly_yearly_or_lifetime.sql'
+  );
+  const guardMigration = await read(
+    'supabase/migrations/20260906150000_marketplace_phase6_lifetime_and_fulfillment_guards.sql'
+  );
 
   assert.match(source, /stripePrice\.currency !== 'usd'/);
   assert.match(source, /lifetimeUnitAmount !== 49900/);
@@ -94,19 +117,29 @@ test('Lifetime card price and active-session database guards are fixed and repro
 
 test('checkout configuration is private and evaluated only after authentication and request validation', async () => {
   const source = await read('pages/api/store/create-checkout-session.js');
-  const auth = source.indexOf('getServerUserWithFallback(req, getSupabase())');
+  const auth = source.search(/getServerUserWithFallback\(\s*req,\s*getSupabase\(\)\s*\)/);
   const requestValidation = source.indexOf("if (type === 'subscription' && !checkoutRequestId)");
-  const redemptionValidation = source.indexOf('redemptionIntent = normalizeRedemptionIntent(type, rawRedemptionIntent)');
+  const redemptionValidation = source.indexOf(
+    'redemptionIntent = normalizeRedemptionIntent(type, rawRedemptionIntent)'
+  );
   const stripeReadiness = source.indexOf('const stripeRuntime = inspectStripeRuntime(process.env');
-  const catalogPreparation = source.indexOf('preparedCheckout = await prepareCheckout(type, items, {');
+  const catalogPreparation = source.indexOf(
+    'preparedCheckout = await prepareCheckout(type, items, {'
+  );
 
   assert.ok(auth > -1 && auth < stripeReadiness, 'authentication must precede Stripe readiness');
-  assert.ok(requestValidation > auth && requestValidation < stripeReadiness,
-    'request validation must precede Stripe readiness');
-  assert.ok(redemptionValidation > requestValidation && redemptionValidation < stripeReadiness,
-    'redemption intent validation must precede Stripe readiness');
-  assert.ok(stripeReadiness < catalogPreparation,
-    'Stripe readiness must precede catalog/database side effects');
+  assert.ok(
+    requestValidation > auth && requestValidation < stripeReadiness,
+    'request validation must precede Stripe readiness'
+  );
+  assert.ok(
+    redemptionValidation > requestValidation && redemptionValidation < stripeReadiness,
+    'redemption intent validation must precede Stripe readiness'
+  );
+  assert.ok(
+    stripeReadiness < catalogPreparation,
+    'Stripe readiness must precede catalog/database side effects'
+  );
   assert.doesNotMatch(
     source.slice(stripeReadiness, catalogPreparation),
     /details:\s*['"]Stripe keys/,
@@ -123,11 +156,14 @@ test('Lifetime VIP browser retries preserve identity except after a definitively
   assert.match(branch, /const commerceIntent = \{/);
   assert.match(branch, /getOrCreateCommerceRequestId\(commerceIntent\)/);
   assert.match(branch, /checkoutError\.code = data\?\.error\?\.code/);
-  assert.match(branch, /error\?\.code === 'CHECKOUT_EXPIRED'/);
-  assert.match(branch, /clearCommerceRequestId\(commerceIntent\)/);
+  assert.match(branch, /checkoutRequestReplacementRequired\(error\)/);
+  assert.match(
+    branch,
+    /replaceCommerceRequestId\(\{[\s\S]{0,120}expectedRequestId: checkoutRequestId/
+  );
   assert.doesNotMatch(
     branch.slice(0, branch.indexOf('} catch (error)')),
-    /clearCommerceRequestId\(commerceIntent\)/,
+    /replaceCommerceRequestId\(/,
     'an open session response must retain its identity until return reconciliation'
   );
 });
@@ -140,11 +176,15 @@ test('every request-bound card surface releases only a definitively expired chec
     'src/components/store/MerchStore.jsx',
   ]) {
     const source = await read(file);
-    assert.match(source, /CHECKOUT_EXPIRED/, `${file} must recognize an expired checkout`);
     assert.match(
       source,
-      /clearCommerceRequestId\(commerceIntent\)/,
-      `${file} must release the terminal request identity`
+      /checkoutRequestReplacementRequired/,
+      `${file} must classify terminal checkout expiry`
+    );
+    assert.match(
+      source,
+      /replaceCommerceRequestId\(\{?[\s\S]{0,180}expectedRequestId:/,
+      `${file} must rotate only the exact terminal request identity`
     );
   }
 });

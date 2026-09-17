@@ -63,7 +63,7 @@ test('every Marketplace settlement request has a terminal browser deadline', () 
   const memoryGames = read('pages/hub/memory-games.js');
   assert.match(memoryGames, /getOrCreateCommerceRequestId\(commerceIntent\)/);
   assert.match(memoryGames, /X-Checkout-Request-ID': checkoutRequestId/);
-  assert.match(memoryGames, /COMMERCE_REQUEST_TIMEOUT_MS,\s*authedFetch/);
+  assert.match(memoryGames, /COMMERCE_REQUEST_TIMEOUT_MS\s*\)/);
   assert.match(memoryGames, /vipCheckoutAbortRef\.current/);
   assert.doesNotMatch(memoryGames, /preflop-vip-\$\{crypto\.randomUUID\(\)\}/);
 });
@@ -91,20 +91,27 @@ async function loadBoundedFetch(fetchImpl) {
     setTimeout,
     fetch: fetchImpl,
   });
-  const module = new vm.SourceTextModule(read('src/lib/store/boundedCommerceFetch.js'), { context });
+  const module = new vm.SourceTextModule(read('src/lib/store/boundedCommerceFetch.js'), {
+    context,
+  });
   await module.link(() => {});
   await module.evaluate();
   return module.namespace.boundedCommerceFetch;
 }
 
 test('bounded commerce requests time out while response headers are stalled', async () => {
-  const boundedCommerceFetch = await loadBoundedFetch((_input, init) => (
-    new Promise((_resolve, reject) => {
-      init.signal.addEventListener('abort', () => {
-        reject(abortError());
-      }, { once: true });
-    })
-  ));
+  const boundedCommerceFetch = await loadBoundedFetch(
+    (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init.signal.addEventListener(
+          'abort',
+          () => {
+            reject(abortError());
+          },
+          { once: true }
+        );
+      })
+  );
 
   await assert.rejects(
     boundedCommerceFetch('/headers-timeout', {}, 10),
@@ -113,37 +120,37 @@ test('bounded commerce requests time out while response headers are stalled', as
 });
 
 test('bounded commerce requests keep the deadline active through a stalled body', async () => {
-  const boundedCommerceFetch = await loadBoundedFetch(async (_input, init) => (
-    responseWithDrain(() => new Promise((_resolve, reject) => {
-      init.signal.addEventListener('abort', () => reject(abortError()), { once: true });
-    }))
-  ));
+  const boundedCommerceFetch = await loadBoundedFetch(async (_input, init) =>
+    responseWithDrain(
+      () =>
+        new Promise((_resolve, reject) => {
+          init.signal.addEventListener('abort', () => reject(abortError()), { once: true });
+        })
+    )
+  );
 
   await assert.rejects(
     boundedCommerceFetch('/body-timeout', {}, 10),
-    (error) => error?.name === 'CommerceTimeoutError'
-      && error?.code === 'COMMERCE_REQUEST_TIMEOUT'
+    (error) => error?.name === 'CommerceTimeoutError' && error?.code === 'COMMERCE_REQUEST_TIMEOUT'
   );
 });
 
 test('bounded commerce requests preserve the original readable response after a full-body drain', async () => {
   let bodyDrained = false;
   let defaultFetchCalled = false;
-  const response = responseWithDrain(async () => {
-    bodyDrained = true;
-    return new ArrayBuffer(0);
-  }, { success: true, data: { url: '/checkout' } });
+  const response = responseWithDrain(
+    async () => {
+      bodyDrained = true;
+      return new ArrayBuffer(0);
+    },
+    { success: true, data: { url: '/checkout' } }
+  );
   const boundedCommerceFetch = await loadBoundedFetch(() => {
     defaultFetchCalled = true;
     throw new Error('default fetch should not run');
   });
 
-  const returned = await boundedCommerceFetch(
-    '/success',
-    {},
-    100,
-    async () => response
-  );
+  const returned = await boundedCommerceFetch('/success', {}, 100, async () => response);
   assert.equal(defaultFetchCalled, false);
   assert.equal(bodyDrained, true);
   assert.equal(returned, response);
@@ -152,13 +159,18 @@ test('bounded commerce requests preserve the original readable response after a 
 
 test('bounded commerce requests distinguish caller cancellation during body transfer from timeout', async () => {
   let markBodyStarted;
-  const bodyStarted = new Promise((resolve) => { markBodyStarted = resolve; });
-  const boundedCommerceFetch = await loadBoundedFetch(async (_input, init) => (
-    responseWithDrain(() => new Promise((_resolve, reject) => {
-      markBodyStarted();
-      init.signal.addEventListener('abort', () => reject(abortError()), { once: true });
-    }))
-  ));
+  const bodyStarted = new Promise((resolve) => {
+    markBodyStarted = resolve;
+  });
+  const boundedCommerceFetch = await loadBoundedFetch(async (_input, init) =>
+    responseWithDrain(
+      () =>
+        new Promise((_resolve, reject) => {
+          markBodyStarted();
+          init.signal.addEventListener('abort', () => reject(abortError()), { once: true });
+        })
+    )
+  );
 
   const caller = new AbortController();
   const request = boundedCommerceFetch('/cancelled', { signal: caller.signal }, 1000);
@@ -225,11 +237,13 @@ test('purchase APIs validate bounded request shapes after authentication', () =>
   assert.ok(checkout.indexOf('const bodyBytes') > checkout.indexOf('getServerUserWithFallback'));
 
   const vip = read('pages/api/store/purchase-vip-with-diamonds.js');
-  assert.match(vip, /Buffer\.byteLength\(JSON\.stringify\(req\.body \|\| \{\}\), 'utf8'\) > 512/);
-  assert.match(vip, /new Set\(\['plan', 'idempotencyKey'\]\)/);
+  assert.match(vip, /Buffer\.byteLength\(JSON\.stringify\(req\.body \|\| \{\}\), 'utf8'\) > 1024/);
+  assert.match(vip, /new Set\(\['plan', 'offerConfirmation', 'idempotencyKey'\]\)/);
+  assert.match(vip, /headerKey && bodyKey && headerKey !== bodyKey/);
+  assert.match(vip, /return \{ key: null, invalid: true \}/);
 
   const merchandise = read('pages/api/store/purchase-with-diamonds.js');
-  assert.match(merchandise, /new Set\(\['items', 'shipping'\]\)/);
+  assert.match(merchandise, /new Set\(\['items', 'shipping', 'offerConfirmation'\]\)/);
   assert.match(merchandise, /Unknown fields:/);
 });
 
@@ -246,5 +260,8 @@ test('reward and fulfillment subpages cancel stale reads and expose retryable ti
   assert.match(fulfillment, /signal: controller\.signal/);
   assert.match(fulfillment, /boundedCommerceFetch\(`\/api\/store\/fulfillment-operations/);
   assert.match(fulfillment, /boundedCommerceFetch\('\/api\/store\/fulfillment-operations'/);
-  assert.match(fulfillment, /if \(requestId !== requestRef\.current\) return/);
+  assert.match(
+    fulfillment,
+    /if \(requestId !== requestRef\.current \|\| authOwnerRef\.current !== expectedAccountId\) return/
+  );
 });

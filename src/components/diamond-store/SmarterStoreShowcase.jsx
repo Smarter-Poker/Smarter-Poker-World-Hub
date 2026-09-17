@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 import { captureStoreEvent } from '../../lib/store/storeAnalytics';
+import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
 import styles from './SmarterStoreShowcase.module.css';
 
 const TAB_LABELS = [
@@ -44,7 +45,7 @@ const SECTION_COPY = {
   'club-shop': {
     eyebrow: 'Club Shop',
     title: 'Your Game. Your Rules.',
-    body: 'Spend Diamonds On Time Banks, Table Skins, Throwables, Emotes, And Club Exclusives.',
+    body: 'Spend Diamonds On Time Banks And The Verified Platform All Throwables Pack.',
   },
 };
 
@@ -138,7 +139,7 @@ export default function SmarterStoreShowcase({
             {packages.slice(0, 2).map((pkg) => (
               <article key={pkg.id} className={styles.starterPack}>
                 <div>
-                  <span>{pkg.name}</span>
+                  <span>{marketplaceCopy(pkg.name)}</span>
                   <strong>{Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds</strong>
                 </div>
                 <button
@@ -146,7 +147,7 @@ export default function SmarterStoreShowcase({
                   onClick={() => onBuy(pkg)}
                   disabled={isProcessing || catalogState !== 'database'}
                   aria-busy={busyPackageId === pkg.id}
-                  aria-label={`Buy ${pkg.name}, ${Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
+                  aria-label={`Buy ${marketplaceCopy(pkg.name)}, ${Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
                 >
                   {busyPackageId === pkg.id
                     ? 'Opening...'
@@ -173,7 +174,7 @@ export default function SmarterStoreShowcase({
                 className={`${styles.packageCard} ${styles[`package${index}`]}`}
               >
                 <div className={styles.packageTopline}>
-                  <span>{pkg.name}</span>
+                  <span>{marketplaceCopy(pkg.name)}</span>
                   <span>Digital Currency</span>
                 </div>
                 <div className={styles.packageValue}>
@@ -192,8 +193,8 @@ export default function SmarterStoreShowcase({
                     aria-busy={busyPackageId === pkg.id}
                     aria-label={
                       busyPackageId === pkg.id
-                        ? `Opening Checkout For ${pkg.name}`
-                        : `Buy ${pkg.name}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
+                        ? `Opening Checkout For ${marketplaceCopy(pkg.name)}`
+                        : `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
                     }
                   >
                     {busyPackageId === pkg.id

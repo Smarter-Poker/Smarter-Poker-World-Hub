@@ -10,11 +10,35 @@ export const BUILT_IN_DIAMOND_PACKAGES = Object.freeze({
   micro: Object.freeze({ diamonds: 100, price: 1, priceCents: 100, bonus: 0, name: 'Micro' }),
   small: Object.freeze({ diamonds: 500, price: 5, priceCents: 500, bonus: 0, name: 'Small' }),
   medium: Object.freeze({ diamonds: 1000, price: 10, priceCents: 1000, bonus: 0, name: 'Medium' }),
-  standard: Object.freeze({ diamonds: 2500, price: 25, priceCents: 2500, bonus: 0, name: 'Standard' }),
+  standard: Object.freeze({
+    diamonds: 2500,
+    price: 25,
+    priceCents: 2500,
+    bonus: 0,
+    name: 'Standard',
+  }),
   large: Object.freeze({ diamonds: 5000, price: 50, priceCents: 5000, bonus: 0, name: 'Large' }),
-  value: Object.freeze({ diamonds: 10000, price: 100, priceCents: 10000, bonus: 500, name: 'Value' }),
-  premium: Object.freeze({ diamonds: 25000, price: 250, priceCents: 25000, bonus: 1250, name: 'Premium' }),
-  whale: Object.freeze({ diamonds: 50000, price: 500, priceCents: 50000, bonus: 2500, name: 'Whale' }),
+  value: Object.freeze({
+    diamonds: 10000,
+    price: 100,
+    priceCents: 10000,
+    bonus: 500,
+    name: 'Value',
+  }),
+  premium: Object.freeze({
+    diamonds: 25000,
+    price: 250,
+    priceCents: 25000,
+    bonus: 1250,
+    name: 'Premium',
+  }),
+  whale: Object.freeze({
+    diamonds: 50000,
+    price: 500,
+    priceCents: 50000,
+    bonus: 2500,
+    name: 'Whale',
+  }),
 });
 
 const PACKAGE_CACHE_MS = 60_000;
@@ -32,8 +56,7 @@ export function parseUsdAmountToCents(value) {
   if (centsBigInt > BigInt(Number.MAX_SAFE_INTEGER)) return null;
 
   const cents = Number(centsBigInt);
-  return cents >= STRIPE_MIN_USD_UNIT_AMOUNT_CENTS
-    && cents <= STRIPE_MAX_USD_UNIT_AMOUNT_CENTS
+  return cents >= STRIPE_MIN_USD_UNIT_AMOUNT_CENTS && cents <= STRIPE_MAX_USD_UNIT_AMOUNT_CENTS
     ? cents
     : null;
 }
@@ -49,13 +72,17 @@ export function normalizeDiamondPackageRows(rows) {
     const diamonds = Number(row?.diamonds);
     const bonus = Number(row?.bonus_diamonds ?? 0);
     const priceCents = parseUsdAmountToCents(row?.price_usd);
-    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(key)
-      || Object.prototype.hasOwnProperty.call(catalog, key)
-      || !Number.isSafeInteger(diamonds) || diamonds <= 0
-      || !Number.isSafeInteger(bonus) || bonus < 0
-      || !Number.isSafeInteger(diamonds + bonus)
-      || diamonds + bonus > POSTGRES_INT4_MAX
-      || priceCents === null) {
+    if (
+      !/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(key) ||
+      Object.prototype.hasOwnProperty.call(catalog, key) ||
+      !Number.isSafeInteger(diamonds) ||
+      diamonds <= 0 ||
+      !Number.isSafeInteger(bonus) ||
+      bonus < 0 ||
+      !Number.isSafeInteger(diamonds + bonus) ||
+      diamonds + bonus > POSTGRES_INT4_MAX ||
+      priceCents === null
+    ) {
       throw new Error(`diamond_packages row "${key || 'unnamed'}" is not usable`);
     }
     catalog[key] = Object.freeze({
@@ -122,13 +149,18 @@ export function getDiamondCheckoutTotals(resolvedPackages) {
     const diamonds = Number(pkg?.diamonds);
     const bonus = Number(pkg?.bonus ?? 0);
     const priceCents = Number(pkg?.priceCents);
-    if (!Number.isSafeInteger(quantity)
-      || quantity < 1 || quantity > MAX_DIAMOND_QUANTITY_PER_PACKAGE
-      || !Number.isSafeInteger(diamonds) || diamonds <= 0
-      || !Number.isSafeInteger(bonus) || bonus < 0
-      || !Number.isSafeInteger(priceCents)
-      || priceCents < STRIPE_MIN_USD_UNIT_AMOUNT_CENTS
-      || priceCents > STRIPE_MAX_USD_UNIT_AMOUNT_CENTS) {
+    if (
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > MAX_DIAMOND_QUANTITY_PER_PACKAGE ||
+      !Number.isSafeInteger(diamonds) ||
+      diamonds <= 0 ||
+      !Number.isSafeInteger(bonus) ||
+      bonus < 0 ||
+      !Number.isSafeInteger(priceCents) ||
+      priceCents < STRIPE_MIN_USD_UNIT_AMOUNT_CENTS ||
+      priceCents > STRIPE_MAX_USD_UNIT_AMOUNT_CENTS
+    ) {
       return null;
     }
     baseTotal += BigInt(diamonds) * BigInt(quantity);
@@ -137,10 +169,12 @@ export function getDiamondCheckoutTotals(resolvedPackages) {
   }
 
   const creditTotal = baseTotal + bonusTotal;
-  if (baseTotal > BigInt(POSTGRES_INT4_MAX)
-    || bonusTotal > BigInt(POSTGRES_INT4_MAX)
-    || creditTotal > BigInt(POSTGRES_INT4_MAX)
-    || cardTotalCents > BigInt(Number.MAX_SAFE_INTEGER)) {
+  if (
+    baseTotal > BigInt(POSTGRES_INT4_MAX) ||
+    bonusTotal > BigInt(POSTGRES_INT4_MAX) ||
+    creditTotal > BigInt(POSTGRES_INT4_MAX) ||
+    cardTotalCents > BigInt(Number.MAX_SAFE_INTEGER)
+  ) {
     return null;
   }
 
@@ -154,16 +188,18 @@ export function getDiamondCheckoutTotals(resolvedPackages) {
 }
 
 export function canCreditDiamondWallet(walletBalanceValue, creditValue) {
-  if (walletBalanceValue === null || walletBalanceValue === ''
-    || walletBalanceValue === undefined) return false;
+  if (walletBalanceValue === null || walletBalanceValue === '' || walletBalanceValue === undefined)
+    return false;
   const walletBalance = Number(walletBalanceValue);
   const credit = Number(creditValue);
-  return Number.isSafeInteger(walletBalance)
-    && walletBalance >= -2_147_483_648
-    && walletBalance <= POSTGRES_INT4_MAX
-    && Number.isSafeInteger(credit)
-    && credit > 0
-    && credit <= POSTGRES_INT4_MAX - walletBalance;
+  return (
+    Number.isSafeInteger(walletBalance) &&
+    walletBalance >= -2_147_483_648 &&
+    walletBalance <= POSTGRES_INT4_MAX &&
+    Number.isSafeInteger(credit) &&
+    credit > 0 &&
+    credit <= POSTGRES_INT4_MAX - walletBalance
+  );
 }
 
 export function getMaximumCardFundedClubItemPrice(
@@ -176,8 +212,10 @@ export function getMaximumCardFundedClubItemPrice(
     const bonus = Number(pkg?.bonus ?? 0);
     const perPackage = diamonds + bonus;
     const supported = perPackage * maxQuantity;
-    return Number.isSafeInteger(perPackage) && perPackage > 0
-      && Number.isSafeInteger(supported) && supported > 0
+    return Number.isSafeInteger(perPackage) &&
+      perPackage > 0 &&
+      Number.isSafeInteger(supported) &&
+      supported > 0
       ? Math.max(maximum, supported)
       : maximum;
   }, 0);
@@ -196,9 +234,14 @@ export function getClubCardCheckoutQuoteFromCatalog(
 ) {
   const itemPrice = Number(itemPriceValue);
   const walletBalance = Number(currentBalanceValue);
-  if (!Number.isSafeInteger(itemPrice) || itemPrice <= 0
-    || !Number.isSafeInteger(walletBalance) || walletBalance < 0
-    || !catalog || typeof catalog !== 'object') {
+  if (
+    !Number.isSafeInteger(itemPrice) ||
+    itemPrice <= 0 ||
+    !Number.isSafeInteger(walletBalance) ||
+    walletBalance < 0 ||
+    !catalog ||
+    typeof catalog !== 'object'
+  ) {
     return null;
   }
 
@@ -210,21 +253,30 @@ export function getClubCardCheckoutQuoteFromCatalog(
       ? pkg.priceCents
       : parseUsdAmountToCents(pkg?.price);
     const diamondsPerPackage = baseDiamonds + bonusDiamonds;
-    if (!Number.isSafeInteger(baseDiamonds) || baseDiamonds <= 0
-      || !Number.isSafeInteger(bonusDiamonds) || bonusDiamonds < 0
-      || !Number.isSafeInteger(diamondsPerPackage) || diamondsPerPackage <= 0
-      || !Number.isSafeInteger(unitPriceCents) || unitPriceCents <= 0) {
+    if (
+      !Number.isSafeInteger(baseDiamonds) ||
+      baseDiamonds <= 0 ||
+      !Number.isSafeInteger(bonusDiamonds) ||
+      bonusDiamonds < 0 ||
+      !Number.isSafeInteger(diamondsPerPackage) ||
+      diamondsPerPackage <= 0 ||
+      !Number.isSafeInteger(unitPriceCents) ||
+      unitPriceCents <= 0
+    ) {
       continue;
     }
     const quantity = Math.ceil(itemPrice / diamondsPerPackage);
     if (quantity < 1 || quantity > maxQuantity) continue;
     const diamondsPurchased = diamondsPerPackage * quantity;
     const cardChargeCents = unitPriceCents * quantity;
-    if (!Number.isSafeInteger(diamondsPurchased)
-      || !Number.isSafeInteger(cardChargeCents)
+    if (
+      !Number.isSafeInteger(diamondsPurchased) ||
+      !Number.isSafeInteger(cardChargeCents) ||
       // profiles.diamonds is an int4. Reject the quote before Stripe if the
       // paid package credit could overflow that authoritative wallet column.
-      || diamondsPurchased > POSTGRES_INT4_MAX - walletBalance) continue;
+      diamondsPurchased > POSTGRES_INT4_MAX - walletBalance
+    )
+      continue;
     candidates.push({
       packageId,
       quantity,
@@ -237,12 +289,13 @@ export function getClubCardCheckoutQuoteFromCatalog(
     });
   }
 
-  candidates.sort((a, b) => (
-    a.cardChargeCents - b.cardChargeCents
-    || a.diamondsPurchased - b.diamondsPurchased
-    || a.quantity - b.quantity
-    || a.packageId.localeCompare(b.packageId)
-  ));
+  candidates.sort(
+    (a, b) =>
+      a.cardChargeCents - b.cardChargeCents ||
+      a.diamondsPurchased - b.diamondsPurchased ||
+      a.quantity - b.quantity ||
+      a.packageId.localeCompare(b.packageId)
+  );
   const selected = candidates[0];
   if (!selected) return null;
 
@@ -252,6 +305,7 @@ export function getClubCardCheckoutQuoteFromCatalog(
     diamonds: selected.diamonds,
     baseDiamonds: selected.baseDiamonds,
     bonusDiamonds: selected.bonusDiamonds,
+    unitPriceCents: selected.unitPriceCents,
     price: selected.unitPriceCents / 100,
     cardChargeCents: selected.cardChargeCents,
     cardCharge: selected.cardChargeCents / 100,

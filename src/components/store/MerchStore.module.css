@@ -1,0 +1,610 @@
+.storefront {
+  color: #edf7fb;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+}
+
+.intro {
+  margin-bottom: 40px;
+}
+
+.storeTitle,
+.categoryTitle,
+.productTitle,
+.emptyStateTitle {
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.012em;
+}
+
+.storeTitle {
+  margin: 0 0 12px;
+  color: #f4f8fb;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1;
+}
+
+.storeIntro {
+  max-width: 680px;
+  margin: 0 auto;
+  color: #b8c6ce;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.balanceReadout {
+  display: inline-flex;
+  width: min(360px, 100%);
+  aspect-ratio: 1800 / 386;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 4.2% 7% 4.2% 25%;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
+  color: #c3d2da;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+}
+
+.balanceReadout strong,
+.detailWallet {
+  color: #53dcff;
+  font-variant-numeric: tabular-nums;
+}
+
+.operatorLink,
+.actionControl,
+.categoryControl,
+.wishlistControl,
+.optionControl,
+.quantityButton {
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+}
+
+.operatorLink {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 30px;
+  color: #bceeff;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.detailStatus {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px 28px;
+  border-top: 1px solid #4c6d80;
+  border-bottom: 1px solid #4c6d80;
+  background: transparent;
+  color: #d7e4ea;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+.discoveryControls {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 8px 0 20px;
+  background: transparent;
+}
+
+.searchControl,
+.sortSelect {
+  min-height: 48px;
+  background-color: #02070b;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.searchControl {
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  outline: 0;
+  color: #eef9fd;
+  background: transparent;
+  font:
+    600 14px/1 var(--font-inter),
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+.searchInput::placeholder {
+  color: #8798a2;
+  opacity: 1;
+}
+
+.sortControl {
+  display: grid;
+  gap: 6px;
+  color: #a9bbc4;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.sortSelect {
+  padding: 0 22px;
+  border: 0;
+  color: #eef9fd;
+  font:
+    700 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.categoryControl,
+.actionControl,
+.wishlistControl,
+.optionControl,
+.quantityButton {
+  border: 0;
+  color: #c7d3da;
+  background-color: #02070b;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  font-weight: 800;
+  letter-spacing: 0.018em;
+}
+
+.categoryControl {
+  min-height: 44px;
+  padding: 7px 22px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.categoryControlSelected,
+.optionControlSelected,
+.actionPrimary,
+.actionDiamond,
+.wishlistControlSelected {
+  color: #dff9ff;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+}
+
+.resultCount,
+.controlLabel,
+.priceNote,
+.quantityTotal,
+.purchaseReason,
+.legalCopy,
+.loadingStatus {
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+}
+
+.resultCount {
+  grid-column: 1 / -1;
+  color: #93a9b3;
+  font-size: 11px;
+  letter-spacing: 0.035em;
+}
+
+.productCard {
+  position: relative;
+  overflow: hidden;
+  padding: 5px;
+  color: #eef6fa;
+  border: 1px solid #5a7688;
+  background: #02070b;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 251, 255, 0.3),
+    inset 0 0 0 4px #02070b,
+    0 16px 34px #000;
+}
+
+.productCardUnavailable {
+  opacity: 0.68;
+}
+
+.mediaBay {
+  position: relative;
+  display: flex;
+  height: 220px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #02070b;
+}
+
+.productImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Each reviewed legacy atlas cell is half as wide as it is tall. Preserve
+   that physical-product crop instead of stretching it across a landscape bay. */
+.atlasProductImage {
+  width: auto;
+  aspect-ratio: 1 / 2;
+  flex: 0 0 auto;
+}
+
+.mediaUnavailable {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 28px;
+  border: 1px solid #f02849;
+  color: #ff5b6e;
+  background: #02070b;
+  font:
+    800 13px/1.4 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.045em;
+  text-align: center;
+}
+
+.mediaBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 18px;
+  color: #eef8fc;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+}
+
+.mediaBadgeUnavailable {
+  right: auto;
+  left: 10px;
+  color: #ff6b6b;
+}
+
+.wishlistControl {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  min-width: 76px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 18px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cardBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 15px 17px;
+  background: rgb(0 4 8 / 90%);
+}
+
+.productTitle {
+  margin: 0 0 5px;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.productDescription {
+  color: #b3c1c8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.price {
+  color: #48dcff;
+  font:
+    800 22px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.012em;
+}
+
+.priceNote {
+  color: #8f9da5;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+}
+
+.controlLabel {
+  margin-bottom: 7px;
+  color: #96a8b1;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
+.optionControl {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 17px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.optionControl:disabled {
+  color: #68737a;
+  cursor: not-allowed;
+  filter: saturate(0);
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.quantityRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quantityRow > .controlLabel {
+  margin-bottom: 0;
+}
+
+.quantityControl {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.quantityButton {
+  display: inline-flex;
+  width: 66px;
+  min-width: 66px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quantityButton:disabled {
+  color: #68737a;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.quantityValue {
+  min-width: 34px;
+  color: #fff;
+  font:
+    800 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-align: center;
+}
+
+.quantityTotal {
+  color: #94a7b0;
+  font-size: 9px;
+}
+
+.purchaseControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.purchasePair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actionControl {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 22px;
+  font-size: 13px;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actionSecondary {
+  color: #c9eaf3;
+}
+
+.actionGold {
+  color: #f6d76d;
+}
+
+.actionDiamond {
+  color: #dffaff;
+}
+
+.actionControl:disabled {
+  color: #68747b;
+  cursor: not-allowed;
+  filter: saturate(0);
+  opacity: 0.52;
+}
+
+.purchaseReason {
+  color: #ff6b6b;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.purchaseReason[data-shortfall='true'] {
+  color: #f1d46b;
+}
+
+.catalogAlert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 20%);
+  width: min(900px, 100%);
+  aspect-ratio: 1800 / 386;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto 24px;
+  padding: 4.2% 6% 4.2% 25%;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
+  color: #f2d978;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.loadingStatus {
+  padding: 12px 0 20px;
+  color: #9db0ba;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.emptyState {
+  display: grid;
+  width: min(440px, 100%);
+  aspect-ratio: 1105 / 1133;
+  place-content: center;
+  margin-inline: auto;
+  padding: 18%;
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
+    100% 100% no-repeat;
+  color: #a7b6bd;
+  font-size: 13px;
+  text-align: center;
+}
+
+.emptyStateTitle {
+  margin-bottom: 7px;
+  color: #eef7fb;
+  font-size: 18px;
+}
+
+.categoryTitle {
+  margin: 0 0 14px;
+  color: #eaf4f8;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.legalCopy {
+  max-width: 720px;
+  margin: 16px auto 0;
+  color: #9eabb2;
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.operatorLink:focus-visible,
+.actionControl:focus-visible,
+.categoryControl:focus-visible,
+.wishlistControl:focus-visible,
+.optionControl:focus-visible,
+.quantityButton:focus-visible,
+.searchInput:focus-visible,
+.sortSelect:focus-visible {
+  outline: 3px solid #8befff;
+  outline-offset: 3px;
+}
+
+.operatorLink:active,
+.actionControl:active:not(:disabled),
+.categoryControl:active,
+.wishlistControl:active:not(:disabled),
+.optionControl:active:not(:disabled),
+.quantityButton:active:not(:disabled) {
+  opacity: 0.78;
+}
+
+@media (max-width: 620px) {
+  .discoveryControls {
+    padding: 8px 0 20px;
+  }
+
+  .catalogAlert {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(440px, 100%);
+    aspect-ratio: 1105 / 1133;
+    padding: 18%;
+    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    text-align: center;
+  }
+
+  .purchasePair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailStatus {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .productCard,
+  .actionControl,
+  .categoryControl,
+  .wishlistControl,
+  .optionControl,
+  .quantityButton {
+    scroll-behavior: auto;
+  }
+}

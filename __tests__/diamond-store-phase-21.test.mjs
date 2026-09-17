@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createRequire } from 'node:module';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 const require = createRequire(import.meta.url);
 const {
   summarizeShopPurchases,
@@ -126,7 +126,8 @@ test('shopper storefront resolves membership server-side and cannot remain stuck
   assert.match(loader, /const loadController = new AbortController\(\)/);
   assert.match(loader, /loadController\.abort\(\)/);
   assert.match(loader, /signal: loadController\.signal/);
-  assert.match(loader, /const targetClub = data\.clubId \|\| null/);
+  assert.match(loader, /const verifiedContext = normalizeVerifiedClubShopContext/);
+  assert.match(loader, /const targetClub = verifiedContext\.clubId/);
   assert.match(loader, /requestId !== clubShopLoadRequestRef\.current/);
   assert.match(loader, /setClubShopError\(null\)/);
   assert.match(loader, /const loadTimer = setTimeout/);
@@ -145,7 +146,19 @@ test('shopper storefront resolves membership server-side and cannot remain stuck
   assert.match(api, /defaults to the member's club with the most active stock/);
   assert.match(api, /\.select\('club_id, role'\)/);
   assert.match(api, /\.eq\('club_id', requestedClubId\)/);
-  assert.match(api, /\.from\('club_shop_items'\)[\s\S]{0,200}\.eq\('is_active', true\)/);
+  const activeStockLookupStart = api.indexOf('const { data: stock, error: stockError }');
+  const activeStockLookupEnd = api.indexOf(
+    'if (stockError) throw stockError',
+    activeStockLookupStart
+  );
+  assert.ok(
+    activeStockLookupStart >= 0 && activeStockLookupEnd > activeStockLookupStart,
+    'membership selection must retain a bounded active-stock lookup'
+  );
+  const activeStockLookup = api.slice(activeStockLookupStart, activeStockLookupEnd);
+  assert.match(activeStockLookup, /\.from\('club_shop_items'\)/);
+  assert.match(activeStockLookup, /\.eq\('is_active', true\)/);
+  assert.match(api, /\(stock \|\| \[\]\)\.filter\(isDeliverableShopItem\)/);
   assert.doesNotMatch(api, /membershipQuery/);
   assert.match(api, /if \(membershipError\) throw membershipError/);
   assert.match(api, /clubId: null/);
@@ -166,7 +179,8 @@ test('Club Shop detail resolves server-owned membership and terminates stalled i
   assert.match(loader, /const loadController = new AbortController\(\)/);
   assert.match(loader, /signal: loadController\.signal/);
   assert.match(loader, /Club inventory timed out\. Retry the verified inventory request\./);
-  assert.match(loader, /const targetClub = body\.clubId \|\| null/);
+  assert.match(loader, /const verifiedContext = normalizeVerifiedClubShopContext/);
+  assert.match(loader, /const targetClub = verifiedContext\.clubId/);
   assert.match(loader, /window\.clearTimeout\(loadTimer\)/);
   assert.match(detail, /loadAbortRef\.current\?\.abort\(\)/);
 });
@@ -179,7 +193,10 @@ test('Club Shop detail API scopes and parallelizes cold authenticated item reads
   assert.match(api, /if \(requestedItemId\) \{[\s\S]*?Promise\.all\(\[/);
   assert.match(api, /\.eq\('item_id', requestedItemId\)/);
   assert.match(api, /if \(!requestedItemId\) \{/);
-  assert.match(api, /if \(requestedItemId\) fallbackQuery = fallbackQuery\.eq\('item_id', requestedItemId\)/);
+  assert.match(
+    api,
+    /if \(requestedItemId\) fallbackQuery = fallbackQuery\.eq\('item_id', requestedItemId\)/
+  );
 });
 
 test('direct Vercel uploads retain the complete migration evidence tree', async () => {
@@ -194,7 +211,10 @@ test('Club Shop browser fixtures follow the server-owned membership response', a
   const e2e = await read('e2e/05-diamond-store.spec.ts');
   const detailFixture = e2e.slice(
     e2e.indexOf("test('club item detail reviews one diamond settlement"),
-    e2e.indexOf("test('marketplace readiness is public", e2e.indexOf("test('club item detail reviews one diamond settlement"))
+    e2e.indexOf(
+      "test('marketplace readiness is public",
+      e2e.indexOf("test('club item detail reviews one diamond settlement")
+    )
   );
   const adminFixture = e2e.slice(
     e2e.indexOf("test('Club Shop operators delete"),

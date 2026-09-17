@@ -1,45 +1,334 @@
-.console { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 12px; }
-.panel { position: relative; padding: 24px; border: 1px solid #3a5d6e; background: linear-gradient(145deg, rgba(23, 59, 77, .34), rgba(0, 0, 0, .82)); }
-.panelGold { border-color: #897319; background: radial-gradient(circle at 82% 0, rgba(255, 215, 0, .12), transparent 34%), linear-gradient(145deg, #17170d, #010203 68%); }
-.panel h2 { display: flex; align-items: center; gap: 9px; margin: 0; }
-.panel > p { margin: 9px 0 0; }
-.statusLine { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 20px; }
-.statusLine div { padding: 15px; border-top: 1px solid #00c8ff; background: #020609; }
-.statusLine span, .planLabel { display: block; color: #7896a5; font: 800 9px 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
-.statusLine strong { display: block; margin-top: 7px; color: #effdff; font: 700 18px 'Rajdhani', sans-serif; text-transform: uppercase; }
-.notice { margin-top: 16px; padding: 14px; border: 1px solid #517788; background: rgba(0, 200, 255, .08); color: #dffaff; font-size: 13px; line-height: 1.55; }
-.noticeError { border-color: #9c3a46; background: rgba(255, 71, 87, .09); color: #ffd6dc; }
-.planGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 18px; }
-.plan { padding: 18px; border: 1px solid #365b6c; background: #02070b; }
-.planActive { border-color: #ffe45e; box-shadow: inset 0 0 0 1px rgba(255, 215, 0, .24); }
-.plan strong { display: block; margin-top: 7px; color: #eaffff; font: 700 20px 'Rajdhani', sans-serif; text-transform: uppercase; }
-.plan p { min-height: 42px; margin: 8px 0 12px; font-size: 12px; }
-.button, .dangerButton, .secondaryButton, .signedOut a { display: inline-flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: 1px solid #8ec8d8; background: linear-gradient(180deg, #e0faff, #72aabd 50%, #153e52); color: #041218; font: 800 9px 'IBM Plex Mono', monospace; text-decoration: none; text-transform: uppercase; cursor: pointer; }
-.button:disabled { cursor: not-allowed; filter: grayscale(.75); opacity: .52; }
-.secondaryButton { border-color: #4b7184; background: linear-gradient(180deg, #1b3441, #050a0e); color: #c8f4ff; }
-.dangerButton { margin-top: 16px; border-color: #a84250; background: linear-gradient(180deg, #5b1a25, #160509); color: #ffe5e9; }
-.finePrint { margin: 14px 0 0; color: #78909b; font-size: 11px; line-height: 1.55; }
-.signedOut { padding: 32px; border: 1px solid #3b5f70; background: #02070b; text-align: center; }
-.signedOut a { width: auto; margin-top: 8px; }
-.loading { min-height: 260px; align-content: center; text-align: center; }
-.dialogBackdrop { position: fixed; z-index: 10020; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(0, 0, 0, .82); backdrop-filter: blur(7px); }
-.dialog { width: min(520px, 100%); padding: 26px; border: 1px solid #8b3c47; background: linear-gradient(160deg, #1e1116, #030405 65%); box-shadow: inset 0 0 0 5px #050203, 0 28px 80px #000; }
-.dialog h2 { margin: 0; }
-.dialog label { display: block; margin-top: 18px; color: #c7d7de; font: 700 11px 'IBM Plex Mono', monospace; text-transform: uppercase; }
-.dialog select { width: 100%; min-height: 44px; margin-top: 8px; padding: 10px 12px; border: 1px solid #57717d; background: #04080a; color: #effdff; }
-.dialogActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-.dialogActions .dangerButton { margin-top: 0; }
-.console :is(button, a, select):focus-visible, .dialog :is(button, select):focus-visible { outline: 2px solid #8befff; outline-offset: 3px; }
+.console {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 22px;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+}
+
+.panel {
+  position: relative;
+  padding: 12px 0;
+  background: transparent;
+}
+
+.panelGold {
+  color: #e9e2bd;
+}
+
+.panel h2 {
+  margin: 0;
+  color: #effdff;
+  font:
+    800 clamp(22px, 3vw, 30px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.panel > p {
+  margin: 9px 0 0;
+}
+
+.statusLine {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.statusLine div {
+  display: grid;
+  grid-template-columns: 22% minmax(0, 1fr);
+  align-items: center;
+  aspect-ratio: 1800 / 386;
+  padding: 4.2% 6% 4.2% 2.4%;
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
+}
+
+.statusLine span,
+.planLabel {
+  display: block;
+  color: #9db6c2;
+  font:
+    800 10px/1.1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.055em;
+  text-transform: capitalize;
+}
+
+.statusLine strong,
+.plan strong {
+  display: block;
+  margin-top: 7px;
+  color: #effdff;
+  font:
+    800 clamp(14px, 1.7vw, 18px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-transform: capitalize;
+}
+
+.notice {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-top: 1px solid #517788;
+  border-bottom: 1px solid #517788;
+  color: #dffaff;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.noticeError {
+  border-color: #f02849;
+  color: #ff5b6e;
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.plan {
+  display: flex;
+  aspect-ratio: 1105 / 1133;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18%;
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
+    100% 100% no-repeat;
+}
+
+.planActive .planLabel,
+.planActive strong {
+  color: #ffe45e;
+}
+
+.plan p {
+  min-height: 42px;
+  margin: 8px 0 12px;
+  font-size: 12px;
+}
+
+.button,
+.dangerButton,
+.secondaryButton,
+.signedOut a {
+  display: inline-flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border: 0;
+  background-color: transparent;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  color: #eafaff;
+  font:
+    800 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.025em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.button:disabled,
+.dangerButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.75);
+  opacity: 0.52;
+}
+
+.secondaryButton,
+.dangerButton {
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+}
+
+.dangerButton {
+  margin-top: 16px;
+  color: #ff5b6e;
+}
+
+.finePrint {
+  margin: 14px 0 0;
+  color: #78909b;
+  font:
+    700 10px/1.55 var(--font-inter),
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+.signedOut,
+.loading {
+  display: grid;
+  place-items: center;
+  width: min(480px, 100%);
+  aspect-ratio: 1105 / 1133;
+  margin-inline: auto;
+  padding: 18%;
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
+    100% 100% no-repeat;
+  text-align: center;
+}
+
+.signedOut h2 {
+  margin: 0;
+  color: #effdff;
+  font:
+    800 clamp(22px, 3vw, 30px) / 1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.signedOut a {
+  width: auto;
+  margin-top: 8px;
+}
+
+.loading {
+  align-content: center;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  z-index: 10020;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(7px);
+}
+
+.dialog {
+  display: flex;
+  width: min(520px, 100%);
+  aspect-ratio: 1105 / 1133;
+  flex-direction: column;
+  justify-content: center;
+  padding: 17%;
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
+    100% 100% no-repeat;
+}
+
+.dialog h2 {
+  margin: 0;
+  color: #effdff;
+  font:
+    800 28px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.dialog label {
+  display: block;
+  margin-top: 18px;
+  color: #c7d7de;
+  font:
+    800 11px/1.1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
+}
+
+.dialog select {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 8px;
+  padding: 10px 16px;
+  border: 0;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  color: #effdff;
+  font:
+    800 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.dialogActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.dialogActions .dangerButton {
+  margin-top: 0;
+}
+
+.console :is(button, a, select):focus-visible,
+.dialog :is(button, select):focus-visible {
+  outline: 2px solid #8befff;
+  outline-offset: 3px;
+}
 
 @media (max-width: 760px) {
-  .console, .planGrid { grid-template-columns: 1fr; }
-  .plan p { min-height: 0; }
+  .console,
+  .planGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding-block: 8px;
+  }
+
+  .plan {
+    width: min(440px, 100%);
+    margin-inline: auto;
+  }
+
+  .plan p {
+    min-height: 0;
+  }
 }
 
 @media (max-width: 460px) {
-  .statusLine, .dialogActions { grid-template-columns: 1fr; }
+  .statusLine,
+  .dialogActions {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog {
+    padding: 16%;
+  }
+
+  .dialog h2 {
+    font-size: 22px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .console *, .dialogBackdrop * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .console *,
+  .dialogBackdrop * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

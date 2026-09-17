@@ -7,12 +7,11 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gem, CreditCard } from 'lucide-react';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { useRequireAuth, getAccessToken } from '../../../src/lib/authUtils';
+import { useRequireAuth, getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
@@ -21,16 +20,63 @@ import useCartStore from '../../../src/stores/cartStore';
 import MerchPurchaseDialog from '../../../src/components/store/MerchPurchaseDialog';
 import MarketplaceSubpageShell from '../../../src/components/store/MarketplaceSubpageShell';
 import {
+  MarketplaceConsolePanel,
+  MarketplaceConsoleStatusRow,
+} from '../../../src/components/marketplace-console/MarketplaceConsole';
+import cartStyles from './cart.module.css';
+import {
   clearCommerceRequestId,
   getOrCreateCommerceRequestId,
+  inspectCommerceRequestRecovery,
+  replaceCommerceRequestId,
 } from '../../../src/lib/store/checkoutIntentStore';
+import {
+  checkoutRequestReplacementRequired,
+  diamondCheckoutOfferConfirmation,
+  merchandiseCheckoutOfferConfirmation,
+  merchandiseDiamondOfferConfirmation,
+  normalizeVerifiedCheckoutSession,
+} from '../../../src/lib/store/verifiedCheckoutUrl.mjs';
+import { getVerifiedCheckoutAuthorization } from '../../../src/lib/store/checkoutAuthorization';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
+import { resolveReviewedMerchArt } from '../../../src/lib/store/merchProductArt';
+import {
+  classifyMerchDiamondPurchaseRefusal,
+  normalizeVerifiedMerchDiamondPurchase,
+} from '../../../src/lib/store/verifiedCommerceResponse.mjs';
 
 // Legacy standalone key used by earlier versions of this page. It is folded
 // into the shared zustand cart once and then removed.
 const LEGACY_CART_KEY = 'diamond-store-cart';
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+const REVIEWED_NON_MERCH_CART_IMAGE_PREFIXES = Object.freeze([
+  '/images/store-v3/',
+  '/images/vip/',
+  '/images/diamond-store/',
+]);
+
+function resolveReviewedCartMedia(item) {
+  const type = String(item?.type || '');
+  const isMerchandise = type !== 'diamonds' && type !== 'vip';
+  if (isMerchandise) {
+    const lineId = String(item?.catalogId || item?.id || '');
+    const catalogId = lineId.split('::')[0];
+    const art = resolveReviewedMerchArt(catalogId);
+    return art.reviewed
+      ? { source: art.image, atlasPosition: art.atlasPosition }
+      : { source: null, atlasPosition: null };
+  }
+
+  const source = typeof item?.image === 'string' ? item.image.trim() : '';
+  const reviewed =
+    source.startsWith('/') &&
+    !source.startsWith('//') &&
+    REVIEWED_NON_MERCH_CART_IMAGE_PREFIXES.some((prefix) => source.startsWith(prefix));
+  return reviewed ? { source, atlasPosition: null } : { source: null, atlasPosition: null };
+}
 
 const checkoutErrorMessage = (data, status) => {
   if (typeof data?.error?.message === 'string') return data.error.message;
@@ -42,9 +88,31 @@ const checkoutErrorMessage = (data, status) => {
   return `Checkout Could Not Start (${status})`;
 };
 
+function canonicalMerchCartLine(item) {
+  const explicitCatalogId = String(item?.catalogId || '').trim();
+  const rawId = String(item?.id || '').trim();
+  const separatorIndex = rawId.indexOf('::');
+  const legacyCatalogId = separatorIndex >= 0 ? rawId.slice(0, separatorIndex).trim() : rawId;
+  const legacyVariantToken = separatorIndex >= 0 ? rawId.slice(separatorIndex + 2).trim() : '';
+  const id = explicitCatalogId || legacyCatalogId;
+  const variantId = String(item?.variantId || item?.variant_id || '').trim() || null;
+  const quantity = Number(item?.quantity);
+  if (
+    !id ||
+    id.length > 160 ||
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    quantity > 10 ||
+    (legacyVariantToken && legacyVariantToken !== 'standard' && !variantId)
+  )
+    return null;
+  return { id, variantId, quantity };
+}
+
 export default function ShoppingCart() {
   const { user, checking: authChecking } = useRequireAuth('/hub/diamond-store/cart');
   useTrainingBus('diamond-store-cart');
+  const synchronousAccountId = getAuthUser()?.id || null;
 
   // Cart CONTENTS live in the shared zustand store (persist key
   // 'smarter-poker-cart'): the same store the diamond-store page and the
@@ -63,6 +131,7 @@ export default function ShoppingCart() {
 
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+  const [cartLoadError, setCartLoadError] = useState(null);
   const [diamondBalance, setDiamondBalance] = useState(0);
   const [payWithDiamonds, setPayWithDiamonds] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -77,11 +146,50 @@ export default function ShoppingCart() {
   const lastLocalEditRef = useRef(0);
   const cartOwnerRef = useRef(null);
   const cartLoadRequestRef = useRef(0);
+  const diamondCheckoutAccountRef = useRef(user?.id || null);
+  const diamondCheckoutAttemptRef = useRef(0);
+  const diamondCheckoutAbortRef = useRef(null);
+  const cardCheckoutAccountRef = useRef(user?.id || null);
+  const cardCheckoutAttemptRef = useRef(0);
+  const cardCheckoutAbortRef = useRef(null);
+  const cardCheckoutProcessingRef = useRef(false);
+  const checkoutMountedRef = useRef(true);
   // Serialize preference writes so an older, slower request can never finish
   // after a newer snapshot and leave the server with stale cart contents.
   const cartWriteChainRef = useRef(Promise.resolve(true));
 
   const DIAMONDS_PER_DOLLAR = 100;
+
+  useIsomorphicLayoutEffect(() => {
+    diamondCheckoutAccountRef.current = user?.id || null;
+    cardCheckoutAccountRef.current = user?.id || null;
+    diamondCheckoutAttemptRef.current += 1;
+    cardCheckoutAttemptRef.current += 1;
+    const invalidatedDiamondAttempt = !!diamondCheckoutAbortRef.current;
+    const invalidatedCardAttempt = !!cardCheckoutAbortRef.current;
+    diamondCheckoutAbortRef.current?.abort();
+    diamondCheckoutAbortRef.current = null;
+    cardCheckoutAbortRef.current?.abort();
+    cardCheckoutAbortRef.current = null;
+    cardCheckoutProcessingRef.current = false;
+    setPendingDiamondCheckout(null);
+    if (invalidatedDiamondAttempt || invalidatedCardAttempt) setCheckingOut(false);
+    setDiamondBalance(0);
+  }, [user?.id]);
+
+  useEffect(() => {
+    checkoutMountedRef.current = true;
+    return () => {
+      checkoutMountedRef.current = false;
+      diamondCheckoutAttemptRef.current += 1;
+      diamondCheckoutAbortRef.current?.abort();
+      diamondCheckoutAbortRef.current = null;
+      cardCheckoutAttemptRef.current += 1;
+      cardCheckoutAbortRef.current?.abort();
+      cardCheckoutAbortRef.current = null;
+      cardCheckoutProcessingRef.current = false;
+    };
+  }, []);
 
   // Real media query (inline-style '@media' keys are ignored by React)
   useEffect(() => {
@@ -104,6 +212,8 @@ export default function ShoppingCart() {
       lastSyncedRef.current = null;
       setHydrated(false);
     }
+    setCartLoadError(null);
+    setLoading(true);
     cartOwnerRef.current = nextOwner;
     const requestId = ++cartLoadRequestRef.current;
     loadCart(undefined, nextOwner, requestId);
@@ -159,9 +269,9 @@ export default function ShoppingCart() {
   // Push a Supabase copy of the cart into the shared store. Local edits win
   // over a realtime echo that may already be stale.
   const isCurrentCartLoad = (ownerId, requestId) =>
-    cartOwnerRef.current === ownerId
-    && cartLoadRequestRef.current === requestId
-    && useCartStore.getState().ownerId === ownerId;
+    cartOwnerRef.current === ownerId &&
+    cartLoadRequestRef.current === requestId &&
+    useCartStore.getState().ownerId === ownerId;
 
   const applyRemoteCart = (remoteItems, ownerId, requestId) => {
     if (!isCurrentCartLoad(ownerId, requestId)) return;
@@ -180,7 +290,11 @@ export default function ShoppingCart() {
     replaceCartFromServer(remoteItems);
   };
 
-  const loadCart = async (signal, ownerId = user?.id || 'guest', requestId = cartLoadRequestRef.current) => {
+  const loadCart = async (
+    signal,
+    ownerId = user?.id || 'guest',
+    requestId = cartLoadRequestRef.current
+  ) => {
     try {
       // Cart contents come from the shared store; Supabase only hydrates it
       if (user?.id) {
@@ -198,7 +312,10 @@ export default function ShoppingCart() {
               const localItems = useCartStore.getState().items;
               const saved = await saveCart(localItems);
               if (!isCurrentCartLoad(ownerId, requestId)) return;
-              if (saved && JSON.stringify(useCartStore.getState().items) === JSON.stringify(localItems)) {
+              if (
+                saved &&
+                JSON.stringify(useCartStore.getState().items) === JSON.stringify(localItems)
+              ) {
                 markCartSynced();
                 lastSyncedRef.current = JSON.stringify(localItems);
               }
@@ -226,6 +343,10 @@ export default function ShoppingCart() {
           }
         } catch (e) {
           console.warn('[App] Handled exception:', e?.message || e);
+          if (!isCurrentCartLoad(ownerId, requestId)) return;
+          throw new Error(
+            'Your Saved Cart Could Not Be Verified. Check Your Connection And Try Again.'
+          );
         }
       } else if (!hydratedRef.current) {
         // Signed out: fold any legacy standalone cart into the shared store
@@ -240,27 +361,51 @@ export default function ShoppingCart() {
 
       hydratedRef.current = true;
       setHydrated(true);
+      setCartLoadError(null);
 
       // Fetch diamond balance
       if (user?.id) {
         const token = getAccessToken();
-        if (token) {
-          const res = await fetch('/api/store/diamond-transactions?limit=1', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) throw new Error(`Request failed (${res.status})`);
-          const data = await res.json();
-          if (data.success && isCurrentCartLoad(ownerId, requestId)) {
-            setDiamondBalance(data.balance || 0);
-          }
+        if (!token) {
+          throw new Error('Your Wallet Session Could Not Be Verified. Sign In Again And Retry.');
+        }
+        const res = await fetch('/api/store/diamond-transactions?limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`Wallet Verification Failed (${res.status})`);
+        const data = await res.json();
+        const verifiedBalance = Number(data?.balance);
+        if (!data?.success || !Number.isSafeInteger(verifiedBalance) || verifiedBalance < 0) {
+          throw new Error('Your Diamond Balance Could Not Be Verified. Try Again Before Checkout.');
+        }
+        if (isCurrentCartLoad(ownerId, requestId)) {
+          setDiamondBalance(verifiedBalance);
         }
       }
 
       if (isCurrentCartLoad(ownerId, requestId)) setLoading(false);
     } catch (error) {
       console.warn('Error loading cart:', error);
-      if (isCurrentCartLoad(ownerId, requestId)) setLoading(false);
+      if (isCurrentCartLoad(ownerId, requestId)) {
+        setCartLoadError({
+          ownerId,
+          message:
+            error?.message ||
+            'Your Cart Could Not Be Verified. Check Your Connection And Try Again.',
+        });
+        setLoading(false);
+      }
     }
+  };
+
+  const retryCartLoad = () => {
+    const ownerId = getAuthUser()?.id || 'guest';
+    if (user?.id && user.id !== ownerId) return;
+    if (cartOwnerRef.current !== ownerId || useCartStore.getState().ownerId !== ownerId) return;
+    const requestId = ++cartLoadRequestRef.current;
+    setCartLoadError(null);
+    setLoading(true);
+    void loadCart(undefined, ownerId, requestId);
   };
 
   // Persist the diamond_cart key without clobbering the rest of the
@@ -310,9 +455,7 @@ export default function ShoppingCart() {
     if (json === lastSyncedRef.current) return;
     lastSyncedRef.current = json;
     let cancelled = false;
-    const write = cartWriteChainRef.current
-      .catch(() => false)
-      .then(() => saveCart(cart));
+    const write = cartWriteChainRef.current.catch(() => false).then(() => saveCart(cart));
     cartWriteChainRef.current = write;
     (async () => {
       const ok = await write;
@@ -356,9 +499,23 @@ export default function ShoppingCart() {
   // Sending a diamond package down the merchandise path is rejected as
   // "no longer available", and even if it were accepted the webhook's
   // merchandise branch never credits diamonds.
-  const diamondItems = cart.filter((item) => item?.type === 'diamonds');
-  const vipItems = cart.filter((item) => item?.type === 'vip');
-  const merchItems = cart.filter((item) => item?.type !== 'diamonds' && item?.type !== 'vip');
+  // The persisted Zustand cart can still contain the previous account's
+  // snapshot during the render immediately before the owner-reset effect.
+  // Never paint, price, or submit that private snapshot for a replacement
+  // account. The raw cart remains available to the persistence effects above,
+  // which replace it with the current owner's authoritative cart.
+  // The synchronous session source changes before React context can finish a
+  // replacement-account render. Project private cart state against that
+  // source so account A cannot remain visible for a frame under account B.
+  const expectedCartOwnerId = synchronousAccountId || 'guest';
+  const visibleCart = !authChecking && cartOwnerId === expectedCartOwnerId && hydrated ? cart : [];
+  const projectedCartLoadError =
+    cartLoadError?.ownerId === expectedCartOwnerId ? cartLoadError.message : null;
+  const diamondItems = visibleCart.filter((item) => item?.type === 'diamonds');
+  const vipItems = visibleCart.filter((item) => item?.type === 'vip');
+  const merchItems = visibleCart.filter(
+    (item) => item?.type !== 'diamonds' && item?.type !== 'vip'
+  );
 
   // Diamond packages can't be bought with diamonds: the purchase API only
   // deducts diamonds (no grant happens outside the Stripe webhook), so this
@@ -379,7 +536,10 @@ export default function ShoppingCart() {
         ? 0
         : event.key === 'End'
           ? choices.length - 1
-          : (currentIndex + (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length;
+          : (currentIndex +
+              (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) +
+              choices.length) %
+            choices.length;
     event.preventDefault();
     choices[nextIndex].click();
     choices[nextIndex].focus();
@@ -395,7 +555,7 @@ export default function ShoppingCart() {
 
   const unitsOf = (list) => (list || []).reduce((n, item) => n + (Number(item?.quantity) || 0), 0);
 
-  const getSubtotalCents = () => subtotalCentsOf(cart);
+  const getSubtotalCents = () => subtotalCentsOf(visibleCart);
 
   // Card checkout settles one group per session; diamond packages first.
   // The 'diamonds' branch bills every package at its own quantity, so a
@@ -403,7 +563,7 @@ export default function ShoppingCart() {
   // stay behind for their own session.
   const cardGroup = hasDiamondItems ? 'diamonds' : merchItems.length > 0 ? 'merchandise' : null;
   const cardGroupUnits = cardGroup === 'diamonds' ? unitsOf(diamondItems) : unitsOf(merchItems);
-  const deferredUnits = Math.max(unitsOf(cart) - cardGroupUnits, 0);
+  const deferredUnits = Math.max(unitsOf(visibleCart) - cardGroupUnits, 0);
   const cardChargeCents =
     cardGroup === 'diamonds' ? subtotalCentsOf(diamondItems) : subtotalCentsOf(merchItems);
 
@@ -418,26 +578,28 @@ export default function ShoppingCart() {
   const getDiamondCost = () => {
     return merchItems.reduce((total, item) => {
       const explicit = Number(item?.diamonds ?? item?.priceDiamonds ?? item?.price_diamonds);
-      const perUnit = Number.isFinite(explicit) && explicit > 0
-        ? Math.round(explicit)
-        : Math.round((Number(item?.price) || 0) * DIAMONDS_PER_DOLLAR);
+      const perUnit =
+        Number.isFinite(explicit) && explicit > 0
+          ? Math.round(explicit)
+          : Math.round((Number(item?.price) || 0) * DIAMONDS_PER_DOLLAR);
       return total + perUnit * (Number(item?.quantity) || 0);
     }, 0);
   };
 
   // Any item carrying an id may be priced from the catalog instead
-  const diamondCostIsEstimate = merchItems.some((item) => (
-    !Number.isFinite(Number(item?.diamonds ?? item?.priceDiamonds ?? item?.price_diamonds))
-  ));
+  const diamondCostIsEstimate = merchItems.some(
+    (item) =>
+      !Number.isFinite(Number(item?.diamonds ?? item?.priceDiamonds ?? item?.price_diamonds))
+  );
 
   const canAffordWithDiamonds = () => {
     return diamondBalance >= getDiamondCost();
   };
 
   const handleCheckout = async () => {
-    if (checkingOut) return;
-    const token = getAccessToken();
-    if (!token || !user?.id) {
+    if (checkingOut || cardCheckoutProcessingRef.current) return;
+    const expectedAccountId = user?.id;
+    if (!expectedAccountId) {
       toast.error('Please Sign In Again To Check Out');
       return;
     }
@@ -464,11 +626,18 @@ export default function ShoppingCart() {
       }
       payload = { type: 'diamonds', items: lineItems };
     } else if (cardGroup === 'merchandise') {
+      const verifiedLines = merchItems.map(canonicalMerchCartLine);
+      if (verifiedLines.some((line) => !line)) {
+        toast.error('A Merchandise Option Could Not Be Verified. Remove It And Add It Again.');
+        return;
+      }
       payload = {
         type: 'merchandise',
-        items: merchItems.map((item) => ({
+        items: merchItems.map((item, index) => ({
           ...item,
-          id: item.catalogId || item.id,
+          id: verifiedLines[index].id,
+          variantId: verifiedLines[index].variantId,
+          quantity: verifiedLines[index].quantity,
         })),
       };
     } else {
@@ -476,57 +645,158 @@ export default function ShoppingCart() {
       return;
     }
 
+    const buildOfferForItems = (items) =>
+      cardGroup === 'diamonds'
+        ? diamondCheckoutOfferConfirmation(
+            expectedAccountId,
+            items.map((item) => ({
+              packageId: item.packageId || item.id,
+              quantity: Math.max(1, Number(item.quantity) || 1),
+              unitCents: Number.isSafeInteger(item.priceCents)
+                ? item.priceCents
+                : Math.round(Number(item.price || 0) * 100),
+              diamonds: Number(item.baseDiamonds ?? item.diamonds),
+              bonus: Number(item.bonusDiamonds ?? item.bonus ?? 0),
+            }))
+          )
+        : (() => {
+            const verifiedLines = items.map(canonicalMerchCartLine);
+            if (verifiedLines.some((line) => !line)) return null;
+            return merchandiseCheckoutOfferConfirmation(
+              expectedAccountId,
+              items.map((item, index) => ({
+                id: verifiedLines[index].id,
+                variantId: verifiedLines[index].variantId,
+                quantity: verifiedLines[index].quantity,
+                price: Number(item.price),
+              }))
+            );
+          })();
+    const offerConfirmation = buildOfferForItems(
+      cardGroup === 'diamonds' ? diamondItems : merchItems
+    );
+    if (!offerConfirmation) {
+      toast.error('The Current Cart Offer Could Not Be Verified. Review The Cart And Try Again.');
+      return;
+    }
+    payload.offerConfirmation = offerConfirmation;
+
     const commerceIntent = {
       scope: `cart-${cardGroup}`,
-      userId: user.id,
+      userId: expectedAccountId,
       paymentMethod: 'card',
       intent: {
         type: payload.type,
         items: payload.items.map((item) => ({
-          id: item.catalogId || item.id || item.packageId,
-          variantId: item.variantId || item.variant_id || null,
-          quantity: Math.max(1, Number(item.quantity) || 1),
+          id: item.id || item.packageId,
+          variantId: item.variantId || null,
+          quantity: item.quantity,
         })),
       },
     };
+    let checkoutRequestId = null;
+    const attemptId = ++cardCheckoutAttemptRef.current;
+    cardCheckoutAbortRef.current?.abort();
+    const controller = new AbortController();
+    cardCheckoutAbortRef.current = controller;
+    cardCheckoutProcessingRef.current = true;
+    const attemptIsCurrent = () =>
+      checkoutMountedRef.current &&
+      !controller.signal.aborted &&
+      cardCheckoutAttemptRef.current === attemptId &&
+      cardCheckoutAccountRef.current === expectedAccountId &&
+      getAuthUser()?.id === expectedAccountId;
     setCheckingOut(true);
     try {
-      const checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
+      const authorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+        signal: controller.signal,
+      });
+      const currentCart = useCartStore.getState();
+      const currentGroupItems =
+        cardGroup === 'diamonds'
+          ? currentCart.items.filter((item) => item?.type === 'diamonds')
+          : currentCart.items.filter((item) => item?.type !== 'diamonds' && item?.type !== 'vip');
+      const currentOffer = buildOfferForItems(currentGroupItems);
+      if (
+        !authorization ||
+        !attemptIsCurrent() ||
+        currentCart.ownerId !== expectedAccountId ||
+        JSON.stringify(currentOffer) !== JSON.stringify(offerConfirmation)
+      ) {
+        throw new Error('Your Account Or Cart Changed. Review This Purchase Again.');
+      }
+      checkoutRequestId = getOrCreateCommerceRequestId(commerceIntent);
       const res = await boundedCommerceFetch('/api/store/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authorization.accessToken}`,
           'X-Checkout-Request-ID': checkoutRequestId,
         },
+        signal: controller.signal,
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => null);
+      if (!attemptIsCurrent()) return;
       if (!res.ok) {
         const checkoutError = new Error(checkoutErrorMessage(data, res.status));
         checkoutError.code = data?.error?.code || null;
         throw checkoutError;
       }
-      const url = data?.data?.url || data?.url;
-      if (url) {
-        window.location.href = url;
-        return;
+      const checkoutSession = normalizeVerifiedCheckoutSession(
+        data,
+        checkoutRequestId,
+        offerConfirmation
+      );
+      if (!checkoutSession) {
+        throw new Error('Checkout Session Could Not Be Bound To This Purchase Request.');
       }
-      throw new Error('Checkout Session Missing Redirect URL');
+      const confirmedAuthorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+        signal: controller.signal,
+      });
+      const latestCart = useCartStore.getState();
+      const latestGroupItems =
+        cardGroup === 'diamonds'
+          ? latestCart.items.filter((item) => item?.type === 'diamonds')
+          : latestCart.items.filter((item) => item?.type !== 'diamonds' && item?.type !== 'vip');
+      if (
+        !confirmedAuthorization ||
+        !attemptIsCurrent() ||
+        latestCart.ownerId !== expectedAccountId ||
+        JSON.stringify(buildOfferForItems(latestGroupItems)) !== JSON.stringify(offerConfirmation)
+      ) {
+        throw new Error('Your Account Or Cart Changed. The Checkout Link Was Not Opened.');
+      }
+      if (!attemptIsCurrent()) return;
+      window.location.assign(checkoutSession.url);
+      return;
     } catch (err) {
-      if (err?.code === 'CHECKOUT_EXPIRED') {
-        clearCommerceRequestId(commerceIntent);
+      if (err?.name === 'AbortError' || !attemptIsCurrent()) return;
+      if (checkoutRequestReplacementRequired(err) && checkoutRequestId) {
+        try {
+          replaceCommerceRequestId({ ...commerceIntent, expectedRequestId: checkoutRequestId });
+        } catch (replacementError) {
+          err = replacementError;
+        }
       }
       // Stay on the cart so the user can retry: the button re-enables via finally
       toast.error(err.message || 'Checkout Unavailable. Please Try Again.');
     } finally {
-      setCheckingOut(false);
+      if (
+        cardCheckoutAbortRef.current === controller &&
+        cardCheckoutAttemptRef.current === attemptId
+      ) {
+        cardCheckoutAbortRef.current = null;
+        cardCheckoutProcessingRef.current = false;
+        setCheckingOut(false);
+      }
     }
   };
 
   const beginDiamondCheckout = () => {
     if (checkingOut) return;
-    if (!user?.id) {
+    const authUser = getAuthUser();
+    if (!authUser?.id || authUser.id !== user?.id) {
       toast.error('Please Sign In Again To Check Out');
       return;
     }
@@ -538,110 +808,276 @@ export default function ShoppingCart() {
       toast.error('There Is Nothing In Your Cart That Can Be Paid For With Diamonds.');
       return;
     }
+    const verifiedLines = merchItems.map(canonicalMerchCartLine);
+    if (verifiedLines.some((line) => !line)) {
+      toast.error('A Merchandise Option Could Not Be Verified. Remove It And Add It Again.');
+      return;
+    }
+    const purchaseItems = merchItems.map((item, index) => ({
+      ...item,
+      id: verifiedLines[index].id,
+      variantId: verifiedLines[index].variantId,
+      quantity: verifiedLines[index].quantity,
+    }));
+    const reviewedDiamondLines = purchaseItems.map((item) => {
+      const explicit = Number(item?.diamonds ?? item?.priceDiamonds ?? item?.price_diamonds);
+      const unitDiamonds =
+        Number.isFinite(explicit) && explicit > 0
+          ? Math.round(explicit)
+          : Math.round((Number(item?.price) || 0) * DIAMONDS_PER_DOLLAR);
+      return {
+        id: item.id,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        unitDiamonds,
+      };
+    });
+    const offerConfirmation = merchandiseDiamondOfferConfirmation(
+      authUser.id,
+      reviewedDiamondLines
+    );
+    const reviewedCost = getDiamondCost();
+    if (!offerConfirmation || offerConfirmation.totalDiamonds !== reviewedCost) {
+      toast.error('The Current Diamond Price Could Not Be Verified. Review The Cart Again.');
+      return;
+    }
     const commerceIntent = {
       scope: 'cart-diamond-merch',
-      userId: user.id,
+      userId: authUser.id,
       paymentMethod: 'diamonds',
       intent: {
-        items: merchItems.map((item) => ({
-          id: item.catalogId || item.id,
-          variantId: item.variantId || item.variant_id || null,
-          quantity: Math.max(1, Number(item.quantity) || 1),
+        items: purchaseItems.map((item) => ({
+          id: item.id,
+          variantId: item.variantId,
+          quantity: item.quantity,
         })),
       },
     };
-    setPendingDiamondCheckout({
-      product: {
-        name: `${unitsOf(merchItems)} Merchandise ${unitsOf(merchItems) === 1 ? 'Item' : 'Items'}`,
-      },
-      variant: {
-        label: `${merchItems.length} Product ${merchItems.length === 1 ? 'Type' : 'Types'} In This Shipment`,
-      },
-      quantity: unitsOf(merchItems),
-      cost: getDiamondCost(),
-      requiresShipping: true,
-      commerceIntent,
-      purchaseRequestId: getOrCreateCommerceRequestId(commerceIntent),
-    });
+    let recovery;
+    let purchaseRequestId;
+    try {
+      recovery = inspectCommerceRequestRecovery(commerceIntent);
+      if (recovery.status === 'terms-changed') {
+        throw new Error(
+          'An Earlier Protected Purchase Uses Different Cart Terms. Verify It Before Starting Another.'
+        );
+      }
+      const purchaseWasResumed = recovery.status === 'recoverable';
+      purchaseRequestId = purchaseWasResumed
+        ? recovery.requestId
+        : getOrCreateCommerceRequestId(commerceIntent);
+      if (!purchaseRequestId) {
+        throw new Error('Secure Purchase Recovery Could Not Verify The Protected Request.');
+      }
+      setPendingDiamondCheckout({
+        product: {
+          name: `${unitsOf(merchItems)} Merchandise ${unitsOf(merchItems) === 1 ? 'Item' : 'Items'}`,
+        },
+        variant: {
+          label: `${merchItems.length} Product ${merchItems.length === 1 ? 'Type' : 'Types'} In This Shipment`,
+        },
+        quantity: unitsOf(merchItems),
+        cost: reviewedCost,
+        requiresShipping: true,
+        items: purchaseItems,
+        commerceIntent,
+        purchaseRequestId,
+        purchaseWasResumed,
+        offerConfirmation,
+      });
+    } catch (error) {
+      toast.error(error?.message || 'Secure Purchase Recovery Is Unavailable. Please Try Again.');
+      return;
+    }
   };
 
   const confirmDiamondCheckout = async (shipping) => {
     if (checkingOut || !pendingDiamondCheckout) return;
 
-    const token = getAccessToken();
-    if (!token) {
+    const expectedAccountId = pendingDiamondCheckout.commerceIntent?.userId || null;
+    const purchaseWasResumed = pendingDiamondCheckout.purchaseWasResumed === true;
+    const authUser = getAuthUser();
+    if (!expectedAccountId || !authUser?.id) {
       toast.error('Please Sign In Again To Check Out');
       return;
     }
+    if (
+      authUser.id !== expectedAccountId ||
+      diamondCheckoutAccountRef.current !== expectedAccountId ||
+      useCartStore.getState().ownerId !== expectedAccountId
+    ) {
+      setPendingDiamondCheckout(null);
+      toast.error('Your Signed-In Account Changed. Review This Purchase Again.');
+      return;
+    }
+
+    const attemptId = ++diamondCheckoutAttemptRef.current;
+    diamondCheckoutAbortRef.current?.abort();
+    const controller = new AbortController();
+    diamondCheckoutAbortRef.current = controller;
+    const attemptIsCurrent = () =>
+      !controller.signal.aborted &&
+      diamondCheckoutAttemptRef.current === attemptId &&
+      diamondCheckoutAccountRef.current === expectedAccountId &&
+      getAuthUser()?.id === expectedAccountId &&
+      useCartStore.getState().ownerId === expectedAccountId;
 
     setCheckingOut(true);
     try {
+      const authorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+        signal: controller.signal,
+      });
+      if (!authorization || !attemptIsCurrent()) {
+        throw new Error('Your Signed-In Account Changed. Review This Purchase Again.');
+      }
+      const durableRequestId = getOrCreateCommerceRequestId(pendingDiamondCheckout.commerceIntent);
+      if (durableRequestId !== pendingDiamondCheckout.purchaseRequestId) {
+        setPendingDiamondCheckout((current) =>
+          current?.commerceIntent === pendingDiamondCheckout.commerceIntent
+            ? { ...current, purchaseRequestId: durableRequestId, purchaseWasResumed: true }
+            : current
+        );
+        throw new Error('Secure Purchase Recovery Was Refreshed. Review And Confirm Again.');
+      }
+      setPendingDiamondCheckout((current) =>
+        current?.commerceIntent === pendingDiamondCheckout.commerceIntent
+          ? { ...current, purchaseWasResumed: true }
+          : current
+      );
       const res = await boundedCommerceFetch('/api/store/purchase-with-diamonds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'X-Idempotency-Key': pendingDiamondCheckout.purchaseRequestId,
+          Authorization: `Bearer ${authorization.accessToken}`,
+          'X-Idempotency-Key': durableRequestId,
         },
+        signal: controller.signal,
         body: JSON.stringify({
-          items: merchItems.map((item) => ({
-            ...item,
-            id: item.catalogId || item.id,
-          })),
+          items: pendingDiamondCheckout.items,
+          offerConfirmation: pendingDiamondCheckout.offerConfirmation,
           shipping,
         }),
       });
 
       const data = await res.json().catch(() => null);
-      if (!res.ok) {
+      const confirmedAuthorization = await getVerifiedCheckoutAuthorization(expectedAccountId, {
+        signal: controller.signal,
+      });
+      if (!confirmedAuthorization || !attemptIsCurrent()) {
+        throw new Error(
+          'Your Signed-In Account Changed. The Original Purchase Still Needs Verification.'
+        );
+      }
+      if (!res.ok || !data?.success) {
+        const refusal = classifyMerchDiamondPurchaseRefusal(res.status, data, {
+          accountId: expectedAccountId,
+          requestId: durableRequestId,
+        });
+        if (refusal.definitive && !purchaseWasResumed) {
+          try {
+            const replacementRequestId = replaceCommerceRequestId({
+              ...pendingDiamondCheckout.commerceIntent,
+              expectedRequestId: durableRequestId,
+            });
+            setPendingDiamondCheckout((current) =>
+              current?.commerceIntent === pendingDiamondCheckout.commerceIntent
+                ? {
+                    ...current,
+                    purchaseRequestId: replacementRequestId,
+                    purchaseWasResumed: false,
+                  }
+                : current
+            );
+          } catch (persistenceError) {
+            setPendingDiamondCheckout(null);
+            throw persistenceError;
+          }
+        }
         // Prefer the server's own figures: the client estimate can differ
         // from merchandise_items.price_diamonds
         const required = data?.details?.required;
         if (typeof required === 'number') {
-          const current = data?.details?.current ?? diamondBalance;
-          setDiamondBalance(current);
+          const current = data?.details?.current;
+          if (Number.isSafeInteger(current) && current >= 0) setDiamondBalance(current);
           throw new Error(
-            `Not Enough Diamonds. This Order Costs ${required.toLocaleString()} Diamonds And You Have ${current.toLocaleString()}.`
+            `Not Enough Diamonds. This Order Costs ${required.toLocaleString()} Diamonds${Number.isSafeInteger(current) ? ` And You Have ${current.toLocaleString()}` : ''}.`
           );
         }
         throw new Error(checkoutErrorMessage(data, res.status));
       }
 
-      if (data?.success) {
+      const verifiedPurchase = normalizeVerifiedMerchDiamondPurchase(data, {
+        accountId: expectedAccountId,
+        requestId: durableRequestId,
+        units: pendingDiamondCheckout.quantity,
+        diamondsSpent: pendingDiamondCheckout.cost,
+        items: pendingDiamondCheckout.items,
+      });
+      if (verifiedPurchase) {
+        const recoveryRetired = clearCommerceRequestId({
+          ...pendingDiamondCheckout.commerceIntent,
+          expectedRequestId: durableRequestId,
+        });
         // Drop the purchased lines first so a display hiccup can't leave
         // paid items in the cart. Anything not covered by this purchase
         // (e.g. VIP) stays put.
         lastLocalEditRef.current = Date.now();
-        const purchasedIds = new Set(merchItems.map((item) => item?.id));
-        setCartItems(useCartStore.getState().items.filter((item) => !purchasedIds.has(item?.id)));
-        const result = data.data || {};
-        const replayed = data.idempotent === true;
-        const spent = result.diamonds_spent ?? 0;
-        const newBalance = result.new_balance ?? diamondBalance;
-        toast.success(
-          replayed
-            ? 'Order Already Placed. No Additional Diamonds Were Deducted.'
-            : `Purchased With ${spent.toLocaleString()} Diamonds. New Balance: ${newBalance.toLocaleString()}.`
+        const purchasedIdentities = new Set(
+          pendingDiamondCheckout.items.map((item) => `${item.id}\u0000${item.variantId || ''}`)
         );
+        setCartItems(
+          useCartStore
+            .getState()
+            .items.filter(
+              (item) =>
+                !purchasedIdentities.has(
+                  `${item.catalogId || item.id}\u0000${item.variantId || item.variant_id || ''}`
+                )
+            )
+        );
+        const replayed = verifiedPurchase.idempotent;
+        const spent = verifiedPurchase.diamondsSpent;
+        const newBalance = verifiedPurchase.newBalance;
+        if (recoveryRetired) {
+          toast.success(
+            replayed
+              ? 'Order Already Placed. No Additional Diamonds Were Deducted.'
+              : `Purchased With ${spent.toLocaleString()} Diamonds. New Balance: ${newBalance.toLocaleString()}.`
+          );
+        } else {
+          toast.warning(
+            'Order Was Placed And Your Balance Was Updated, But Secure Purchase Recovery Could Not Be Cleared. Do Not Submit This Purchase Again.'
+          );
+        }
         if (!replayed) busEmit.diamondsSpent(spent, 'Diamond Store Purchase');
-        clearCommerceRequestId(pendingDiamondCheckout.commerceIntent);
         setDiamondBalance(newBalance);
-        window.dispatchEvent(new CustomEvent('smarter-poker:diamond-balance', {
-          detail: { balance: Number(newBalance) || 0, userId: user?.id, source: 'merch-cart' },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('smarter-poker:diamond-balance', {
+            detail: { balance: newBalance, userId: expectedAccountId, source: 'merch-cart' },
+          })
+        );
         broadcastSync('smarter_poker_diamond_sync', 'refresh');
         setPendingDiamondCheckout(null);
       } else {
-        throw new Error(data?.error || 'Diamond purchase failed');
+        throw new Error(
+          'Purchase Status Is Uncertain. Confirm Again To Verify The Original Order.'
+        );
       }
     } catch (err) {
+      if (!attemptIsCurrent()) return;
       toast.error(err.message || 'Diamond Purchase Failed');
     } finally {
-      setCheckingOut(false);
+      if (diamondCheckoutAbortRef.current === controller) {
+        diamondCheckoutAbortRef.current = null;
+        setCheckingOut(false);
+      }
     }
   };
 
-  if (loading) {
+  if (
+    (loading || authChecking || !hydrated || cartOwnerId !== expectedCartOwnerId) &&
+    !projectedCartLoadError
+  ) {
     return (
       <>
         <SEOHead
@@ -656,9 +1092,16 @@ export default function ShoppingCart() {
           aria-label="Shopping Cart"
           data-marketplace-route="/hub/diamond-store/cart"
         >
-          <div style={styles.spinner} aria-hidden="true"></div>
-          <p role="status" style={styles.loadingText}>Loading Cart...</p>
-          <style>{`@keyframes dsSpin { to { transform: rotate(360deg); } }`}</style>
+          <div role="status" aria-live="polite" className={cartStyles.loadingPanel}>
+            <MarketplaceConsolePanel title="Preparing Your Cart">
+              <MarketplaceConsoleStatusRow
+                label="Secure Cart"
+                value="Loading Cart"
+                detail="Binding Cart Contents To Your Active Account"
+                live
+              />
+            </MarketplaceConsolePanel>
+          </div>
         </main>
       </>
     );
@@ -666,7 +1109,7 @@ export default function ShoppingCart() {
 
   const diamondCost = getDiamondCost();
   const affordable = canAffordWithDiamonds();
-  const itemCount = unitsOf(cart);
+  const itemCount = unitsOf(visibleCart);
 
   return (
     <PageTransition>
@@ -686,14 +1129,31 @@ export default function ShoppingCart() {
           title="Your Cart"
           description="Review Your Stack, Confirm The Delivery Details, And Settle Every Eligible Merchandise Order With Card Or Diamonds."
         >
-          {cart.length === 0 ? (
-            <div style={styles.emptyState}>
-              <h2 style={styles.emptyTitle}>Your Cart Is Empty</h2>
-              <p style={styles.emptyText}>Add Some Items To Get Started!</p>
-              <Link href="/hub/diamond-store" style={styles.shopButton}>
+          {projectedCartLoadError ? (
+            <div role="alert">
+              <MarketplaceConsolePanel
+                title="Could Not Verify Your Cart"
+                primaryAction={{ label: 'Retry Secure Read', onClick: retryCartLoad }}
+              >
+                <MarketplaceConsoleStatusRow
+                  label="Owner-Scoped Cart"
+                  value="Secure Read Failed"
+                  detail={marketplaceCopy(projectedCartLoadError)}
+                  valueInk="red"
+                />
+              </MarketplaceConsolePanel>
+            </div>
+          ) : visibleCart.length === 0 ? (
+            <MarketplaceConsolePanel title="Your Cart Is Empty">
+              <MarketplaceConsoleStatusRow
+                label="Cart Status"
+                value="No Items Reserved"
+                detail="Add Marketplace Gear To Begin A Secure Checkout"
+              />
+              <Link href="/hub/diamond-store" className={cartStyles.emptyBrowseButton}>
                 Browse Store
               </Link>
-            </div>
+            </MarketplaceConsolePanel>
           ) : (
             <div
               style={{ ...styles.cartLayout, gridTemplateColumns: isMobile ? '1fr' : '1fr 400px' }}
@@ -701,7 +1161,7 @@ export default function ShoppingCart() {
               {/* Cart Items */}
               <div style={styles.itemsSection}>
                 <AnimatePresence>
-                  {cart.map((item) => (
+                  {visibleCart.map((item) => (
                     <CartItem
                       key={item.id}
                       {...item}
@@ -712,304 +1172,185 @@ export default function ShoppingCart() {
                   ))}
                 </AnimatePresence>
 
-                <button type="button" onClick={clearCart} style={styles.clearButton}>
+                <button type="button" onClick={clearCart} className={cartStyles.clearCartButton}>
                   Clear Cart
                 </button>
               </div>
 
               {/* Summary */}
-              <div style={styles.summarySection}>
-                <h3 style={styles.summaryTitle}>Order Summary</h3>
+              <aside className={cartStyles.summaryFrame} aria-labelledby="cart-summary-title">
+                <div className={cartStyles.summaryFrameTop} aria-hidden="true" />
+                <div className={cartStyles.summaryFrameBody}>
+                  <h3 id="cart-summary-title" style={styles.summaryTitle}>
+                    Order Summary
+                  </h3>
 
-                <div style={styles.summaryRow}>
-                  <span>
-                    Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})
-                  </span>
-                  <span>${getSubtotal().toFixed(2)}</span>
-                </div>
-
-                <div style={styles.summaryRow}>
-                  <span>Tax</span>
-                  <span>Calculated At Checkout</span>
-                </div>
-
-                <div style={styles.divider} />
-
-                <div style={styles.totalRow}>
-                  <span>Total</span>
-                  <span>${getSubtotal().toFixed(2)}</span>
-                </div>
-
-                {/* Mixed cart: one purchase type per checkout session */}
-                {!usingDiamonds && !cardGroup && (
-                  <div style={styles.noticeBox}>
-                    VIP Memberships Are Purchased From The Diamond Store Page, Not From The Cart.
+                  <div style={styles.summaryRow}>
+                    <span>
+                      Subtotal ({itemCount} {itemCount === 1 ? 'Item' : 'Items'})
+                    </span>
+                    <span>${getSubtotal().toFixed(2)}</span>
                   </div>
-                )}
-                {!usingDiamonds && cardGroup && deferredUnits > 0 && (
-                  <div style={styles.noticeBox}>
-                    {cardGroup === 'diamonds'
-                      ? `All diamond packages check out together for $${(cardChargeCents / 100).toFixed(2)}. The other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart for a separate checkout.`
-                      : `This checkout covers your merchandise ($${(cardChargeCents / 100).toFixed(2)}). The other ${deferredUnits} ${deferredUnits === 1 ? 'item stays' : 'items stay'} in your cart.`}
-                  </div>
-                )}
-                {usingDiamonds && vipItems.length > 0 && (
-                  <div style={styles.noticeBox}>
-                    VIP Memberships Cannot Be Paid For With Diamonds And Will Stay In Your Cart.
-                  </div>
-                )}
 
-                {/* ═══ Payment Method Selection ═══ */}
-                <div
-                  role="radiogroup"
-                  aria-labelledby="marketplace-payment-method-label"
-                  onKeyDown={handlePaymentChoiceKeyDown}
-                  style={{ marginBottom: '16px' }}
-                >
-                  <p
-                    id="marketplace-payment-method-label"
-                    style={{
-                      fontSize: '13px',
-                      color: '#9ca3af',
-                      marginBottom: '10px',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
+                  <div style={styles.summaryRow}>
+                    <span>Tax</span>
+                    <span>Calculated At Checkout</span>
+                  </div>
+
+                  <div style={styles.divider} />
+
+                  <div style={styles.totalRow}>
+                    <span>Total</span>
+                    <span>${getSubtotal().toFixed(2)}</span>
+                  </div>
+
+                  {/* Mixed cart: one purchase type per checkout session */}
+                  {!usingDiamonds && !cardGroup && (
+                    <div style={styles.noticeBox}>
+                      VIP Memberships Are Purchased From The Diamond Store Page, Not From The Cart.
+                    </div>
+                  )}
+                  {!usingDiamonds && cardGroup && deferredUnits > 0 && (
+                    <div style={styles.noticeBox}>
+                      {cardGroup === 'diamonds'
+                        ? `All Diamond Packages Check Out Together For $${(cardChargeCents / 100).toFixed(2)}. The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart For A Separate Checkout.`
+                        : `This Checkout Covers Your Merchandise ($${(cardChargeCents / 100).toFixed(2)}). The Other ${deferredUnits} ${deferredUnits === 1 ? 'Item Stays' : 'Items Stay'} In Your Cart.`}
+                    </div>
+                  )}
+                  {usingDiamonds && vipItems.length > 0 && (
+                    <div style={styles.noticeBox}>
+                      VIP Memberships Cannot Be Paid For With Diamonds And Will Stay In Your Cart.
+                    </div>
+                  )}
+
+                  {/* ═══ Payment Method Selection ═══ */}
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="marketplace-payment-method-label"
+                    onKeyDown={handlePaymentChoiceKeyDown}
+                    className={cartStyles.paymentGroup}
                   >
-                    Payment Method
-                  </p>
+                    <p id="marketplace-payment-method-label" className={cartStyles.paymentLabel}>
+                      Payment Method
+                    </p>
 
-                  {/* Pay with Diamonds Option: hidden when the cart holds diamond packages */}
-                  {!hasDiamondItems && (
+                    {/* Pay with Diamonds Option: hidden when the cart holds diamond packages */}
+                    {!hasDiamondItems && (
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-label="Pay With Diamonds"
+                        aria-checked={usingDiamonds}
+                        tabIndex={usingDiamonds ? 0 : -1}
+                        onClick={() => setPayWithDiamonds(true)}
+                        className={cartStyles.paymentChoice}
+                      >
+                        <div className={cartStyles.paymentCopy}>
+                          <div>
+                            <span className={cartStyles.paymentName}>Pay With Diamonds</span>
+                            <span
+                              className={
+                                affordable
+                                  ? cartStyles.paymentMeta
+                                  : `${cartStyles.paymentMeta} ${cartStyles.paymentMetaWarning}`
+                              }
+                            >
+                              Balance: {diamondBalance.toLocaleString()}
+                              {!affordable &&
+                                ` (Need ${diamondCostIsEstimate ? 'About ' : ''}${diamondCost.toLocaleString()})`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={cartStyles.paymentTotal}>
+                          <span className={cartStyles.paymentPrice}>
+                            {diamondCostIsEstimate ? '~' : ''}
+                            {diamondCost.toLocaleString()}
+                          </span>
+                          <span className={cartStyles.selectionSeam} aria-hidden="true" />
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Pay with Card Option */}
                     <button
                       type="button"
                       role="radio"
-                      aria-label="Pay With Diamonds"
-                      aria-checked={usingDiamonds}
-                      tabIndex={usingDiamonds ? 0 : -1}
-                      onClick={() => setPayWithDiamonds(true)}
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px',
-                        background: usingDiamonds
-                          ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(36, 96, 126, 0.15))'
-                          : 'rgba(255, 255, 255, 0.03)',
-                        border: usingDiamonds
-                          ? '2px solid #00E0FF'
-                          : '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        transition: 'all 0.2s ease',
-                      }}
+                      aria-label="Pay With Card"
+                      aria-checked={!usingDiamonds}
+                      tabIndex={!usingDiamonds ? 0 : -1}
+                      onClick={() => setPayWithDiamonds(false)}
+                      className={cartStyles.paymentChoice}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Gem size={22} color="#00E0FF" aria-hidden="true" />
-                        <div style={{ textAlign: 'left' }}>
-                          <span
-                            style={{
-                              color: '#FFFFFF',
-                              fontWeight: 600,
-                              fontSize: '14px',
-                              display: 'block',
-                            }}
-                          >
-                            Pay With Diamonds
-                          </span>
-                          <span
-                            style={{ color: affordable ? '#00E0FF' : '#FF6B6B', fontSize: '12px' }}
-                          >
-                            Balance: {diamondBalance.toLocaleString()}
-                            {!affordable &&
-                              ` (Need ${diamondCostIsEstimate ? 'about ' : ''}${diamondCost.toLocaleString()})`}
+                      <div className={cartStyles.paymentCopy}>
+                        <div>
+                          <span className={cartStyles.paymentName}>Pay With Card</span>
+                          <span className={cartStyles.paymentMetaMuted}>
+                            Visa, Mastercard, Amex
                           </span>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span
-                          style={{
-                            color: usingDiamonds ? '#00E0FF' : '#FFFFFF',
-                            fontWeight: 700,
-                            fontSize: '16px',
-                          }}
-                        >
-                          {diamondCostIsEstimate ? '~' : ''}
-                          {diamondCost.toLocaleString()}
+                      <div className={cartStyles.paymentTotal}>
+                        <span className={cartStyles.paymentPrice}>
+                          ${(cardChargeCents / 100).toFixed(2)}
                         </span>
-                        <div
-                          style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            border: `2px solid ${usingDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
-                            background: usingDiamonds ? '#00E0FF' : 'transparent',
-                            marginLeft: 'auto',
-                            marginTop: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          {usingDiamonds && (
-                            <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>
-                              ✓
-                            </span>
-                          )}
-                        </div>
+                        <span className={cartStyles.selectionSeam} aria-hidden="true" />
                       </div>
                     </button>
-                  )}
+                  </div>
 
-                  {/* Pay with Card Option */}
+                  {/* Checkout Button */}
                   <button
                     type="button"
-                    role="radio"
-                    aria-label="Pay With Card"
-                    aria-checked={!usingDiamonds}
-                    tabIndex={!usingDiamonds ? 0 : -1}
-                    onClick={() => setPayWithDiamonds(false)}
-                    style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      background: !usingDiamonds
-                        ? 'linear-gradient(135deg, rgba(0, 224, 255, 0.15), rgba(0, 153, 255, 0.15))'
-                        : 'rgba(255, 255, 255, 0.03)',
-                      border: !usingDiamonds
-                        ? '2px solid #00E0FF'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: 0,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.2s ease',
-                    }}
+                    onClick={usingDiamonds ? beginDiamondCheckout : handleCheckout}
+                    disabled={checkingOut || (!usingDiamonds && !cardGroup)}
+                    className={cartStyles.checkoutButton}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <CreditCard size={22} color="#00E0FF" aria-hidden="true" />
-                      <div style={{ textAlign: 'left' }}>
-                        <span
-                          style={{
-                            color: '#FFFFFF',
-                            fontWeight: 600,
-                            fontSize: '14px',
-                            display: 'block',
-                          }}
-                        >
-                          Pay With Card
-                        </span>
-                        <span style={{ color: '#9ca3af', fontSize: '12px' }}>
-                          Visa, Mastercard, Amex
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span
-                        style={{
-                          color: !usingDiamonds ? '#00E0FF' : '#FFFFFF',
-                          fontWeight: 700,
-                          fontSize: '16px',
-                        }}
-                      >
-                        ${(cardChargeCents / 100).toFixed(2)}
-                      </span>
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: `2px solid ${!usingDiamonds ? '#00E0FF' : 'rgba(255,255,255,0.3)'}`,
-                          background: !usingDiamonds ? '#00E0FF' : 'transparent',
-                          marginLeft: 'auto',
-                          marginTop: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {!usingDiamonds && (
-                          <span style={{ color: '#000', fontSize: '11px', fontWeight: 900 }}>
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    {checkingOut
+                      ? 'Processing...'
+                      : usingDiamonds
+                        ? diamondCostIsEstimate
+                          ? `Pay With Diamonds (About ${diamondCost.toLocaleString()})`
+                          : `Pay ${diamondCost.toLocaleString()} Diamonds`
+                        : cardGroup === 'diamonds'
+                          ? 'Checkout Diamond Package'
+                          : 'Proceed To Checkout'}
                   </button>
+
+                  {usingDiamonds && diamondCostIsEstimate && (
+                    <p
+                      style={{
+                        fontSize: '12px',
+                        color: '#9ca3af',
+                        textAlign: 'center',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      Final Diamond Cost Is Confirmed By The Server At Purchase.
+                    </p>
+                  )}
+
+                  {usingDiamonds && !affordable && (
+                    <p
+                      style={{
+                        fontSize: '12px',
+                        color: '#FF6B6B',
+                        textAlign: 'center',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      Displayed Cart Pricing Indicates A Shortfall Of{' '}
+                      {diamondCostIsEstimate ? 'About ' : ''}
+                      {(diamondCost - diamondBalance).toLocaleString()} Diamonds. You May Continue;
+                      The Server Will Confirm The Current Catalog Price Before Any Debit.
+                    </p>
+                  )}
+
+                  <Link href="/hub/diamond-store" className={cartStyles.continueShoppingLink}>
+                    Continue Shopping
+                  </Link>
                 </div>
-
-                {/* Checkout Button */}
-                <button
-                  type="button"
-                  onClick={usingDiamonds ? beginDiamondCheckout : handleCheckout}
-                  disabled={
-                    checkingOut || (!usingDiamonds && !cardGroup)
-                  }
-                  style={{
-                    ...styles.checkoutButton,
-                    background: usingDiamonds
-                      ? 'linear-gradient(135deg, #00E0FF, #446F86)'
-                      : 'linear-gradient(135deg, #00E0FF, #0099FF)',
-                    opacity:
-                      checkingOut ||
-                      (!usingDiamonds && !cardGroup)
-                        ? 0.5
-                        : 1,
-                    cursor:
-                      checkingOut ||
-                      (!usingDiamonds && !cardGroup)
-                        ? 'not-allowed'
-                        : 'pointer',
-                  }}
-                >
-                  {checkingOut
-                    ? 'Processing...'
-                    : usingDiamonds
-                      ? diamondCostIsEstimate
-                        ? `Pay With Diamonds (About ${diamondCost.toLocaleString()})`
-                        : `Pay ${diamondCost.toLocaleString()} Diamonds`
-                      : cardGroup === 'diamonds'
-                        ? 'Checkout Diamond Package'
-                        : 'Proceed To Checkout'}
-                </button>
-
-                {usingDiamonds && diamondCostIsEstimate && (
-                  <p
-                    style={{
-                      fontSize: '12px',
-                      color: '#9ca3af',
-                      textAlign: 'center',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    Final Diamond Cost Is Confirmed By The Server At Purchase.
-                  </p>
-                )}
-
-                {usingDiamonds && !affordable && (
-                  <p
-                    style={{
-                      fontSize: '12px',
-                      color: '#FF6B6B',
-                      textAlign: 'center',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    Displayed Cart Pricing Indicates A Shortfall Of {diamondCostIsEstimate ? 'about ' : ''}
-                    {(diamondCost - diamondBalance).toLocaleString()} Diamonds. You May Continue;
-                    The Server Will Confirm The Current Catalog Price Before Any Debit.
-                  </p>
-                )}
-
-                <Link href="/hub/diamond-store" style={styles.continueShoppingLink}>
-                  ← Continue Shopping
-                </Link>
-              </div>
+                <div className={cartStyles.summaryFrameBottom} aria-hidden="true" />
+              </aside>
             </div>
           )}
         </MarketplaceSubpageShell>
@@ -1031,60 +1372,93 @@ export default function ShoppingCart() {
 // COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CartItem({ id, name, price, quantity, image, type, isMobile, onUpdateQuantity, onRemove }) {
+function CartItem({
+  id,
+  catalogId,
+  name,
+  price,
+  quantity,
+  image,
+  type,
+  isMobile,
+  onUpdateQuantity,
+  onRemove,
+}) {
   const copyName = marketplaceCopy(name);
+  const media = resolveReviewedCartMedia({ id, catalogId, image, type });
   return (
-    <motion.div
-      style={{ ...styles.cartItem, ...(isMobile ? styles.cartItemMobile : {}) }}
+    <motion.article
+      className={cartStyles.cartItemFrame}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       layout
     >
-      {image && (
-        <img
-          src={image}
-          alt={copyName}
-          style={{ ...styles.itemImage, ...(isMobile ? styles.itemImageMobile : {}) }}
-          loading="lazy"
-          decoding="async"
-        />
-      )}
+      <div className={cartStyles.cartItemFrameTop} aria-hidden="true" />
+      <div
+        className={`${cartStyles.cartItemFrameBody} ${isMobile ? cartStyles.cartItemMobile : ''}`}
+      >
+        {media.source && !media.atlasPosition && (
+          <img
+            src={media.source}
+            alt={copyName}
+            style={{ ...styles.itemImage, ...(isMobile ? styles.itemImageMobile : {}) }}
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+        {media.source && media.atlasPosition && (
+          <span
+            role="img"
+            aria-label={copyName}
+            style={{
+              ...styles.itemImage,
+              ...(isMobile ? styles.itemImageMobile : {}),
+              display: 'block',
+              backgroundImage: `url(${media.source})`,
+              backgroundPosition: media.atlasPosition,
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '400% 100%',
+            }}
+          />
+        )}
 
-      <div style={styles.itemDetails}>
-        <h4 style={styles.itemName}>{copyName}</h4>
-        <p style={styles.itemType}>{marketplaceCopy(type)}</p>
-        <p style={styles.itemPrice}>${(Number(price) || 0).toFixed(2)}</p>
-      </div>
-
-      <div style={{ ...styles.itemActions, ...(isMobile ? styles.itemActionsMobile : {}) }}>
-        <div style={styles.quantityControl}>
-          <button
-            type="button"
-            aria-label={`Decrease Quantity Of ${copyName}`}
-            onClick={() => onUpdateQuantity(quantity - 1)}
-            style={styles.quantityButton}
-          >
-            −
-          </button>
-          <output aria-live="polite" style={styles.quantity}>
-            {quantity}
-          </output>
-          <button
-            type="button"
-            aria-label={`Increase Quantity Of ${copyName}`}
-            onClick={() => onUpdateQuantity(quantity + 1)}
-            style={styles.quantityButton}
-          >
-            +
-          </button>
+        <div style={styles.itemDetails}>
+          <h4 style={styles.itemName}>{copyName}</h4>
+          <p style={styles.itemType}>{marketplaceCopy(type)}</p>
+          <p style={styles.itemPrice}>${(Number(price) || 0).toFixed(2)}</p>
         </div>
 
-        <button type="button" onClick={onRemove} style={styles.removeButton}>
-          Remove
-        </button>
+        <div style={{ ...styles.itemActions, ...(isMobile ? styles.itemActionsMobile : {}) }}>
+          <div className={cartStyles.quantityControl}>
+            <button
+              type="button"
+              aria-label={`Decrease Quantity Of ${copyName}`}
+              onClick={() => onUpdateQuantity(quantity - 1)}
+              className={cartStyles.quantityButton}
+            >
+              Less
+            </button>
+            <output aria-live="polite" className={cartStyles.quantity}>
+              {quantity}
+            </output>
+            <button
+              type="button"
+              aria-label={`Increase Quantity Of ${copyName}`}
+              onClick={() => onUpdateQuantity(quantity + 1)}
+              className={cartStyles.quantityButton}
+            >
+              More
+            </button>
+          </div>
+
+          <button type="button" onClick={onRemove} className={cartStyles.removeButton}>
+            Remove
+          </button>
+        </div>
       </div>
-    </motion.div>
+      <div className={cartStyles.cartItemFrameBottom} aria-hidden="true" />
+    </motion.article>
   );
 }
 
@@ -1121,20 +1495,6 @@ const styles = {
   itemsSection: {
     display: 'grid',
     gap: '16px',
-  },
-  cartItem: {
-    display: 'flex',
-    gap: '16px',
-    padding: '18px',
-    background: 'linear-gradient(145deg, #172833, #050a0f 34%, #010305)',
-    border: '1px solid #526f80',
-    borderRadius: 0,
-    boxShadow: 'inset 0 1px 0 rgba(235,251,255,0.38), inset 0 0 0 4px #03080c',
-  },
-  cartItemMobile: {
-    flexWrap: 'wrap',
-    gap: '12px',
-    padding: '14px',
   },
   itemImage: {
     width: '100px',
@@ -1176,67 +1536,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  quantityControl: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 0,
-    padding: '4px',
-  },
-  quantityButton: {
-    // Keep one physical-pixel safety margin: a nominal 44 CSS px control can
-    // resolve to 43.999px under mobile device scaling and miss the WCAG target.
-    width: '45px',
-    minWidth: '45px',
-    height: '45px',
-    minHeight: '45px',
-    background: 'transparent',
-    border: 'none',
-    color: '#FFFFFF',
-    fontSize: '18px',
-    cursor: 'pointer',
-    borderRadius: 0,
-    transition: 'background 0.2s',
-  },
-  quantity: {
-    minWidth: '40px',
-    textAlign: 'center',
-    fontSize: '16px',
-    fontWeight: 600,
-  },
-  removeButton: {
-    padding: '6px 12px',
-    minHeight: '44px',
-    background: 'transparent',
-    border: '1px solid rgba(255, 68, 68, 0.5)',
-    color: '#FF4444',
-    borderRadius: 0,
-    fontSize: '14px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  clearButton: {
-    padding: '12px 24px',
-    background: 'transparent',
-    border: '1px solid rgba(255, 68, 68, 0.5)',
-    color: '#FF4444',
-    borderRadius: 0,
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginTop: '16px',
-  },
-  summarySection: {
-    background: 'linear-gradient(160deg, #1c303b, #050a0f 30%, #010305)',
-    border: '1px solid #607d8e',
-    borderRadius: 0,
-    padding: '24px',
-    height: 'fit-content',
-    position: 'sticky',
-    top: '80px',
-    boxShadow: 'inset 0 1px 0 rgba(236,251,255,0.46), inset 0 0 0 5px #03080c',
-  },
   summaryTitle: {
     fontSize: '20px',
     fontWeight: 600,
@@ -1271,52 +1570,6 @@ const styles = {
     fontWeight: 700,
     marginBottom: '24px',
   },
-  checkoutButton: {
-    width: '100%',
-    padding: '16px',
-    background: 'linear-gradient(135deg, #00E0FF, #0099FF)',
-    color: '#FFFFFF',
-    border: 'none',
-    borderRadius: 0,
-    fontSize: '16px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    marginBottom: '16px',
-  },
-  continueShoppingLink: {
-    display: 'block',
-    textAlign: 'center',
-    color: '#00E0FF',
-    textDecoration: 'none',
-    fontSize: '14px',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '80px 24px',
-  },
-  emptyIcon: {
-    fontSize: '64px',
-    marginBottom: '16px',
-    opacity: 0.5,
-  },
-  emptyTitle: {
-    fontSize: '24px',
-    fontWeight: 600,
-    marginBottom: '8px',
-  },
-  emptyText: {
-    color: '#9ca3af',
-    marginBottom: '32px',
-  },
-  shopButton: {
-    display: 'inline-block',
-    padding: '12px 32px',
-    background: '#00E0FF',
-    color: '#06131a',
-    borderRadius: 0,
-    textDecoration: 'none',
-    fontWeight: 600,
-  },
   loadingContainer: {
     minHeight: '100vh',
     display: 'flex',
@@ -1325,17 +1578,5 @@ const styles = {
     justifyContent: 'center',
     background: '#000000',
     color: '#FFFFFF',
-  },
-  spinner: {
-    width: '48px',
-    height: '48px',
-    border: '4px solid rgba(255, 255, 255, 0.15)',
-    borderTopColor: '#00E0FF',
-    borderRadius: '50%',
-    animation: 'dsSpin 1s linear infinite',
-  },
-  loadingText: {
-    marginTop: '16px',
-    color: '#9ca3af',
   },
 };

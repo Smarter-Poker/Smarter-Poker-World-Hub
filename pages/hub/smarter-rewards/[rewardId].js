@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Award, BarChart3 } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
@@ -58,9 +57,24 @@ export default function RewardDetail({ reward }) {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Marketplace', item: 'https://smarter.poker/hub/diamond-store' },
-        { '@type': 'ListItem', position: 2, name: 'Smarter Rewards', item: 'https://smarter.poker/hub/smarter-rewards' },
-        { '@type': 'ListItem', position: 3, name: reward.name, item: `https://smarter.poker${canonical}` },
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Marketplace',
+          item: 'https://smarter.poker/hub/diamond-store',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Smarter Rewards',
+          item: 'https://smarter.poker/hub/smarter-rewards',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: reward.name,
+          item: `https://smarter.poker${canonical}`,
+        },
       ],
     },
   ];
@@ -83,10 +97,11 @@ export default function RewardDetail({ reward }) {
       inventoryLabel="Reward Signal"
       securityCopy="Reward telemetry is verified against your Smarter.Poker account before eligible Diamonds are credited."
       status={reward.lifetime ? 'Lifetime Signal' : 'Repeatable'}
+      presentation="reward"
       actions={
         <>
-          <Link href="/hub/smarter-rewards"><Award size={16} aria-hidden="true" /> View Every Reward</Link>
-          <Link href="/hub/diamond-store"><BarChart3 size={16} aria-hidden="true" /> Open Diamond Wallet</Link>
+          <Link href="/hub/smarter-rewards">View Every Reward</Link>
+          <Link href="/hub/diamond-store">Open Diamond Wallet</Link>
         </>
       }
       structuredData={schema}
@@ -97,7 +112,8 @@ export default function RewardDetail({ reward }) {
           <h2>How This Signal Unlocks</h2>
           <p>{marketplaceCopy(reward.detail)}</p>
           <p>
-            Reward Telemetry Is Verified By Smarter.Poker. Eligible Actions Are Credited To The Same Diamond Wallet Used Throughout The Marketplace.
+            Reward Telemetry Is Verified By Smarter.Poker. Eligible Actions Are Credited To The Same
+            Diamond Wallet Used Throughout The Marketplace.
           </p>
         </section>
         <section className={detailStyles.detailCard}>
@@ -107,8 +123,17 @@ export default function RewardDetail({ reward }) {
             <li>VIP Daily Cap: {Number(DAILY_CAP.vip).toLocaleString()} Diamonds</li>
             <li>Standard Monthly Cap: {Number(MONTHLY_CAP.free).toLocaleString()} Diamonds</li>
             <li>VIP Monthly Cap: {Number(MONTHLY_CAP.vip).toLocaleString()} Diamonds</li>
-            <li>Hidden-Achievement Monthly Budget: {Number(EASTER_EGG_MONTHLY_CAP).toLocaleString()} Diamonds</li>
-            <li>{reward.countsTowardDailyCap ? 'This reward counts toward the daily cap.' : 'This reward is tracked outside the standard daily-cap calculation.'}</li>
+            <li>
+              Hidden-Achievement Monthly Budget: {Number(EASTER_EGG_MONTHLY_CAP).toLocaleString()}{' '}
+              Diamonds
+            </li>
+            <li>
+              {marketplaceCopy(
+                reward.countsTowardDailyCap
+                  ? 'This reward counts toward the daily cap.'
+                  : 'This reward is tracked outside the standard daily-cap calculation.'
+              )}
+            </li>
           </ul>
         </section>
       </div>

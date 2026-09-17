@@ -10,6 +10,10 @@ const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const API = read('pages/api/store/order-ledger.js');
 const ORDERS = read('pages/hub/diamond-store/orders.js');
 const RECEIPT = read('pages/hub/diamond-store/orders/[orderId].js');
+const WISHLIST = read('pages/hub/diamond-store/wishlist.js');
+const ACCOUNT_CONTROLS = read('pages/hub/diamond-store/marketplace-account-controls.module.css');
+const DETAIL_CSS = read('src/components/store/MarketplaceDetailExperience.module.css');
+const CONSOLE_CSS = read('src/components/marketplace-console/MarketplaceConsole.module.css');
 const VERIFIER = read('scripts/verify-marketplace-deployment.mjs');
 
 function createResponse() {
@@ -33,18 +37,35 @@ function createResponse() {
   };
 }
 
-async function loadHandler({ user = { id: '11111111-1111-4111-8111-111111111111' }, rows = {}, errors = {} } = {}) {
+async function loadHandler({
+  user = { id: '11111111-1111-4111-8111-111111111111' },
+  rows = {},
+  errors = {},
+} = {}) {
   const calls = [];
   const client = {
     from(table) {
       const state = { table, equals: [], included: [], orFilters: [] };
       calls.push(state);
       const query = {
-        select() { return query; },
-        eq(column, value) { state.equals.push([column, value]); return query; },
-        order() { return query; },
-        in(column, values) { state.included.push([column, values]); return query; },
-        or(value) { state.orFilters.push(value); return query; },
+        select() {
+          return query;
+        },
+        eq(column, value) {
+          state.equals.push([column, value]);
+          return query;
+        },
+        order() {
+          return query;
+        },
+        in(column, values) {
+          state.included.push([column, values]);
+          return query;
+        },
+        or(value) {
+          state.orFilters.push(value);
+          return query;
+        },
         async maybeSingle() {
           if (errors[table]) return { data: null, error: new Error(errors[table]) };
           const data = filterRows(rows[table] || [], state);
@@ -70,8 +91,9 @@ async function loadHandler({ user = { id: '11111111-1111-4111-8111-111111111111'
     for (const orFilter of state.orFilters) {
       if (orFilter === 'charge_reference.is.null,charge_reference.not.like.card-redemption:%') {
         output = output.filter(
-          (row) => row.charge_reference == null
-            || !String(row.charge_reference).startsWith('card-redemption:')
+          (row) =>
+            row.charge_reference == null ||
+            !String(row.charge_reference).startsWith('card-redemption:')
         );
         continue;
       }
@@ -94,9 +116,8 @@ async function loadHandler({ user = { id: '11111111-1111-4111-8111-111111111111'
     '../../../src/lib/apiRateLimit': { applyRateLimit: () => true, LIMITS: { read: {} } },
     '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/serverAuth': {
-      getServerUserWithFallback: async () => user
-        ? { user, error: null }
-        : { user: null, error: new Error('unauthorized') },
+      getServerUserWithFallback: async () =>
+        user ? { user, error: null } : { user: null, error: new Error('unauthorized') },
     },
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
   };
@@ -154,16 +175,19 @@ test('order history uses the private API with cancellation and latest-request-wi
   assert.match(ORDERS, /authedFetch\(`\/api\/store\/order-ledger\?limit=50\$\{cursorQuery\}`/);
   assert.match(ORDERS, /loadAbortRef\.current\?\.abort\(\)/);
   assert.match(ORDERS, /signal: controller\.signal/);
-  assert.match(ORDERS, /requestId !== loadRequestRef\.current/);
+  assert.match(ORDERS, /loadRequestRef\.current === requestId/);
   assert.match(ORDERS, /error\?\.name === 'AbortError'/);
   assert.match(ORDERS, /loadOrders\(\{ append: true, cursor: nextCursor \}\)/);
   assert.match(ORDERS, /new Map\(current\.map/);
   assert.match(ORDERS, /String\(b\?\.created_at \|\| ''\)\.localeCompare/);
   assert.match(ORDERS, /visibilitychange/);
-  assert.match(ORDERS, /ordersOwnerId === user\?\.id \? loadedOrders : \[\]/);
-  assert.match(ORDERS, /setOrdersOwnerId\(ownerId\)/);
+  assert.match(ORDERS, /ordersOwnerId === committedAccountId \? loadedOrders : \[\]/);
+  assert.match(ORDERS, /setOrdersOwnerId\(committedAccountId\)/);
   assert.doesNotMatch(ORDERS, /\.channel\(|from '.*supabase'/);
-  assert.doesNotMatch(ORDERS, /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/);
+  assert.doesNotMatch(
+    ORDERS,
+    /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/
+  );
 });
 
 test('private receipts use the same server-owned ledger and never query commerce tables in-browser', () => {
@@ -172,12 +196,18 @@ test('private receipts use the same server-owned ledger and never query commerce
   assert.match(RECEIPT, /cache: 'no-store'/);
   assert.match(RECEIPT, /controller\.abort\(\)/);
   assert.match(RECEIPT, /setRecord\(null\)/);
-  assert.match(RECEIPT, /requestId !== requestRef\.current/);
+  assert.match(RECEIPT, /requestRef\.current === requestId/);
+  assert.match(RECEIPT, /activeAccountIdRef\.current === expectedAccountId/);
+  assert.match(RECEIPT, /getAuthUser\(\)\?\.id === expectedAccountId/);
   assert.match(RECEIPT, /loadedRecord\?\._routeSource === source/);
   assert.match(RECEIPT, /loadedRecord\?\._routeOrderId === String\(rawOrderId \|\| ''\)/);
-  assert.match(RECEIPT, /loadedRecord\?\._ownerId === user\?\.id/);
+  assert.match(RECEIPT, /loadedRecord\?\._ownerId === committedAccountId/);
+  assert.match(RECEIPT, /_ownerId: expectedAccountId/);
   assert.match(RECEIPT, /Object\.hasOwn\(ORDER_SOURCES/);
-  assert.doesNotMatch(RECEIPT, /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/);
+  assert.doesNotMatch(
+    RECEIPT,
+    /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/
+  );
 });
 
 test('refund progress and marketplace-wide purchase categories stay visible', () => {
@@ -187,6 +217,100 @@ test('refund progress and marketplace-wide purchase categories stay visible', ()
   assert.match(API, /transactionTypes: \['vip_daily', 'vip_membership'\]/);
   assert.match(ORDERS, /Refunded \{formatAmount\(order\.refundAmount/);
   assert.match(RECEIPT, /Net Settled/);
+});
+
+test('marketplace account actions use the approved console shells without changing navigation', () => {
+  assert.match(ACCOUNT_CONTROLS, /marketplace-console-v1\/shark-panel\/button-primary\.png/);
+  assert.match(ACCOUNT_CONTROLS, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
+  assert.match(ACCOUNT_CONTROLS, /\.action:focus-visible,[\s\S]*\.field:focus-visible/);
+  assert.match(ACCOUNT_CONTROLS, /\.action:disabled/);
+  assert.match(ACCOUNT_CONTROLS, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(ACCOUNT_CONTROLS, /border-radius:\s*0/);
+  assert.doesNotMatch(ACCOUNT_CONTROLS, /(?:linear|radial)-gradient/);
+
+  for (const source of [ORDERS, WISHLIST, RECEIPT]) {
+    assert.match(source, /marketplace-account-controls\.module\.css/);
+    assert.match(source, /accountControls\.action/);
+    assert.doesNotMatch(source, /target=["']_blank["']|window\.open\(/);
+    assert.doesNotMatch(source, /[\u2013\u2014\u2192\u25c6]/u);
+  }
+
+  assert.ok((ORDERS.match(/className=\{accountControls\.field\}/g) || []).length >= 3);
+  assert.match(ORDERS, /Continue Shopping/);
+  assert.match(ORDERS, /View Membership Record/);
+  assert.match(ORDERS, /View Receipt/);
+  assert.match(WISHLIST, /accountControls\.actionDanger/);
+  assert.match(WISHLIST, /View Live Item/);
+  assert.match(RECEIPT, /Back To Orders/);
+  assert.match(RECEIPT, /Retry Receipt Verification/);
+  assert.match(RECEIPT, /Track Package On Carrier Site/);
+});
+
+test('account records and informational details use native painted frame slices', () => {
+  assert.match(
+    ORDERS,
+    /import \{[\s\S]*?MarketplacePageConsole,[\s\S]*?\} from ['"]\.\.\/\.\.\/\.\.\/src\/components\/marketplace-console\/MarketplaceConsole['"]/
+  );
+  assert.match(
+    ORDERS,
+    /visibleOrders\.map\(\(order\) => \{[\s\S]*?<MarketplacePageConsole[\s\S]*?as="article"[\s\S]*?eyebrow=\{`Order #\$\{orderLabel\}`\}[\s\S]*?status=\{statusBadge\.label\}[\s\S]*?statusInk=\{statusBadge\.ink\}/
+  );
+  assert.doesNotMatch(ORDERS, /styles\.orderCard|orderCard\s*:/);
+  assert.match(CONSOLE_CSS, /\.pageHead\s*\{[\s\S]*?spade-console\/top\.webp/);
+  assert.match(
+    CONSOLE_CSS,
+    /\.pageBody\s*\{[\s\S]*?spade-console\/mid\.png[\s\S]*?background-repeat:\s*repeat-y/
+  );
+  assert.match(CONSOLE_CSS, /\.pageFoot,[\s\S]*?spade-console\/bottom-foot\.png/);
+
+  assert.match(
+    WISHLIST,
+    /<article key=\{item\.id \?\? item\.product_id\} style=\{styles\.wishlistItem\}>[\s\S]*?styles\.wishlistFrameTop[\s\S]*?styles\.wishlistFrameBody[\s\S]*?styles\.productMedia[\s\S]*?styles\.productBody[\s\S]*?styles\.wishlistFrameBottom/
+  );
+  const wishlistFrameStyles = WISHLIST.slice(
+    WISHLIST.indexOf('wishlistItem:'),
+    WISHLIST.indexOf('productImage:')
+  );
+  assert.match(wishlistFrameStyles, /containerType:\s*'inline-size'/);
+  assert.match(wishlistFrameStyles, /maxWidth:\s*900/);
+  assert.match(wishlistFrameStyles, /aspectRatio:\s*'900 \/ 143'/);
+  assert.match(wishlistFrameStyles, /shark-panel\/top\.png/);
+  assert.match(wishlistFrameStyles, /shark-panel\/mid\.png/);
+  assert.match(wishlistFrameStyles, /backgroundRepeat:\s*'repeat-y'/);
+  assert.match(wishlistFrameStyles, /aspectRatio:\s*'900 \/ 139'/);
+  assert.match(wishlistFrameStyles, /shark-panel\/bottom\.png/);
+  assert.doesNotMatch(
+    wishlistFrameStyles,
+    /(?:linear|radial|repeating-linear)-gradient|boxShadow|border:\s*['"]/
+  );
+
+  const detailHeroStyles = DETAIL_CSS.slice(
+    DETAIL_CSS.indexOf('.heroReward,'),
+    DETAIL_CSS.indexOf('.mediaFrame')
+  );
+  assert.match(detailHeroStyles, /width:\s*min\(100%, 1000px\)/);
+  assert.match(detailHeroStyles, /container-type:\s*inline-size/);
+  assert.match(detailHeroStyles, /\.heroReward::before,[\s\S]*?spade-console\/mid\.png/);
+  assert.match(detailHeroStyles, /top:\s*34\.8cqw/);
+  assert.match(detailHeroStyles, /bottom:\s*7\.2cqw/);
+  assert.match(detailHeroStyles, /background-repeat:\s*repeat-y/);
+  assert.match(detailHeroStyles, /\.heroReward::after,[\s\S]*?spade-console\/top\.webp/);
+  assert.match(detailHeroStyles, /spade-console\/bottom-foot\.png/);
+  assert.doesNotMatch(
+    detailHeroStyles,
+    /(?:linear|radial|repeating-linear)-gradient|box-shadow:\s*(?!none)|border-left|border-color/
+  );
+
+  for (const asset of [
+    'public/images/marketplace-console-v1/spade-console/top.webp',
+    'public/images/marketplace-console-v1/spade-console/mid.png',
+    'public/images/marketplace-console-v1/spade-console/bottom-foot.png',
+    'public/images/marketplace-console-v1/shark-panel/top.png',
+    'public/images/marketplace-console-v1/shark-panel/mid.png',
+    'public/images/marketplace-console-v1/shark-panel/bottom.png',
+  ]) {
+    assert.equal(existsSync(join(ROOT, asset)), true, `${asset} must exist`);
+  }
 });
 
 test('pre-idempotency backup code is not shipped in the API route tree', () => {
@@ -210,15 +334,17 @@ test('ledger handler rejects anonymous and prototype-source receipt requests', a
     );
     assert.equal(res.statusCode, 400);
   }
-  const malformedCursor = Buffer.from(JSON.stringify({
-    v: 1,
-    positions: {
-      diamonds: {
-        createdAt: 'August 29, 2026 12:00:00',
-        id: '11111111-1111-4111-8111-111111111111',
+  const malformedCursor = Buffer.from(
+    JSON.stringify({
+      v: 1,
+      positions: {
+        diamonds: {
+          createdAt: 'August 29, 2026 12:00:00',
+          id: '11111111-1111-4111-8111-111111111111',
+        },
       },
-    },
-  })).toString('base64url');
+    })
+  ).toString('base64url');
   const cursorRes = createResponse();
   await authenticated.handler(
     { method: 'GET', query: { cursor: malformedCursor }, headers: {} },
@@ -230,20 +356,25 @@ test('ledger handler rejects anonymous and prototype-source receipt requests', a
 test('receipt lookup remains owner-scoped and indistinguishable from a missing id', async () => {
   const { handler } = await loadHandler({
     rows: {
-      diamond_purchases: [{
-        id: '22222222-2222-4222-8222-222222222222',
-        user_id: '99999999-9999-4999-8999-999999999999',
-        package_name: 'Vault',
-        created_at: '2026-08-29T12:00:00.000Z',
-      }],
+      diamond_purchases: [
+        {
+          id: '22222222-2222-4222-8222-222222222222',
+          user_id: '99999999-9999-4999-8999-999999999999',
+          package_name: 'Vault',
+          created_at: '2026-08-29T12:00:00.000Z',
+        },
+      ],
     },
   });
   const res = createResponse();
-  await handler({
-    method: 'GET',
-    query: { source: 'diamonds', id: '22222222-2222-4222-8222-222222222222' },
-    headers: {},
-  }, res);
+  await handler(
+    {
+      method: 'GET',
+      query: { source: 'diamonds', id: '22222222-2222-4222-8222-222222222222' },
+      headers: {},
+    },
+    res
+  );
   assert.equal(res.statusCode, 404);
   assert.equal(res.body.error, 'Order not found');
 });
@@ -291,11 +422,14 @@ test('Card-funded Club redemptions are deduplicated in history but legacy receip
   );
 
   const directReceipt = createResponse();
-  await handler({
-    method: 'GET',
-    query: { source: 'club', id: automaticId },
-    headers: {},
-  }, directReceipt);
+  await handler(
+    {
+      method: 'GET',
+      query: { source: 'club', id: automaticId },
+      headers: {},
+    },
+    directReceipt
+  );
   assert.equal(directReceipt.statusCode, 200);
   assert.equal(directReceipt.body.data.order.id, automaticId);
 });
@@ -322,15 +456,21 @@ test('cursor pages advance without duplicates and preserve bounded reads', async
   assert.ok(first.body.data.nextCursor);
 
   const second = createResponse();
-  await handler({
-    method: 'GET',
-    query: { limit: '10', cursor: first.body.data.nextCursor },
-    headers: {},
-  }, second);
+  await handler(
+    {
+      method: 'GET',
+      query: { limit: '10', cursor: first.body.data.nextCursor },
+      headers: {},
+    },
+    second
+  );
   assert.equal(second.statusCode, 200);
   assert.equal(second.body.data.orders.length, 10);
   const firstIds = new Set(first.body.data.orders.map((order) => order.id));
-  assert.equal(second.body.data.orders.some((order) => firstIds.has(order.id)), false);
+  assert.equal(
+    second.body.data.orders.some((order) => firstIds.has(order.id)),
+    false
+  );
 });
 
 test('cursor preserves PostgreSQL microseconds inside the same millisecond', async () => {
@@ -348,11 +488,14 @@ test('cursor preserves PostgreSQL microseconds inside the same millisecond', asy
   const first = createResponse();
   await handler({ method: 'GET', query: { limit: '1' }, headers: {} }, first);
   const second = createResponse();
-  await handler({
-    method: 'GET',
-    query: { limit: '1', cursor: first.body.data.nextCursor },
-    headers: {},
-  }, second);
+  await handler(
+    {
+      method: 'GET',
+      query: { limit: '1', cursor: first.body.data.nextCursor },
+      headers: {},
+    },
+    second
+  );
   assert.equal(first.body.data.orders[0].id, rows[0].id);
   assert.equal(second.body.data.orders[0].id, rows[1].id);
 });
@@ -365,13 +508,15 @@ test('partial and total source failures produce truthful response states', async
   assert.equal(partialRes.body.data.partial, true);
   assert.deepEqual(partialRes.body.data.unavailableSources, ['Club Shop purchases']);
 
-  const allErrors = Object.fromEntries([
-    'diamond_purchases',
-    'merchandise_orders',
-    'vip_subscriptions',
-    'diamond_transactions',
-    'club_shop_purchases',
-  ].map((table) => [table, 'offline']));
+  const allErrors = Object.fromEntries(
+    [
+      'diamond_purchases',
+      'merchandise_orders',
+      'vip_subscriptions',
+      'diamond_transactions',
+      'club_shop_purchases',
+    ].map((table) => [table, 'offline'])
+  );
   const unavailable = await loadHandler({ errors: allErrors });
   const unavailableRes = createResponse();
   await unavailable.handler({ method: 'GET', query: {}, headers: {} }, unavailableRes);
