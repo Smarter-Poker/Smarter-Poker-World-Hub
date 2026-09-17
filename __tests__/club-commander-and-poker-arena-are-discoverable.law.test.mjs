@@ -121,22 +121,24 @@ test('every public Club Commander sub-page carries a BreadcrumbList that hangs o
   }
 });
 
-test('the default Open Graph image is a real 1200x630 card, declared as such', () => {
-  const jpg = fs.readFileSync(path.join(ROOT, 'public/images/og-card.jpg'));
-  // JPEG SOF0/SOF2 marker carries height then width, big-endian.
+/** JPEG SOF0/SOF2 marker carries height then width, big-endian. */
+function jpegDimensions(file) {
+  const jpg = fs.readFileSync(path.join(ROOT, file));
   let i = 2;
-  let dims = null;
   while (i < jpg.length) {
     if (jpg[i] !== 0xff) break;
     const marker = jpg[i + 1];
     const len = jpg.readUInt16BE(i + 2);
     if (marker === 0xc0 || marker === 0xc2) {
-      dims = { height: jpg.readUInt16BE(i + 5), width: jpg.readUInt16BE(i + 7) };
-      break;
+      return { height: jpg.readUInt16BE(i + 5), width: jpg.readUInt16BE(i + 7) };
     }
     i += 2 + len;
   }
-  assert.deepEqual(dims, { width: 1200, height: 630 });
+  return null;
+}
+
+test('the default Open Graph image is a real 1200x630 card, declared as such', () => {
+  assert.deepEqual(jpegDimensions('public/images/og-card.jpg'), { width: 1200, height: 630 });
   const app = read('pages/_app.js');
   assert.match(app, /property="og:image" content="https:\/\/smarter\.poker\/images\/og-card\.jpg"/);
   assert.match(app, /property="og:image:height" content="630"/);
@@ -217,4 +219,37 @@ test('the venue SEO helpers canonicalize to /hub/venues/[id], keep home games ou
   assert.equal(mod.isPublicVenue(null), false);
   assert.equal(mod.toSeoVenue(null), null);
   assert.deepEqual(await mod.fetchVenue('not-a-venue'), { venue: null, status: 'not-found' });
+});
+
+// DISCOVERABILITY PHASE 6 (2026-09-17): each product has its own share card.
+
+test('Club Commander and Poker Arena each have a real 1200x630 share card', () => {
+  for (const file of ['public/images/og-club-commander.jpg', 'public/images/og-poker-arena.jpg']) {
+    assert.deepEqual(jpegDimensions(file), { width: 1200, height: 630 }, file);
+    assert.ok(fs.statSync(path.join(ROOT, file)).size < 300_000, `${file} must stay under 300 kB`);
+  }
+});
+
+test('every page under /hub/commander shares the Club Commander card unless it names its own', async () => {
+  const src = read('src/components/seo/SEOHead.js');
+  assert.match(src, /export default function SEOHead\(props\)/, 'the wrapper is a component, not a bare re-export');
+  assert.match(src, /props\.ogImage \|\| productOgImage\(pathname\)/, 'a page that names its own image keeps it');
+  assert.match(read('src/lib/seo/productOgImage.js'), /\{ prefix: '\/hub\/commander', image: 'https:\/\/smarter\.poker\/images\/og-club-commander\.jpg' \}/);
+  // Every commander page goes through the wrapper, not the shared component directly.
+  const pages = fs.readdirSync(path.join(ROOT, 'pages/hub/commander'), { recursive: true })
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => path.join('pages/hub/commander', f));
+  assert.ok(pages.length > 30);
+  for (const page of pages) {
+    const body = read(page);
+    if (!body.includes('<SEOHead')) continue;
+    assert.ok(!body.includes('commander-shared/components/seo/SEOHead'), `${page} must import the World Hub SEOHead wrapper`);
+  }
+  // The prefix match itself, on the pages-router pathname (dynamic segments unexpanded).
+  const mod = await import(path.join(ROOT, 'src/lib/seo/productOgImage.js'));
+  assert.equal(mod.productOgImage('/hub/commander'), 'https://smarter.poker/images/og-club-commander.jpg');
+  assert.equal(mod.productOgImage('/hub/commander/venues/[id]'), 'https://smarter.poker/images/og-club-commander.jpg');
+  assert.equal(mod.productOgImage('/hub/commanders'), undefined);
+  assert.equal(mod.productOgImage('/hub/venues/[id]'), undefined);
+  assert.equal(mod.productOgImage(undefined), undefined);
 });
