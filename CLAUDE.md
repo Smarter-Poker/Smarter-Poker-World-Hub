@@ -1,4 +1,4 @@
-> **Current owner instruction (September 16):** Read [AGENTS.md](AGENTS.md) before this historical playbook. Task `01a0ab39-71ca-7821-825d-4943a0a6a0a3` retains sole integration and publication authority. Use the original GitHub/Vercel/Hetzner paths. After verified and reported restoration, that owner may deliver the six pending workstreams in the exact order recorded there. Retired local/custom pipelines and external error telemetry must not return. Historical autopilot, automatic-merge, watchdog and repair directions below are inactive. Preserve pending application work and use the configured credential store.
+> **Current owner instruction (September 17):** Use [PUBLISHING.md](PUBLISHING.md) for the active push, protected merge, publication and live-verification procedure. Each authorized agent owns its delivery independently and may work and publish in parallel. There is no restoration-owner approval or numbered release queue. This later owner instruction supersedes conflicting historical release directions below. Retired local/custom publishers, autopilot, watchdog/repair release paths and external error telemetry remain inactive. Preserve required technical checks, production safeguards and other agents’ work.
 
 # Smarter-Poker-World-Hub -- Agent Instructions
 
@@ -6,15 +6,9 @@
 
 **Before this file, before anything: read [`AGENT-PLAYBOOK.md`](./AGENT-PLAYBOOK.md).**
 
-It is byte-identical in all seven repos and it answers, in one page, how to ship
-without losing work: claim your own worktree, commit, push, open a pull request,
-stop. It also lists every guard that is protecting you, what each one is telling
-you when it speaks, and **where every credential lives** (never the value — the
-place). `estate-integrity` checks hourly that all seven copies still agree.
-
-If you are lost, cannot find a credential, or something is red and you do not
-know why, that file is the answer. This one is the repo-specific detail
-underneath it.
+Use [PUBLISHING.md](PUBLISHING.md) for the current release procedure.
+The playbook retains repository safeguards and historical context; its older
+release directions cannot override the September 17 owner instruction.
 
 ---
 
@@ -56,13 +50,13 @@ building, and deploying always have a route available to you:
    on the Mac, already authenticated, has network access. This is the
    primary path for text and code, and it works even when your own shell
    is network-blocked.
-2. **A local commit with explicit paths** — picked up and pushed by the
-   `git-safe-push-auto` background process. Use for binaries that exceed
-   the MCP base64 ceiling.
+2. **Normal Git in an owned worktree**: stage explicit paths, commit with
+   ordinary hooks, push the owned branch and complete the protected PR.
+   Background push services and shared-clone push scripts are retired.
 
 Never convert a deploy into a handoff, a "review beat", or a request that
-the user run `git-safe-push.sh`. Full procedure:
-`.agent/workflows/claude-mcp-push.md`.
+the user perform an already-authorized push or publication. The current procedure
+is [PUBLISHING.md](PUBLISHING.md); older push scripts do not override it.
 
 If you need something done that you cannot physically do yourself (token
 scope missing, dashboard-only setting, requires a different platform, etc.)
@@ -128,7 +122,6 @@ this exact bug — disconnect/delete it. Run
 `scripts/check-vercel-project-uniqueness.mjs` to verify exactly one project
 serves this repo at any time.
 
-
 ### 1.1.1 No new infra, ever — write to the canonical place (RULE 12)
 
 Agents are FORBIDDEN from creating new GitHub repos, Vercel projects,
@@ -152,10 +145,9 @@ Canonical rules live in `.agent/CLAUDE_AGENT_RULES.md` — RULE 1 (push), RULE 2
 Summary, every agent MUST do ALL THREE at the end of every session, no
 exceptions:
 
-1. **Push code.** Run `git-safe-push.sh` until it exits 0 with
-   `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`. Auditing without shipping
-   is forbidden. If a fix is identified, ship it in the same session — even
-   if other audit items remain — then open follow-up work for the rest.
+1. **Deliver the assigned code.** Follow [PUBLISHING.md](PUBLISHING.md):
+   owned branch, PR, required checks, protected merge, Vercel Git publication
+   and actual live proof. Preserve scope; do not add unrelated work.
 
 2. **Write and apply SQL.** If the work touched data, schema, RLS, RPCs, or
    anything in Supabase, save migrations under
@@ -220,111 +212,44 @@ Before pushing, verify the staged files make sense:
 3. If files should be ignored, add them to `.gitignore` first
 4. Then push
 
-### 1.3 The Only Push Command
+### 1.3 Push, merge and publication
 
-```bash
-bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "descriptive commit message"
-```
+Use normal Git in an owned worktree and the configured authenticated GitHub
+CLI/API, following [PUBLISHING.md](PUBLISHING.md). Preserve hooks and required
+checks. Find the existing PR before creating one; the authorized agent completes
+the protected squash merge without waiting for another workstream.
 
-Never run `git add`, `git commit`, `git push`, `git pull` individually.
-Never run `vercel deploy` or `vercel --prod`.
-Never call the deploy hook URL. CORRECTED 2026-09-04: this used to say the
-hook was "owned exclusively by the sanctioned daily safety-net workflow
-`club-arena-scheduled-deploy.yml`". **That workflow does not exist.** It was
-retired on 2026-09-03 together with the Club Arena sync it was a safety net
-for, and `scripts/ci/check-no-vercel-deploy.mjs` has had an EMPTY allowlist
-ever since. So the words here promised a safety net that is not running, which
-is worse than having none: an agent reads it, assumes a missed publish gets
-caught, and stops checking. **Nothing may call a deploy hook now.** CI
-enforces it (`scripts/ci/check-no-vercel-deploy.mjs`, exit 1 on any caller).
-(`scripts/antigravity-deploy.sh` was DELETED on 2026-08-27 — issue #653: a
-file the rules name as forbidden, sitting where an agent will find it, is a
-trap. The rule against running it survives as the CI check.)
+The protected main merge triggers Vercel's Git integration on `hub-vanguard`.
+Vercel builds from source and automatically publishes production. Do not use
+retired shared-clone scripts, a local/prebuilt deployment, a deploy hook or a
+second Vercel project. Club Arena publishes through its own GitHub/Hetzner route.
 
-The script handles everything autonomously:
-- Phase 0: Secret scanning, account verification, .env safety
-- Phase 0.5: Destructive change detection, protected zone enforcement, emoji scanning
-- Phase 1: Lock cleanup, stale rebase/merge abort
-- Phase 2: Stage, commit, ghost file sweep
-- Phase 2.5: Build gate (`npx next build` -- catches errors before they hit Vercel)
-- Phase 3: Pull-rebase with auto-conflict resolution, push with retries
-- Phase 4: Post-deploy verification (polls /api/health until SHA matches)
+### 1.4 Verify the actual publication
 
-The script exits 0 ONLY when production is verified serving your commit.
-If it exits non-zero, your code is NOT deployed. Fix the issue and re-run.
+Record the Vercel production deployment ID, READY result and selected Git
+revision. Confirm `https://smarter.poker/api/health` reports that revision and
+verify the affected behavior. If concurrent merges supersede a deployment,
+prove the actual live revision contains your change. A push, merge or healthy
+endpoint alone does not prove the assigned behavior is delivered.
 
-### 1.4 What Happens After Push
+### 1.5 Handle an actual failure
 
-1. GitHub receives the commit on `main`
-2. Vercel git integration on `hub-vanguard` auto-triggers a build
-3. Build runs (~3-5 min for Next.js)
-4. If build succeeds: deployment becomes READY and is auto-promoted to Current (production)
-5. `verify-deploy.js` (called by the push script) confirms production serves the new SHA
-
-There is NO manual promotion step and NO deploy hook anywhere in this repo's
-path — one push = one build = one deployment = auto-promoted to production.
-
-CORRECTED 2026-09-04. This paragraph used to describe a daily safety net,
-`club-arena-scheduled-deploy.yml`, POSTing `VERCEL_HUB_VANGUARD_DEPLOY_HOOK`
-"so a missed Club Arena sync still publishes". That was true when issue #653
-resolved it on 2026-08-27 and stopped being true on 2026-09-03, when the Club
-Arena sync was replaced by Club Arena's own origin and both the sync and its
-safety net were deleted. Club Arena no longer publishes through this repo at
-all, and a Vercel rebuild here would not publish it if it did. Its own nets
-live in its own repo: the `*/30` catch-up cron inside `publish-club-arena.yml`,
-`publish-watchdog.yml`, and the orphan sweep in `agent-autopilot.yml`.
-
-### 1.5 Claiming Success
-
-You may ONLY say a change is deployed after `git-safe-push.sh` exits 0.
-The script output will contain `DEPLOY_VERIFIED:true` and `SHA_MATCHED:true`.
-
-Never say:
-- "should be live in a few minutes"
-- "deploy triggered"
-- "Vercel will pick it up"
-- "pushed successfully" (push != deploy)
-
-Instead say:
-> "Production smarter.poker served SHA `<hash>` at `<UTC time>`. Verified via /api/health."
-
-### 1.6 Self-Healing Deploy Monitor
-
-`/api/deploy-monitor` + `/api/deploy-autofix` form an automated self-healing system.
-When a Vercel deployment fails, it auto-fixes the error and redeploys with zero human
-intervention.
-
-How it works:
-1. Vercel webhook fires on `deployment.error`
-2. `/api/deploy-monitor` receives it, fetches build logs from Vercel API
-3. `/api/deploy-autofix` parses the error, fetches the broken file from GitHub,
-   calls Anthropic API (Claude) to generate a minimal fix, pushes via GitHub Contents API
-4. New commit triggers Vercel auto-rebuild
-5. Circuit breaker: max 3 fix attempts per commit SHA, then stops
-
-Agents do NOT need to interact with this system. It runs autonomously.
-If you see `[autofix]` commits in the git log, that is the deploy monitor fixing a build error.
-
-### 1.7 When Deployment Fails
-
-If `git-safe-push.sh` reports `DEPLOY_VERIFIED:false` or exits non-zero:
-
-1. Check the Vercel dashboard: `https://vercel.com/smarter-poker/hub-vanguard/deployments`
-2. If the build ERROR'd: read the build logs, fix the code, re-run the push script
-3. If the build is CANCELED: a newer push superseded yours. Confirm your changes are in the newer commit.
-4. If SHA mismatch after timeout: the build may still be running. Wait and re-check.
-
-Never revert without understanding the failure. Never push the same broken code twice.
+Read the owning GitHub/Vercel failure, compare with the last successful
+same-category result, and make the smallest correct fix. Preserve valid evidence;
+do not repeatedly rerun unchanged failures or duplicate successful checks.
+Record pending run/revision identities and continue other authorized work while
+providers run. No deploy-autofix endpoint, watchdog, scheduled repair or
+background push service may repair, advance or certify a release.
 
 ---
 
 ## 2. PRE-PUSH CHECKS (enforced automatically)
 
-### 2.1 Build Gate (Phase 2.5 of git-safe-push.sh)
+### 2.1 Required checks and source builds
 
-`npx next build` runs locally before push. If it fails, the push is blocked.
-This catches 100% of the errors that would fail on Vercel.
-To skip for emergency hotfixes ONLY: `--skip-build` flag.
+Keep ordinary hooks and the applicable existing required GitHub checks. Vercel
+performs the production source build through its Git integration. The retired
+shared-clone local-build script and its skip flags are not the active route.
 
 ### 2.2 GitHub Actions Safety Gate
 
@@ -397,11 +322,11 @@ Classify your task BEFORE starting. This determines your workflow.
 
 ### Tier 1: Quick Fix (5-10 min)
 CSS bugs, text changes, single-file edits where you know the file.
-Workflow: Fix it. Run `git-safe-push.sh`. Report what changed.
+Workflow: Fix it. Follow [PUBLISHING.md](PUBLISHING.md). Report what changed.
 
 ### Tier 2: Feature Work (15-30 min)
 Multi-file edits, new UI elements, logic bug fixes.
-Workflow: State approach in 3 lines. Execute. Run `git-safe-push.sh`. Report.
+Workflow: State approach in 3 lines. Execute. Follow [PUBLISHING.md](PUBLISHING.md). Report.
 
 ### Tier 3: Architecture (30+ min)
 Database migrations, new API routes, cross-component refactors, auth/payment changes.
@@ -416,11 +341,11 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 
 ### Tier 1 (CSS/Layout)
 1. Make the fix
-2. Run `git-safe-push.sh` (build gate + deploy verification handle the rest)
+2. Follow [PUBLISHING.md](PUBLISHING.md) through required checks, protected merge and verified Vercel publication
 3. Report what changed
 
 ### Tier 2 (Logic Changes)
-1. Run `git-safe-push.sh`
+1. Follow [PUBLISHING.md](PUBLISHING.md)
 2. If confident: done
 3. If unsure: browser-test with test account, then report
 
@@ -428,7 +353,7 @@ For Tier 3: Read `.memory/WORKING-RULES.md` and `.memory/REALIGN-PROTOCOL.md` fi
 1. Run `npm run build` locally first
 2. Browser-test all affected features
 3. Run the 8 Immutable Rules grep checks
-4. Run `git-safe-push.sh`
+4. Follow [PUBLISHING.md](PUBLISHING.md)
 5. Verify deployment via Vercel MCP or dashboard
 
 ### Test Account
@@ -501,7 +426,7 @@ How to know if you're a Club Arena agent: your task mentions "Club Arena", "poke
 - Dev server restart -- wait 10s, another agent may be restarting
 
 ### Git Conflict Safety
-After `git-safe-push.sh` completes, verify your changes survived.
+After protected merge and provider publication, verify your changes survived.
 If the script reports "Accepting remote changes" during rebase, your changes
 may have been overwritten. Re-apply them and re-run the script.
 
@@ -973,7 +898,7 @@ GitHub's environment to execute:
 - `branch-protection-watchdog.yml` — daily 09:00 UTC, auto-corrects `main` branch protection (added 2026-05-10 with PR #302)
 - `push-velocity-watchdog.yml` — hourly during work hours, alerts via GitHub Issue if no commits land on main for >4h (added 2026-05-10 after the 3h CHECK 6c stall)
 - `vercel-deploy-retry.yml` — already present in the CHECK 6c allowlist but previously missing from this list; recorded here to remove the doc/CI drift.
-- `agent-autopilot.yml` — every-10-minutes sweep that enables squash auto-merge
+- **Historical, inactive release entry:** `agent-autopilot.yml` — formerly an every-10-minutes sweep that enables squash auto-merge
   on open pull requests and refreshes a branch only when it cannot merge as it
   stands. It is CI-side work by definition: it operates on GitHub pull requests
   through the GitHub API and has no application logic and no database access,
@@ -982,7 +907,7 @@ GitHub's environment to execute:
   all seven repos without either, and CHECK 6 had been failing on `main` ever
   since, which is one of the two reasons Pre-Deploy Safety Checks could not be
   made a required check.
-- `publish-watchdog.yml` — every 15 minutes, compares `main`'s HEAD against the
+- **Historical, inactive release entry:** `publish-watchdog.yml` — formerly every 15 minutes, compared `main`'s HEAD against the
   short sha `/api/health` reports and raises a self-closing issue when they
   diverge past a 20-minute budget. It cannot live in Open Claw: it asks GitHub
   what `main` is and asks the Vercel API what happened to that commit's
