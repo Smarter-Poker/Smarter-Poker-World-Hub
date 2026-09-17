@@ -99,6 +99,7 @@ import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 import { getAccessToken } from '../../src/lib/authUtils';
 import { listHeld, releaseHeld, noteAttempt } from '../../src/lib/bankroll/receiptHold.mjs';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -3203,6 +3204,7 @@ export default function BankrollManagerPage() {
         )}
       </AnimatePresence>
       {UpgradePopup}
+      <HubPageSummary page="bankroll-manager" />
     </PageTransition >
   );
 }
