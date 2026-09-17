@@ -234,3 +234,6 @@ test('first-open guides do not reinstate retired release or environment directio
         }
     }
 });
+
+// The existing required publication gate also verifies local pre-push refusal.
+import "../__tests__/pre-push-typescript-baseline-safety.test.mjs";

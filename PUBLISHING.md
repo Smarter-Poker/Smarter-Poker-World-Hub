@@ -73,3 +73,5 @@ Run the applicable local prechecks on the final candidate before push, as requir
 ## Access prerequisites and continued ownership
 
 Check required provider access, reporter identity and secret-store metadata before dependent hosted work. Follow the owner policy for necessary credential repairs without another human approval. A missing input or tool-required handoff applies only to the steps that require it: continue local checks, integration, other running checks and independent publication yourself. Do not stop at a pending question or intermediate milestone; retain the exact owning operation and finish all executable work. Never print secrets or substitute a different reporter to satisfy a trusted check.
+
+The ordinary pre-push hook checks the complete candidate against protected main, requires committed working bytes and the actual pushed revision, and refuses missing application syntax/type tooling. Policy and hook changes run the existing documentation and pre-push regression checks locally. Hosted requirements remain separate.

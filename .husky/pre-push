@@ -23,7 +23,7 @@ FAIL=0
 # good. Fails open on a missing token, no network, or any unclear answer.
 bash "$ROOT/scripts/guard-merged-branch.sh" || exit 1
 
-sh "$ROOT/scripts/hooks/pre-push-js-safety.sh"   "$@" || FAIL=1
+bash "$ROOT/scripts/hooks/pre-push-js-safety.sh"   "$@" || FAIL=1
 
 # Dan, 2026-08-31: "REMOVE ANY AND ALL M BARS AS THEY ARE BANNED FROM USE."
 # Club Arena has had this gate since 2026-08-27; the apex site never did, so
