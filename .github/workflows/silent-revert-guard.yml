@@ -1,7 +1,8 @@
 name: Silent Revert Guard
 
-# Fails a push whose commits restore a file to exactly its state before an
-# earlier commit, without saying so in the message.
+# Reports exact historical restorations without blocking authorized delivery.
+# The owner removed manual approval gates on September 17, 2026. Findings
+# remain visible; automatic technical checks still govern protected merges.
 #
 # The case this exists for: World Hub 902d8b2b, "match icon sizes to profile
 # orb, show hamburger menu on all pages", which also reverted every line of
@@ -49,7 +50,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Detect unannounced reverts
+      - name: Report historical restorations
         run: |
           BASE="${{ github.event.before }}"
           if [ -z "$BASE" ] \

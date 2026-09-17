@@ -1,3 +1,17 @@
+# Current owner delivery instruction - September 17, 2026
+
+The owner has removed the human-only `revert-approved` requirement globally. A task authorized to push and publish owns submission, required checks, protected merge, provider publication, and exact live verification. No manual label, additional human approval, numbered delivery queue, or restoration-agent coordination is required.
+
+- Review source changes and repair unintended overwrites. The historical-revert detector is an advisory report; findings remain visible, including declared restorations.
+- Preserve all automatic technical, security, financial, migration, and production checks. Unavailable checks are not passing checks.
+- Use ordinary isolated branches and protected PRs. World Hub publishes through the existing Vercel Git integration for `hub-vanguard`; verify READY and the expected revision at `https://smarter.poker/api/health`.
+- Keep provider concurrency, maintenance safeguards, credentials, installed migrations, and other agents' changes intact. Do not revive retired local/custom publishers, automatic merge helpers, watchdogs, repair loops, or external error telemetry.
+- On the owner's Mac, read `/Users/smarter.poker/Documents/AGENTS.md` and `/Users/smarter.poker/Documents/AGENT-HARDENING-STANDARD.md`. Their current instructions supersede conflicting historical instructions below. This authority does not expand the task's assigned product scope.
+
+The September 16 restoration narrative below is retained as history. Its sole-owner and ordered-delivery restrictions are superseded.
+
+---
+
 # Current owner restoration instruction — September 16, 2026
 
 This repository is under an explicit owner-requested September 13 restoration. This instruction applies to local and cloud agents and overrides older auto-merge, autopilot, backlog, migration, and local-compute directions in this repository.

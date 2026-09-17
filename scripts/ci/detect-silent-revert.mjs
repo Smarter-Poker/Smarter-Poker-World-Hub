@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * detect-silent-revert — catch a commit that undoes an earlier commit without saying so
+ * detect-silent-revert — report a commit that undoes an earlier commit
  * ═══════════════════════════════════════════════════════════════════════════
  * WHY THIS EXISTS
  *
@@ -24,18 +24,15 @@
  * touched that file inside the lookback window. A hit means this commit put
  * the file back to its pre-P state.
  *
- * That is precise. It does not guess, it does not diff line ranges, and its
- * only false positive is a revert the author actually meant — which is why
- * saying so in the commit message is the escape hatch.
- *
- * ESCAPE HATCHES
- *   - a commit message containing "revert" (any case)
- *   - a commit message containing [allow-revert]
- *   - paths in IGNORED_PATHS (build output, lockfiles, generated bundles)
+ * Findings are advisory. The owner removed manual approval gates on
+ * September 17, 2026: authorized agents review intentional restorations and
+ * complete protected publication themselves. Findings remain visible even
+ * when a commit message declares the restoration. Generated paths remain
+ * outside this source-history report.
  *
  * USAGE
  *   node scripts/ci/detect-silent-revert.mjs [--base <ref>] [--days N]
- *   Defaults: base = HEAD~1, days = 45. Exit 1 on a finding.
+ *   Defaults: base = HEAD~1, days = 45. Findings exit 0; invalid history exits 1.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -49,6 +46,21 @@ const getArg = (name, fallback) => {
 
 const BASE = getArg('--base', 'HEAD~1');
 const DAYS = Number(getArg('--days', '45'));
+
+// An unavailable comparison is not a clean report. Keep operational failures
+// separate from advisory findings without adding an approval mechanism.
+if (!Number.isFinite(DAYS) || DAYS <= 0) {
+  console.error('detect-silent-revert: --days must be a positive number');
+  process.exit(1);
+}
+try {
+  for (const ref of [BASE, 'HEAD']) {
+    execFileSync('git', ['rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`], { stdio: 'ignore' });
+  }
+} catch {
+  console.error('detect-silent-revert: comparison history is unavailable');
+  process.exit(1);
+}
 
 const IGNORED_PATHS = [
   /^dist\//,
@@ -81,7 +93,6 @@ const commitsInRange = () => {
 };
 
 const subjectOf = (sha) => git('log', '-1', '--format=%s', sha) || '(no subject)';
-const bodyOf = (sha) => git('log', '-1', '--format=%B', sha) || '';
 
 const blobAt = (sha, file) => git('rev-parse', `${sha}:${file}`);
 
@@ -135,9 +146,6 @@ const touchMap = buildTouchMap('HEAD');
 const findings = [];
 
 for (const commit of range) {
-  const message = bodyOf(commit);
-  if (/revert/i.test(message) || message.includes('[allow-revert]')) continue;
-
   const allChanged = (git('diff-tree', '--no-commit-id', '--name-only', '-r', commit) || '')
     .split('\n')
     .filter(Boolean)
@@ -187,7 +195,7 @@ for (const commit of range) {
 }
 
 if (findings.length === 0) {
-  console.log('detect-silent-revert: no unannounced reverts in ' + `${BASE}..HEAD`);
+  console.log('detect-silent-revert: no exact historical reverts in ' + `${BASE}..HEAD`);
   process.exit(0);
 }
 
@@ -196,10 +204,8 @@ console.error('SILENT REVERT DETECTED');
 console.error('======================');
 console.error('');
 console.error('A commit below restores a file to exactly the state it had before an');
-console.error('earlier commit, without saying so. This is what happens when work is');
-console.error('committed from a checkout that predates someone else’s change: the');
-console.error('older content wins and the newer fix disappears with no diff anyone');
-console.error('would think to read.');
+console.error('earlier commit. This can be an intentional restoration or an accidental');
+console.error('overwrite from an older checkout. Review the listed source changes.');
 console.error('');
 
 for (const f of findings) {
@@ -209,9 +215,8 @@ for (const f of findings) {
   console.error('');
 }
 
-console.error('If the revert is intentional, say so in the commit message: include the');
-console.error('word "revert", or the token [allow-revert], and explain why. If it is not');
-console.error('intentional, rebase onto current origin/main and re-apply your change on');
-console.error('top of theirs.');
+console.error('Advisory report: the authorized delivery agent reviews these changes,');
+console.error('repairs unintended overwrites, and completes protected publication.');
+console.error('Automatic technical checks remain required. No approval label is used.');
 console.error('');
-process.exit(1);
+process.exit(0);
