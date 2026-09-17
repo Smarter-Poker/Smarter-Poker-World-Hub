@@ -371,6 +371,16 @@ export default function LobbyOverlay({
               alt="Poker Near Me Feature Grid"
               loading="eager"
               fetchPriority="high"
+              // THE GRID RESERVES ITS OWN SPACE (2026-09-17). With width:100%
+              // and height:auto but no intrinsic size, the browser gave this a
+              // zero-height box until the bytes arrived, and the hotspot grid
+              // absolutely positioned over it went from 2px to 350px while
+              // everything below dropped 364px: measured on production, CLS
+              // 0.267 on every single load at phone width. The file is square,
+              // 1024x1024, so declaring it makes the box exact before the
+              // first byte.
+              width={1024}
+              height={1024}
               onError={() => setGridImageFailed(true)}
               style={{
                 width: '100%',

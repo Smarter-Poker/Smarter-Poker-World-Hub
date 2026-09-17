@@ -134,27 +134,38 @@ test('every public page title fits a search result once SEOHead has added the si
   }
 });
 
-test('the hero reserves its own space before the image arrives', () => {
-  // Without intrinsic dimensions the browser gives the hero a zero-height
-  // box, and the shimmer beside it reserved 180% of the width while the file
-  // is 179.21%: measured on production, CLS 0.797 at phone width.
-  const src = read('pages/index.js');
-  const at = src.indexOf('landing-hero.webp');
-  assert.ok(at > 0, 'pages/index.js renders the hero image');
-  const img = src.slice(src.lastIndexOf('<img', at), src.indexOf('/>', at) + 2);
-  const width = Number(img.match(/width=\{(\d+)\}/)?.[1]);
-  const height = Number(img.match(/height=\{(\d+)\}/)?.[1]);
-  assert.ok(width && height, 'the hero carries intrinsic width and height');
+/**
+ * Every big image a public page paints early must declare its pixels: with
+ * width:100% and height:auto but no intrinsic size the browser reserves a
+ * zero-height box, and whatever sits below it moves when the bytes land.
+ * Measured on production: the landing hero took CLS to 0.797 on one load in
+ * six, and the Poker Near Me grid to 0.267 on every single load.
+ */
+const SIZED_IMAGES = [
+  { file: 'pages/index.js', asset: 'public/images/landing-hero.webp', needle: 'src="/images/landing-hero.webp"' },
+  {
+    file: 'src/components/poker-near-me/lobby/LobbyOverlay.jsx',
+    asset: 'public/images/lobby-pods/poker-near-me-grid.webp',
+    needle: 'src="/images/lobby-pods/poker-near-me-grid.webp"',
+  },
+];
 
-  // They must match the file, or the reserved box is the wrong shape.
-  const { width: actualWidth, height: actualHeight } = webpSize(
-    fs.readFileSync(path.join(ROOT, 'public/images/landing-hero.webp')),
-  );
-  assert.equal(width, actualWidth, 'declared width matches the file');
-  assert.equal(height, actualHeight, 'declared height matches the file');
+test('every early image declares the pixels the file actually has', () => {
+  for (const { file, asset, needle } of SIZED_IMAGES) {
+    const src = read(file);
+    const at = src.indexOf(needle);
+    assert.ok(at > 0, `${file} renders ${needle}`);
+    const img = src.slice(src.lastIndexOf('<img', at), src.indexOf('/>', at) + 2);
+    const width = Number(img.match(/width=\{(\d+)\}/)?.[1]);
+    const height = Number(img.match(/height=\{(\d+)\}/)?.[1]);
+    assert.ok(width && height, `${file} declares intrinsic width and height`);
+    const actual = webpSize(fs.readFileSync(path.join(ROOT, asset)));
+    assert.equal(width, actual.width, `${file}: declared width matches ${asset}`);
+    assert.equal(height, actual.height, `${file}: declared height matches ${asset}`);
+  }
 
-  // And the placeholder must not add or remove layout height of its own.
-  const shimmer = src.match(/shimmer: \{[\s\S]*?\},/)?.[0] || '';
+  // And the landing placeholder must not add or remove layout height of its own.
+  const shimmer = read('pages/index.js').match(/shimmer: \{[\s\S]*?\},/)?.[0] || '';
   assert.doesNotMatch(shimmer, /paddingBottom/, 'the shimmer does not reserve a band in the flow');
   assert.match(shimmer, /position: 'absolute'/, 'the shimmer is an overlay');
 });
