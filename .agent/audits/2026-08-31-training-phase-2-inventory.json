@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 335,
+    "dependencyFiles": 336,
     "componentFiles": 50,
     "hookFiles": 14,
     "ctas": 343,
@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 136,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 357,
+    "possibleUnwiredFunctions": 358,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -4633,6 +4633,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -5737,7 +5738,8 @@
       "reachableFiles": [
         "pages/hub/training/bankroll-coach.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -5860,6 +5862,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -6047,7 +6050,8 @@
       "reachableFiles": [
         "pages/hub/training/bluff-catcher.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -6122,7 +6126,8 @@
       "reachableFiles": [
         "pages/hub/training/bounty-trainer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -6243,6 +6248,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -6476,6 +6482,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -6758,6 +6765,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -7877,7 +7885,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/ev-heatmap.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -7952,7 +7961,8 @@
       "reachableFiles": [
         "pages/hub/training/ev-trainer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -8485,7 +8495,8 @@
       "reachableFiles": [
         "pages/hub/training/frequency-locking.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -8987,7 +8998,8 @@
       "reachableFiles": [
         "pages/hub/training/gto-scorecard.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -9061,7 +9073,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/gto-vs-exploitative.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -9695,7 +9708,8 @@
       "reachableFiles": [
         "pages/hub/training/icm-final-table.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -9890,6 +9904,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -10125,6 +10140,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -10811,7 +10827,8 @@
       "reachableFiles": [
         "pages/hub/training/mixed-strategy-lab.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -11148,7 +11165,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/multiway-postflop.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -11432,7 +11450,8 @@
       },
       "reachableFiles": [
         "pages/hub/training/nodelocking.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -11507,7 +11526,8 @@
       "reachableFiles": [
         "pages/hub/training/performance-heatmap.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -11582,7 +11602,8 @@
       "reachableFiles": [
         "pages/hub/training/play-mode.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -11722,6 +11743,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -11966,7 +11988,8 @@
       "reachableFiles": [
         "pages/hub/training/player-profiles.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -12147,7 +12170,8 @@
       "reachableFiles": [
         "pages/hub/training/pot-geometry.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -12222,7 +12246,8 @@
       "reachableFiles": [
         "pages/hub/training/preflop-advisor.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -12490,6 +12515,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -13716,7 +13742,8 @@
       "reachableFiles": [
         "pages/hub/training/range-advisor.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -13906,7 +13933,8 @@
       "reachableFiles": [
         "pages/hub/training/range-explorer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -15328,7 +15356,8 @@
       "reachableFiles": [
         "pages/hub/training/spr-trainer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -15439,6 +15468,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -16199,6 +16229,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -16368,7 +16399,8 @@
       "reachableFiles": [
         "pages/hub/training/three-way-postflop.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -16824,6 +16856,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -17051,6 +17084,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -17545,7 +17579,8 @@
       "reachableFiles": [
         "pages/hub/training/villain-range.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "states": {
         "loading": {
@@ -35595,7 +35630,9 @@
     },
     {
       "file": "src/components/seo/SEOHead.js",
-      "imports": [],
+      "imports": [
+        "src/lib/seo/productOgImage.js"
+      ],
       "links": [],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -35629,7 +35666,24 @@
         "webSockets": 0,
         "eventSources": 0
       },
-      "functions": [],
+      "functions": [
+        {
+          "name": "usePathname",
+          "line": 21,
+          "references": 2,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "SEOHead",
+          "line": 31,
+          "references": 4,
+          "exported": true,
+          "defaultExport": true,
+          "namedFunctionExpression": false
+        }
+      ],
       "possibleUnwiredFunctions": [],
       "markers": []
     },
@@ -48046,6 +48100,57 @@
       "markers": []
     },
     {
+      "file": "src/lib/seo/productOgImage.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "productOgImage",
+          "line": 11,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "productOgImage"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/serverAuth.js",
       "imports": [],
       "links": [],
@@ -59943,6 +60048,10 @@
       "to": "src/stores/toastStore.js"
     },
     {
+      "from": "src/components/seo/SEOHead.js",
+      "to": "src/lib/seo/productOgImage.js"
+    },
+    {
       "from": "src/components/store/DiamondInPlayBalance.jsx",
       "to": "src/lib/supabase.js"
     },
@@ -69172,6 +69281,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -69964,7 +70074,8 @@
       "reachableFiles": [
         "pages/hub/training/bankroll-coach.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -70008,6 +70119,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -70288,7 +70400,8 @@
       "reachableFiles": [
         "pages/hub/training/bluff-catcher.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -70300,7 +70413,8 @@
       "reachableFiles": [
         "pages/hub/training/bounty-trainer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -70352,6 +70466,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -70680,6 +70795,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -70995,6 +71111,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -71604,7 +71721,8 @@
       "file": "pages/hub/training/ev-heatmap.js",
       "reachableFiles": [
         "pages/hub/training/ev-heatmap.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -71616,7 +71734,8 @@
       "reachableFiles": [
         "pages/hub/training/ev-trainer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72002,7 +72121,8 @@
       "reachableFiles": [
         "pages/hub/training/frequency-locking.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72147,7 +72267,8 @@
       "reachableFiles": [
         "pages/hub/training/gto-scorecard.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72158,7 +72279,8 @@
       "file": "pages/hub/training/gto-vs-exploitative.js",
       "reachableFiles": [
         "pages/hub/training/gto-vs-exploitative.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72616,7 +72738,8 @@
       "reachableFiles": [
         "pages/hub/training/icm-final-table.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -72705,6 +72828,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -73023,6 +73147,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -73735,7 +73860,8 @@
       "reachableFiles": [
         "pages/hub/training/mixed-strategy-lab.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -73953,7 +74079,8 @@
       "file": "pages/hub/training/multiway-postflop.js",
       "reachableFiles": [
         "pages/hub/training/multiway-postflop.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74035,7 +74162,8 @@
       "file": "pages/hub/training/nodelocking.js",
       "reachableFiles": [
         "pages/hub/training/nodelocking.js",
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74047,7 +74175,8 @@
       "reachableFiles": [
         "pages/hub/training/performance-heatmap.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74059,7 +74188,8 @@
       "reachableFiles": [
         "pages/hub/training/play-mode.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74112,6 +74242,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -74412,7 +74543,8 @@
       "reachableFiles": [
         "pages/hub/training/player-profiles.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74469,7 +74601,8 @@
       "reachableFiles": [
         "pages/hub/training/pot-geometry.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74481,7 +74614,8 @@
       "reachableFiles": [
         "pages/hub/training/preflop-advisor.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -74660,6 +74794,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -75552,7 +75687,8 @@
       "reachableFiles": [
         "pages/hub/training/range-advisor.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -75623,7 +75759,8 @@
       "reachableFiles": [
         "pages/hub/training/range-explorer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76212,7 +76349,8 @@
       "reachableFiles": [
         "pages/hub/training/spr-trainer.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -76260,6 +76398,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -76992,6 +77131,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -77270,7 +77410,8 @@
       "reachableFiles": [
         "pages/hub/training/three-way-postflop.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -77677,6 +77818,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -77994,6 +78136,7 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -78389,7 +78532,8 @@
       "reachableFiles": [
         "pages/hub/training/villain-range.js",
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -78641,7 +78785,8 @@
     {
       "file": "src/components/seo/SEOHead.js",
       "reachableFiles": [
-        "src/components/seo/SEOHead.js"
+        "src/components/seo/SEOHead.js",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -78816,7 +78961,8 @@
       "file": "src/components/training/CanonicalTrainingRedirect.jsx",
       "reachableFiles": [
         "src/components/seo/SEOHead.js",
-        "src/components/training/CanonicalTrainingRedirect.jsx"
+        "src/components/training/CanonicalTrainingRedirect.jsx",
+        "src/lib/seo/productOgImage.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -82133,6 +82279,16 @@
         "__tests__/scroll-lock.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ]
+    },
+    {
+      "file": "src/lib/seo/productOgImage.js",
+      "reachableFiles": [
+        "src/lib/seo/productOgImage.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
     },
     {
       "file": "src/lib/serverAuth.js",
@@ -90128,6 +90284,22 @@
           "pages/_app.js",
           "pages/hub/training.js",
           "pages/hub/training/arena/[gameId].js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/productOgImage.js",
+        "name": "productOgImage",
+        "line": 11,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SEOHead.js",
+          "src/components/seo/SEOHead.js"
         ]
       },
       {
@@ -98704,6 +98876,22 @@
           "pages/_app.js",
           "pages/hub/training.js",
           "pages/hub/training/arena/[gameId].js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/productOgImage.js",
+        "name": "productOgImage",
+        "line": 11,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/components/seo/SEOHead.js",
+          "src/components/seo/SEOHead.js"
         ]
       },
       {
