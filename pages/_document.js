@@ -57,6 +57,17 @@ export default class MyDocument extends Document {
                     <meta name="author" content="Smarter.Poker" />
                     <meta name="publisher" content="Smarter Software Inc." />
 
+                    {/* SEARCH ENGINE OWNERSHIP (AEO phase 1, 2026-09-17). These two
+                        tokens are how Google Search Console and Bing Webmaster
+                        Tools know smarter.poker is ours; the sitemap, index
+                        coverage and Core Web Vitals reports hang off them. They
+                        are public by design (every visitor's HTML carries them)
+                        and they are read on every page, so removing them
+                        un-verifies the property. Google also accepts the file
+                        public/google4a08a61d13d67e09.html; keep both. */}
+                    <meta name="google-site-verification" content="uPsE17EgFSxEEZwMy8_v87NvDJVLqnGdL4c5z2B3roE" />
+                    <meta name="msvalidate.01" content="6A4ECB27751F6F74E131B598604D6175" />
+
                     {/* Open Graph and Twitter defaults live in _app.js. Unlike
                         _document, next/head can deduplicate and replace those
                         defaults when a route supplies its own SEOHead values. */}
