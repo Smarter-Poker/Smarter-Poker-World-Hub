@@ -134,9 +134,7 @@ export default function LandingPage() {
         description="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
-      >
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </SEOHead>
+      />
 
       <div style={styles.page}>
         {/* ── NAV BAR ─────────────────────────────────────────── */}

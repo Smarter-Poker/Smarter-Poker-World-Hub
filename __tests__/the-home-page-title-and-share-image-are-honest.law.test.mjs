@@ -54,6 +54,24 @@ test('the training page title says what it is instead of "Training - Smarter.Pok
   assert.ok(title.length <= 70, `fits a result heading: ${title.length} characters`);
 });
 
+test('the fonts come from next/font: no Google Fonts stylesheet on the home page, no preconnect in the document', () => {
+  assert.doesNotMatch(read('pages/index.js'), /fonts\.googleapis\.com/);
+  assert.doesNotMatch(read('src/components/landing/LandingProductSummary.js'), /'Orbitron'|'Inter'/);
+  assert.doesNotMatch(read('pages/_document.js'), /rel="preconnect" href="https:\/\/fonts\./);
+});
+
+test('the app-level social defaults say what the product is', () => {
+  const app = read('pages/_app.js');
+  assert.doesNotMatch(app, /content="Smarter\.Poker \| The Future Of The Game"/);
+  assert.match(app, /property="og:title" content="Smarter\.Poker: Free Poker Training, Private Clubs And Live Games"/);
+});
+
+test('the training heading never ends in a loading message', () => {
+  const src = read('pages/hub/training.js');
+  assert.doesNotMatch(src, /\{greet\} Loading/);
+  assert.match(src, /GTO Poker Training: Build Better Decisions, One Hand At A Time\./);
+});
+
 test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB', () => {
   const file = path.join(ROOT, 'public/images/og-default.png');
   const buf = fs.readFileSync(file);
