@@ -31,7 +31,7 @@ CSVs live with the owner; this is the record of what was found and shipped.
 | Re-renders | done | memo hooks on 166/221 pages; zustand selectors |
 | Minified JS/CSS | done | SWC; terser two-pass |
 | Lazy loading | partial | 98/166 hub img tags lazy |
-| Deferred scripts | done | no third-party script; next/font; Sentry (since removed) was idle-loaded |
+| Deferred scripts | done | no third-party script; next/font; the one former telemetry SDK was idle-loaded and has since been removed |
 | Unused dependencies | partial | 2 dead packages in the hub, one type package in Club Arena runtime deps |
 | Connection pooling | done | everything through PostgREST; 105/380 backends |
 
