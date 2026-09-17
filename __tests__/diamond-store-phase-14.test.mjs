@@ -256,7 +256,7 @@ test('account records and informational details use native painted frame slices'
     /visibleOrders\.map\(\(order\) => \{[\s\S]*?<MarketplacePageConsole[\s\S]*?as="article"[\s\S]*?eyebrow=\{`Order #\$\{orderLabel\}`\}[\s\S]*?status=\{statusBadge\.label\}[\s\S]*?statusInk=\{statusBadge\.ink\}/
   );
   assert.doesNotMatch(ORDERS, /styles\.orderCard|orderCard\s*:/);
-  assert.match(CONSOLE_CSS, /\.pageHead\s*\{[\s\S]*?spade-console\/top\.png/);
+  assert.match(CONSOLE_CSS, /\.pageHead\s*\{[\s\S]*?spade-console\/top\.webp/);
   assert.match(
     CONSOLE_CSS,
     /\.pageBody\s*\{[\s\S]*?spade-console\/mid\.png[\s\S]*?background-repeat:\s*repeat-y/
@@ -294,7 +294,7 @@ test('account records and informational details use native painted frame slices'
   assert.match(detailHeroStyles, /top:\s*34\.8cqw/);
   assert.match(detailHeroStyles, /bottom:\s*7\.2cqw/);
   assert.match(detailHeroStyles, /background-repeat:\s*repeat-y/);
-  assert.match(detailHeroStyles, /\.heroReward::after,[\s\S]*?spade-console\/top\.png/);
+  assert.match(detailHeroStyles, /\.heroReward::after,[\s\S]*?spade-console\/top\.webp/);
   assert.match(detailHeroStyles, /spade-console\/bottom-foot\.png/);
   assert.doesNotMatch(
     detailHeroStyles,
@@ -302,7 +302,7 @@ test('account records and informational details use native painted frame slices'
   );
 
   for (const asset of [
-    'public/images/marketplace-console-v1/spade-console/top.png',
+    'public/images/marketplace-console-v1/spade-console/top.webp',
     'public/images/marketplace-console-v1/spade-console/mid.png',
     'public/images/marketplace-console-v1/spade-console/bottom-foot.png',
     'public/images/marketplace-console-v1/shark-panel/top.png',

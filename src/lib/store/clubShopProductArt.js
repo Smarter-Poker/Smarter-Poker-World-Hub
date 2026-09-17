@@ -15,7 +15,7 @@ const ATLAS_POSITIONS = Object.freeze({
 });
 
 const DIRECT_IMAGES = Object.freeze({
-  'All Throwables Pack (10)': '/images/marketplace/throwables/all-throwables-access-v1.png',
+  'All Throwables Pack (10)': '/images/marketplace/throwables/all-throwables-access-v1.webp',
 });
 
 const CATEGORY_ATLAS_POSITIONS = Object.freeze({

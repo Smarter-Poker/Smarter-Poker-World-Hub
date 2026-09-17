@@ -50,7 +50,7 @@ test('account states and cart framing use native painted assets at their native 
   assert.match(CART_CSS, /background:[\s\S]*?repeat-y/);
   assert.match(CART_CSS, /\.cartItemFrameBottom,[\s\S]*?shark-panel\/bottom\.png/);
   assert.doesNotMatch(CART, /shark-panel\/bay\.png|spade-console\/mid\.png/);
-  assert.match(CONSOLE_CSS, /\.statusRow\s*\{[\s\S]*?status\/wallet-row-shell\.png/);
+  assert.match(CONSOLE_CSS, /\.statusRow\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
   assert.match(CONSOLE_CSS, /\.sharkPanelTop\s*\{[\s\S]*?shark-panel\/top\.png/);
 });
 

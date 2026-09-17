@@ -26,7 +26,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1000 / 348;
-  background-image: url('/images/marketplace-console-v1/spade-console/top.png');
+  background-image: url('/images/marketplace-console-v1/spade-console/top.webp');
   background-position: top center;
   background-repeat: no-repeat;
   background-size: 100% auto;
@@ -59,7 +59,7 @@
 
 .pageActionFoot {
   aspect-ratio: 1000 / 277;
-  background-image: url('/images/marketplace-console-v1/spade-console/bottom-plates.png');
+  background-image: url('/images/marketplace-console-v1/spade-console/bottom-plates.webp');
 }
 
 .fittedZone {
@@ -203,7 +203,7 @@
   min-width: 179px;
   aspect-ratio: 1772 / 436;
   container-type: inline-size;
-  background-image: url('/images/marketplace-console-v1/action/action-primary-shell.png');
+  background-image: url('/images/marketplace-console-v1/action/action-primary-shell.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -231,7 +231,7 @@
   min-width: 258px;
   aspect-ratio: 1829 / 313;
   overflow: hidden;
-  background-image: url('/images/marketplace-console-v1/navigation/nav-shell.png');
+  background-image: url('/images/marketplace-console-v1/navigation/nav-shell.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -259,7 +259,7 @@
   overflow: hidden;
   container-type: inline-size;
   background-color: transparent;
-  background-image: url('/images/marketplace-console-v1/utility/utility-shell.png');
+  background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -477,7 +477,7 @@
   overflow: hidden;
   container-type: inline-size;
   background-color: transparent;
-  background-image: url('/images/marketplace-console-v1/status/wallet-row-shell.png');
+  background-image: url('/images/marketplace-console-v1/status/wallet-row-shell.webp');
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;

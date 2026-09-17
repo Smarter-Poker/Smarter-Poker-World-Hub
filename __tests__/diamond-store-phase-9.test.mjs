@@ -77,7 +77,7 @@ test('cart, orders, and wishlist keep same-surface navigation without a shared d
     /commerce-operations-atlas|operationsVisual|visualReadout|bayCode/
   );
   assert.match(SUBPAGE_CSS, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
-  assert.doesNotMatch(SUBPAGE_CSS, /marketplace-console-v1\/navigation\/nav-shell\.png/);
+  assert.doesNotMatch(SUBPAGE_CSS, /marketplace-console-v1\/navigation\/nav-shell\.(?:png|webp)/);
   assert.doesNotMatch(SUBPAGE_SHELL, /marketplace-console-v1\/selectors\//);
   assert.doesNotMatch(SUBPAGE_SHELL, /<img src=\{bay\.image\}/);
   assert.doesNotMatch(SUBPAGE_SHELL, /target=|window\.open/);

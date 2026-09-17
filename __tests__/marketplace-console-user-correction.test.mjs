@@ -91,7 +91,7 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
   assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(showcaseStyles, /\.tabs\s*\{/);
   assert.match(showcaseStyles, /\.tab\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
-  assert.doesNotMatch(showcaseStyles, /\.tab\s*\{[\s\S]*?navigation\/nav-shell\.png/);
+  assert.doesNotMatch(showcaseStyles, /\.tab\s*\{[\s\S]*?navigation\/nav-shell\.(?:png|webp)/);
   for (const label of ['Marketplace', 'Cart', 'Orders', 'Wishlist']) {
     assert.match(commerceNav, new RegExp(`>\\s*${label}\\s*<`));
   }
@@ -179,11 +179,11 @@ test('all-throwables storage uses the Club Arena asset while World Hub keeps its
   );
   assert.match(
     productArt,
-    /'All Throwables Pack \(10\)'\s*:\s*['"]\/images\/marketplace\/throwables\/all-throwables-access-v1\.png['"]/s
+    /'All Throwables Pack \(10\)'\s*:\s*['"]\/images\/marketplace\/throwables\/all-throwables-access-v1\.webp['"]/s
   );
   assert.match(diamondStore, /resolveClubShopProductArt\(item\)/);
   await access(
-    path.join(root, 'public/images/marketplace/throwables/all-throwables-access-v1.png')
+    path.join(root, 'public/images/marketplace/throwables/all-throwables-access-v1.webp')
   );
   assert.match(packageJson.scripts['test:marketplace'], /tests\/shop-item-rules\.test\.mjs/);
   assert.match(vercelIgnore, /^!\/tests\/shop-item-rules\.test\.mjs$/m);
@@ -315,8 +315,8 @@ test('Diamond package rails keep the existing layout inside painted console hard
   const packageCard = section('.packageCard {', '.packageCard::before {');
   const packagePhoto = section('.packageCard::before {', '.packageCard > * {');
 
-  assert.match(sectionBar, /status\/wallet-row-shell\.png/);
-  assert.match(starterPack, /status\/wallet-row-shell\.png/);
+  assert.match(sectionBar, /status\/wallet-row-shell\.webp/);
+  assert.match(starterPack, /status\/wallet-row-shell\.webp/);
   assert.match(packageCard, /shark-panel\/bay\.png/);
   assert.match(packagePhoto, /diamond-packages-sheet\.webp/);
   const paintedSurfaces = `${sectionBar}\n${starterPack}\n${packageCard}`;

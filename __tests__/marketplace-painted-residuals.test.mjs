@@ -40,10 +40,10 @@ test('transaction notices use the native-ratio painted status family', () => {
   const toastComponent = read(files.toastComponent);
 
   for (const source of [checkout, toast]) {
-    assert.match(source, /status\/wallet-row-shell\.png/);
+    assert.match(source, /status\/wallet-row-shell\.webp/);
     assert.match(source, /aspect-ratio:\s*1800\s*\/\s*386/);
   }
-  assert.match(checkout, /utility\/utility-shell\.png/);
+  assert.match(checkout, /utility\/utility-shell\.webp/);
   assert.match(toast, /\.dismiss\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
   assert.doesNotMatch(toastComponent, /TOAST_STYLES|--toast-bg|linear-gradient/);
 });
@@ -53,27 +53,27 @@ test('merchandise confirmation uses one coherent sliced spade console', () => {
   const styles = read(files.dialog);
 
   assert.doesNotMatch(component, /styles\.(?:rail|seal)/);
-  assert.match(styles, /\.header\s*\{[\s\S]*?spade-console\/top\.png/);
+  assert.match(styles, /\.header\s*\{[\s\S]*?spade-console\/top\.webp/);
   assert.match(styles, /\.panelBody\s*\{[\s\S]*?spade-console\/mid\.png/);
   assert.match(styles, /background-repeat:\s*repeat-y/);
-  assert.match(styles, /\.actions\s*\{[\s\S]*?spade-console\/bottom-plates\.png/);
+  assert.match(styles, /\.actions\s*\{[\s\S]*?spade-console\/bottom-plates\.webp/);
 });
 
 test('reward and VIP live data use painted rows without duplicate outer consoles', () => {
   const telemetry = read(files.telemetry);
   const vip = read(files.vip);
 
-  assert.match(telemetry, /\.circuit\s*\{[\s\S]*?status\/wallet-row-shell\.png/);
-  assert.match(telemetry, /\.statePanel\s*\{[\s\S]*?utility\/utility-shell\.png/);
+  assert.match(telemetry, /\.circuit\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  assert.match(telemetry, /\.statePanel\s*\{[\s\S]*?utility\/utility-shell\.webp/);
   assert.match(telemetry, /\.console\s*\{[\s\S]*?background:\s*#000/);
   assert.doesNotMatch(
     telemetry.match(/\.console\s*\{[\s\S]*?\n\}/)?.[0] || '',
     /linear-gradient|radial-gradient|box-shadow/
   );
 
-  assert.match(vip, /\.statusLine div\s*\{[\s\S]*?status\/wallet-row-shell\.png/);
-  assert.match(vip, /\.plan\s*\{[\s\S]*?utility\/utility-shell\.png/);
-  assert.match(vip, /\.dialog\s*\{[\s\S]*?utility\/utility-shell\.png/);
+  assert.match(vip, /\.statusLine div\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  assert.match(vip, /\.plan\s*\{[\s\S]*?utility\/utility-shell\.webp/);
+  assert.match(vip, /\.dialog\s*\{[\s\S]*?utility\/utility-shell\.webp/);
   assert.match(vip, /\.panel\s*\{[\s\S]*?background:\s*transparent/);
 });
 
@@ -102,7 +102,7 @@ test('VIP benefit and FAQ rows use native-ratio painted hardware instead of gene
   assert.match(store, /premiumDataFrameTop[\s\S]*premiumDataFrameMid[\s\S]*premiumDataFrameBottom/);
   assert.match(shell, /\.vipBenefits \.responsiveGrid\s*\{[\s\S]*?repeat\(2,/);
 
-  assert.match(faqRow, /status\/wallet-row-shell\.png/);
+  assert.match(faqRow, /status\/wallet-row-shell\.webp/);
   assert.match(faqRow, /aspect-ratio:\s*1800\s*\/\s*386/);
   assert.doesNotMatch(faqRow, /(?:linear|radial|conic)-gradient|border-left|box-shadow/);
   assert.doesNotMatch(faqQuestion, /(?:linear|radial|conic)-gradient|border-left|box-shadow/);
@@ -118,16 +118,16 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
   const merch = read(files.merch);
   const fulfillment = read(files.fulfillment);
 
-  assert.match(merch, /\.balanceReadout\s*\{[\s\S]*?status\/wallet-row-shell\.png/);
-  assert.match(merch, /\.catalogAlert\s*\{[\s\S]*?status\/wallet-row-shell\.png/);
-  assert.match(merch, /\.emptyState\s*\{[\s\S]*?utility\/utility-shell\.png/);
+  assert.match(merch, /\.balanceReadout\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  assert.match(merch, /\.catalogAlert\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  assert.match(merch, /\.emptyState\s*\{[\s\S]*?utility\/utility-shell\.webp/);
   assert.doesNotMatch(
     merch.match(/\.productCard\s*\{[\s\S]*?\n\}/)?.[0] || '',
     /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/
   );
 
-  assert.match(fulfillment, /\.status\s*\{[\s\S]*?status\/wallet-row-shell\.png/);
-  assert.match(fulfillment, /\.dialog\s*\{[\s\S]*?utility\/utility-shell\.png/);
+  assert.match(fulfillment, /\.status\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
+  assert.match(fulfillment, /\.dialog\s*\{[\s\S]*?utility\/utility-shell\.webp/);
   assert.doesNotMatch(
     fulfillment.match(/\.order\s*\{[\s\S]*?\n\}/)?.[0] || '',
     /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/

@@ -43,7 +43,7 @@
   align-items: center;
   aspect-ratio: 1800 / 386;
   padding: 4.2% 6% 4.2% 2.4%;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
 }
 
@@ -103,7 +103,7 @@
   flex-direction: column;
   justify-content: center;
   padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
     100% 100% no-repeat;
 }
 
@@ -184,7 +184,7 @@
   aspect-ratio: 1105 / 1133;
   margin-inline: auto;
   padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
     100% 100% no-repeat;
   text-align: center;
 }
@@ -227,7 +227,7 @@
   flex-direction: column;
   justify-content: center;
   padding: 17%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
     100% 100% no-repeat;
 }
 

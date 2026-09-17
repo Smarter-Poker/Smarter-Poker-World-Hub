@@ -40,7 +40,7 @@
   gap: 10px;
   margin-top: 16px;
   padding: 4.2% 7% 4.2% 25%;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #c3d2da;
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
@@ -501,7 +501,7 @@
   gap: 12px;
   margin: 0 auto 24px;
   padding: 4.2% 6% 4.2% 25%;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #f2d978;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
@@ -524,7 +524,7 @@
   place-content: center;
   margin-inline: auto;
   padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
     100% 100% no-repeat;
   color: #a7b6bd;
   font-size: 13px;
@@ -584,7 +584,7 @@
     width: min(440px, 100%);
     aspect-ratio: 1105 / 1133;
     padding: 18%;
-    background-image: url('/images/marketplace-console-v1/utility/utility-shell.png');
+    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
     text-align: center;
   }
 

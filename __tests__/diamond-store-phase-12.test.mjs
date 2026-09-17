@@ -133,7 +133,7 @@ test('VIP and reward console controls use the approved painted shells without Lu
   assert.match(compare, /compare\.module\.css/);
   assert.match(controlStyles, /shark-panel\/button-primary\.png/);
   assert.match(controlStyles, /shark-panel\/button-secondary\.png/);
-  assert.doesNotMatch(controlStyles, /navigation\/nav-shell\.png/);
+  assert.doesNotMatch(controlStyles, /navigation\/nav-shell\.(?:png|webp)/);
   assert.match(controlStyles, /Roboto Condensed/);
   assert.doesNotMatch(controlStyles, /Rajdhani|border-radius|\bgreen\b|\bpurple\b/i);
 });

@@ -11,7 +11,7 @@
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #eef9ff;
 }
@@ -197,7 +197,7 @@
     aspect-ratio: 1105 / 1133;
     margin-top: 12px;
     padding: 15% 14% 13%;
-    background-image: url('/images/marketplace-console-v1/utility/utility-shell.png');
+    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
   }
 
   .seal {

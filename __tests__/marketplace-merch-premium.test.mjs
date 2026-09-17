@@ -47,7 +47,7 @@ test('merch replaces floating generic icons with integrated console controls', (
   assert.match(CSS, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
   assert.doesNotMatch(
     CSS,
-    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.png/
+    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.(?:png|webp)/
   );
   assert.match(CSS, /linear-gradient|box-shadow/);
   assert.doesNotMatch(CSS, /:hover|border-radius/);

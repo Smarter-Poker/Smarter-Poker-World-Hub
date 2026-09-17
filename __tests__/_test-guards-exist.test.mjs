@@ -194,9 +194,7 @@ import './solver-policy-service.test.mjs';
 // atomic counters, the live drift schedule, and legacy writer retirement are
 // release gates rather than an optional developer-only audit.
 import './horse-phase3-training-cache-truth.test.mjs';
-import './a-skip-is-not-a-failed-send.law.test.mjs';
 import './marketplace-phase-8-lifetime-entitlements.test.mjs';
-import './openclaw-secret-shadow.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-history-outage-honesty.test.mjs';

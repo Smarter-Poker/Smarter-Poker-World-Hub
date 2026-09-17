@@ -101,7 +101,7 @@ test('fulfillment keeps semantic text controls inside the approved marketplace c
   assert.match(css, /marketplace-console-v1\/shark-panel\/button-secondary\.png/);
   assert.doesNotMatch(
     css,
-    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.png/
+    /marketplace-console-v1\/(?:navigation\/nav-shell|shark-panel\/bay)\.(?:png|webp)/
   );
   assert.match(css, /linear-gradient|box-shadow/);
   assert.doesNotMatch(css, /:hover|border-radius/);

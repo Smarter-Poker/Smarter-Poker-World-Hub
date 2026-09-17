@@ -35,7 +35,7 @@
   width: 100%;
   aspect-ratio: 1000 / 348;
   padding: 12% 8.5% 4.5% 9%;
-  background: transparent url('/images/marketplace-console-v1/spade-console/top.png') center / 100%
+  background: transparent url('/images/marketplace-console-v1/spade-console/top.webp') center / 100%
     100% no-repeat;
 }
 
@@ -217,7 +217,7 @@
   aspect-ratio: 1000 / 277;
   gap: 4%;
   padding: 5.5% 9% 8%;
-  background: transparent url('/images/marketplace-console-v1/spade-console/bottom-plates.png')
+  background: transparent url('/images/marketplace-console-v1/spade-console/bottom-plates.webp')
     center / 100% 100% no-repeat;
 }
 

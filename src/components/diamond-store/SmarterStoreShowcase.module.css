@@ -175,7 +175,7 @@
   min-height: 108px;
   padding: 18px 7% 18px 23%;
   border: 0;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   box-shadow: none;
 }
@@ -236,7 +236,7 @@
   min-height: 88px;
   padding: 13px 6% 13px 23%;
   border: 0;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.png') center /
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   box-shadow: none;
 }
