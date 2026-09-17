@@ -22,7 +22,7 @@ Scope: Answer Engine Optimisation — crawler honesty, sitemap correctness, Inde
 
 ### Files added to `public/`
 
-- `public/ebee30927d6f8e9d19a8deb450a4359e.txt` — Google Search Console HTML file verification token. The file contains exactly `ebee30927d6f8e9d19a8deb450a4359e` (one line, no extension). Google fetches `https://smarter.poker/ebee30927d6f8e9d19a8deb450a4359e.txt` and expects that exact content.
+- `public/ebee30927d6f8e9d19a8deb450a4359e.txt` — the IndexNow key file (`scripts/indexnow-submit.mjs` names it as `keyLocation`). It is NOT a Google Search Console verification file: Google's HTML-file method uses a file named `google<token>.html` whose content Google generates, and its meta-tag method uses `<meta name="google-site-verification" content="<token>">`. Neither exists in the repo yet; Google issues the token only inside the signed-in wizard.
 
 ---
 
@@ -36,8 +36,8 @@ Scope: Answer Engine Optimisation — crawler honesty, sitemap correctness, Inde
 
 1. Open [https://search.google.com/search-console/welcome](https://search.google.com/search-console/welcome) and sign in with the Smarter.Poker Google account.
 2. Click **Add property → URL prefix** and enter `https://smarter.poker`.
-3. Choose **HTML file** verification. Google will show the token `ebee30927d6f8e9d19a8deb450a4359e`. The file is already live once this PR merges and Vercel deploys (Vercel Git integration, triggered by the merge to `main`). Confirm it is reachable: `curl -s https://smarter.poker/ebee30927d6f8e9d19a8deb450a4359e.txt` should return `ebee30927d6f8e9d19a8deb450a4359e`.
-4. Click **Verify** in the GSC wizard.
+3. Choose **HTML tag** verification (or **HTML file**). Google shows a token that exists nowhere yet; hand it to the agent. The agent commits it (the meta tag into `pages/_document.js`, or the `google<token>.html` file into `public/`), merges through the protected route, and confirms it is live at `https://smarter.poker/`.
+4. Click **Verify** in the GSC wizard once the agent reports the tag is live (Vercel deploys in about two minutes).
 5. Once verified, go to **Sitemaps** in the left nav and submit `https://smarter.poker/sitemap.xml`.
 
 ### 2 — Bing Webmaster Tools verification
@@ -75,7 +75,7 @@ Scope: Answer Engine Optimisation — crawler honesty, sitemap correctness, Inde
 
 ## Verification checklist
 
-- [x] `public/ebee30927d6f8e9d19a8deb450a4359e.txt` committed and pushed (`ebcc72d`)
+- [x] `public/ebee30927d6f8e9d19a8deb450a4359e.txt` (IndexNow key) committed and pushed (`ebcc72d`)
 - [x] `robots.txt` all named bots carry identical `Disallow` list as `*` — pinned by `__tests__/robots-crawler-policy.law.test.mjs`
 - [x] Sitemap removes account-only pages (messenger, notifications, settings, store cart/orders/wishlist, reels saved/my-reels, trivia settings) — pinned by `__tests__/club-commander-and-poker-arena-are-discoverable.law.test.mjs`
 - [x] Only known-prerenderable arena routes in sitemap (4 legal docs + help + landing)
