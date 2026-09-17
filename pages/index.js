@@ -130,8 +130,8 @@ export default function LandingPage() {
   return (
     <>
       <SEOHead
-        title="Smarter.Poker - The Future Of The Game"
-        description="Train Smarter, Connect Globally, Manage Everything. The Ultimate Poker Platform For GTO Training, Live Venue Discovery, Bankroll Tracking, Trivia, And Community."
+        title="Smarter.Poker: Free Poker Training, Private Clubs And Live Games"
+        description="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling."
         canonical="/"
         jsonLd={[schemas.organization, schemas.website, schemas.softwareApp]}
       >

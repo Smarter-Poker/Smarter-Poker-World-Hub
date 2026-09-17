@@ -45,7 +45,14 @@ export default function SEOHead({
     twitterCard = 'summary_large_image',
     children,
 }) {
-    const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} - The Future Of The Game`;
+    // A title that already names the site is not suffixed again: the home
+    // page said "Smarter.Poker - The Future Of The Game | Smarter.Poker" (AEO
+    // phase 1, 2026-09-17). The title is the most-quoted string a page has.
+    const fullTitle = !title
+        ? `${SITE_NAME} - The Future Of The Game`
+        : title.includes(SITE_NAME)
+            ? title
+            : `${title} | ${SITE_NAME}`;
     const fullCanonical = canonical
         ? canonical.startsWith('http')
             ? canonical
