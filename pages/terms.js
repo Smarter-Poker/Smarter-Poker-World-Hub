@@ -1,6 +1,16 @@
 import SEOHead from '../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState } from 'react';
+import { hubCollectionSchema } from '../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const TERMS_SCHEMA = hubCollectionSchema({
+  path: '/terms',
+  name: 'Terms Of Service | Smarter.Poker',
+  description:
+    'The Agreement Between A Player And Smarter Software Inc.: What Club Chips And Diamonds Are, What They Are Not, And The Rules Every Account Is Held To.',
+  trail: [['Terms Of Service', '/terms']],
+});
 
 export default function TermsOfService() {
     const [activeSection, setActiveSection] = useState('terms');
@@ -16,8 +26,9 @@ export default function TermsOfService() {
         <>
             <SEOHead
                 title="Terms Of Service"
-                description="Smarter.Poker Terms Of Service. Read Our Usage Policies And User Agreements."
+                description="The Smarter.Poker Terms Of Service: The Agreement Between You And Smarter Software Inc., What Club Chips And Diamonds Are, What They Are Not, And The Rules Every Account Is Held To. Free To Play, No Real-Money Gambling."
                 canonical="/terms"
+              jsonLd={TERMS_SCHEMA}
             />
 
             <div style={styles.container}>

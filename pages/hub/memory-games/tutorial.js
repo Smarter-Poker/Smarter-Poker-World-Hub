@@ -16,6 +16,16 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { PREFLOP_TUTORIAL } from '../../../src/tutorials/preflop-charts';
+import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const PREFLOP_GUIDE_SCHEMA = hubProductSchema({
+  path: '/hub/preflop-charts/tutorial',
+  name: 'Preflop Charts Guide | Smarter.Poker',
+  description:
+    'How To Construct, Score And Review GTO Preflop Ranges On Smarter.Poker: A Practical Guide To The Range Lab On Desktop Or Mobile. Free To Read.',
+  trail: [['Hub', '/hub'], ['Preflop Charts', '/hub/preflop-charts'], ['Guide', '/hub/preflop-charts/tutorial']],
+});
 
 const STEPS = [
   { icon: ScanSearch, title: 'Read The Situation', description: 'Confirm Your Position, Effective Stack, Format, And The Action You Are Facing. Those Details Determine The Target Range.' },
@@ -39,6 +49,7 @@ export default function MemoryGamesTutorial() {
         title="Preflop Charts Guide: Build GTO Ranges"
         description="Learn How To Construct, Score And Review GTO Preflop Ranges On Smarter.Poker. A Practical Guide To The Range Lab On Desktop Or Mobile, Free To Read And Free To Practise."
         canonical="/hub/preflop-charts/tutorial"
+        jsonLd={PREFLOP_GUIDE_SCHEMA}
       />
       <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate The Matrix" description="A Practical Guide To Building Exact Preflop Ranges On Desktop Or Mobile." metric="GUIDE">
         <section className="preflop-guide-grid" aria-label="How to use Preflop Charts">
