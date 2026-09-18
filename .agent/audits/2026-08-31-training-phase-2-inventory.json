@@ -48619,7 +48619,7 @@
       "functions": [
         {
           "name": "summarySchema",
-          "line": 67,
+          "line": 69,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -89502,7 +89502,7 @@
           "pages/hub/trivia/leaderboard.js",
           "pages/hub/trivia/mixed.js",
           "pages/hub/trivia/pvp.js",
-          "pages/hub/trivia/survival.js",
+          "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/time-attack.js",
           "pages/hub/trivia/tournaments.js",
           "pages/hub/video-library.js"
@@ -91171,7 +91171,7 @@
       {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 67,
+        "line": 69,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -98303,7 +98303,7 @@
           "pages/hub/trivia/leaderboard.js",
           "pages/hub/trivia/mixed.js",
           "pages/hub/trivia/pvp.js",
-          "pages/hub/trivia/survival.js",
+          "pages/hub/trivia/survival-game.js",
           "pages/hub/trivia/time-attack.js",
           "pages/hub/trivia/tournaments.js",
           "pages/hub/video-library.js"
@@ -99972,7 +99972,7 @@
       {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 67,
+        "line": 69,
         "references": 1,
         "exported": true,
         "defaultExport": false,

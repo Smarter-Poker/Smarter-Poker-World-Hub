@@ -283,7 +283,7 @@ export const HUB_PAGE_SUMMARIES = {
       'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Six Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A Head To Head Match Against Another Player, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
     links: [
       { name: 'Endless', href: '/hub/trivia/endless', text: 'Keep Answering Until You Decide To Stop.' },
-      { name: 'Survival', href: '/hub/trivia/survival', text: 'One Run, And A Wrong Answer Ends It.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'One Run, And A Wrong Answer Ends It.' },
       { name: 'Time Attack', href: '/hub/trivia/time-attack', text: 'As Many As You Can Before The Clock Runs Out.' },
       { name: 'Mixed', href: '/hub/trivia/mixed', text: 'Every Category At Once, In Random Order.' },
       { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Questions, Against Another Player, Live.' },
@@ -297,7 +297,7 @@ export const HUB_PAGE_SUMMARIES = {
       'Endless Is Poker Trivia With No Stop Condition: Questions Keep Coming Until You Decide To Leave, And Your Run Is Scored On How Far You Got And How Often You Were Right. It Is The Mode For Learning Rather Than Competing, Because A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And No Account Is Needed To Start A Run.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Survival', href: '/hub/trivia/survival', text: 'The Same Questions, With One Life.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Same Questions, With One Life.' },
       { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Look Up Anything A Question Used And You Did Not Know.' },
     ],
   },
@@ -357,7 +357,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Most Head To Head Wins. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Survival', href: '/hub/trivia/survival', text: 'The Mode Most Of The Top Runs Come From.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Mode Most Of The Top Runs Come From.' },
       { name: 'Smarter Rewards', href: '/hub/smarter-rewards', text: 'What Playing Regularly Earns You.' },
     ],
   },

@@ -34,7 +34,9 @@ export const SCHEMA_ROUTES = {
 
   trivia: { path: '/hub/trivia', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia']], collection: true },
   'trivia-endless': { path: '/hub/trivia/endless', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Endless', '/hub/trivia/endless']] },
-  'trivia-survival': { path: '/hub/trivia/survival', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Survival', '/hub/trivia/survival']] },
+  // The indexed Survival page is the live game; /hub/trivia/survival is a
+  // noindex redirect shim kept for old bookmarks (AEO phase 3, 2026-09-18).
+  'trivia-survival': { path: '/hub/trivia/survival-game', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Survival', '/hub/trivia/survival-game']] },
   'trivia-time-attack': { path: '/hub/trivia/time-attack', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Time Attack', '/hub/trivia/time-attack']] },
   'trivia-mixed': { path: '/hub/trivia/mixed', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Mixed', '/hub/trivia/mixed']] },
   'trivia-pvp': { path: '/hub/trivia/pvp', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Head To Head', '/hub/trivia/pvp']] },
