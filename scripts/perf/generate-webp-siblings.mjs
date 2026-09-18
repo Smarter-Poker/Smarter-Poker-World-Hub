@@ -33,14 +33,34 @@
 import { readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative } from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const ROOT = new URL('../..', import.meta.url).pathname;
+// fileURLToPath, not URL.pathname: a checkout under a directory with a space
+// or any non-ASCII character (`~/My Documents/`, an accented surname) comes
+// back percent-encoded from .pathname, every join below then points at a
+// directory that does not exist, the walk finds nothing, and the script
+// reports "0 files" as though the repository were already converted.
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const PUBLIC = join(ROOT, 'public');
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
-const MIN_BYTES = Number((args.find((a) => a.startsWith('--min=')) || '--min=250000').slice(6));
-const QUALITY = Number((args.find((a) => a.startsWith('--quality=')) || '--quality=82').slice(10));
+
+// A number that is not a number is not a default. NaN in MIN_BYTES makes
+// `size < MIN_BYTES` false for every file, so a typo would silently convert
+// the entire directory; NaN in QUALITY reaches sharp as an invalid option.
+function numeric(flag, fallback) {
+  const raw = args.find((a) => a.startsWith(flag));
+  if (!raw) return fallback;
+  const value = Number(raw.slice(flag.length));
+  if (!Number.isFinite(value) || value <= 0) {
+    console.error(`${flag}: expected a positive number, got ${JSON.stringify(raw.slice(flag.length))}`);
+    process.exit(2);
+  }
+  return value;
+}
+const MIN_BYTES = numeric('--min=', 250000);
+const QUALITY = numeric('--quality=', 82);
 const SKIP = ['images/footers/', 'images/global-header/', 'cards/optimized/', 'hub/'];
 const ALL = args.includes('--all');
 const SOURCE_DIRS = ['pages', 'src', 'lib', 'styles'];
@@ -60,6 +80,14 @@ function* walk(dir) {
     if (e.isDirectory()) yield* walk(p);
     else yield p;
   }
+}
+
+// Refusing here is the whole point: the failure this replaces looked exactly
+// like success, because a walk of a directory that is not there finds nothing
+// to do and says so cheerfully.
+if (!existsSync(PUBLIC) || !statSync(PUBLIC).isDirectory()) {
+  console.error(`public/ not found under ${ROOT} - run this from the World Hub repository root.`);
+  process.exit(2);
 }
 
 let sourceText = '';

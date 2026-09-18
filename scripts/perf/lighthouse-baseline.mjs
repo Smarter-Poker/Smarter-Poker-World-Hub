@@ -71,10 +71,14 @@ for (const url of URLS) {
   }
   const r = JSON.parse(readFileSync(file, 'utf8'));
   const a = r.audits;
+  // `score || 0` printed 0 for a run Lighthouse could not score, which is the
+  // one number a reader cannot tell from a real catastrophic result. A score
+  // it does not have is reported as unknown.
+  const raw = r.categories?.performance?.score;
   rows.push({
     name,
     url: r.finalDisplayedUrl,
-    score: Math.round((r.categories.performance.score || 0) * 100),
+    score: typeof raw === 'number' ? Math.round(raw * 100) : null,
     fcp: a['first-contentful-paint'].displayValue,
     lcp: a['largest-contentful-paint'].displayValue,
     tbt: a['total-blocking-time'].displayValue,
@@ -86,6 +90,22 @@ for (const url of URLS) {
 console.log('page | final url | score | FCP | LCP | TBT | CLS | transfer');
 for (const r of rows) {
   if (r.error) console.log(`${r.name} | ${r.url} | ERROR ${r.error}`);
-  else console.log(`${r.name} | ${r.url} | ${r.score} | ${r.fcp} | ${r.lcp} | ${r.tbt} | ${r.cls} | ${r.bytes}`);
+  else
+    console.log(
+      `${r.name} | ${r.url} | ${r.score ?? 'unscored'} | ${r.fcp} | ${r.lcp} | ${r.tbt} | ${r.cls} | ${r.bytes}`
+    );
 }
 console.log(`reports: ${out}`);
+
+// A baseline nobody can read is not a baseline. Printing the output directory
+// after every page failed reads as a completed run, and a before/after built
+// on it compares two empty sets.
+const measured = rows.filter((r) => !r.error).length;
+if (measured === 0) {
+  console.error(`no page produced a report (${rows.length} attempted); nothing was measured.`);
+  process.exit(1);
+}
+if (measured < rows.length) {
+  console.error(`${rows.length - measured} of ${rows.length} pages produced no report; the rows above are partial.`);
+  process.exit(1);
+}
