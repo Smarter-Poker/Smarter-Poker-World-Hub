@@ -116,7 +116,7 @@ export default function TrainingLeaderboard() {
     <PageTransition>
       <SEOHead
         title="Training Leaderboard - Top Students"
-        description="See Who Leads The GTO Training Leaderboard On Smarter.Poker."
+        description="The GTO Training Leaderboard On Smarter.Poker, Ranked On Decision Accuracy Against The Solver Baseline Rather Than On Volume, With The Sample Each Score Was Measured Over. Free To Appear On."
         canonical="/hub/training/leaderboard"
       />
 

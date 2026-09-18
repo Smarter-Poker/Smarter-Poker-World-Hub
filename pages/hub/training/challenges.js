@@ -124,7 +124,7 @@ export default function ChallengesPage() {
       <PageTransition>
         <SEOHead
           title="Daily Training Challenges"
-          description="Review Smarter.Poker Training Challenge Availability."
+          description="Daily GTO Training Challenges On Smarter.Poker: A Short Set Of Hands Chosen From The Spots You Have Been Getting Wrong, Scored Against A Solver Baseline. Free To Play, And Nothing In It Is A Wager."
           canonical="/hub/training/challenges"
         />
         <div style={styles.container}>

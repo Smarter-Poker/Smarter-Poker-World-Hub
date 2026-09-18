@@ -3,6 +3,16 @@ import { ArrowRight, Archive, ShieldOff, Swords } from 'lucide-react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import PreflopSubpageShell from '../../../src/components/memory-games/PreflopSubpageShell';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const PREFLOP_BOARD_SCHEMA = hubCollectionSchema({
+  path: '/hub/preflop-charts/leaderboard',
+  name: 'Preflop Charts Standings | Smarter.Poker',
+  description:
+    'Rankings For The Smarter.Poker Preflop Range Lab. Server Authoritative Standings Are Paused While Verified Matchmaking Is Prepared.',
+  trail: [['Hub', '/hub'], ['Preflop Charts', '/hub/preflop-charts'], ['Standings', '/hub/preflop-charts/leaderboard']],
+});
 
 /**
  * The former board ranked rows written by browser-owned Memory Games clients.
@@ -19,6 +29,7 @@ export default function MemoryGamesLeaderboard() {
         title="Preflop Charts Ranked Standings"
         description="Server-authoritative Preflop Charts rankings are paused while verified matchmaking is prepared."
         canonical="/hub/preflop-charts/leaderboard"
+        jsonLd={PREFLOP_BOARD_SCHEMA}
       />
       <PreflopSubpageShell
         eyebrow="RANKED CIRCUIT // AUTHORITY GATE"

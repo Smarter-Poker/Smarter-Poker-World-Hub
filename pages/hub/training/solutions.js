@@ -27,6 +27,17 @@ import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): a title and a description, and no canonical.
+const SOLUTIONS_SCHEMA = hubCollectionSchema({
+  path: '/hub/training/solutions',
+  name: 'GTO Solutions Browser | Smarter.Poker',
+  description:
+    'Provenance-Complete PioSOLVER Flop Solutions With Audited Action Frequencies And Hand-Class Expected Values. The Baseline Every Training Drill Is Scored Against.',
+  trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Solutions', '/hub/training/solutions']],
+});
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
@@ -813,13 +824,15 @@ function SolutionsBrowserInner() {
 
   return (
     <>
-      <Head>
-        <title>GTO Solutions Browser | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Browse provenance-complete PioSOLVER v2 flop artifacts with audited action frequencies and hand-class EVs."
-        />
-      </Head>
+      {/* SEOHead rather than a bare next/head block: this page shipped a
+          title and a description and no canonical at all, so a crawler had
+          to guess which URL it was reading (AEO phase 3, 2026-09-17). */}
+      <SEOHead
+        title="GTO Solutions Browser"
+        description="Browse Provenance-Complete PioSOLVER Flop Solutions On Smarter.Poker, With Audited Action Frequencies And Hand-Class Expected Values. The Baseline Every Training Drill Is Scored Against. Free To Read."
+        canonical="/hub/training/solutions"
+        jsonLd={SOLUTIONS_SCHEMA}
+      />
 
       <div
         style={{
