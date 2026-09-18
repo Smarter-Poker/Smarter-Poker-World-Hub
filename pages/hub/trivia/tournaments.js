@@ -781,7 +781,7 @@ export default function TournamentsPage() {
         <PageTransition>
             <SEOHead
                 title="Trivia Tournaments - Compete For Prizes"
-                description="Enter Poker Trivia Tournaments. Compete Against The Community For Diamonds, XP, And Leaderboard Glory."
+                description="Poker Trivia Tournaments On Smarter.Poker: A Scheduled Field Answering The Same Questions In The Same Order, Ranked On Accuracy And Speed. Free To Enter, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/tournaments"
             >
 

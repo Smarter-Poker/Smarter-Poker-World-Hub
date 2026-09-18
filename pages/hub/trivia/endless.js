@@ -717,7 +717,7 @@ export default function EndlessModePage() {
         <TriviaErrorBoundary pageName="Endless Mode">
             <SEOHead
                 title="Endless Trivia - Keep The Streak Alive"
-                description="How Many Poker Trivia Questions Can You Answer In A Row? Play Endless Mode To Test Your Limits."
+                description="Endless Poker Trivia On Smarter.Poker: Questions Keep Coming Until You Stop, And A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/endless"
             />
 

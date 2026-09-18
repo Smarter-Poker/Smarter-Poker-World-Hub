@@ -2480,7 +2480,7 @@ export default function ReelsPage() {
       <>
         <SEOHead
           title="Poker Reels - Short Poker Content"
-          description="Watch And Share Short Poker Videos, Highlights, And Tips On Smarter.Poker Reels."
+          description="Watch And Share Short Poker Video On Smarter.Poker Reels: Hands Worth Watching Twice, Reads That Paid Off And Moments From The Circuit. Free To Watch, No Account Needed, And Nothing In It Is A Wager."
           canonical="/hub/reels"
         />
         <div

@@ -183,7 +183,7 @@ export default function TriviaLeaderboard() {
         <>
             <SEOHead
                 title="Trivia Leaderboard - Top Players"
-                description="See Who Dominates The Poker Trivia Leaderboard. Global Rankings Across All Game Modes."
+                description="The Poker Trivia Leaderboard On Smarter.Poker: Daily, Weekly And All Time Rankings Across Every Mode, Updated As Runs Finish. Free To Appear On, And Nothing On It Is A Payout."
                 canonical="/hub/trivia/leaderboard"
             />
 

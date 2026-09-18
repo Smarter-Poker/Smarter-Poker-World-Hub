@@ -930,7 +930,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         <TriviaErrorBoundary pageName="PvP Battle">
             <SEOHead
                 title="PvP Trivia - Player vs Player"
-                description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
+                description="Head To Head Poker Trivia On Smarter.Poker: Two Players, The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Free To Play, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/pvp"
             >
 

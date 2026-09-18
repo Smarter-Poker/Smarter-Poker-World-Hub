@@ -82,7 +82,7 @@ export default function MemoryGamesStats() {
 
   return (
     <>
-      <SEOHead title="Preflop Charts Local Practice History" description="Review your legacy Preflop Charts local-practice archive without ranked or reward claims." canonical="/hub/preflop-charts/stats" />
+      <SEOHead title="Preflop Charts Local Practice History" description="Review Your Legacy Preflop Charts Local-Practice Archive On Smarter.Poker: What You Drilled And How It Scored, With No Ranked Standing And No Reward Claim Attached To Any Of It." canonical="/hub/preflop-charts/stats" />
       <PreflopSubpageShell eyebrow="PERSONAL TELEMETRY // LOCAL ARCHIVE" title="Local Practice History" description="Review historical Range Lab practice signals. These browser-originated rows are not verified scores, ranks, rewards, or account progression." metric={metrics.count ? `${metrics.average.toFixed(0)}%` : '-'}>
         {!user?.id ? <div className="preflop-subpage-empty preflop-auth-gate"><Target size={30} aria-hidden /><h2>Sign In To View Your Archive</h2><p>Signing In Reveals Your Historical Local-Practice Rows. New Local Drills Do Not Publish Ranked Or Rewarded Results.</p><Link href="/login?redirect=/hub/preflop-charts/stats">Sign In <ArrowRight size={16} aria-hidden /></Link></div> : <>
           {error && <div className="preflop-subpage-error" role="alert"><span>{error}</span><button type="button" onClick={fetchStats}><RefreshCw size={15} aria-hidden /> Retry</button></div>}

@@ -27,7 +27,7 @@ export default function MemoryGamesLeaderboard() {
     <>
       <SEOHead
         title="Preflop Charts Ranked Standings"
-        description="Server-authoritative Preflop Charts rankings are paused while verified matchmaking is prepared."
+        description="Rankings For The Smarter.Poker Preflop Range Lab. Server-Authoritative Standings Are Paused While Verified Matchmaking Is Prepared, So Nothing Here Is Ranked Or Rewarded Yet. Free To Practise."
         canonical="/hub/preflop-charts/leaderboard"
         jsonLd={PREFLOP_BOARD_SCHEMA}
       />
