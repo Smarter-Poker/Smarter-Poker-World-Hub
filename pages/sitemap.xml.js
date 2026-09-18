@@ -115,7 +115,12 @@ const staticPages = [
   // Hub — Trivia
   { path: '/hub/trivia', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/trivia/endless', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/survival', priority: '0.7', changefreq: 'weekly' },
+  // /hub/trivia/survival IS NOT LISTED (AEO phase 3, 2026-09-18). It is a
+  // deprecated duplicate implementation kept alive for old bookmarks: it
+  // declares noindex={true}, canonicals to /hub/trivia/survival-game and
+  // redirects there on mount. A sitemap entry says "index this" while the
+  // page says "do not", and the crawler believes the page. Survival is
+  // described and linked from /hub/trivia, which is indexed.
   { path: '/hub/trivia/time-attack', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/mixed', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' },
