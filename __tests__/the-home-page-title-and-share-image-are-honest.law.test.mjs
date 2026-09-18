@@ -189,3 +189,31 @@ test('the share image is the 1200 x 630 PNG the meta tags promise, under 400 KB'
   assert.match(seo, /og:image:width" content="1200"/);
   assert.match(seo, /og:image:height" content="630"/);
 });
+
+test('the pages that write their own title tag fit a result too', () => {
+  // These five do not pass a plain string to SEOHead: two write a raw
+  // <title> in next/head, two build it from a const, one passes it inline.
+  // Every one of them shipped over 60 characters on production, and
+  // /hub/poker-tours shipped 67 because its "&" renders as "&amp;" - four
+  // characters nothing measuring the source string would ever count
+  // (AEO phase 3, 2026-09-17).
+  const PAGES = [
+    ['pages/hub/home-games/in/index.js', /pageTitle = '([^']+)'/],
+    ['pages/hub/poker-near-me/in/index.js', /title="([^"]+)"/],
+    ['pages/hub/poker-tours.js', /<title>([^<]+)<\/title>/],
+    ['pages/hub/poker-series.js', /<title>([^<]+)<\/title>/],
+    ['pages/hub/memory-games/tutorial.js', /title="([^"]+)"/],
+  ];
+  for (const [file, pattern] of PAGES) {
+    const raw = read(file).match(pattern)?.[1];
+    assert.ok(raw, `${file} declares a title`);
+    const shipped = renderedTitle(raw).replace(/&/g, '&amp;');
+    assert.ok(shipped.length <= 60, `${file} ships ${shipped.length} characters: ${shipped}`);
+    assert.equal(
+      (shipped.match(/Smarter\.Poker/g) || []).length,
+      1,
+      `${file} names the site once: ${shipped}`,
+    );
+    assert.doesNotMatch(shipped, /—/, `${file}: no em dash`);
+  }
+});

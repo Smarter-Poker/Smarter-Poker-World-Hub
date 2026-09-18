@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 139,
+    "tests": 138,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 364,
     "routeStateCells": 752,
@@ -8612,18 +8612,15 @@
       },
       "reachableFiles": [
         "pages/hub/training/glossary.js",
-        "src/components/seo/SEOHead.js",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engine/EventBus.js",
-        "src/hooks/useTrainingBus.js",
-        "src/lib/seo/productOgImage.js"
+        "src/hooks/useTrainingBus.js"
       ],
       "states": {
         "loading": {
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
           "followUpPhase": 7
@@ -8635,7 +8632,6 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
         },
@@ -8643,7 +8639,6 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
           "followUpPhase": 15
@@ -8654,7 +8649,6 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
         },
@@ -8665,7 +8659,6 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
         },
@@ -8675,7 +8668,6 @@
             "pages/hub/training/glossary.js"
           ],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
         },
@@ -8683,7 +8675,6 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
           "followUpPhase": 15
@@ -8692,14 +8683,12 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
-            "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
           "followUpPhase": 8
         }
       },
       "existingTests": [
-        "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ],
       "uncoveredStates": [
@@ -25993,14 +25982,12 @@
     {
       "file": "pages/hub/training/glossary.js",
       "imports": [
-        "src/components/seo/SEOHead.js",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js"
       ],
       "links": [
-        "/hub/training",
-        "/hub/training/glossary"
+        "/hub/training"
       ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -26008,7 +25995,7 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 420,
+          "line": 373,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -26064,23 +26051,15 @@
         },
         {
           "name": "GlossaryPage",
-          "line": 351,
+          "line": 307,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
-          "name": "termSlug",
-          "line": 321,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "toggleFavorite",
-          "line": 375,
+          "line": 331,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26093,7 +26072,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 454,
+          "line": 407,
           "excerpt": "placeholder=\"Search terms...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -59146,10 +59125,6 @@
     },
     {
       "from": "pages/hub/training/glossary.js",
-      "to": "src/components/seo/SEOHead.js"
-    },
-    {
-      "from": "pages/hub/training/glossary.js",
       "to": "src/components/training/TrainerEmptyState.jsx"
     },
     {
@@ -61454,7 +61429,6 @@
     "__tests__/robots-crawler-policy.law.test.mjs",
     "__tests__/scroll-lock.test.mjs",
     "__tests__/the-app-reopens-where-you-left-it.test.mjs",
-    "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
     "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
     "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
     "__tests__/training-acl-closeout-authority.test.mjs",
@@ -63061,11 +63035,11 @@
       "effectRef": "pages/hub/training/focus-timer.js"
     },
     {
-      "id": "pages/hub/training/glossary.js:420:1",
+      "id": "pages/hub/training/glossary.js:373:1",
       "file": "pages/hub/training/glossary.js",
       "element": "button",
       "name": "Back to training",
-      "line": 420,
+      "line": 373,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -72401,11 +72375,9 @@
       "file": "pages/hub/training/glossary.js",
       "reachableFiles": [
         "pages/hub/training/glossary.js",
-        "src/components/seo/SEOHead.js",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engine/EventBus.js",
-        "src/hooks/useTrainingBus.js",
-        "src/lib/seo/productOgImage.js"
+        "src/hooks/useTrainingBus.js"
       ],
       "apiReferences": [],
       "persistence": [
@@ -72423,7 +72395,6 @@
       ],
       "realtime": [],
       "tests": [
-        "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ]
     },
@@ -79064,7 +79035,6 @@
       "realtime": [],
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
-        "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
       ]
     },
@@ -84262,7 +84232,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "kind": "PLACEHOLDER",
-        "line": 454,
+        "line": 407,
         "excerpt": "placeholder=\"Search terms...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -88084,7 +88054,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "name": "GlossaryPage",
-        "line": 351,
+        "line": 307,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -92953,7 +92923,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "kind": "PLACEHOLDER",
-        "line": 454,
+        "line": 407,
         "excerpt": "placeholder=\"Search terms...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -96775,7 +96745,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "name": "GlossaryPage",
-        "line": 351,
+        "line": 307,
         "references": 1,
         "exported": true,
         "defaultExport": true,

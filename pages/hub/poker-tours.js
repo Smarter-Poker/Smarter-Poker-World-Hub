@@ -753,7 +753,7 @@ export default function PokerToursPage({ initialTours = [] }) {
     return (
         <>
             <Head>
-                <title>Poker Tours - Traveling Poker Series & Circuits | Smarter.Poker</title>
+                <title>Poker Tours: Series And Circuits | Smarter.Poker</title>
                 <meta name="description" content="Browse all major poker tours including WSOP, WPT, MSPT, RGPS and more. Find upcoming series, tour stops, and schedules." />
                 <link rel="canonical" href="https://smarter.poker/hub/poker-tours" />
                 <meta property="og:title" content="Poker Tours Directory | Smarter.Poker" />

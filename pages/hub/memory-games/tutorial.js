@@ -35,7 +35,11 @@ export default function MemoryGamesTutorial() {
   useTrainingBus('preflop-charts-tutorial');
   return (
     <>
-      <SEOHead title="Preflop Charts Guide - Build Accurate GTO Ranges" description="Learn how to construct, score, and review GTO preflop ranges in Smarter.Poker." canonical="/hub/preflop-charts/tutorial" />
+      <SEOHead
+        title="Preflop Charts Guide: Build GTO Ranges"
+        description="Learn How To Construct, Score And Review GTO Preflop Ranges On Smarter.Poker. A Practical Guide To The Range Lab On Desktop Or Mobile, Free To Read And Free To Practise."
+        canonical="/hub/preflop-charts/tutorial"
+      />
       <PreflopSubpageShell eyebrow="FIELD MANUAL // RANGE LAB" title="Operate The Matrix" description="A Practical Guide To Building Exact Preflop Ranges On Desktop Or Mobile." metric="GUIDE">
         <section className="preflop-guide-grid" aria-label="How to use Preflop Charts">
           {STEPS.map(({ icon: Icon, title, description }, index) => (

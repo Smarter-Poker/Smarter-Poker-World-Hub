@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../../src/components/seo/HubPageSummary';
 import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { useRouter } from 'next/router';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
@@ -355,6 +356,10 @@ export default function PlayerTournamentsHub() {
           )}
         </div>
       </div>
+      {/* Server rendered, outside every client-only wrapper: measured on
+          production this page returned only navigation labels to a crawler
+          (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="commander-tournaments" />
     </>
     </CommanderPageShell>
   );

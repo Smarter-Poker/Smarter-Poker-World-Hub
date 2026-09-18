@@ -289,7 +289,7 @@ This cannot be undone early - take it seriously.`,
       {
         question: 'Where can I get help for problem gambling?',
         answer: `Resources are available:
-- **National Council on Problem Gambling**: 1-800-522-4700
+- **National Problem Gambling Helpline**: call or text 1-800-MY-RESET (1-800-697-3738), 24/7, or chat at www.1800myreset.org. The older number, 1-800-522-4700, still reaches the same helpline.
 - **Gamblers Anonymous**: www.gamblersanonymous.org
 - **Local resources**: Check your state's gaming commission website
 

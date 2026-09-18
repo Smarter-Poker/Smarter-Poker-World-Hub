@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../../src/components/seo/HubPageSummary';
 import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
@@ -276,6 +277,10 @@ export default function LeaguesPage() {
           )}
         </main>
       </div>
+      {/* Server rendered, outside every client-only wrapper: measured on
+          production this page returned only navigation labels to a crawler
+          (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="commander-leagues" />
     </>
     </CommanderPageShell>
   );

@@ -25,6 +25,7 @@ import { useRequireAuth, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../../src/engine/EventBus';
 import CommanderPageShell from '../../../../src/components/commander/CommanderPageShell';
+import ResponsibleGamingInfo, { HELPLINE } from '../../../../src/components/commander/ResponsibleGamingInfo';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
@@ -208,8 +209,15 @@ export default function ResponsibleGamingPage() {
     return (
       <>
         {head}
-        <div className="cmd-page flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+        <div className="cmd-page">
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+          </div>
+          {/* The informational half needs no account, so it renders here too.
+              A signed-out visitor used to meet a spinner and nothing else, and
+              a crawler measured 0 words on a page the sitemap promotes and
+              /about links under Policies (AEO phase 3, 2026-09-17). */}
+          <ResponsibleGamingInfo as="h1" />
         </div>
       </>
     );
@@ -444,19 +452,28 @@ export default function ResponsibleGamingPage() {
             </section>
           )}
 
-          {/* Resources */}
+          {/* Resources. The number comes from the shared constant, which
+              carries the source it was checked against: NCPG moved the
+              National Problem Gambling Helpline to 1-800-MY-RESET on
+              29 January 2026 and this page still printed the old one. */}
           <section className="cmd-panel p-4">
             <h3 className="font-semibold text-white mb-2">Need Help?</h3>
             <p className="text-sm text-[#64748B] mb-3">
               If You Or Someone You Know Has A Gambling Problem, Help Is Available.
             </p>
             <div className="space-y-2 text-sm">
-              <p className="text-[#22D3EE] font-medium">National Problem Gambling Helpline</p>
-              <p className="text-white">1-800-522-4700 (24/7)</p>
-              <p className="text-[#64748B]">Ncpgambling.Org</p>
+              <p className="text-[#22D3EE] font-medium">{HELPLINE.name}</p>
+              <p className="text-white">
+                {HELPLINE.phone} ({HELPLINE.phoneDigits}), 24/7
+              </p>
+              <p className="text-[#64748B]">
+                Also Reachable On {HELPLINE.alternate}, Or By Chat At {HELPLINE.chatLabel}
+              </p>
             </div>
           </section>
         </main>
+
+        <ResponsibleGamingInfo />
 
         {/* Exclusion Confirmation Modal */}
         {showExclusionConfirm && (
