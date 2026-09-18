@@ -12,6 +12,7 @@ import { areTriviaTournamentsReleased } from '../src/lib/trivia/tournamentReleas
 import {
   isServableSeriesParentEvidence,
   toPokerSeriesRouteId,
+  tournamentSeriesIdFromPointerUid,
 } from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import bundledSeriesData from '../data/poker-tour-series-2026.json';
 import tourSourceRegistry from '../data/tour-source-registry.json';
@@ -363,9 +364,11 @@ async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilt
 // 1,000-row limit.
 async function buildPokerEventDetailUrls() {
   const urls = new Map();
+  const offeredSeriesIds = new Set();
   const addSeries = (rawId) => {
     const id = Number(rawId);
     if (!Number.isSafeInteger(id) || id <= 0) return;
+    offeredSeriesIds.add(String(id));
     const path = `/hub/series/${id}`;
     urls.set(path, { path, priority: '0.7', changefreq: 'daily' });
   };
@@ -465,10 +468,15 @@ async function buildPokerEventDetailUrls() {
         .filter(row => isServableSeriesParentEvidence(row))
         .forEach((row) => {
           const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
-          // Two rows in THIS table can share a uid as well: the Trailblazer
-          // pairs were both poker_series, so the cross-table rule above left
-          // both of them listed (AEO phase 3, 2026-09-18). claimedUids is
-          // added to as this pass runs, so the first row wins here too.
+          // A uid that is a bare integer is not a uid at all: it is the
+          // tournament_series id this row mirrors. /hub/series/5001068
+          // carried "593". Comparing uid to uid can never catch that,
+          // because the two are not equal, one points at the other
+          // (AEO phase 3, 2026-09-18).
+          const pointsAt = tournamentSeriesIdFromPointerUid(uid);
+          if (pointsAt !== null && offeredSeriesIds.has(String(pointsAt))) return;
+          // Two rows in THIS table can share a real uid as well. claimedUids
+          // is added to as this pass runs, so the first row wins here too.
           if (uid && claimedUids.has(uid)) return;
           if (uid) claimedUids.add(uid);
           addSeries(toPokerSeriesRouteId(row.id));

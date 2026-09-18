@@ -18,7 +18,7 @@ import {
   seriesSchema,
   seriesTitle,
 } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
-import { isPokerSeriesRouteId } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
+import { isPokerSeriesRouteId, tournamentSeriesIdFromPointerUid } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -290,6 +290,11 @@ function getLocationParts(series) {
 async function primarySeriesRouteId(series) {
   if (!series?.seriesUid) return null;
   if (!isPokerSeriesRouteId(Number(series.id))) return null;
+
+  // A uid that is a bare integer already names the row that owns the route.
+  const pointsAt = tournamentSeriesIdFromPointerUid(series.seriesUid);
+  if (pointsAt !== null) return String(pointsAt);
+
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
