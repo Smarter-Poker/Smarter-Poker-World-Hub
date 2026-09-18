@@ -1867,10 +1867,6 @@ export default function MemoryGamesPage() {
         jsonLd={PREFLOP_SCHEMA}
       />
 
-      {/* Outside <PageTransition> for the same reason: this is the only body
-          copy a crawler that runs no JavaScript ever sees here. */}
-      <HubPageSummary page="preflop-charts" as="h1" />
-
     <PageTransition disableInitialAnimation>
 
       <HubPageShell
@@ -3321,6 +3317,10 @@ export default function MemoryGamesPage() {
                 }
             `}</style>
     </PageTransition>
+    {/* Outside <PageTransition> for the same reason the head is, and
+        AFTER it so the app still opens at the top of the page: this is the
+        only body copy a crawler that runs no JavaScript ever sees here. */}
+    <HubPageSummary page="preflop-charts" as="h1" />
     </>
   );
 }

@@ -1350,10 +1350,6 @@ export default function NewsHub() {
                 jsonLd={NEWS_SCHEMA}
             />
 
-            {/* Outside <PageTransition> for the same reason: this is the only
-                body copy a crawler that runs no JavaScript ever sees here. */}
-            <HubPageSummary page="news" as="h1" />
-
             {/* schema.org ItemList of the headlines actually on screen.
                 Every less-than character is replaced with its unicode escape
                 (u003c) so a headline containing a closing script tag cannot
@@ -4267,6 +4263,10 @@ export default function NewsHub() {
                 `}</style>
                 </div>
     </PageTransition>
+            {/* Outside <PageTransition> for the same reason the head is, and
+                AFTER it so the app still opens at the top of the page: this is the
+                only body copy a crawler that runs no JavaScript ever sees here. */}
+            <HubPageSummary page="news" as="h1" />
 
 
             {/* Article Reader Modal - Opens full external pages in-app via server-side proxy */}

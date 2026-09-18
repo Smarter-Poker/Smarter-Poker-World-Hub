@@ -1607,10 +1607,6 @@ export default function VideoLibraryPage() {
                 jsonLd={VIDEO_LIBRARY_SCHEMA}
             />
 
-            {/* Outside <PageTransition> for the same reason: this is the only
-                body copy a crawler that runs no JavaScript ever sees here. */}
-            <HubPageSummary page="video-library" as="h1" />
-
         <PageTransition>
 
             <div className="video-library-page" style={{
@@ -3257,6 +3253,10 @@ export default function VideoLibraryPage() {
             `}</style>
 
         </PageTransition>
+        {/* Outside <PageTransition> for the same reason the head is, and
+            AFTER it so the app still opens at the top of the page: this is the
+            only body copy a crawler that runs no JavaScript ever sees here. */}
+        <HubPageSummary page="video-library" as="h1" />
         </>
     );
 }
