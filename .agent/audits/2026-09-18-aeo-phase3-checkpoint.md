@@ -85,7 +85,7 @@ noscript, template and svg stripped before counting words.
 
 |                                  | start | now |
 |----------------------------------|------:|----:|
-| routes in the sitemap            |    73 | 1,193 |
+| routes in the sitemap            |    73 | 1,191 |
 | routes with no title             |     9 |   0 |
 | titles cut off in a result       |     9 |   0 |
 | routes with no description       |     9 |   0 |
@@ -117,25 +117,50 @@ tab titles were each re-measured on production.
 5. `TRIVIA_PVP_ENABLED` and `TRIVIA_TOURNAMENTS_ENABLED`. The sitemap and
    the summaries follow those flags now, so nothing else is needed here if
    they are opened.
-6. **Five pairs of duplicate records.** Each pair is one real thing held
-   twice, and a title change would hide it rather than fix it:
+6. **Two series pages share a title because their venue column is empty.**
+   `/hub/series/5001035` and `/hub/series/5001036` are *not* duplicates:
+   different `series_uid`, different venues (Texas Card House Dallas and TCH
+   Social Las Colinas). Same for `/hub/series/5001037` and `5001039`. The
+   venue is present in the uid slug and absent from the `venue` column, so
+   the title falls back to the name alone and the two read alike. Filling
+   the venue on those four rows fixes it. Parsing a venue out of a slug was
+   deliberately not done.
 
-   | pages | what |
-   |---|---|
-   | `/hub/tours/ROUGHRIDER`, `/hub/tours/RRPT` | one tour, two codes |
-   | `/hub/series/479`, `/hub/series/5001069` | one series, no shared series_uid to match on |
-   | `/hub/series/593`, `/hub/series/5001068` | same |
-   | `/hub/series/5001035`, `/hub/series/5001036` | both in poker_series, so #1897's cross-table rule does not apply |
-   | `/hub/series/5001037`, `/hub/series/5001039` | same |
+7. **The four true duplicates are resolved** (#1905, #1906), and the
+   question this checkpoint previously put to the owner is answered: the
+   repository already decides it. `reconcileTournamentSeriesEvidence` in
+   `seriesRouteIdentity.mjs` states that `tournament_series` owns the public
+   route identity and `poker_series` may replace metadata only when it is a
+   newer observation of the same source URL with a real hash. That also
+   governs the `main_event_guaranteed` disagreement that made the decision
+   look risky. Nothing is outstanding.
 
-7. **Which series record is authoritative.** #1897 stopped the sitemap
-   offering two URLs per series, but did not canonicalise one to the other,
-   because the two records disagree on real values. For series 470,
-   `tournament_series` reports `main_event_guaranteed: 400000` and
-   `poker_series` reports `17240000`; for a $3,500 regional series the
-   first is the plausible one. Canonicalising to the wrong record would
-   consolidate onto the page with the worse data, so the decision is left
-   with the owner.
+8. **A support ticket and conversation view for staff does not exist.**
+   `/admin/support-tickets/<id>` and `/admin/live-help/<id>` were linked
+   from every support notification and neither page was ever built; the dead
+   links were removed in #1900 and the identifiers kept as text. Live Help
+   has an API and a Geeves panel, and the API is user-scoped: it returns a
+   person's own conversations. An admin view means new admin-scoped
+   endpoints over other people's support conversations, which is a new
+   privacy surface rather than a repair, so it was not built unasked.
+
+## Closing measurement, re-taken
+
+All 1,191 sitemap routes, after #1900 through #1906:
+
+  no title 0 · title cut in a result 0 · no description 0 · no canonical 0 ·
+  no h1 0 · no structured data 0 · noindex but listed 0 · under 60 words 0 ·
+  fewest words on any route 77 · median words 209 · duplicate titles 2
+
+The two remaining duplicate titles are the Trailblazer pairs above, which
+are two real series each and are left alone on purpose.
+
+Also verified rather than assumed, across every route: the structured data
+parses and carries no null, empty or untyped node, no graph repeats an
+`@id`, every breadcrumb is ordered, and every Event has the startDate and
+location schema.org requires. Every canonical is correct, not merely
+present. No `X-Robots-Tag` header contradicts a page's meta robots. Every
+share image loads at a usable size.
 
 ## Next action
 
