@@ -23,14 +23,32 @@
  * FIVE DUPLICATE TITLES REMAINED ON PRODUCTION
  *
  *   /hub/tours/ROUGHRIDER, /hub/tours/RRPT       one tour, two codes
- *   /hub/series/479,  /hub/series/5001069        no shared uid to match on
+ *   /hub/series/479,  /hub/series/5001069        a uid that POINTS
  *   /hub/series/593,  /hub/series/5001068        the same
- *   /hub/series/5001035, /hub/series/5001036     BOTH in poker_series, so
- *   /hub/series/5001037, /hub/series/5001039     the cross-table rule missed
+ *   /hub/series/5001035, /hub/series/5001036     NOT duplicates, see below
+ *   /hub/series/5001037, /hub/series/5001039     NOT duplicates, see below
  *
- * Three causes, fixed here: the poker_series pass never deduped against
- * itself, tours were never deduped at all, and a dropped duplicate still
- * declared itself canonical instead of pointing at the page that was kept.
+ * Causes, fixed here: the poker_series pass never deduped against itself,
+ * tours were never deduped at all, a dropped duplicate still declared
+ * itself canonical instead of pointing at the page that was kept, and a
+ * poker_series row can carry the bare integer id of the tournament_series
+ * row it mirrors instead of a uid, which no uid-to-uid comparison can see.
+ *
+ * THE TRAILBLAZER PAGES ARE NOT DUPLICATES
+ *
+ * They were called duplicates when only their titles were compared, and the
+ * data says otherwise:
+ *
+ *   5001035  pa_trailblazer-satellite-leaderboard-texas-card-house-dallas-2026
+ *   5001036  pa_trailblazer-satellite-leaderboard-tch-social-las-colinas-irving-2026
+ *
+ * Different uids, different venues, two real series that share a name. What
+ * they share is an EMPTY venue column, so seriesTitle has nothing to
+ * distinguish them with and falls back to the name alone. The venue is
+ * sitting in the uid slug, and parsing a display name out of a slug is a
+ * guess this programme has been burned by often enough. The rows need their
+ * venue filled in; that is a data repair, and merging the pages or inventing
+ * a venue would hide it.
  *
  * Reads source files and exercises the helpers; no network, no database.
  */
@@ -41,6 +59,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registryCodeForTour } from '../src/lib/seo/tourPageSeo.js';
 import { seriesPath, seriesSelfPath, toSeoSeries } from '../src/lib/poker-near-me/seriesSeo.mjs';
+import { tournamentSeriesIdFromPointerUid } from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -107,4 +126,26 @@ test('the rule this follows is the one the repository already stated', () => {
   // following a rule that no longer exists and must be revisited.
   const identity = read('src/lib/poker-near-me/seriesRouteIdentity.mjs');
   assert.match(identity, /without\s*\n?\s*\*?\s*changing the public route identity/i);
+});
+
+test('a uid that is a bare integer is read as a pointer, not as a uid', () => {
+  // The live pair: /hub/series/5001068 carried series_uid "593".
+  assert.equal(tournamentSeriesIdFromPointerUid('593'), 593);
+  assert.equal(tournamentSeriesIdFromPointerUid('479'), 479);
+  assert.equal(tournamentSeriesIdFromPointerUid(' 12 '), 12);
+  // A real scraper uid is not a pointer.
+  assert.equal(tournamentSeriesIdFromPointerUid('pa_2026-winnin-o-the-green'), null);
+  // Nor is anything that is not a positive integer.
+  for (const bad of ['', '0', '-3', 'abc', null, undefined, 12]) {
+    assert.equal(tournamentSeriesIdFromPointerUid(bad), null, String(bad));
+  }
+});
+
+test('the sitemap and the page both follow a pointer uid', () => {
+  const sitemap = read('pages/sitemap.xml.js');
+  assert.match(sitemap, /tournamentSeriesIdFromPointerUid/);
+  assert.match(sitemap, /offeredSeriesIds\.has/, 'a pointer is only honoured when its target was actually offered');
+
+  const page = read('pages/hub/series/[id].js');
+  assert.match(page, /tournamentSeriesIdFromPointerUid\(series\.seriesUid\)/);
 });

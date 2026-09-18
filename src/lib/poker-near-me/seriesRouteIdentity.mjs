@@ -166,3 +166,24 @@ export function reconcileTournamentSeriesEvidence(tournamentSeries, pokerSeries)
   reconciled.metadata_source_id = pokerSeries.id;
   return reconciled;
 }
+
+/**
+ * A poker_series row sometimes carries, instead of a scraper uid, the bare
+ * integer id of the tournament_series row it mirrors:
+ *
+ *   /hub/series/5001068   series_uid "593"     -> /hub/series/593
+ *   /hub/series/5001069   series_uid "479"     -> /hub/series/479
+ *
+ * Measured live on 2026-09-18. Both pairs shipped the same title and both
+ * declared themselves canonical, and neither the cross-table rule (#1897)
+ * nor the same-table one (#1905) could see them, because those compare uid
+ * to uid and these two uids are not equal to anything, they POINT.
+ *
+ * Returns the tournament_series id a uid points at, or null. A uid that is
+ * not a bare positive integer is a real uid and is not a pointer.
+ */
+export function tournamentSeriesIdFromPointerUid(seriesUid) {
+  const text = typeof seriesUid === 'string' ? seriesUid.trim() : '';
+  if (!/^[0-9]+$/.test(text)) return null;
+  return asPositiveSafeInteger(text);
+}
