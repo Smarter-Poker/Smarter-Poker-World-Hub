@@ -26,6 +26,7 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
@@ -1560,6 +1561,9 @@ function SolutionsBrowserInner() {
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSpots(); }} />}
       {bookmarkError && <ErrorBanner message={bookmarkError} onRetry={() => setBookmarkError(null)} />}
       <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-solutions" />
     </>
   );
 }

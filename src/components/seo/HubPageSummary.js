@@ -270,6 +270,147 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Series And Festivals By Date.' },
     ],
   },
+  // AEO phase 3 (2026-09-17). The trivia family: eight routes in the
+  // sitemap, and measured on production as OAI-SearchBot they returned
+  // between 0 and 67 words. Everything they render lives behind a data load
+  // or a client-only wrapper, so a crawler saw the chrome and left.
+  trivia: {
+    heading: 'About Poker Trivia',
+    lead:
+      'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Six Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A Head To Head Match Against Another Player, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'Endless', href: '/hub/trivia/endless', text: 'Keep Answering Until You Decide To Stop.' },
+      { name: 'Survival', href: '/hub/trivia/survival', text: 'One Run, And A Wrong Answer Ends It.' },
+      { name: 'Time Attack', href: '/hub/trivia/time-attack', text: 'As Many As You Can Before The Clock Runs Out.' },
+      { name: 'Mixed', href: '/hub/trivia/mixed', text: 'Every Category At Once, In Random Order.' },
+      { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Questions, Against Another Player, Live.' },
+      { name: 'Trivia Tournaments', href: '/hub/trivia/tournaments', text: 'Scheduled Events With A Field And A Final Standing.' },
+      { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Ahead Today, This Week And All Time.' },
+    ],
+  },
+  'trivia-endless': {
+    heading: 'About Endless Mode',
+    lead:
+      'Endless Is Poker Trivia With No Stop Condition: Questions Keep Coming Until You Decide To Leave, And Your Run Is Scored On How Far You Got And How Often You Were Right. It Is The Mode For Learning Rather Than Competing, Because A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And No Account Is Needed To Start A Run.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'Survival', href: '/hub/trivia/survival', text: 'The Same Questions, With One Life.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Look Up Anything A Question Used And You Did Not Know.' },
+    ],
+  },
+  'trivia-survival': {
+    heading: 'About Survival Mode',
+    lead:
+      'Survival Is One Run With One Life: Answer Correctly And The Next Question Comes, Answer Wrong And The Run Is Over. The Score Is How Deep You Got, Which Makes It The Mode Where Knowing You Do Not Know Is Worth As Much As Knowing. Streaks Carry Across Sessions And The Best Runs Reach The Leaderboard. Free To Play, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'The Deepest Runs Today, This Week And All Time.' },
+      { name: 'Endless', href: '/hub/trivia/endless', text: 'The Same Questions, With No Way To Lose.' },
+    ],
+  },
+  'trivia-time-attack': {
+    heading: 'About Time Attack',
+    lead:
+      'Time Attack Gives You A Fixed Clock And Counts How Many Questions You Answer Correctly Before It Runs Out. Skipping Is Free And Guessing Is Not, So The Mode Rewards Reading Fast And Knowing When To Move On, Which Is A Closer Match To A Real Decision At The Table Than Any Amount Of Thinking Time Would Be. Free To Play, And No Account Is Needed To Start.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Timed Decisions On Real Hands Rather Than Questions.' },
+      { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'The Highest Counts Today, This Week And All Time.' },
+    ],
+  },
+  'trivia-mixed': {
+    heading: 'About Mixed Mode',
+    lead:
+      'Mixed Draws From Every Category At Once And In Random Order: Hand Rankings Next To Tournament History Next To A Rules Dispute Next To Pot Odds. It Is The Mode That Finds The Category You Have Been Avoiding, Because You Cannot See What Is Coming And Cannot Prepare For It. Free To Play, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Forty Nine Terms Defined, For The Category You Keep Missing.' },
+      { name: 'Endless', href: '/hub/trivia/endless', text: 'The Same Breadth, With No Stop Condition.' },
+    ],
+  },
+  'trivia-pvp': {
+    heading: 'About Head To Head',
+    lead:
+      'Head To Head Puts Two Players On The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Matches Are Short, Results Are Immediate, And Both Players See Every Answer Afterwards, So A Match Doubles As A Way To Find Out What The Other Person Knew That You Did Not. Free To Play, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'Trivia Tournaments', href: '/hub/trivia/tournaments', text: 'The Same Format With A Full Field And A Final Standing.' },
+      { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Winning Matches Today, This Week And All Time.' },
+    ],
+  },
+  'trivia-tournaments': {
+    heading: 'About Trivia Tournaments',
+    lead:
+      'Trivia Tournaments Are Scheduled Events: Everyone Answers The Same Questions In The Same Order At The Same Time, And The Field Is Ranked On Correct Answers And Speed. Registration Opens Before The Start, The Standings Move Live While It Runs, And The Final Table Of Results Stays Readable Afterwards. Free To Enter, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Idea With One Opponent Instead Of A Field.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Live Poker Series And Festivals By Date.' },
+    ],
+  },
+  'trivia-leaderboard': {
+    heading: 'About The Trivia Leaderboard',
+    lead:
+      'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Most Head To Head Wins. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
+    links: [
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
+      { name: 'Survival', href: '/hub/trivia/survival', text: 'The Mode Most Of The Top Runs Come From.' },
+      { name: 'Smarter Rewards', href: '/hub/smarter-rewards', text: 'What Playing Regularly Earns You.' },
+    ],
+  },
+
+  // The training sub-pages: seven routes in the sitemap returning between
+  // 10 and 77 words each, for the same reason (AEO phase 3, 2026-09-17).
+  'training-challenges': {
+    heading: 'About Daily Challenges',
+    lead:
+      'Daily Challenges Are A Short Set Of Hands Chosen For You Each Day, Drawn From The Spots You Have Been Getting Wrong Rather Than From A Fixed List. A Challenge Takes A Few Minutes, Scores Every Decision Against A Solver Baseline, And Explains The Ones You Missed. Streaks Count Consecutive Days Completed. Free To Play, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games And The Full Drill Library.' },
+      { name: 'Training Leaderboard', href: '/hub/training/leaderboard', text: 'How Today\u2019s Scores Compare.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Solution Uses, Defined.' },
+    ],
+  },
+  'training-leaderboard': {
+    heading: 'About The Training Leaderboard',
+    lead:
+      'The Training Leaderboard Ranks Players On Decision Accuracy Against The Solver Baseline Rather Than On Volume, So Playing More Hands Does Not Move You Up On Its Own. Daily, Weekly And All Time Windows Are Kept Separately, And Each Entry Shows The Sample It Was Measured Over, Because An Accuracy Number With No Hand Count Behind It Is Not A Number. Free To Appear On.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'The Drills The Scores Come From.' },
+      { name: 'Daily Challenges', href: '/hub/training/challenges', text: 'The Fastest Way Onto The Daily Board.' },
+      { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Events With A Field And A Final Standing.' },
+    ],
+  },
+  'training-tournaments': {
+    heading: 'About Training Tournaments',
+    lead:
+      'Training Tournaments Put A Field Of Players Through The Same Hands In The Same Order And Rank Them On Decision Quality Against The Solver, Not On Chips Won. That Removes The Variance A Real Tournament Adds, So The Standing At The End Is A Measure Of How Well People Played Rather Than How The Cards Fell. Free To Enter, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'The Drill Library These Events Are Drawn From.' },
+      { name: 'Training Leaderboard', href: '/hub/training/leaderboard', text: 'Standings Across Every Event And Drill.' },
+      { name: 'Poker Arena', href: '/hub/club-arena', text: 'Play The Real Thing In A Private Club.' },
+    ],
+  },
+  'training-jarvis': {
+    heading: 'About Jarvis',
+    lead:
+      'Jarvis Is The Coaching Layer Over Smarter Poker Training: It Reads The Hand In Front Of You, Compares Your Line To The Solver Baseline, And Explains The Difference In Words Rather Than In A Frequency Table. Ask It Why A Fold Was Wrong, What Range It Assumed, Or What Changes If The Stack Is Shorter, And It Answers Against That Hand. Free To Use While Training.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'The Drills Jarvis Coaches You Through.' },
+      { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Upload A Hand From Anywhere And Have It Graded.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term Jarvis Uses, Defined.' },
+    ],
+  },
+  'training-solutions': {
+    heading: 'About Solutions',
+    lead:
+      'Solutions Is The Library Of Solver Baselines Every Drill Is Scored Against: Opening, Three Betting And Defending Ranges By Position And Stack Depth, With The Frequencies And The Reasoning Behind Them. Browse A Spot Directly Rather Than Waiting For A Drill To Show It To You, And Compare What The Solver Does With What You Have Been Doing. Free To Read.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'The Drills That Use These Baselines.' },
+      { name: 'Preflop Range Lab', href: '/hub/preflop-charts', text: 'Practise The Preflop Ranges Directly.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Range Advantage, Squeeze, Polarised And 46 More.' },
+    ],
+  },
 };
 
 export default function HubPageSummary({ page, as = 'h2' }) {

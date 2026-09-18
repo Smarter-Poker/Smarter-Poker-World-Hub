@@ -38,6 +38,7 @@ import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionB
 import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
@@ -1352,6 +1353,9 @@ export default function EndlessModePage() {
                     </div>
                 </div>
     </PageTransition >
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-endless" />
         </TriviaErrorBoundary>
     );
 }

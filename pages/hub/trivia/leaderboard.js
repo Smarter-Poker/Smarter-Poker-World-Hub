@@ -20,6 +20,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 // documents as undefined behaviour — so the leaderboard's day window could drift
 // away from the play_date the game pages actually write.
 import { getTodayCST, getCSTDateParts } from '../../../src/lib/trivia/getTodayCST';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // Ranking raw `score` across all modes is not like-for-like: endless scores
 // streak*100 with no ceiling and structurally dominates the 10-question modes.
@@ -343,6 +344,9 @@ export default function TriviaLeaderboard() {
                 </div>
     </PageTransition>
         </>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-leaderboard" />
         </TriviaErrorBoundary>
     );
 }

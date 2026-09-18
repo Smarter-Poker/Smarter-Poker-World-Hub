@@ -1055,6 +1055,7 @@ jobs:
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
             __tests__/the-community-pages-say-what-they-are.law.test.mjs \
+            __tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs \
             __tests__/the-commander-pages-say-what-they-are.law.test.mjs \
             __tests__/the-entity-graph-is-connected.law.test.mjs \
             __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \

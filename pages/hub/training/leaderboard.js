@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ICON COMPONENTS — TRAIN-LEADERBOARD-A11Y-1
@@ -227,6 +228,9 @@ export default function TrainingLeaderboard() {
         </div>
       </div>
       <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-leaderboard" />
     </PageTransition>
   );
 }

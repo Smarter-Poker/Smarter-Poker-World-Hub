@@ -20,6 +20,7 @@ import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-TOURNAMENTS-A11Y-1): SVG icon components replacing the
@@ -393,6 +394,9 @@ export default function TournamentsPage() {
       </div>
     </PageTransition>
     <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-tournaments" />
     </>
   );
 }
