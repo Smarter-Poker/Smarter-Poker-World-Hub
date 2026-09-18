@@ -7,6 +7,8 @@
  */
 
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes';
+import { isTriviaPvpReleased } from '../src/lib/trivia/pvpReleaseControl.mjs';
+import { areTriviaTournamentsReleased } from '../src/lib/trivia/tournamentReleaseControl.mjs';
 import {
   isServableSeriesParentEvidence,
   toPokerSeriesRouteId,
@@ -124,8 +126,12 @@ const staticPages = [
   { path: '/hub/trivia/survival-game', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/time-attack', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/mixed', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' },
+  // /hub/trivia/pvp and /hub/trivia/tournaments ARE NOT HERE. Both sit
+  // behind a server side release gate and redirect to /hub/trivia while it
+  // is closed, so the sitemap was inviting a crawler to two 307s. They are
+  // added below, by asking the same gate the pages ask, so that enabling
+  // either feature puts it back in the sitemap with no second edit here
+  // and no chance of the two disagreeing (AEO phase 3, 2026-09-18).
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
 
   // A ROUTE THAT ONLY REDIRECTS IS NOT A PAGE (AEO phase 3, 2026-09-17).
@@ -475,8 +481,21 @@ export async function getServerSideProps({ res }) {
     buildPokerVenueUrls(),
     buildPokerEventDetailUrls(),
   ]);
+  // A page the release gate is currently redirecting is not a page. The
+  // gate is read here, from the same functions the pages read, so the
+  // sitemap can never advertise a feature that is switched off.
+  const releaseGatedPages = [
+    ...(isTriviaPvpReleased(process.env)
+      ? [{ path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' }]
+      : []),
+    ...(areTriviaTournamentsReleased(process.env)
+      ? [{ path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' }]
+      : []),
+  ];
+
   const sitemap = generateSitemapXml([
     ...staticPages,
+    ...releaseGatedPages,
     ...homeGameUrls,
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,

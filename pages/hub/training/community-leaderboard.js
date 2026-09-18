@@ -11,7 +11,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-7 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -157,13 +157,26 @@ export default function CommunityLeaderboardPage() {
   const topThree = entries.slice(0, 3);
   const restEntries = entries.slice(3);
 
-  if (!mounted) return null;
+  // AEO phase 3 (2026-09-18): the head used to sit below this guard. The
+  // guard is true on the server, so the branch a crawler always takes
+  // returned nothing and the page served a 200 with no title and zero
+  // words. The head is hoisted above it and returned from it, so the page
+  // says what it is before it says it is still loading.
+  // It also only had a bare <title>. The shared wrapper adds the
+  // description, the canonical and the robots line every other page has.
+  const pageHead = (
+    <SEOHead
+      title="GTO Training Community Leaderboard"
+      description="Where You Stand Against Everyone Else Training On Smarter.Poker: Accuracy, Volume And Streaks Across The Whole Community, Updated As Sessions Are Graded."
+      canonical="/hub/training/community-leaderboard"
+    />
+  );
+
+  if (!mounted) return pageHead;
 
   return (
     <>
-      <Head>
-        <title>Leaderboard | Smarter.Poker GTO Training</title>
-      </Head>
+      {pageHead}
       <div
         className="sp-training-intelligence sp-training-intelligence--community"
         style={{

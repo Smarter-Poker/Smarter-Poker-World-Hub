@@ -56,9 +56,24 @@ export default function CategoryPage() {
     const { getGameProgress } = useTrainingProgress();
     useTrainingBus('training-category', { categoryId });
 
-    if (!router.isReady) return null;
-
+    // AEO phase 3 (2026-09-18): the head used to sit below this guard.
+    // The guard is true on the server, so the branch a crawler always
+    // takes returned nothing and the page served a 200 with no title and
+    // zero words. The head is hoisted above it and returned from it, so
+    // the page says what it is before it says it is still loading.
+    // categoryId comes from router.query, which is empty during the server
+    // render, so the head has to work without it rather than assume it.
     const category = CATEGORY_META[categoryId];
+    const pageHead = (
+      <SEOHead
+          title={category ? `${category.title} | Training` : 'GTO Training Category'}
+          description={category?.description || 'A Category Of Smarter.Poker GTO Training Drills.'}
+          noindex={true}
+      />
+    );
+
+    if (!router.isReady) return pageHead;
+
     const games = category ? getGamesByCategory(categoryId) : [];
     const heroArtId = games[0]?.id || 'quiz-gauntlet';
 
@@ -78,11 +93,7 @@ export default function CategoryPage() {
 
     return (
         <PageTransition>
-            <SEOHead
-                title={`${category.title} | Training`}
-                description={category.description}
-                noindex={true}
-            />
+            {pageHead}
             <div className="sp-training-category" style={{ '--category-accent': category.accent }}>
                 <UniversalHeader pageDepth={2} />
 

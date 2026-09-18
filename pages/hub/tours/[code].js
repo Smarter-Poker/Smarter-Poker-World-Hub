@@ -14,6 +14,9 @@ import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNea
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import TourPageSummary from '../../../src/components/seo/TourPageSummary';
+import { tourSeo, tourSchema } from '../../../src/lib/seo/tourPageSeo';
+import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
 const TOUR_COLORS = {
@@ -141,7 +144,50 @@ const GAME_COLORS = {
   LHE:'#6b7280', SHORT:'#06b6d4', '2-7':'#84cc16', PLO5:'#c084fc',
 };
 
-export default function TourDetailPage() {
+/**
+ * AEO phase 3 (2026-09-18). This page had no data function at all, so Next
+ * statically optimised it, router.isReady was false on the server, and the
+ * guard below returned null for every crawler: 29 tour routes in the sitemap
+ * answered 200 with zero words and no title.
+ *
+ * This resolves the tour's identity on the server. The bundled registry
+ * covers 25 tours and needs no network; the sitemap also lists tours that
+ * live only in Supabase, so those are looked up, briefly, and a failure
+ * falls back to the code rather than taking the page down. Nothing here
+ * fetches the schedule: that stays on SWR, where it was.
+ */
+export async function getServerSideProps({ params, res }) {
+  const code = String(params?.code || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{1,32}$/.test(code)) return { notFound: true };
+
+  const registryEntry = tourSourceRegistry?.tours?.[code] || null;
+  let dbName = null;
+  let dbType = null;
+
+  if (!registryEntry) {
+    try {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (url && key) {
+        const { createClient } = await import('@supabase/supabase-js');
+        const { data } = await createClient(url, key)
+          .from('tour_source_registry')
+          .select('tour_name, tour_type')
+          .eq('tour_code', code)
+          .maybeSingle();
+        dbName = data?.tour_name || null;
+        dbType = data?.tour_type || null;
+      }
+    } catch (e) {
+      console.warn('[tours] identity lookup failed:', e?.message || e);
+    }
+  }
+
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
+  return { props: { seo: tourSeo(code, registryEntry, dbName, dbType) } };
+}
+
+export default function TourDetailPage({ seo }) {
   const router = useRouter();
   const { code } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -350,19 +396,33 @@ export default function TourDetailPage() {
 
   const tourColor = TOUR_COLORS[code] || TOUR_COLORS['default'];
   const tourTypeLabel = tour ? (TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type) : '';
-  const pageTitle = tour ? (tour.tour_name + ' | Smarter.Poker') : 'Tour Details | Smarter.Poker';
 
-  if (!router.isReady) return null;
+  // The head and the summary are built from props alone, not from
+  // router.query and not from SWR, so the server HTML, the hydrating render
+  // and every later render agree, and they are present whether or not the
+  // rest of the page ever paints. Deriving the name from SWR instead would
+  // rewrite the title and the JSON-LD after hydration, which no crawler
+  // would ever see and which only risks a mismatch.
+  const seoHead = (
+    <SEOHead
+      title={seo.title}
+      description={seo.description}
+      canonical={seo.canonical}
+      jsonLd={tourSchema(seo)}
+    />
+  );
+  const seoSummary = (
+    <TourPageSummary code={seo.code} name={seo.name} type={seo.type} website={seo.website} />
+  );
+
+  // Server render, and the hydrating render, take this branch. The summary
+  // sits at the foot of the full page below, where it reads as a footer
+  // rather than as something wedged above the header.
+  if (!router.isReady) return <>{seoHead}{seoSummary}</>;
 
   return (
     <>
-      <SEOHead
-        title={tour ? (tour.tour_name + ' - Poker Tour Details') : 'Poker Tour Details'}
-        description={tour ? ('View ' + tour.tour_name + ' schedule, stops, and results on Smarter.Poker.') : 'View details for this poker tour on Smarter.Poker.'}
-      >
-
-
-      </SEOHead>
+      {seoHead}
 
       <UniversalHeader 
         pageDepth={2} 
@@ -428,7 +488,7 @@ export default function TourDetailPage() {
                 </nav>
 
                 <div className="header-top-row">
-                  <h1 className="tour-name">{tour.tour_name}</h1>
+                  <h2 className="tour-name">{tour.tour_name}</h2>
                   <div className="header-actions">
                     <button
                       className={'follow-btn' + (isFollowed ? ' followed' : '')}
@@ -905,6 +965,8 @@ export default function TourDetailPage() {
           </>
         )}
       </main>
+
+      {seoSummary}
 
       <style suppressHydrationWarning>{styles}</style>
     </>
