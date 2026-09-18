@@ -35,6 +35,7 @@ import {
   findLiveCashGameEntry,
 } from '../../../src/lib/poker-near-me/liveCashGameData';
 import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching';
+import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -147,7 +148,7 @@ function buildVenueJsonLd(venue, canonical, image) {
   const locationConflict = venue?.location_quality?.status === 'conflict';
   if (!locationConflict) {
     const address = {};
-    if (venue.address) address.streetAddress = String(venue.address);
+    if (isPublishableStreetAddress(venue.address)) address.streetAddress = String(venue.address);
     if (venue.city) address.addressLocality = String(venue.city);
     if (venue.state) address.addressRegion = String(venue.state);
     if (venue.zip_code) address.postalCode = String(venue.zip_code);
