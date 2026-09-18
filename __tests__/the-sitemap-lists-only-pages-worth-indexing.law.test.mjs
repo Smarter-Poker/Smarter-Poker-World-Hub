@@ -51,6 +51,10 @@ const ABOUT_THE_VIEWER = {
   '/hub/trivia/achievements': "the viewer's own trivia results",
   '/hub/preflop-charts/achievements': "the viewer's own practice results",
   '/hub/preflop-charts/stats': "the viewer's own practice results",
+  // Not about the viewer, about the staff: an email and password form, a
+  // roster table and an SQL console, gated on profiles.is_admin. A public
+  // sitemap is the wrong place to advertise an admin login.
+  '/horses': 'the staff admin console, behind a login form',
 };
 
 test('no page that is about the viewer is offered to a crawler', () => {
@@ -59,6 +63,34 @@ test('no page that is about the viewer is offered to a crawler', () => {
     .filter(([route]) => listed.has(route))
     .map(([route, why]) => `${route} (${why})`);
   assert.deepEqual(offenders, [], `these show the viewer their own data:\n${offenders.join('\n')}`);
+});
+
+test('no admin console is advertised in the public sitemap', () => {
+  // A scanner, not a list: any listed route whose page is an admin surface
+  // or ships a password form fails here, whether or not anyone named it.
+  const offenders = [];
+  for (const route of sitemapPaths()) {
+    const candidates =
+      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
+    if (!file) continue;
+    const src = read(file);
+    const reasons = [];
+    if (/\bAdmin\b/.test(src.slice(0, 3000)) || src.includes('is_admin')) reasons.push('an admin surface');
+    if (src.includes('signInWithPassword') || src.includes('loginForm')) reasons.push('a password form');
+    if (reasons.length) offenders.push(`${route} (${file}: ${reasons.join(', ')})`);
+  }
+  assert.deepEqual(offenders, [], `the sitemap advertises staff surfaces:\n${offenders.join('\n')}`);
+
+  // Leaving the sitemap stops it being promoted; robots.txt stops it being
+  // crawled at all. A group is exclusive, so the rule must be in every one.
+  const robots = read('public/robots.txt');
+  const groups = (robots.match(/^User-agent:/gm) || []).length;
+  assert.equal(
+    (robots.match(/^Disallow: \/horses$/gm) || []).length,
+    groups,
+    `every one of the ${groups} crawler groups disallows /horses`,
+  );
 });
 
 test('every route the sitemap promises is a route that exists', () => {
