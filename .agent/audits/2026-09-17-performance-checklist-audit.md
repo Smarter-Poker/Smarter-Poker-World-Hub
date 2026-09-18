@@ -161,6 +161,14 @@ about checks nobody can see.
   20260831094000). Each owner should confirm before a drop; the one
   pre-August candidate, idx_profiles_farming_flagged (112 kB, May), is not
   worth a migration on its own.
+  **Re-measured 2026-09-18 02:4x, and the reasoning held.** The largest
+  candidate of the twenty-five,
+  idx_game_management_events_scope_created_cover, has gone from zero scans to
+  62 and from 298 MB to 314 MB: its consumer shipped in the intervening day.
+  The others are still at zero. That is the case for leaving all of them
+  alone, now with an instance behind it rather than an argument - a drop
+  performed on the evidence available yesterday would have removed an index
+  that production began using today.
 - **50 tables with multiple permissive RLS policies** (survival_progress 6,
   message_reactions 3, and one extra policy on chip_transactions,
   club_wallets, rake_records and 22 others). Merging is a semantic rewrite on
@@ -195,21 +203,47 @@ about checks nobody can see.
   Verified after: 75 rows, 75 distinct ids, all 13 indexes present and valid,
   65 public rows readable, `ALTER TABLE ... SET WITHOUT CLUSTER` to leave the
   catalog as it was found, and ANALYZE. The churn that caused it (3,700
-  updates, no inserts, no deletes) will do so again; a per-table autovacuum
-  setting is the durable answer and is a migration somebody should own.
+  updates, no inserts, no deletes) was expected to recur, and this file
+  prescribed a per-table autovacuum setting as the durable answer.
+  **That prescription is withdrawn on measurement.** Ten hours after the
+  rewrite the table is still 224 kB, with zero dead tuples and n_tup_upd
+  unchanged at 3,700 - no update has touched it since. The churn was
+  historical, not ongoing, and autovacuum has 29 successful runs on this
+  table, so there is nothing for a tuning migration to defend against.
+  Nobody should open one.
 - **rake_history**: 1,372,780 rows, 195 MB, last row 2026-05-01, never read
   by index and 47 times by sequential scan in its life. Retired financial
   history; keep it, but nothing needs it in the hot path.
 - **settlement_idempotency_keys** (9.3 GB, 7.6 M rows, 6.5 billion index
   scans) and **solved_spots_gold** (80 GB, read 23 times by seq scan): retention
   and placement rulings, as with hand history.
-- **The clones on the Mac.** ~/Documents/club-arena is 57 commits behind
-  origin/main with four modified doctrine files; ~/Documents/Smarter-Poker-World-Hub
-  is 65 behind with seven; ~/Documents/Smarter-Poker-Club-Arena is 176 behind
-  with 443 staged or modified paths, the exact shape CLAUDE.md 10.87 describes.
-  All three carry another task's uncommitted work, so this audit did not
-  reset or fast-forward any of them. The audit itself worked in owned
-  worktrees under /Volumes/SmarterWork/agent-work/perf-audit-2026-09-17/.
+- **The clones on the Mac, re-measured 2026-09-18 and worse, with the danger
+  now named.** Not this audit's to fix, and the most urgent thing in this
+  file. `scripts/check-checkout-freshness.sh` - the repository's own check,
+  advisory by design - reports ~/Documents/Smarter-Poker-Club-Arena 236
+  commits behind with 433 paths staged but never committed, and
+  ~/Documents/club-arena, the one clone AGENT-PLAYBOOK 1b actually allows, 117
+  behind. Two clones of the same repository exist where the playbook allows
+  one. 554 worktrees hang off the canonical clone and 202 of them are more
+  than 500 commits behind. ~/Documents/Smarter-Poker-World-Hub is 30 behind
+  and clean.
+  The concrete harm is no longer hypothetical. `.claude/skills/deploy-hetzner/SKILL.md`
+  on disk in BOTH Club Arena clones is **v3.0.0**, and it names raw hosts
+  including 178.156.160.206 - the TURN server, not the engine. `origin/main`
+  has carried **v4.0.0** since 2026-09-17 18:13 (#4809), which names no IP at
+  all and routes engine delivery through stage-engine-release.yml and
+  auto-deploy-hetzner.yml. The file carries no local edit in either clone, so
+  the difference is pure staleness: an agent pointed at either tree today
+  loads v3.0.0 and is instructed about raw hosts that current doctrine has
+  deliberately stopped naming. This is 10.87's own worked example, live again,
+  six days later.
+  Nothing here was reset or fast-forwarded. Both Club Arena clones carry
+  another task's uncommitted work (21 and 467 paths), and 10.87's guard states
+  the rule this audit followed: it never stashes, never checks anything out,
+  never moves you - it refuses, explains, and stops. The freshness check fired
+  on every push made during this audit and nobody has acted on it; that is the
+  gap, not the guard. The audit itself worked in owned worktrees under
+  /Volumes/SmarterWork/agent-work/, all since removed.
 
 ## Measured after phase 2 landed
 
