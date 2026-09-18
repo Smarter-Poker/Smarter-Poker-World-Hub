@@ -32,6 +32,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -736,6 +737,9 @@ export default function TimeAttackPage() {
                     justify-content: center;
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-time-attack" />
         </TriviaErrorBoundary>
     );
 }

@@ -122,14 +122,18 @@ const staticPages = [
   { path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
 
+  // A ROUTE THAT ONLY REDIRECTS IS NOT A PAGE (AEO phase 3, 2026-09-17).
+  // /hub/training/analyzer is getServerSideProps returning a 307 to the
+  // hand-history upload, and /hub/training/play-mode renders
+  // CanonicalTrainingRedirect and sends the reader into the arena. A crawler
+  // that follows a sitemap entry to a redirect learns the destination it
+  // could have reached anyway, and spends a fetch to do it.
   // Hub — Training sub-pages
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
-  { path: '/hub/training/play-mode', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
-  { path: '/hub/training/analyzer', priority: '0.6', changefreq: 'weekly' },
 
   // Hub — Preflop Charts sub-pages
   { path: '/hub/preflop-charts/leaderboard', priority: '0.5', changefreq: 'daily' },

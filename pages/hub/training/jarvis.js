@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 // TRAIN-WIRE-EMPTY-5d — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-JARVIS-A11Y-1): SVG icon components replacing the Jarvis
@@ -410,6 +411,9 @@ export default function JarvisDashboard() {
         </div>
       </div>
       <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-jarvis" />
     </PageTransition>
   );
 }

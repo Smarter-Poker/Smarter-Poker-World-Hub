@@ -61,6 +61,25 @@ test('no page that is about the viewer is offered to a crawler', () => {
   assert.deepEqual(offenders, [], `these show the viewer their own data:\n${offenders.join('\n')}`);
 });
 
+test('no route the sitemap lists is only a redirect', () => {
+  // A crawler that follows a sitemap entry to a redirect learns the
+  // destination it could have reached anyway, and spends a fetch to do it.
+  const offenders = [];
+  for (const route of sitemapPaths()) {
+    const candidates =
+      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
+    if (!file) continue;
+    const src = read(file);
+    if (/redirect:\s*\{/.test(src) && /getServerSideProps|getStaticProps/.test(src)) {
+      offenders.push(`${route} (${file}: a server redirect)`);
+    } else if (/CanonicalTrainingRedirect|Redirect\b/.test(src) && src.split('\n').length < 40) {
+      offenders.push(`${route} (${file}: a redirect shim)`);
+    }
+  }
+  assert.deepEqual(offenders, [], `the sitemap lists redirects:\n${offenders.join('\n')}`);
+});
+
 test('every route the sitemap promises is a route that exists', () => {
   // A sitemap entry with no page behind it is a 404 the site asked for.
   const missing = [];

@@ -22,6 +22,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // TRAIN-CSS-MOTION-ADOPT-10 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -262,6 +263,9 @@ export default function ChallengesPage() {
       </div>
     </PageTransition>
     <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-challenges" />
     </>
   );
 }
