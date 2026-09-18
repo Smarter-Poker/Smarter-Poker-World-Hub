@@ -87,25 +87,90 @@ const disallowed = (route) => DISALLOWED.some((rule) => route === rule || route.
 const shippedTitle = (raw) =>
   (raw.includes('Smarter.Poker') ? raw : `${raw} | Smarter.Poker`).replace(/&/g, '&amp;');
 
+
+/**
+ * A page does not always write its title inline. pages/hub/poker-near-me/
+ * [pnmTab].js passes `routeMeta.title`, and the eleven strings live in a
+ * ROUTE_META table in src/components/poker-near-me/discoveryController.js.
+ * Reading only `title="..."` out of pages/ missed all of them, and six were
+ * over 60 on production, one at 74 (AEO phase 3, 2026-09-18).
+ *
+ * So: when a page hands SEOHead an expression rather than a literal, the
+ * modules that page imports are opened, and any `title:` string sitting
+ * beside a `description:` in the same object is measured too. That is the
+ * shape of page metadata, and it is narrow enough not to sweep in scenario
+ * banks or store items, which carry a title and a description but never
+ * reach a head.
+ */
+function metadataTitlesReachedFrom(file) {
+  const src = read(file);
+  if (!/<SEOHead[\s\S]{0,600}?title=\{/.test(src)) return [];
+  const out = [];
+  for (const m of src.matchAll(/^import\s+(?:[\w*{},\s]+)\s+from\s+'(\.[^']+)'/gm)) {
+    const target = resolveLocal(file, m[1]);
+    if (!target) continue;
+    const mod = read(target);
+    for (const t of mod.matchAll(/\btitle:\s*'([^']{5,})'/g)) {
+      const window = mod.slice(t.index, t.index + 300);
+      if (/\bdescription:\s*\n?\s*'/.test(window)) out.push({ from: target, raw: t[1] });
+    }
+  }
+  return out;
+}
+
+/** Resolve a relative import to a file in this repo, or null. */
+function resolveLocal(fromFile, spec) {
+  const base = path.posix.join(path.posix.dirname(fromFile), spec);
+  for (const cand of [base, `${base}.js`, `${base}.jsx`, `${base}/index.js`, `${base}/index.jsx`]) {
+    try {
+      // statSync, not accessSync: a bare directory name resolves happily
+      // and then reading it throws EISDIR.
+      if (fs.statSync(path.join(ROOT, cand)).isFile()) return cand;
+    } catch { /* keep looking */ }
+  }
+  return null;
+}
+
+
+/**
+ * Unconditionally noindex, and therefore with no result to fit into.
+ *
+ * This used to be "the token noindex appears within 600 characters of
+ * SEOHead", which skipped pages/hub/poker-near-me/[pnmTab].js entirely,
+ * because that page writes noindex={!isPokerDiscoveryRouteIndexable(slug)}:
+ * some of its eleven tabs are indexed and some are not. Six of its titles
+ * were over 60 on production, one at 74, and this law read none of them
+ * (AEO phase 3, 2026-09-18).
+ *
+ * A conditional noindex means the page is indexed for at least one input,
+ * so its titles count.
+ */
+function alwaysNoindex(src) {
+  if (/content="noindex/.test(src)) return true;
+  const m = src.match(/<SEOHead[\s\S]{0,600}?\bnoindex\b(\s*=\s*\{([^}]*)\})?/);
+  if (!m) return false;
+  if (m[1] === undefined) return true;            // bare `noindex`
+  return m[2].trim() === 'true';                  // noindex={true}
+}
+
 test('every literal page title fits a search result', () => {
   const offenders = [];
   for (const file of pageFiles()) {
     const src = read(file);
     // A page that tells crawlers not to index it has no search result to
     // fit into. pages/USRobots.js is a noindex pitch deck, not a product.
-    const declaresNoindex =
-      /content="noindex/.test(src) || /<SEOHead[\s\S]{0,600}?\bnoindex\b/.test(src);
-    if (declaresNoindex) continue;
+    if (alwaysNoindex(src)) continue;
     const titles = [
-      ...[...src.matchAll(/<SEOHead[\s\S]{0,600}?title="([^"]+)"/g)].map((m) => m[1]),
-      ...[...src.matchAll(/<title>([^<{]+)<\/title>/g)].map((m) => m[1]),
+      ...[...src.matchAll(/<SEOHead[\s\S]{0,600}?title="([^"]+)"/g)].map((m) => ({ from: file, raw: m[1] })),
+      ...[...src.matchAll(/<title>([^<{]+)<\/title>/g)].map((m) => ({ from: file, raw: m[1] })),
+      ...metadataTitlesReachedFrom(file),
     ];
-    for (const raw of titles) {
+    for (const { from, raw } of titles) {
       const shipped = shippedTitle(raw);
-      if (shipped.length > 60) offenders.push(`${file}: ${shipped.length} characters: ${shipped}`);
-      if (/—/.test(shipped)) offenders.push(`${file}: em dash in the title: ${shipped}`);
+      if (shipped.length > 60) offenders.push(`${from}: ${shipped.length} characters: ${shipped}`);
+      if (/—/.test(shipped)) offenders.push(`${from}: em dash in the title: ${shipped}`);
       if ((shipped.match(/Smarter\.Poker/g) || []).length > 1) {
-        offenders.push(`${file}: names the site twice: ${shipped}`);
+        offenders.push(`${from}: names the site twice: ${shipped}`);
       }
     }
   }
@@ -133,9 +198,7 @@ test('every literal description is long enough to be worth reading', () => {
   const offenders = [];
   for (const file of sitemapPageFiles()) {
     const src = read(file);
-    const declaresNoindex =
-      /content="noindex/.test(src) || /<SEOHead[\s\S]{0,600}?\bnoindex\b/.test(src);
-    if (declaresNoindex) continue;
+    if (alwaysNoindex(src)) continue;
     // A path robots.txt disallows has no search result either. Read the real
     // file rather than keeping a second list of exceptions beside it.
     if (disallowed(routeOf(file))) continue;
