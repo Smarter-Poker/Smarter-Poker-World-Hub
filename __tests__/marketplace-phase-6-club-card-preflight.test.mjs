@@ -253,6 +253,29 @@ test('Club Shop catalog and both admin writers share the DB-backed Card price bo
   );
 });
 
+test('Club Shop catalog returns authoritative club ownership on every storefront item', async () => {
+  const catalogApi = await read('pages/api/club-arena/marketplace-items.js');
+  const queryStart = catalogApi.indexOf('let itemsPromise = getSupabase()');
+  const queryEnd = catalogApi.indexOf('let profileResult;', queryStart);
+
+  assert.notEqual(queryStart, -1, 'the storefront catalog query must remain present');
+  assert.ok(queryEnd > queryStart, 'the storefront catalog query must remain bounded');
+
+  const storefrontQuery = catalogApi.slice(queryStart, queryEnd);
+  const selectedColumns = storefrontQuery.match(/\.select\(\s*['"]([^'"]+)['"]\s*\)/)?.[1];
+  assert.ok(selectedColumns, 'the storefront catalog query must select explicit columns');
+  assert.ok(
+    selectedColumns
+      .split(',')
+      .map((column) => column.trim())
+      .includes('club_id'),
+    'the response must carry the database-owned club_id required by the client verifier'
+  );
+  assert.match(storefrontQuery, /\.eq\('club_id', clubId\)/);
+  assert.match(catalogApi, /const itemsWithCount = items\.map\(\(i\) => \{[\s\S]*?return \{\s*\.\.\.i,/);
+  assert.match(catalogApi, /items:\s*itemsWithCount/);
+});
+
 test('Diamond and merchandise Stripe ambiguity stays pending and recoverable', async () => {
   const checkout = await read('pages/api/store/create-checkout-session.js');
   assert.match(checkout, /type === 'diamonds' && !checkoutRequestId/);
