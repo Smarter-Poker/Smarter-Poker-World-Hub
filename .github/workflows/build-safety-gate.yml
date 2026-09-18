@@ -83,6 +83,11 @@ jobs:
           scope: '@smarter-poker'
           always-auth: true
 
+      - name: Agent policy integrity and delivery scenarios
+        run: |
+          node docs/agent-policy/agent-policy.mjs check
+          node --test docs/agent-policy/agent-policy.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4
@@ -1048,6 +1053,7 @@ jobs:
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
             __tests__/the-entity-graph-is-connected.law.test.mjs \
+            __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \

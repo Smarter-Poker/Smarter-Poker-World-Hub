@@ -91,6 +91,10 @@ export default function LandingProductSummary() {
       </div>
       <p style={styles.compliance}>
         Free To Play. 18+. Diamonds And Chips Have No Cash Value.{' '}
+        <Link href="/about" style={styles.inlineLink}>
+          About
+        </Link>
+        {' '}
         <Link href="/legal/official-rules" style={styles.inlineLink}>
           Official Rules
         </Link>
