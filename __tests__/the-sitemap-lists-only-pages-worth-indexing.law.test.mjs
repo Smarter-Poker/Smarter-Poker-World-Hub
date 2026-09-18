@@ -68,6 +68,12 @@ test('no page that is about the viewer is offered to a crawler', () => {
 test('no route the sitemap lists is only a redirect', () => {
   // A crawler that follows a sitemap entry to a redirect learns the
   // destination it could have reached anyway, and spends a fetch to do it.
+  //
+  // The line-count heuristic this used to carry missed /hub/trivia/survival,
+  // a 76 line redirect shim, because a shim with a long explanatory comment
+  // is still a shim. Detect the redirect itself instead: a server redirect,
+  // a named redirect component, or router.replace/push to a constant on
+  // mount (AEO phase 3, 2026-09-18).
   const offenders = [];
   for (const route of sitemapPaths()) {
     const candidates =
@@ -77,11 +83,40 @@ test('no route the sitemap lists is only a redirect', () => {
     const src = read(file);
     if (/redirect:\s*\{/.test(src) && /getServerSideProps|getStaticProps/.test(src)) {
       offenders.push(`${route} (${file}: a server redirect)`);
-    } else if (/CanonicalTrainingRedirect|Redirect\b/.test(src) && src.split('\n').length < 40) {
+    } else if (/<CanonicalTrainingRedirect/.test(src)) {
       offenders.push(`${route} (${file}: a redirect shim)`);
+    } else if (/router\.(replace|push)\(\s*[A-Z_]{3,}\s*\)/.test(src)) {
+      offenders.push(`${route} (${file}: redirects to a constant route on mount)`);
     }
   }
   assert.deepEqual(offenders, [], `the sitemap lists redirects:\n${offenders.join('\n')}`);
+});
+
+test('the sitemap never offers a page that tells crawlers not to index it', () => {
+  // The sitemap says "index this" and the page says "do not". The crawler
+  // believes the page, so the entry spends budget to be overruled.
+  // /hub/trivia/survival did exactly this: listed, noindex, and canonical to
+  // a different URL (AEO phase 3, 2026-09-18).
+  const offenders = [];
+  for (const route of sitemapPaths()) {
+    const candidates =
+      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
+    if (!file) continue;
+    const src = read(file);
+    if (/noindex=\{true\}|noindex\s*$|content="noindex/m.test(src) && /noindex/.test(src)) {
+      if (/noindex=\{true\}/.test(src) || /content="noindex/.test(src)) {
+        offenders.push(`${route} (${file}) declares noindex`);
+      }
+    }
+    // A page whose canonical names a different route is asking not to be the
+    // indexed one either.
+    const canonical = src.match(/canonical=\{?["']?([^"'}\s]+)/)?.[1];
+    if (canonical && canonical.startsWith('/') && canonical !== route) {
+      offenders.push(`${route} (${file}) canonicals to ${canonical}`);
+    }
+  }
+  assert.deepEqual(offenders, [], `the sitemap contradicts the page:\n${offenders.join('\n')}`);
 });
 
 test('no admin console is advertised in the public sitemap', () => {
