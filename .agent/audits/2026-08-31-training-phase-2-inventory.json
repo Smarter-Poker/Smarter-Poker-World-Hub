@@ -4669,6 +4669,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4696,6 +4697,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4730,6 +4732,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4755,6 +4758,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4784,6 +4788,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4816,6 +4821,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4832,6 +4838,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4852,6 +4859,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-final-honesty-surfaces.test.mjs",
             "__tests__/training-learning-journey-phase-9.test.mjs",
             "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4862,6 +4870,7 @@
         }
       },
       "existingTests": [
+        "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-final-honesty-surfaces.test.mjs",
         "__tests__/training-learning-journey-phase-9.test.mjs",
         "__tests__/training-legacy-authority-boundary.test.mjs",
@@ -4888,6 +4897,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4897,6 +4907,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4906,6 +4917,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4915,6 +4927,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4926,6 +4939,7 @@
             "pages/hub/training/aggregate.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ]
@@ -4934,6 +4948,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4943,6 +4958,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4952,6 +4968,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "e2e/020-hamburger.spec.ts"
           ],
@@ -4959,6 +4976,7 @@
         }
       },
       "existingTests": [
+        "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
         "e2e/020-hamburger.spec.ts"
       ],
@@ -12595,6 +12613,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12631,6 +12650,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12674,6 +12694,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12709,6 +12730,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12747,6 +12769,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12788,6 +12811,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12813,6 +12837,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12842,6 +12867,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-arena-review-gateway-authority.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-completion-api-boundary.test.mjs",
@@ -12861,6 +12887,7 @@
         }
       },
       "existingTests": [
+        "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-arena-review-gateway-authority.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-completion-api-boundary.test.mjs",
@@ -14209,6 +14236,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14222,6 +14250,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14239,6 +14268,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14254,6 +14284,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14268,6 +14299,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14282,6 +14314,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14294,6 +14327,7 @@
             "src/components/training/ConnectionToast.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14308,6 +14342,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-intelligence-phase-10.test.mjs",
             "__tests__/training-legacy-consumer-authority.test.mjs",
             "__tests__/training-runtime-wiring.test.mjs",
@@ -14316,6 +14351,7 @@
         }
       },
       "existingTests": [
+        "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-intelligence-phase-10.test.mjs",
         "__tests__/training-legacy-consumer-authority.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",
@@ -15556,6 +15592,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15580,6 +15617,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15611,6 +15649,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15634,6 +15673,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15660,6 +15700,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15689,6 +15730,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15702,6 +15744,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15719,6 +15762,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
             "__tests__/training-projection-authority-package-c.test.mjs",
             "__tests__/training-retired-client-mutations.test.mjs",
             "__tests__/training-streak-settlement-ui.test.mjs"
@@ -15726,6 +15770,7 @@
         }
       },
       "existingTests": [
+        "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-projection-authority-package-c.test.mjs",
         "__tests__/training-retired-client-mutations.test.mjs",
         "__tests__/training-streak-settlement-ui.test.mjs"
@@ -61385,6 +61430,7 @@
     "__tests__/scroll-lock.test.mjs",
     "__tests__/the-app-reopens-where-you-left-it.test.mjs",
     "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
+    "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
     "__tests__/training-acl-closeout-authority.test.mjs",
     "__tests__/training-advisor-followup-migration.test.mjs",
     "__tests__/training-analysis-suite-phase-8.test.mjs",
@@ -83724,6 +83770,7 @@
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
+        "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/training-authored-surface-authority.test.mjs",
         "__tests__/training-mobile-upgrades.test.mjs",
         "__tests__/training-runtime-wiring.test.mjs",

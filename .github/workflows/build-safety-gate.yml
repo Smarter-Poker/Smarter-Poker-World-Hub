@@ -1049,6 +1049,7 @@ jobs:
             __tests__/the-live-seo-contract-reads-the-site.law.test.mjs \
             __tests__/robots-crawler-policy.law.test.mjs \
             __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
+            __tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
