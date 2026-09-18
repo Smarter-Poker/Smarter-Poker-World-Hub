@@ -15,7 +15,7 @@
 
 # ── Node (never committed but just in case) ───────────────────
 node_modules/
-.git/
+# Keep Git history: the ignored-build decision compares deployed source.
 
 # ── DATA SCRAPING OUTPUT (11k+ files — scraper logs only) ─────
 # These subdirs contain scraper logs/evidence NOT imported by code
