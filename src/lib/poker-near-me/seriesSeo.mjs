@@ -17,6 +17,8 @@
  *
  * This is the pattern already proven on /hub/commander/venues/[id].
  */
+import { firstThatFits } from '../seo/titleFit.js';
+
 const TIMEOUT_MS = 4000;
 
 /** Absolute origin for a same-origin API call from getServerSideProps. */
@@ -126,17 +128,46 @@ export function cityWithoutVenue(city, venueName) {
   return trimmed || null;
 }
 
-export function seriesPlace(v) {
-  const city = cityWithoutVenue(v.city, v.venueName);
-  if (v.venueName && city) return `${v.venueName} in ${city}${v.state ? `, ${v.state}` : ''}`;
-  if (v.venueName) return `${v.venueName}${v.state ? `, ${v.state}` : ''}`;
-  if (city) return `${city}${v.state ? `, ${v.state}` : ''}`;
-  return v.location || null;
+/**
+ * The scrapers write the literal string "Unknown" (and a few of its
+ * cousins) into venue and city when the source page did not say. Twelve
+ * series titles shipped "... At Unknown" to production because of it, which
+ * is worse than saying nothing (AEO phase 3, 2026-09-18).
+ */
+const PLACEHOLDER = /^(unknown|unnamed|n\/?a|tbd|tba|none|null|undefined|-+)$/i;
+export function realPlace(text) {
+  const t = typeof text === 'string' ? text.trim() : '';
+  return t && !PLACEHOLDER.test(t) ? t : null;
 }
 
+export function seriesPlace(v) {
+  const venueName = realPlace(v.venueName);
+  const city = cityWithoutVenue(realPlace(v.city), venueName);
+  const state = realPlace(v.state);
+  if (venueName && city) return `${venueName} in ${city}${state ? `, ${state}` : ''}`;
+  if (venueName) return `${venueName}${state ? `, ${state}` : ''}`;
+  if (city) return `${city}${state ? `, ${state}` : ''}`;
+  return realPlace(v.location);
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this was one template, `${name} At ${place}`,
+ * with nothing measuring it. 162 of the 246 series pages in the sitemap
+ * rendered past what a result shows, the worst at 111 characters, and a
+ * result cut the end, which is where the venue was. Twelve said
+ * "At Unknown" because the scraper writes that word into the venue column.
+ *
+ * The name alone is always kept; the venue is added where it fits.
+ */
 export function seriesTitle(v) {
-  const place = v.venueName || v.city;
-  return place ? `${v.name} At ${place}` : v.name;
+  const name = typeof v.name === 'string' ? v.name.trim() : '';
+  const venue = realPlace(v.venueName);
+  const city = cityWithoutVenue(realPlace(v.city), venue);
+  return firstThatFits([
+    venue ? `${name} At ${venue}` : null,
+    city ? `${name} At ${city}` : null,
+    name,
+  ].filter(Boolean));
 }
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
@@ -180,4 +211,94 @@ export function seriesDescription(v) {
 
 export function seriesPath(v) {
   return `/hub/series/${v.id}`;
+}
+
+
+/**
+ * A series is a real world event, and until now these 246 pages carried no
+ * structured data at all. Only fields the record actually has are emitted:
+ * an Event without a startDate or a location is worse than no Event, and a
+ * guessed one is worse still.
+ */
+export function seriesSchema(v) {
+  const site = 'https://smarter.poker';
+  const path = seriesPath(v);
+  const url = `${site}${path}`;
+  const name = typeof v.name === 'string' ? v.name.trim() : '';
+  const venue = realPlace(v.venueName);
+  const city = cityWithoutVenue(realPlace(v.city), venue);
+  const state = realPlace(v.state);
+
+  const trail = [
+    ['Smarter.Poker', '/'],
+    ['Hub', '/hub'],
+    ['Poker Series', '/hub/poker-near-me/series'],
+    [name || 'Series', path],
+  ];
+
+  const nodes = [
+    {
+      '@type': 'WebPage',
+      '@id': `${url}#page`,
+      url,
+      name: `${seriesTitle(v)} | Smarter.Poker`,
+      description: seriesDescription(v),
+      isPartOf: { '@id': `${site}/#website` },
+      breadcrumb: { '@id': `${url}#breadcrumb` },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${url}#breadcrumb`,
+      itemListElement: trail.map(([itemName, itemPath], i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: itemName,
+        item: `${site}${itemPath}`,
+      })),
+    },
+  ];
+
+  // schema.org requires a start date and a location on an Event. Without
+  // both, the page is described honestly as a page and no Event is claimed.
+  const place = venue || city;
+  if (v.startDate && place) {
+    const event = {
+      '@type': 'EventSeries',
+      '@id': `${url}#series`,
+      name: name || undefined,
+      url,
+      startDate: v.startDate,
+      eventStatus: 'https://schema.org/EventScheduled',
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      location: {
+        '@type': 'Place',
+        name: place,
+        ...((city || state) ? {
+          address: {
+            '@type': 'PostalAddress',
+            ...(city ? { addressLocality: city } : {}),
+            ...(state ? { addressRegion: state } : {}),
+            addressCountry: 'US',
+          },
+        } : {}),
+      },
+      description: seriesDescription(v),
+    };
+    if (v.endDate) event.endDate = v.endDate;
+    if (v.logoUrl) event.image = v.logoUrl;
+    if (v.mainEventBuyin) {
+      event.offers = {
+        '@type': 'Offer',
+        name: 'Main Event Buy In',
+        price: String(v.mainEventBuyin),
+        priceCurrency: 'USD',
+        url,
+        availability: 'https://schema.org/InStock',
+      };
+    }
+    nodes[0].about = { '@id': `${url}#series` };
+    nodes.push(event);
+  }
+
+  return nodes;
 }

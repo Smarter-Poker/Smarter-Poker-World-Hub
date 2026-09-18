@@ -32,6 +32,7 @@ import {
   toSeoSeries,
   fetchSeries,
 } from '../src/lib/poker-near-me/seriesSeo.mjs';
+import { fitsInAResult } from '../src/lib/seo/titleFit.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -76,7 +77,17 @@ test('the series page renders its head on the server, in every branch, with no p
 
 test('a served series gets its own title, fitting description and self canonical', () => {
   const v = toSeoSeries(RAW);
-  assert.equal(seriesTitle(v), 'DeepStack Showdown (March) 2026 At Venetian Las Vegas');
+  // This asserted the literal 'DeepStack Showdown (March) 2026 At Venetian
+  // Las Vegas'. That string renders at 68 characters once SEOHead appends
+  // " | Smarter.Poker", so a result cut it, and 162 of the 246 live series
+  // titles had the same problem (AEO phase 3, 2026-09-18). seriesTitle now
+  // steps down: the venue where it fits, then the city, then the name
+  // alone. The series name is what this test is really protecting, and it
+  // is never the part dropped.
+  const title = seriesTitle(v);
+  assert.match(title, /^DeepStack Showdown \(March\) 2026\b/, 'the series keeps its own name');
+  assert.ok(fitsInAResult(title), `"${title}" renders past what a result shows`);
+  assert.match(title, /At Las Vegas$/, 'the place is kept at whatever precision fits');
   const d = seriesDescription(v);
   assert.ok(d.length >= 60, `description is ${d.length} characters, the live contract needs 60+`);
   assert.ok(d.length <= DESCRIPTION_MAX, `description is ${d.length}, over ${DESCRIPTION_MAX}`);
