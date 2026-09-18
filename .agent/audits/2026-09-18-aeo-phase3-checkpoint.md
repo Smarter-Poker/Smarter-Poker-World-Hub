@@ -10,8 +10,12 @@ questions directly rather than returning them, and go through the surface line
 by line for bugs, stubs, gaps, regressions and wiring issues.
 
 Scope: what a non-JavaScript crawler is served by smarter.poker. Out of scope,
-and left alone by explicit standing instruction: retired local pipelines,
-Sentry, release watchdogs, repair loops, watchers and schedulers.
+and left alone by explicit standing instruction: retired local pipelines, the
+retired third party error provider, release watchdogs, repair loops, watchers
+and schedulers. That provider is named nowhere here on purpose:
+`__tests__/retired-error-provider.test.mjs` forbids it in tracked source or
+guidance, and it failed this checkpoint's first push for exactly that reason,
+which is the law working.
 
 ## Policy reading receipt (operating law §2)
 
