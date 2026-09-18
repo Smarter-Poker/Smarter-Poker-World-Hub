@@ -7115,12 +7115,14 @@
       },
       "reachableFiles": [
         "pages/hub/training/community-leaderboard.js",
+        "src/components/seo/SEOHead.js",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"
@@ -23998,7 +24000,7 @@
         {
           "element": "button",
           "name": "Return To Training",
-          "line": 71,
+          "line": 86,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -24008,7 +24010,7 @@
         {
           "element": "button",
           "name": "Training Hub",
-          "line": 99,
+          "line": 110,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -24399,6 +24401,7 @@
     {
       "file": "pages/hub/training/community-leaderboard.js",
       "imports": [
+        "src/components/seo/SEOHead.js",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
@@ -24407,7 +24410,8 @@
         "src/lib/authUtils.js"
       ],
       "links": [
-        "/hub/training"
+        "/hub/training",
+        "/hub/training/community-leaderboard"
       ],
       "apiReferences": [
         "/api/training/leaderboard"
@@ -24417,7 +24421,7 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 187,
+          "line": 200,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
@@ -59290,6 +59294,10 @@
     },
     {
       "from": "pages/hub/training/community-leaderboard.js",
+      "to": "src/components/seo/SEOHead.js"
+    },
+    {
+      "from": "pages/hub/training/community-leaderboard.js",
       "to": "src/components/training/ConnectionToast.js"
     },
     {
@@ -62960,11 +62968,11 @@
       "effectRef": "pages/hub/training/blind-defense.js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:71:1",
+      "id": "pages/hub/training/category/[categoryId].js:86:1",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Return To Training",
-      "line": 71,
+      "line": 86,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -62973,11 +62981,11 @@
       "effectRef": "pages/hub/training/category/[categoryId].js"
     },
     {
-      "id": "pages/hub/training/category/[categoryId].js:99:2",
+      "id": "pages/hub/training/category/[categoryId].js:110:2",
       "file": "pages/hub/training/category/[categoryId].js",
       "element": "button",
       "name": "Training Hub",
-      "line": 99,
+      "line": 110,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -63038,11 +63046,11 @@
       "effectRef": "pages/hub/training/coach-mode.js"
     },
     {
-      "id": "pages/hub/training/community-leaderboard.js:187:1",
+      "id": "pages/hub/training/community-leaderboard.js:200:1",
       "file": "pages/hub/training/community-leaderboard.js",
       "element": "button",
       "name": "Back to training",
-      "line": 187,
+      "line": 200,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
@@ -72099,12 +72107,14 @@
       "file": "pages/hub/training/community-leaderboard.js",
       "reachableFiles": [
         "pages/hub/training/community-leaderboard.js",
+        "src/components/seo/SEOHead.js",
         "src/components/training/ConnectionToast.js",
         "src/components/training/ErrorBanner.js",
         "src/components/ui/SkeletonLoader.jsx",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/productOgImage.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js"

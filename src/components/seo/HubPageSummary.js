@@ -280,14 +280,20 @@ export const HUB_PAGE_SUMMARIES = {
   trivia: {
     heading: 'About Poker Trivia',
     lead:
-      'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Six Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A Head To Head Match Against Another Player, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
+      'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Several Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A One Life Survival Game, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
     links: [
+      // Head To Head and Trivia Tournaments ARE NOT LINKED from these
+      // summaries while their release gates are closed
+      // (TRIVIA_PVP_ENABLED, TRIVIA_TOURNAMENTS_ENABLED). Both pages
+      // redirect to /hub/trivia until those are set, so the links sent a
+      // reader, and a crawler, straight into a 307. Restore them in the
+      // same change that opens the gate: the sitemap reads the gate
+      // itself, and a-summary-only-links-to-a-page-that-exists fails
+      // until the two agree (AEO phase 3, 2026-09-18).
       { name: 'Endless', href: '/hub/trivia/endless', text: 'Keep Answering Until You Decide To Stop.' },
       { name: 'Survival', href: '/hub/trivia/survival-game', text: 'One Run, And A Wrong Answer Ends It.' },
       { name: 'Time Attack', href: '/hub/trivia/time-attack', text: 'As Many As You Can Before The Clock Runs Out.' },
       { name: 'Mixed', href: '/hub/trivia/mixed', text: 'Every Category At Once, In Random Order.' },
-      { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Questions, Against Another Player, Live.' },
-      { name: 'Trivia Tournaments', href: '/hub/trivia/tournaments', text: 'Scheduled Events With A Field And A Final Standing.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Ahead Today, This Week And All Time.' },
     ],
   },
@@ -337,7 +343,6 @@ export const HUB_PAGE_SUMMARIES = {
       'Head To Head Puts Two Players On The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Matches Are Short, Results Are Immediate, And Both Players See Every Answer Afterwards, So A Match Doubles As A Way To Find Out What The Other Person Knew That You Did Not. Free To Play, And Nothing In It Is A Wager.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Trivia Tournaments', href: '/hub/trivia/tournaments', text: 'The Same Format With A Full Field And A Final Standing.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Winning Matches Today, This Week And All Time.' },
     ],
   },
@@ -347,14 +352,13 @@ export const HUB_PAGE_SUMMARIES = {
       'Trivia Tournaments Are Scheduled Events: Everyone Answers The Same Questions In The Same Order At The Same Time, And The Field Is Ranked On Correct Answers And Speed. Registration Opens Before The Start, The Standings Move Live While It Runs, And The Final Table Of Results Stays Readable Afterwards. Free To Enter, And Nothing In It Is A Wager.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Idea With One Opponent Instead Of A Field.' },
       { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Live Poker Series And Festivals By Date.' },
     ],
   },
   'trivia-leaderboard': {
     heading: 'About The Trivia Leaderboard',
     lead:
-      'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Most Head To Head Wins. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
+      'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Best Mixed Category Score. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Mode Most Of The Top Runs Come From.' },
