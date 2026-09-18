@@ -44,6 +44,45 @@ function pageFiles(dir = 'pages', out = []) {
   return out;
 }
 
+/** The page files behind the routes the sitemap offers. */
+function sitemapPageFiles() {
+  const routes = [...read('pages/sitemap.xml.js').matchAll(/\{ path: '([^']+)'/g)].map((m) => m[1]);
+  const files = [];
+  for (const route of routes) {
+    const candidates =
+      route === '/' ? ['pages/index.js'] : [`pages${route}.js`, `pages${route}/index.js`];
+    const file = candidates.find((f) => fs.existsSync(path.join(ROOT, f)));
+    if (!file) continue;
+    // A re-export serves its target's head, so follow it.
+    const src = read(file);
+    const reexport = src.match(/export \{ default \} from '(\.[^']+)'/);
+    if (reexport) {
+      const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), reexport[1]));
+      for (const f of [`${target}.js`, `${target}/index.js`]) {
+        if (fs.existsSync(path.join(ROOT, f))) { files.push(f); break; }
+      }
+      continue;
+    }
+    files.push(file);
+  }
+  return [...new Set(files)];
+}
+
+/** The route a page file serves, as robots.txt would name it. */
+function routeOf(file) {
+  return file.replace(/^pages/, '').replace(/\/index\.js$/, '').replace(/\.js$/, '') || '/';
+}
+
+/** Every Disallow in the served robots.txt, matched as a prefix. */
+const DISALLOWED = [
+  ...new Set(
+    [...fs.readFileSync(path.join(ROOT, 'public/robots.txt'), 'utf8').matchAll(/^Disallow:\s*(\S+)$/gm)].map(
+      (m) => m[1],
+    ),
+  ),
+];
+const disallowed = (route) => DISALLOWED.some((rule) => route === rule || route.startsWith(rule));
+
 /** What the browser actually renders in the tab, escaped as HTML. */
 const shippedTitle = (raw) =>
   (raw.includes('Smarter.Poker') ? raw : `${raw} | Smarter.Poker`).replace(/&/g, '&amp;');
@@ -71,6 +110,51 @@ test('every literal page title fits a search result', () => {
     }
   }
   assert.deepEqual(offenders, [], `titles that do not fit a result:\n${offenders.join('\n')}`);
+});
+
+test('every literal description is long enough to be worth reading', () => {
+  // The title had a scanner; the description had two laws, each naming one
+  // page. Measured on production with both of those passing, /hub/merch-store
+  // shipped 69 characters and four of the five store tabs said one short
+  // sentence each. A description is what a result shows under the title and
+  // what an engine quotes when it paraphrases rather than cites, so a
+  // fragment is a wasted slot (AEO phase 3, 2026-09-18).
+  //
+  // 110 is the floor, not the target: below it a description cannot say what
+  // the page is AND what it is not, and on this site the second half is the
+  // part that stops an engine filing a free poker platform as a casino.
+  //
+  // SCOPED TO THE PAGES THE SITEMAP OFFERS. Running it over every file in
+  // pages/ flags 44, nearly all of them viewer-only tools nobody can reach
+  // from a result: the toke tracker, saved posts, a poker table by id. A
+  // description only matters where a result exists, and rewriting the rest
+  // would be an audit expanding because more code exists. It stays a scanner,
+  // not a list: a route added to the sitemap tomorrow is covered the same day.
+  const offenders = [];
+  for (const file of sitemapPageFiles()) {
+    const src = read(file);
+    const declaresNoindex =
+      /content="noindex/.test(src) || /<SEOHead[\s\S]{0,600}?\bnoindex\b/.test(src);
+    if (declaresNoindex) continue;
+    // A path robots.txt disallows has no search result either. Read the real
+    // file rather than keeping a second list of exceptions beside it.
+    if (disallowed(routeOf(file))) continue;
+    // ONLY WHAT REACHES THE HEAD. An earlier version also read every
+    // `description:` in the file and flagged "Endless Trivia skip lifeline",
+    // a tooltip. A law that reports tooltips is a law someone switches off.
+    // A description built from a variable (the store's TAB_META) is not a
+    // literal and is not measured here; the live audit reads the served page.
+    const found = [
+      ...[...src.matchAll(/<SEOHead[\s\S]{0,900}?\bdescription="([^"]+)"/g)].map((m) => m[1]),
+      ...[...src.matchAll(/<meta\s+name="description"\s+content="([^"]+)"/g)].map((m) => m[1]),
+    ];
+    for (const description of found) {
+      if (description.length < 110) {
+        offenders.push(`${file}: ${description.length} characters: ${description}`);
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], `descriptions too short to say anything:\n${offenders.join('\n')}`);
 });
 
 test('a page that is still loading says what it is', () => {

@@ -527,7 +527,7 @@ export default function LivesPage() {
         <>
             <SEOHead
                 title="Live Streams - Watch Poker Live"
-                description="Watch Live Poker Streams And Events. Follow Your Favorite Players And Catch The Action In Real Time."
+                description="Watch Live Poker Streams And Events On Smarter.Poker: Players Streaming Their Own Sessions And Tournament Coverage, With Chat Beside The Player. Free To Watch, No Account Needed, And Nothing On It Is A Wager."
                 canonical="/hub/lives"
             />
 

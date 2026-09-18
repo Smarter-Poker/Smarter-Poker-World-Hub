@@ -142,7 +142,7 @@ export default function NewsSources() {
         <>
             <SEOHead
                 title="News Sources - Poker Media Outlets"
-                description="Browse Poker News Sources And Media Outlets Aggregated On Smarter.Poker."
+                description="Every Outlet The Smarter.Poker News Feed Reads, How Often It Checks Each One And When It Last Succeeded. Nothing Is Republished In Full: A Story Is A Headline, A Summary And A Link Back. Free To Read."
                 canonical="/hub/news/sources"
             />
 

@@ -877,7 +877,7 @@ export default function SignUpPage() {
     <>
       <SEOHead
         title="Create Account - Smarter.Poker"
-        description="Join Smarter.Poker - The Future Of Poker. Free Account With Training, Trivia, Live Games, And More."
+        description="Create A Free Smarter.Poker Account: GTO Training, Private Poker Clubs In Poker Arena, Live Poker Room Waitlists, Home Games, Trivia And A Bankroll Manager. Free To Play, No Real-Money Gambling."
         canonical="/auth/signup"
       />
 

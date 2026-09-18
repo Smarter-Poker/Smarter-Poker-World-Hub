@@ -455,7 +455,7 @@ export default function MixedModePage() {
         <TriviaErrorBoundary pageName="Mixed Mode">
             <SEOHead
                 title="Mixed Trivia - All Categories"
-                description="Challenge Yourself With Mixed Poker Trivia Covering All Categories And Difficulty Levels."
+                description="Mixed Poker Trivia On Smarter.Poker: Every Category At Once And In Random Order, So You Cannot Prepare For What Is Coming. Free To Play, No Account Needed, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/mixed"
             />
 

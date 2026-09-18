@@ -228,7 +228,8 @@ export const TAB_ROUTES = {
 export const TAB_META = {
   diamonds: {
     title: 'Diamond Store: Smarter.Poker',
-    description: 'Buy Diamonds To Unlock Premium Features Across Smarter.Poker And Club Arena.',
+    description:
+      'Buy Diamonds To Unlock Premium Features Across Smarter.Poker And Poker Arena: Time Banks, Cosmetics, Club Shop Items And VIP Day Passes. Diamonds Are A Promotional Rewards Currency With No Cash Value.',
   },
   vip: {
     title: 'VIP Membership: Smarter.Poker',
@@ -237,16 +238,18 @@ export const TAB_META = {
   },
   merch: {
     title: 'Merch Store: Smarter.Poker',
-    description: 'Official Smarter.Poker Apparel, Card Protectors, Decks And Chip Sets.',
+    description:
+      'Official Smarter.Poker Apparel, Card Protectors, Playing Card Decks And Chip Sets, Shipped To You. Real Merchandise Bought With Money, Not A Game Purchase And Not A Wager.',
   },
   rewards: {
     title: 'Smarter Rewards: Smarter.Poker',
     description:
-      'Every Way To Earn Diamonds, The Real Daily And Monthly Caps, And Every Hidden Achievement.',
+      'Every Way To Earn Diamonds On Smarter.Poker, The Real Daily And Monthly Caps, And Every Hidden Achievement. Diamonds Are A Promotional Rewards Currency With No Cash Value.',
   },
   'club-shop': {
     title: 'Club Shop: Smarter.Poker',
-    description: 'Spend Diamonds On Time Banks, Cosmetics And Items Your Club Owner Stocks.',
+    description:
+      'Spend Diamonds On Time Banks, Cosmetics And The Items Your Club Owner Stocks For Their Members. Diamonds Are A Promotional Rewards Currency With No Cash Value, And Nothing Here Is A Wager.',
   },
 };
 

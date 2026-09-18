@@ -238,7 +238,7 @@ export default function TournamentsPage() {
     <PageTransition>
       <SEOHead
         title="Training Tournaments - Compete & Learn"
-        description="Enter GTO Training Tournaments. Compete Against Other Students In Scenario-based Challenges."
+        description="GTO Training Tournaments On Smarter.Poker: A Field Plays The Same Hands In The Same Order And Is Ranked On Decision Quality Against The Solver, Not On Chips Won. Free To Enter, And Nothing In It Is A Wager."
         canonical="/hub/training/tournaments"
       />
 

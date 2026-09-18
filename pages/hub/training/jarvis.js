@@ -154,7 +154,7 @@ export default function JarvisDashboard() {
     <PageTransition>
       <SEOHead
         title="Jarvis Training Insights"
-        description="Review Personalized Insights Derived From Your Verified Smarter.Poker Training Sessions."
+        description="Jarvis Reads The Hand In Front Of You, Compares Your Line To The Solver Baseline And Explains The Difference In Words Rather Than A Frequency Table. Free To Use While Training On Smarter.Poker."
         canonical="/hub/training/jarvis"
       />
 
