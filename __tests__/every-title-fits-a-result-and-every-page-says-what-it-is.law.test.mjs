@@ -109,7 +109,7 @@ test('the reels page says what it is in every branch it can return from', () => 
   // the first one, every time.
   const src = read('pages/hub/reels.js');
   assert.ok(
-    (src.match(/<HubPageSummary page="reels" \/>/g) || []).length >= 4,
+    (src.match(/<HubPageSummary page="reels"[^>]*\/>/g) || []).length >= 4,
     'the summary renders in the loading, error, empty and loaded branches',
   );
 });

@@ -143,7 +143,7 @@ export default function ChallengesPage() {
             </div>
           </div>
         </div>
-        <HubPageSummary page="training-challenges" />
+        <HubPageSummary page="training-challenges" as="h1" />
       </PageTransition>
     );
   }
@@ -266,7 +266,7 @@ export default function ChallengesPage() {
     <ConnectionToast />
       {/* Server rendered: measured on production this page returned
           only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-      <HubPageSummary page="training-challenges" />
+      <HubPageSummary page="training-challenges" as="h1" />
     </>
   );
 }

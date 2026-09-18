@@ -47,7 +47,11 @@ test('every trivia and training page renders its summary, and imports it', () =>
   for (const [file, key] of Object.entries(PAGES)) {
     const src = read(file);
     assert.match(src, /import HubPageSummary from '[^']+HubPageSummary'/, `${file} imports the summary`);
-    assert.ok(src.includes(`<HubPageSummary page="${key}" />`), `${file} renders the ${key} summary`);
+    assert.ok(
+      src.includes(`<HubPageSummary page="${key}" />`) ||
+        src.includes(`<HubPageSummary page="${key}" as="h1" />`),
+      `${file} renders the ${key} summary`,
+    );
   }
 });
 

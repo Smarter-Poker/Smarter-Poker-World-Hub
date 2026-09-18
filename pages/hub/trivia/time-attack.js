@@ -322,19 +322,31 @@ export default function TimeAttackPage() {
     };
 
 
+    // THE HEAD AND THE WORDS RENDER IN BOTH BRANCHES (AEO phase 3,
+    // 2026-09-17). Measured on production this page returned no <title> at
+    // all and two words of body, because a crawler always arrives while
+    // pageLoading is true and everything below sat under the early return.
+    const head = (
+        <SEOHead
+            title="Time Attack Trivia: Beat The Clock"
+            description="Race Against The Clock In Time Attack Poker Trivia On Smarter.Poker. Answer As Many Questions As You Can Before Time Runs Out. Free To Play, And Nothing In It Is A Wager."
+            canonical="/hub/trivia/time-attack"
+        />
+    );
+
     if (pageLoading) return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center pt-24 pb-12">
-            <TriviaSkeleton />
-        </div>
+        <>
+            {head}
+            <div className="min-h-screen bg-gray-950 flex items-center justify-center pt-24 pb-12">
+                <TriviaSkeleton />
+            </div>
+            <HubPageSummary page="trivia-time-attack" as="h1" />
+        </>
     );
 
     return (
         <TriviaErrorBoundary pageName="Time Attack">
-            <SEOHead
-                title="Time Attack Trivia - Beat The Clock"
-                description="Race Against The Clock In Time Attack Poker Trivia. Answer As Many Questions As Possible Before Time Runs Out."
-                canonical="/hub/trivia/time-attack"
-            />
+            {head}
 
             <div className="time-attack-page">
                 <div className="bg-overlay" />
