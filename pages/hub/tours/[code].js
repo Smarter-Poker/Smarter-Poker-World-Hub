@@ -15,7 +15,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import TourPageSummary from '../../../src/components/seo/TourPageSummary';
-import { tourSeo, tourSchema } from '../../../src/lib/seo/tourPageSeo';
+import { tourSeo, tourSchema, registryCodeForTour, tourCanonical } from '../../../src/lib/seo/tourPageSeo';
 import tourSourceRegistry from '../../../data/tour-source-registry.json';
 
 
@@ -163,6 +163,7 @@ export async function getServerSideProps({ params, res }) {
   const registryEntry = tourSourceRegistry?.tours?.[code] || null;
   let dbName = null;
   let dbType = null;
+  let dbSite = null;
 
   if (!registryEntry) {
     try {
@@ -172,19 +173,31 @@ export async function getServerSideProps({ params, res }) {
         const { createClient } = await import('@supabase/supabase-js');
         const { data } = await createClient(url, key)
           .from('tour_source_registry')
-          .select('tour_name, tour_type')
+          .select('tour_name, tour_type, official_website')
           .eq('tour_code', code)
           .maybeSingle();
         dbName = data?.tour_name || null;
         dbType = data?.tour_type || null;
+        dbSite = data?.official_website || null;
       }
     } catch (e) {
       console.warn('[tours] identity lookup failed:', e?.message || e);
     }
   }
 
+  // ONE URL FOR A TOUR (AEO phase 3, 2026-09-18). ROUGHRIDER and RRPT are
+  // the same tour under two codes, and both pages declared themselves
+  // canonical. The sitemap now offers only the registry code; this hands
+  // the duplicate's authority to it rather than splitting the two.
+  const seo = tourSeo(code, registryEntry, dbName, dbType);
+  const canonicalCode = registryCodeForTour(
+    { code, name: seo.name, website: dbSite },
+    tourSourceRegistry?.tours,
+  );
+  if (canonicalCode && canonicalCode !== code) seo.canonical = tourCanonical(canonicalCode);
+
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
-  return { props: { seo: tourSeo(code, registryEntry, dbName, dbType) } };
+  return { props: { seo } };
 }
 
 export default function TourDetailPage({ seo }) {

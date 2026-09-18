@@ -51,6 +51,12 @@ export function toSeoSeries(raw) {
     totalEvents: Math.max(n(raw.total_events) ?? 0, n(raw.events_count) ?? 0),
     seriesType: s(raw.series_type),
     logoUrl: s(raw.logo_url),
+    // The identity the two legacy tables share. seriesRouteIdentity.mjs
+    // already states that tournament_series is the public route identity and
+    // poker_series only supplies fresher metadata; this is what lets a
+    // duplicate route point at the primary one (AEO phase 3, 2026-09-18).
+    seriesUid: s(raw.series_uid),
+    canonicalId: null,
   };
 }
 
@@ -209,7 +215,20 @@ export function seriesDescription(v) {
   return text;
 }
 
+/**
+ * The URL this series should be indexed at. When the same series_uid is also
+ * held in tournament_series, that row owns the route: reconcileTournament-
+ * SeriesEvidence in seriesRouteIdentity.mjs is explicit that poker_series
+ * may replace metadata but never the public route identity. The duplicate
+ * page then points its canonical here rather than declaring itself the
+ * original, so the two stop competing (AEO phase 3, 2026-09-18).
+ */
 export function seriesPath(v) {
+  return `/hub/series/${v?.canonicalId ?? v.id}`;
+}
+
+/** The URL this exact record is served at, duplicate or not. */
+export function seriesSelfPath(v) {
   return `/hub/series/${v.id}`;
 }
 

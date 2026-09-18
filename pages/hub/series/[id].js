@@ -18,6 +18,7 @@ import {
   seriesSchema,
   seriesTitle,
 } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
+import { isPokerSeriesRouteId } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -276,8 +277,45 @@ function getLocationParts(series) {
  * still fetched in the browser exactly as before; only the series' own
  * words are in the HTML now.
  */
+/**
+ * The tournament_series row that owns this series' route, when this record is
+ * a poker_series duplicate of it (AEO phase 3, 2026-09-18).
+ *
+ * seriesRouteIdentity.mjs already states the rule: poker_series may supply
+ * fresher metadata, never the public route identity. So a duplicate points
+ * its canonical at the primary instead of both declaring themselves the
+ * original. A lookup that cannot run leaves the page canonical to itself,
+ * which is what it did before and is never worse than guessing.
+ */
+async function primarySeriesRouteId(series) {
+  if (!series?.seriesUid) return null;
+  if (!isPokerSeriesRouteId(Number(series.id))) return null;
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return null;
+    const { createClient } = await import('@supabase/supabase-js');
+    const { data } = await createClient(url, key)
+      .from('tournament_series')
+      .select('id, is_suppressed')
+      .eq('series_uid', series.seriesUid)
+      .limit(1)
+      .maybeSingle();
+    if (!data || data.is_suppressed === true) return null;
+    const id = Number(data.id);
+    return Number.isSafeInteger(id) && id > 0 ? String(id) : null;
+  } catch (e) {
+    console.warn('[series] primary route lookup failed:', e?.message || e);
+    return null;
+  }
+}
+
 export async function getServerSideProps({ params, req, res }) {
   const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
+  if (seoSeries) {
+    const primary = await primarySeriesRouteId(seoSeries);
+    if (primary && primary !== String(seoSeries.id)) seoSeries.canonicalId = primary;
+  }
   if (status === 'unavailable') {
     // The API did not answer: the browser still fetches as before, but a
     // crawler is told to come back rather than to index a spinner.

@@ -386,8 +386,15 @@ async function buildPokerEventDetailUrls() {
     if (!series?.is_suppressed) addSeries(index + 1);
   });
 
+  // ONE URL PER TOUR. The bundled registry is added first and claims the
+  // name, so a database row holding the same tour under a second code is
+  // not offered again.
+  const claimedTourNames = new Set();
+  const tourNameKey = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
   for (const [registryCode, tour] of Object.entries(tourSourceRegistry?.tours || {})) {
     if (tour?.is_active === false) continue;
+    const key = tourNameKey(tour?.tour_name);
+    if (key) claimedTourNames.add(key);
     addTour(tour?.tour_code || registryCode);
   }
 
@@ -420,7 +427,10 @@ async function buildPokerEventDetailUrls() {
       fetchAllSitemapRows({
         supabase,
         table: 'tour_source_registry',
-        select: 'tour_code',
+        // tour_name comes along so one tour held under two codes is offered
+        // once: ROUGHRIDER and RRPT are both "Roughrider Poker Tour", down to
+        // the same official website (AEO phase 3, 2026-09-18).
+        select: 'tour_code, tour_name',
         orderBy: 'tour_code',
         applyFilters: (query) => query.eq('is_active', true),
       }),
@@ -455,14 +465,24 @@ async function buildPokerEventDetailUrls() {
         .filter(row => isServableSeriesParentEvidence(row))
         .forEach((row) => {
           const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
-          if (uid && claimedUids.has(uid)) return; // already offered under its other id
+          // Two rows in THIS table can share a uid as well: the Trailblazer
+          // pairs were both poker_series, so the cross-table rule above left
+          // both of them listed (AEO phase 3, 2026-09-18). claimedUids is
+          // added to as this pass runs, so the first row wins here too.
+          if (uid && claimedUids.has(uid)) return;
+          if (uid) claimedUids.add(uid);
           addSeries(toPokerSeriesRouteId(row.id));
         });
     } else {
       console.warn('[sitemap] poker_series detail URLs unavailable:', results[1].reason?.message);
     }
     if (results[2].status === 'fulfilled') {
-      results[2].value.forEach((row) => addTour(row.tour_code));
+      results[2].value.forEach((row) => {
+        const key = tourNameKey(row.tour_name);
+        if (key && claimedTourNames.has(key)) return; // already offered under its other code
+        if (key) claimedTourNames.add(key);
+        addTour(row.tour_code);
+      });
     } else {
       console.warn('[sitemap] tour detail URLs unavailable:', results[2].reason?.message);
     }
