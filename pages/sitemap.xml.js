@@ -37,6 +37,9 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 const staticPages = [
   // Landing
   { path: '/', priority: '1.0', changefreq: 'weekly' },
+  // The entity anchor an AI engine reads to answer "what is Smarter Poker"
+  // and "who makes Club Commander" (AEO phase 2, 2026-09-17).
+  { path: '/about', priority: '0.8', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   { path: '/legal/official-rules', priority: '0.3', changefreq: 'yearly' },
 
