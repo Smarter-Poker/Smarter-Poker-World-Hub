@@ -37,6 +37,17 @@ import {
 } from 'lucide-react';
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): 3,874 server-rendered words and no structured
+// data. Words say what a page says; schema says what it IS.
+const TRAINING_SCHEMA = hubProductSchema({
+  path: '/hub/training',
+  name: 'Smarter.Poker GTO Training',
+  description:
+    'Free GTO Poker Training: One-Tap Drills, A Personalised Daily Plan, Leak Detection And Over 100 Scenario-Based Games Coached By Jarvis. Free To Play, No Real-Money Gambling.',
+  trail: [['Hub', '/hub'], ['Training', '/hub/training']],
+});
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HubPageShell from '../../src/components/ui/HubPageShell';
 import PullToRefresh from '../../src/components/ui/PullToRefresh';
@@ -373,9 +384,10 @@ export default function TrainingPage() {
   return (
     <PageTransition disableInitialAnimation>
       <SEOHead
-        title="GTO Poker Training: Free Drills And Leak Detection"
+        title="Free GTO Poker Training And Leak Detection"
         description="Free GTO Poker Training On Smarter.Poker: One-Tap Drills, A Personalised Daily Plan, Leak Detection And 100+ Scenario-Based Games Coached By Jarvis. No Real-Money Gambling."
         canonical="/hub/training"
+        jsonLd={TRAINING_SCHEMA}
       />
 
       <GlobalStyle />
