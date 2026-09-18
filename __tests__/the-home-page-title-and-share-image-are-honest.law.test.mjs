@@ -99,7 +99,7 @@ test('the fonts come from next/font: no Google Fonts stylesheet on the home page
 test('the app-level social defaults say what the product is', () => {
   const app = read('pages/_app.js');
   assert.doesNotMatch(app, /content="Smarter\.Poker \| The Future Of The Game"/);
-  assert.match(app, /property="og:title" content="Smarter\.Poker: Free Poker Training, Private Clubs And Live Games"/);
+  assert.match(app, /property="og:title" content="Smarter\.Poker: Free Poker Training, Clubs And Live Games"/);
 });
 
 test('the training heading never ends in a loading message', () => {
@@ -112,19 +112,25 @@ test('every public page title fits a search result once SEOHead has added the si
   // The raw string in the source is not what ships: SEOHead appends
   // " | Smarter.Poker" unless the title already names the site. Two titles
   // shipped at 80 and 86 characters while each measured under 70 on its own
-  // (2026-09-17). These are the public product pages a search result names.
+  // (2026-09-17). The bound is 60, not 70, because 70 is where the tag stops
+  // being valid and 60 is where a search result stops showing it: measured on
+  // production, / shipped 64, /hub/training 66 and the lobby 67, each of them
+  // cut mid-phrase (AEO phase 3, 2026-09-17). These are the public product
+  // pages a search result names.
   const PUBLIC_PAGES = [
     'pages/index.js',
     'pages/hub/training.js',
     'pages/hub/commander/index.js',
     'pages/hub/home-games.js',
     'pages/hub/bankroll-manager.js',
+    'pages/hub/index.js',
+    'pages/hub/poker-near-me/lobby.js',
   ];
   for (const file of PUBLIC_PAGES) {
     const title = read(file).match(/<SEOHead[\s\S]{0,400}?title="([^"]+)"/)?.[1];
     assert.ok(title, `${file} passes a title to SEOHead`);
     const shipped = renderedTitle(title);
-    assert.ok(shipped.length <= 70, `${file} ships ${shipped.length} characters: ${shipped}`);
+    assert.ok(shipped.length <= 60, `${file} ships ${shipped.length} characters: ${shipped}`);
     assert.doesNotMatch(shipped, /\u2014/, `${file}: no em dash`);
     assert.equal(
       (shipped.match(/Smarter\.Poker/g) || []).length,

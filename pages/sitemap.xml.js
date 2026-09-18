@@ -29,6 +29,25 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 ].join(', ');
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
+// PAGES ABOUT THE VIEWER ARE NOT IN THE SITEMAP EITHER (AEO phase 3,
+// 2026-09-17). The September sweep took out the routes that redirect a
+// signed-out visitor to a login page. It left the ones that load, render
+// their chrome, and then show the viewer their own results: training
+// progress, streaks, achievements, reports and aggregates; trivia stats and
+// achievements; preflop practice stats and achievements; the friends list;
+// the avatar picker; the bankroll export; the social page create form;
+// /hub/profile, which is a client-side redirect to the viewer's own profile
+// and nothing else; and /hub/article, which needs an ?id= query and serves
+// an empty shell without one.
+//
+// Measured on production as OAI-SearchBot with scripts stripped, those
+// fifteen pages returned between 0 and 49 words, and several returned no
+// <title> and no <h1> at all. There is nothing on any of them an engine
+// could cite, because what they show depends entirely on who is looking.
+// A sitemap is a list of pages worth indexing, not a list of routes, and
+// every entry that cannot be cited spends crawl budget teaching an engine
+// nothing.
+//
 // ACCOUNT-ONLY PAGES ARE NOT IN THE SITEMAP (2026-09-16). Messenger,
 // notifications, settings, profile edit, the store cart/orders/wishlist and a
 // player's own reels all need a session; a crawler lands on the login page
@@ -71,7 +90,6 @@ const staticPages = [
   { path: '/hub/poker-series', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
-  { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },
   // Poker Arena is NOT listed here (discoverability phase 2, 2026-09-17).
   // The arena publishes its own sitemap from what it prerenders, dated from
   // its git history, at https://smarter.poker/hub/club-arena/sitemap.xml
@@ -92,9 +110,6 @@ const staticPages = [
   { path: '/hub/reels', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/lives', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/help', priority: '0.5', changefreq: 'monthly' },
-  { path: '/hub/profile', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/avatars', priority: '0.4', changefreq: 'monthly' },
-  { path: '/hub/article', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/pages', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Trivia
@@ -106,38 +121,27 @@ const staticPages = [
   { path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/trivia/achievements', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/trivia/stats', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Training sub-pages
-  { path: '/hub/training/achievements', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/training/progress', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/training/streaks', priority: '0.5', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/training/play-mode', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/training/analyzer', priority: '0.6', changefreq: 'weekly' },
-  { path: '/hub/training/reports', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/training/aggregate', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Preflop Charts sub-pages
-  { path: '/hub/preflop-charts/achievements', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/preflop-charts/leaderboard', priority: '0.5', changefreq: 'daily' },
-  { path: '/hub/preflop-charts/stats', priority: '0.4', changefreq: 'weekly' },
   { path: '/hub/preflop-charts/tutorial', priority: '0.5', changefreq: 'monthly' },
 
   // Hub — News sub-pages
   { path: '/hub/news/sources', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Bankroll Manager sub-pages
-  { path: '/hub/bankroll-manager/export', priority: '0.4', changefreq: 'monthly' },
 
   // Hub — Social Pages
   { path: '/hub/social-pages', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/social-pages/create', priority: '0.4', changefreq: 'monthly' },
 
   // Hub — Home Games (geo index; individual game + state/city pages are added dynamically)
   { path: '/hub/home-games/in', priority: '0.8', changefreq: 'daily' },

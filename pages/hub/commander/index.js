@@ -207,7 +207,7 @@ export default function CommanderHub() {
           description, canonical and schema. Pages that show one player's
           own data (rewards, services, profile, history...) stay noindex. */}
       <SEOHead
-        title="Live Poker Waitlists And Tournaments Near You"
+        title="Poker Waitlists And Tournaments Near You"
         description="Find Live Poker Rooms Near You, Join Waitlists Remotely, Register For Tournaments And Home Games, Track Leagues And Earn Rewards At Venues Running Club Commander On Smarter.Poker."
         canonical="/hub/commander"
         jsonLd={[
