@@ -45,7 +45,13 @@ or compliance.
 | #1886 | merged | Survival trivia indexed like the other six modes; the deprecated path stays a noindex shim |
 | #1887 | merged | Ten pages that served a nameless 200 now name themselves and ask not to be indexed; `/hub/training/hand-history-upload` fully wired |
 | #1890 | merged | `/hub/tours/[code]` and ten more pages render their head on the server; the sitemap stops advertising two release-gated features |
-| #1892 | open | 290 of 478 venue titles were cut in a result, losing the city and state; titles now step down until they fit |
+| #1892 | merged | 290 of 478 venue titles were cut in a result, losing the city and state; titles now step down until they fit |
+| #1893 | merged | this checkpoint |
+| #1894 | merged | six Poker Near Me tab titles over budget, and the two blind spots that hid them from the title law |
+| #1895 | merged | five home game titles over budget; one shared module now decides whether a title fits |
+| #1896 | merged | all 246 series pages gain structured data; 162 cut titles and 12 saying "At Unknown" fixed |
+| #1897 | merged | 23 series were listed twice under two ids; one URL per series_uid |
+| #1898 | merged | two pages shipped the same title after #1894; a law now forbids it |
 
 Earlier phase 3 PRs (#1863 through #1885) are recorded in their own PR bodies.
 
@@ -72,16 +78,66 @@ Earlier phase 3 PRs (#1863 through #1885) are recorded in their own PR bodies.
 4. The in-app "Club Arena" to "Poker Arena" rename across 48 files: a product naming decision, not an SEO one.
 5. Whether `TRIVIA_PVP_ENABLED` and `TRIVIA_TOURNAMENTS_ENABLED` should be opened. The sitemap and the summaries now follow those flags automatically; nothing further is needed here if they are.
 
-## Live verification already done
+## Closing state
 
-#1886 and #1887 were re-measured on production after deploying. All nine
-renamed pages serve their title with `noindex`; `/hub/trivia/survival-game`
-serves 170 words, a 47 character title and its schema; the deprecated
-`/hub/trivia/survival` is `noindex`; `/hub/training/hand-history-upload`
-serves 171 words and schema; both new routes are in the live sitemap.
+All 1,193 sitemap routes, measured as OAI-SearchBot with script, style,
+noscript, template and svg stripped before counting words.
+
+|                                  | start | now |
+|----------------------------------|------:|----:|
+| routes in the sitemap            |    73 | 1,193 |
+| routes with no title             |     9 |   0 |
+| titles cut off in a result       |     9 |   0 |
+| routes with no description       |     9 |   0 |
+| routes with no canonical         |     4 |   0 |
+| routes with no h1                |    20 |   0 |
+| routes with no structured data   |    30 |   0 |
+| routes telling crawlers noindex  |     0 |   0 |
+| routes under 60 words            |     9 |   0 |
+| fewest words on any route        |     0 |  77 |
+| median words per route           |   ~40 | 209 |
+| longest title                    |   111 |  60 |
+
+The start column for the whole-sitemap measures is the 73 route sweep this
+programme opened with; the wider families were measured as they came into
+scope and their own before and after figures are in the PR bodies.
+
+Live verification was run after each deploy, not inferred: the ten renamed
+pages, the 29 tour routes, the 246 series routes, the venue, home game and
+tab titles were each re-measured on production.
+
+## Needs the owner, not the agent
+
+1. Google Search Console and Bing Webmaster property verification, carried
+   from phase 1. Both need an authenticated session.
+2. Off-site entity records: Wikidata, Crunchbase, LinkedIn.
+3. The 1828 Lodge Poker Club street address in `poker_venues`.
+4. The in-app "Club Arena" to "Poker Arena" rename across 48 files. A
+   product naming decision, not an SEO one.
+5. `TRIVIA_PVP_ENABLED` and `TRIVIA_TOURNAMENTS_ENABLED`. The sitemap and
+   the summaries follow those flags now, so nothing else is needed here if
+   they are opened.
+6. **Five pairs of duplicate records.** Each pair is one real thing held
+   twice, and a title change would hide it rather than fix it:
+
+   | pages | what |
+   |---|---|
+   | `/hub/tours/ROUGHRIDER`, `/hub/tours/RRPT` | one tour, two codes |
+   | `/hub/series/479`, `/hub/series/5001069` | one series, no shared series_uid to match on |
+   | `/hub/series/593`, `/hub/series/5001068` | same |
+   | `/hub/series/5001035`, `/hub/series/5001036` | both in poker_series, so #1897's cross-table rule does not apply |
+   | `/hub/series/5001037`, `/hub/series/5001039` | same |
+
+7. **Which series record is authoritative.** #1897 stopped the sitemap
+   offering two URLs per series, but did not canonicalise one to the other,
+   because the two records disagree on real values. For series 470,
+   `tournament_series` reports `main_event_guaranteed: 400000` and
+   `poker_series` reports `17240000`; for a $3,500 regional series the
+   first is the plausible one. Canonicalising to the wrong record would
+   consolidate onto the page with the worse data, so the decision is left
+   with the owner.
 
 ## Next action
 
-Re-run the 577 route OAI-SearchBot sweep once #1890 and #1892 have deployed,
-and record the closing numbers against the opening ones in the programme
-document.
+None outstanding for the agent. The programme's own laws now guard every
+class of defect it found, and the Build Safety Gate runs all of them.
