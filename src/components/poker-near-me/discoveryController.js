@@ -70,7 +70,11 @@ export const ROUTE_META = {
   venues: {
     heading: 'POKER NEAR ME',
     breadcrumb: 'Venues',
-    title: 'Poker Near Me: Live Poker Rooms And Casinos',
+    // Distinct from /hub/poker-near-me/lobby, which owns the phrase "Poker
+    // Near Me: Live Poker Rooms And Casinos". #1894 shortened this one to
+    // exactly that string and the two pages then competed for the same
+    // result with the same words (AEO phase 3, 2026-09-18).
+    title: 'Poker Venue Directory: Rooms Near You',
     description:
       'Discover live poker rooms, casinos, and card rooms near you with current schedules, map discovery, and venue details across the United States.',
   },
