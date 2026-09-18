@@ -7,6 +7,16 @@
 
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import {
+  fetchSeries,
+  formatRange,
+  isPublicSeries,
+  originFrom,
+  seriesDescription,
+  seriesPath,
+  seriesPlace,
+  seriesTitle,
+} from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -256,7 +266,110 @@ function getLocationParts(series) {
   return { city: '', state: '' };
 }
 
-export default function SeriesDetailPage() {
+/**
+ * The series itself is rendered on the server (discoverability, 2026-09-18).
+ * Before this the server HTML was the loading branch: the placeholder title
+ * "Poker Series Details", the placeholder site description, `noindex,
+ * nofollow` and about 75 words of chrome — on 246 pages the sitemap offers,
+ * a fifth of every URL in it. Events, results, followers and activity are
+ * still fetched in the browser exactly as before; only the series' own
+ * words are in the HTML now.
+ */
+export async function getServerSideProps({ params, req, res }) {
+  const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
+  if (status === 'unavailable') {
+    // The API did not answer: the browser still fetches as before, but a
+    // crawler is told to come back rather than to index a spinner.
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '120');
+  } else {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    if (status === 'not-found') res.statusCode = 404;
+  }
+  return { props: { seoSeries } };
+}
+
+/**
+ * One head for every branch, so the title, description and canonical are in
+ * the server HTML whether the browser data has arrived or not. A series with
+ * nothing to index (missing, or no name) stays out of the index.
+ */
+function SeriesHead({ series }) {
+  if (!isPublicSeries(series)) {
+    return (
+      <SEOHead
+        title="Series Not Found"
+        description="This poker tournament series is not available. Browse every tournament series and schedule on Smarter.Poker instead."
+        noindex={true}
+      />
+    );
+  }
+  return (
+    <SEOHead
+      title={seriesTitle(series)}
+      description={seriesDescription(series)}
+      canonical={seriesPath(series)}
+      ogImage={series.logoUrl || null}
+    />
+  );
+}
+
+/**
+ * What a reader gets before, or without, JavaScript. Googlebot renders JS,
+ * but the crawlers that decide what ChatGPT, Claude and Perplexity can cite
+ * largely do not, and before this they were served a spinner and 75 words of
+ * chrome on all 246 series pages the sitemap offers. These are the facts the
+ * server already has; the browser replaces this with the full schedule the
+ * moment its own fetch resolves.
+ */
+function SeriesSummary({ series }) {
+  if (!isPublicSeries(series)) return null;
+  const place = seriesPlace(series);
+  const range = formatRange(series.startDate, series.endDate);
+  const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
+  return (
+    <section className="series-summary" aria-label="Series Summary">
+      <h1>{series.name}</h1>
+      <dl>
+        {place && (
+          <div>
+            <dt>Where</dt>
+            <dd>{place}</dd>
+          </div>
+        )}
+        {range && (
+          <div>
+            <dt>When</dt>
+            <dd>{range}</dd>
+          </div>
+        )}
+        {series.mainEventBuyin ? (
+          <div>
+            <dt>Main Event</dt>
+            <dd>
+              {money(series.mainEventBuyin)} Buy-In
+              {series.mainEventGuaranteed ? ` With A ${money(series.mainEventGuaranteed)} Guarantee` : ''}
+            </dd>
+          </div>
+        ) : null}
+        {series.totalEvents ? (
+          <div>
+            <dt>Events</dt>
+            <dd>{series.totalEvents} Tournaments On The Schedule</dd>
+          </div>
+        ) : null}
+      </dl>
+      <p>
+        The Full Schedule, Buy-Ins, Guarantees And Results For {series.name} Are Listed Below. Browse Every
+        Tournament Series On <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
+        <a href="/hub/poker-near-me">Poker Near Me</a>.
+      </p>
+    </section>
+  );
+}
+
+export default function SeriesDetailPage({ seoSeries = null }) {
   const router = useRouter();
   const { id } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -502,11 +615,7 @@ export default function SeriesDetailPage() {
   if (loading || !id) {
     return (
       <>
-        <SEOHead
-          title="Poker Series Details"
-          description="Smarter.Poker - The Future Of The Game."
-          noindex={true}
-        />
+        <SeriesHead series={seoSeries} />
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
@@ -517,6 +626,7 @@ export default function SeriesDetailPage() {
         <PokerNearMeFamilyNav />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <main className="series-page" data-pnm-secondary-foundation="interaction-v1">
+          <SeriesSummary series={seoSeries} />
           <div className="loading-container">
             <div className="loading-spinner" />
             <p className="loading-text">Loading Series Details...</p>
@@ -531,7 +641,7 @@ export default function SeriesDetailPage() {
   if (error || !series) {
     return (
       <>
-        <Head><title>Series Not Found | Smarter.Poker</title></Head>
+        <SeriesHead series={seoSeries} />
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
@@ -622,7 +732,7 @@ export default function SeriesDetailPage() {
       <SEOHead
         title={series.name}
         description={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)}
-        ogImage={series.logo_url || null}
+        ogImage={series.logo_url || seoSeries?.logoUrl || null}
         canonical={`/hub/series/${id}`}
       />
       <UniversalHeader 
@@ -1908,7 +2018,46 @@ const styles = `
   }
 
   /* Loading */
-  .loading-container {
+  .series-summary {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 0;
+  color: #e2e8f0;
+}
+.series-summary h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  color: #fff;
+  margin: 0 0 12px;
+}
+.series-summary dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.series-summary dl > div {
+  display: contents;
+}
+.series-summary dt {
+  color: rgba(148, 163, 184, 0.9);
+  font-weight: 600;
+}
+.series-summary dd {
+  margin: 0;
+  color: #e2e8f0;
+}
+.series-summary p {
+  font-size: 14px;
+  color: rgba(148, 163, 184, 0.95);
+  line-height: 1.6;
+  margin: 0;
+}
+.series-summary a {
+  color: #d4a853;
+}
+.loading-container {
     display: flex;
     flex-direction: column;
     align-items: center;

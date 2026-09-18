@@ -1050,6 +1050,7 @@ jobs:
             __tests__/robots-crawler-policy.law.test.mjs \
             __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
             __tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs \
+            __tests__/the-series-pages-are-indexable.law.test.mjs \
             __tests__/the-help-page-works-without-an-account.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
@@ -1064,6 +1065,8 @@ jobs:
             __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \
             __tests__/a-page-never-returns-nothing-before-its-head.law.test.mjs \
             __tests__/a-summary-only-links-to-a-page-that-exists.law.test.mjs \
+            __tests__/no-public-page-is-nameless.law.test.mjs \
+            __tests__/poker-near-me-phase-3.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \

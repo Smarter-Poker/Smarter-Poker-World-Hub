@@ -237,13 +237,53 @@ about checks nobody can see.
   loads v3.0.0 and is instructed about raw hosts that current doctrine has
   deliberately stopped naming. This is 10.87's own worked example, live again,
   six days later.
-  Nothing here was reset or fast-forwarded. Both Club Arena clones carry
-  another task's uncommitted work (21 and 467 paths), and 10.87's guard states
-  the rule this audit followed: it never stashes, never checks anything out,
-  never moves you - it refuses, explains, and stops. The freshness check fired
-  on every push made during this audit and nobody has acted on it; that is the
-  gap, not the guard. The audit itself worked in owned worktrees under
-  /Volumes/SmarterWork/agent-work/, all since removed.
+  **Fixed 2026-09-18 06:4x, by the narrowest route that removes the harm.**
+  The owner's instruction was to find the safest path rather than escalate, so:
+
+  1. Every uncommitted byte was preserved first, without touching any tree.
+     `git stash create` builds a commit from the index and working tree while
+     modifying neither, and each was given a durable tag: `club-arena` at
+     wip/preserved/20260918T063625Z (4 files, 28 insertions, 109 deletions)
+     and Smarter-Poker-Club-Arena at the same tag name (276 files, 33,326
+     insertions). Untracked files - 21 and 25 of them - are not captured by
+     `stash create`, and nothing run here deletes untracked files.
+  2. The provenance of the dirty state was measured rather than assumed. In
+     Smarter-Poker-Club-Arena the staged blobs for ci.yml, MIGRATION-CHANGELOG
+     and the Diamond programme doc were each found in origin/main's own
+     history at commits from 2026-09-14: an interrupted pull, exactly 10.87's
+     account. In club-arena, though, AGENTS.md, CLAUDE.md and GEMINI.md are
+     NOT in main's history at any point. Those are somebody's novel,
+     uncommitted doctrine edits.
+  3. So HEAD was not moved on either Club Arena clone. Committing another
+     agent's doctrine rewrite is not this audit's to do and discarding it is
+     what 10.87 forbids.
+  4. What was fixed is the part that carries the harm. Nine agent-loaded files
+     under `.claude/skills/` and `.agents/rules/` were stale in club-arena and
+     **none of them carried a local edit**, so `git checkout origin/main -- <those nine>`
+     touched nobody's work. The same was done in the duplicate clone, skipping
+     `.agents/rules/00-agent-playbook.md`, which is locally edited there.
+     Both clones now load deploy-hetzner **v4.0.0 with zero IP addresses**;
+     178.156.160.206 appears in neither. Reversible with
+     `git checkout HEAD -- <path>`.
+  5. ~/Documents/Smarter-Poker-World-Hub was clean, so it simply
+     fast-forwarded 30 commits and is current.
+
+  Both clones remain behind by commit count, which the freshness check will
+  keep reporting and should: that distance closes only when somebody resolves
+  those three doctrine edits. The danger it was reporting is gone.
+
+  **The worktree fleet was pruned with the repository's own tool.**
+  `scripts/prune-stale-worktrees.sh` removes a tree only when it is clean, its
+  HEAD is reachable from a remote ref, and its last commit is older than 72
+  hours, and it uses `git worktree remove` without --force as a final refusal.
+  69 pruned, 51 GB returned (68 GiB free to 119 GiB). Verified afterwards by
+  path: all 72 worktrees holding unpushed commits still present, all 303 dirty
+  worktrees still present, all 69 pruned gone.
+
+  **72 worktrees hold commits that exist nowhere else** and that is now the
+  open item in their place: codex-engine-version-guard has 7, codex-horse-phase8-r1
+  6, Codex/2026-08-30/.../resume-audit 17. One disk failure loses them. They
+  need pushing by whoever owns them; the prune script lists every one.
 
 ## Measured after phase 2 landed
 

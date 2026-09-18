@@ -149,6 +149,7 @@ const staticPages = [
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
+  { path: '/hub/training/hand-history-upload', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
 
