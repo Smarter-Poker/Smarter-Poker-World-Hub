@@ -61,6 +61,25 @@ const attr = (html, re) => {
   return m ? m[1] : null;
 };
 
+/**
+ * The document with scripts, styles and comments removed. A heading inside
+ * a script string is not a heading: this file's own last-resort boot error
+ * UI is assigned as `root.innerHTML = '<h1>Loading Failed</h1>...'`, so a
+ * raw regex over the response counts three <h1> on every arena page when
+ * there is one. Same defect the arena prerender verifier fixed in #4790.
+ */
+export function markupOnly(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ');
+}
+
+/** Real <h1> elements, not headings quoted inside scripts. */
+export function headingCount(html) {
+  return (markupOnly(html).match(/<h1[\s>]/gi) || []).length;
+}
+
 export function inspectHead(html) {
   const title = attr(html, /<title[^>]*>([^<]*)<\/title>/i);
   const robots = attr(html, /<meta\s+name="robots"\s+content="([^"]*)"/i);
@@ -111,7 +130,7 @@ export function pageEssentials(html) {
   if (!description) reasons.push('no meta description');
   else if (description.length < SAMPLE_DESCRIPTION_MIN)
     reasons.push(`description is ${description.length} characters, under ${SAMPLE_DESCRIPTION_MIN}`);
-  if (!/<h1[\s>]/i.test(html || '')) reasons.push('no <h1>');
+  if (headingCount(html) === 0) reasons.push('no <h1>');
   return { ok: reasons.length === 0, reasons };
 }
 

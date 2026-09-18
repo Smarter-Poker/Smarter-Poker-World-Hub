@@ -25,7 +25,12 @@ import {
   DESCRIPTION_MIN,
   homeGameDescription,
 } from '../src/lib/home-games/homeGameSeo.mjs';
-import { pageEssentials, SAMPLE_DESCRIPTION_MIN } from '../scripts/ci/check-live-seo-contract.mjs';
+import {
+  headingCount,
+  markupOnly,
+  pageEssentials,
+  SAMPLE_DESCRIPTION_MIN,
+} from '../scripts/ci/check-live-seo-contract.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -97,4 +102,25 @@ test('the live contract checks the sampled URLs for a usable description and a h
   const src = read('scripts/ci/check-live-seo-contract.mjs');
   assert.match(src, /const essentials = pageEssentials\(r\.text\)/, 'the sample loop must run it');
   assert.match(src, /missing a description or heading/, 'the summary must report how many failed');
+});
+
+test('a heading quoted inside a script is not a heading', () => {
+  // The arena shell assigns a last-resort boot error UI as a string:
+  //   root.innerHTML = '<h1 ...>Loading Failed</h1>...'
+  // A raw regex over the response counts three <h1> on every arena page
+  // when there is one, so the live gate would accept a page whose only
+  // heading is quoted JavaScript. Same defect #4790 fixed for the arena
+  // prerender verifier.
+  const scriptOnly = `<script>root.innerHTML = '<h1 style="x">Loading Failed</h1>';</script>`;
+  assert.equal(headingCount(scriptOnly), 0);
+  assert.equal(headingCount('<h1>Real</h1>'), 1);
+  assert.equal(headingCount(`<h1>Real</h1>${scriptOnly}`), 1, 'script headings must not inflate the count');
+  assert.equal(headingCount('<style>h1{}</style><h1>Real</h1>'), 1);
+  assert.equal(headingCount('<!-- <h1>commented</h1> -->'), 0);
+  assert.equal(headingCount(''), 0);
+  assert.ok(!markupOnly(scriptOnly).includes('Loading Failed'));
+  assert.deepEqual(
+    pageEssentials(`<meta name="description" content="${'x'.repeat(80)}"/>${scriptOnly}`),
+    { ok: false, reasons: ['no <h1>'] }
+  );
 });
