@@ -91158,6 +91158,7 @@
           "pages/hub/memory-games/leaderboard.js",
           "pages/hub/training/solutions.js",
           "pages/legal/official-rules.js",
+          "pages/privacy.js",
           "pages/terms.js",
           "src/lib/seo/summarySchema.js"
         ]
@@ -99959,6 +99960,7 @@
           "pages/hub/memory-games/leaderboard.js",
           "pages/hub/training/solutions.js",
           "pages/legal/official-rules.js",
+          "pages/privacy.js",
           "pages/terms.js",
           "src/lib/seo/summarySchema.js"
         ]
