@@ -15,6 +15,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import HubPromoRail from '../../src/components/ads/HubPromoRail';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const C = {
     bg: '#F0F2F5',
@@ -677,6 +678,9 @@ export default function PromotionsPage() {
                     }
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="promotions" />
         </PageTransition>
     );
 }

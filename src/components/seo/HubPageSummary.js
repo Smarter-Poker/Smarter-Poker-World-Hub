@@ -175,6 +175,101 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Home Games', href: '/hub/commander/home-games', text: 'Run A Season On A Recurring Private Game.' },
     ],
   },
+
+  // The community surfaces: nine routes returning between 0 and 127 words
+  // on production, most of them chrome (AEO phase 3, 2026-09-17).
+  'social-media': {
+    heading: 'About The Poker Social Hub',
+    lead:
+      'The Social Hub Is Where Smarter Poker Players Post: Hands They Want An Opinion On, Results They Are Pleased With, Questions About A Rule Nobody At The Table Could Settle, And The Occasional Bad Beat. Follow The Players You Actually Play With, Join Discussions On Someone Else Post, And Build A Feed That Is Poker Rather Than Everything. Free To Read And Free To Post, And Nothing On It Is A Wager.',
+    links: [
+      { name: 'Reels', href: '/hub/reels', text: 'Short Poker Video From The Community And The Circuit.' },
+      { name: 'Poker News', href: '/hub/news', text: 'Headlines And Results From Published Sources, Hourly.' },
+      { name: 'Community Pages', href: '/hub/social-pages', text: 'Pages For Venues, Groups, Communities And Brands.' },
+      { name: 'Leaderboards', href: '/hub/leaderboards', text: 'Who Is Ahead Across Every Game On The Platform.' },
+    ],
+  },
+  reels: {
+    heading: 'About Reels',
+    lead:
+      'Reels Is Short Poker Video: Hands Worth Watching Twice, Reads That Paid Off, Tournament Moments From The Circuit And Clips Players Record At The Table. Everything Is Vertical, Short And Poker, Which Is The Point: A Feed That Does Not Wander Off Into Everything Else. Watching Is Free And Needs No Account, And Nothing In It Is A Wager.',
+    links: [
+      { name: 'Video Library', href: '/hub/video-library', text: 'Longer Strategy Content And Tournament Coverage.' },
+      { name: 'Social Hub', href: '/hub/social-media', text: 'The Feed The Clips Get Discussed In.' },
+      { name: 'Lives', href: '/hub/lives', text: 'What Is Streaming Right Now.' },
+    ],
+  },
+  lives: {
+    heading: 'About Lives',
+    lead:
+      'Lives Lists The Poker Streams Running Right Now And The Ones Scheduled Next, From Players Streaming Their Own Sessions To Tournament Coverage With Hole Cards On A Delay. Open One And It Plays Here, With The Chat Beside It. Watching Is Free And Needs No Account, And Nothing On The Page Is A Wager.',
+    links: [
+      { name: 'Reels', href: '/hub/reels', text: 'Short Clips When There Is Nothing Live.' },
+      { name: 'Video Library', href: '/hub/video-library', text: 'Recorded Strategy Content And Coverage.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'What Is Being Played, And Where, By Date.' },
+    ],
+  },
+  'social-pages': {
+    heading: 'About Community Pages',
+    lead:
+      'A Community Page Is A Public Home For A Venue, A Home Game, A Local Group Or A Poker Brand: Who You Are, What You Run, When It Runs And How To Join. Pages Are Free To Create And Free To Follow, Followers See Posts In Their Feed, And A Venue Page Can Carry The Same Games And Waitlists Club Commander Publishes. Nothing On A Page Is A Wager.',
+    links: [
+      { name: 'Home Games', href: '/hub/home-games', text: 'Find Or Host A Private Game Near You.' },
+      { name: 'Club Commander', href: '/hub/commander', text: 'Run A Venue With Waitlists And Tournament Clocks.' },
+      { name: 'Social Hub', href: '/hub/social-media', text: 'The Feed A Page Posts Into.' },
+    ],
+  },
+  pages: {
+    heading: 'About The Pages Directory',
+    lead:
+      'The Pages Directory Lists Every Public Community Page On Smarter Poker: Venues, Home Games, Local Groups And Brands, Searchable By Name And Browsable By Kind. It Is The Way To Find A Room Or A Group You Have Heard Of But Cannot Place, And The Way A New Page Gets Found At All. Free To Browse And Free To Appear In.',
+    links: [
+      { name: 'Community Pages', href: '/hub/social-pages', text: 'What A Page Is, And How To Create One.' },
+      { name: 'Live Poker Rooms', href: '/hub/commander/venues', text: 'Venues Running Club Commander, With Live Games.' },
+      { name: 'Home Games', href: '/hub/home-games', text: 'Private Games By State And City.' },
+    ],
+  },
+  leaderboards: {
+    heading: 'About The Leaderboards',
+    lead:
+      'The Leaderboards Collect Every Ranking On Smarter Poker In One Place: Training Accuracy, Trivia Runs, Preflop Practice, Arena Results And Season Leagues, Each On Daily, Weekly And All Time Windows. Every Board Shows The Sample It Was Measured Over, Because A Ranking With No Volume Behind It Is Not A Ranking. Free To Appear On, And Nothing On Any Board Is A Payout.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'The Drills The Accuracy Boards Come From.' },
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Six Modes, One Question Bank, One Board.' },
+      { name: 'Poker Arena', href: '/hub/club-arena', text: 'Private Club Games, Results And Club Leaderboards.' },
+    ],
+  },
+  promotions: {
+    heading: 'About Promotions',
+    lead:
+      'Promotions Lists What Is Currently Being Given Away On Smarter Poker: Diamond Drops, Free Entry Windows, Seasonal Events And Venue Offers From Rooms Running Club Commander. Each Entry Carries Its Own Rules, Its Dates And Who Is Eligible, And Every Reward Is A Promotional Rewards Currency Or A Free Entry. Nothing Here Pays Cash, And Nothing Here Is A Wager.',
+    links: [
+      { name: 'Smarter Rewards', href: '/hub/smarter-rewards', text: 'What Playing Regularly Earns You.' },
+      { name: 'Official Rules', href: '/legal/official-rules', text: 'The Rules Every Promotion Runs Under.' },
+      { name: 'Diamond Store', href: '/hub/diamond-store', text: 'What Diamonds Are For.' },
+    ],
+  },
+  help: {
+    heading: 'About The Help Center',
+    lead:
+      'The Help Center Answers The Questions People Actually Ask: Getting Into An Account, Joining A Club Or A Waitlist, What Chips And Diamonds Are And Are Not, How Training Scores Work, What Happens To Your Data, And How To Set A Limit Or Exclude Yourself. Every Answer Is Written For Someone Who Has Not Used The Platform Before. Free To Read, And No Account Is Needed.',
+    links: [
+      { name: 'Commander FAQ', href: '/hub/commander/faq', text: 'Waitlists, Check In, Rewards And Venue Questions.' },
+      { name: 'Responsible Gaming', href: '/hub/commander/responsible-gaming', text: 'Limits, Cooling Off Periods And Self Exclusion.' },
+      { name: 'Terms Of Service', href: '/terms', text: 'The Agreement Every Account Is Held To.' },
+      { name: 'Privacy Policy', href: '/privacy', text: 'What Is Collected, And What Is Done With It.' },
+    ],
+  },
+  'news-sources': {
+    heading: 'About The News Sources',
+    lead:
+      'This Page Lists Every Outlet The Smarter Poker News Feed Reads, How Often It Checks Each One, And When It Last Succeeded. Nothing Is Rewritten And Nothing Is Republished In Full: A Story In The Feed Is A Headline, A Summary And A Link Back To The Outlet That Wrote It. If A Source Stops Updating, This Page Is Where That Shows. Free To Read.',
+    links: [
+      { name: 'Poker News', href: '/hub/news', text: 'The Feed These Sources Fill.' },
+      { name: 'Video Library', href: '/hub/video-library', text: 'Curated Strategy Video And Tournament Coverage.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Series And Festivals By Date.' },
+    ],
+  },
 };
 
 export default function HubPageSummary({ page, as = 'h2' }) {

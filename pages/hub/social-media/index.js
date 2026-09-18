@@ -119,6 +119,18 @@ import {
 } from '../../../src/components/social/SharedVideoComponents';
 
 import { feedCache } from '../../../src/lib/feedCache';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17).
+const SOCIAL_SCHEMA = hubProductSchema({
+  path: '/hub/social-media',
+  name: 'Smarter.Poker Social Hub',
+  description:
+    'The Poker Feed On Smarter.Poker: Share Hands And Results, Follow Players You Play With, And Join Discussions. Free To Read And Free To Post.',
+  applicationCategory: 'SocialNetworkingApplication',
+  trail: [['Hub', '/hub'], ['Social Hub', '/hub/social-media']],
+});
 
 // 2026-08-15 audit: typing-indicator broadcasts used to construct a brand-new
 // RealtimeChannel PER KEYSTROKE (supabase.channel() registers a new channel
@@ -5771,11 +5783,27 @@ function SocialMediaPage() {
     };
   }, [user?.id]);
 
+  // THE HEAD RENDERS IN BOTH BRANCHES (AEO phase 3, 2026-09-17). The skeleton
+  // below returns before the head did, so a crawler and a signed-out reader
+  // met it with the app's default head: no title, no description, no canonical
+  // and no words. Measured on production this page returned 0 of each. Same
+  // shape as the responsible gaming page, same fix.
+  const head = (
+    <SEOHead
+      title="Poker Social Hub: Feed, Friends And Discussion"
+      description="The Smarter.Poker Social Hub: Share Hands And Results, Follow Players You Play With, Join Discussions And Build A Poker Network. Free To Read And Free To Post. No Real-Money Gambling."
+      canonical="/hub/social-media"
+      jsonLd={SOCIAL_SCHEMA}
+    />
+  );
+
   // Only show loading skeleton if intro is done and still loading
   if (loading )
     return (
       // No paddingBottom here: pages/_app.js mounts BottomNavSpacer after every
       // page, which is the one sanctioned bottom-nav clearance (PR #766, #992).
+      <>
+      {head}
       <div style={{ minHeight: '100dvh', background: C.bg }}>
         <style>{`
                 @keyframes sf-shimmer {
@@ -5853,16 +5881,14 @@ function SocialMediaPage() {
           </div>
         ))}
       </div>
+      <HubPageSummary page="social-media" as="h1" />
+      </>
     );
 
   return (
     <PageTransition>
       
-      <SEOHead
-        title="Social Hub - Poker Community & Feed"
-        description="Connect With Poker Players Worldwide. Share Updates, Follow Friends, Join Discussions, And Build Your Poker Network On The Smarter.Poker Social Hub."
-        canonical="/hub/social-media"
-      />
+      {head}
 
       {/* Slide-out Sidebar Overlay */}
       {sidebarOpen && (

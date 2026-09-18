@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getNewsPreferences, updateNewsPreferences } from '../../../src/services/newsPreferences';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const MUTED_SOURCES_KEY = 'news_muted_sources';
 
@@ -318,6 +319,9 @@ export default function NewsSources() {
                     `}</style>
                 </div>
             </PageTransition>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="news-sources" />
         </>
     );
 }

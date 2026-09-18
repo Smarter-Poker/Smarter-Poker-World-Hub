@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { openPageOverlay } from '../../src/stores/pageOverlayStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const CATEGORIES = [
     { key: 'all', label: 'All Pages' },
@@ -969,6 +970,9 @@ export default function PokerPagesPage() {
                     }
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="pages" />
         </>
     );
 }

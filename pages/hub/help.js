@@ -8,6 +8,7 @@ import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const C = {
     bg: '#0a1628',
@@ -385,6 +386,9 @@ export default function HelpPage() {
                     </div>
                 </div>
             </div>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="help" />
         </>
     );
 }

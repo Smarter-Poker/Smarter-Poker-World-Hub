@@ -15,6 +15,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { SOCIAL_COLORS, timeAgo } from '../../../src/lib/socialHelpers';
 import { spKeyActivate } from '../../../src/lib/keyboardActivate';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const C = SOCIAL_COLORS;
 
@@ -697,6 +698,9 @@ export default function SocialPagesHub() {
                 @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
             `}
             </style>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="social-pages" />
         </>
     );
 }
