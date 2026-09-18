@@ -129,6 +129,11 @@ const staticPages = [
   // that follows a sitemap entry to a redirect learns the destination it
   // could have reached anyway, and spends a fetch to do it.
   // Hub — Training sub-pages
+  // 866 server-rendered words defining 49 terms, and the sitemap never
+  // mentioned it. A definitional question is the question an AI engine
+  // answers most often, so this is the most quotable page the site owns
+  // (AEO phase 3, 2026-09-17).
+  { path: '/hub/training/glossary', priority: '0.8', changefreq: 'monthly' },
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
@@ -153,8 +158,13 @@ const staticPages = [
   // node, yet it was absent from the sitemap entirely (audit M-4).
   { path: '/hub/home-games/near-me', priority: '0.8', changefreq: 'daily' },
 
-  // Horses
-  { path: '/horses', priority: '0.7', changefreq: 'daily' },
+  // /horses IS THE STAFF ADMIN CONSOLE, NOT A PRODUCT (AEO phase 3,
+  // 2026-09-17). pages/horses/index.js is HorsesAdmin: an email and password
+  // form, a roster table and an SQL console, gated on profiles.is_admin. It
+  // sat here at priority 0.7. Measured on production as OAI-SearchBot it
+  // returned 11 words and no <title> at all, because its head sits below the
+  // session gate. A public sitemap is the wrong place to advertise an admin
+  // login, and there was never anything on it to index.
 ];
 
 // ─── Dynamic Home-Game URLs ──────────────────────────────────────────────────
