@@ -1,8 +1,8 @@
 /**
  * THE GLOSSARY IS READABLE BY AN ENGINE (AEO phase 3, 2026-09-17).
  *
- * /hub/training/glossary already server-rendered 49 definitions, 2,812
- * words that a crawler running no JavaScript can read, and it was
+ * /hub/training/glossary already server-rendered all 49 definitions, 866
+ * words of prose a crawler running no JavaScript can read, and it was
  * invisible anyway: absent from the sitemap, carrying a bare <title> and
  * not one line of structured data. Measured on production before this
  * law: 0 ld+json blocks, 0 sitemap mentions.

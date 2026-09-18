@@ -305,7 +305,8 @@ const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Theory'];
 
 /* ─────────────────────────────────────────────────────────────────────────
    AEO PHASE 3 (2026-09-17). This page already server-renders all 49
-   definitions - 2,812 words that an engine with no JavaScript can read -
+   definitions - 866 words of prose that an engine with no JavaScript can
+   read -
    and it was invisible anyway: absent from the sitemap, carrying a bare
    <title> and not one line of structured data. A glossary is the single
    most quotable thing a site owns, because a definitional question is the
