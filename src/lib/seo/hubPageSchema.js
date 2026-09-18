@@ -59,6 +59,10 @@ export function hubProductSchema({
   applicationCategory = 'GameApplication',
   applicationSubCategory = 'Poker',
   trail,
+  // Some pages already publish their own BreadcrumbList (the Club Commander
+  // family does, through commanderBreadcrumbs). Two of them on one page is
+  // one more than the page has.
+  withBreadcrumb = true,
 }) {
   const url = absolute(path);
   return [
@@ -71,7 +75,7 @@ export function hubProductSchema({
       isPartOf: { '@id': WEBSITE_ID },
       inLanguage: 'en-US',
       about: { '@id': `${url}#app` },
-      breadcrumb: { '@id': `${url}#breadcrumb` },
+      ...(withBreadcrumb ? { breadcrumb: { '@id': `${url}#breadcrumb` } } : {}),
     },
     {
       '@type': 'SoftwareApplication',
@@ -87,7 +91,7 @@ export function hubProductSchema({
       publisher: { '@id': ORGANIZATION_ID },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },
-    breadcrumbSchema(trail),
+    ...(withBreadcrumb ? [breadcrumbSchema(trail)] : []),
   ];
 }
 

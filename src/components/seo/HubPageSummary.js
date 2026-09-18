@@ -29,7 +29,10 @@
    definition it sees most often, so the two must not drift.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import Head from 'next/head';
 import Link from 'next/link';
+import { summarySchema } from '../../lib/seo/summarySchema';
+
 
 /**
  * One entry per hub surface this component serves. `heading` is rendered as
@@ -418,9 +421,21 @@ export default function HubPageSummary({ page, as = 'h2' }) {
   if (!entry) return null;
   const Heading = as === 'h1' ? 'h1' : 'h2';
   const headingId = `hub-summary-${page}`;
+  const schema = summarySchema(page, entry);
 
   return (
     <section style={styles.section} aria-labelledby={headingId}>
+      {/* Built from the heading and the lead just below, so the page cannot
+          say one thing to a reader and another to an engine. Absent for the
+          pages that already publish their own graph through SEOHead. */}
+      {schema && (
+        <Head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
+          />
+        </Head>
+      )}
       <Heading id={headingId} style={styles.heading}>
         {entry.heading}
       </Heading>
