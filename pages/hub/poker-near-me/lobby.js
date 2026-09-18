@@ -2468,7 +2468,7 @@ export default function PokerNearMeLobby() {
   return (
     <>
       <SEOHead
-        title="Poker Near Me - Find Live Poker Rooms & Casinos"
+        title="Poker Near Me: Live Poker Rooms And Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
         canonical="/hub/poker-near-me/lobby"
         jsonLd={LOBBY_JSON_LD}

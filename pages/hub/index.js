@@ -6,6 +6,18 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): the hub is an index of the products, not a
+// product of its own, so CollectionPage is the honest type. It carries
+// 3,276 server-rendered words and shipped no structured data at all.
+const HUB_SCHEMA = hubCollectionSchema({
+    path: '/hub',
+    name: 'Smarter.Poker Hub',
+    description:
+        'Every Smarter.Poker Product In One Place: GTO Training, Private Clubs In Poker Arena, Club Commander Room Management, Poker Near Me, Home Games And The Bankroll Manager.',
+    trail: [['Hub', '/hub']],
+});
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -124,9 +136,10 @@ export default function HubPage() {
     return (
         <>
             <SEOHead
-                title="Poker Hub - Your Command Center"
-                description="Access All Smarter.Poker Features From One Hub: GTO Training, Poker Near Me, Bankroll Tracking, Trivia, News, Social, And More."
+                title="Poker Hub: Training, Clubs And Live Games"
+                description="Access All Smarter.Poker Features From One Hub: GTO Training, Private Clubs In Poker Arena, Poker Near Me, Home Games, Bankroll Tracking, Trivia, News And Social. Free To Play, No Real-Money Gambling."
                 canonical="/hub"
+                jsonLd={HUB_SCHEMA}
             />
             <Head>
                 {/* The hub's largest paint is the circuit-brain background that

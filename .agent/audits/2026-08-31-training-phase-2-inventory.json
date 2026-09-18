@@ -61398,6 +61398,7 @@
   ],
   "tests": [
     "__tests__/daily-challenges-casino-realism.test.mjs",
+    "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
@@ -79016,6 +79017,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
       ]
@@ -83716,6 +83718,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/no-slide-to-see.law.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
@@ -83747,6 +83750,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
@@ -83803,6 +83807,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/no-slide-to-see.law.test.mjs",
         "__tests__/page-tutorials.test.mjs",
