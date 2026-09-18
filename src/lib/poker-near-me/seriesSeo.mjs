@@ -1,0 +1,183 @@
+/**
+ * Server-side data for the public poker series pages.
+ *
+ * DISCOVERABILITY (2026-09-18). /hub/series/[id] fetched everything in the
+ * browser, so the server HTML a crawler reads was the LOADING branch: the
+ * placeholder title "Poker Series Details", the placeholder site
+ * description, `noindex, nofollow`, and about 75 words of chrome. The
+ * sitemap lists 246 of these pages, a fifth of every URL it offers, so a
+ * fifth of the crawl budget was spent on pages that load and then tell the
+ * crawler to go away. Measured live on 2026-09-18 before this change.
+ *
+ * The head is now rendered on the server from the same public API the
+ * browser uses, so the series' own name, venue, dates and stakes are in the
+ * HTML and the page is indexable. A series that does not exist is a real
+ * 404 and stays out of the index; an API that cannot answer is a 503, so a
+ * crawler comes back rather than indexing a spinner.
+ *
+ * This is the pattern already proven on /hub/commander/venues/[id].
+ */
+const TIMEOUT_MS = 4000;
+
+/** Absolute origin for a same-origin API call from getServerSideProps. */
+export function originFrom(req) {
+  if (process.env.SITE_ORIGIN) return process.env.SITE_ORIGIN;
+  const host = req?.headers?.['x-forwarded-host'] || req?.headers?.host;
+  if (!host) return 'https://smarter.poker';
+  const proto = req?.headers?.['x-forwarded-proto'] || (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
+
+/** Props must be JSON: every field is a string, a number, or null (never undefined). */
+export function toSeoSeries(raw) {
+  if (!raw || typeof raw !== 'object' || raw.id === undefined || raw.id === null) return null;
+  const s = (x) => (typeof x === 'string' && x.trim() ? x.trim() : null);
+  const n = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+  return {
+    id: String(raw.id),
+    name: s(raw.name),
+    venueName: s(raw.venue_name) || s(raw.venue),
+    city: s(raw.city),
+    state: s(raw.state),
+    location: s(raw.location),
+    startDate: s(raw.start_date),
+    endDate: s(raw.end_date),
+    mainEventBuyin: n(raw.main_event_buyin),
+    mainEventGuaranteed: n(raw.main_event_guaranteed),
+    // A scraped series often carries total_events: 0 with a real
+    // events_count; take whichever actually counts events.
+    totalEvents: Math.max(n(raw.total_events) ?? 0, n(raw.events_count) ?? 0),
+    seriesType: s(raw.series_type),
+    logoUrl: s(raw.logo_url),
+  };
+}
+
+/** A series with no name has nothing to index. */
+export function isPublicSeries(v) {
+  return !!v && !!v.name;
+}
+
+/**
+ * Resolves to { series, status }: 'ok', 'not-found' (the API says so, or the
+ * id is not a series id) or 'unavailable' (the API did not answer in time).
+ */
+export async function fetchSeries(id, origin) {
+  if (!/^[A-Za-z0-9_:-]{1,64}$/.test(String(id ?? ''))) return { series: null, status: 'not-found' };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${origin}/api/poker/series?id=${encodeURIComponent(id)}`, {
+      signal: ctrl.signal,
+      headers: { accept: 'application/json' },
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    const series = data?.success ? toSeoSeries(data.data) : null;
+    if (series) return { series, status: 'ok' };
+    if (res.status === 404 || res.status === 400 || data?.success === false) {
+      return { series: null, status: 'not-found' };
+    }
+    return { series: null, status: 'unavailable' };
+  } catch {
+    return { series: null, status: 'unavailable' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/** "February 25 to March 31, 2026", or a single date, or null. */
+export function formatRange(startDate, endDate) {
+  const part = (iso) => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+    if (!m) return null;
+    const month = MONTHS[Number(m[2]) - 1];
+    return month ? { month, day: String(Number(m[3])), year: m[1] } : null;
+  };
+  const a = part(startDate);
+  const b = part(endDate);
+  if (!a && !b) return null;
+  if (!b || !a) {
+    const one = a || b;
+    return `${one.month} ${one.day}, ${one.year}`;
+  }
+  if (a.year === b.year && a.month === b.month && a.day === b.day) return `${a.month} ${a.day}, ${a.year}`;
+  if (a.year === b.year) return `${a.month} ${a.day} to ${b.month} ${b.day}, ${b.year}`;
+  return `${a.month} ${a.day}, ${a.year} to ${b.month} ${b.day}, ${b.year}`;
+}
+
+/**
+ * The scraped rows often fold the venue into the city ("Venetian Las Vegas
+ * Las Vegas" for the Venetian in Las Vegas), so composing venue + city
+ * blindly reads "Venetian Las Vegas in Venetian Las Vegas Las Vegas". Strip
+ * the venue out of the city before composing, and fall back cleanly when
+ * nothing useful is left.
+ */
+export function cityWithoutVenue(city, venueName) {
+  if (!city) return null;
+  if (!venueName) return city;
+  const cleaned = city.replace(new RegExp(venueName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+  const trimmed = cleaned.replace(/\s+/g, ' ').replace(/^[\s,–-]+|[\s,–-]+$/g, '');
+  return trimmed || null;
+}
+
+export function seriesPlace(v) {
+  const city = cityWithoutVenue(v.city, v.venueName);
+  if (v.venueName && city) return `${v.venueName} in ${city}${v.state ? `, ${v.state}` : ''}`;
+  if (v.venueName) return `${v.venueName}${v.state ? `, ${v.state}` : ''}`;
+  if (city) return `${city}${v.state ? `, ${v.state}` : ''}`;
+  return v.location || null;
+}
+
+export function seriesTitle(v) {
+  const place = v.venueName || v.city;
+  return place ? `${v.name} At ${place}` : v.name;
+}
+
+const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
+
+/**
+ * A meta description Google will not truncate. The first sentence (what and
+ * where and when) is always kept; the optional sentences are added while
+ * they fit inside DESCRIPTION_MAX, so a long series name never pushes the
+ * useful part out of the snippet.
+ */
+export const DESCRIPTION_MAX = 160;
+
+export function seriesDescription(v) {
+  const range = formatRange(v.startDate, v.endDate);
+  const place = seriesPlace(v);
+  // Most detailed opening sentence that fits; a very long series name drops
+  // the dates, then the venue, rather than the name itself.
+  const openings = [
+    `${v.name}${place ? ` runs at ${place}` : ''}${range ? ` from ${range}` : ''}.`,
+    `${v.name}${place ? ` runs at ${place}` : ''}.`,
+    `${v.name}${range ? ` runs from ${range}` : ''}.`,
+    `${v.name}.`,
+  ];
+  let text = openings.find((o) => o.length <= DESCRIPTION_MAX) ?? openings[openings.length - 1];
+  const optional = [];
+  if (v.totalEvents) optional.push(`${v.totalEvents} events.`);
+  if (v.mainEventBuyin) {
+    optional.push(
+      v.mainEventGuaranteed
+        ? `Main event ${money(v.mainEventBuyin)} with a ${money(v.mainEventGuaranteed)} guarantee.`
+        : `Main event ${money(v.mainEventBuyin)}.`
+    );
+  }
+  optional.push('Full schedule, buy-ins and results on Smarter.Poker.');
+  for (const bit of optional) {
+    if (text.length + 1 + bit.length > DESCRIPTION_MAX) continue;
+    text += ` ${bit}`;
+  }
+  return text;
+}
+
+export function seriesPath(v) {
+  return `/hub/series/${v.id}`;
+}

@@ -1050,6 +1050,7 @@ jobs:
             __tests__/robots-crawler-policy.law.test.mjs \
             __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
             __tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs \
+            __tests__/the-series-pages-are-indexable.law.test.mjs \
             __tests__/the-help-page-works-without-an-account.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \

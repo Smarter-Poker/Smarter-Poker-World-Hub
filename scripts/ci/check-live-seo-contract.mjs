@@ -15,9 +15,18 @@
  *      description and a parseable JSON-LD document; the home page's
  *      JSON-LD must be a @graph (the numeric-keys bug of #1822);
  *   4. the default share image must answer 200 as an image;
- *   5. a sample of the remaining sitemap URLs must answer 200 (the full
- *      list is hundreds of pages; a sample catches a broken section
- *      without turning a deploy check into a crawl).
+ *   5. a sample of the remaining sitemap URLs must answer 200 AND be
+ *      indexable (the full list is hundreds of pages; a sample catches a
+ *      broken section without turning a deploy check into a crawl).
+ *
+ * WHY THE SAMPLE CHECKS INDEXABILITY (2026-09-18). Until now the sample
+ * only asserted HTTP 200, so a sitemap entry that loaded fine and then told
+ * crawlers not to index it passed this gate: exactly the defect #1885 had
+ * to fix in production, found by a source test rather than here. A sitemap
+ * is a list of pages worth indexing; offering a crawler a page that refuses
+ * indexing spends crawl budget to say nothing, and only the live response
+ * can prove which it is. The rule is the one already applied to the home
+ * page and every /hub/commander URL, applied to the sample too.
  *
  * Plain Node 20+, no dependencies, no hand-typed route list beyond '/'.
  *
@@ -82,6 +91,21 @@ export function hasNumericKeys(ld) {
 
 export function parseSitemapLocs(xml) {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+}
+
+/**
+ * Is this live response one a crawler may index? Reads the response the way
+ * Googlebot resolves it: the X-Robots-Tag header first (it applies even when
+ * the body never parses), then the robots meta in the document.
+ * Returns { indexable, reason } so a failure names what said no.
+ */
+export function indexability({ status, headerRobots, html }) {
+  if (status !== 200) return { indexable: false, reason: `HTTP ${status}` };
+  if (/noindex/i.test(headerRobots || ''))
+    return { indexable: false, reason: `X-Robots-Tag: ${String(headerRobots).trim()}` };
+  const meta = inspectHead(html || '').robots;
+  if (meta && /noindex/i.test(meta)) return { indexable: false, reason: `robots meta: ${meta}` };
+  return { indexable: true, reason: null };
 }
 
 export function parseRobots(text) {
@@ -185,14 +209,28 @@ async function main() {
   const step = Math.max(1, Math.floor(rest.length / SAMPLE));
   const sample = rest.filter((_, i) => i % step === 0).slice(0, SAMPLE);
   let bad = 0;
+  let unindexable = 0;
   for (const url of sample) {
     const r = await get(url);
+    const verdict = indexability({
+      status: r.status,
+      headerRobots: r.headers.get('x-robots-tag'),
+      html: r.text,
+    });
+    if (verdict.indexable) continue;
     if (r.status !== 200) {
       bad += 1;
       fail(`sitemap sample ${url}: HTTP ${r.status}`);
+    } else {
+      unindexable += 1;
+      // A sitemap is a list of pages worth indexing. A page that loads and
+      // then refuses indexing must leave the sitemap, not sit in it.
+      fail(`sitemap sample ${url}: listed in the sitemap but not indexable (${verdict.reason})`);
     }
   }
-  notes.push(`sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200`);
+  notes.push(
+    `sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200, ${unindexable} not indexable`
+  );
 }
 
 const invokedDirectly = process.argv[1] && new URL(`file://${process.argv[1]}`).pathname === new URL(import.meta.url).pathname;
