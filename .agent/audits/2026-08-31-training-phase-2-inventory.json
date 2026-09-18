@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 337,
+    "dependencyFiles": 339,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 346,
@@ -20,7 +20,7 @@
     "realtimeFiles": 6,
     "tests": 140,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 365,
+    "possibleUnwiredFunctions": 368,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -6522,7 +6522,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -9982,7 +9984,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -10233,7 +10237,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -15198,6 +15204,8 @@
         "src/hooks/usePersistedFilters.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -17275,7 +17283,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -32325,7 +32335,7 @@
         {
           "element": "button",
           "name": "Retry",
-          "line": 474,
+          "line": 475,
           "handler": "() => setRenderError(null)",
           "destination": null,
           "type": null,
@@ -32335,7 +32345,7 @@
         {
           "element": "button",
           "name": "← Training",
-          "line": 835,
+          "line": 840,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -32345,7 +32355,7 @@
         {
           "element": "button",
           "name": "`Filter by ${gt.label}`",
-          "line": 882,
+          "line": 887,
           "handler": "() => setGameType(gt.value)",
           "destination": null,
           "type": null,
@@ -32355,7 +32365,7 @@
         {
           "element": "button",
           "name": "BB",
-          "line": 930,
+          "line": 935,
           "handler": "() => {\n                    setStackDepth(sd);\n                    setPage(1);\n                  }",
           "destination": null,
           "type": null,
@@ -32365,7 +32375,7 @@
         {
           "element": "button",
           "name": "Filter by All positions",
-          "line": 969,
+          "line": 974,
           "handler": "() => {\n                  setPosition('');\n                  setPage(1);\n                }",
           "destination": null,
           "type": null,
@@ -32375,7 +32385,7 @@
         {
           "element": "button",
           "name": "`Filter by position ${p}`",
-          "line": 990,
+          "line": 995,
           "handler": "() => {\n                    setPosition(p);\n                    setPage(1);\n                  }",
           "destination": null,
           "type": null,
@@ -32385,7 +32395,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1020,
+          "line": 1025,
           "handler": "() => {\n                    setFilter('rxTexture', tex);\n                    setPage(1);\n                  }",
           "destination": null,
           "type": null,
@@ -32395,7 +32405,7 @@
         {
           "element": "button",
           "name": "Show all spots",
-          "line": 1108,
+          "line": 1113,
           "handler": "() => setShowBookmarksOnly(false)",
           "destination": null,
           "type": null,
@@ -32405,7 +32415,7 @@
         {
           "element": "button",
           "name": "Show bookmarked spots only",
-          "line": 1130,
+          "line": 1135,
           "handler": "() => setShowBookmarksOnly(true)",
           "destination": null,
           "type": null,
@@ -32415,7 +32425,7 @@
         {
           "element": "button",
           "name": "← Prev",
-          "line": 1184,
+          "line": 1189,
           "handler": "() => setPage((p) => Math.max(1, p - 1))",
           "destination": null,
           "type": null,
@@ -32425,7 +32435,7 @@
         {
           "element": "button",
           "name": "Next →",
-          "line": 1210,
+          "line": 1215,
           "handler": "() => setPage((currentPage) => currentPage + 1)",
           "destination": null,
           "type": null,
@@ -32435,7 +32445,7 @@
         {
           "element": "button",
           "name": "Retry Audited Lookup",
-          "line": 1254,
+          "line": 1259,
           "handler": "() => loadSpotDetail(selectedSpot)",
           "destination": null,
           "type": null,
@@ -32445,7 +32455,7 @@
         {
           "element": "button",
           "name": "`View ${tab.label}`",
-          "line": 1416,
+          "line": 1421,
           "handler": "() => setActiveTab(tab.key)",
           "destination": null,
           "type": null,
@@ -32455,7 +32465,7 @@
         {
           "element": "button",
           "name": "`Color by ${mode.label}`",
-          "line": 1457,
+          "line": 1462,
           "handler": "() => setColorMode(mode.key)",
           "destination": null,
           "type": null,
@@ -32567,7 +32577,7 @@
         },
         {
           "name": "SolutionsBrowserInner",
-          "line": 482,
+          "line": 487,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32575,7 +32585,7 @@
         },
         {
           "name": "classifyBoardTexture",
-          "line": 582,
+          "line": 587,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32583,7 +32593,7 @@
         },
         {
           "name": "loadBookmarks",
-          "line": 630,
+          "line": 635,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -32591,7 +32601,7 @@
         },
         {
           "name": "setGameType",
-          "line": 509,
+          "line": 514,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32599,7 +32609,7 @@
         },
         {
           "name": "setStackDepth",
-          "line": 510,
+          "line": 515,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32607,7 +32617,7 @@
         },
         {
           "name": "setPosition",
-          "line": 511,
+          "line": 516,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -32615,7 +32625,7 @@
         },
         {
           "name": "setColorMode",
-          "line": 512,
+          "line": 517,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -32626,7 +32636,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 606,
+          "line": 611,
           "excerpt": "console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -32634,7 +32644,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 609,
+          "line": 614,
           "excerpt": "// Inline fallback",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -32643,7 +32653,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 714,
+          "line": 719,
           "excerpt": "// Do not crash the app, just fallback to empty classification",
           "disposition": "visible-ui-resilience",
           "review": "documented-follow-up",
@@ -32652,7 +32662,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 758,
+          "line": 763,
           "excerpt": "setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -35850,7 +35860,9 @@
     },
     {
       "file": "src/components/seo/HubPageSummary.js",
-      "imports": [],
+      "imports": [
+        "src/lib/seo/summarySchema.js"
+      ],
       "links": [
         "/hub/training",
         "/hub/training/challenges",
@@ -35865,7 +35877,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 431,
+          "line": 446,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35875,7 +35887,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 440,
+          "line": 455,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -35885,7 +35897,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 443,
+          "line": 458,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -35925,7 +35937,7 @@
       "functions": [
         {
           "name": "HubPageSummary",
-          "line": 416,
+          "line": 419,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48409,6 +48421,82 @@
       "markers": []
     },
     {
+      "file": "src/lib/seo/hubPageSchema.js",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "breadcrumbSchema",
+          "line": 37,
+          "references": 3,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "hubProductSchema",
+          "line": 55,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "hubCollectionSchema",
+          "line": 103,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "absolute",
+          "line": 30,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "hubProductSchema",
+        "hubCollectionSchema"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/seo/productOgImage.js",
       "imports": [],
       "links": [],
@@ -48456,6 +48544,66 @@
       ],
       "possibleUnwiredFunctions": [
         "productOgImage"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/seo/summarySchema.js",
+      "imports": [
+        "src/lib/seo/hubPageSchema.js"
+      ],
+      "links": [
+        "/hub/training",
+        "/hub/training/challenges",
+        "/hub/training/jarvis",
+        "/hub/training/leaderboard",
+        "/hub/training/solutions",
+        "/hub/training/tournaments"
+      ],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "summarySchema",
+          "line": 64,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "summarySchema"
       ],
       "markers": []
     },
@@ -60500,6 +60648,10 @@
       "to": "src/stores/toastStore.js"
     },
     {
+      "from": "src/components/seo/HubPageSummary.js",
+      "to": "src/lib/seo/summarySchema.js"
+    },
+    {
       "from": "src/components/seo/SEOHead.js",
       "to": "src/lib/seo/productOgImage.js"
     },
@@ -61306,6 +61458,10 @@
     {
       "from": "src/lib/idbCacheStore.js",
       "to": "src/lib/idbCacheStore.js"
+    },
+    {
+      "from": "src/lib/seo/summarySchema.js",
+      "to": "src/lib/seo/hubPageSchema.js"
     },
     {
       "from": "src/lib/store/walletDescription.mjs",
@@ -64667,11 +64823,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:474:2",
+      "id": "pages/hub/training/solutions.js:475:2",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Retry",
-      "line": 474,
+      "line": 475,
       "handler": "() => setRenderError(null)",
       "destination": null,
       "type": null,
@@ -64680,11 +64836,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:835:3",
+      "id": "pages/hub/training/solutions.js:840:3",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "← Training",
-      "line": 835,
+      "line": 840,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -64693,11 +64849,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:882:4",
+      "id": "pages/hub/training/solutions.js:887:4",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Filter by ${gt.label}`",
-      "line": 882,
+      "line": 887,
       "handler": "() => setGameType(gt.value)",
       "destination": null,
       "type": null,
@@ -64706,11 +64862,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:930:5",
+      "id": "pages/hub/training/solutions.js:935:5",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "BB",
-      "line": 930,
+      "line": 935,
       "handler": "() => {\n                    setStackDepth(sd);\n                    setPage(1);\n                  }",
       "destination": null,
       "type": null,
@@ -64719,11 +64875,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:969:6",
+      "id": "pages/hub/training/solutions.js:974:6",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Filter by All positions",
-      "line": 969,
+      "line": 974,
       "handler": "() => {\n                  setPosition('');\n                  setPage(1);\n                }",
       "destination": null,
       "type": null,
@@ -64732,11 +64888,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:990:7",
+      "id": "pages/hub/training/solutions.js:995:7",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Filter by position ${p}`",
-      "line": 990,
+      "line": 995,
       "handler": "() => {\n                    setPosition(p);\n                    setPage(1);\n                  }",
       "destination": null,
       "type": null,
@@ -64745,11 +64901,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1020:8",
+      "id": "pages/hub/training/solutions.js:1025:8",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1020,
+      "line": 1025,
       "handler": "() => {\n                    setFilter('rxTexture', tex);\n                    setPage(1);\n                  }",
       "destination": null,
       "type": null,
@@ -64758,11 +64914,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1108:9",
+      "id": "pages/hub/training/solutions.js:1113:9",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Show all spots",
-      "line": 1108,
+      "line": 1113,
       "handler": "() => setShowBookmarksOnly(false)",
       "destination": null,
       "type": null,
@@ -64771,11 +64927,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1130:10",
+      "id": "pages/hub/training/solutions.js:1135:10",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Show bookmarked spots only",
-      "line": 1130,
+      "line": 1135,
       "handler": "() => setShowBookmarksOnly(true)",
       "destination": null,
       "type": null,
@@ -64784,11 +64940,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1184:11",
+      "id": "pages/hub/training/solutions.js:1189:11",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "← Prev",
-      "line": 1184,
+      "line": 1189,
       "handler": "() => setPage((p) => Math.max(1, p - 1))",
       "destination": null,
       "type": null,
@@ -64797,11 +64953,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1210:12",
+      "id": "pages/hub/training/solutions.js:1215:12",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Next →",
-      "line": 1210,
+      "line": 1215,
       "handler": "() => setPage((currentPage) => currentPage + 1)",
       "destination": null,
       "type": null,
@@ -64810,11 +64966,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1254:13",
+      "id": "pages/hub/training/solutions.js:1259:13",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "Retry Audited Lookup",
-      "line": 1254,
+      "line": 1259,
       "handler": "() => loadSpotDetail(selectedSpot)",
       "destination": null,
       "type": null,
@@ -64823,11 +64979,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1416:14",
+      "id": "pages/hub/training/solutions.js:1421:14",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`View ${tab.label}`",
-      "line": 1416,
+      "line": 1421,
       "handler": "() => setActiveTab(tab.key)",
       "destination": null,
       "type": null,
@@ -64836,11 +64992,11 @@
       "effectRef": "pages/hub/training/solutions.js"
     },
     {
-      "id": "pages/hub/training/solutions.js:1457:15",
+      "id": "pages/hub/training/solutions.js:1462:15",
       "file": "pages/hub/training/solutions.js",
       "element": "button",
       "name": "`Color by ${mode.label}`",
-      "line": 1457,
+      "line": 1462,
       "handler": "() => setColorMode(mode.key)",
       "destination": null,
       "type": null,
@@ -65460,11 +65616,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:431:1",
+      "id": "src/components/seo/HubPageSummary.js:446:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 431,
+      "line": 446,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -65473,11 +65629,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:440:2",
+      "id": "src/components/seo/HubPageSummary.js:455:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 440,
+      "line": 455,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -65486,11 +65642,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:443:3",
+      "id": "src/components/seo/HubPageSummary.js:458:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 443,
+      "line": 458,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -71295,7 +71451,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -73333,7 +73491,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -73654,7 +73814,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -76737,6 +76899,8 @@
         "src/hooks/usePersistedFilters.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -78647,7 +78811,9 @@
         "src/lib/headerStats.js",
         "src/lib/home-games/urls.js",
         "src/lib/mediaStreamSingleton.js",
+        "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -79297,7 +79463,9 @@
     {
       "file": "src/components/seo/HubPageSummary.js",
       "reachableFiles": [
-        "src/components/seo/HubPageSummary.js"
+        "src/components/seo/HubPageSummary.js",
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/summarySchema.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -82807,9 +82975,32 @@
       ]
     },
     {
+      "file": "src/lib/seo/hubPageSchema.js",
+      "reachableFiles": [
+        "src/lib/seo/hubPageSchema.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/seo/productOgImage.js",
       "reachableFiles": [
         "src/lib/seo/productOgImage.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": []
+    },
+    {
+      "file": "src/lib/seo/summarySchema.js",
+      "reachableFiles": [
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/summarySchema.js"
       ],
       "apiReferences": [],
       "persistence": [],
@@ -84880,7 +85071,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 606,
+        "line": 611,
         "excerpt": "console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84889,7 +85080,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 609,
+        "line": 614,
         "excerpt": "// Inline fallback",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -84899,7 +85090,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 714,
+        "line": 719,
         "excerpt": "// Do not crash the app, just fallback to empty classification",
         "disposition": "visible-ui-resilience",
         "review": "documented-follow-up",
@@ -84909,7 +85100,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 758,
+        "line": 763,
         "excerpt": "setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -89222,7 +89413,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 416,
+        "line": 419,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -90867,6 +91058,44 @@
         ]
       },
       {
+        "file": "src/lib/seo/hubPageSchema.js",
+        "name": "hubProductSchema",
+        "line": 55,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/bankroll-manager.js",
+          "pages/hub/home-games.js",
+          "pages/hub/memory-games.js",
+          "pages/hub/news.js",
+          "pages/hub/social-media/index.js",
+          "pages/hub/training.js",
+          "pages/hub/video-library.js",
+          "src/lib/seo/summarySchema.js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/hubPageSchema.js",
+        "name": "hubCollectionSchema",
+        "line": 103,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/index.js",
+          "src/lib/seo/summarySchema.js"
+        ]
+      },
+      {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
         "line": 11,
@@ -90880,6 +91109,22 @@
         "externalReferenceFiles": [
           "src/components/seo/SEOHead.js",
           "src/components/seo/SEOHead.js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/summarySchema.js",
+        "name": "summarySchema",
+        "line": 64,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/the-summary-carries-the-schema.law.test.mjs",
+          "src/components/seo/HubPageSummary.js"
         ]
       },
       {
@@ -93619,7 +93864,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 606,
+        "line": 611,
         "excerpt": "console.warn('[Solutions] Board classification engine unavailable; using local fallback:', message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -93628,7 +93873,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 609,
+        "line": 614,
         "excerpt": "// Inline fallback",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -93638,7 +93883,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 714,
+        "line": 719,
         "excerpt": "// Do not crash the app, just fallback to empty classification",
         "disposition": "visible-ui-resilience",
         "review": "documented-follow-up",
@@ -93648,7 +93893,7 @@
       {
         "file": "pages/hub/training/solutions.js",
         "kind": "FALLBACK",
-        "line": 758,
+        "line": 763,
         "excerpt": "setFetchError('Audited PioSOLVER Artifacts Are Temporarily Unavailable. No Unverified Fallback Will Be Shown.');",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -97961,7 +98206,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 416,
+        "line": 419,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -99606,6 +99851,44 @@
         ]
       },
       {
+        "file": "src/lib/seo/hubPageSchema.js",
+        "name": "hubProductSchema",
+        "line": 55,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/bankroll-manager.js",
+          "pages/hub/home-games.js",
+          "pages/hub/memory-games.js",
+          "pages/hub/news.js",
+          "pages/hub/social-media/index.js",
+          "pages/hub/training.js",
+          "pages/hub/video-library.js",
+          "src/lib/seo/summarySchema.js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/hubPageSchema.js",
+        "name": "hubCollectionSchema",
+        "line": 103,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/hub/index.js",
+          "src/lib/seo/summarySchema.js"
+        ]
+      },
+      {
         "file": "src/lib/seo/productOgImage.js",
         "name": "productOgImage",
         "line": 11,
@@ -99619,6 +99902,22 @@
         "externalReferenceFiles": [
           "src/components/seo/SEOHead.js",
           "src/components/seo/SEOHead.js"
+        ]
+      },
+      {
+        "file": "src/lib/seo/summarySchema.js",
+        "name": "summarySchema",
+        "line": 64,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/the-summary-carries-the-schema.law.test.mjs",
+          "src/components/seo/HubPageSummary.js"
         ]
       },
       {

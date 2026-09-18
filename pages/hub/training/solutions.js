@@ -468,11 +468,16 @@ export default function SolutionsBrowser() {
 
   if (renderError) {
     return (
+      <>
       <div style={{ padding: 40, textAlign: 'center', color: '#ff4444' }}>
         <h2>Error Loading Solutions Browser</h2>
         <p>{renderError.message}</p>
         <button onClick={() => setRenderError(null)} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 20, cursor: 'pointer', marginTop: 10 }}>Retry</button>
       </div>
+      {/* A page that failed to load still says what it is, to a reader and
+          to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-solutions" />
+      </>
     );
   }
 

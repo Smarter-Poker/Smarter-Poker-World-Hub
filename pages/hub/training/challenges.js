@@ -143,6 +143,7 @@ export default function ChallengesPage() {
             </div>
           </div>
         </div>
+        <HubPageSummary page="training-challenges" />
       </PageTransition>
     );
   }
