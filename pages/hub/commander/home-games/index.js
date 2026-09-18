@@ -6,6 +6,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../../src/components/seo/HubPageSummary';
 import { commanderBreadcrumbs } from '../../../../src/lib/seo/commanderBreadcrumbs';
 import { useRouter } from 'next/router';
 import { Home, Calendar, Globe, UserPlus, Search, Filter, QrCode } from 'lucide-react';
@@ -638,6 +639,10 @@ export default function PlayerHomeGamesHub() {
           </div>
         )}
       </div>
+      {/* Server rendered, outside every client-only wrapper: measured on
+          production this page returned only navigation labels to a crawler
+          (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="commander-home-games" />
     </>
     </CommanderPageShell>
   );

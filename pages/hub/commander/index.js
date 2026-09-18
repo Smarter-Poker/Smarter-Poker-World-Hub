@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import LocationEnableModal from '../../../src/components/ui/LocationEnableModal';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import Link from 'next/link';
 import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe, Grid3X3 } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
@@ -512,6 +513,10 @@ export default function CommanderHub() {
           user={user}
         />
       </div>
+      {/* Server rendered, outside every client-only wrapper: measured on
+          production this page returned only navigation labels to a crawler
+          (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="commander" />
     </>
   );
 }

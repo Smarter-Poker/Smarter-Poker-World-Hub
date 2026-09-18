@@ -1052,6 +1052,7 @@ jobs:
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
+            __tests__/the-commander-pages-say-what-they-are.law.test.mjs \
             __tests__/the-entity-graph-is-connected.law.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
