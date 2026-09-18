@@ -107,6 +107,11 @@ const staticPages = [
   { path: '/hub/trivia/stats', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Training sub-pages
+  // 2,812 server-rendered words defining 49 terms, and the sitemap never
+  // mentioned it. A definitional question is the question an AI engine
+  // answers most often, so this is the most quotable page the site owns
+  // (AEO phase 3, 2026-09-17).
+  { path: '/hub/training/glossary', priority: '0.8', changefreq: 'monthly' },
   { path: '/hub/training/achievements', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
