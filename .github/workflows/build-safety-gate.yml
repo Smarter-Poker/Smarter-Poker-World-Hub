@@ -1068,6 +1068,7 @@ jobs:
             __tests__/no-public-page-is-nameless.law.test.mjs \
             __tests__/a-venue-title-survives-a-result.law.test.mjs \
             __tests__/one-place-decides-if-a-title-fits.law.test.mjs \
+            __tests__/a-series-page-carries-its-schema.law.test.mjs \
             __tests__/poker-near-me-phase-3.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
