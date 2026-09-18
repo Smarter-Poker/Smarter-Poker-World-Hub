@@ -5790,7 +5790,7 @@ function SocialMediaPage() {
   // shape as the responsible gaming page, same fix.
   const head = (
     <SEOHead
-      title="Poker Social Hub: Feed, Friends And Discussion"
+      title="Poker Social Hub: Feed And Discussion"
       description="The Smarter.Poker Social Hub: Share Hands And Results, Follow Players You Play With, Join Discussions And Build A Poker Network. Free To Read And Free To Post. No Real-Money Gambling."
       canonical="/hub/social-media"
       jsonLd={SOCIAL_SCHEMA}

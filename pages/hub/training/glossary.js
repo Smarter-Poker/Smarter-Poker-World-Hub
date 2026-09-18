@@ -395,7 +395,7 @@ export default function GlossaryPage() {
   return (
     <>
       <SEOHead
-        title="Poker Glossary: 49 GTO And Strategy Terms Defined"
+        title="Poker Glossary: 49 GTO And Strategy Terms"
         description="A Free Poker Glossary From Smarter.Poker. 49 Preflop, Postflop, Math And Game Theory Terms Defined In Plain Language, From 3-Bet To Wet Board."
         canonical="/hub/training/glossary"
         jsonLd={GLOSSARY_SCHEMA}
