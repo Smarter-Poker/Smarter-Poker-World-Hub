@@ -8,6 +8,18 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): 3,386 server-rendered words and no structured
+// data. FinanceApplication is the honest category for a ledger.
+const BANKROLL_SCHEMA = hubProductSchema({
+  path: '/hub/bankroll-manager',
+  name: 'Smarter.Poker Bankroll Manager',
+  description:
+    'Bankroll Tracking For Poker Players: Log Sessions, Analyse Leaks, Track ROI And See Variance Over Time. Free To Use, No Real-Money Gambling.',
+  applicationCategory: 'FinanceApplication',
+  trail: [['Hub', '/hub'], ['Bankroll Manager', '/hub/bankroll-manager']],
+});
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1497,9 +1509,8 @@ export default function BankrollManagerPage() {
         title="Bankroll Manager - Track Your Poker Profits"
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
         canonical="/hub/bankroll-manager"
-      >
-
-      </SEOHead>
+        jsonLd={BANKROLL_SCHEMA}
+      />
 
       <HubPageShell className="bankroll" maxWidth={960} background="#18191a" onMenuClick={() => setMenuOpen(true)}>
       {/* Pull down at the top of the page to reload the ledger (mobile

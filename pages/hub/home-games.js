@@ -5,6 +5,17 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): 4,942 server-rendered words, the largest page
+// on the site, and no structured data at all.
+const HOME_GAMES_SCHEMA = hubProductSchema({
+    path: '/hub/home-games',
+    name: 'Smarter.Poker Home Games',
+    description:
+        'Find Private Poker Home Games Near You, Join The Local Community, Or Host Your Own With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling.',
+    trail: [['Hub', '/hub'], ['Home Games', '/hub/home-games']],
+});
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
@@ -840,9 +851,10 @@ export default function HomeGamesPage() {
     return (
         <>
             <SEOHead
-                title="Home Games - Find Poker Home Games Near You"
-                description="Discover poker home games near you. Find local private games, join the community, and host your own."
+                title="Poker Home Games Near You: Find Or Host One"
+                description="Find Private Poker Home Games Near You On Smarter.Poker, Join The Local Community, Or Host Your Own Game With Invites, Seating And Results Handled For You. Free To Play, No Real-Money Gambling."
                 canonical="/hub/home-games"
+                jsonLd={HOME_GAMES_SCHEMA}
             />
 
             <div className="space-bg"><div className="space-overlay" /></div>

@@ -1024,7 +1024,7 @@ export default function App({ Component, pageProps }) {
                 <meta key="og-type" property="og:type" content="website" />
                 <meta key="og-locale" property="og:locale" content="en_US" />
                 <meta key="og-url" property="og:url" content="https://smarter.poker" />
-                <meta key="og-title" property="og:title" content="Smarter.Poker: Free Poker Training, Private Clubs And Live Games" />
+                <meta key="og-title" property="og:title" content="Smarter.Poker: Free Poker Training, Clubs And Live Games" />
                 <meta key="og-description" property="og:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
                 {/* og-card.jpg is the 1200x630 hero crop of og-default.png
                     (2026-09-17). The full poster is 1200x2151; every social
@@ -1038,7 +1038,7 @@ export default function App({ Component, pageProps }) {
                 <meta key="og-image-type" property="og:image:type" content="image/jpeg" />
                 <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-site" name="twitter:site" content="@SmarterPoker" />
-                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker: Free Poker Training, Private Clubs And Live Games" />
+                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker: Free Poker Training, Clubs And Live Games" />
                 <meta key="twitter-description" name="twitter:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
                 <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-card.jpg" />
               </>
