@@ -68,6 +68,11 @@ const staticPages = [
   // and "who makes Club Commander" (AEO phase 2, 2026-09-17).
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
+  // /privacy was missing (AEO phase 3, 2026-09-18). It is a 524 word page
+  // that every hub summary links to in its compliance line, and the URL the
+  // app stores read, and it was the one legal document the sitemap did not
+  // offer.
+  { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/legal/official-rules', priority: '0.3', changefreq: 'yearly' },
 
   // Hub — Core

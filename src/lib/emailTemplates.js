@@ -159,7 +159,17 @@ export async function sendPasswordResetEmail(email, resetLink) {
 // Waitlist & Seat Notifications
 // ==========================================
 
-export async function sendSeatReadyEmail(email, name, venueName, game) {
+/**
+ * AEO phase 3 (2026-09-18): the Check In Now button pointed at
+ * /hub/commander/check-in, which is not a route. The route is
+ * /hub/commander/check-in/[venueId], so the bare path answered 404 and a
+ * player told to check in within five minutes had nowhere to go.
+ *
+ * venueId is optional because the existing callers do not have one; without
+ * it the button goes to the venue list, which is a page that exists and
+ * from which the player can reach their own check in.
+ */
+export async function sendSeatReadyEmail(email, name, venueName, game, venueId) {
     return sendEmail({
         to: email,
         subject: `Your seat is ready at ${venueName}!`,
@@ -171,7 +181,7 @@ export async function sendSeatReadyEmail(email, name, venueName, game) {
                 <p>Please Check In Within 5 Minutes Or You May Lose Your Spot.</p>
             </div>
             <div style="text-align: center; margin: 24px 0;">
-                <a href="https://smarter.poker/hub/commander/check-in" class="btn">Check In Now</a>
+                <a href="https://smarter.poker/hub/commander/${venueId ? `check-in/${encodeURIComponent(venueId)}` : 'venues'}" class="btn">Check In Now</a>
             </div>
         `),
     });

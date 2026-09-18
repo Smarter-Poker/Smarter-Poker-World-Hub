@@ -377,7 +377,7 @@ function SMSSection() {
             <ul style={styles.list}>
                 <li>Reply <strong>HELP</strong> To Any Message For Support Information</li>
                 <li>Email Us At <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a></li>
-                <li>Visit Our Help Center At <a href="https://smarter.poker/help" style={styles.link}>Smarter.Poker/Help</a></li>
+                <li>Visit Our Help Center At <a href="https://smarter.poker/hub/help" style={styles.link}>Smarter.Poker/Hub/Help</a></li>
             </ul>
 
             <h2 style={styles.heading}>6. Carrier Disclaimer</h2>
