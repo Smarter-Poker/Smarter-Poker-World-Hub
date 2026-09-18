@@ -15,9 +15,10 @@
  *      description and a parseable JSON-LD document; the home page's
  *      JSON-LD must be a @graph (the numeric-keys bug of #1822);
  *   4. the default share image must answer 200 as an image;
- *   5. a sample of the remaining sitemap URLs must answer 200 AND be
- *      indexable (the full list is hundreds of pages; a sample catches a
- *      broken section without turning a deploy check into a crawl).
+ *   5. a sample of the remaining sitemap URLs must answer 200, be
+ *      indexable, and carry a real description and a heading (the full list
+ *      is hundreds of pages; a sample catches a broken section without
+ *      turning a deploy check into a crawl).
  *
  * WHY THE SAMPLE CHECKS INDEXABILITY (2026-09-18). Until now the sample
  * only asserted HTTP 200, so a sitemap entry that loaded fine and then told
@@ -91,6 +92,27 @@ export function hasNumericKeys(ld) {
 
 export function parseSitemapLocs(xml) {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+}
+
+/**
+ * What every indexable page owes a crawler beyond loading: a description
+ * long enough to be a snippet, and a heading. Checked on the sampled URLs
+ * as well as the fully checked ones, because that is where the defects
+ * hide: /hub/home-games/saturday-night-poker-club shipped a sixteen
+ * character description ("Weekly home game") and nothing caught it live.
+ * Returns the reasons, so a failure says which part is missing.
+ */
+export const SAMPLE_DESCRIPTION_MIN = 60;
+
+export function pageEssentials(html) {
+  const head = inspectHead(html || '');
+  const reasons = [];
+  const description = head.description || '';
+  if (!description) reasons.push('no meta description');
+  else if (description.length < SAMPLE_DESCRIPTION_MIN)
+    reasons.push(`description is ${description.length} characters, under ${SAMPLE_DESCRIPTION_MIN}`);
+  if (!/<h1[\s>]/i.test(html || '')) reasons.push('no <h1>');
+  return { ok: reasons.length === 0, reasons };
 }
 
 /**
@@ -210,6 +232,7 @@ async function main() {
   const sample = rest.filter((_, i) => i % step === 0).slice(0, SAMPLE);
   let bad = 0;
   let unindexable = 0;
+  let incomplete = 0;
   for (const url of sample) {
     const r = await get(url);
     const verdict = indexability({
@@ -217,19 +240,27 @@ async function main() {
       headerRobots: r.headers.get('x-robots-tag'),
       html: r.text,
     });
-    if (verdict.indexable) continue;
-    if (r.status !== 200) {
-      bad += 1;
-      fail(`sitemap sample ${url}: HTTP ${r.status}`);
-    } else {
-      unindexable += 1;
-      // A sitemap is a list of pages worth indexing. A page that loads and
-      // then refuses indexing must leave the sitemap, not sit in it.
-      fail(`sitemap sample ${url}: listed in the sitemap but not indexable (${verdict.reason})`);
+    if (!verdict.indexable) {
+      if (r.status !== 200) {
+        bad += 1;
+        fail(`sitemap sample ${url}: HTTP ${r.status}`);
+      } else {
+        unindexable += 1;
+        // A sitemap is a list of pages worth indexing. A page that loads and
+        // then refuses indexing must leave the sitemap, not sit in it.
+        fail(`sitemap sample ${url}: listed in the sitemap but not indexable (${verdict.reason})`);
+      }
+      continue;
+    }
+    const essentials = pageEssentials(r.text);
+    if (!essentials.ok) {
+      incomplete += 1;
+      fail(`sitemap sample ${url}: ${essentials.reasons.join('; ')}`);
     }
   }
   notes.push(
-    `sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200, ${unindexable} not indexable`
+    `sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200, ` +
+      `${unindexable} not indexable, ${incomplete} missing a description or heading`
   );
 }
 

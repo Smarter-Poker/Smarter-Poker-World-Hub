@@ -20,6 +20,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { homeGameDescription } from '../../../src/lib/home-games/homeGameSeo.mjs';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
@@ -828,8 +829,17 @@ export default function PublicHomeGamePage({ data, serverError }) {
     `${page.name}${page.state ? `, ${page.state}` : ''}`,
     `${page.name}`,
   ]);
-  const metaDesc =
-    (group.description || page.description || `Join ${page.name}, a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}. ${formatStakesLine(group)}.`).slice(0, 160);
+  // A short operator note is an incomplete description, not a bad one: keep
+  // their words and complete them from the record (homeGameSeo.mjs). This
+  // page shipped "Weekly home game", sixteen characters, to Google.
+  const metaDesc = homeGameDescription({
+    name: page.name,
+    city: page.city,
+    state: page.state,
+    description: group.description || page.description,
+    stakesLine: formatStakesLine(group),
+    schedule: formatSchedule(group),
+  });
 
   const jsonLd = buildJsonLd(data);
 

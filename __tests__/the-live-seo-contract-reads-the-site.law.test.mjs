@@ -103,5 +103,6 @@ test('the sitemap sample applies indexability, not just HTTP 200', () => {
   assert.match(sample, /indexability\(\{/, 'the sample loop must run the indexability check');
   assert.match(sample, /headerRobots: r\.headers\.get\('x-robots-tag'\)/);
   assert.match(sample, /listed in the sitemap but not indexable/, 'the failure must name the cause');
-  assert.match(sample, /not indexable`/, 'the summary line must report how many were not indexable');
+  // Intent, not punctuation: the summary counts the unindexable URLs.
+  assert.match(sample, /\$\{unindexable\} not indexable/, 'the summary line must report how many were not indexable');
 });
