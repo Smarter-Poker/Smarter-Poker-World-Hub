@@ -81,6 +81,71 @@ to 1,356 KB each.
    them. social_reels reclaimed. The engine-01 operator step withdrawn on
    measurement. The live header checks this file recorded as ungettable,
    taken.
+8. **What phase 3 broke** (Club Arena #4824, World Hub #1880): the audit's own
+   debounce introduced a race, found by reading the merged file rather than
+   the diff. See below.
+
+## The change in phase 3 introduced a bug, and here it is
+
+Debouncing the purchase search removed a request per keystroke. It also made
+overlapping requests possible for the first time: a pause fires while an
+earlier page or an earlier search is still on the wire, and nothing orders the
+replies, so the older one is free to land second and overwrite the table.
+Before the debounce every keystroke started a request and the last one started
+was almost always the last one back; the fix for one problem opened another.
+
+It matters more on this screen than on most. The refund control is drawn
+inside the row and reads its purchase id off it, so rows the admin never asked
+for arriving underneath those buttons is a money question. Club Arena #4824
+gives every request a ticket and lets only the newest write to the table; a
+superseded reply is discarded, and a superseded failure no longer raises a
+toast or leaves an error banner over rows that had loaded perfectly well. The
+empty-state sentence now describes the search the rows answer rather than the
+text still being typed, and the pager is held while the two disagree.
+
+Pinned by tests/the-ledger-shows-the-answer-to-the-question-asked.test.tsx,
+which lands the replies out of order. Both tests fail with the fix reverted
+and the test kept - the second reporting the symptom exactly, "expected
+vi.fn() to not be called at all, but actually been called 1 times", that being
+the alarm raised by a request nobody was waiting on. It ran in CI on shard 3
+among 396 passing test files.
+
+The audit's own two scripts had the same shape of fault and were corrected in
+World Hub #1880: generate-webp-siblings.mjs took its repository root from
+URL.pathname, so under a checkout path containing a space it found no public/
+and printed "0 files" as though the work were already done, and
+lighthouse-baseline.mjs printed its output directory and exited 0 when every
+page had errored. Both now refuse rather than report.
+
+## What the database sweep found, which was nothing
+
+Ten tables looked heavily bloated on pg_stat_all_tables: data_audit_log at
+4 GB for an apparent 6,307 rows, bus_event_log at 102 MB for 215, four more
+reading as entirely empty. Every one of them was a false reading. n_live_tup
+is a counter, not a measurement, and on tables autovacuum has not visited it
+drifts without limit: the real counts are 1,401,851, 462,808 and 80,818, and
+the space is data. reltuples, which is what the planner actually uses, was
+accurate throughout, and pg_statistic has entries for these tables.
+
+Recorded because the near miss is the useful part: ten production tables were
+one step away from an exclusive lock each on the strength of a statistic that
+was never a row count. Nothing was reclaimed and nothing needed to be. The one
+measured imperfection is selectivity on bus_event_log.event_type, where the
+planner expects 16 percent and the true figure is 99.8; an ANALYZE would
+correct it, and it is left for an owner to schedule because changing
+statistics changes plans immediately, including on money tables.
+
+## Post-deploy certification is red for everybody
+
+Not a finding about this audit's work, but visible from it and worth somebody
+owning: Post-Deploy E2E failed 27 of its last 30 runs, across every agent's
+commits. The usual cause is "Read The Origin Job Verdict" - it is refusing to
+certify a release that the publish job declined to ship, and publishes decline
+often because main moves faster than a build completes and
+stamp-build-provenance correctly refuses a tree that has gone behind. The
+pipeline converges; production did reach a41e126895. But a check that is red
+27 times in 30 cannot show anybody a real regression, which is what 10.83 says
+about checks nobody can see.
 
 ## Decisions that are Dan's, with the evidence
 
