@@ -1,6 +1,13 @@
 import PokerNearMeLocationPage from '../../../../../src/components/poker-near-me/PokerNearMeLocationPage';
 import { aggregateVenueCities, fetchPokerVenueLocation, resolveStateSlug, venueLocationCanonical } from '../../../../../src/lib/poker-near-me/locationPages';
 
+import { firstThatFits } from '../../../../../src/lib/seo/titleFit';
+// AEO phase 3 (2026-09-18): one template with nothing measuring it. The
+// longest live combination, "Poker Rooms in Multiple Locations, North
+// Carolina", rendered at 65 characters once SEOHead appends the brand, so
+// a result cut it. The state name steps down to its code rather than the
+// city being lost.
+
 export async function getServerSideProps({ params, req, res }) {
   const state = resolveStateSlug(params?.state);
   if (!state) return { notFound: true };
@@ -24,7 +31,10 @@ export default function PokerStatePage({ state, ...props }) {
       {...props}
       stateCode={state.code}
       stateName={state.name}
-      title={`Poker Rooms in ${state.name}`}
+      title={firstThatFits([
+        `Poker Rooms In ${state.name}`,
+        `Poker Rooms In ${state.code}`,
+      ])}
       description={`Explore casino poker rooms and cardrooms across ${state.name}, with direct venue profiles, room details, schedules, and live discovery tools.`}
       canonical={venueLocationCanonical(state.code)}
     />

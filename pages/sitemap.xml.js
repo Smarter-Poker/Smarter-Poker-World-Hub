@@ -21,6 +21,12 @@ const SITEMAP_DB_PAGE_SIZE = 1000;
 const SERVABLE_SERIES_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
 const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'id',
+  // AEO phase 3 (2026-09-18): the same scraped series lives in both
+  // tournament_series and poker_series, carrying the same series_uid, and
+  // the sitemap offered a URL for each. 23 pairs of byte-identical pages,
+  // each declaring itself canonical. The uid is selected so one of them can
+  // be dropped.
+  'series_uid',
   'is_suppressed',
   'data_quality',
   'source_url',
@@ -415,17 +421,38 @@ async function buildPokerEventDetailUrls() {
       }),
     ]);
 
+    // ONE URL PER SERIES (AEO phase 3, 2026-09-18).
+    //
+    // The same scraped series is held in both tables under the same
+    // series_uid, and both were listed: /hub/series/470 and
+    // /hub/series/5000692 are the same event, word for word, each with a
+    // self canonical. Measured live, 23 pairs. Two URLs for one page split
+    // whatever authority the page has and spend the crawl budget twice.
+    //
+    // tournament_series wins, because its ids are the ones the sitemap has
+    // been offering longest and dropping them would discard whatever
+    // indexing they already have. A row with no uid cannot be matched to
+    // anything, so it is kept as itself.
+    const claimedUids = new Set();
     if (results[0].status === 'fulfilled') {
       results[0].value
         .filter(row => isServableSeriesParentEvidence(row))
-        .forEach((row) => addSeries(row.id));
+        .forEach((row) => {
+          const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
+          if (uid) claimedUids.add(uid);
+          addSeries(row.id);
+        });
     } else {
       console.warn('[sitemap] tournament_series detail URLs unavailable:', results[0].reason?.message);
     }
     if (results[1].status === 'fulfilled') {
       results[1].value
         .filter(row => isServableSeriesParentEvidence(row))
-        .forEach((row) => addSeries(toPokerSeriesRouteId(row.id)));
+        .forEach((row) => {
+          const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
+          if (uid && claimedUids.has(uid)) return; // already offered under its other id
+          addSeries(toPokerSeriesRouteId(row.id));
+        });
     } else {
       console.warn('[sitemap] poker_series detail URLs unavailable:', results[1].reason?.message);
     }
