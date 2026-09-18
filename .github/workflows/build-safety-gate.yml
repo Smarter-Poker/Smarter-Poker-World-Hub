@@ -83,6 +83,11 @@ jobs:
           scope: '@smarter-poker'
           always-auth: true
 
+      - name: Agent policy integrity and delivery scenarios
+        run: |
+          node docs/agent-policy/agent-policy.mjs check
+          node --test docs/agent-policy/agent-policy.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4

@@ -250,3 +250,8 @@ test('active agent templates cannot restore human gates or hook bypass direction
   }
   for (const directory of ['.agent/agents', '.agent/get-shit-done', '.agent/skills', '.agent/workflows']) inspect(directory);
 });
+
+import { verifyPolicy } from '../docs/agent-policy/agent-policy.mjs';
+test('the active policy hashes and tool version match their reviewed manifest', () => {
+  assert.equal(verifyPolicy(join(ROOT, 'docs/agent-policy')).policyVersion, '2.9');
+});
