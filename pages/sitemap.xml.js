@@ -121,6 +121,7 @@ const staticPages = [
   // redirects there on mount. A sitemap entry says "index this" while the
   // page says "do not", and the crawler believes the page. Survival is
   // described and linked from /hub/trivia, which is indexed.
+  { path: '/hub/trivia/survival-game', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/time-attack', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/mixed', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' },
