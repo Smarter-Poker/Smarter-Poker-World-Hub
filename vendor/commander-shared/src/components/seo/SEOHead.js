@@ -139,8 +139,15 @@ export const schemas = {
 
     website: {
         '@type': 'WebSite',
+        // A @graph is only a graph if its nodes point at each other. Without
+        // @id these three were three unrelated statements that happened to
+        // share a page, and an engine had to guess that the site, the company
+        // and the app were one thing (AEO phase 2, 2026-09-17).
+        '@id': 'https://smarter.poker/#website',
         name: 'Smarter.Poker',
         url: 'https://smarter.poker',
+        publisher: { '@id': 'https://smarter.poker/#organization' },
+        inLanguage: 'en-US',
         potentialAction: {
             '@type': 'SearchAction',
             target: 'https://smarter.poker/hub/poker-near-me/lobby?q={search_term_string}',
@@ -150,9 +157,21 @@ export const schemas = {
 
     softwareApp: {
         '@type': 'SoftwareApplication',
+        '@id': 'https://smarter.poker/#app',
         name: 'Smarter.Poker',
+        url: 'https://smarter.poker',
         applicationCategory: 'GameApplication',
-        operatingSystem: 'Web',
+        applicationSubCategory: 'Poker',
+        operatingSystem: 'Web, iOS, Android',
+        isAccessibleForFree: true,
+        inLanguage: 'en',
+        // The same sentence the landing page and the hub summaries use. An AI
+        // engine repeats the definition it meets most often, so the three must
+        // not drift; src/components/landing/LandingProductSummary.js is the
+        // copy of record.
+        description:
+            'Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling.',
+        publisher: { '@id': 'https://smarter.poker/#organization' },
         offers: {
             '@type': 'Offer',
             price: '0',
