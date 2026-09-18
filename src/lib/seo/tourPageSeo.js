@@ -133,3 +133,45 @@ export function tourSeo(code, registryEntry, dbName, dbType) {
     canonical: tourCanonical(safeCode),
   };
 }
+
+/**
+ * THE ONE URL FOR A TOUR (AEO phase 3, 2026-09-18).
+ *
+ * A tour can be held under two codes. ROUGHRIDER is in the bundled registry
+ * and RRPT is a database row, and they are the same tour: same name, same
+ * official website. Both were listed and both declared themselves canonical,
+ * so the two pages competed.
+ *
+ * The sitemap now offers only the registry code. This is the other half:
+ * the page served under the second code points its canonical at the first,
+ * so whatever authority the duplicate has earned is handed over rather than
+ * split. The registry is bundled, so this needs no network and cannot fail.
+ *
+ * `registryTours` is the tours map out of data/tour-source-registry.json,
+ * passed in because this module does not import JSON (see the note above).
+ */
+/**
+ * The registry code that names the same tour, or null when the registry does
+ * not know this tour at all. Matched on the name, and on the official website
+ * when both carry one, because a name alone can repeat.
+ */
+export function registryCodeForTour({ code, name, website }, registryTours) {
+  const safeCode = String(code || '').trim().toUpperCase();
+  const tours = registryTours || {};
+  if (tours[safeCode]) return null; // this IS the registry entry
+
+  const key = (value) => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const wantedName = key(name);
+  const wantedSite = key(website).replace(/\/+$/, '');
+  if (!wantedName) return null;
+
+  for (const [registryCode, tour] of Object.entries(tours)) {
+    if (tour?.is_active === false) continue;
+    if (key(tour?.tour_name) !== wantedName) continue;
+    const site = key(tour?.official_website).replace(/\/+$/, '');
+    // A matching name is the signal; a conflicting website overrules it.
+    if (wantedSite && site && wantedSite !== site) continue;
+    return String(tour?.tour_code || registryCode).trim().toUpperCase();
+  }
+  return null;
+}
