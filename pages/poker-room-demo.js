@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 
+import SEOHead from '../src/components/seo/SEOHead';
+
 // Dynamic import to avoid SSR issues with Phaser
 const PokerGame = dynamic(
     () => import('../src/components/game/PokerGame'),
@@ -13,7 +15,7 @@ const PokerGame = dynamic(
  * Demonstrates the Phaser 3 game engine integration
  * with React for GTO poker training (matching reference design)
  */
-export default function PokerRoomDemo() {
+function PokerRoomDemoBody() {
     const [eventLog, setEventLog] = useState([]);
 
     const addLog = (message) => {
@@ -65,4 +67,25 @@ export default function PokerRoomDemo() {
             />
         </div>
     );
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this page served 200 with no <title> and no
+ * robots meta, so an engine saw a nameless page of no words and had to
+ * judge the site on it. An internal table-surface demo. It now names
+ * itself and asks not to be indexed, which is what /hub/vip-
+ * membership/manage already does.
+ */
+export default function PokerRoomDemo() {
+  return (
+    <>
+      <SEOHead
+        title="Poker Room Demo"
+        description="An Internal Demo Of The Poker Room Table Surface, Kept For Development Rather Than For Reading."
+        canonical="/poker-room-demo"
+        noindex
+      />
+      <PokerRoomDemoBody />
+    </>
+  );
 }

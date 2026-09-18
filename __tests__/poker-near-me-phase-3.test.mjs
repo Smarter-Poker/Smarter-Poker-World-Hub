@@ -84,7 +84,18 @@ test('the lobby never stacks a location prompt over its first-run tutorial', () 
 });
 
 test('Home Games leaves the global brand suffix to SEOHead', () => {
+  // This asserted the literal title string, so when AEO phase 3 rewrote it
+  // to "Poker Home Games Near You: Find Or Host One" (#1868) the test broke
+  // on a change it was never meant to police. It went unnoticed because
+  // this file is not in the Build Safety Gate; it is now.
+  //
+  // What this test is actually for: SEOHead appends "| Smarter.Poker"
+  // itself, so a page that also writes the suffix ships it twice and
+  // spends 16 characters of a 60 character result saying the site name
+  // over again. That is the invariant, and it holds whatever the title
+  // says.
   const page = read('pages/hub/home-games.js');
-  assert.match(page, /title="Home Games - Find Poker Home Games Near You"/);
-  assert.doesNotMatch(page, /title="Home Games - Find Poker Home Games Near You \| Smarter\.Poker"/);
+  const title = page.match(/^\s*title="([^"]+)"/m);
+  assert.ok(title, 'pages/hub/home-games.js passes no title to SEOHead');
+  assert.doesNotMatch(title[1], /\|\s*Smarter\.Poker/);
 });

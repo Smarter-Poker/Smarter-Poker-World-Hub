@@ -9307,11 +9307,16 @@
       },
       "reachableFiles": [
         "pages/hub/training/hand-history-upload.js",
+        "src/components/seo/HubPageSummary.js",
+        "src/components/seo/SEOHead.js",
         "src/components/training/Card.tsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engines/HandHistoryParser.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -9336,6 +9341,7 @@
           "status": "implemented-or-detected",
           "evidence": [
             "pages/hub/training/hand-history-upload.js",
+            "src/components/seo/HubPageSummary.js",
             "src/components/training/TrainerEmptyState.jsx",
             "src/engines/HandHistoryParser.js",
             "src/lib/training/handHistoryReviewAuthority.mjs"
@@ -27035,6 +27041,8 @@
     {
       "file": "pages/hub/training/hand-history-upload.js",
       "imports": [
+        "src/components/seo/HubPageSummary.js",
+        "src/components/seo/SEOHead.js",
         "src/components/training/Card.tsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engines/HandHistoryParser.js",
@@ -27045,7 +27053,8 @@
         "src/lib/training/practiceSession.js"
       ],
       "links": [
-        "/hub/training"
+        "/hub/training",
+        "/hub/training/hand-history-upload"
       ],
       "apiReferences": [
         "/api/training/audit-hand-history"
@@ -27055,7 +27064,7 @@
         {
           "element": "button",
           "name": "• ▼",
-          "line": 797,
+          "line": 798,
           "handler": "() => setExpanded((v) => !v)",
           "destination": null,
           "type": null,
@@ -27065,7 +27074,7 @@
         {
           "element": "button",
           "name": "\\U2190",
-          "line": 1227,
+          "line": 1231,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": null,
@@ -27075,7 +27084,7 @@
         {
           "element": "button",
           "name": "<dynamic>",
-          "line": 1262,
+          "line": 1266,
           "handler": "() => setActiveView(tab.key)",
           "destination": null,
           "type": null,
@@ -27085,7 +27094,7 @@
         {
           "element": "button",
           "name": "Upload New File",
-          "line": 1494,
+          "line": 1498,
           "handler": "() => {\n                        setParsedHands([]);\n                        setStats(null);\n                      }",
           "destination": null,
           "type": null,
@@ -27125,7 +27134,7 @@
       "functions": [
         {
           "name": "parsePokerStarsHand",
-          "line": 36,
+          "line": 37,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27133,7 +27142,7 @@
         },
         {
           "name": "parseGGPokerHand",
-          "line": 92,
+          "line": 93,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27141,7 +27150,7 @@
         },
         {
           "name": "parse888Hand",
-          "line": 146,
+          "line": 147,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27149,7 +27158,7 @@
         },
         {
           "name": "parseWPNHand",
-          "line": 200,
+          "line": 201,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27157,7 +27166,7 @@
         },
         {
           "name": "parseHandHistory",
-          "line": 255,
+          "line": 256,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27165,7 +27174,7 @@
         },
         {
           "name": "_extractBoard",
-          "line": 302,
+          "line": 303,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27173,7 +27182,7 @@
         },
         {
           "name": "_flattenActions",
-          "line": 311,
+          "line": 312,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27181,7 +27190,7 @@
         },
         {
           "name": "unpricedHand",
-          "line": 383,
+          "line": 384,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27189,7 +27198,7 @@
         },
         {
           "name": "gradeHand",
-          "line": 404,
+          "line": 405,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -27197,7 +27206,7 @@
         },
         {
           "name": "deriveHeroPosition",
-          "line": 446,
+          "line": 447,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -27205,7 +27214,7 @@
         },
         {
           "name": "LeakReport",
-          "line": 481,
+          "line": 482,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27213,7 +27222,7 @@
         },
         {
           "name": "AnalyzedHandRow",
-          "line": 776,
+          "line": 777,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -27221,7 +27230,7 @@
         },
         {
           "name": "HandHistoryUploadPage",
-          "line": 1032,
+          "line": 1033,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -27234,7 +27243,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 278,
+          "line": 279,
           "excerpt": "console.warn('[HH] Engine parser failed, using inline fallback:', e.message);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -27242,7 +27251,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 281,
+          "line": 282,
           "excerpt": "// Fallback to inline parsers (handles WPN and edge cases)",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -35882,6 +35891,7 @@
         "/hub/training/challenges",
         "/hub/training/glossary",
         "/hub/training/hand-history-upload",
+        "/hub/training/jarvis",
         "/hub/training/leaderboard",
         "/hub/training/tournaments"
       ],
@@ -35891,7 +35901,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 446,
+          "line": 456,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35901,7 +35911,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 455,
+          "line": 465,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -35911,7 +35921,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 458,
+          "line": 468,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -35951,7 +35961,7 @@
       "functions": [
         {
           "name": "HubPageSummary",
-          "line": 419,
+          "line": 429,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -48569,6 +48579,7 @@
       "links": [
         "/hub/training",
         "/hub/training/challenges",
+        "/hub/training/hand-history-upload",
         "/hub/training/jarvis",
         "/hub/training/leaderboard",
         "/hub/training/tournaments"
@@ -48608,7 +48619,7 @@
       "functions": [
         {
           "name": "summarySchema",
-          "line": 68,
+          "line": 69,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -59534,6 +59545,14 @@
     },
     {
       "from": "pages/hub/training/hand-history-upload.js",
+      "to": "src/components/seo/HubPageSummary.js"
+    },
+    {
+      "from": "pages/hub/training/hand-history-upload.js",
+      "to": "src/components/seo/SEOHead.js"
+    },
+    {
+      "from": "pages/hub/training/hand-history-upload.js",
       "to": "src/components/training/Card.tsx"
     },
     {
@@ -63701,11 +63720,11 @@
       "effectRef": "pages/hub/training/hand-comparison.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:797:1",
+      "id": "pages/hub/training/hand-history-upload.js:798:1",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
       "name": "• ▼",
-      "line": 797,
+      "line": 798,
       "handler": "() => setExpanded((v) => !v)",
       "destination": null,
       "type": null,
@@ -63714,11 +63733,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:1227:2",
+      "id": "pages/hub/training/hand-history-upload.js:1231:2",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
       "name": "\\U2190",
-      "line": 1227,
+      "line": 1231,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": null,
@@ -63727,11 +63746,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:1262:3",
+      "id": "pages/hub/training/hand-history-upload.js:1266:3",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
       "name": "<dynamic>",
-      "line": 1262,
+      "line": 1266,
       "handler": "() => setActiveView(tab.key)",
       "destination": null,
       "type": null,
@@ -63740,11 +63759,11 @@
       "effectRef": "pages/hub/training/hand-history-upload.js"
     },
     {
-      "id": "pages/hub/training/hand-history-upload.js:1494:4",
+      "id": "pages/hub/training/hand-history-upload.js:1498:4",
       "file": "pages/hub/training/hand-history-upload.js",
       "element": "button",
       "name": "Upload New File",
-      "line": 1494,
+      "line": 1498,
       "handler": "() => {\n                        setParsedHands([]);\n                        setStats(null);\n                      }",
       "destination": null,
       "type": null,
@@ -65638,11 +65657,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:446:1",
+      "id": "src/components/seo/HubPageSummary.js:456:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 446,
+      "line": 456,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -65651,11 +65670,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:455:2",
+      "id": "src/components/seo/HubPageSummary.js:465:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 455,
+      "line": 465,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -65664,11 +65683,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:458:3",
+      "id": "src/components/seo/HubPageSummary.js:468:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 458,
+      "line": 468,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -72987,11 +73006,16 @@
       "file": "pages/hub/training/hand-history-upload.js",
       "reachableFiles": [
         "pages/hub/training/hand-history-upload.js",
+        "src/components/seo/HubPageSummary.js",
+        "src/components/seo/SEOHead.js",
         "src/components/training/Card.tsx",
         "src/components/training/TrainerEmptyState.jsx",
         "src/engines/HandHistoryParser.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
+        "src/lib/seo/hubPageSchema.js",
+        "src/lib/seo/productOgImage.js",
+        "src/lib/seo/summarySchema.js",
         "src/lib/supabase.js",
         "src/lib/supabaseKeys.js",
         "src/lib/training/boundedTrainingFetch.js",
@@ -84769,7 +84793,7 @@
       {
         "file": "pages/hub/training/hand-history-upload.js",
         "kind": "FALLBACK",
-        "line": 278,
+        "line": 279,
         "excerpt": "console.warn('[HH] Engine parser failed, using inline fallback:', e.message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -84778,7 +84802,7 @@
       {
         "file": "pages/hub/training/hand-history-upload.js",
         "kind": "FALLBACK",
-        "line": 281,
+        "line": 282,
         "excerpt": "// Fallback to inline parsers (handles WPN and edge cases)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -88632,7 +88656,7 @@
       {
         "file": "pages/hub/training/hand-history-upload.js",
         "name": "HandHistoryUploadPage",
-        "line": 1032,
+        "line": 1033,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89438,7 +89462,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 419,
+        "line": 429,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89468,6 +89492,7 @@
           "pages/hub/social-media/index.js",
           "pages/hub/social-pages/index.js",
           "pages/hub/training/challenges.js",
+          "pages/hub/training/hand-history-upload.js",
           "pages/hub/training/jarvis.js",
           "pages/hub/training/leaderboard.js",
           "pages/hub/training/solutions.js",
@@ -91146,7 +91171,7 @@
       {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 68,
+        "line": 69,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93569,7 +93594,7 @@
       {
         "file": "pages/hub/training/hand-history-upload.js",
         "kind": "FALLBACK",
-        "line": 278,
+        "line": 279,
         "excerpt": "console.warn('[HH] Engine parser failed, using inline fallback:', e.message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -93578,7 +93603,7 @@
       {
         "file": "pages/hub/training/hand-history-upload.js",
         "kind": "FALLBACK",
-        "line": 281,
+        "line": 282,
         "excerpt": "// Fallback to inline parsers (handles WPN and edge cases)",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -97432,7 +97457,7 @@
       {
         "file": "pages/hub/training/hand-history-upload.js",
         "name": "HandHistoryUploadPage",
-        "line": 1032,
+        "line": 1033,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98238,7 +98263,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 419,
+        "line": 429,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98268,6 +98293,7 @@
           "pages/hub/social-media/index.js",
           "pages/hub/social-pages/index.js",
           "pages/hub/training/challenges.js",
+          "pages/hub/training/hand-history-upload.js",
           "pages/hub/training/jarvis.js",
           "pages/hub/training/leaderboard.js",
           "pages/hub/training/solutions.js",
@@ -99946,7 +99972,7 @@
       {
         "file": "src/lib/seo/summarySchema.js",
         "name": "summarySchema",
-        "line": 68,
+        "line": 69,
         "references": 1,
         "exported": true,
         "defaultExport": false,

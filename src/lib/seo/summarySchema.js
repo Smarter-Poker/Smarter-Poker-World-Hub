@@ -47,6 +47,7 @@ export const SCHEMA_ROUTES = {
   'training-leaderboard': { path: '/hub/training/leaderboard', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Leaderboard', '/hub/training/leaderboard']], collection: true },
   'training-tournaments': { path: '/hub/training/tournaments', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Tournaments', '/hub/training/tournaments']] },
   'training-jarvis': { path: '/hub/training/jarvis', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Jarvis', '/hub/training/jarvis']] },
+  'training-hand-history-upload': { path: '/hub/training/hand-history-upload', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Hand History Upload', '/hub/training/hand-history-upload']] },
   // 'training-solutions' is NOT here: the page builds its own graph now,
   // with the same @id. Two of the same node is the one thing this map
   // must never cause (AEO phase 3, 2026-09-17).

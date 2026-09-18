@@ -404,6 +404,16 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term Jarvis Uses, Defined.' },
     ],
   },
+  'training-hand-history-upload': {
+    heading: 'About Hand History Upload',
+    lead:
+      'Hand History Upload Takes A Hand You Already Played Somewhere Else And Scores It Here. Paste Or Drop A History From PokerStars, GGPoker, ACR Or 888, Replay It Street By Street With The Ranges Shown, And See Where Your Line Left Value. A Grade And An EV Figure Appear Only When The Server Can Match The Exact Node, So A Hand It Cannot Match Is Shown Without A Score Rather Than With A Guess. Free To Use.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'Drill The Spots Your Uploads Keep Exposing.' },
+      { name: 'Jarvis', href: '/hub/training/jarvis', text: 'Ask Why A Line Was Wrong, In Words.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Hand Review Uses, Defined.' },
+    ],
+  },
   'training-solutions': {
     heading: 'About Solutions',
     lead:
