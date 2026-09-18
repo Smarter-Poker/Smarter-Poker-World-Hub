@@ -18,6 +18,7 @@ import {
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import PokerNearMeFamilyNav from '../../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { firstThatFits } from '../../../../../src/lib/seo/titleFit';
 import {
   fetchAllHomeGameDirectoryRows,
   fetchHomeGameGroupsInChunks,
@@ -248,7 +249,16 @@ export default function HomeGamesByCity({
   games,
   directoryUnavailable = false,
 }) {
-  const pageTitle = `Poker Home Games in ${cityTitle}, ${stateCode} - Cash Games & Tournaments`;
+  // AEO phase 3 (2026-09-18): this hung " - Cash Games & Tournaments" off
+  // the end, which pushed Las Vegas to 80 rendered characters and Oak Lawn to
+  // 79 once SEOHead adds " | Smarter.Poker". The "&" alone costs four more
+  // than it shows. The subtitle is kept where it fits and dropped where it
+  // does not, rather than every state losing its name to a cut.
+  const pageTitle = firstThatFits([
+    `Poker Home Games In ${cityTitle}, ${stateCode} - Cash Games And Tournaments`,
+    `Poker Home Games In ${cityTitle}, ${stateCode}: Cash And Tournaments`,
+    `Poker Home Games In ${cityTitle}, ${stateCode}`,
+  ]);
   const pageDescription = directoryUnavailable
     ? `The Poker Home Games directory for ${cityTitle}, ${stateCode} is temporarily unavailable. Please try again shortly.`
     : `Browse ${games.length} active poker home game${games.length === 1 ? '' : 's'} in ${cityTitle}, ${stateName}. Find weekly cash games, tournaments, and friendly home games near you.`;

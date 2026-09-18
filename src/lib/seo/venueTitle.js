@@ -22,24 +22,12 @@
  * Plain JS, no JSX and no imports, so a law test can run it under node.
  */
 
-/** SEOHead appends this unless the title already contains the site name. */
-const BRAND_SUFFIX = ' | Smarter.Poker';
+// The measuring is shared with every other title template on the site
+// (AEO phase 3, 2026-09-18): three of them got the answer wrong in three
+// different ways, so there is now one place that answers it.
+import { firstThatFits, renderedLength, fitsInAResult, TITLE_BUDGET } from './titleFit.js';
 
-/** Where a result cuts. Not where a title tag stops being valid. */
-export const TITLE_BUDGET = 60;
-
-/**
- * An ampersand is serialised as &amp;, which costs four characters more
- * than the one it shows. Several venues are "X & Y Casino".
- */
-export function renderedLength(text) {
-  return text.length + 4 * (text.split('&').length - 1);
-}
-
-export function fitsInAResult(title) {
-  const withBrand = title.includes('Smarter.Poker') ? title : title + BRAND_SUFFIX;
-  return renderedLength(withBrand) <= TITLE_BUDGET;
-}
+export { renderedLength, fitsInAResult, TITLE_BUDGET };
 
 /**
  * The candidates, most informative first. `namesPoker` drops the redundant
@@ -72,25 +60,5 @@ export function venueTitleCandidates({ name, city, state }) {
  * comma or a dash.
  */
 export function venueTitle({ name, city, state }) {
-  const candidates = venueTitleCandidates({ name, city, state });
-  for (const candidate of candidates) {
-    if (fitsInAResult(candidate)) return candidate;
-  }
-  const room = TITLE_BUDGET - BRAND_SUFFIX.length;
-  const bare = String(name || '').trim();
-  if (renderedLength(bare) <= room) return bare;
-
-  // Cut by RENDERED length, not by character count. Slicing to `room`
-  // characters is wrong the moment the name contains an ampersand, because
-  // each one costs five rendered characters and shows as one: a name of
-  // twenty ampersands sliced to 44 still renders at 116. The law caught
-  // exactly that case.
-  let cut = '';
-  for (const ch of bare) {
-    if (renderedLength(cut + ch) > room) break;
-    cut += ch;
-  }
-  const space = cut.lastIndexOf(' ');
-  if (space > cut.length * 0.6) cut = cut.slice(0, space);
-  return cut.replace(/[\s,\-–—&]+$/, '');
+  return firstThatFits([...venueTitleCandidates({ name, city, state }), String(name || '').trim()]);
 }
