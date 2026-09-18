@@ -23,7 +23,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
-import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const LIVE_SURVIVAL_ROUTE = '/hub/trivia/survival-game';
 
@@ -68,9 +67,6 @@ export default function SurvivalModeRedirectPage() {
                     Continue To Survival Mode
                 </a>
             </div>
-          {/* Server rendered: measured on production this page returned
-              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-survival" as="h1" />
         </>
     );
 }

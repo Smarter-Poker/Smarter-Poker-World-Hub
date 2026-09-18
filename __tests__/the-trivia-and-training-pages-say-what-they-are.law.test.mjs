@@ -30,7 +30,9 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 const PAGES = {
   'pages/hub/trivia/index.js': 'trivia',
   'pages/hub/trivia/endless.js': 'trivia-endless',
-  'pages/hub/trivia/survival.js': 'trivia-survival',
+  // The indexed Survival page is the live game; /hub/trivia/survival is a
+  // noindex redirect shim (AEO phase 3, 2026-09-18).
+  'pages/hub/trivia/survival-game.js': 'trivia-survival',
   'pages/hub/trivia/time-attack.js': 'trivia-time-attack',
   'pages/hub/trivia/mixed.js': 'trivia-mixed',
   'pages/hub/trivia/pvp.js': 'trivia-pvp',
