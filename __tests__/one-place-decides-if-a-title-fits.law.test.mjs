@@ -43,6 +43,9 @@ const TEMPLATED_TITLE_PAGES = [
   'pages/hub/home-games/[slug].js',
   'pages/hub/home-games/in/[state]/index.js',
   'pages/hub/home-games/in/[state]/[city].js',
+  'pages/hub/poker-near-me/in/[state]/index.js',
+  'pages/hub/poker-near-me/in/[state]/[city].js',
+  'pages/hub/tours/[code].js',
 ];
 
 test('the brand suffix and the ampersand are both counted', () => {
@@ -78,7 +81,7 @@ test('every templated title page asks the shared helper', () => {
   const rogue = [];
   for (const file of TEMPLATED_TITLE_PAGES) {
     const src = read(file);
-    const usesHelper = /\b(firstThatFits|venueTitle)\s*\(/.test(src);
+    const usesHelper = /\b(firstThatFits|venueTitle|tourTitle|tourSeo|seriesTitle)\s*\(/.test(src);
     if (!usesHelper) rogue.push(`${file} builds a title without asking titleFit`);
     // The clamp is what let a 90 character venue title through.
     if (/clampText\(\s*(pageTitle|metaTitle|title)\b/.test(src)) {
@@ -95,9 +98,16 @@ test('every templated title page asks the shared helper', () => {
   );
 });
 
-test('venueTitle shares the helper rather than carrying its own copy', () => {
-  const src = read('src/lib/seo/venueTitle.js');
-  assert.match(src, /from '\.\/titleFit\.js'/);
-  // Two implementations of the same arithmetic is how this went wrong.
-  assert.doesNotMatch(src, /const BRAND_SUFFIX\s*=/);
+test('no other module keeps its own copy of the arithmetic', () => {
+  // Two implementations of the same sum is how four templates drifted apart.
+  for (const file of [
+    'src/lib/seo/venueTitle.js',
+    'src/lib/seo/tourPageSeo.js',
+    'src/lib/poker-near-me/seriesSeo.mjs',
+  ]) {
+    const src = read(file);
+    assert.match(src, /titleFit\.js'/, `${file} does not import the shared fitter`);
+    assert.doesNotMatch(src, /const (BRAND_SUFFIX|SUFFIX)\s*=\s*' \| Smarter\.Poker'/, `${file} redeclares the brand suffix`);
+    assert.doesNotMatch(src, /(const|export const) TITLE_BUDGET\s*=\s*\d/, `${file} redeclares the budget`);
+  }
 });

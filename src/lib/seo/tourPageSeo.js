@@ -17,9 +17,10 @@
  * that node and webpack spell differently.
  */
 
-const SUFFIX = ' | Smarter.Poker';
-/** A result cuts at about 60 characters. The brand suffix is part of that. */
-const TITLE_BUDGET = 60;
+// The measuring is shared (AEO phase 3, 2026-09-18). This file carried its
+// own copy of the budget and the suffix, which is the duplication that let
+// four templates drift apart in the first place.
+import { firstThatFits, BRAND_SUFFIX as SUFFIX } from './titleFit.js';
 
 export const TOUR_TYPE_LABELS = {
   major: 'Major Tour',
@@ -39,18 +40,15 @@ export const TOUR_TYPE_LABELS = {
 export function tourTitle({ code, name }) {
   const safeCode = String(code || '').trim().toUpperCase();
   const label = (name || '').trim();
-  const candidates = label
+  return firstThatFits(label
     ? [
       `${label}: Stops And Schedule`,
       `${label} Poker Schedule`,
-      `${label}`,
+      label,
       `${safeCode} Poker Tour Schedule`,
+      `${safeCode} Poker Tour`,
     ]
-    : [`${safeCode} Poker Tour Schedule`];
-  for (const candidate of candidates) {
-    if (candidate.length + SUFFIX.length <= TITLE_BUDGET) return candidate;
-  }
-  return `${safeCode} Poker Tour`;
+    : [`${safeCode} Poker Tour Schedule`, `${safeCode} Poker Tour`]);
 }
 
 export function tourDescription({ code, name, type }) {
