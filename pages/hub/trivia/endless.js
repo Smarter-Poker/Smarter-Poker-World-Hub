@@ -1355,7 +1355,7 @@ export default function EndlessModePage() {
     </PageTransition >
           {/* Server rendered: measured on production this page returned
               only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-endless" />
+          <HubPageSummary page="trivia-endless" as="h1" />
         </TriviaErrorBoundary>
     );
 }

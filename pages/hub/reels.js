@@ -2532,7 +2532,7 @@ export default function ReelsPage() {
           </div>
           <style>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
         </div>
-        <HubPageSummary page="reels" />
+        <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
@@ -2601,7 +2601,7 @@ export default function ReelsPage() {
             Try Again
           </button>
         </div>
-        <HubPageSummary page="reels" />
+        <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
@@ -2662,7 +2662,7 @@ export default function ReelsPage() {
             Back To Feed
           </Link>
         </div>
-        <HubPageSummary page="reels" />
+        <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
@@ -5897,7 +5897,7 @@ export default function ReelsPage() {
       </div>
       {/* Server rendered: measured on production this page returned
           almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
-      <HubPageSummary page="reels" />
+      <HubPageSummary page="reels" as="h1" />
     </>
   );
 }

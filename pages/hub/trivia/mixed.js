@@ -1092,7 +1092,7 @@ export default function MixedModePage() {
             `}</style>
           {/* Server rendered: measured on production this page returned
               only chrome to a crawler (AEO phase 3, 2026-09-17). */}
-          <HubPageSummary page="trivia-mixed" />
+          <HubPageSummary page="trivia-mixed" as="h1" />
         </TriviaErrorBoundary>
     );
 }
