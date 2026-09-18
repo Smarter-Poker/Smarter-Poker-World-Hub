@@ -51,10 +51,25 @@ function pageFiles(dir = 'pages', out = []) {
  * warning as the bug is a scanner nobody keeps.
  */
 function withoutComments(src) {
+  // 2026-09-18: this used a non-greedy /\*[\s\S]*?\*\/ sweep, and on
+  // pages/hub/help.js that sweep deleted the page's <SEOHead> outright - a
+  // template literal elsewhere in the file opened a block comment the sweep
+  // closed much later, taking the real code in between. The law then
+  // scanned a file with no SEOHead in it and passed, not because the page
+  // was safe but because the evidence was gone. /hub/help happens to have
+  // no client-only wrapper, so nothing was actually hidden, but the law was
+  // not watching it and would not have noticed if one appeared.
+  //
+  // Dropping whole comment lines cannot swallow code. The worst it can do
+  // is keep a trailing comment on a line that also has code, and no one
+  // explains a wrapper in a trailing comment.
   return src
-    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, ' ')
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    .split('\n')
+    .filter((line) => {
+      const t = line.trim();
+      return !(t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || t.startsWith('{/*'));
+    })
+    .join('\n');
 }
 
 /** Components this file loads with `dynamic(..., { ssr: false })`. */
