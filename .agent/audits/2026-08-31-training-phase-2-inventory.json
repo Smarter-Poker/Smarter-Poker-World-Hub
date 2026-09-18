@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 140,
+    "tests": 141,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 368,
     "routeStateCells": 752,
@@ -8645,6 +8645,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
@@ -8657,6 +8658,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
@@ -8665,6 +8667,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
@@ -8676,6 +8679,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
@@ -8687,6 +8691,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
@@ -8697,6 +8702,7 @@
             "pages/hub/training/glossary.js"
           ],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ]
@@ -8705,6 +8711,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
@@ -8714,6 +8721,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
           ],
@@ -8721,6 +8729,7 @@
         }
       },
       "existingTests": [
+        "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ],
@@ -61804,6 +61813,7 @@
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
     "__tests__/leak-engine-wiring.test.mjs",
+    "__tests__/llms-txt-states-the-entity.law.test.mjs",
     "__tests__/no-slide-to-see.law.test.mjs",
     "__tests__/page-tutorials.test.mjs",
     "__tests__/poker-near-me-phase-6.test.mjs",
@@ -79499,6 +79509,7 @@
       "realtime": [],
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
+        "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
       ]

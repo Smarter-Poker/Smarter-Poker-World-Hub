@@ -1,21 +1,43 @@
 # Smarter.Poker
 
-> The ultimate poker platform for GTO training, live venue discovery, bankroll tracking, social connection, and community.
+> Smarter.Poker is a free online poker platform: GTO training, private poker clubs in Poker Arena, Club Commander room management, live venue discovery, home games and a bankroll manager. Free to play, no real-money gambling.
 
-## About
+## What this is, and what it is not
 
-Smarter.Poker is a comprehensive poker ecosystem with 13+ integrated "orbs" (modules) designed to make poker players smarter, more connected, and more profitable. The platform is free to use with optional VIP features.
+Smarter.Poker is operated by Smarter Software Inc. There is no real-money
+gambling on the platform. Club chips are play credits with no cash value and
+diamonds are a promotional rewards currency. Nothing on the platform pays out
+cash, and no wager placed here is a real-money wager. The platform is free to
+play and intended for players aged 18 and over.
+
+The trading name "Smarter Poker" is shared with unrelated businesses. The
+entity described in this file is the one at https://smarter.poker, and
+https://smarter.poker/about is the page that states it.
+
+## Start here
+
+- About, the company and the products: https://smarter.poker/about
+- The hub, every product in one place: https://smarter.poker/hub
+- Poker glossary, 49 terms defined: https://smarter.poker/hub/training/glossary
+- Terms of service: https://smarter.poker/terms
+- Privacy policy: https://smarter.poker/privacy
+- Sitemap: https://smarter.poker/sitemap.xml
+- Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 
 ## Core Features
 
 ### GTO Training Engine
-Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer.
+Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.
+- Training hub: https://smarter.poker/hub/training
+- Poker glossary, 49 terms defined: https://smarter.poker/hub/training/glossary
 
 ### Poker Near Me
 Live poker room and venue finder with real-time game information, tournament schedules, and interactive maps covering venues across the United States.
+- Lobby: https://smarter.poker/hub/poker-near-me/lobby
 
 ### Bankroll Manager
-Professional-grade financial tracking for poker players. Track sessions, analyze leaks, monitor ROI, and visualize trends with detailed analytics and variance analysis.
+Bankroll tracking for poker players. Log sessions, analyse leaks, monitor ROI, and visualise trends with detailed analytics and variance analysis. Free to use, and it tracks play credits, not real money.
+- Bankroll manager: https://smarter.poker/hub/bankroll-manager
 
 ### Poker Trivia
 Test and expand poker knowledge with multiple game modes: Endless, Survival, Time Attack, Mixed, PvP, and Tournaments. Features leaderboards, achievements, and streak tracking.
@@ -53,8 +75,6 @@ Curated poker video content library with watch history tracking and AI tactical 
 Poker-themed cognitive training games to improve memory and pattern recognition.
 
 
-
-
 ### Events Calendar
 Poker tournament and event calendar with live updates.
 
@@ -64,9 +84,16 @@ Poker tournament and event calendar with live updates.
 - **Geeves**: Robot butler-style live help assistant for user support
 - **Proactive Help**: Context-aware assistance suggestions throughout the platform
 
+## The company
+
+- Legal entity: Smarter Software Inc.
+- Site: https://smarter.poker
+- Support: support@smarter.poker
+- Open work: https://github.com/Smarter-Poker
+
 ## Technical Details
 
 - **URL**: https://smarter.poker
 - **Platform**: Web application (progressive web app)
 - **Framework**: Next.js (World Hub), React + Vite (Club Arena)
-- **Pricing**: Free with optional VIP subscription
+- **Pricing**: Free to play, with an optional VIP subscription. No real-money gambling, and no cash payouts.
