@@ -27,12 +27,12 @@ CSVs live with the owner; this is the record of what was found and shipped.
 | CDN | done | Vercel edge; Club Arena assets immutable through the rewrite |
 | Server-side caching | done | 28 SSR / 6 SSG / 4 ISR; Caddy s-maxage + stale-if-error on the Club Arena shell |
 | Pagination | mostly | 30 routes return lists without range/limit, all cached directory or admin endpoints |
-| Compressed payloads | partial | Vercel and static origin compress; engine Caddy did not; select('*') widespread |
+| Compressed payloads | done (measured 2026-09-18) | hub `br`; every Club Arena bundle on the player path `zstd`; static origin `zstd`. engine.smarter.poker has no `content-encoding` and needs none - see the decision below. `select('*')` widespread and unchanged |
 | Re-renders | done | memo hooks on 166/221 pages; zustand selectors |
 | Minified JS/CSS | done | SWC; terser two-pass |
 | Lazy loading | partial | 98/166 hub img tags lazy |
 | Deferred scripts | done | no third-party script; next/font; the one former telemetry SDK was idle-loaded and has since been removed |
-| Unused dependencies | partial | 2 dead packages in the hub, one type package in Club Arena runtime deps |
+| Unused dependencies | done | 2 dead packages removed from the hub (#1845); `md5` and `@types/md5` removed from Club Arena (#4816) - nothing imported either, and three transitive packages went with them |
 | Connection pooling | done | everything through PostgREST; 105/380 backends |
 
 Lighthouse, production, mobile emulation, anonymous, 2026-09-17 18:05 UTC
@@ -60,15 +60,27 @@ to 1,356 KB each.
    siblings (53.1 MB to 8.1 MB), 114 references repointed across 55 files,
    loading="lazy" on five avatar lists, hub background preloaded, and the law
    __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs.
-3. **Club Arena hygiene** (PR #4777): PurchaseLedger search debounced; encode
-   zstd gzip in both engine Caddy templates; @types/md5 to devDependencies;
-   334 vitest timestamp files deleted from the clones.
+3. **Club Arena hygiene** (PR #4777, merged 23:51 UTC as 414c12e1): the
+   PurchaseLedger search debounced at 300 ms, `encode zstd gzip` added to
+   infra/monitoring/engine-01/Caddyfile, and the changelog entries. 334
+   gitignored vitest timestamp files deleted from the clones. Two things
+   were cut from this pull request as it landed and are recorded honestly
+   here rather than as shipped: the same line in server/Caddyfile (that path
+   matches CI's `server:` filter and was summoning an unrelated red job), and
+   the @types/md5 move. Both went to #4816 - see phase 7.
 4. **Hub hygiene** (PR #1845): @supabase/auth-helpers-nextjs and
    react-onesignal removed; lockfile regenerated (56 orphaned entries from the
    telemetry removal pruned, no version changes).
 5. **Database round two**: nothing dropped. See decisions below for why.
 6. **Protection and records**: this file, scripts/perf/lighthouse-baseline.mjs,
    the law in phase 2, and the Club Arena changelog entries.
+7. **Close-out** (Club Arena PR #4816, World Hub PR for this file): md5 and
+   @types/md5 removed from Club Arena dependencies - nothing imported either,
+   and every md5 token in that repository is PostgreSQL's own md5() inside a
+   SQL string in a contract test, so charenc, crypt and is-buffer left with
+   them. social_reels reclaimed. The engine-01 operator step withdrawn on
+   measurement. The live header checks this file recorded as ungettable,
+   taken.
 
 ## Decisions that are Dan's, with the evidence
 
@@ -88,13 +100,38 @@ to 1,356 KB each.
   message_reactions 3, and one extra policy on chip_transactions,
   club_wallets, rake_records and 22 others). Merging is a semantic rewrite on
   money tables; it needs the owning workstream, not a hygiene pass.
-- **engine.smarter.poker compression.** /etc/caddy/Caddyfile on engine-01 is
-  operator-managed host state. Add `encode zstd gzip` to the site block and
-  `caddy reload`; both repo templates now carry the line.
-- **social_reels bloat** (75 rows, 54 MB): `VACUUM (FULL, ANALYZE)
-  public.social_reels` from psql, outside :50-:03 UTC, takes an exclusive
-  lock for under a second. The session running this audit was not permitted
-  to issue it.
+- **engine.smarter.poker compression: withdrawn, nothing to do.** This was
+  carried as an operator step. It is not one. Measured against production on
+  2026-09-18 (table under "Measured live" below): the hub answers `br`, every
+  Club Arena bundle on the path a player actually loads answers `zstd` with
+  `max-age=31536000, immutable`, and the static origin answers `zstd`. The one
+  origin with no `content-encoding` is engine.smarter.poker, and on the live
+  box that hostname serves the engine reverse-proxy alone - `/grafana/login`
+  and `/runbooks/00-incident-response.md`, both routed by the repository
+  template, return the engine's own 21-byte JSON 404. What is left behind that
+  name is WebSocket traffic, which `encode` never touches, and JSON: `/health`
+  is 9,583 bytes and gzips to 3,555. A real 63 percent, on a monitoring
+  endpoint, not worth a reload on the box that deals cards. The line stays in
+  the templates, which describe a configuration that would benefit from it.
+  Nobody needs to go and apply it.
+- **That the live Caddyfile does not serve the template's routes is its own
+  finding**, and it belongs to whoever owns engine-01 rather than to this
+  audit. CLAUDE.md 10.84 is about exactly this gap in the other direction.
+- **social_reels bloat: done, 54 MB to 224 kB.** Not by the `VACUUM (FULL,
+  ANALYZE)` this file first prescribed - the Supabase SQL transport wraps
+  statements in a transaction and VACUUM refuses to run in one. `CLUSTER
+  public.social_reels USING social_reels_pkey` performs the same heap rewrite,
+  runs inside a transaction, and rebuilds every index as well, which mattered
+  here: 13 indexes on 75 rows held 11 MB and now hold 176 kB, and the heap
+  went from 43 MB to 40 kB. Taken at 00:05 UTC on 2026-09-18, outside the
+  break window, after sampling the table for ten seconds and seeing zero index
+  scans, zero sequential scans and zero updates, with `SET LOCAL lock_timeout
+  = '3s'` so it would abort rather than queue in front of live traffic.
+  Verified after: 75 rows, 75 distinct ids, all 13 indexes present and valid,
+  65 public rows readable, `ALTER TABLE ... SET WITHOUT CLUSTER` to leave the
+  catalog as it was found, and ANALYZE. The churn that caused it (3,700
+  updates, no inserts, no deletes) will do so again; a per-table autovacuum
+  setting is the durable answer and is a migration somebody should own.
 - **rake_history**: 1,372,780 rows, 195 MB, last row 2026-05-01, never read
   by index and 47 times by sequential scan in its life. Retired financial
   history; keep it, but nothing needs it in the hot path.
@@ -127,9 +164,38 @@ image-bound); the byte figure is the stable one. Every committed WebP
 sibling answers 200 with image/webp from production, and the hub HTML
 carries the background preload.
 
+## Measured live, 2026-09-18 00:0x UTC
+
+The gap recorded below as ungettable was got. Anonymous requests carrying
+`Accept-Encoding: gzip, br, zstd`, from a shell with production egress:
+
+| what | code | content-encoding | cache | bytes on the wire |
+| --- | --- | --- | --- | --- |
+| smarter.poker/ | 200 | `br` | x-vercel-cache HIT | 6,003 |
+| smarter.poker/hub | 200 | `br` | x-vercel-cache MISS, no-cache | 18,943 |
+| smarter.poker/hub/commander | 200 | `br` | x-vercel-cache HIT | 20,158 |
+| CA assets/index-*.js | 200 | `zstd` | max-age=31536000, immutable | 158,905 |
+| CA assets/vendor-react-*.js | 200 | `zstd` | max-age=31536000, immutable | 76,501 |
+| CA assets/index-*.css | 200 | `zstd` | max-age=31536000, immutable | 40,570 |
+| ca-static.smarter.poker/ | 200 | `zstd` | s-maxage=60, stale-if-error=86400 | 13,121 |
+| engine.smarter.poker/health | 200 | none | none | 9,583 |
+
+So the CDN and compression verdicts no longer come from configuration. The
+x-vercel-cache MISS on /hub is the page's own `no-cache, must-revalidate`, not
+a CDN fault.
+
+Phase 3 was also verified in the artefact rather than the source. The published
+bundle changed hash (index-1YFaOFaa to index-UCXxW8eI), build-info.json reports
+ca_sha 414c12e1654f, and inside MarketplacePage-BEnLGge--v6.js the compiled
+PurchaseLedger reads `[h,p]=e.useState(""),x=H(h,300)` - useDebounce(query,
+300) - with the request built from `x.trim()` and the callback's dependency
+array `[s,o,x,k]`. It refires on a pause, not on a keystroke, in production.
+
 ## Verification gaps
 
-Live HTTP header checks (x-vercel-cache, content-encoding) could not be run
-from either shell available to the audit; CDN and compression verdicts come
-from configuration. The signed-in Lighthouse baseline for /hub/commander and
-/hub/club-arena/ needs a browser profile and was not taken. The after-merge Lighthouse run for phase 2 is recorded above.
+The signed-in Lighthouse baseline for /hub/commander and /hub/club-arena/
+needs a browser profile and was not taken; the anonymous after-merge run for
+phase 2 is recorded above. engine-01 itself was never reached from this
+session - SSH to it is refused here - so every statement about that box is an
+inference from its public HTTP surface, which is sufficient for the
+compression ruling and is not sufficient for anything about its disk.
