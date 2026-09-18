@@ -26,7 +26,7 @@ export default function PokerLocationsIndex(props) {
   return (
     <PokerNearMeLocationPage
       {...props}
-      title="Poker Rooms Near You Across the United States"
+      title="Live Poker Rooms By State And City"
       description="Browse verified casino poker rooms and cardrooms by state, then move into city-level venue profiles, schedules, and live player signals."
       canonical={venueLocationCanonical()}
     />
