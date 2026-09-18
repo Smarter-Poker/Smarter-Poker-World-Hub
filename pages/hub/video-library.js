@@ -7,6 +7,17 @@ import { Component, useState, useEffect, useRef, useCallback, useMemo } from 're
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
+
+// AEO phase 3 (2026-09-17).
+const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
+    path: '/hub/video-library',
+    name: 'Smarter.Poker Video Library',
+    description:
+        'A Curated Poker Video Library: Strategy Content, Tournament Coverage And Training Videos, With Watch History And AI Tactical Analysis. Free To Watch.',
+    trail: [['Hub', '/hub'], ['Video Library', '/hub/video-library']],
+});
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
@@ -1583,13 +1594,24 @@ export default function VideoLibraryPage() {
         : 0;
 
     return (
-        <PageTransition>
-            
+        <>
+            {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
+                PageTransition is dynamic(..., { ssr: false }), so a head that
+                sits inside it never reaches the server HTML. This page shipped
+                no title, no description and no canonical to any crawler, while
+                sitting in the sitemap at priority 0.8. */}
             <SEOHead
-                title="Poker Video Library - Watch & Learn"
-                description="Curated Poker Video Library With Strategy Content, Tournament Coverage, And Training Videos. Track Your Watch History And Get AI Tactical Analysis."
+                title="Poker Video Library: Strategy And Coverage"
+                description="A Curated Poker Video Library On Smarter.Poker: Strategy Content, Tournament Coverage And Training Videos, With Watch History And AI Tactical Analysis. Free To Watch."
                 canonical="/hub/video-library"
+                jsonLd={VIDEO_LIBRARY_SCHEMA}
             />
+
+            {/* Outside <PageTransition> for the same reason: this is the only
+                body copy a crawler that runs no JavaScript ever sees here. */}
+            <HubPageSummary page="video-library" as="h1" />
+
+        <PageTransition>
 
             <div className="video-library-page" style={{
                 minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
@@ -3235,5 +3257,6 @@ export default function VideoLibraryPage() {
             `}</style>
 
         </PageTransition>
+        </>
     );
 }

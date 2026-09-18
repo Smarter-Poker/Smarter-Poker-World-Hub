@@ -23,6 +23,19 @@
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
+
+// AEO phase 3 (2026-09-17). This module serves /hub/preflop-charts, which
+// pages/hub/preflop-charts.js re-exports, so the canonical and the schema
+// both name that route.
+const PREFLOP_SCHEMA = hubProductSchema({
+  path: '/hub/preflop-charts',
+  name: 'Smarter.Poker Preflop Range Lab',
+  description:
+    'Free Local Practice Against Authored Preflop Reference Ranges. Results Stay On The Page And Do Not Change Account Progress, Rank Or Rewards.',
+  trail: [['Hub', '/hub'], ['Preflop Charts', '/hub/preflop-charts']],
+});
 import { useState, useEffect, useRef, useCallback } from 'react';
 // confetti loaded lazily on first use
 let _confetti = null;
@@ -1839,17 +1852,26 @@ export default function MemoryGamesPage() {
   }));
 
   return (
-    <PageTransition disableInitialAnimation>
+    <>
+      {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
+          PageTransition is dynamic(..., { ssr: false }), so a head that sits
+          inside it never reaches the server HTML. /hub/preflop-charts shipped
+          no title, no description and no canonical to any crawler, while
+          sitting in the sitemap at priority 0.7. The render-blocking Google
+          Fonts stylesheet went with it: the site self-hosts both families
+          through next/font, so the link fetched nothing this page used. */}
       <SEOHead
-        title="Preflop Range Lab - Authored Local Practice"
-        description="Practice authored preflop reference ranges in free local drills. Results do not change account progress, rank, or rewards."
+        title="Preflop Range Lab: Free Local Range Practice"
+        description="Practice Authored Preflop Reference Ranges In Free Local Drills On Smarter.Poker. Results Stay On The Page: They Do Not Change Account Progress, Rank Or Rewards. Free To Play."
         canonical="/hub/preflop-charts"
-      >
-        <link
-          href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </SEOHead>
+        jsonLd={PREFLOP_SCHEMA}
+      />
+
+      {/* Outside <PageTransition> for the same reason: this is the only body
+          copy a crawler that runs no JavaScript ever sees here. */}
+      <HubPageSummary page="preflop-charts" as="h1" />
+
+    <PageTransition disableInitialAnimation>
 
       <HubPageShell
         className="preflop"
@@ -3299,6 +3321,7 @@ export default function MemoryGamesPage() {
                 }
             `}</style>
     </PageTransition>
+    </>
   );
 }
 

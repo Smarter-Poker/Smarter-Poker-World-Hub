@@ -70,6 +70,40 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Home Games', href: '/hub/home-games', text: 'Log A Home Game And Find The Next One.' },
     ],
   },
+  // AEO phase 3 (2026-09-17). These three pages sat in the sitemap at
+  // priority 0.9, 0.8 and 0.7 and served a crawler an empty body: everything
+  // they render lives inside <PageTransition>, which is dynamic(ssr:false).
+  news: {
+    heading: 'About Poker News On Smarter Poker',
+    lead:
+      'Poker News Is The Smarter Poker Feed Of Headlines From The Poker World, Gathered Hourly From Published Sources And Read In One Place. Tournament Results, Industry Updates, Player Interviews And Strategy Articles Are Sorted By Recency Or By Source, And Every Story Links Back To The Outlet That Published It. Reading Is Free And Needs No Account.',
+    links: [
+      { name: 'News Sources', href: '/hub/news/sources', text: 'Every Outlet The Feed Reads, And How Often It Checks.' },
+      { name: 'Video Library', href: '/hub/video-library', text: 'Strategy Videos And Tournament Coverage In One Place.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Tournaments And Series By Date.' },
+      { name: 'GTO Training', href: '/hub/training', text: 'Turn What You Read Into Hands You Play Better.' },
+    ],
+  },
+  'video-library': {
+    heading: 'About The Video Library',
+    lead:
+      'The Video Library Is The Smarter Poker Collection Of Poker Video Content: Strategy Breakdowns, Tournament Coverage And Training Series, Curated Rather Than Scraped. Watch Progress Is Remembered So A Long Session Picks Up Where It Stopped, And Jarvis Adds Tactical Analysis To The Hands A Video Covers. Watching Is Free And Needs No Account.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'Drill The Spot A Video Just Explained.' },
+      { name: 'Poker News', href: '/hub/news', text: 'Headlines And Results From The Poker World, Hourly.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Commentator Uses, Defined.' },
+    ],
+  },
+  'preflop-charts': {
+    heading: 'About The Preflop Range Lab',
+    lead:
+      'The Preflop Range Lab Is Free Local Practice Against Authored Preflop Reference Ranges. Drill Opening, Three-Betting And Defending From Every Position, See Which Combos You Misplace, And Repeat The Ones You Miss. Results Stay On The Page: This Is Practice, So It Does Not Change Account Progress, Rank Or Rewards, And There Is Nothing To Wager.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games With Solver-Grade Analysis.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Three-Bet, Squeeze, Range Advantage And 46 More, Defined.' },
+      { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track What The Practice Changes In Real Sessions.' },
+    ],
+  },
   'poker-near-me': {
     heading: 'About Poker Near Me',
     lead:

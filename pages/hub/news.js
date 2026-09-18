@@ -16,6 +16,19 @@ import dynamic from 'next/dynamic';
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
+
+// AEO phase 3 (2026-09-17). The page already emits an ItemList of the
+// headlines on screen; this is the page itself, which had nothing.
+const NEWS_SCHEMA = hubProductSchema({
+    path: '/hub/news',
+    name: 'Smarter.Poker Poker News',
+    description:
+        'Poker News Gathered Hourly From Top Sources: Tournament Results, Industry Updates And Strategy Articles, Read In One Place. Free To Read.',
+    applicationCategory: 'NewsApplication',
+    trail: [['Hub', '/hub'], ['News', '/hub/news']],
+});
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -1324,6 +1337,23 @@ export default function NewsHub() {
 
     return (
         <>
+            {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
+                PageTransition is dynamic(..., { ssr: false }), so a head that
+                sits inside it never reaches the server HTML. /hub/news shipped
+                no title, no description and no canonical to any crawler, while
+                sitting in the sitemap at priority 0.9. Same trap the JSON-LD
+                block below already documents. */}
+            <SEOHead
+                title="Poker News: Headlines, Results And Strategy"
+                description="The Latest Poker News On Smarter.Poker: Tournament Results, Industry Updates And Strategy Articles Gathered Hourly From Top Sources And Read In One Place. Free To Read."
+                canonical="/hub/news"
+                jsonLd={NEWS_SCHEMA}
+            />
+
+            {/* Outside <PageTransition> for the same reason: this is the only
+                body copy a crawler that runs no JavaScript ever sees here. */}
+            <HubPageSummary page="news" as="h1" />
+
             {/* schema.org ItemList of the headlines actually on screen.
                 Every less-than character is replaced with its unicode escape
                 (u003c) so a headline containing a closing script tag cannot
@@ -1343,12 +1373,6 @@ export default function NewsHub() {
 
             <PageTransition>
                 
-                <SEOHead
-                    title="Poker News - Latest Headlines & Updates"
-                    description="Stay Up To Date With The Latest Poker News, Tournament Results, Industry Updates, And Strategy Articles From Top Sources."
-                    canonical="/hub/news"
-                />
-
                 <div className="news-hub live-wire">
                     <LiveWireStyles />
                     {/* Scroll Progress Bar */}
