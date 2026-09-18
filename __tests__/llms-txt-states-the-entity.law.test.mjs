@@ -83,12 +83,47 @@ test('every link it gives is ours, and every one of them is https', () => {
     );
   }
   // A link that does not exist is worse than no link: an engine reads this
-  // file as a map. Every hub path here must be one the sitemap promotes.
+  // file as a map. Every hub path here must be one the sitemap promotes,
+  // either as a literal entry, as one of the discovery tabs it spreads in,
+  // or as an example of a family it generates (a venue, a tour, a series).
   const sitemap = read('pages/sitemap.xml.js');
+  const discovery = read('src/lib/poker-near-me/sitemapRoutes.js');
   for (const url of urls) {
     const p = new URL(url).pathname;
     if (!p.startsWith('/hub') || p.endsWith('.xml')) continue;
     if (p.startsWith('/hub/club-arena')) continue; // served by the arena build
-    assert.ok(sitemap.includes(`path: '${p}'`), `the sitemap does not list ${p}`);
+    const listed = sitemap.includes(`path: '${p}'`) || discovery.includes(`'${p}'`);
+    // An example URL out of a generated family: the sitemap builds these
+    // from the database, so the page file is what proves the route exists.
+    const family = /^\/hub\/(venues|tours|series)\/[^/]+$/.test(p);
+    assert.ok(listed || family, `the sitemap does not list ${p}`);
   }
+});
+
+/**
+ * AEO phase 3 (2026-09-18): llms.txt advertised six trivia modes including
+ * PvP and Tournaments. Both sit behind a server side release gate and
+ * answer 307 while it is closed, so the file an engine reads to learn what
+ * this platform is was describing two features that do not work. The
+ * sitemap and the hub summaries were taught to follow those gates in #1890
+ * and #1897; a static file cannot, so it must not make the claim.
+ */
+test('it does not advertise a feature behind a closed release gate', () => {
+  const llms = read('public/llms.txt');
+  const gated = [
+    ['/hub/trivia/pvp', 'TRIVIA_PVP_ENABLED'],
+    ['/hub/trivia/tournaments', 'TRIVIA_TOURNAMENTS_ENABLED'],
+  ];
+  for (const [route, env] of gated) {
+    assert.ok(
+      !llms.includes(`https://smarter.poker${route}`),
+      `llms.txt links ${route}, which redirects while ${env} is unset`,
+    );
+  }
+  // The prose named them too, which is the same claim without a link.
+  assert.doesNotMatch(
+    llms,
+    /game modes:[^\n]*\bPvP\b/,
+    'llms.txt lists PvP as an available trivia mode while its gate is closed',
+  );
 });
