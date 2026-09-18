@@ -11,7 +11,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { hasNumericKeys, inspectHead, ldTypes, parseRobots, parseSitemapLocs } from '../scripts/ci/check-live-seo-contract.mjs';
+import {
+  hasNumericKeys,
+  indexability,
+  inspectHead,
+  ldTypes,
+  parseRobots,
+  parseSitemapLocs,
+} from '../scripts/ci/check-live-seo-contract.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -52,4 +59,49 @@ test('the workflow runs on a successful Production deployment and checks out the
   assert.match(wf, /ref: \$\{\{ github\.event\.deployment\.sha \|\| github\.sha \}\}/);
   assert.match(wf, /node scripts\/ci\/check-live-seo-contract\.mjs --sha/);
   assert.ok(!/schedule:/.test(wf), 'no cron: cron governance');
+});
+
+// A SITEMAP URL MUST BE INDEXABLE, NOT MERELY REACHABLE (2026-09-18).
+// The sample loop used to assert HTTP 200 only, so a page that loaded and
+// then told crawlers not to index it passed this gate — the defect #1885
+// fixed in production, caught there by a source test and not by this live
+// one. These pin the live rule and the failure text that names the cause.
+
+test('indexability refuses a sitemap page that loads and then says noindex', () => {
+  assert.deepEqual(
+    indexability({ status: 200, headerRobots: null, html: '<meta name="robots" content="index, follow, max-image-preview:large"/>' }),
+    { indexable: true, reason: null }
+  );
+  // The header wins even when the body never parses: Googlebot reads it first.
+  assert.deepEqual(indexability({ status: 200, headerRobots: 'noindex, nofollow', html: '' }), {
+    indexable: false,
+    reason: 'X-Robots-Tag: noindex, nofollow',
+  });
+  assert.deepEqual(
+    indexability({ status: 200, headerRobots: null, html: '<meta name="robots" content="noindex, nofollow"/>' }),
+    { indexable: false, reason: 'robots meta: noindex, nofollow' }
+  );
+  // A page with no robots directive at all is indexable by default.
+  assert.deepEqual(indexability({ status: 200, headerRobots: null, html: '<html><body>words</body></html>' }), {
+    indexable: true,
+    reason: null,
+  });
+  // A non-200 keeps its own reason rather than being reported as a robots problem.
+  assert.deepEqual(indexability({ status: 404, headerRobots: null, html: '' }), {
+    indexable: false,
+    reason: 'HTTP 404',
+  });
+  assert.deepEqual(indexability({ status: 308, headerRobots: null, html: '' }), {
+    indexable: false,
+    reason: 'HTTP 308',
+  });
+});
+
+test('the sitemap sample applies indexability, not just HTTP 200', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'scripts/ci/check-live-seo-contract.mjs'), 'utf8');
+  const sample = src.slice(src.indexOf('const sample ='));
+  assert.match(sample, /indexability\(\{/, 'the sample loop must run the indexability check');
+  assert.match(sample, /headerRobots: r\.headers\.get\('x-robots-tag'\)/);
+  assert.match(sample, /listed in the sitemap but not indexable/, 'the failure must name the cause');
+  assert.match(sample, /not indexable`/, 'the summary line must report how many were not indexable');
 });
