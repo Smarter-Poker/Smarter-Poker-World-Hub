@@ -1053,6 +1053,7 @@ jobs:
             __tests__/the-help-page-works-without-an-account.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
+            __tests__/every-title-fits-a-result-and-every-page-says-what-it-is.law.test.mjs \
             __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
             __tests__/the-community-pages-say-what-they-are.law.test.mjs \
             __tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs \

@@ -38,7 +38,10 @@ test('the glossary ships a real head, not a bare title', () => {
   assert.match(src, /canonical="\/hub\/training\/glossary"/, 'it declares its canonical');
   const title = src.match(/title="([^"]+)"/)?.[1];
   assert.ok(title, 'it declares a title');
-  assert.ok(title.length <= 60, `a ${title.length} character title is cut off in a search result: ${title}`);
+  // What ships, not what the source says: SEOHead appends " | Smarter.Poker".
+  // This measured the raw string and let a 65 character title through.
+  const shipped = title.includes('Smarter.Poker') ? title : `${title} | Smarter.Poker`;
+  assert.ok(shipped.length <= 60, `a ${shipped.length} character title is cut off in a search result: ${shipped}`);
   const description = src.match(/description="([^"]+)"/)?.[1];
   assert.ok(description && description.length >= 80, 'it declares a description worth reading');
 });

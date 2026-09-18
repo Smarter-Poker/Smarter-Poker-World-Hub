@@ -2532,6 +2532,7 @@ export default function ReelsPage() {
           </div>
           <style>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
         </div>
+        <HubPageSummary page="reels" />
       </>
     );
   }
@@ -2600,6 +2601,7 @@ export default function ReelsPage() {
             Try Again
           </button>
         </div>
+        <HubPageSummary page="reels" />
       </>
     );
   }
@@ -2660,6 +2662,7 @@ export default function ReelsPage() {
             Back To Feed
           </Link>
         </div>
+        <HubPageSummary page="reels" />
       </>
     );
   }
