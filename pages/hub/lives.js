@@ -11,6 +11,7 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: live_streams.guest_invite_code is no longer
 // readable by anon/authenticated after the v2 column-grant migration. Every
@@ -1238,6 +1239,9 @@ export default function LivesPage() {
 }
 
 { UpgradePopup }
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="lives" />
         </>
     );
 }

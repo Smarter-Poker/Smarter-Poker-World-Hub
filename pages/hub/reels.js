@@ -26,6 +26,7 @@ import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import {
   findBestGames,
 } from '../../src/utils/videoToTrainingMapper';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const C = {
   bg: '#000000',
@@ -5891,6 +5892,9 @@ export default function ReelsPage() {
                     }
                 `}</style>
       </div>
+      {/* Server rendered: measured on production this page returned
+          almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="reels" />
     </>
   );
 }

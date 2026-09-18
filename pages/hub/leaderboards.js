@@ -22,6 +22,7 @@ import { supabase } from '../../src/lib/supabase';
 
 // 2026-05-07 — UI-UX-Pro-Max icons (Lucide for tab icons + states)
 import { Trophy, MapPin, Star, Activity, AlertTriangle } from 'lucide-react';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const darkShimmerKeyframes = `
 @keyframes dark-shimmer {
@@ -727,6 +728,9 @@ export default function LeaderboardsPage() {
                     }
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="leaderboards" />
         </>
     );
 }
