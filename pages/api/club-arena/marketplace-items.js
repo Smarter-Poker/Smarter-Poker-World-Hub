@@ -143,7 +143,7 @@ export default async function handler(req, res) {
       let itemsPromise = getSupabase()
         .from('club_shop_items')
         .select(
-          'id, name, description, price, category, image_url, item_type, grant_spec, stock, stackable, per_user_limit, sale_price, available_from, available_until, sort_order, is_active'
+          'id, club_id, name, description, price, category, image_url, item_type, grant_spec, stock, stackable, per_user_limit, sale_price, available_from, available_until, sort_order, is_active'
         )
         .eq('club_id', clubId)
         .eq('is_active', true)
