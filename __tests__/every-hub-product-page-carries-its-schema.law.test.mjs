@@ -5,10 +5,10 @@
  * pages on the site carried thousands of server-rendered words each and
  * not one line of structured data:
  *
- *   /hub                    3,276 words   0 ld+json
- *   /hub/training           3,874 words   0 ld+json
- *   /hub/home-games         4,942 words   0 ld+json
- *   /hub/bankroll-manager   3,386 words   0 ld+json
+ *   /hub                      200 words   0 ld+json
+ *   /hub/training           1,843 words   0 ld+json
+ *   /hub/home-games           229 words   0 ld+json
+ *   /hub/bankroll-manager     211 words   0 ld+json
  *
  * The two pages that came back clean in the same audit, /hub/commander
  * and /hub/commander/faq, were the two that had built their schema by

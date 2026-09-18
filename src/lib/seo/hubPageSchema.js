@@ -6,10 +6,10 @@
  * stripped, the four largest product pages on the site carried thousands of
  * server-rendered words each and not one line of structured data:
  *
- *   /hub                    3,276 words   0 ld+json
- *   /hub/training           3,874 words   0 ld+json
- *   /hub/home-games         4,942 words   0 ld+json
- *   /hub/bankroll-manager   3,386 words   0 ld+json
+ *   /hub                      200 words   0 ld+json
+ *   /hub/training           1,843 words   0 ld+json
+ *   /hub/home-games           229 words   0 ld+json
+ *   /hub/bankroll-manager     211 words   0 ld+json
  *
  * Words tell an engine what a page says. Schema tells it what the page IS,
  * who publishes it and where it sits, and that is what decides whether an
