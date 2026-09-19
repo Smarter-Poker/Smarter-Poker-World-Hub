@@ -327,9 +327,24 @@ export async function getServerSideProps({ params, req, res }) {
     res.statusCode = 503;
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Retry-After', '120');
+  } else if (status === 'not-found') {
+    // A 404 IS NOT CACHED THE WAY A PAGE IS (AEO phase 3, 2026-09-19).
+    //
+    // This used to fall through to the shared branch below, which sets
+    // s-maxage=300 with stale-while-revalidate=600 and then the 404 status,
+    // so a single bad lookup was published as "this page does not exist" for
+    // five minutes and re-served stale for ten more. Measured on production,
+    // four series pages were answering 404 from the edge with
+    // x-vercel-cache: HIT and an age past four minutes, while the same URLs
+    // with a cache busting parameter answered 200.
+    //
+    // A 404 still caches, because a genuinely missing id should not cost a
+    // lookup on every bot that finds it, but for a minute and with no stale
+    // window: a mistake clears itself instead of outliving its cause.
+    res.statusCode = 404;
+    res.setHeader('Cache-Control', 'public, s-maxage=60');
   } else {
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    if (status === 'not-found') res.statusCode = 404;
   }
   return { props: { seoSeries } };
 }

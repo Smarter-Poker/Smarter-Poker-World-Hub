@@ -105,8 +105,13 @@ export function isPublicSeries(v) {
 }
 
 /**
- * Resolves to { series, status }: 'ok', 'not-found' (the API says so, or the
- * id is not a series id) or 'unavailable' (the API did not answer in time).
+ * Resolves to { series, status }: 'ok', 'not-found' (the API answered 404 or
+ * 400, or the id is not a series id) or 'unavailable' (anything else: the API
+ * did not answer, rate limited, or failed).
+ *
+ * The difference matters more than it looks. 'not-found' makes the page send
+ * a 404, and a 404 is a statement that the page does not exist, made to
+ * something that will believe it and cache it.
  */
 export async function fetchSeries(id, origin) {
   if (!/^[A-Za-z0-9_:-]{1,64}$/.test(String(id ?? ''))) return { series: null, status: 'not-found' };
@@ -125,7 +130,20 @@ export async function fetchSeries(id, origin) {
     }
     const series = data?.success ? toSeoSeries(data.data) : null;
     if (series) return { series, status: 'ok' };
-    if (res.status === 404 || res.status === 400 || data?.success === false) {
+    // ONLY THE API SAYING SO MEANS NOT FOUND (AEO phase 3, 2026-09-19).
+    //
+    // This used to treat any `success: false` body as a missing series,
+    // whatever the status code carried it. The rate limiter answers 429 with
+    // `{ success: false, error: 'Too many requests' }` and every 5xx in this
+    // API does the same, so a page that exists could be declared missing by a
+    // response that said nothing of the kind. The page then sent a 404, and
+    // the 404 was cached.
+    //
+    // Measured on production: /hub/series/5001217, /5001220, /5001228 and
+    // /5001254 all answered 404 from the edge with x-vercel-cache: HIT while
+    // the same URL with a cache busting parameter answered 200, and the API
+    // answered 200 for every one of them.
+    if (res.status === 404 || res.status === 400) {
       return { series: null, status: 'not-found' };
     }
     return { series: null, status: 'unavailable' };
