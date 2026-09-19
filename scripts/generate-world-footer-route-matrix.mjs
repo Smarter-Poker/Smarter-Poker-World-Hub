@@ -22,12 +22,14 @@ const pageToRoute = (file) => {
 };
 
 const ownsRoute = (route, prefix) => route === prefix || route.startsWith(`${prefix}/`);
+const pageOwnedFooterRoutes = new Set(['/hub/diamond-store', '/hub/marketplace']);
 
 const rows = walk(pagesRoot)
   .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file))
   .filter((file) => !file.includes(`${path.sep}api${path.sep}`))
   .map(pageToRoute)
   .filter((route) => !/^\/(?:_|404$|500$)/.test(route))
+  .filter((route) => !pageOwnedFooterRoutes.has(route))
   .flatMap((route) => {
     const owner = registry.worlds
       .flatMap((world) => world.routePrefixes.map((prefix) => ({ world, prefix })))
@@ -75,13 +77,15 @@ const lines = [
   '- `/hub` is the World Hub landing page and is intentionally footerless.',
   '- `/hub/club-arena` is the Poker Arena lobby and is intentionally footerless.',
   '- `/hub/club-arena/**` is an embedded application boundary; its internal footer remains owned and tested by Club Arena.',
+  '- `/hub/diamond-store` owns one restrained, in-flow Marketplace commerce footer so the fixed illustrated footer cannot cover its product cards. Its Marketplace copy policy remains app-shell owned.',
+  '- `/hub/marketplace` redirects in the same surface to `/hub/diamond-store` and therefore resolves to that same page-owned footer contract.',
   '- `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.',
   '- Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.',
   '',
 ];
 
-if (rows.length !== 197) {
-  throw new Error(`Expected 197 applicable routes, found ${rows.length}`);
+if (rows.length !== 195) {
+  throw new Error(`Expected 195 applicable routes, found ${rows.length}`);
 }
 
 fs.writeFileSync(path.join(root, 'docs/world-hub-footer-route-matrix.md'), `${lines.join('\n')}\n`);

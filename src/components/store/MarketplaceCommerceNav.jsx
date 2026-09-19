@@ -3,13 +3,18 @@ import Link from 'next/link';
 import useCartStore from '../../stores/cartStore';
 import styles from './MarketplaceCommerceNav.module.css';
 
-export default function MarketplaceCommerceNav({ active = 'store' }) {
+export default function MarketplaceCommerceNav({ active = 'store', variant = 'default' }) {
   const itemCount = useCartStore((state) =>
     state.items.reduce((total, item) => total + (Number(item.quantity) || 1), 0)
   );
 
   return (
-    <nav className={styles.rail} aria-label="Marketplace Commerce">
+    <nav
+      className={`${styles.rail} ${variant === 'pageFooter' ? styles.pageFooter : ''}`}
+      aria-label="Marketplace Commerce"
+      data-marketplace-page-footer={variant === 'pageFooter' ? 'true' : undefined}
+      data-footer-layout={variant === 'pageFooter' ? 'in-flow' : undefined}
+    >
       <div className={styles.links}>
         <Link
           href="/hub/diamond-store"

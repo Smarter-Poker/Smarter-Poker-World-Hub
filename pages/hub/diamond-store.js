@@ -3137,7 +3137,10 @@ export default function DiamondStorePage({
               onBuy={handleDirectCheckout}
             />
 
-            <MarketplaceCommerceNav active="store" />
+            <MarketplaceCommerceNav
+              active="store"
+              variant={activeTab === 'diamonds' ? 'pageFooter' : 'default'}
+            />
 
             {/* Main Content (non-diamonds tabs) */}
             <div
