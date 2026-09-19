@@ -657,6 +657,21 @@ but NO new entries are permitted. The 16 overflow jobs are already on Hetzner.
    first entry; `__tests__/openclaw-critical-jobs.test.mjs` proves the
    counting.
 
+   **A still-failing job keeps paging (2026-09-19).** The first page used to
+   be the only one: after it, the dispatcher logged and nothing else. The
+   login-bridge probe failed hourly from 2026-09-12 to 2026-09-18 - Commander's
+   Supabase service-role key had stopped being registered for the project -
+   and that produced ONE SMS, on the second hour, then six days of silence.
+   One missed message was the entire warning. `CRITICAL_REPAGE_LADDER_S` now
+   re-pages a still-broken episode an hour after the first page, four hours
+   after that, then daily, each one carrying how long the fault has run. The
+   ladder escalates rather than repeating a fixed interval, because a job that
+   flaps for twenty minutes must not become a pager storm and a job that has
+   been down for a week must not be silent. The ladder position survives a
+   restart (`pages_sent`, `last_page_at`, `failing_since` in the alert state),
+   and state written before the upgrade starts the ladder rather than paging
+   instantly on the next tick.
+
 ### 11.3 What is BANNED
 
 - **Adding entries to `vercel.json`'s `crons` array.** CI will fail.

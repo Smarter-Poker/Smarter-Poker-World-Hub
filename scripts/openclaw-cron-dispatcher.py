@@ -263,6 +263,24 @@ ALERT_STATE_PATH = Path(os.environ.get('OPENCLAW_ALERT_STATE',
                                        '/var/lib/openclaw/alert-state.json'))
 ALERT_MIN_REPEAT_S = _env_number('ALERT_MIN_REPEAT_S', 21600, int, 60, 604800)
 
+# ─── A LONG OUTAGE MUST NEVER GO QUIET ───────────────────────────────────────
+# Until 2026-09-19 a CRITICAL_JOBS page fired ONCE per failure episode and the
+# dispatcher then only logged, however long the fault lasted. Club Commander's
+# login-bridge probe failed every hour from 2026-09-12 to 2026-09-18 - the
+# Supabase service-role key had stopped being registered for the project - and
+# that produced exactly one SMS, on the second hour, followed by six days of
+# silence. The operator who missed that one message had no second chance, and
+# nothing else on the estate was watching the key.
+#
+# So a still-failing critical job now pages AGAIN on an escalating ladder:
+# an hour after the first page, four hours after that, then daily for as long
+# as it stays broken. Escalating rather than fixed because the two ends of this
+# are different failures - a job that flaps for twenty minutes must not become
+# a pager storm, and a job that has been down for a week must not be silent.
+# Each re-page carries how long the fault has been running, which is the fact
+# that distinguishes "just broke" from "has been broken since Saturday".
+CRITICAL_REPAGE_LADDER_S = (3600, 14400, 86400)   # 1h, then +4h, then daily
+
 _alert_persist = {}
 
 def _alert_state_load():
@@ -331,6 +349,13 @@ def _alert_bind(key, state):
     if isinstance(saved.get('consec_fail'), int):
         state['consec_fail'] = saved['consec_fail']
     state['alert_sent'] = bool(saved.get('alert_sent'))
+    # The re-page ladder has to survive a restart, or a systemd bounce during a
+    # long outage silently resets the episode to "just paged" and the next
+    # re-page is an hour further away than it should be. Absent keys stay
+    # absent: state written before 2026-09-19 has none of these.
+    for numeric in ('pages_sent', 'last_page_at', 'failing_since'):
+        if isinstance(saved.get(numeric), (int, float)):
+            state[numeric] = saved[numeric]
     return state
 
 
@@ -368,6 +393,9 @@ def _alert_flush(state):
     entry = _alert_persist.setdefault(key, {})
     entry['consec_fail'] = state.get('consec_fail', 0)
     entry['alert_sent'] = bool(state.get('alert_sent'))
+    for numeric in ('pages_sent', 'last_page_at', 'failing_since'):
+        if numeric in state:
+            entry[numeric] = state[numeric]
     pending = entry.setdefault('pending', [])
     # A condition can recover before its first delivery succeeds. Keep both
     # transitions, including when the caller has cleared alert_sent already.
@@ -1237,6 +1265,41 @@ def _failure_signature(detail: str) -> str:
     return 'other'
 
 
+def _critical_duration_suffix(st) -> str:
+    """' for 6h14m' - empty when the episode start is unknown (pre-upgrade state)."""
+    started = float(st.get('failing_since') or 0)
+    if not started:
+        return ''
+    secs = max(0, int(time.time() - started))
+    if secs < 60:
+        return f' for {secs}s'
+    if secs < 3600:
+        return f' for {secs // 60}m'
+    hours, minutes = divmod(secs // 60, 60)
+    if hours < 24:
+        return f' for {hours}h{minutes:02d}m'
+    days, hours = divmod(hours, 24)
+    return f' for {days}d{hours:02d}h'
+
+
+def _critical_repage_due_in(st) -> float:
+    """Seconds until this episode may page again; <= 0 means now.
+
+    The ladder is indexed by how many pages this episode has already sent, and
+    holds at its last rung, so a fault that is never fixed pages daily rather
+    than falling silent or turning into a storm.
+    """
+    sent = max(1, int(st.get('pages_sent') or 1))
+    wait = CRITICAL_REPAGE_LADDER_S[min(sent - 1, len(CRITICAL_REPAGE_LADDER_S) - 1)]
+    last = float(st.get('last_page_at') or 0)
+    if not last:
+        # State from before this upgrade, or a page whose send time was lost:
+        # start the ladder now rather than re-paging instantly on restart.
+        st['last_page_at'] = time.time()
+        return float(wait)
+    return (last + wait) - time.time()
+
+
 def _critical_record(path: str, ok: bool, detail: str = ''):
     """Count consecutive failures for a CRITICAL_JOBS path; page and recover."""
     threshold = CRITICAL_JOBS.get(path)
@@ -1250,15 +1313,21 @@ def _critical_record(path: str, ok: bool, detail: str = ''):
     if ok:
         if st.get('alert_sent'):
             body = (f'✅ RECOVERED {path} - 200 again after '
-                    f'{st.get("consec_fail", 0)} consecutive failure(s)')
+                    f'{st.get("consec_fail", 0)} consecutive failure(s)'
+                    f'{_critical_duration_suffix(st)}')
             _alert(st, body, recovery=True)
         # Delivery retries live in the outbox; the producer episode closes now.
         st['alert_sent'] = False
         st['consec_fail'] = 0
         st['outcomes'] = []
+        st['pages_sent'] = 0
+        st['last_page_at'] = 0.0
+        st['failing_since'] = 0.0
     else:
         st['consec_fail'] = int(st.get('consec_fail', 0)) + 1
         n = st['consec_fail']
+        if not st.get('failing_since'):
+            st['failing_since'] = time.time()
         # ── WHAT THE PAGE SAYS HAPPENED HAS TO BE WHAT MOSTLY HAPPENED ──────
         # (2026-09-07)
         #
@@ -1294,10 +1363,28 @@ def _critical_record(path: str, ok: bool, detail: str = ''):
                     f'({spread}). Last: {detail[:120]}. '
                     f'Runbook: {CRITICAL_RUNBOOKS.get(path, "see dispatcher journal")}')
             if st.get('alert_sent'):
-                log.error(f'[critical] {path} still failing ({n} consecutive, {spread}); '
-                          f'operator already paged')
+                # Paged already - but an episode that outlives its page is the
+                # 2026-09-12 login-bridge failure, which went six days on one
+                # SMS. Re-page on the escalating ladder, and say how long.
+                due_in = _critical_repage_due_in(st)
+                if due_in <= 0:
+                    again = (f'🚨 STILL FAILING {path} - {n}x in a row'
+                             f'{_critical_duration_suffix(st)}, mostly {dominant} '
+                             f'({spread}). Last: {detail[:120]}. '
+                             f'Runbook: {CRITICAL_RUNBOOKS.get(path, "see dispatcher journal")}')
+                    if _alert(st, again):
+                        st['pages_sent'] = int(st.get('pages_sent', 1)) + 1
+                        st['last_page_at'] = time.time()
+                        log.error(f'[critical] {path} re-paged '
+                                  f'(page {st["pages_sent"]}, {n} consecutive, {spread})')
+                else:
+                    log.error(f'[critical] {path} still failing ({n} consecutive, {spread}); '
+                              f'operator paged, next re-page in {int(due_in)}s')
             else:
                 st['alert_sent'] = _alert(st, body)
+                if st['alert_sent']:
+                    st['pages_sent'] = 1
+                    st['last_page_at'] = time.time()
         else:
             log.warning(f'[critical] {path} failure {n}/{threshold} ({sig}) '
                         f'- will page at {threshold}')
