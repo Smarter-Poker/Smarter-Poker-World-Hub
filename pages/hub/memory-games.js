@@ -25,6 +25,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import PreflopReference from '../../src/components/seo/PreflopReference';
 
 // AEO phase 3 (2026-09-17). This module serves /hub/preflop-charts, which
 // pages/hub/preflop-charts.js re-exports, so the canonical and the schema
@@ -3321,6 +3322,9 @@ export default function MemoryGamesPage() {
         AFTER it so the app still opens at the top of the page: this is the
         only body copy a crawler that runs no JavaScript ever sees here. */}
     <HubPageSummary page="preflop-charts" as="h1" />
+    {/* The charts themselves, in words, for the reader and the engine that
+        never run the lab above (AEO phase 3, 2026-09-19). */}
+    <PreflopReference />
     </>
   );
 }
