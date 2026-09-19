@@ -51,6 +51,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms And Card Rooms By State And City.' },
       { name: 'Home Games', href: '/hub/home-games', text: 'Find And Host Home Poker Games Near You.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Sessions, Results And Bankroll With Exports.' },
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Free Poker Quiz Games With Leaderboards And Daily Runs.' },
     ],
   },
   'home-games': {
@@ -180,6 +181,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room, One Page Each.' },
       { name: 'Live Cash Games', href: '/hub/poker-near-me/live-games', text: 'What Is Running Right Now, Room By Room.' },
       { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'The Same Directory As A Map You Can Pan.' },
+      { name: 'Events Calendar Near You', href: '/hub/poker-near-me/events-calendar', text: 'What Is Scheduled At These Rooms, By Date.' },
     ],
   },
   'pnm-map': {
@@ -190,6 +192,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Same Rooms As A Filterable List.' },
       { name: 'Road Trip Planner', href: '/hub/poker-near-me/roadtrip', text: 'Poker Rooms Along A Route You Are Driving.' },
       { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room.' },
+      { name: 'Discovery Tools', href: '/hub/poker-near-me/more', text: 'Compare Rooms, Read Game Trends And Set Alerts.' },
     ],
   },
   'pnm-live-games': {
@@ -200,6 +203,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Every Room In The Directory With Its Full Detail.' },
       { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Tournaments Running Today And Tomorrow.' },
       { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See Which Of These Rooms Is Closest.' },
+      { name: 'Daily Tournaments Near You', href: '/hub/poker-near-me/daily-tournaments', text: 'The Recurring Events These Rooms Run, Filtered By Distance.' },
     ],
   },
   'pnm-tours': {
