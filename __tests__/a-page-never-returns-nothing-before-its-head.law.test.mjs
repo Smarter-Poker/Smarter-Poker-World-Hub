@@ -172,5 +172,13 @@ test('the tour page resolves its identity on the server', () => {
   // guard fatal in the first place. The head is built from props now.
   assert.match(src, /export async function getServerSideProps/);
   assert.match(src, /<TourPageSummary\b/);
-  assert.match(src, /jsonLd=\{tourSchema\(seo\)\}/);
+  // The graph is built by tourSchema from what getServerSideProps resolved.
+  // This used to pin the exact call text, jsonLd={tourSchema(seo)}, and broke
+  // the day the stops were added to it. What matters is that SEOHead is given
+  // a graph built by tourSchema out of server props, not how the call is
+  // spelled, so that is what is checked.
+  assert.match(src, /jsonLd=\{\s*tourSchema\(/);
+  const call = src.match(/jsonLd=\{\s*tourSchema\(([^)]*)\)/);
+  assert.ok(call, 'the page hands SEOHead a tourSchema graph');
+  assert.match(call[1], /\bseo\b/, 'built from the seo props, not from client state');
 });
