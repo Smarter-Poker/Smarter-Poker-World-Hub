@@ -1125,6 +1125,7 @@ jobs:
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
+            __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
