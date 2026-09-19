@@ -3647,11 +3647,6 @@ export default function DiamondStorePage({
                             className={shellStyles.premiumDataCard}
                             style={styles.benefitCard}
                           >
-                            <span className={shellStyles.premiumDataFrame} aria-hidden="true">
-                              <span className={shellStyles.premiumDataFrameTop} />
-                              <span className={shellStyles.premiumDataFrameMid} />
-                              <span className={shellStyles.premiumDataFrameBottom} />
-                            </span>
                             <div style={styles.benefitInfo}>
                               <div style={styles.benefitTitle}>
                                 {marketplaceCopy(benefit.title)}
@@ -3679,11 +3674,6 @@ export default function DiamondStorePage({
                             className={shellStyles.premiumDataCard}
                             style={styles.benefitCard}
                           >
-                            <span className={shellStyles.premiumDataFrame} aria-hidden="true">
-                              <span className={shellStyles.premiumDataFrameTop} />
-                              <span className={shellStyles.premiumDataFrameMid} />
-                              <span className={shellStyles.premiumDataFrameBottom} />
-                            </span>
                             <div style={styles.benefitInfo}>
                               <div style={styles.benefitTitle}>
                                 {marketplaceCopy(benefit.title)}

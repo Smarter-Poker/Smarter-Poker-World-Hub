@@ -77,35 +77,71 @@ test('reward and VIP live data use painted rows without duplicate outer consoles
   assert.match(vip, /\.panel\s*\{[\s\S]*?background:\s*transparent/);
 });
 
-test('VIP benefit and FAQ rows use native-ratio painted hardware instead of generic cards', () => {
+test('VIP benefit rows are readable cards, and FAQ rows keep their painted hardware', () => {
   const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
   const legacyStyles = read('src/components/diamond-store/diamondStoreStyles.js');
   const store = read('pages/hub/diamond-store.js');
 
   const benefit = shell.match(/\.premiumDataCard\s*\{[\s\S]*?\n\}/)?.[0] || '';
-  const benefitRail = shell.match(/\.premiumDataFrameMid\s*\{[\s\S]*?\n\}/)?.[0] || '';
   const faqRow = shell.match(/\.vipFaq details\s*\{[\s\S]*?\n\}/)?.[0] || '';
   const faqQuestion = shell.match(/\.vipFaq summary\s*\{[\s\S]*?\n\}/)?.[0] || '';
 
-  assert.match(benefit, /background:\s*transparent/);
-  assert.doesNotMatch(benefit, /(?:linear|radial|conic)-gradient|border-radius|box-shadow/);
-  assert.match(
-    shell,
-    /\.premiumDataFrameTop\s*\{[\s\S]*?aspect-ratio:\s*900\s*\/\s*143[\s\S]*?shark-panel\/top\.png/
-  );
-  assert.match(benefitRail, /shark-panel\/mid\.png/);
-  assert.match(benefitRail, /100% auto repeat-y/);
-  assert.match(
-    shell,
-    /\.premiumDataFrameBottom\s*\{[\s\S]*?aspect-ratio:\s*900\s*\/\s*139[\s\S]*?shark-panel\/bottom\.png/
-  );
-  assert.match(store, /premiumDataFrameTop[\s\S]*premiumDataFrameMid[\s\S]*premiumDataFrameBottom/);
-  assert.match(shell, /\.vipBenefits \.responsiveGrid\s*\{[\s\S]*?repeat\(2,/);
+  // A benefit row is text and a value, so it is sized by its text. The painted
+  // three-slice housing it used to sit in forced 220px and clipped: measured on
+  // production at 1440px, the longest benefit filled 115px of a 115.2px content
+  // box inside overflow: hidden, with 57.9px/52.1px of ornamental padding.
+  assert.doesNotMatch(benefit, /min-height:\s*[1-9]/);
+  assert.doesNotMatch(benefit, /padding:[^;]*%/);
+  assert.doesNotMatch(benefit, /overflow:\s*hidden/);
+  assert.match(benefit, /overflow:\s*visible/);
 
-  assert.match(faqRow, /status\/wallet-row-shell\.webp/);
-  assert.match(faqRow, /aspect-ratio:\s*1800\s*\/\s*386/);
-  assert.doesNotMatch(faqRow, /(?:linear|radial|conic)-gradient|border-left|box-shadow/);
-  assert.doesNotMatch(faqQuestion, /(?:linear|radial|conic)-gradient|border-left|box-shadow/);
+  // Restrained chrome, matching the accepted Marketplace footer. No new paint.
+  assert.match(benefit, /background:\s*#070e15/);
+  assert.match(benefit, /border:\s*1px solid #23394a/);
+  assert.doesNotMatch(benefit, /(?:linear|radial|conic)-gradient|border-radius/);
+
+  // The ornamental frame carried no text and was aria-hidden. It is gone from
+  // both the stylesheet and the markup, not merely hidden.
+  assert.doesNotMatch(shell, /premiumDataFrame/);
+  assert.doesNotMatch(store, /premiumDataFrame/);
+
+  // Entitlement copy has to be readable: 11px at rgba(255,255,255,0.5) was not.
+  const desc = legacyStyles.match(/benefitDesc:\s*\{[\s\S]*?\n\s*\},/)?.[0] || '';
+  assert.match(desc, /fontSize:\s*1[3-9]/);
+  assert.doesNotMatch(desc, /rgba\(255,\s*255,\s*255,\s*0\.5\)/);
+
+  // Two columns on desktop, one column once the row cannot hold two.
+  assert.match(shell, /\.vipBenefits \.responsiveGrid\s*\{[\s\S]*?repeat\(2,/);
+  assert.match(
+    shell,
+    /@media \(max-width: 640px\)[\s\S]*?\.vipBenefits \.responsiveGrid\s*\{[\s\S]*?minmax\(0, 1fr\)/
+  );
+
+  // A question and its answer are sized by their text. The row used to be a
+  // wallet-row-shell plate locked to aspect-ratio 1800/386 with 24% of its
+  // width reserved for an empty octagonal slot, inside overflow: hidden.
+  const faqAnswer = shell.match(/\.vipFaq details > p\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.doesNotMatch(faqRow, /aspect-ratio/);
+  assert.doesNotMatch(faqRow, /wallet-row-shell/);
+  assert.doesNotMatch(faqRow, /overflow:\s*hidden/);
+  assert.match(faqRow, /border:\s*1px solid #23394a/);
+  assert.match(faqRow, /background:\s*#070e15/);
+  assert.doesNotMatch(faqRow, /(?:linear|radial|conic)-gradient|border-left/);
+
+  // The question stays a 48px touch target and carries no painted plate.
+  assert.match(faqQuestion, /min-height:\s*48px/);
+  assert.doesNotMatch(faqQuestion, /url\(/);
+  assert.doesNotMatch(faqQuestion, /aspect-ratio/);
+  assert.doesNotMatch(faqQuestion, /(?:linear|radial|conic)-gradient|border-left/);
+
+  // The answer is a paragraph, never a near-square painted panel.
+  assert.doesNotMatch(faqAnswer, /aspect-ratio/);
+  assert.doesNotMatch(faqAnswer, /url\(/);
+
+  // Mobile does not re-paint what desktop stopped painting.
+  const faqMobile = shell.match(/@media \(max-width: 640px\)[\s\S]*$/)?.[0] || '';
+  assert.doesNotMatch(faqMobile, /\.vipFaq summary\s*\{[^}]*url\(/);
+  assert.doesNotMatch(faqMobile, /\.vipFaq details > p\s*\{[^}]*aspect-ratio/);
 
   assert.doesNotMatch(
     legacyStyles.match(/benefitCard:\s*\{[\s\S]*?\n\s*\},/)?.[0] || '',
