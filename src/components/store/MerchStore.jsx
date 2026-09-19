@@ -494,27 +494,31 @@ function MerchProductCard({
           </div>
         )}
         {product.madeToOrder && <div className={merchStyles.mediaBadge}>Made To Order</div>}
-        <button
-          type="button"
-          aria-label={
-            isWishlisted
-              ? `Remove ${product.name} From Wishlist`
-              : `Save ${product.name} To Wishlist`
-          }
-          aria-pressed={isWishlisted}
-          disabled={wishlistBusyKey === product.key}
-          onClick={() => onToggleWishlist(product)}
-          className={`${merchStyles.wishlistControl} ${isWishlisted ? merchStyles.wishlistControlSelected : ''}`}
-        >
-          {isWishlisted ? 'Saved' : 'Save'}
-        </button>
       </div>
 
       <div className={merchStyles.cardBody}>
         <div>
-          <h4 id={titleId} className={merchStyles.productTitle}>
-            {product.name}
-          </h4>
+          {/* The favorite control used to sit on top of the product
+              photograph. It belongs beside the name it saves. */}
+          <div className={merchStyles.titleRow}>
+            <h4 id={titleId} className={merchStyles.productTitle}>
+              {product.name}
+            </h4>
+            <button
+              type="button"
+              aria-label={
+                isWishlisted
+                  ? `Remove ${product.name} From Wishlist`
+                  : `Save ${product.name} To Wishlist`
+              }
+              aria-pressed={isWishlisted}
+              disabled={wishlistBusyKey === product.key}
+              onClick={() => onToggleWishlist(product)}
+              className={`${merchStyles.wishlistControl} ${isWishlisted ? merchStyles.wishlistControlSelected : ''}`}
+            >
+              {isWishlisted ? 'Saved' : 'Save'}
+            </button>
+          </div>
           {product.description && (
             <div className={merchStyles.productDescription}>{product.description}</div>
           )}
