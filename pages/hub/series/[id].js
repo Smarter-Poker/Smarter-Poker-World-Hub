@@ -373,6 +373,7 @@ function SeriesSummary({ series }) {
   const place = seriesPlace(series);
   const range = formatRange(series.startDate, series.endDate);
   const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
+  const events = Array.isArray(series.events) ? series.events : [];
   return (
     <section className="series-summary" aria-label="Series Summary">
       <h1>{series.name}</h1>
@@ -405,13 +406,70 @@ function SeriesSummary({ series }) {
           </div>
         ) : null}
       </dl>
-      <p>
-        The Full Schedule, Buy-Ins, Guarantees And Results For {series.name} Are Listed Below. Browse Every
-        Tournament Series On <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
-        <a href="/hub/poker-near-me">Poker Near Me</a>.
-      </p>
+      {/* THE SCHEDULE (AEO phase 3, 2026-09-19). Measured on production,
+          every one of the 225 series pages served about 139 words and the
+          sentence "Loading Series Details...", under a paragraph promising
+          the full schedule below. The events were already in the API
+          response this page awaits on the server; they were being dropped
+          before the props were built. The paragraph below now promises the
+          schedule only when the schedule is there. */}
+      {events.length > 0 ? (
+        <>
+          <p>
+            The Schedule For {series.name} Is Below, With Buy Ins And Start Times As The Venue
+            Published Them. Browse Every Tournament Series On{' '}
+            <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
+            <a href="/hub/poker-near-me">Poker Near Me</a>.
+          </p>
+          <h2 className="series-summary-schedule-heading">
+            {events.length === 1 ? 'The Event' : `All ${events.length} Events`} At {series.name}
+          </h2>
+          <ol className="series-summary-schedule">
+            {events.map((event, index) => (
+              <li key={`${event.name}-${index}`}>
+                <span className="sss-name">
+                  {event.number ? `Event ${event.number}: ` : ''}{event.name}
+                </span>
+                <span className="sss-when">
+                  {[formatEventDay(event.startDate), event.startTime ? `${event.startTime} Start` : null]
+                    .filter(Boolean).join(' · ') || 'Date Not Announced'}
+                </span>
+                <span className="sss-terms">
+                  {[
+                    event.buyin ? `${money(event.buyin)} Buy In` : null,
+                    event.guarantee ? `${money(event.guarantee)} Guaranteed` : null,
+                    event.game,
+                    event.flight,
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              </li>
+            ))}
+          </ol>
+          {series.totalEvents > events.length && (
+            <p className="series-summary-more">
+              Showing {events.length} Of {series.totalEvents} Events. The Rest Load On The Full
+              Schedule Below.
+            </p>
+          )}
+        </>
+      ) : (
+        <p>
+          The Schedule For {series.name} Has Not Been Published Yet. Buy Ins, Start Times And
+          Results Are Added Here As The Venue Releases Them. Browse Every Tournament Series On{' '}
+          <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
+          <a href="/hub/poker-near-me">Poker Near Me</a>.
+        </p>
+      )}
     </section>
   );
+}
+
+/** "Monday, April 20" - the year is already in the series date range above. */
+function formatEventDay(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+  if (!m) return null;
+  const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 export default function SeriesDetailPage({ seoSeries = null }) {
@@ -2102,6 +2160,34 @@ const styles = `
 .series-summary a {
   color: #d4a853;
 }
+.series-summary-schedule-heading {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #e2e8f0;
+  margin: 22px 0 10px;
+}
+.series-summary-schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 9px;
+}
+.series-summary-schedule li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 13px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.42);
+}
+.sss-name { font-size: 13.5px; font-weight: 700; color: #f1f5f9; line-height: 1.35; }
+.sss-when { font-size: 12.5px; color: #9fd8ff; font-weight: 600; }
+.sss-terms { font-size: 12.5px; color: rgba(148, 163, 184, 0.9); }
+.series-summary-more { margin-top: 12px !important; font-size: 13px !important; }
 .loading-container {
     display: flex;
     flex-direction: column;
