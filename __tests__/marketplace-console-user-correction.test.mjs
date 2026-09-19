@@ -383,19 +383,46 @@ test('Diamond package cards expose a readable commerce hierarchy without ornamen
   assert.match(showcase, /PACKAGE_ART_CLASS_BY_ID\[pkg\.id\] \|\| 'packageFallback'/);
   assert.doesNotMatch(showcase, /packages\.slice\(-6\)/);
 
+  // One commerce footer element, declared once and placed once. Page 1 keeps
+  // its accepted position under the Diamond showcase; the sibling tab routes
+  // render the same element after their content instead of a mid-page rail.
   assert.match(
     page,
-    /<MarketplaceCommerceNav[\s\S]*?active="store"[\s\S]*?variant=\{activeTab === 'diamonds' \? 'pageFooter' : 'default'\}[\s\S]*?\/>/
+    /const marketplaceCommerceFooter = \(\s*<MarketplaceCommerceNav active="store" variant="pageFooter" \/>\s*\);/
   );
+  assert.match(page, /\{activeTab === 'diamonds' && marketplaceCommerceFooter\}/);
+  assert.match(page, /\{activeTab !== 'diamonds' && marketplaceCommerceFooter\}/);
+  assert.doesNotMatch(page, /variant=\{activeTab === 'diamonds' \? 'pageFooter' : 'default'\}/);
   assert.equal((page.match(/<MarketplaceCommerceNav\b/g) || []).length, 1);
   assert.equal((page.match(/<SmarterStoreShowcase\b/g) || []).length, 1);
-  assert.match(app, /const suppressWorldFooterOnDiamondStore = resolvedPath === '\/hub\/diamond-store'/);
+  // The fixed illustrated footer is suppressed on every Marketplace store-tab
+  // route, not only Page 1. Measured on production before this change: the
+  // 132px fixed bar covered all three VIP plan purchase buttons and every
+  // Marketplace commerce link, with no clearance on body or main.
+  assert.match(
+    app,
+    /const suppressWorldFooterOnMarketplaceStore =\s*MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES\.has\(resolvedPath\);/
+  );
+  for (const route of [
+    '/hub/diamond-store',
+    '/hub/vip-membership',
+    '/hub/merch-store',
+    '/hub/smarter-rewards',
+    '/hub/club-shop',
+  ]) {
+    assert.ok(
+      new RegExp(
+        `MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES = new Set\\(\\[[\\s\\S]*?'${route}'[\\s\\S]*?\\]\\)`
+      ).test(app),
+      `${route} must own its Marketplace footer`
+    );
+  }
   assert.match(
     app,
     /const routeWorldFooterConfig = isClubArenaRoute \? null : resolveWorldFooter\(resolvedPath\)/
   );
   assert.match(app, /const worldCopyWorldId = routeWorldFooterConfig\?\.id \|\| null/);
-  assert.match(app, /const bottomNavConfig = suppressWorldFooterOnDiamondStore[\s\S]*?\? null/);
+  assert.match(app, /const bottomNavConfig = suppressWorldFooterOnMarketplaceStore[\s\S]*?\? null/);
   assert.match(app, /<BottomNavSpacer[\s\S]*?config=\{bottomNavConfig\}/);
   assert.match(app, /<BottomNavBar[\s\S]*?config=\{bottomNavConfig\}/);
   assert.match(app, /showBottomNav && \(/);

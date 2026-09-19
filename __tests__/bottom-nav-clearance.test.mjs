@@ -162,8 +162,18 @@ test('all 13 requested worlds use exact approved artwork and unique six-destinat
   );
 });
 
-test('all 195 fixed-footer physical routes resolve to one exact-artwork family', () => {
-  const pageOwnedFooterRoutes = new Set(['/hub/diamond-store', '/hub/marketplace']);
+test('all 191 fixed-footer physical routes resolve to one exact-artwork family', () => {
+  // The five Marketplace store-tab routes are one page component and own a
+  // single in-flow commerce footer. They are excluded from the fixed-artwork
+  // family for the same reason Page 1 is.
+  const pageOwnedFooterRoutes = new Set([
+  '/hub/diamond-store',
+  '/hub/marketplace',
+  '/hub/vip-membership',
+  '/hub/merch-store',
+  '/hub/smarter-rewards',
+  '/hub/club-shop',
+]);
   const pageRoutes = walk(path.join(ROOT, 'pages'))
     .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file) && !file.includes(`${path.sep}api${path.sep}`))
     .map((file) => {
@@ -182,14 +192,14 @@ test('all 195 fixed-footer physical routes resolve to one exact-artwork family',
     return owners.length ? [{ route, owners }] : [];
   });
 
-  assert.equal(applicable.length, 195);
+  assert.equal(applicable.length, 191);
   for (const { route, owners } of applicable) {
     assert.equal(owners.length, 1, `${route} resolves to ${owners.map((owner) => owner.id).join(', ')}`);
     assert.ok(owners[0].artwork, `${route} resolved to a legacy footer`);
   }
 
   const matrix = fs.readFileSync(path.join(ROOT, 'docs/world-hub-footer-route-matrix.md'), 'utf8');
-  assert.match(matrix, /\*\*Total applicable physical routes: 195\.\*\*/);
+  assert.match(matrix, /\*\*Total applicable physical routes: 191\.\*\*/);
   for (const { route } of applicable) {
     assert.ok(matrix.includes(`| \`${route}\` |`), `${route} is missing from the route matrix`);
   }
@@ -235,7 +245,7 @@ test('the app shell resolves a world footer, one spacer, and the Club Arena boun
   assert.match(app, /resolveWorldFooter\(resolvedPath\)/);
   assert.match(app, /const routeWorldFooterConfig = isClubArenaRoute \? null : resolveWorldFooter\(resolvedPath\)/);
   assert.match(app, /const worldCopyWorldId = routeWorldFooterConfig\?\.id \|\| null/);
-  assert.match(app, /const bottomNavConfig = suppressWorldFooterOnDiamondStore[\s\S]*?routeWorldFooterConfig \|\| \(bottomNavRouteConfig \? getFallbackFooter\(\) : null\)/);
+  assert.match(app, /const bottomNavConfig = suppressWorldFooterOnMarketplaceStore[\s\S]*?routeWorldFooterConfig \|\| \(bottomNavRouteConfig \? getFallbackFooter\(\) : null\)/);
   assert.match(app, /config=\{bottomNavConfig\}/);
   assert.match(resolver, /path === '\/hub\/club-arena'/);
   assert.match(resolver, /path\.startsWith\('\/hub\/club-arena\/'\)/);

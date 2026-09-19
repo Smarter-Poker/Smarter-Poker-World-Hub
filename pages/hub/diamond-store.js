@@ -3035,6 +3035,15 @@ export default function DiamondStorePage({
     (vipTier === 'lifetime' && (vipCardReady || !selectedVipHasExactRecovery));
   const clubShopBuyArt = clubShopBuyTarget ? resolveClubShopProductArt(clubShopBuyTarget) : null;
 
+  // One Marketplace commerce footer per route, declared once and placed once.
+  // Page 1 keeps its accepted position directly under the Diamond showcase.
+  // The four sibling tab routes render the same element after their content so
+  // it lands at the foot of the page instead of between the hero and the first
+  // product card, which is where the default rail used to sit.
+  const marketplaceCommerceFooter = (
+    <MarketplaceCommerceNav active="store" variant="pageFooter" />
+  );
+
   return (
     <>
       <Head>
@@ -3155,10 +3164,7 @@ export default function DiamondStorePage({
               onBuy={handleDirectCheckout}
             />
 
-            <MarketplaceCommerceNav
-              active="store"
-              variant={activeTab === 'diamonds' ? 'pageFooter' : 'default'}
-            />
+            {activeTab === 'diamonds' && marketplaceCommerceFooter}
 
             {/* Main Content (non-diamonds tabs) */}
             <div
@@ -5970,6 +5976,8 @@ export default function DiamondStorePage({
                 For Details.
               </p>
             </div>
+
+            {activeTab !== 'diamonds' && marketplaceCommerceFooter}
           </main>
         </div>
       </PageTransition>

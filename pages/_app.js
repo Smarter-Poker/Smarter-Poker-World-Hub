@@ -885,6 +885,33 @@ function EasterEggWatcher() {
   return null;
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// MARKETPLACE ROUTES THAT OWN THEIR FOOTER
+// ═════════════════════════════════════════════════════════════════════════════
+// These five addresses are one page component rendered with a different
+// `initialTab`. That page owns a restrained in-flow Marketplace commerce
+// footer, so the fixed illustrated footer must not mount on top of it.
+//
+// Measured on production at 1440x1000 before this set existed: the fixed
+// footer is 132px tall at z-index 900, and neither body nor main reserved any
+// clearance for it. On /hub/vip-membership it covered all three VIP plan
+// purchase buttons and every Marketplace commerce link; on /hub/merch-store,
+// /hub/smarter-rewards and /hub/club-shop it covered the commerce links and
+// the Club Shop heading.
+//
+// Only fixed-footer rendering is suppressed. Each route keeps its Marketplace
+// world copy identity, so Title Case and long-bar normalization stay active.
+// Marketplace subpages (cart, orders, wishlist, fulfillment, compare, manage
+// and the dynamic detail routes) are audited separately and keep their
+// existing footer behavior.
+const MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES = new Set([
+  '/hub/diamond-store',
+  '/hub/vip-membership',
+  '/hub/merch-store',
+  '/hub/smarter-rewards',
+  '/hub/club-shop',
+]);
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
@@ -930,9 +957,10 @@ export default function App({ Component, pageProps }) {
     resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
   const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
-  const suppressWorldFooterOnDiamondStore = resolvedPath === '/hub/diamond-store';
+  const suppressWorldFooterOnMarketplaceStore =
+    MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath);
   const bottomNavRouteConfig =
-    isClubArenaRoute || suppressWorldFooterOnDiamondStore
+    isClubArenaRoute || suppressWorldFooterOnMarketplaceStore
       ? null
       : bottomNavRoutes[router.pathname] || null;
   // Page 1 owns an in-flow Marketplace footer instead of the fixed artwork
@@ -940,7 +968,7 @@ export default function App({ Component, pageProps }) {
   // Title Case and banned-long-bar normalization remain active on the route.
   const routeWorldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
   const worldCopyWorldId = routeWorldFooterConfig?.id || null;
-  const bottomNavConfig = suppressWorldFooterOnDiamondStore
+  const bottomNavConfig = suppressWorldFooterOnMarketplaceStore
     ? null
     : routeWorldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
