@@ -439,3 +439,87 @@ test('the rewards family is sized by its content, not by painted geometry', () =
     assert.deepEqual(tooSmall, [], `${name} still declares text under 12px: ${tooSmall.join(', ')}`);
   }
 });
+
+test('every active Club Shop product resolves to real artwork, and unknowns still fail closed', async () => {
+  const { resolveClubShopProductArt } = await import('../src/lib/store/clubShopProductArt.js');
+
+  // The live catalog, read from public.club_shop_items where is_active, on
+  // 2026-09-19. Two of these resolved to kind:'unavailable' and rendered an
+  // empty "Reviewed Product Art Unavailable" panel, because the art map was
+  // never renamed with the products: the map said 'Crown Avatar' while the
+  // catalog said 'Royal Monarch Avatar', and 'Time Bank +30s' while the
+  // catalog said '30s Time Bank'. The crown tile sat orphaned in the atlas.
+  const liveCatalog = [
+    ['Royal Monarch Avatar', 'Avatars', 'avatar', 'avatar', null],
+    ['Shark Avatar', 'Avatars', 'avatar', 'avatar', null],
+    ['Classic Emote Pack', 'Emotes', 'emote', 'emote_pack', null],
+    ['Premium Emote Pack', 'Emotes', 'emote', 'emote_pack', null],
+    ['Midnight Felt Table Skin', 'Table Skins', 'table_skin', 'table_skin', null],
+    ['Royal Gold Table Skin', 'Table Skins', 'table_skin', 'table_skin', null],
+    ['All Throwables Pack (10)', 'Throwables', 'throwable', 'throwable', 10],
+    ['30s Time Bank', 'Time Banks', 'general', 'time_bank', 2],
+    ['Time Bank +60s', 'Time Banks', 'time_bank', 'time_bank', 3],
+    ['Time Bank Bundle (+100s)', 'Time Banks', 'time_bank', 'time_bank', 5],
+  ];
+
+  const missing = [];
+  for (const [name, category, item_type, type, qty] of liveCatalog) {
+    const art = resolveClubShopProductArt({ name, category, item_type, grant_spec: { type, qty } });
+    if (art.kind === 'unavailable') missing.push(name);
+  }
+  assert.deepEqual(missing, [], `these live products render no artwork: ${missing.join(', ')}`);
+
+  // A Time Bank is defined by the grant it issues, not by item_type: the live
+  // '30s Time Bank' row is item_type 'general'.
+  assert.equal(
+    resolveClubShopProductArt({
+      name: 'Some Future Time Bank',
+      category: 'Time Banks',
+      item_type: 'general',
+      grant_spec: { type: 'time_bank', qty: 1 },
+    }).kind,
+    'atlas'
+  );
+
+  // Failing closed is the point of this resolver and must survive the fix.
+  for (const unknown of [
+    { name: 'Totally Unknown Thing', category: 'Mystery', item_type: 'x', grant_spec: { type: 'y' } },
+    { name: 'Royal Monarch Avatar', category: 'Table Skins', item_type: 'avatar', grant_spec: { type: 'avatar' } },
+    { name: 'All Throwables Pack (10)', category: 'Throwables', item_type: 'throwable', grant_spec: { type: 'throwable', qty: 3 } },
+  ]) {
+    assert.equal(
+      resolveClubShopProductArt(unknown).kind,
+      'unavailable',
+      `${unknown.name} must fail closed when its identity does not match`
+    );
+  }
+});
+
+test('the Club Shop card states what a shopper owns, and paints only its controls', () => {
+  const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
+  const store = read('pages/hub/diamond-store.js');
+
+  // marketplace-items returns my_purchase_count and clubCardCheckout
+  // validates it; the card was the only place that dropped it.
+  assert.match(store, /item\.my_purchase_count/);
+
+  // A category label is a span. It wore the same painted plate as the real
+  // purchase buttons.
+  const category = shell.match(/\.clubItemCategory\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.doesNotMatch(category, /button-secondary\.png/);
+  assert.match(category, /border:\s*1px solid #23394a/);
+
+  // A floor that never applied, and a floor that was quietly overridden.
+  assert.doesNotMatch(shell.match(/\.clubItemBody\s*\{[\s\S]*?\n\}/)?.[0] || '', /min-height/);
+  assert.doesNotMatch(
+    shell.match(/\.clubItemActions button\s*\{[\s\S]*?\n\}/)?.[0] || '',
+    /min-height:\s*4[0-3]px/
+  );
+
+  // No inline text under 12px anywhere on the Marketplace store page.
+  const tooSmall = [];
+  for (const m of store.matchAll(/fontSize:\s*(\d+(?:\.\d+)?)\b/g)) {
+    if (Number(m[1]) < 12) tooSmall.push(m[1]);
+  }
+  assert.deepEqual(tooSmall, [], `inline text under 12px remains: ${tooSmall.join(', ')}`);
+});

@@ -3934,7 +3934,7 @@ export default function DiamondStorePage({
                               </div>
                               <div
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: 'rgba(255,255,255,0.6)',
                                   marginTop: 2,
                                 }}
@@ -3956,7 +3956,7 @@ export default function DiamondStorePage({
                               </div>
                               <div
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: 'rgba(255,255,255,0.6)',
                                   marginTop: 2,
                                 }}
@@ -4427,7 +4427,7 @@ export default function DiamondStorePage({
                           >
                             <div
                               style={{
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: 600,
                                 color: 'rgba(255,255,255,0.4)',
                                 textTransform: 'capitalize',
@@ -4457,7 +4457,7 @@ export default function DiamondStorePage({
                           >
                             <div
                               style={{
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: 600,
                                 color: 'rgba(255,255,255,0.4)',
                                 textTransform: 'capitalize',
@@ -4973,12 +4973,16 @@ export default function DiamondStorePage({
                                         className={shellStyles.clubItemBody}
                                         style={{ padding: 14 }}
                                       >
+                                        {/* clubPriceActions carries
+                                            margin-top:auto for the price row
+                                            at the foot of the card. On the
+                                            title it would push the name down
+                                            the moment a card had slack. */}
                                         <div
-                                          className={shellStyles.clubPriceActions}
                                           style={{
-                                            fontSize: 14,
+                                            fontSize: 15,
                                             fontWeight: 700,
-                                            color: '#E4E6EB',
+                                            color: '#EEF6FB',
                                             marginBottom: 4,
                                           }}
                                         >
@@ -4986,11 +4990,10 @@ export default function DiamondStorePage({
                                         </div>
                                         <div
                                           style={{
-                                            fontSize: 11,
-                                            color: '#AABAC2',
+                                            fontSize: 13,
+                                            color: 'rgba(233, 243, 250, 0.78)',
                                             marginBottom: 10,
-                                            lineHeight: 1.4,
-                                            minHeight: 30,
+                                            lineHeight: 1.45,
                                           }}
                                         >
                                           {marketplaceCopy(item.description || 'No Description.')}
@@ -5034,7 +5037,7 @@ export default function DiamondStorePage({
                                                 style={{
                                                   display: 'block',
                                                   color: '#AABAC2',
-                                                  fontSize: 10,
+                                                  fontSize: 12,
                                                   textDecoration: 'line-through',
                                                 }}
                                               >
@@ -5055,12 +5058,31 @@ export default function DiamondStorePage({
                                             {(item.purchase_count || 0) > 0 && (
                                               <div
                                                 style={{
-                                                  fontSize: 10,
-                                                  color: 'rgba(255,255,255,0.35)',
+                                                  fontSize: 12,
+                                                  color: 'rgba(233, 243, 250, 0.6)',
                                                   marginTop: 2,
                                                 }}
                                               >
                                                 {item.purchase_count} Sold
+                                              </div>
+                                            )}
+                                            {/* marketplace-items already
+                                                returns my_purchase_count and
+                                                clubCardCheckout already
+                                                validates it. The card was the
+                                                only place that dropped it, so
+                                                a shopper could not see what
+                                                they already own. */}
+                                            {(item.my_purchase_count || 0) > 0 && (
+                                              <div
+                                                style={{
+                                                  fontSize: 12,
+                                                  fontWeight: 700,
+                                                  color: '#58BFE9',
+                                                  marginTop: 2,
+                                                }}
+                                              >
+                                                You Own {item.my_purchase_count}
                                               </div>
                                             )}
                                           </div>
@@ -5112,7 +5134,7 @@ export default function DiamondStorePage({
                                               color: hasExactDiamondRecovery
                                                 ? '#8CDFFF'
                                                 : '#FFD18C',
-                                              fontSize: 11,
+                                              fontSize: 12,
                                               lineHeight: 1.45,
                                             }}
                                           >
@@ -5264,7 +5286,7 @@ export default function DiamondStorePage({
                                                 display: 'block',
                                                 marginTop: 2,
                                                 color: '#FF5B6E',
-                                                fontSize: 10,
+                                                fontSize: 12,
                                                 fontWeight: 700,
                                               }}
                                             >
@@ -5422,7 +5444,7 @@ export default function DiamondStorePage({
                                         </div>
                                         <div
                                           style={{
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             color: 'rgba(255,255,255,0.4)',
                                             fontWeight: 600,
                                             marginTop: 4,
@@ -5440,7 +5462,7 @@ export default function DiamondStorePage({
                                       padding: '10px 12px',
                                       background: 'rgba(0,118,168,0.09)',
                                       color: 'rgba(255,255,255,0.68)',
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       lineHeight: 1.6,
                                     }}
                                   >
@@ -5806,7 +5828,7 @@ export default function DiamondStorePage({
                                           style={{
                                             padding: '2px 6px',
                                             borderRadius: 4,
-                                            fontSize: 10,
+                                            fontSize: 12,
                                             background: 'rgba(255,255,255,0.06)',
                                             color: 'rgba(255,255,255,0.4)',
                                           }}
