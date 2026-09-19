@@ -930,11 +930,19 @@ export default function App({ Component, pageProps }) {
     resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
   const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
-  const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
-  const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
-  const worldCopyWorldId = worldFooterConfig?.id || null;
-  const bottomNavConfig =
-    worldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
+  const suppressWorldFooterOnDiamondStore = resolvedPath === '/hub/diamond-store';
+  const bottomNavRouteConfig =
+    isClubArenaRoute || suppressWorldFooterOnDiamondStore
+      ? null
+      : bottomNavRoutes[router.pathname] || null;
+  // Page 1 owns an in-flow Marketplace footer instead of the fixed artwork
+  // footer. Keep its Marketplace identity independent from footer rendering so
+  // Title Case and banned-long-bar normalization remain active on the route.
+  const routeWorldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
+  const worldCopyWorldId = routeWorldFooterConfig?.id || null;
+  const bottomNavConfig = suppressWorldFooterOnDiamondStore
+    ? null
+    : routeWorldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
 
   // Two legacy settings surfaces intentionally suppress platform chrome when

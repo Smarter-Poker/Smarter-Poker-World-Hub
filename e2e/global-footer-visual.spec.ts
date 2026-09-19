@@ -51,8 +51,10 @@ const WORLD_ROUTES = [
     route: '/hub/poker-near-me/lobby',
     childRoute: '/hub/poker-near-me/events',
   },
-  { id: 'marketplace', route: '/hub/marketplace', childRoute: '/hub/merch-store' },
+  { id: 'marketplace', route: '/hub/merch-store', childRoute: '/hub/vip-membership' },
 ];
+
+const PAGE_OWNED_FOOTER_ROUTES = new Set(['/hub/diamond-store', '/hub/marketplace']);
 
 const walkPages = (directory: string): string[] =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -110,6 +112,7 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
     // bottom. Browse, setup, progress, and review remain in this footer matrix;
     // only the dynamic arena table is deliberately immersive.
     if (sourceRoute.startsWith('/hub/training/arena/')) return [];
+    if (PAGE_OWNED_FOOTER_ROUTES.has(sourceRoute)) return [];
     const world = footerRegistry.worlds.find((candidate) =>
       candidate.routePrefixes.some(
         (prefix) => sourceRoute === prefix || sourceRoute.startsWith(`${prefix}/`)
@@ -233,6 +236,22 @@ const arenaRoutesExcluded = (matrixDoc.match(/^\|\s*`?\/hub\/training\/arena\//g
 const EXPECTED_ROUTES = documentedTotal - arenaRoutesExcluded;
 
 test.describe('dynamic World Hub footer route and visual contract', () => {
+  test('Diamond Marketplace owns one in-flow footer without losing its copy policy', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await visit(page, '/hub/diamond-store');
+
+    await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
+    const pageFooter = page.locator('[data-marketplace-page-footer="true"]');
+    await expect(pageFooter).toHaveCount(1);
+    await expect(pageFooter).toBeVisible();
+    await expect(pageFooter).toHaveAttribute('data-footer-layout', 'in-flow');
+    await expect(pageFooter).toHaveCSS('position', 'static');
+    await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', 'marketplace');
+    await expect(page.locator('.world-copy-scope')).toHaveCount(1);
+  });
+
   test('every applicable route server-renders exactly one correct artwork footer', async ({
     request,
   }) => {

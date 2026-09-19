@@ -41,7 +41,15 @@ test('World copy normalization removes every banned long separator bar', () => {
 test('all 203 owned physical routes receive the shared copy boundary', () => {
   assert.equal(inventory.worldCount, 14);
   assert.equal(inventory.routeCount, 203);
-  assert.match(appSource, /worldCopyWorldId = worldFooterConfig\?\.id \|\| null/);
+  assert.match(
+    appSource,
+    /routeWorldFooterConfig = isClubArenaRoute \? null : resolveWorldFooter\(resolvedPath\)/
+  );
+  assert.match(appSource, /worldCopyWorldId = routeWorldFooterConfig\?\.id \|\| null/);
+  assert.match(
+    appSource,
+    /bottomNavConfig = suppressWorldFooterOnDiamondStore[\s\S]*?\? null/
+  );
   assert.match(appSource, /<WorldCopyPolicy worldId=\{worldCopyWorldId\}/);
   assert.equal(WORLD_COPY_SCOPE_CLASS, 'world-copy-scope');
   assert.match(appSource, /WORLD_COPY_SCOPE_CLASS/);

@@ -90,14 +90,28 @@ test('Marketplace keeps its existing route navigation instead of standalone obje
   assert.match(showcase, /<Link[\s\S]*?href=\{TAB_ROUTES\[id\]\}/);
   assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(showcaseStyles, /\.tabs\s*\{/);
-  assert.match(showcaseStyles, /\.tab\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
+  const cssRule = (source, selector) => {
+    const start = source.indexOf(selector);
+    const end = source.indexOf('}', start + selector.length);
+    assert.ok(start >= 0 && end > start, `Missing CSS Rule: ${selector}`);
+    return source.slice(start, end + 1);
+  };
+  const diamondTab = cssRule(showcaseStyles, '.diamonds .tab {');
+  assert.doesNotMatch(diamondTab, /url\(|\.png|\.webp/);
   assert.doesNotMatch(showcaseStyles, /\.tab\s*\{[\s\S]*?navigation\/nav-shell\.(?:png|webp)/);
   for (const label of ['Marketplace', 'Cart', 'Orders', 'Wishlist']) {
     assert.match(commerceNav, new RegExp(`>\\s*${label}\\s*<`));
   }
   assert.doesNotMatch(commerceNav, /lucide-react|<(?:Store|ShoppingCart|ReceiptText|Heart)\b/);
   assert.doesNotMatch(commerceNav, /target\s*=\s*["']_blank["']/);
-  assert.match(commerceNavStyles, /\.link\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
+  assert.match(commerceNav, /variant = 'default'/);
+  assert.match(commerceNav, /variant === 'pageFooter'/);
+  assert.match(commerceNav, /data-marketplace-page-footer=/);
+  assert.match(commerceNav, /data-footer-layout=/);
+  assert.match(commerceNavStyles, /\.pageFooter\s*\{/);
+  assert.match(commerceNavStyles, /\.pageFooter \.link\s*\{/);
+  assert.match(cssRule(commerceNavStyles, '.link {'), /shark-panel\/button-secondary\.png/);
+  assert.doesNotMatch(cssRule(commerceNavStyles, '.pageFooter .link {'), /url\(|\.png|\.webp/);
   assert.doesNotMatch(commerceNavStyles, /navigation\/nav-shell|shark-panel\/bay/);
   assert.doesNotMatch(commerceNavStyles, /:hover/);
   assert.doesNotMatch(
@@ -290,19 +304,36 @@ test('live Marketplace frames use painted masters and retain no hover-only treat
   assert.doesNotMatch(`${cartCss}\n${navCss}\n${accountCss}`, /:hover/);
 });
 
-test('diamond calls to action and toast dismissal use approved painted control art', async () => {
+test('diamond calls to action use restrained machined controls while toast dismissal keeps its shared art', async () => {
   const [showcaseStyles, toastStyles] = await Promise.all([
     read(paths.showcaseCss),
     read(paths.toastCss),
   ]);
 
-  assert.match(showcaseStyles, /\.starterPack button\s*\{[\s\S]*?shark-panel\/button-primary\.png/);
-  assert.match(showcaseStyles, /\.packageCard button\s*\{[\s\S]*?shark-panel\/button-primary\.png/);
+  const starterButton = showcaseStyles.slice(
+    showcaseStyles.indexOf('.starterPack button {'),
+    showcaseStyles.indexOf('.starterPack button:disabled')
+  );
+  const packageButton = showcaseStyles.slice(
+    showcaseStyles.indexOf('.packageCard button {'),
+    showcaseStyles.indexOf('.packageCard button:disabled')
+  );
+
+  assert.match(starterButton, /border:/);
+  assert.match(starterButton, /background:/);
+  assert.match(packageButton, /border:/);
+  assert.match(packageButton, /background:/);
+  assert.doesNotMatch(`${starterButton}\n${packageButton}`, /url\(|\.png|\.webp/);
   assert.match(toastStyles, /\.dismiss\s*\{[\s\S]*?shark-panel\/button-secondary\.png/);
 });
 
-test('Diamond package rails keep the existing layout inside painted console hardware', async () => {
-  const styles = await read(paths.showcaseCss);
+test('Diamond package cards expose a readable commerce hierarchy without ornamental housings', async () => {
+  const [showcase, styles, page, app] = await Promise.all([
+    read(paths.showcase),
+    read(paths.showcaseCss),
+    read(paths.diamondStore),
+    read(paths.app),
+  ]);
   const section = (selector, nextSelector) => {
     const start = styles.indexOf(selector);
     const end = styles.indexOf(nextSelector, start + selector.length);
@@ -311,19 +342,66 @@ test('Diamond package rails keep the existing layout inside painted console hard
   };
 
   const sectionBar = section('.sectionBar {', '.sectionBar h2 {');
-  const starterPack = section('.starterPack {', '.starterPack > div {');
-  const packageCard = section('.packageCard {', '.packageCard::before {');
-  const packagePhoto = section('.packageCard::before {', '.packageCard > * {');
+  const starterPack = section('.starterPack {', '.starterArt {');
+  const packageCard = section('.packageCard {', '.packageArt {');
+  const packagePhoto = section('.packageArt {', '.packageBody {');
 
-  assert.match(sectionBar, /status\/wallet-row-shell\.webp/);
-  assert.match(starterPack, /status\/wallet-row-shell\.webp/);
-  assert.match(packageCard, /shark-panel\/bay\.png/);
+  assert.doesNotMatch(
+    `${sectionBar}\n${starterPack}\n${packageCard}`,
+    /status\/wallet-row-shell|shark-panel\/bay|navigation\/nav-shell/
+  );
+  assert.match(packageCard, /border:/);
+  assert.match(packageCard, /background:/);
+  assert.match(packageCard, /box-shadow:/);
   assert.match(packagePhoto, /diamond-packages-sheet\.webp/);
-  const paintedSurfaces = `${sectionBar}\n${starterPack}\n${packageCard}`;
-  assert.doesNotMatch(paintedSurfaces, /linear-gradient|radial-gradient|border-radius/);
-  for (const [, value] of paintedSurfaces.matchAll(/box-shadow:\s*([^;]+);/g)) {
-    assert.equal(value.trim(), 'none');
+  assert.match(showcase, /className=\{styles\.starterArt\}[\s\S]*?role="img"/);
+  assert.match(showcase, /className=\{styles\.packageArt\}[\s\S]*?role="img"/);
+  for (const hook of [
+    'data-diamond-package',
+    'data-package-media',
+    'data-package-quantity',
+    'data-package-bonus',
+    'data-package-price',
+    'data-package-primary-action',
+  ]) {
+    assert.match(showcase, new RegExp(hook));
   }
+  assert.match(
+    showcase,
+    /className=\{styles\.packageBreakdown\}[\s\S]{0,80}?data-package-bonus/
+  );
+  assert.match(showcase, /<dt>Base Amount<\/dt>/);
+  assert.match(showcase, /<dt>Bonus<\/dt>/);
+  assert.match(showcase, /<span>Price<\/span>[\s\S]*?\$\{Number\(pkg\.price/);
+  assert.match(showcase, /catalogState === 'database'\s*\?\s*'Buy Package'/);
+  assert.match(showcase, /catalogState === 'loading'[\s\S]*?'Verifying\.\.\.'/);
+  assert.match(showcase, /`Pricing Unavailable For \$\{marketplaceCopy\(pkg\.name\)\}`/);
+  assert.match(showcase, /onClick=\{\(\) => onBuy\(pkg\)\}/);
+  assert.doesNotMatch(showcase, /decorativeSlot|ornamentalSlot|emptyPlate/);
+  assert.match(showcase, /const starterPackages = packages\.slice\(0, Math\.min\(2, packages\.length\)\)/);
+  assert.match(showcase, /const primaryPackages = packages\.slice\(starterPackages\.length\)/);
+  assert.match(showcase, /PACKAGE_ART_CLASS_BY_ID\[pkg\.id\] \|\| 'packageFallback'/);
+  assert.doesNotMatch(showcase, /packages\.slice\(-6\)/);
+
+  assert.match(
+    page,
+    /<MarketplaceCommerceNav[\s\S]*?active="store"[\s\S]*?variant=\{activeTab === 'diamonds' \? 'pageFooter' : 'default'\}[\s\S]*?\/>/
+  );
+  assert.equal((page.match(/<MarketplaceCommerceNav\b/g) || []).length, 1);
+  assert.equal((page.match(/<SmarterStoreShowcase\b/g) || []).length, 1);
+  assert.match(app, /const suppressWorldFooterOnDiamondStore = resolvedPath === '\/hub\/diamond-store'/);
+  assert.match(
+    app,
+    /const routeWorldFooterConfig = isClubArenaRoute \? null : resolveWorldFooter\(resolvedPath\)/
+  );
+  assert.match(app, /const worldCopyWorldId = routeWorldFooterConfig\?\.id \|\| null/);
+  assert.match(app, /const bottomNavConfig = suppressWorldFooterOnDiamondStore[\s\S]*?\? null/);
+  assert.match(app, /<BottomNavSpacer[\s\S]*?config=\{bottomNavConfig\}/);
+  assert.match(app, /<BottomNavBar[\s\S]*?config=\{bottomNavConfig\}/);
+  assert.match(app, /showBottomNav && \(/);
+  assert.doesNotMatch(styles, /\.packageCard\s*\{[^}]*padding:\s*270px/s);
+  assert.doesNotMatch(styles, /\.sectionBar\s*\{[^}]*padding:[^;}]*22%/s);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.starterRail\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
 });
 
 test('cart controls keep their accessible commerce wiring inside painted console plates', async () => {
