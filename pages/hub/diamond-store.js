@@ -281,10 +281,7 @@ function storeStructuredData(activeTab) {
 
 function RewardDetailLink({ reward, children }) {
   return (
-    <Link
-      href={`/hub/smarter-rewards/${reward.id}`}
-      style={{ color: 'inherit', textDecorationColor: 'rgba(112, 223, 255, 0.55)' }}
-    >
+    <Link href={`/hub/smarter-rewards/${reward.id}`} className={shellStyles.rewardDetailLink}>
       {children}
     </Link>
   );
