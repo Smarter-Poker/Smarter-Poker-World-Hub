@@ -375,3 +375,67 @@ test('the anonymous fulfillment console says so and refuses its own actions', ()
   assert.doesNotMatch(fulfillment, /target=|window\.open/);
   assert.doesNotMatch(fulfillment, /useRequireAuth/);
 });
+
+test('the rewards family is sized by its content, not by painted geometry', () => {
+  const telemetry = read('src/components/store/RewardTelemetryConsole.module.css');
+  const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
+  const legacy = read('src/components/diamond-store/diamondStoreStyles.js');
+  const store = read('pages/hub/diamond-store.js');
+
+  // The sign-in panel on all 100 reward detail pages. Percentage padding
+  // resolves against the containing block, so 18% of a 1180px parent put
+  // 212.39px on every side of a 440px box and left a 15.2px content column.
+  const statePanel = telemetry.match(/\.statePanel\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(statePanel, '.statePanel rule must exist');
+  assert.doesNotMatch(statePanel, /padding:[^;]*%/);
+  assert.doesNotMatch(statePanel, /aspect-ratio/);
+  assert.doesNotMatch(statePanel, /utility-shell/);
+  assert.match(statePanel, /border:\s*1px solid #23394a/);
+  assert.match(statePanel, /background:\s*#070e15/);
+
+  // 67 Easter Egg cards were held open at 210px around 123-159px of content,
+  // inside overflow: hidden, behind three concentric painted rings.
+  const casino =
+    shell.match(/\.casinoDataCard,\n\.casinoProductCard\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(casino, 'the casino card rule must exist');
+  assert.match(casino, /overflow:\s*visible/);
+  assert.doesNotMatch(casino, /inset 0 0 0 5px/);
+  assert.doesNotMatch(shell, /\.casinoProductCard\s*\{\s*min-height/);
+
+  // A pseudo-element with transparent background, no shadow and empty content
+  // painted nothing, 70 times per page.
+  assert.doesNotMatch(shell, /\.casinoProductCard::before/);
+
+  // The only route into the 100 detail pages needs a real hit box. min-height
+  // does not apply to a non-replaced inline box, which is why the global
+  // mobile floor computed 44px while the anchor rendered 19px.
+  const linkRule = shell.match(/\.rewardDetailLink\s*\{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(linkRule, /display:\s*inline-block/);
+  assert.match(linkRule, /padding-block:\s*14px/);
+  assert.match(linkRule, /margin-block:\s*-14px/);
+  assert.match(store, /className=\{shellStyles\.rewardDetailLink\}/);
+
+  // Declarations that read as armed and provably did nothing.
+  const subNav = legacy.match(/rewardsSubNav:\s*\{[\s\S]*?\n\s{2}\},/)?.[0] || '';
+  assert.doesNotMatch(subNav, /position:\s*'sticky'/);
+  assert.doesNotMatch(subNav, /zIndex/);
+
+  // No text under 12px in the rewards style surfaces.
+  for (const [name, source] of [
+    ['diamondStoreStyles.js', legacy],
+    ['DiamondStoreShell.module.css', shell],
+    ['RewardTelemetryConsole.module.css', telemetry],
+  ]) {
+    const tooSmall = [];
+    for (const m of source.matchAll(/fontSize:\s*(\d+(?:\.\d+)?)\b/g)) {
+      if (Number(m[1]) < 12) tooSmall.push(`fontSize: ${m[1]}`);
+    }
+    for (const m of source.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+      if (Number(m[1]) < 12) tooSmall.push(`font-size: ${m[1]}px`);
+    }
+    for (const m of source.matchAll(/font:\s*[^;]*?\b(\d+(?:\.\d+)?)px\b/g)) {
+      if (Number(m[1]) < 12) tooSmall.push(`font shorthand: ${m[1]}px`);
+    }
+    assert.deepEqual(tooSmall, [], `${name} still declares text under 12px: ${tooSmall.join(', ')}`);
+  }
+});

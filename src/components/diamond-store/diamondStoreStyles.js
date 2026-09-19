@@ -61,7 +61,7 @@ const styles = {
   rewardMultiplierPlate: {
     ...PAINTED_CONTROL,
     display: 'inline-grid',
-    minWidth: 104,
+    minWidth: 118,
     minHeight: 36,
     placeItems: 'center',
     margin: '2px 3px',
@@ -74,7 +74,7 @@ const styles = {
     clipPath: 'none',
     color: '#8FEAFF',
     fontFamily: CONTROL_FONT,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 800,
     letterSpacing: '0.025em',
     textShadow: '0 1px 2px #000',
@@ -194,7 +194,7 @@ const styles = {
     clipPath: 'none',
     color: '#B9EFFF',
     fontFamily: CONTROL_FONT,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 800,
     letterSpacing: '0.025em',
   },
@@ -489,9 +489,11 @@ const styles = {
     fontWeight: 700,
     color: '#FFD700',
   },
+  // Measured 4.45:1 on the painted plate, just under AA. 0.72 alpha against
+  // the same measured backdrop gives about 7.3:1.
   multiplierLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.72)',
   },
   payoutSection: {
     marginBottom: 32,
@@ -536,11 +538,11 @@ const styles = {
     color: '#fff',
   },
   payoutNote: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.5)',
   },
   bypassNote: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#00d4ff',
     fontWeight: 600,
   },
@@ -558,15 +560,16 @@ const styles = {
   // ═══════════════════════════════════════════════════════════════════════════
   // SMARTER REWARDS SUB-TAB STYLES
   // ═══════════════════════════════════════════════════════════════════════════
+  // The sticky declarations here never applied: an ancestor
+  // (.diamond-store-page) sets overflow, which makes it the scroll container,
+  // and the bar measured -471px at 1440 after scrolling. The background and
+  // border were separately overridden to transparent/0 by
+  // DiamondStoreShell.module.css. Removing what did nothing rather than
+  // leaving it to read as armed.
   rewardsSubNav: {
     display: 'flex',
     gap: 8,
     padding: '16px 24px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    background: 'rgba(36, 37, 38, 0.95)',
-    position: 'sticky',
-    top: 80,
-    zIndex: 98,
     overflowX: 'auto',
   },
   rewardsSubTab: {
@@ -722,7 +725,7 @@ const styles = {
     background: 'rgba(0, 212, 255, 0.15)',
     border: '1px solid rgba(0, 212, 255, 0.3)',
     borderRadius: 6,
-    fontSize: 11,
+    fontSize: 12,
     color: '#00d4ff',
     fontWeight: 600,
   },
@@ -798,7 +801,7 @@ const styles = {
     boxShadow: 'none',
     clipPath: 'none',
     fontFamily: CONTROL_FONT,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 800,
     marginBottom: 8,
     letterSpacing: '0.04em',
@@ -854,7 +857,7 @@ const styles = {
     borderRadius: 12,
   },
   categoryRange: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
     color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'capitalize',
@@ -865,7 +868,7 @@ const styles = {
     color: '#fff',
   },
   categoryExample: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
     fontStyle: 'italic',
   },

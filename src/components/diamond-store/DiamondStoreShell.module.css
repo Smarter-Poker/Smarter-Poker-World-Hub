@@ -357,7 +357,7 @@
   margin: -4px 0 28px;
   color: #8fa9b9;
   font:
-    700 10px var(--font-roboto-condensed),
+    700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -442,32 +442,17 @@
   border-radius: 0 !important;
 }
 
+/* Three concentric painted rings and a drop shadow around ~140px of text.
+   `overflow: hidden` was a latent clip on a card whose height was already
+   pinned by a floor it did not need. One restrained frame instead. */
 .casinoDataCard,
 .casinoProductCard {
   position: relative;
-  overflow: hidden;
-  border: 1px solid #587486 !important;
+  overflow: visible;
+  border: 1px solid #23394a !important;
   border-radius: 0 !important;
-  background: #050a0f !important;
-  box-shadow:
-    inset 0 1px 0 rgba(235, 251, 255, 0.38),
-    inset 0 0 0 5px #03080c,
-    inset 0 0 0 6px rgba(65, 96, 115, 0.72),
-    0 16px 34px rgba(0, 0, 0, 0.52) !important;
-}
-
-.casinoDataCard::before,
-.casinoProductCard::before {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  right: 18%;
-  left: 18%;
-  height: 1px;
-  background: transparent;
-  box-shadow: none;
-  content: '';
-  pointer-events: none;
+  background: #070e15 !important;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%) !important;
 }
 
 .casinoDataCard img {
@@ -498,7 +483,7 @@
     center / 100% 100% no-repeat;
   color: #8feaff;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -548,13 +533,28 @@
   box-shadow: none !important;
 }
 
+/* These anchors are the only route into the 100 reward detail pages and
+   rendered 16px tall at 1440 and 19px at 390. The global mobile floor does
+   not reach them: `min-height` has no effect on a non-replaced inline box,
+   so the rule computed as 44px while the anchor stayed 19px. Padding gives a
+   real 44px target and the matching negative margin keeps every row and card
+   exactly where it was. */
+.rewardDetailLink {
+  display: inline-block;
+  padding-block: 14px;
+  margin-block: -14px;
+  color: inherit;
+  text-decoration-color: rgba(112, 223, 255, 0.55);
+}
+
 .rewardRow :is(a, span) {
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
-.casinoProductCard {
-  min-height: 210px;
-}
+/* The 210px floor held 67 Easter Egg cards open around 123-159px of content,
+   which measured 2,088px of dead vertical space at 1440 and about 2,393px at
+   390. Grid rows still equalise their own height, so the cards in a row stay
+   level without a pixel floor. */
 
 .clubShopSurface {
   padding-top: 8px;
@@ -718,7 +718,7 @@
   background: #02070b;
   color: #b9cbd4;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -739,7 +739,7 @@
     center / 100% 100% no-repeat !important;
   color: #e7f9ff !important;
   font:
-    800 10px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -759,7 +759,7 @@
     center / 100% 100% no-repeat;
   color: #b8eefa;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -784,7 +784,7 @@
   margin-top: 5px;
   color: #8da3b0;
   font:
-    700 9px var(--font-roboto-condensed),
+    700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -812,7 +812,7 @@
   box-shadow: none;
   color: #edfaff;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -1213,7 +1213,7 @@
 
   .merchSurface::before,
   .rewardsSurface::before {
-    font-size: 8px;
+    font-size: 12px;
     line-height: 1.7;
   }
 
