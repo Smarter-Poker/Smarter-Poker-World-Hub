@@ -97,24 +97,55 @@ test('no page puts its head inside a component that never renders on the server'
 });
 
 test('the three pages that shipped an empty body now say what they are', () => {
-  const PAGES = {
+  // The summary block still belongs on all three. Its HEADING LEVEL does not:
+  //
+  // This law was written when all three rendered nothing but a head, so the
+  // summary carried `as="h1"` because it was the only heading a crawler would
+  // ever see. Phase 7 (2026-09-19) removed the cause on two of them - their
+  // bodies were inside dynamic(..., { ssr: false }) - and those bodies bring
+  // their own h1. Keeping `as="h1"` there would put two h1s on the page, so
+  // the rule is now the thing it was always standing in for: exactly one h1,
+  // from whichever source actually renders.
+  //
+  // memory-games (/hub/preflop-charts) keeps `as="h1"`. Its body server-renders
+  // and still measures 112 words, because it is an interactive drill with no
+  // catalogue behind it, so the summary remains its only heading.
+  const SUMMARY_IS_THE_H1 = { 'pages/hub/memory-games.js': 'preflop-charts' };
+  const BODY_BRINGS_ITS_OWN_H1 = {
     'pages/hub/news.js': 'news',
     'pages/hub/video-library.js': 'video-library',
-    // /hub/preflop-charts re-exports this module.
-    'pages/hub/memory-games.js': 'preflop-charts',
   };
   const summaries = read('src/components/seo/HubPageSummary.js');
-  for (const [file, key] of Object.entries(PAGES)) {
+  const check = (file, key, summaryIsH1) => {
     const src = read(file);
     assert.match(src, /import HubPageSummary from '[^']+HubPageSummary'/, `${file} imports the summary`);
-    assert.ok(
-      src.includes(`<HubPageSummary page="${key}" as="h1" />`),
-      `${file} renders the ${key} summary as its h1`,
-    );
+    if (summaryIsH1) {
+      assert.ok(
+        src.includes(`<HubPageSummary page="${key}" as="h1" />`),
+        `${file} renders the ${key} summary as its h1`,
+      );
+    } else {
+      assert.ok(
+        src.includes(`<HubPageSummary page="${key}" />`),
+        `${file} renders the ${key} summary`,
+      );
+      assert.ok(
+        !src.includes(`<HubPageSummary page="${key}" as="h1"`),
+        `${file} renders its own h1, so the summary must not be a second one`,
+      );
+      // The reason it renders its own: the body is no longer client-only.
+      assert.match(
+        src,
+        /^import PageTransition from '\.\.\/\.\.\/src\/components\/transitions\/PageTransition';$/m,
+        `${file} must server-render its body for that h1 to exist`,
+      );
+    }
     assert.ok(summaries.includes(`${key.includes('-') ? `'${key}'` : key}: {`), `HUB_PAGE_SUMMARIES has ${key}`);
     assert.match(src, /import \{ hubProductSchema \}/, `${file} ships structured data`);
     assert.match(src, /jsonLd=\{[A-Z_]+_SCHEMA\}/, `${file} passes that schema to SEOHead`);
-  }
+  };
+  for (const [file, key] of Object.entries(SUMMARY_IS_THE_H1)) check(file, key, true);
+  for (const [file, key] of Object.entries(BODY_BRINGS_ITS_OWN_H1)) check(file, key, false);
 });
 
 test('the preflop page stopped fetching a font sheet it does not use', () => {
