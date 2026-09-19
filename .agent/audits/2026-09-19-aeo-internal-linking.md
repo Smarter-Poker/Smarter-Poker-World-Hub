@@ -104,3 +104,64 @@ Four of them duplicate a standalone page that says far more:
 at, while `/hub/poker-series` is 11,784 words and was an orphan. That is
 backwards, and the fix is either a canonical pointing at the page with the
 content or real per-tab server copy, not another link.
+
+## Measured Again, After The Deploy
+
+`node scripts/aeo/crawl-reachability.mjs --depth 4 --max 500`, run against
+production once the change was live:
+
+```
+family                  in sitemap   reachable
+curated routes                  67          59   88%
+home game locations              4           4  100%
+venue pages                    478         476  100%
+location pages                 389         389  100%
+tour pages                      28          28  100%
+series pages                   225         158   70%
+                              ----        ----
+                              1191        1114   94%
+```
+
+Up from 915 of 1,191, 77 percent. Tours went from nothing to all 28, home
+game locations from nothing to all 4, and the series directory now renders
+160 links where it rendered none.
+
+The first run of the committed crawler reported 11 percent, which was the
+crawler and not the site: its frontier only followed links that were
+themselves listed in the sitemap, so a hub page that is not listed was
+never walked through. It now follows every internal link, which is what a
+crawler does.
+
+### What Is Still Out Of Reach
+
+**67 series.** `/hub/poker-series` renders the series that are running or
+start within 60 days, which is the right default for a reader and leaves
+the rest linked from nowhere. These need an index that does not filter.
+
+**Three Poker Near Me tabs**, `/daily-tournaments`, `/events-calendar` and
+`/more`. Each one now links out; nothing links in. The family nav does not
+carry them and no sibling summary points at them.
+
+**Five trivia pages.** `/hub/trivia` itself is reachable but sits deep
+enough that its modes fall outside a four-hop crawl. A link from the hub
+summary would put the whole family within three.
+
+**Two venues**, 2834 and 2835, which were also out of reach before any of
+this. They appear on no location page.
+
+## The Tour Pages, Measured After Their Deploy
+
+Nineteen tour pages fetched from production as OAI-SearchBot with scripts
+stripped, once the stops shipped:
+
+```
+19 pages, 19 distinct bodies, 0 duplicates
+word counts 198 to 518, from a flat 190
+```
+
+Before, twelve sampled pages produced seven distinct bodies and four groups
+of byte identical twins. Every tour page now says something only that tour
+can say. The fifteen tours that live only in Supabase picked up their
+headquarters, founding year, regions and notes from the identity lookup
+that was already running, which is what separated EASTERNPT, WTP and TCH
+from each other.

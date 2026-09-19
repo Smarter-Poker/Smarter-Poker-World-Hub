@@ -97,6 +97,7 @@ export default function PokerNearMeLocationPage({
   venues = [],
   resultCount,
   states = [],
+  unplacedVenues = [],
   cities = [],
   degraded = false,
   dataSource = 'unavailable',
@@ -230,6 +231,27 @@ export default function PokerNearMeLocationPage({
               {states.map((state) => (
                 <Link key={state.code} href={state.href} className="pnm-location-listing__state">
                   <span>{state.name}</span><small>{state.venueCount} Venues · {state.cityCount} Cities</small>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* A venue that belongs to no state still needs a road in. These two
+            carry "MULTI" because they run across several, so no state or city
+            index could ever list them, and they were reachable from nowhere
+            (AEO phase 3, 2026-09-19). */}
+        {unplacedVenues.length > 0 && (
+          <section aria-labelledby="pnm-unplaced-heading">
+            <header className="pnm-location-listing__section-head">
+              <span>National Programmes</span>
+              <h2 id="pnm-unplaced-heading">Poker Series That Run In More Than One State</h2>
+              <p>These Run Across Several States Rather Than From One Room, So They Sit Outside The State Index.</p>
+            </header>
+            <div className="pnm-location-listing__states">
+              {unplacedVenues.map((venue) => (
+                <Link key={venue.href} href={venue.href} className="pnm-location-listing__state">
+                  <span>{venue.name}</span>{venue.where && <small>{venue.where}</small>}
                 </Link>
               ))}
             </div>

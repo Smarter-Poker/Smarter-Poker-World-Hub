@@ -57,7 +57,46 @@ export function toSeoSeries(raw) {
     // duplicate route point at the primary one (AEO phase 3, 2026-09-18).
     seriesUid: s(raw.series_uid),
     canonicalId: null,
+    // THE SCHEDULE (AEO phase 3, 2026-09-19). Measured on production, every
+    // one of the 225 series pages served about 139 words and the sentence
+    // "Loading Series Details...", under copy that promised "The Full
+    // Schedule, Buy-Ins, Guarantees And Results ... Are Listed Below". The
+    // events were in the API response the server was already awaiting and
+    // this function was dropping them on the floor.
+    events: toSeoEvents(raw.events),
   };
+}
+
+/**
+ * The cap is the page, not the data: the largest series in the directory
+ * publishes 182 events and the median publishes 12, so a hundred rows
+ * carries every series but one in full and keeps that one from doubling the
+ * document. The page says when it has shown fewer than it holds.
+ */
+export const SEO_EVENT_LIMIT = 100;
+
+export function toSeoEvents(raw) {
+  if (!Array.isArray(raw)) return [];
+  const s = (x) => (typeof x === 'string' && x.trim() ? x.trim() : null);
+  const n = (x) => {
+    const value = typeof x === 'string' ? Number(x) : x;
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+  };
+  return raw
+    .map((event) => ({
+      name: s(event?.event_name) || s(event?.tournament_name),
+      number: s(event?.event_number) || s(event?.series_event_number),
+      startDate: /^\d{4}-\d{2}-\d{2}$/.test(String(event?.start_date ?? '')) ? event.start_date : null,
+      startTime: /^\d{2}:\d{2}/.test(String(event?.start_time ?? '')) ? String(event.start_time).slice(0, 5) : null,
+      buyin: n(event?.buy_in),
+      guarantee: n(event?.guarantee),
+      game: s(event?.game_type),
+      flight: s(event?.flight),
+    }))
+    .filter((event) => event.name)
+    .sort((a, b) => String(a.startDate || '9999').localeCompare(String(b.startDate || '9999'))
+      || String(a.startTime || '').localeCompare(String(b.startTime || '')))
+    .slice(0, SEO_EVENT_LIMIT);
 }
 
 /** A series with no name has nothing to index. */
@@ -251,7 +290,10 @@ export function seriesSchema(v) {
   const trail = [
     ['Smarter.Poker', '/'],
     ['Hub', '/hub'],
-    ['Poker Series', '/hub/poker-near-me/series'],
+    // The directory that actually lists every series, not the Poker Near Me
+    // tab of the same name: the tab is the near-you view and the trail should
+    // climb to the index (AEO phase 3, 2026-09-19).
+    ['Poker Series', '/hub/poker-series'],
     [name || 'Series', path],
   ];
 
@@ -315,6 +357,34 @@ export function seriesSchema(v) {
         availability: 'https://schema.org/InStock',
       };
     }
+    // EVERY EVENT WITH A DATE. The series carries the location, which is
+    // what the events themselves mostly lack: a scraped event row records
+    // its date, time and buy in and leaves venue_name empty, because it is
+    // held at the series' venue. An event with no date is still listed on
+    // the page and still left out of the graph.
+    const subEvents = (v.events || [])
+      .filter((item) => item.startDate && item.name)
+      .map((item) => ({
+        '@type': 'Event',
+        name: item.name,
+        startDate: item.startTime ? `${item.startDate}T${item.startTime}` : item.startDate,
+        eventStatus: 'https://schema.org/EventScheduled',
+        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        location: event.location,
+        superEvent: { '@id': `${url}#series` },
+        ...(item.buyin ? {
+          offers: {
+            '@type': 'Offer',
+            name: 'Buy In',
+            price: String(item.buyin),
+            priceCurrency: 'USD',
+            url,
+            availability: 'https://schema.org/InStock',
+          },
+        } : {}),
+      }));
+    if (subEvents.length) event.subEvent = subEvents;
+
     nodes[0].about = { '@id': `${url}#series` };
     nodes.push(event);
   }
