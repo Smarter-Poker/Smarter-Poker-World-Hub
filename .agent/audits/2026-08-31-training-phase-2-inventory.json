@@ -35897,6 +35897,7 @@
         "/hub/training/hand-history-upload",
         "/hub/training/jarvis",
         "/hub/training/leaderboard",
+        "/hub/training/solutions",
         "/hub/training/tournaments"
       ],
       "apiReferences": [],
@@ -35905,7 +35906,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 460,
+          "line": 494,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35915,7 +35916,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 469,
+          "line": 503,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -35925,7 +35926,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 472,
+          "line": 506,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -35965,7 +35966,7 @@
       "functions": [
         {
           "name": "HubPageSummary",
-          "line": 433,
+          "line": 467,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -65665,11 +65666,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:460:1",
+      "id": "src/components/seo/HubPageSummary.js:494:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 460,
+      "line": 494,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -65678,11 +65679,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:469:2",
+      "id": "src/components/seo/HubPageSummary.js:503:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 469,
+      "line": 503,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -65691,11 +65692,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:472:3",
+      "id": "src/components/seo/HubPageSummary.js:506:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 472,
+      "line": 506,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -89472,7 +89473,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 433,
+        "line": 467,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89497,10 +89498,13 @@
           "pages/hub/news/sources.js",
           "pages/hub/pages.js",
           "pages/hub/poker-near-me/lobby.js",
+          "pages/hub/poker-series.js",
+          "pages/hub/poker-tours.js",
           "pages/hub/promotions.js",
           "pages/hub/reels.js",
           "pages/hub/social-media/index.js",
           "pages/hub/social-pages/index.js",
+          "pages/hub/training.js",
           "pages/hub/training/challenges.js",
           "pages/hub/training/hand-history-upload.js",
           "pages/hub/training/jarvis.js",
@@ -98274,7 +98278,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 433,
+        "line": 467,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98299,10 +98303,13 @@
           "pages/hub/news/sources.js",
           "pages/hub/pages.js",
           "pages/hub/poker-near-me/lobby.js",
+          "pages/hub/poker-series.js",
+          "pages/hub/poker-tours.js",
           "pages/hub/promotions.js",
           "pages/hub/reels.js",
           "pages/hub/social-media/index.js",
           "pages/hub/social-pages/index.js",
+          "pages/hub/training.js",
           "pages/hub/training/challenges.js",
           "pages/hub/training/hand-history-upload.js",
           "pages/hub/training/jarvis.js",
