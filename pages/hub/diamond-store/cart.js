@@ -1179,7 +1179,6 @@ export default function ShoppingCart() {
 
               {/* Summary */}
               <aside className={cartStyles.summaryFrame} aria-labelledby="cart-summary-title">
-                <div className={cartStyles.summaryFrameTop} aria-hidden="true" />
                 <div className={cartStyles.summaryFrameBody}>
                   <h3 id="cart-summary-title" style={styles.summaryTitle}>
                     Order Summary
@@ -1349,7 +1348,6 @@ export default function ShoppingCart() {
                     Continue Shopping
                   </Link>
                 </div>
-                <div className={cartStyles.summaryFrameBottom} aria-hidden="true" />
               </aside>
             </div>
           )}
@@ -1394,7 +1392,6 @@ function CartItem({
       exit={{ opacity: 0, x: 20 }}
       layout
     >
-      <div className={cartStyles.cartItemFrameTop} aria-hidden="true" />
       <div
         className={`${cartStyles.cartItemFrameBody} ${isMobile ? cartStyles.cartItemMobile : ''}`}
       >
@@ -1457,7 +1454,6 @@ function CartItem({
           </button>
         </div>
       </div>
-      <div className={cartStyles.cartItemFrameBottom} aria-hidden="true" />
     </motion.article>
   );
 }

@@ -1,6 +1,9 @@
 .stage {
   min-height: 100vh;
-  padding: 14px 0 calc(76px + env(safe-area-inset-bottom));
+  /* pages/_app.js renders BottomNavSpacer, which already reserves exactly the
+     footer height (132px desktop, 48px mobile). A second reserve here was
+     surplus whitespace, not clearance. */
+  padding: 14px 0 0;
   overflow-x: clip;
   color: #f4f7fb;
   background-color: #000;

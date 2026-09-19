@@ -316,7 +316,6 @@ export default function Wishlist() {
                       : `/hub/merch-store/${encodeURIComponent(item.product_id)}`;
                 return (
                   <article key={item.id ?? item.product_id} style={styles.wishlistItem}>
-                    <div aria-hidden="true" style={styles.wishlistFrameTop} />
                     <div style={styles.wishlistFrameBody}>
                       <div style={styles.productMedia}>
                         {productArt.image && !productArt.atlasPosition ? (
@@ -374,7 +373,6 @@ export default function Wishlist() {
                         </div>
                       </div>
                     </div>
-                    <div aria-hidden="true" style={styles.wishlistFrameBottom} />
                   </article>
                 );
               })}
@@ -404,6 +402,11 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: '20px',
   },
+  // The three-slice shark-panel housing is gone: a 550px saved-gear card
+  // carried an 87.38px empty top slice and an 84.94px empty bottom slice
+  // (172.32px of ornament, 28.2% of the card) around a body already reserving
+  // 14.4cqw horizontally. This is the same restrained chrome the cart now
+  // uses. The PNGs stay in the repo and stay referenced elsewhere.
   wishlistItem: {
     display: 'flex',
     width: '100%',
@@ -412,38 +415,15 @@ const styles = {
     flexDirection: 'column',
     justifySelf: 'center',
     overflow: 'visible',
-    containerType: 'inline-size',
-    backgroundColor: '#000000',
-  },
-  wishlistFrameTop: {
-    width: '100%',
-    aspectRatio: '900 / 143',
-    flex: '0 0 auto',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/top.png')",
-    backgroundPosition: 'top center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% auto',
+    border: '1px solid #23394a',
+    backgroundColor: '#070e15',
+    boxShadow: 'inset 0 1px 0 rgb(238 250 255 / 8%)',
   },
   wishlistFrameBody: {
     display: 'flex',
-    minHeight: '12cqw',
     flex: '1 1 auto',
     flexDirection: 'column',
-    padding: '0 7.2cqw 3.4cqw',
-    backgroundColor: '#000000',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/mid.png')",
-    backgroundPosition: 'top center',
-    backgroundRepeat: 'repeat-y',
-    backgroundSize: '100% auto',
-  },
-  wishlistFrameBottom: {
-    width: '100%',
-    aspectRatio: '900 / 139',
-    flex: '0 0 auto',
-    backgroundImage: "url('/images/marketplace-console-v1/shark-panel/bottom.png')",
-    backgroundPosition: 'bottom center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: '100% auto',
+    padding: '16px 20px',
   },
   productMedia: {
     display: 'flex',
@@ -474,7 +454,7 @@ const styles = {
     color: '#7f9aa9',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-    fontSize: 9,
+    fontSize: 12,
     letterSpacing: '0.14em',
     textTransform: 'capitalize',
   },
