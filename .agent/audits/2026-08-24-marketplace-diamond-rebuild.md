@@ -100,7 +100,9 @@ historical deferred revenue-share note above is superseded by this correction.
 - Owned branch: `agent/codex/marketplace-page1-restraint-20260919`
 - Starting revision: `5a3003c15c12916cb2a3ba2240655f994f0002a7`
 - Fresh protected base observed before final integration:
-  `10a3ce062ca833256deaa66d35a56a419ed77d88`
+  `d374f703ff9c95b961ed0aeb1bf5e142a4a1736b`
+- Integrated source candidate before this receipt update:
+  `4ff632c02ecb17a4bad4d11fd65ade8bd376d7b3`
 - Delivery class: World Hub client-only. No engine activation or database
   installation is required.
 
@@ -149,8 +151,11 @@ toasts and cleanup. No real purchase or settlement was executed.
 - Focused Page 1 and copy-policy regression set: 24/24 passed.
 - Marketplace pretest: 31/31 passed.
 - Canonical Marketplace suite: 481/481 passed.
-- Repository lint: 4,377 files passed.
+- Exact integrated-candidate repository lint: 4,381 files passed.
 - Independent final blocker review: GO, with no release-blocking finding.
+- Portable policy/canonical consistency and exact-candidate delivery planning
+  passed; delivery is classified as client/tooling/documentation/verification
+  with no engine activation required.
 - Focused Chromium browser contract: 1/1 passed using an ignored empty local
   auth state; it verified all eight complete offer anatomies.
 - Responsive browser matrix passed at 1280x1000, 900x1000, 640x900, 390x844
