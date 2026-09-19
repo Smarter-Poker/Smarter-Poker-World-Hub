@@ -2214,6 +2214,22 @@ export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], 
 // ON-DEMAND STATIC DATA (ISR)
 // ═══════════════════════════════════════════════
 import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
+import allVenuesData from '../../data/all-venues.json';
+import { buildVenueIndex, cleanScrapedCity } from '../../src/lib/poker-near-me/cityFromScrape';
+
+/**
+ * A CITY IS A CITY (AEO phase 3, 2026-09-19). The cards and the A to Z index
+ * read city straight out of the two series tables, where 64 of the 225 rows
+ * hold the venue and the city run together. The detail API resolves this for
+ * the series pages; these two queries do not go through it, so they resolve
+ * it the same way against the same directory.
+ */
+const seriesVenueIndex = buildVenueIndex(
+  Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || [],
+);
+const withCleanCity = (row) => (row && row.city
+  ? { ...row, city: cleanScrapedCity(row.city, seriesVenueIndex) }
+  : row);
 import {
     isServableSeriesParentEvidence,
     reconcileTournamentSeriesEvidence,
@@ -2370,8 +2386,9 @@ export async function getStaticProps() {
             if (uid && !seriesByUid.has(uid)) seriesByUid.set(uid, ps);
         }
 
-        const initialSeries = buildSeriesPreview(allData, generatedAt);
-        const seriesIndex = buildSeriesIndex(allData);
+        const cleaned = allData.map(withCleanCity);
+        const initialSeries = buildSeriesPreview(cleaned, generatedAt);
+        const seriesIndex = buildSeriesIndex(cleaned);
         return {
             props: {
                 initialSeries,

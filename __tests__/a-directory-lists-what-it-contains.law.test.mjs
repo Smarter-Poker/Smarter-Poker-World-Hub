@@ -296,5 +296,21 @@ test('the series index is not capped the way the cards are', () => {
   );
 
   assert.match(src, /seriesIndex\.map\(/, 'the index is rendered, not only computed');
-  assert.match(src, /seriesIndex\s*=\s*buildSeriesIndex\(allData\)/, 'and built from every row, not the preview');
+
+  // This used to pin buildSeriesIndex(allData) as text and broke the day the
+  // rows started being cleaned on the way through. What matters is that the
+  // index and the capped preview are built from the SAME collection, so the
+  // index can never be the preview by another name.
+  const indexArg = src.match(/seriesIndex\s*=\s*buildSeriesIndex\(([A-Za-z_$][\w$]*)\)/);
+  const previewArg = src.match(/initialSeries\s*=\s*buildSeriesPreview\(([A-Za-z_$][\w$]*),/);
+  assert.ok(indexArg, 'the index is built from a named collection');
+  assert.ok(previewArg, 'so is the preview');
+  assert.equal(
+    indexArg[1],
+    previewArg[1],
+    `the index is built from ${indexArg[1]} and the cards from ${previewArg[1]}. `
+      + 'They have to read the same rows, or the index is a second, smaller '
+      + 'list pretending to be the whole one.',
+  );
+  assert.notEqual(indexArg[1], 'initialSeries', 'and never from the capped preview itself');
 });
