@@ -368,13 +368,19 @@ const FAQ_JSON_LD = {
 };
 
 
+/** A DOM id for one answer panel, so the button can point at it with
+ *  aria-controls. Questions carry punctuation and quotes; ids may not. */
+function slugifyFaqKey(key) {
+  return key.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+}
+
 export default function PlayerFAQPage() {
   const [activeCategory, setActiveCategory] = useState('waitlist');
   const [expandedFAQ, setExpandedFAQ] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const toggleFAQ = (index) => {
-    setExpandedFAQ(expandedFAQ === index ? null : index);
+  const toggleFAQ = (key) => {
+    setExpandedFAQ(expandedFAQ === key ? null : key);
   };
 
   // Filter FAQs based on search
@@ -388,10 +394,6 @@ export default function PlayerFAQPage() {
         ),
       })).filter((cat) => cat.faqs.length > 0)
     : FAQ_CATEGORIES;
-
-  const currentCategory = searchTerm
-    ? filteredCategories[0]
-    : FAQ_CATEGORIES.find((c) => c.id === activeCategory);
 
   return (
     <CommanderPageShell>
@@ -466,37 +468,69 @@ export default function PlayerFAQPage() {
             </div>
           )}
 
-          {/* FAQ List */}
-          {currentCategory && (
-            <div className="space-y-4">
-              {(searchTerm ? filteredCategories.flatMap((c) => c.faqs) : currentCategory.faqs).map(
-                (faq, index) => (
-                  <div key={index} className="cmd-panel overflow-hidden">
-                    <button
-                      onClick={() => toggleFAQ(index)}
-                      className="w-full flex items-center justify-between p-4 text-left"
-                    >
-                      <span className="font-medium text-white pr-4">{faq.question}</span>
-                      <ChevronDown
-                        className={`w-5 h-5 text-[#64748B] flex-shrink-0 transition-transform ${
-                          expandedFAQ === index ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-                    {expandedFAQ === index && (
-                      <div className="px-4 pb-4">
-                        <div className="border-t border-[#374151] pt-4">
-                          <div className="text-[#94A3B8] whitespace-pre-line text-sm leading-relaxed">
-                            {faq.answer}
+          {/* FAQ List.
+
+              EVERY question and EVERY answer is in the DOM, always. Until
+              2026-09-19 this rendered one category's questions and unmounted
+              every answer until it was clicked, so the served HTML carried
+              five questions, no answers, and 124 words of text - while the
+              FAQPage JSON-LD above declared the full set. Google requires the
+              answers a FAQPage markup claims to be present on the page, so
+              that markup was both unsupported and the page had nothing to
+              index.
+
+              Categories and answers are now shown and hidden with CSS rather
+              than by mounting, which is the ordinary tab-and-accordion
+              pattern: the reader sees exactly what they saw before, and a
+              crawler sees the whole FAQ. */}
+          <div className="space-y-4">
+            {(searchTerm ? filteredCategories : FAQ_CATEGORIES).map((category) => {
+              const visible = Boolean(searchTerm) || category.id === activeCategory;
+              return (
+                <div
+                  key={category.id}
+                  className="space-y-4"
+                  style={visible ? undefined : { display: 'none' }}
+                >
+                  {category.faqs.map((faq) => {
+                    // Keyed by category and question, not by list index: the
+                    // index collided across categories once every category
+                    // started rendering at the same time.
+                    const key = `${category.id}::${faq.question}`;
+                    const open = expandedFAQ === key;
+                    return (
+                      <div key={key} className="cmd-panel overflow-hidden">
+                        <button
+                          onClick={() => toggleFAQ(key)}
+                          aria-expanded={open}
+                          aria-controls={`faq-answer-${slugifyFaqKey(key)}`}
+                          className="w-full flex items-center justify-between p-4 text-left"
+                        >
+                          <span className="font-medium text-white pr-4">{faq.question}</span>
+                          <ChevronDown
+                            className={`w-5 h-5 text-[#64748B] flex-shrink-0 transition-transform ${
+                              open ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+                        <div
+                          id={`faq-answer-${slugifyFaqKey(key)}`}
+                          className="px-4 pb-4"
+                          style={open ? undefined : { display: 'none' }}
+                        >
+                          <div className="border-t border-[#374151] pt-4">
+                            <div className="text-[#94A3B8] whitespace-pre-line text-sm leading-relaxed">
+                              {faq.answer}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                )
-              )}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
 
           {/* No Results */}
           {searchTerm && filteredCategories.length === 0 && (
