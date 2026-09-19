@@ -21,6 +21,9 @@
 // own copy of the budget and the suffix, which is the duplication that let
 // four templates drift apart in the first place.
 import { firstThatFits, BRAND_SUFFIX as SUFFIX } from './titleFit.js';
+// The stop date reader the tour page already uses. It has no imports of its
+// own, so plain node can load it through this module the same as webpack can.
+import { parseStopDates } from '../../utils/tourGeoUtils.js';
 
 export const TOUR_TYPE_LABELS = {
   major: 'Major Tour',
@@ -69,7 +72,61 @@ export function tourCanonical(code) {
  * A tour is a recurring real world event series, so the page is described as
  * a CollectionPage over its stops rather than as an application.
  */
-export function tourSchema({ code, name, type, website }) {
+/**
+ * A STOP IS AN EVENT, AND AN EVENT NEEDS A DATE AND A PLACE.
+ *
+ * The bundled registry writes a stop's dates as "May 26 - Jul 15", with the
+ * year carried by the field name (stops_2026). parseStopDates in
+ * src/utils/tourGeoUtils.js already reads exactly that, and the tour page
+ * already uses it, so it is reused rather than written a second time.
+ *
+ * A stop whose dates do not parse, or which carries no location, produces
+ * no node at all. An Event without a startDate or a location is worse than
+ * no Event, and a guessed one is worse still: that rule was set when the
+ * series pages got their schema and it holds here.
+ */
+export function tourStopSchema(stops) {
+  if (!Array.isArray(stops)) return [];
+  const iso = (value) => (value instanceof Date && !Number.isNaN(value.getTime())
+    ? value.toISOString().slice(0, 10)
+    : null);
+  const out = [];
+  for (const stop of stops) {
+    const place = String(stop?.location || '').trim();
+    const name = String(stop?.name || '').trim();
+    if (!place || !name) continue;
+    let range = null;
+    try {
+      range = parseStopDates(stop?.dates);
+    } catch {
+      range = null;
+    }
+    const start = iso(range?.start);
+    if (!start) continue;
+    const end = iso(range?.end);
+    const [city, region] = place.split(',').map((part) => part.trim());
+    out.push({
+      '@type': 'EventSeries',
+      name,
+      startDate: start,
+      ...(end && end >= start ? { endDate: end } : {}),
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      location: {
+        '@type': 'Place',
+        name: String(stop?.venue || '').trim() || place,
+        address: {
+          '@type': 'PostalAddress',
+          ...(city ? { addressLocality: city } : {}),
+          ...(region ? { addressRegion: region } : {}),
+          addressCountry: 'US',
+        },
+      },
+    });
+  }
+  return out;
+}
+
+export function tourSchema({ code, name, type, website, stops }) {
   const site = 'https://smarter.poker';
   const path = tourCanonical(code);
   const safeCode = String(code || '').trim().toUpperCase();
@@ -80,6 +137,7 @@ export function tourSchema({ code, name, type, website }) {
     ['Poker Tours', '/hub/poker-tours'],
     [label, path],
   ];
+  const stopNodes = tourStopSchema(stops);
   const nodes = [
     {
       '@type': 'CollectionPage',
@@ -90,6 +148,7 @@ export function tourSchema({ code, name, type, website }) {
       isPartOf: { '@id': `${site}/#website` },
       about: { '@id': `${site}${path}#tour` },
       breadcrumb: { '@id': `${site}${path}#breadcrumb` },
+      ...(stopNodes.length ? { hasPart: stopNodes } : {}),
     },
     {
       '@type': 'SportsOrganization',

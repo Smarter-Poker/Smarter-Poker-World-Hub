@@ -44,8 +44,8 @@ const flag = (name, fallback) => {
 };
 
 const ORIGIN = flag('origin', 'https://smarter.poker').replace(/\/+$/, '');
-const DEPTH = Number(flag('depth', '3'));
-const MAX_PAGES = Number(flag('max', '400'));
+const DEPTH = Number(flag('depth', '4'));
+const MAX_PAGES = Number(flag('max', '600'));
 
 // The crawlers that decide what ChatGPT, Claude and Perplexity may cite do
 // not run JavaScript. This is one of them, so what it sees is the measurement.
@@ -116,13 +116,21 @@ async function main() {
         found.add(link);
         if (!seen.has(link)) {
           seen.add(link);
-          // Only routes the sitemap offers are worth spending a fetch on.
-          if (inSitemap.has(link)) next.push(link);
+          // A page the sitemap does not list can still be the road to one
+          // that it does, so every internal link is worth a fetch. Restricting
+          // the frontier to sitemap routes was the first version of this and
+          // it reported 11 percent reachable on a site that measures far
+          // better, because a hub page that is not itself listed was never
+          // followed.
+          next.push(link);
         }
       }
     }
     frontier = next;
-    process.stderr.write(`depth ${level + 1}: ${fetched} fetched, ${found.size} routes seen\n`);
+    process.stderr.write(
+      `depth ${level + 1}: ${fetched} fetched, ${found.size} routes seen, `
+      + `${next.length} queued\n`,
+    );
   }
 
   const byFamily = new Map();

@@ -153,8 +153,15 @@ const GAME_COLORS = {
  * This resolves the tour's identity on the server. The bundled registry
  * covers 25 tours and needs no network; the sitemap also lists tours that
  * live only in Supabase, so those are looked up, briefly, and a failure
- * falls back to the code rather than taking the page down. Nothing here
- * fetches the schedule: that stays on SWR, where it was.
+ * falls back to the code rather than taking the page down.
+ *
+ * 2026-09-19: THE SCHEDULE COMES WITH IT. The earlier note here said the
+ * schedule stays on SWR. Measured afterwards, that left every tour page
+ * serving the same 190 words with only the name changed, while the summary
+ * copy promised a list of stops. The bundled registry holds 82 stops across
+ * the tours it covers and needs no network, so the stops and the published
+ * events are resolved here and rendered on the server. What lives only in
+ * Supabase still arrives over SWR, unchanged.
  */
 export async function getServerSideProps({ params, res }) {
   const code = String(params?.code || '').trim().toUpperCase();
@@ -164,6 +171,7 @@ export async function getServerSideProps({ params, res }) {
   let dbName = null;
   let dbType = null;
   let dbSite = null;
+  let dbRow = null;
 
   if (!registryEntry) {
     try {
@@ -173,12 +181,13 @@ export async function getServerSideProps({ params, res }) {
         const { createClient } = await import('@supabase/supabase-js');
         const { data } = await createClient(url, key)
           .from('tour_source_registry')
-          .select('tour_name, tour_type, official_website')
+          .select('tour_name, tour_type, official_website, headquarters, established_year, notes, regions')
           .eq('tour_code', code)
           .maybeSingle();
         dbName = data?.tour_name || null;
         dbType = data?.tour_type || null;
         dbSite = data?.official_website || null;
+        dbRow = data || null;
       }
     } catch (e) {
       console.warn('[tours] identity lookup failed:', e?.message || e);
@@ -196,11 +205,55 @@ export async function getServerSideProps({ params, res }) {
   );
   if (canonicalCode && canonicalCode !== code) seo.canonical = tourCanonical(canonicalCode);
 
+  // Only fields the registry actually holds are passed through. Caps are
+  // generous enough to carry every tour in the bundle (17 stops is the most
+  // any tour has; WSOP publishes 100 events) without letting one grow the
+  // server HTML without limit.
+  const stops = Array.isArray(registryEntry?.stops_2026)
+    ? registryEntry.stops_2026.slice(0, 40).map((stop) => ({
+      name: String(stop?.name || '').trim(),
+      venue: String(stop?.venue || '').trim() || null,
+      location: String(stop?.location || '').trim() || null,
+      dates: String(stop?.dates || '').trim() || null,
+      buyin_range: stop?.buyin_range || null,
+      buyin: Number.isFinite(stop?.buyin) ? stop.buyin : null,
+      events_count: Number.isFinite(stop?.events_count) ? stop.events_count : null,
+      flagship: stop?.flagship || null,
+      status: stop?.status || null,
+    })).filter((stop) => stop.name)
+    : [];
+  const events = Array.isArray(registryEntry?.series_2026)
+    ? registryEntry.series_2026.slice(0, 30).map((event) => ({
+      name: String(event?.name || '').trim(),
+      dates: String(event?.dates || '').trim() || null,
+      buyin: Number.isFinite(event?.buyin) ? event.buyin : null,
+      game: event?.game || null,
+    })).filter((event) => event.name)
+    : [];
+
+  // WHAT IS KNOWN ABOUT THE TOUR ITSELF. Fifteen of the twenty eight tours
+  // in the sitemap live only in Supabase and have no stops anywhere, so
+  // without these the pages for LODGE, VENETIAN, SEMINOLE and the rest are
+  // the same words with a different name. Measured on production, three of
+  // them were byte identical below the title.
+  const buyins = registryEntry?.typical_buyins || null;
+  const facts = {
+    headquarters: (registryEntry?.headquarters || dbRow?.headquarters || '').trim() || null,
+    established: registryEntry?.established || dbRow?.established_year || null,
+    regions: Array.isArray(registryEntry?.regions)
+      ? registryEntry.regions.slice(0, 8)
+      : (Array.isArray(dbRow?.regions) ? dbRow.regions.slice(0, 8) : []),
+    notes: (registryEntry?.notes || dbRow?.notes || '').trim() || null,
+    buyinMin: Number.isFinite(buyins?.min) ? buyins.min : null,
+    buyinMax: Number.isFinite(buyins?.max) ? buyins.max : null,
+    mainEvent: Number.isFinite(buyins?.main_event) ? buyins.main_event : null,
+  };
+
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=1800');
-  return { props: { seo } };
+  return { props: { seo, stops, events, facts } };
 }
 
-export default function TourDetailPage({ seo }) {
+export default function TourDetailPage({ seo, stops = [], events = [], facts = null }) {
   const router = useRouter();
   const { code } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -421,11 +474,19 @@ export default function TourDetailPage({ seo }) {
       title={seo.title}
       description={seo.description}
       canonical={seo.canonical}
-      jsonLd={tourSchema(seo)}
+      jsonLd={tourSchema({ ...seo, stops })}
     />
   );
   const seoSummary = (
-    <TourPageSummary code={seo.code} name={seo.name} type={seo.type} website={seo.website} />
+    <TourPageSummary
+      code={seo.code}
+      name={seo.name}
+      type={seo.type}
+      website={seo.website}
+      stops={stops}
+      events={events}
+      facts={facts}
+    />
   );
 
   // Server render, and the hydrating render, take this branch. The summary
