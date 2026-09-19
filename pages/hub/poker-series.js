@@ -7,11 +7,13 @@
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue, memo } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -1106,7 +1108,20 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                                             <div className="tour-card-footer">
                                                 <span className="tour-card-established"></span>
                                                 <div className="tour-card-actions">
-                                                    {detailUrl && <span className="tour-action-btn primary">View Schedule</span>}
+                                                    {/* A REAL LINK, NOT A CLICK (AEO phase 3, 2026-09-19).
+                                                        The card navigated only through the wrapper's
+                                                        onClick, so the server HTML carried no href and
+                                                        none of the 225 series pages could be reached by
+                                                        following links. */}
+                                                    {detailUrl && (
+                                                        <Link
+                                                            href={detailUrl}
+                                                            className="tour-action-btn primary"
+                                                            onClick={e => e.stopPropagation()}
+                                                        >
+                                                            View Schedule
+                                                        </Link>
+                                                    )}
                                                     {series.source_url && (
                                                         <a
                                                             href={safeHref(series.source_url)}
@@ -1126,6 +1141,7 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                             </div>
                         )}
     
+                        <HubPageSummary page="poker-series" />
                 </main>
 
                 <FullScreenPageOverlay

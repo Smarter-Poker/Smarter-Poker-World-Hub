@@ -13,6 +13,7 @@ import tourRegistry from '../../../data/tour-source-registry.json';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { tourCanonical, registryCodeForTour } from '../../../src/lib/seo/tourPageSeo';
 
 let _supabase = null;
 function getSupabase() {
@@ -397,7 +398,45 @@ export async function getMergedToursData(excludeStationary = false) {
     } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
 
     if (tours.length === 0) tours = registryTours;
+    // One URL per tour, decided here so every caller agrees with the sitemap.
+    tours = tours.map((tour) => ({ ...tour, detail_path: tourDetailPath(tour) }));
     return { tours, registryTours, source };
+}
+
+/**
+ * THE URL A TOUR CARD POINTS AT (AEO phase 3, 2026-09-19).
+ *
+ * Measured on production, /hub/poker-tours rendered a card for RRPT and a
+ * card for ROUGHRIDER. Same tour, same name, same website, two database
+ * spellings. The sitemap already offers only the registry code, and
+ * /hub/tours/RRPT already points its canonical at ROUGHRIDER, so the card
+ * was the last place still sending readers and crawlers to the duplicate.
+ *
+ * Every tour object leaving this module now carries the one URL, resolved
+ * by the same function the page and the sitemap use. A card cannot invent
+ * its own.
+ */
+export function tourDetailPath(tour) {
+    const code = String(tour?.tour_code || '').trim();
+    if (!code) return null;
+    const canonicalCode = registryCodeForTour(
+        { code, name: tour?.tour_name, website: tour?.official_website },
+        tourRegistry.tours || {},
+    ) || code;
+    return tourCanonical(canonicalCode);
+}
+
+/**
+ * The stationary house series. These are real pages in the sitemap
+ * (/hub/tours/WYNN, /hub/tours/BORGATA and four more) that the traveling
+ * tours directory deliberately excludes, so until now nothing on the site
+ * linked to any of them and a crawler following links never arrived.
+ */
+export async function getHouseSeriesForSSR() {
+    const { tours } = await getMergedToursData(false);
+    return tours
+        .filter((tour) => tour?.is_traveling === false)
+        .sort((a, b) => String(a.tour_name || '').localeCompare(String(b.tour_name || '')));
 }
 
 export async function getAllToursForSSR() {

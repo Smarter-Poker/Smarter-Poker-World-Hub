@@ -155,18 +155,31 @@ function SeriesCalendar({ series, router, openVenueModal }) {
                                         <span className="cal-day-num">{dayNum}</span>
                                         {visibleSeries.map((s, si) => {
                                             const tourColor = TOUR_COLORS[s.tour_code] || TOUR_COLORS.default;
+                                            // No id means no page: navigating to a positional
+                                            // index lands on an unrelated series.
+                                            const eventPath = s.id ? '/hub/series/' + s.id : null;
+                                            const eventStyle = { background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff', cursor: eventPath ? 'pointer' : 'default' };
+                                            if (!eventPath) {
+                                                return (
+                                                    <div key={s.id || si} className="cal-event" style={eventStyle} title={s.name}>
+                                                        {(s.tour_code || s.short_name || '').slice(0, 5)}
+                                                    </div>
+                                                );
+                                            }
                                             return (
-                                                <div key={s.id || si} className="cal-event"
-                                                    style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff', cursor: s.id ? 'pointer' : 'default' }}
-                                                    onClick={() => {
-                                                        // No id — navigating to a positional index lands on an unrelated series
-                                                        if (!s.id) return;
-                                                        const path = '/hub/series/' + s.id;
-                                                        if (openVenueModal) openVenueModal(path); else router.push(path);
+                                                // A real href so the series page is reachable without
+                                                // JavaScript; the modal still opens in the app.
+                                                <a key={s.id || si} className="cal-event"
+                                                    href={eventPath}
+                                                    style={{ ...eventStyle, textDecoration: 'none' }}
+                                                    onClick={(e) => {
+                                                        if (!openVenueModal) return;
+                                                        e.preventDefault();
+                                                        openVenueModal(eventPath);
                                                     }}
                                                     title={s.name}>
                                                     {(s.tour_code || s.short_name || '').slice(0, 5)}
-                                                </div>
+                                                </a>
                                             );
                                         })}
                                         {daySeries.length > 2 && (

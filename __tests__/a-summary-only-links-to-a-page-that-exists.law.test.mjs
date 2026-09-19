@@ -44,10 +44,27 @@ const ALWAYS_REAL = new Set([
   '/about',
 ]);
 
-/** Every `path: '...'` the sitemap file mentions, gated or not. */
+/**
+ * Every `path: '...'` the sitemap offers, gated or not.
+ *
+ * The sitemap does not hold them all itself. The Poker Near Me discovery
+ * surfaces live in their own module and are imported in; reading only
+ * pages/sitemap.xml.js made this law believe /hub/poker-near-me/venues was
+ * unlisted, which it never was. Every module the sitemap imports a route
+ * table from is read, so a table moved or added later is still seen.
+ */
+const ROUTE_SOURCES = [
+  'pages/sitemap.xml.js',
+  'src/lib/poker-near-me/sitemapRoutes.js',
+];
+
 function sitemapRoutes() {
-  const src = read('pages/sitemap.xml.js');
-  return new Set([...src.matchAll(/\bpath:\s*'([^']+)'/g)].map((m) => m[1]));
+  const out = new Set();
+  for (const file of ROUTE_SOURCES) {
+    const src = read(file);
+    for (const m of src.matchAll(/\bpath:\s*'([^']+)'/g)) out.add(m[1]);
+  }
+  return out;
 }
 
 /**
