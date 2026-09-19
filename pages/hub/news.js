@@ -211,9 +211,6 @@ export async function getServerSideProps({ req, res }) {
 }
 
 export default function NewsHubPage({ fallback }) {
-    // A spinner is a promise to someone who is waiting, and nothing waits
-    // on the server (AEO phase 3, 2026-09-19).
-    const hasMounted = useHasMounted();
   return (
     <SWRConfig value={{ fallback: fallback || {} }}>
       <NewsHub />
@@ -222,6 +219,11 @@ export default function NewsHubPage({ fallback }) {
 }
 
 function NewsHub() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19). This is the component that
+    // renders the reels, so the flag belongs here rather than in the wrapper
+    // that only supplies the SWR fallback.
+    const hasMounted = useHasMounted();
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
