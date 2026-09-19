@@ -235,3 +235,143 @@ test('residual Marketplace surfaces retain the no-hover, no-green, no-long-bar c
   assert.doesNotMatch(source, /\b(?:green|lime|purple|violet|magenta)\b/i);
   assert.doesNotMatch(source, /[\u2013\u2014]/u);
 });
+
+// ───────────────────────────────────────────────────────────────────────────
+// Phase 7 (2026-09-19): the commerce surfaces. Every assertion below pins a
+// defect that was measured in a headless render before it was fixed, so a
+// revert turns one of them red rather than silently shipping the ornament
+// back. Measurements are quoted in each block.
+// ───────────────────────────────────────────────────────────────────────────
+
+const commerceFiles = {
+  fulfillment: 'pages/hub/merch-store/fulfillment.js',
+  fulfillmentCss: 'pages/hub/merch-store/fulfillment.module.css',
+  cart: 'pages/hub/diamond-store/cart.js',
+  cartCss: 'pages/hub/diamond-store/cart.module.css',
+  orders: 'pages/hub/diamond-store/orders.js',
+  receipt: 'pages/hub/diamond-store/orders/[orderId].js',
+  wishlist: 'pages/hub/diamond-store/wishlist.js',
+  subpageShell: 'src/components/store/MarketplaceSubpageShell.module.css',
+};
+
+const withoutComments = (source) =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+
+// Every `font-size` / `fontSize` literal in a source, normalised to px.
+// Unitless numbers are React inline styles, which the DOM reads as px.
+// clamp() is read at its first argument, which is its floor.
+const fontSizesIn = (source) => {
+  const sizes = [];
+  for (const [, rawValue] of withoutComments(source).matchAll(
+    /(?:font-size\s*:\s*|\bfontSize\s*:\s*)('[^']*'|"[^"]*"|[^;,\n}]+)/g
+  )) {
+    const value = rawValue.trim().replace(/^['"]|['"]$/g, '');
+    for (const [, digits, unit] of value.matchAll(/(-?\d*\.?\d+)\s*([a-z%]*)/g)) {
+      if (unit === 'px' || unit === '') sizes.push({ px: Number(digits), value });
+      else if (unit === 'rem' || unit === 'em') sizes.push({ px: Number(digits) * 16, value });
+    }
+  }
+  return sizes;
+};
+
+test('no commerce surface renders text below 12px', () => {
+  // Measured before this change, at a 16px root: fulfillment .status 11.68px,
+  // its order-id code and label hint 11.52px, its quarantine note 11.84px;
+  // the orders fulfillment eyebrow 9px, its rail label 11px, its rail date
+  // and tracking meta 10px; the wishlist product type 9px.
+  const offenders = [];
+  for (const [name, file] of Object.entries(commerceFiles)) {
+    for (const size of fontSizesIn(read(file))) {
+      if (size.px < 12) offenders.push(`${name}: ${size.value} (${size.px}px)`);
+    }
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test('the fulfillment status plate sizes its padding from the plate, not the page', () => {
+  const fulfillmentCss = read(commerceFiles.fulfillmentCss);
+  const statusRule = fulfillmentCss.match(/\.status \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(statusRule, 'expected the .status rule');
+  // The rule's own comment names the trap, so the bans read declarations only.
+  const statusDeclarations = withoutComments(statusRule);
+
+  // The approved artwork and its native ratio are unchanged.
+  assert.match(statusRule, /aspect-ratio: 1800 \/ 386;/);
+  assert.match(statusRule, /status\/wallet-row-shell\.webp/);
+
+  // Percentage padding resolves against the CONTAINING BLOCK's inline size.
+  // `padding: 4.3% 7% 4.3% 26%` on a plate capped at min(720px, 100%) inside a
+  // 1396px page measured 60.02 / 97.72 / 60.02 / 362.95, leaving a
+  // 259.33x37.37 content box: 91.5% of the plate was dead. Past ~2226px the
+  // content box reached zero (measured 0x93.56 at a 2200px page).
+  assert.match(statusRule, /--status-plate-width: min\(720px, 100%\);/);
+  assert.match(statusRule, /width: var\(--status-plate-width\);/);
+  assert.match(statusRule, /padding: calc\(var\(--status-plate-width\) \* 0\.043\)/);
+  assert.match(statusRule, /calc\(var\(--status-plate-width\) \* 0\.26\)/);
+  assert.doesNotMatch(statusDeclarations, /padding:[^;]*\d+(?:\.\d+)?%/);
+
+  // `container-type: inline-size` on this element is NOT the fix and must not
+  // be reintroduced as one: container query units resolve against the nearest
+  // ANCESTOR container, so with no container above it they fall back to the
+  // small viewport. Measured at 1440: 26cqw = 374.4px, worse than the 362.95px
+  // it was meant to replace.
+  assert.doesNotMatch(statusDeclarations, /container-type|cqw/);
+});
+
+test('a merchandise order identifier is never truncated on the fulfillment console', () => {
+  const fulfillmentCss = read(commerceFiles.fulfillmentCss);
+  const codeRule = fulfillmentCss.match(/\.orderTop code,\n\.quarantine code \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(codeRule, 'expected the shared order-identifier rule');
+  assert.match(codeRule, /overflow-wrap: anywhere;/);
+  assert.doesNotMatch(codeRule, /max-width:\s*\d/);
+  assert.doesNotMatch(codeRule, /text-overflow|overflow:\s*hidden/);
+});
+
+test('commerce shells reserve the footer once, through BottomNavSpacer', () => {
+  // pages/_app.js renders BottomNavSpacer at exactly the footer height
+  // (measured 132px desktop, 48.1px mobile). The shell added another 76px and
+  // the fulfillment page another 120px on top of that, covering nothing.
+  const subpageShell = read(commerceFiles.subpageShell);
+  const fulfillmentCss = read(commerceFiles.fulfillmentCss);
+  assert.match(subpageShell, /\.stage \{[\s\S]*?padding: 14px 0 0;/);
+  assert.doesNotMatch(subpageShell, /calc\(76px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(fulfillmentCss, /\.page \{[\s\S]*?padding: 92px 22px 0;/);
+  assert.doesNotMatch(fulfillmentCss, /padding: 92px 22px 120px;/);
+});
+
+test('cart and wishlist frames carry no empty painted slice', () => {
+  // Measured at 1440 before this change: a 688px cart line was 349.95px tall
+  // and 215.56px of that (61.6%) was two empty aria-hidden slice divs; the
+  // 400px summary 125.32px of 657.08 (19.1%); a 550px wishlist card 172.32px
+  // of 611 (28.2%). None of the four divs had a child.
+  const cart = read(commerceFiles.cart);
+  const cartCss = withoutComments(read(commerceFiles.cartCss));
+  const wishlist = read(commerceFiles.wishlist);
+
+  assert.doesNotMatch(cart, /FrameTop|FrameBottom/);
+  assert.doesNotMatch(wishlist, /wishlistFrameTop|wishlistFrameBottom/);
+  assert.doesNotMatch(cartCss, /FrameTop|FrameBottom|shark-panel\/(?:top|mid|bottom)\.png/);
+  assert.doesNotMatch(withoutComments(wishlist), /shark-panel\/(?:top|mid|bottom)\.png/);
+
+  // Restrained chrome, and overflow stays visible: it clips nothing.
+  assert.match(cartCss, /\.cartItemFrame,\n\.summaryFrame \{[\s\S]*?overflow: visible;/);
+  assert.match(cartCss, /border: 1px solid #23394a;/);
+  assert.match(cartCss, /background: #070e15;/);
+  assert.match(withoutComments(wishlist), /border: '1px solid #23394a'/);
+  assert.match(withoutComments(wishlist), /backgroundColor: '#070e15'/);
+});
+
+test('the anonymous fulfillment console says so and refuses its own actions', () => {
+  // Signed out, the console used to render full chrome, a hero and two
+  // enabled actions, with one 11.68px line as the only sign of the gate.
+  const fulfillment = read(commerceFiles.fulfillment);
+  assert.match(fulfillment, /const signedOut = authResolved && !authOwnerId;/);
+  assert.match(fulfillment, /disabled=\{state\.kind === 'loading' \|\| signedOut\}/);
+  assert.match(
+    fulfillment,
+    /<Link href="\/auth\/login\?redirect=\/hub\/merch-store\/fulfillment">/
+  );
+  // Same tab, and still not a redirecting auth gate.
+  assert.doesNotMatch(fulfillment, /target=|window\.open/);
+  assert.doesNotMatch(fulfillment, /useRequireAuth/);
+});

@@ -296,10 +296,14 @@ test('live Marketplace frames use painted masters and retain no hover-only treat
   assert.match(legacyStyles, /rarityBadge:\s*\{[\s\S]*?button-secondary\.png/);
   assert.match(cart, /className=\{cartStyles\.cartItemFrame\}/);
   assert.match(cart, /className=\{cartStyles\.summaryFrame\}/);
-  assert.match(cartCss, /\.cartItemFrameTop,[\s\S]*?shark-panel\/top\.png/);
-  assert.match(cartCss, /\.cartItemFrameBody,[\s\S]*?shark-panel\/mid\.png/);
-  assert.match(cartCss, /\.cartItemFrameBottom,[\s\S]*?shark-panel\/bottom\.png/);
-  assert.match(cartCss, /\.summaryFrameBody\s*\{[\s\S]*?padding:/);
+  // Phase 7 (2026-09-19): the cart line and the summary are restrained chrome,
+  // not a three-slice painted housing with two empty aria-hidden slices.
+  assert.match(cartCss, /\.cartItemFrame,\s*\.summaryFrame \{[\s\S]*?border: 1px solid #23394a;/);
+  assert.match(cartCss, /\.cartItemFrameBody,\s*\.summaryFrameBody \{[\s\S]*?padding: 16px 20px;/);
+  assert.doesNotMatch(
+    cartCss.replace(/\/\*[\s\S]*?\*\//g, ''),
+    /FrameTop|FrameBottom|shark-panel\/(?:top|mid|bottom)\.png/
+  );
   assert.doesNotMatch(cart, /shark-panel\/bay\.png|spade-console\/mid\.png/);
   assert.doesNotMatch(`${cartCss}\n${navCss}\n${accountCss}`, /:hover/);
 });
