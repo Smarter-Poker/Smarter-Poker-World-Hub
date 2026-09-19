@@ -27,6 +27,7 @@
  */
 
 import { useRouter } from 'next/router';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
@@ -638,6 +639,8 @@ export default function TrainingPage() {
                 </div>
               )}
             </section>
+
+            <HubPageSummary page="training" />
 
           </main>
           </PullToRefresh>

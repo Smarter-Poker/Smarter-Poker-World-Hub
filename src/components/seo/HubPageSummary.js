@@ -61,6 +61,40 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms, Card Rooms And Casinos By State And City.' },
       { name: 'Poker Arena', href: '/hub/club-arena', text: 'Take The Game Online In A Private Club With Chips And Hand Histories.' },
       { name: 'Club Commander', href: '/hub/commander', text: 'Run A Venue Or A Recurring Game With Waitlists And Tournament Clocks.' },
+      { name: 'Home Games By State', href: '/hub/home-games/in', text: 'Every State And City With A Published Home Game, One Page Each.' },
+    ],
+  },
+  'poker-tours': {
+    heading: 'About The Poker Tours Directory',
+    lead:
+      'Poker Tours Is The Smarter Poker Directory Of Travelling Tournament Circuits. Each Tour Has Its Own Page With The Stops It Is Playing, The Events At Each Stop, Buy Ins, Start Times And Results As They Land. House Series That Run At A Single Property Are Listed Separately Further Up This Page. Everything Here Is Free To Read And Nothing On Smarter Poker Is Real-Money Gambling.',
+    links: [
+      { name: 'Poker Series', href: '/hub/poker-series', text: 'Every Individual Tournament Series Running Now Or Coming Up, With Schedules.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments And Dailies Across Every Venue In The Directory.' },
+      { name: 'Poker Venues', href: '/hub/poker-near-me/venues', text: 'The Rooms And Casinos These Tours Stop At, By State And City.' },
+    ],
+  },
+  'poker-series': {
+    heading: 'About The Poker Series Directory',
+    lead:
+      'Poker Series Is The Smarter Poker Directory Of Individual Tournament Series. Each Series Has Its Own Page Carrying The Venue, The Dates It Runs, The Events On Its Schedule And The Buy Ins, Whether It Belongs To A Travelling Tour Or Is Run By One Room. Series Pages Are Free To Read And Nothing On Smarter Poker Is Real-Money Gambling.',
+    links: [
+      { name: 'Poker Tours', href: '/hub/poker-tours', text: 'The Travelling Circuits These Series Belong To, Stop By Stop.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments And Dailies Across Every Venue In The Directory.' },
+      { name: 'Poker Venues', href: '/hub/poker-near-me/venues', text: 'The Rooms And Casinos Running These Series, By State And City.' },
+    ],
+  },
+  training: {
+    heading: 'About GTO Training On Smarter Poker',
+    lead:
+      'GTO Training Is The Smarter Poker Practice Room. Play Scenario Games Against Solver-Grade Ranges, Read Back Where A Decision Left Value Behind, Work Through Daily Challenges And Tournaments Against Other Players, And Upload Real Hand Histories For Review. Training Is Free And Uses Play Credits Only: There Is No Real-Money Gambling Anywhere On Smarter Poker.',
+    links: [
+      { name: 'Jarvis Hand Review', href: '/hub/training/jarvis', text: 'Walk A Hand Back Street By Street With A Solver-Grade Second Opinion.' },
+      { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Bring Real Sessions In And Have Them Read For Leaks.' },
+      { name: 'Solutions Library', href: '/hub/training/solutions', text: 'Worked Spots And The Reasoning Behind Each Line.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
+      { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Training Events With Standings And Prizes.' },
+      { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Opening And Defending Ranges By Position And Stack Depth.' },
     ],
   },
   'bankroll-manager': {

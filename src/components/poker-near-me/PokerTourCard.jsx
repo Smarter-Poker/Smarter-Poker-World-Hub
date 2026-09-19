@@ -5,6 +5,8 @@
  */
 import React from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { tourCanonical } from '../../lib/seo/tourPageSeo';
 
 // BUG FIX: `colors` and `typeInfo` were hardcoded literals despite the comment
 // "Default to circuit styling as fallback", so every tour rendered in identical
@@ -51,12 +53,15 @@ export default function PokerTourCard({ tourPin = {} }) {
     // "undefined, undefined" whenever those fields were absent.
     const locationText = tourPin.location || [tourPin.city, tourPin.state].filter(Boolean).join(', ');
 
+    // The same URL the sitemap offers, built once in src/lib/seo/tourPageSeo.js.
+    const detailHref = tourPin.tour_code ? tourCanonical(tourPin.tour_code) : null;
+
     return (
         <div 
             className="tour-card-premium" 
             style={{ marginBottom: 16 }}
             onClick={() => {
-                if (tourPin.tour_code) router.push('/hub/tours/' + tourPin.tour_code);
+                if (detailHref) router.push(detailHref);
             }}
         >
             {/* Card Header */}
@@ -102,7 +107,13 @@ export default function PokerTourCard({ tourPin = {} }) {
             {/* Card Footer */}
             <div className="tour-card-footer" style={{ marginTop: 16 }}>
                 <div className="tour-card-actions" style={{ marginLeft: 'auto' }}>
-                    <span className="tour-action-btn primary">Details</span>
+                    {detailHref ? (
+                        <Link href={detailHref} className="tour-action-btn primary" onClick={e => e.stopPropagation()}>
+                            Details
+                        </Link>
+                    ) : (
+                        <span className="tour-action-btn primary">Details</span>
+                    )}
                 </div>
             </div>
             

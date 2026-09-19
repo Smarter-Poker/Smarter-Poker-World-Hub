@@ -6,11 +6,14 @@
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import TourCard from '../../src/components/poker-series/TourCard';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import { tourCanonical } from '../../src/lib/seo/tourPageSeo';
 import { parseCalendarDate, parseStopDates, pokerCalendarStart } from '../../src/utils/tourGeoUtils';
 
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
@@ -80,7 +83,7 @@ function formatDate(dateStr) {
 // ═══════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════
-export default function PokerToursPage({ initialTours = [] }) {
+export default function PokerToursPage({ initialTours = [], houseSeries = [] }) {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuConfig = useMemo(() => getMenuConfig('events'), []);
@@ -744,9 +747,13 @@ export default function PokerToursPage({ initialTours = [] }) {
     }, []);
 
     // ─── Navigate to tour detail ───
+    // The card click and the card's Details link go to the same URL, and it is
+    // the URL the sitemap offers. Built once in pages/api/poker/tours.js, so a
+    // tour held under two database codes cannot send a click to the duplicate.
     const handleTourClick = useCallback((tour) => {
-        if (tour.tour_code) {
-            router.push('/hub/tours/' + tour.tour_code);
+        const href = tour.detail_path || (tour.tour_code ? tourCanonical(tour.tour_code) : null);
+        if (href) {
+            router.push(href);
         }
     }, [router]);
 
@@ -763,15 +770,17 @@ export default function PokerToursPage({ initialTours = [] }) {
                 <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
                     "@context": "https://schema.org",
                     "@type": "ItemList",
-                    "itemListElement": tours.map((t, i) => ({
-                        "@type": "ListItem",
-                        "position": i + 1,
-                        "item": {
-                            "@type": "EventSeries",
-                            "name": t.tour_name,
-                            "url": "https://smarter.poker/hub/tours/" + t.tour_code
-                        }
-                    }))
+                    "itemListElement": [...tours, ...houseSeries]
+                        .filter(t => t && t.detail_path && t.tour_name)
+                        .map((t, i) => ({
+                            "@type": "ListItem",
+                            "position": i + 1,
+                            "item": {
+                                "@type": "EventSeries",
+                                "name": t.tour_name,
+                                "url": "https://smarter.poker" + t.detail_path
+                            }
+                        }))
                 })}} />
 </Head>
 
@@ -996,6 +1005,37 @@ export default function PokerToursPage({ initialTours = [] }) {
                                 ))}
                             </div>
                         )}
+
+                        {/* ═══ HOUSE SERIES AT ONE VENUE ═══
+                            These are real pages in the sitemap that the
+                            traveling tours grid excludes on purpose, so
+                            nothing on the site linked to them and a crawler
+                            following links never reached any of the six.
+                            Server rendered, plain links, no filters. */}
+                        {houseSeries.length > 0 && (
+                            <section className="house-series" aria-labelledby="house-series-heading">
+                                <h2 id="house-series-heading" className="house-series-title">House Series At One Venue</h2>
+                                <p className="house-series-note">
+                                    These Series Run At A Single Property Rather Than Travelling
+                                    Between Stops, So They Sit Outside The Tour Grid Above. Each One
+                                    Keeps Its Own Schedule Page.
+                                </p>
+                                <ul className="house-series-list">
+                                    {houseSeries.filter(h => h && h.detail_path).map(h => (
+                                        <li key={h.tour_code}>
+                                            <Link href={h.detail_path} className="house-series-link">
+                                                <span className="house-series-name">{h.tour_name || h.tour_code}</span>
+                                                {h.headquarters && (
+                                                    <span className="house-series-where">{h.headquarters}</span>
+                                                )}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </section>
+                        )}
+
+                        <HubPageSummary page="poker-tours" />
                     </main>
                 </div>
 
@@ -1013,6 +1053,57 @@ export default function PokerToursPage({ initialTours = [] }) {
                 {/* STYLES — Reuses PNM architecture       */}
                 {/* ═══════════════════════════════════════ */}
                 <style suppressHydrationWarning>{`
+                    /* ═══ HOUSE SERIES INDEX ═══ */
+                    .house-series {
+                        width: min(calc(100% - 32px), 1200px);
+                        margin: 28px auto 8px;
+                        padding: 18px 20px 20px;
+                        border: 1px solid rgba(148,163,184,0.18);
+                        border-radius: 14px;
+                        background: rgba(15,23,42,0.45);
+                    }
+                    .house-series-title {
+                        margin: 0 0 6px;
+                        font-size: clamp(15px, 1.8vw, 19px);
+                        font-weight: 800;
+                        letter-spacing: 0.6px;
+                        color: #e2e8f0;
+                    }
+                    .house-series-note {
+                        margin: 0 0 14px;
+                        font-size: 13px;
+                        line-height: 1.55;
+                        color: rgba(148,163,184,0.85);
+                        max-width: 70ch;
+                    }
+                    .house-series-list {
+                        list-style: none;
+                        margin: 0;
+                        padding: 0;
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                        gap: 10px;
+                    }
+                    .house-series-link {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 3px;
+                        padding: 11px 13px;
+                        border: 1px solid rgba(148,163,184,0.22);
+                        border-radius: 10px;
+                        background: rgba(30,41,59,0.55);
+                        color: #f1f5f9;
+                        text-decoration: none;
+                        transition: border-color 0.15s ease, background 0.15s ease;
+                    }
+                    .house-series-link:hover,
+                    .house-series-link:focus-visible {
+                        border-color: rgba(56,189,248,0.6);
+                        background: rgba(30,41,59,0.85);
+                    }
+                    .house-series-name { font-size: 14px; font-weight: 700; }
+                    .house-series-where { font-size: 12px; color: rgba(148,163,184,0.8); }
+
                     .pnm-page {
                         min-height: 100vh;
                         padding-bottom: 70px;
@@ -1966,7 +2057,7 @@ export default function PokerToursPage({ initialTours = [] }) {
 // ═══════════════════════════════════════════════
 // ON-DEMAND STATIC DATA (ISR)
 // ═══════════════════════════════════════════════
-import { getAllToursForSSR } from '../api/poker/tours';
+import { getAllToursForSSR, getHouseSeriesForSSR } from '../api/poker/tours';
 
 
 // ─── Build-time safety valve ────────────────────────────────────────────────
@@ -1991,14 +2082,17 @@ function withBuildTimeout(promise, label) {
 
 export async function getStaticProps() {
     try {
-        const data = await withBuildTimeout(getAllToursForSSR(), 'poker-tours getAllToursForSSR');
-        
+        const [data, house] = await Promise.all([
+            withBuildTimeout(getAllToursForSSR(), 'poker-tours getAllToursForSSR'),
+            withBuildTimeout(getHouseSeriesForSSR(), 'poker-tours getHouseSeriesForSSR'),
+        ]);
+
         return {
-            props: { initialTours: data || [] },
+            props: { initialTours: data || [], houseSeries: house || [] },
             revalidate: 3600, // 60 second Edge caching
         };
     } catch (e) {
         console.warn('ISR Build Failed:', e.message);
-        return { props: { initialTours: [] }, revalidate: 3600 };
+        return { props: { initialTours: [], houseSeries: [] }, revalidate: 3600 };
     }
 }
