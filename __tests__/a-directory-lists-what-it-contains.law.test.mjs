@@ -261,3 +261,40 @@ test('the pages behind those families exist', () => {
     );
   }
 });
+
+/**
+ * A CAP ON THE CARDS IS NOT A CAP ON THE LINKS (AEO phase 3, 2026-09-19).
+ *
+ * /hub/poker-series renders SSR_SERIES_PREVIEW_LIMIT cards, ordered by what
+ * is running or starting soonest. That is the right page for a reader and it
+ * is why, measured after the directory started rendering links at all, 67 of
+ * the 225 series pages were still reachable from nowhere: the cap is a
+ * reading decision that silently became a crawling one.
+ *
+ * The index below the cards carries every series as a name and a link. This
+ * pins the difference: the preview may be capped, the index may not.
+ */
+test('the series index is not capped the way the cards are', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'pages/hub/poker-series.js'), 'utf8');
+
+  const index = src.match(/function buildSeriesIndex\(rows\)\s*\{[\s\S]*?\n\}/);
+  assert.ok(index, 'the series index is still built');
+  assert.doesNotMatch(
+    index[0],
+    /\.slice\(/,
+    'buildSeriesIndex must not cap the list. The cards are capped; the links '
+      + 'are how a crawler reaches a page, and a page the sitemap offers has '
+      + 'to have a road in.',
+  );
+
+  const preview = src.match(/function buildSeriesPreview\(rows, generatedAt\)\s*\{[\s\S]*?\n\}/);
+  assert.ok(preview, 'the capped card preview is still there');
+  assert.match(
+    preview[0],
+    /SSR_SERIES_PREVIEW_LIMIT/,
+    'and it is the one that carries the cap, so the two are not confused',
+  );
+
+  assert.match(src, /seriesIndex\.map\(/, 'the index is rendered, not only computed');
+  assert.match(src, /seriesIndex\s*=\s*buildSeriesIndex\(allData\)/, 'and built from every row, not the preview');
+});
