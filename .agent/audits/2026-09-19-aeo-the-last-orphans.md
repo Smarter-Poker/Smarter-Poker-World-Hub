@@ -71,3 +71,43 @@ If all four hold, reachability should read 1,191 of 1,191. That will be
 measured against production with
 `node scripts/aeo/crawl-reachability.mjs --depth 4`, not assumed, and the
 result recorded here.
+
+## Measured Again, After The Deploy
+
+```
+node scripts/aeo/crawl-reachability.mjs --depth 5 --max 700
+```
+
+```
+family                  in sitemap   reachable
+curated routes                  67          67  100%
+home game locations              4           4  100%
+venue pages                    478         478  100%
+location pages                 389         389  100%
+tour pages                      28          28  100%
+series pages                   225         225  100%
+                              ----        ----
+                              1191        1191  100%
+```
+
+Every page the sitemap offers can be found by following links from the
+front page, with no JavaScript.
+
+The path from 77 percent, for the record:
+
+```
+2026-09-19 morning   915 of 1191   77%   before any of this
+after the directories        1114  94%   cards became links
+after the last orphans       1191 100%   the index, the tabs, the
+                                          trivia link and the two
+                                          multi state venues
+```
+
+One caveat worth keeping. At depth 4 the total reads 1,186 and the five
+trivia mode pages are missing, not because nothing links to them but
+because `/hub/trivia` is itself four hops from the front page, so its
+children are five. They are reachable; they are deep. A crawler with a
+small budget for this site would still be likely to miss them, and a link
+to the trivia family from somewhere shallower would fix that. It is a
+depth problem now rather than a link problem, which is a different and
+smaller thing.
