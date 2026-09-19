@@ -148,3 +148,20 @@ summary would put the whole family within three.
 
 **Two venues**, 2834 and 2835, which were also out of reach before any of
 this. They appear on no location page.
+
+## The Tour Pages, Measured After Their Deploy
+
+Nineteen tour pages fetched from production as OAI-SearchBot with scripts
+stripped, once the stops shipped:
+
+```
+19 pages, 19 distinct bodies, 0 duplicates
+word counts 198 to 518, from a flat 190
+```
+
+Before, twelve sampled pages produced seven distinct bodies and four groups
+of byte identical twins. Every tour page now says something only that tour
+can say. The fifteen tours that live only in Supabase picked up their
+headquarters, founding year, regions and notes from the identity lookup
+that was already running, which is what separated EASTERNPT, WTP and TCH
+from each other.
