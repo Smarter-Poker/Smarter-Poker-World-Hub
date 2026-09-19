@@ -22,7 +22,14 @@ const pageToRoute = (file) => {
 };
 
 const ownsRoute = (route, prefix) => route === prefix || route.startsWith(`${prefix}/`);
-const pageOwnedFooterRoutes = new Set(['/hub/diamond-store', '/hub/marketplace']);
+const pageOwnedFooterRoutes = new Set([
+  '/hub/diamond-store',
+  '/hub/marketplace',
+  '/hub/vip-membership',
+  '/hub/merch-store',
+  '/hub/smarter-rewards',
+  '/hub/club-shop',
+]);
 
 const rows = walk(pagesRoot)
   .filter((file) => /\.(?:js|jsx|ts|tsx)$/.test(file))
@@ -79,13 +86,14 @@ const lines = [
   '- `/hub/club-arena/**` is an embedded application boundary; its internal footer remains owned and tested by Club Arena.',
   '- `/hub/diamond-store` owns one restrained, in-flow Marketplace commerce footer so the fixed illustrated footer cannot cover its product cards. Its Marketplace copy policy remains app-shell owned.',
   '- `/hub/marketplace` redirects in the same surface to `/hub/diamond-store` and therefore resolves to that same page-owned footer contract.',
+  '- `/hub/vip-membership`, `/hub/merch-store`, `/hub/smarter-rewards` and `/hub/club-shop` render the same Marketplace store page with a different initial tab, so they own the same in-flow commerce footer. The fixed illustrated footer previously covered the VIP plan purchase buttons and the Marketplace commerce links on these routes because no clearance was reserved for it.',
   '- `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.',
   '- Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.',
   '',
 ];
 
-if (rows.length !== 195) {
-  throw new Error(`Expected 195 applicable routes, found ${rows.length}`);
+if (rows.length !== 191) {
+  throw new Error(`Expected 191 applicable routes, found ${rows.length}`);
 }
 
 fs.writeFileSync(path.join(root, 'docs/world-hub-footer-route-matrix.md'), `${lines.join('\n')}\n`);

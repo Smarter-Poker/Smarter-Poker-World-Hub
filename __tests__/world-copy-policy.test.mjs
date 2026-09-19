@@ -48,7 +48,7 @@ test('all 203 owned physical routes receive the shared copy boundary', () => {
   assert.match(appSource, /worldCopyWorldId = routeWorldFooterConfig\?\.id \|\| null/);
   assert.match(
     appSource,
-    /bottomNavConfig = suppressWorldFooterOnDiamondStore[\s\S]*?\? null/
+    /bottomNavConfig = suppressWorldFooterOnMarketplaceStore[\s\S]*?\? null/
   );
   assert.match(appSource, /<WorldCopyPolicy worldId=\{worldCopyWorldId\}/);
   assert.equal(WORLD_COPY_SCOPE_CLASS, 'world-copy-scope');
