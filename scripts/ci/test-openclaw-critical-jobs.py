@@ -126,7 +126,91 @@ d._critical_record(TABLE, True)
 st = d._critical_state[TABLE]
 assert st.get('outcomes') == [], f'recovery must clear the outcome window: {st}'
 
-print('critical-jobs: OK (7 scenarios)')
+# 8. A LONG OUTAGE NEVER GOES QUIET.
+#
+# 2026-09-12 to 2026-09-18: the Club Commander login-bridge probe failed every
+# hour for six days because the Supabase service-role key had stopped being
+# registered for the project. It paged ONCE, on the second hour, and then the
+# dispatcher only logged. One missed SMS was the whole warning anyone got, and
+# the key stayed dead until a person happened to look.
+#
+# A still-failing episode now re-pages on an escalating ladder: +1h, +4h, then
+# daily. Elapsed time is simulated by moving last_page_at backwards, so the
+# test is deterministic and takes no wall-clock time.
+d._send_sms = lambda body, **kwargs: (sent.append(body) or True)
+d._critical_record(PROBE, True)              # close any open episode
+sent.clear()
+
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 1 and 'CRITICAL' in sent[0], sent
+st = d._critical_state[PROBE]
+assert st['pages_sent'] == 1, st
+assert st['failing_since'] > 0, 'the episode start must be recorded'
+
+# Still failing a minute later: no second page.
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 1, f'must not re-page a minute after the first page: {sent}'
+
+# An hour later: the first re-page, and it says how long it has been failing.
+st['last_page_at'] -= 3601
+st['failing_since'] -= 3601
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 2, f'must re-page an hour after the first page: {sent}'
+assert 'STILL FAILING' in sent[1], sent[1]
+assert ' for 1h' in sent[1], f'the re-page must carry the duration: {sent[1]}'
+assert 'Runbook:' in sent[1], 'the re-page must still name the runbook'
+assert st['pages_sent'] == 2, st
+
+# The ladder widens: an hour after the second page is NOT enough.
+st['last_page_at'] -= 3601
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 2, f'the second rung is four hours, not one: {sent}'
+
+# Four hours after the second page: the third.
+st['last_page_at'] -= (14400 - 3601 + 1)
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 3, f'must re-page four hours after the second page: {sent}'
+assert st['pages_sent'] == 3, st
+
+# And it holds at daily forever after, rather than going silent or storming.
+st['last_page_at'] -= 14401
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 3, f'the third rung is a day: {sent}'
+st['last_page_at'] -= (86400 - 14401 + 1)
+st['failing_since'] -= 86400 * 6
+d._critical_record(PROBE, False, 'HTTP 500 Unregistered API key')
+assert len(sent) == 4, f'must re-page daily while it stays broken: {sent}'
+assert 'd' in sent[3].split(' for ')[1][:4], f'a six-day fault must say so: {sent[3]}'
+
+# 9. The ladder state survives a restart, and recovery clears it.
+persisted = d._alert_persist.get(f'critical:{PROBE}')
+assert persisted.get('pages_sent') == 4, persisted
+assert persisted.get('last_page_at'), persisted
+assert persisted.get('failing_since'), persisted
+rehydrated = d._alert_bind(f'critical:{PROBE}', {'consec_fail': 0, 'alert_sent': False,
+                                                 'outcomes': []})
+assert rehydrated['pages_sent'] == 4, rehydrated
+assert rehydrated['last_page_at'] == persisted['last_page_at'], rehydrated
+
+before_recovery = len(sent)
+d._critical_record(PROBE, True)
+assert len(sent) == before_recovery + 1 and 'RECOVERED' in sent[-1], sent[-1]
+assert ' for ' in sent[-1], f'the recovery must say how long it was down: {sent[-1]}'
+st = d._critical_state[PROBE]
+assert st['pages_sent'] == 0 and st['failing_since'] == 0, \
+    f'recovery must close the episode completely: {st}'
+
+# 10. State written before this upgrade has no ladder fields. It must start the
+#     ladder rather than re-paging instantly on the first tick after a deploy.
+legacy = d._alert_bind('critical:legacy-probe', {'consec_fail': 5, 'alert_sent': True,
+                                                 'outcomes': []})
+assert 'pages_sent' not in legacy and 'last_page_at' not in legacy, legacy
+due = d._critical_repage_due_in(legacy)
+assert due > 3000, f'a legacy episode must wait a full rung, not page at once: {due}'
+assert d._critical_duration_suffix(legacy) == '', 'unknown episode age prints nothing'
+
+print('critical-jobs: OK (10 scenarios)')
 
 # Offline delivery keeps both transitions and preserves receipt identity.
 attempts = []
