@@ -187,10 +187,18 @@
 
 .categoryControlSelected,
 .optionControlSelected,
+/* One primary action per card.
+
+   actionPrimary and actionDiamond both used button-primary.png, and
+   actionControl gave all four actions the same 48px height, weight 800 and
+   13px size. Measured on production, View Details, Add To Cart, Buy With Card
+   and Pay With Diamonds rendered with identical background-color, font-weight
+   and font-size: four equally dominant calls to action with nothing to say
+   which one was the main path. Each action now sits at its own weight, and
+   every path stays wired and visible. */
 .actionPrimary,
-.actionDiamond,
 .wishlistControlSelected {
-  color: #dff9ff;
+  color: #eafcff;
   background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
 }
 
@@ -295,11 +303,10 @@
   color: #ff6b6b;
 }
 
+/* Sits beside the product name, not over the photograph. */
 .wishlistControl {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
   display: inline-flex;
+  flex: none;
   min-width: 76px;
   min-height: 44px;
   align-items: center;
@@ -307,6 +314,13 @@
   padding: 5px 18px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .cardBody {
@@ -462,16 +476,37 @@
   cursor: pointer;
 }
 
-.actionSecondary {
-  color: #c9eaf3;
+/* Primary: the default settlement path. */
+.actionPrimary {
+  min-height: 54px;
+  font-size: 14px;
+  letter-spacing: 0.032em;
 }
 
-.actionGold {
-  color: #f6d76d;
-}
-
+/* Secondary: the alternate settlement path, still a painted commerce control
+   so the Diamond route reads as a real option, one step below primary. */
 .actionDiamond {
-  color: #dffaff;
+  min-height: 48px;
+  color: #8fe8ff;
+  font-size: 13px;
+}
+
+/* Tertiary: deferred purchase. */
+.actionGold {
+  min-height: 44px;
+  color: #f6d76d;
+  font-size: 12px;
+}
+
+/* Quaternary: navigation, not commerce, so it carries no painted plate. */
+.actionSecondary {
+  min-height: 44px;
+  border: 1px solid #23394a;
+  color: #a9c2ce;
+  background-color: #060d13;
+  background-image: none;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .actionControl:disabled {
