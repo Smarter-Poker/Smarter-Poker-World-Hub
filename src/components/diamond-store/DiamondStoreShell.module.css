@@ -729,15 +729,16 @@
   text-transform: capitalize;
 }
 
+/* A category label is a span, not a control. It wore the secondary button
+   plate, which is the same surface the real purchase buttons use. */
 .clubItemCategory {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 7px 16px !important;
-  border: 0 !important;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat !important;
-  color: #e7f9ff !important;
+  padding: 6px 12px !important;
+  border: 1px solid #23394a !important;
+  background: #070e15 !important;
+  color: #cfe6f0 !important;
   font:
     800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
@@ -767,9 +768,9 @@
   letter-spacing: 0.05em;
 }
 
+/* The 190px floor never applied: measured content is 237-241px. */
 .clubItemBody {
   display: flex;
-  min-height: 190px;
   flex-direction: column;
   padding: 18px !important;
 }
@@ -801,7 +802,9 @@
 
 .clubItemActions button {
   display: inline-flex;
-  min-height: 42px;
+  /* Was 42px and beaten to 44px by a later, more specific rule. Stating 44
+     here so the source says what production does. */
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 6px;
