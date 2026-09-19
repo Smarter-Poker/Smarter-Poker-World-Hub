@@ -1,4 +1,5 @@
 import React from 'react';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import dynamic from 'next/dynamic';
 /**
  * SMARTER.POKER NEWS HUB - REDESIGNED UI
@@ -210,6 +211,9 @@ export async function getServerSideProps({ req, res }) {
 }
 
 export default function NewsHubPage({ fallback }) {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19).
+    const hasMounted = useHasMounted();
   return (
     <SWRConfig value={{ fallback: fallback || {} }}>
       <NewsHub />
@@ -1981,7 +1985,7 @@ function NewsHub() {
                                                     <ChevronRight size={20} />
                                                 </button>
                                             </div>
-                                        ) : reelsLoading ? (
+                                        ) : hasMounted && reelsLoading ? (
                                             <div className="reels-empty-state">
                                                 <div className="loading-spinner" />
                                                 <span>Loading Reels...</span>
@@ -2010,7 +2014,7 @@ function NewsHub() {
                                         Short-Form Poker Content From Top YouTube Channels - Updated Daily
                                     </p>
 
-                                    {reelsLoading ? (
+                                    {hasMounted && reelsLoading ? (
                                         <div className="no-results" role="status">
                                             <div className="loading-spinner" />
                                             <p>Loading Reels...</p>
