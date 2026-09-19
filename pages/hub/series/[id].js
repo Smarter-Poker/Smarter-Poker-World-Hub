@@ -7,6 +7,7 @@
 
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import useHasMounted from '../../../src/hooks/useHasMounted';
 import {
   fetchSeries,
   formatRange,
@@ -488,6 +489,7 @@ function formatEventDay(iso) {
 }
 
 export default function SeriesDetailPage({ seoSeries = null }) {
+  const hasMounted = useHasMounted();
   const router = useRouter();
   const { id } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -745,10 +747,16 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <main className="series-page" data-pnm-secondary-foundation="interaction-v1">
           <SeriesSummary series={seoSeries} />
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <p className="loading-text">Loading Series Details...</p>
-          </div>
+          {/* The spinner is for the reader who is waiting. On the server
+              nothing is waiting, and the summary above already carries the
+              schedule, so saying it is still loading contradicts the page it
+              sits in (AEO phase 3, 2026-09-19). */}
+          {hasMounted && (
+            <div className="loading-container">
+              <div className="loading-spinner" />
+              <p className="loading-text">Loading Series Details...</p>
+            </div>
+          )}
         </main>
         <style suppressHydrationWarning>{styles}</style>
       </>

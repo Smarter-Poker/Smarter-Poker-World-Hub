@@ -5,6 +5,7 @@
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
+import useHasMounted from '../../../src/hooks/useHasMounted';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
@@ -254,6 +255,7 @@ export async function getServerSideProps({ params, res }) {
 }
 
 export default function TourDetailPage({ seo, stops = [], events = [], facts = null }) {
+  const hasMounted = useHasMounted();
   const router = useRouter();
   const { code } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -524,7 +526,11 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
       )}
 
       <main className="tour-page" data-pnm-secondary-foundation="interaction-v1">
-        {loading && (
+        {/* The spinner is for the reader who is waiting. On the server
+            nothing is waiting, and the summary already carries the stops, so
+            saying it is still loading contradicts the page it sits in
+            (AEO phase 3, 2026-09-19). */}
+        {hasMounted && loading && (
           <div className="loading-container">
             <div className="loading-spinner" />
             <p className="loading-text">Loading Tour Details...</p>
