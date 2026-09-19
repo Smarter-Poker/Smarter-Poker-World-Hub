@@ -76,3 +76,37 @@ object the series already publishes, so the same string appears once per
 page rather than once per event in a new place. It should be fixed at the
 source, and the fix is bounded: the city list in `data/all-venues.json`
 covers 658 venues, and every one of the 64 ends with a city from it.
+
+## Measured After The Deploy
+
+All 225 series pages fetched from production as OAI-SearchBot, scripts
+stripped:
+
+```
+                       before        after
+words, median             139          156
+words, largest            150        2,524
+pages showing a schedule    0           68
+pages saying plainly that
+  none is published yet     0          157
+Event nodes in the graph    0          147  (across 17 pages)
+```
+
+68 and 157 add to 225: every page either shows its schedule or says it has
+none. No page still promises one it does not have.
+
+The 147 Event nodes come from the 17 series that carry both events and a
+place. The other 51 with events have no venue and no city, so their
+schedules are on the page for a reader and out of the graph, which is the
+data gap recorded above.
+
+## A 404 Found While Checking This
+
+Four of the 225 answered 404 during the check, from the edge, with
+`x-vercel-cache: HIT` and an age past four minutes, while the same URLs
+with a cache busting parameter answered 200 and the API answered 200 for
+every one of them. They cleared on their own after about fifteen minutes.
+
+That is written up in its own note. It is not caused by this change and it
+predates it; it was found because this change gave a reason to fetch all
+225 pages twice.
