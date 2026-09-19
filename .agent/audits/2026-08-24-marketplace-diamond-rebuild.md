@@ -156,8 +156,14 @@ toasts and cleanup. No real purchase or settlement was executed.
 - Portable policy/canonical consistency and exact-candidate delivery planning
   passed; delivery is classified as client/tooling/documentation/verification
   with no engine activation required.
-- Focused Chromium browser contract: 1/1 passed using an ignored empty local
-  auth state; it verified all eight complete offer anatomies.
+- Exact integrated-candidate Chromium browser contracts: 3/3 passed without
+  the credential-dependent setup project. Deterministic mocked account/catalog
+  state verified all eight offer anatomies, responsive starter geometry,
+  variable-catalog completeness, one in-flow footer, retained Marketplace copy
+  policy, one deduplicated checkout request and same-tab navigation.
+- Full repository production build, including its prebuild suites, Marketplace
+  suite, static generation of 386 pages and postbuild performance budget,
+  passed on integrated candidate `a3995c6aae2f`.
 - Responsive browser matrix passed at 1280x1000, 900x1000, 640x900, 390x844
   and 375x812: no horizontal document overflow, one Store Sections nav, one
   in-flow footer, zero fixed footer overlays, eight complete offers, visible
