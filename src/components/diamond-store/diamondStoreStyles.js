@@ -1033,8 +1033,8 @@ const styles = {
   },
   benefitCard: {
     display: 'flex',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 14,
     padding: '14px 16px',
   },
   benefitIcon: {
@@ -1046,19 +1046,28 @@ const styles = {
     flex: 1,
   },
   benefitTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#E4E6EB',
+    fontSize: 15,
+    fontWeight: 700,
+    lineHeight: 1.35,
+    color: '#EEF6FB',
   },
+  // 11px at rgba(255,255,255,0.5) measured under 4.5:1 on the card surface and
+  // was the smallest text on the page. Entitlement copy is the reason a shopper
+  // is on this page, so it is sized and contrasted to be read.
   benefitDesc: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 1.5,
+    color: 'rgba(233, 243, 250, 0.78)',
   },
   benefitValue: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#00d4ff',
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    fontSize: 13,
+    fontWeight: 700,
+    color: '#58BFE9',
     textAlign: 'right',
+    whiteSpace: 'nowrap',
   },
   valueComparison: {
     display: 'flex',
