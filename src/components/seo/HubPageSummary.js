@@ -96,6 +96,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
       { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Training Events With Standings And Prizes.' },
       { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Opening And Defending Ranges By Position And Stack Depth.' },
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Quiz Games On Rules, Odds And History, With Leaderboards.' },
     ],
   },
   'bankroll-manager': {

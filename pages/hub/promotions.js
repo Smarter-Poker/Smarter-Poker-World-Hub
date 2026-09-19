@@ -5,6 +5,7 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
@@ -58,6 +59,9 @@ function getDetailUrl(pageType, pageId) {
 }
 
 export default function PromotionsPage() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19).
+    const hasMounted = useHasMounted();
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-promotions', 'all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -213,7 +217,7 @@ export default function PromotionsPage() {
                         by somebody else. */}
                     <HubPromoRail limit={3} />
 
-                    {loading ? (
+                    {hasMounted && loading ? (
                         <div className="state-box">
                             <div className="spinner" />
                             <p>Loading Promotions...</p>

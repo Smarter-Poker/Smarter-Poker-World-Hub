@@ -9,6 +9,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import dynamic from 'next/dynamic';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -100,7 +101,7 @@ import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommer
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
   loading: () => (
     <div className={shellStyles.loadingPanel} role="status" aria-live="polite">
-      Loading Merch Store...
+      <MerchStoreLoadingText />
     </div>
   ),
 });
@@ -433,6 +434,23 @@ export async function getServerSideProps({ res }) {
     console.warn('[Diamond Store] Server Catalog Read Failed:', error?.message || error);
     return { props: fallbackProps };
   }
+}
+
+/**
+ * The words, once a browser is actually waiting for them (AEO phase 3,
+ * 2026-09-19). These loading branches render on the server, so the store
+ * told every crawler it was still loading. The branch and the box stay
+ * exactly as they were, so nothing about the layout or the auth flow
+ * changes; only the sentence waits for someone who can read it.
+ */
+function ClubShopLoadingText() {
+  const hasMounted = useHasMounted();
+  return hasMounted ? <>Loading Club Shop...</> : null;
+}
+
+function MerchStoreLoadingText() {
+  const hasMounted = useHasMounted();
+  return hasMounted ? <>Loading Merch Store...</> : null;
 }
 
 export default function DiamondStorePage({
@@ -4572,7 +4590,7 @@ export default function DiamondStorePage({
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading Club Shop...
+                      <ClubShopLoadingText />
                     </div>
                   ) : !committedStoreAccountId ? (
                     <div style={{ textAlign: 'center', padding: 40 }}>
@@ -4621,7 +4639,7 @@ export default function DiamondStorePage({
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading Club Shop...
+                      <ClubShopLoadingText />
                     </div>
                   ) : !clubShopClubId ? (
                     clubShopLoaded ? (
@@ -4641,7 +4659,7 @@ export default function DiamondStorePage({
                         aria-live="polite"
                         style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                       >
-                        Loading Club Shop...
+                        <ClubShopLoadingText />
                       </div>
                     )
                   ) : !clubShopSnapshotOwned ? (
@@ -4650,7 +4668,7 @@ export default function DiamondStorePage({
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading Club Shop...
+                      <ClubShopLoadingText />
                     </div>
                   ) : (
                     <div className={shellStyles.clubShopSurface}>

@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
@@ -64,11 +65,24 @@ const WorldHub = dynamic(
                 fontFamily: 'Orbitron, sans-serif',
                 fontSize: 18,
             }}>
-                Loading World Hub...
+                <WorldHubLoadingText />
             </div>
         ),
     }
 );
+
+/**
+ * The words, once a browser is actually waiting for them (AEO phase 3,
+ * 2026-09-19). With ssr: false, Next renders this loading component on the
+ * server, so "Loading World Hub..." was the first sentence of the front
+ * door of the hub for every crawler that does not run JavaScript, above a
+ * summary that describes the page perfectly well. The box stays, so the
+ * layout does not move; the sentence waits for someone to read it.
+ */
+function WorldHubLoadingText() {
+    const hasMounted = useHasMounted();
+    return hasMounted ? <>Loading World Hub...</> : null;
+}
 
 export default function HubPage() {
     const [menuOpen, setMenuOpen] = useState(false);
