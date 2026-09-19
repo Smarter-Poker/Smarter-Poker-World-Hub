@@ -152,6 +152,137 @@ export const HUB_PAGE_SUMMARIES = {
     ],
   },
 
+  /*
+   * THE POKER NEAR ME TABS (AEO phase 3, 2026-09-19).
+   *
+   * Measured on production as OAI-SearchBot with scripts stripped, all
+   * eleven tabs of /hub/poker-near-me/[pnmTab] served the same document.
+   * /hub/poker-near-me/tours and /hub/poker-near-me/series came to 351 words
+   * each and differed in three of them: the title, the h1, and one label in
+   * the nav. Every other tab measured 350 to 355 words of the same venue
+   * lobby chrome.
+   *
+   * ROUTE_META already gave each tab its own title and description. What no
+   * tab had was a body, so to a crawler they were one page under eleven
+   * URLs, and the tab that the family nav points at outranked the standalone
+   * directory that actually holds the content.
+   *
+   * Each tab now says what it is and links where it leads. The copy is the
+   * differentiator and the links are the road: this is also what puts
+   * /hub/poker-tours, /hub/poker-series, /hub/daily-tournaments and
+   * /hub/events-calendar within one hop of every discovery page.
+   */
+  'pnm-venues': {
+    heading: 'About The Poker Venue Directory',
+    lead:
+      'This Is The Live Poker Venue Directory: Casinos, Card Rooms And Poker Rooms Across The United States, With The Games They Spread, The Stakes They Run, Their Hours And Their Location. Each Venue Has Its Own Page Carrying Its Schedule And What The Room Was Last Verified To Offer, With The Date It Was Checked. Filter By State And City, By Game, Or By Distance From Where You Are.',
+    links: [
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room, One Page Each.' },
+      { name: 'Live Cash Games', href: '/hub/poker-near-me/live-games', text: 'What Is Running Right Now, Room By Room.' },
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'The Same Directory As A Map You Can Pan.' },
+    ],
+  },
+  'pnm-map': {
+    heading: 'About The Poker Room Map',
+    lead:
+      'The Poker Room Map Plots Every Casino, Card Room And Poker Room In The Directory So You Can See What Is Near You Rather Than Reading A List. Pan Anywhere And The Map Searches That View. Each Pin Opens The Venue With Its Games, Stakes, Hours And Schedule. Tour Stops And Running Series Appear On The Same Map, So A Trip Can Be Planned Around Both.',
+    links: [
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Same Rooms As A Filterable List.' },
+      { name: 'Road Trip Planner', href: '/hub/poker-near-me/roadtrip', text: 'Poker Rooms Along A Route You Are Driving.' },
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room.' },
+    ],
+  },
+  'pnm-live-games': {
+    heading: 'About Live Cash Games Near You',
+    lead:
+      'Live Cash Games Shows What Is Actually Running: Which Rooms Have Tables Open, At What Stakes And In What Games. Observed Table Counts Come From The Room Or Its Feed And Are Labelled As Observed. Where No Feed Exists, A Modelled Estimate Is Shown And Labelled As Modelled, Because A Guess Presented As A Fact Is Worse Than No Number At All.',
+    links: [
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Every Room In The Directory With Its Full Detail.' },
+      { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Tournaments Running Today And Tomorrow.' },
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See Which Of These Rooms Is Closest.' },
+    ],
+  },
+  'pnm-tours': {
+    heading: 'About Poker Tours Near You',
+    lead:
+      'This Tab Shows Travelling Poker Tours Through The Lens Of Where You Are: Which Circuits Are Stopping Nearby, When, And At Which Room. A Tour Is A Series Of Stops Rather Than A Single Event, So The Stop Matters As Much As The Tour. The Full Tour Directory, With A Page Per Circuit And Every Stop It Is Playing, Is Linked Below.',
+    links: [
+      { name: 'Poker Tours Directory', href: '/hub/poker-tours', text: 'Every Travelling Circuit, With A Page Per Tour.' },
+      { name: 'Poker Series Directory', href: '/hub/poker-series', text: 'The Individual Series These Tours Are Built From.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments Across Every Venue.' },
+    ],
+  },
+  'pnm-series': {
+    heading: 'About Poker Series Near You',
+    lead:
+      'This Tab Shows Tournament Series Through The Lens Of Where You Are: What Is Running Now Or Starting Soon Within Reach, At Which Venue, And Over Which Dates. A Series Is A Run Of Events At One Property Rather Than A Single Tournament. The Full Series Directory, With A Page Per Series Carrying Its Schedule And Buy Ins, Is Linked Below.',
+    links: [
+      { name: 'Poker Series Directory', href: '/hub/poker-series', text: 'Every Series, With A Page Per Series And Its Schedule.' },
+      { name: 'Poker Tours Directory', href: '/hub/poker-tours', text: 'The Travelling Circuits Many Of These Series Belong To.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments Across Every Venue.' },
+    ],
+  },
+  'pnm-daily-tournaments': {
+    heading: 'About Daily Poker Tournaments Near You',
+    lead:
+      'Daily Tournaments Are The Recurring Events A Room Runs On A Schedule Rather Than As Part Of A Series: The Nightly Bounty, The Weekend Deepstack, The Morning Turbo. This Tab Filters Them By Day, Game, Buy In, Guarantee And Distance, So A Tournament You Can Actually Get To Is The One You See First.',
+    links: [
+      { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Full Daily Tournament Listing Across Every Room.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Everything Scheduled, Laid Out By Date.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Rooms Running These Tournaments.' },
+    ],
+  },
+  'pnm-events-calendar': {
+    heading: 'About The Poker Events Calendar Near You',
+    lead:
+      'The Events Calendar Lays Out Poker Tournaments And Live Events By Date Rather Than By Venue, So A Week Or A Month Can Be Read At A Glance. Series Events, Tour Stops And A Room Own Dailies All Appear On The Same Calendar, With The Venue, Buy In And Start Time On Each Entry.',
+    links: [
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'The Full Calendar Across Every Venue In The Directory.' },
+      { name: 'Poker Series Directory', href: '/hub/poker-series', text: 'The Series These Events Belong To.' },
+      { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Recurring Events A Room Runs On A Schedule.' },
+    ],
+  },
+  'pnm-more': {
+    heading: 'About The Poker Discovery Tools',
+    lead:
+      'Discovery Tools Are The Parts Of Poker Near Me That Answer A Question Rather Than List A Place: Compare Two Venues Side By Side, Read Game Trends And Peak Hours For A Room, Estimate What A Trip Will Cost, And Set Alerts For Games And Tournaments You Want To Hear About. Every Tool Reads The Same Verified Venue Directory.',
+    links: [
+      { name: 'Road Trip Planner', href: '/hub/poker-near-me/roadtrip', text: 'Poker Rooms Along A Route You Are Driving.' },
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See The Whole Directory Geographically.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Rooms Behind Every Tool On This Page.' },
+    ],
+  },
+  'pnm-roadtrip': {
+    heading: 'About The Poker Road Trip Planner',
+    lead:
+      'The Road Trip Planner Takes A Start And An End Point And Finds The Poker Rooms Along The Way Rather Than The Ones Nearest Your Home. Stops Are Shown With Their Games, Stakes And Hours, And With Whatever Tournaments Or Series Are Running While You Would Be Passing Through, So A Drive Can Be Built Around The Poker Instead Of The Other Way Round.',
+    links: [
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See The Route And The Rooms On One Map.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Full Detail On Any Room On The Route.' },
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City The Route Passes Through.' },
+    ],
+  },
+  'pnm-saved': {
+    heading: 'About Saved Poker Places',
+    lead:
+      'Saved Places Is Your Own Shortlist Of Poker Rooms, Home Games, Tours And Series, Kept In One Workspace So You Do Not Have To Search For The Same Venue Twice. Save A Room You Plan To Visit, A Series You Are Watching The Schedule Of, Or A Home Game You Have Asked To Join, And They Stay Together With Their Current Details Rather Than A Snapshot. Saved Places Is Private To Your Account, So This Page Is Not Published Or Indexed.',
+    links: [
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Find More Rooms To Save.' },
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room.' },
+      { name: 'Poker Near Me Lobby', href: '/hub/poker-near-me/lobby', text: 'The Command Deck For Live Poker Discovery.' },
+    ],
+  },
+  'pnm-alerts': {
+    heading: 'About Poker Tournament Alerts',
+    lead:
+      'Alerts Tell You When Something You Care About Is Happening Nearby: A Tournament At A Buy In You Play, A Cash Game Running At Your Stakes, Or A Series Starting Within A Distance You Set. Set The Radius, The Days And The Games Once, And The Alert Watches The Same Verified Directory The Rest Of Poker Near Me Reads. Alerts Are Configured Per Account And Are Private, So This Page Is Not Published Or Indexed.',
+    links: [
+      { name: 'Live Cash Games', href: '/hub/poker-near-me/live-games', text: 'What Is Running Right Now Without Waiting For An Alert.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Pick The Rooms Worth Hearing About.' },
+      { name: 'Poker Near Me Lobby', href: '/hub/poker-near-me/lobby', text: 'The Command Deck For Live Poker Discovery.' },
+    ],
+  },
+
   // AEO phase 3 (2026-09-17). Measured on production as OAI-SearchBot with
   // scripts and styles stripped, the five Club Commander player pages
   // returned between 59 and 76 words, and every one of those words was a

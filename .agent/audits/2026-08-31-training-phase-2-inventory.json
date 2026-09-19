@@ -35906,7 +35906,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 494,
+          "line": 625,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35916,7 +35916,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 503,
+          "line": 634,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -35926,7 +35926,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 506,
+          "line": 637,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -35966,7 +35966,7 @@
       "functions": [
         {
           "name": "HubPageSummary",
-          "line": 467,
+          "line": 598,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -65666,11 +65666,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:494:1",
+      "id": "src/components/seo/HubPageSummary.js:625:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 494,
+      "line": 625,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -65679,11 +65679,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:503:2",
+      "id": "src/components/seo/HubPageSummary.js:634:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 503,
+      "line": 634,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -65692,11 +65692,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:506:3",
+      "id": "src/components/seo/HubPageSummary.js:637:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 506,
+      "line": 637,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -89473,7 +89473,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 467,
+        "line": 598,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -89497,6 +89497,7 @@
           "pages/hub/news.js",
           "pages/hub/news/sources.js",
           "pages/hub/pages.js",
+          "pages/hub/poker-near-me/[pnmTab].js",
           "pages/hub/poker-near-me/lobby.js",
           "pages/hub/poker-series.js",
           "pages/hub/poker-tours.js",
@@ -98278,7 +98279,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 467,
+        "line": 598,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98302,6 +98303,7 @@
           "pages/hub/news.js",
           "pages/hub/news/sources.js",
           "pages/hub/pages.js",
+          "pages/hub/poker-near-me/[pnmTab].js",
           "pages/hub/poker-near-me/lobby.js",
           "pages/hub/poker-series.js",
           "pages/hub/poker-tours.js",
