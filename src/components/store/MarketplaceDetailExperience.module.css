@@ -31,9 +31,15 @@
   gap: 8px;
 }
 
+/* The separators are text, not targets, so only the links are widened. A short
+   last crumb such as "Manage" measured 37.2px across at desktop widths: tall
+   enough to press, too narrow. The rule is inert on every crumb whose own text
+   already runs past 44px, which is all of the rest of them. */
 .breadcrumbs a {
   color: inherit;
   text-decoration: none;
+  min-width: 44px;
+  justify-content: center;
 }
 
 .breadcrumbs a[aria-current='page'] {

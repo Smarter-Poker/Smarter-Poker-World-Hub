@@ -79,7 +79,12 @@ test('exposes rewards, club filters, fields, and status changes semantically', (
 
 test('gives merchandise cards useful structure and product-specific purchase names', () => {
   assert.match(merch, /<article[\s\S]{0,240}aria-labelledby=\{titleId\}/);
-  assert.match(merch, /<h4\s+id=\{titleId\}/);
+  // The product name is still the card's labelling heading. Its level is no
+  // longer fixed at h4: a detail page renders no category h3, so the card takes
+  // that level instead of skipping it. See
+  // __tests__/marketplace-accessibility-outline-and-targets.test.mjs.
+  assert.match(merch, /const ProductHeading = `h\$\{headingLevel\}`;/);
+  assert.match(merch, /<ProductHeading\s+id=\{titleId\}/);
   assert.match(merch, /aria-label=\{`Buy \$\{product\.name\} With Card For/);
   assert.match(
     merch,

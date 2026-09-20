@@ -370,7 +370,11 @@ function MerchProductCard({
   onBuyCard,
   onBuyDiamonds,
   mediaPriority = false,
+  headingLevel = 4,
 }) {
+  // A product detail page drops the category heading, so the card title has to
+  // step up a level or the outline skips from the console's h2 straight to h4.
+  const ProductHeading = `h${headingLevel}`;
   const reactCardId = useId();
   const productDomToken =
     String(product.catalogId || product.key || reactCardId)
@@ -501,9 +505,9 @@ function MerchProductCard({
           {/* The favorite control used to sit on top of the product
               photograph. It belongs beside the name it saves. */}
           <div className={merchStyles.titleRow}>
-            <h4 id={titleId} className={merchStyles.productTitle}>
+            <ProductHeading id={titleId} className={merchStyles.productTitle}>
               {product.name}
-            </h4>
+            </ProductHeading>
             <button
               type="button"
               aria-label={
@@ -1565,8 +1569,12 @@ export default function MerchStore({
           }
         }
       `}</style>
+      {/* A div with no role is generic, and assistive technology drops a name
+          on it. In detail mode this console is a named area the page links to,
+          so it is announced as the region it already reads as. */}
       <div
         id={detailMode ? 'purchase-console' : undefined}
+        role={detailMode ? 'region' : undefined}
         aria-label={detailMode ? 'Live Product Purchase Console' : undefined}
         className={merchStyles.storefront}
         style={detailMode ? { scrollMarginTop: 96 } : undefined}
@@ -1717,6 +1725,7 @@ export default function MerchStore({
                   onBuyCard={handleBuyCard}
                   onBuyDiamonds={handleBuyDiamonds}
                   mediaPriority={section.key === sections[0]?.key && productIndex < 2}
+                  headingLevel={detailMode ? 3 : 4}
                 />
               ))}
             </div>

@@ -122,6 +122,136 @@ test('a stale snapshot does not outlive the world it pictured', () => {
     }
 });
 
+// ---------------------------------------------------------------------------
+// 2026-09-19. The same failure, twice more, found by running the gate by hand
+// after the Marketplace restoration rather than by anything watching it.
+//
+// One: Phase 2 gave five Marketplace stores their own in-flow commerce footer
+// and excluded them from the global matrix in pages/_app.js and in the matrix
+// generator. The Playwright spec kept its own third copy of that set and was
+// not updated, so it walked 194 routes against a document that states 191 and
+// demanded a global footer on four routes that deliberately no longer have one.
+//
+// Two: the Poker Arena lobby assertion read
+// `getByRole('navigation', { name: 'Poker Arena' })`. Playwright matches that
+// name as a case-insensitive SUBSTRING unless told otherwise, so when the lobby
+// gained an in-content "Poker Arena Resources" links list the gate reported a
+// footer on a page that renders none.
+//
+// Neither could block anything: Global Footer E2E is still not a required
+// check. Both are pinned here instead, in the file `prebuild` runs, because a
+// check that nobody can see is not a check.
+
+const FOOTER_SPEC = 'e2e/global-footer-visual.spec.ts';
+const MATRIX_GENERATOR = 'scripts/generate-world-footer-route-matrix.mjs';
+const APP = 'pages/_app.js';
+
+// The one route excluded from the matrix that the runtime does not suppress:
+// it answers on the server with a redirect, so there is no footer to remove.
+const REDIRECT_ONLY_ROUTE = '/hub/marketplace';
+
+const routeSet = (rel, identifier) => {
+    const source = read(rel);
+    const opening = new RegExp(`${identifier}\\s*=\\s*new Set\\(\\[`).exec(source);
+    assert.ok(opening, `${rel} no longer declares ${identifier} as a Set literal`);
+    const start = opening.index + opening[0].length;
+    const end = source.indexOf(']', start);
+    assert.ok(end > start, `${rel} declares ${identifier} without a closing bracket`);
+    return source.slice(start, end)
+        .split(',')
+        .map((entry) => entry.replace(/\/\/.*$/gm, '').trim())
+        .filter(Boolean)
+        .map((entry) => {
+            const quoted = /^['"](.+)['"]$/.exec(entry);
+            assert.ok(quoted, `${rel} lists a non-literal route in ${identifier}: ${entry}`);
+            return quoted[1];
+        })
+        .sort();
+};
+
+test('the walk and the document it is measured against exclude the same routes', () => {
+    // The spec asserts its walked length equals the total printed in
+    // docs/world-hub-footer-route-matrix.md. That total is produced by the
+    // generator. If the two exclusion sets disagree the walk cannot match the
+    // document, and the failure reads as a route-count drift rather than as
+    // the stale copy it is.
+    assert.deepEqual(
+        routeSet(FOOTER_SPEC, 'PAGE_OWNED_FOOTER_ROUTES'),
+        routeSet(MATRIX_GENERATOR, 'pageOwnedFooterRoutes'),
+        `${FOOTER_SPEC} and ${MATRIX_GENERATOR} must exclude exactly the same routes`,
+    );
+});
+
+test('the runtime suppresses the global footer on every excluded route that renders', () => {
+    const excluded = routeSet(MATRIX_GENERATOR, 'pageOwnedFooterRoutes');
+    assert.deepEqual(
+        routeSet(APP, 'MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES'),
+        excluded.filter((route) => route !== REDIRECT_ONLY_ROUTE),
+        `${APP} must suppress the footer on every excluded route but ${REDIRECT_ONLY_ROUTE}`,
+    );
+    assert.ok(excluded.includes(REDIRECT_ONLY_ROUTE), `${REDIRECT_ONLY_ROUTE} must stay excluded`);
+
+    // Stated separately so a wrong exclusion cannot make the asymmetry above
+    // vacuously correct: that route is excluded because it renders nothing.
+    const stub = read('pages/hub/marketplace.js');
+    assert.match(stub, /export async function getServerSideProps/);
+    assert.match(stub, /redirect:\s*\{/);
+    assert.match(stub, /destination:\s*`\/hub\/diamond-store\$\{query\}`/);
+    assert.match(stub, /return null;/);
+});
+
+test('every route the walk excludes is still a page', () => {
+    for (const route of routeSet(MATRIX_GENERATOR, 'pageOwnedFooterRoutes')) {
+        const base = join(ROOT, 'pages', route.replace(/^\//, ''));
+        const found = ['.js', '.jsx', '.ts', '.tsx']
+            .flatMap((ext) => [`${base}${ext}`, join(base, `index${ext}`)])
+            .some((candidate) => existsSync(candidate));
+        assert.ok(found, `${route} is excluded from the footer matrix but no longer exists`);
+    }
+});
+
+test('the walk probes each world where its global footer actually lives', () => {
+    const spec = read(FOOTER_SPEC);
+    const opening = /const WORLD_ROUTES = \[/.exec(spec);
+    assert.ok(opening, `${FOOTER_SPEC} no longer declares WORLD_ROUTES`);
+    const block = spec.slice(opening.index + opening[0].length, spec.indexOf('\n];', opening.index));
+    const excluded = routeSet(FOOTER_SPEC, 'PAGE_OWNED_FOOTER_ROUTES');
+    const probes = [...block.matchAll(/(?:route|childRoute):\s*'([^']+)'/g)].map((m) => m[1]);
+    assert.ok(probes.length >= 2, 'WORLD_ROUTES must still probe routes');
+    for (const probe of probes) {
+        assert.ok(
+            !excluded.includes(probe),
+            `${probe} owns its own footer, so it cannot be used to assert the global one`,
+        );
+    }
+});
+
+test('a footer is identified by its exact name, never by a substring of one', () => {
+    // `getByRole(role, { name })` is a case-insensitive substring match by
+    // default. Every footer nav in this gate is looked up by an exact name so
+    // that ordinary page content carrying a world's name in its own label
+    // cannot be counted as, or mistaken for, that world's footer.
+    const spec = read(FOOTER_SPEC);
+    const lookups = [...spec.matchAll(/getByRole\(\s*'navigation'\s*,\s*\{([^}]*)\}/g)];
+    assert.ok(lookups.length > 0, `${FOOTER_SPEC} no longer looks a footer up by role`);
+    for (const lookup of lookups) {
+        assert.match(
+            lookup[1],
+            /exact:\s*true/,
+            `a navigation lookup in ${FOOTER_SPEC} matches a substring: {${lookup[1].trim()}}`,
+        );
+    }
+
+    // The lobby must be provably footerless, not merely unnamed: the arena's
+    // dock is the thing that must be absent, and it carries its own controls.
+    const lobby = spec.slice(spec.indexOf("await visit(page, '/hub/club-arena');"));
+    assert.match(
+        lobby.slice(0, 900),
+        /await expect\(page\.locator\('\[data-footer-control\]'\)\)\.toHaveCount\(0\);/,
+        'the lobby must assert the arena dock is absent, not just that a name is',
+    );
+});
+
 test('the specs never import a module Playwright cannot transpile', () => {
     // Playwright compiles .ts specs to CommonJS. An `.mjs` that uses
     // `import.meta` throws "Cannot use 'import.meta' outside a module" at
