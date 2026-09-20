@@ -30,9 +30,10 @@ import {
 import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
-import { Clock, CheckCircle, XCircle, ArrowRight, Trophy, Gem, Target, DollarSign, BarChart3, Brain, AlertTriangle } from 'lucide-react';
 import GTOScenarioDisplay from './GTOScenarioDisplay';
 import TriviaSkeleton from './TriviaSkeleton';
+import TriviaConsole from './console/TriviaConsole';
+import TriviaConsoleDialog from './console/TriviaConsoleDialog';
 
 /** Format poker text: enforce BB/SB spacing and capitalization rules */
 function formatPokerText(text) {
@@ -202,41 +203,32 @@ function PlayingCard({ card, size = 'inline' }) {
     const suit = card[card.length - 1]?.toLowerCase();
     const rank = card.slice(0, -1)?.toUpperCase();
     const SUIT_CONFIG = {
-        s: { symbol: '♠', color: '#1a1a1a' },
-        h: { symbol: '♥', color: '#ef4444' },
-        d: { symbol: '♦', color: '#3b82f6' },
-        c: { symbol: '♣', color: '#22c55e' }
+        s: { file: 'spades', label: 'Spades' },
+        h: { file: 'hearts', label: 'Hearts' },
+        d: { file: 'diamonds', label: 'Diamonds' },
+        c: { file: 'clubs', label: 'Clubs' },
     };
     const config = SUIT_CONFIG[suit] || SUIT_CONFIG.s;
 
     const sizes = {
-        inline: { width: 16, height: 24, fontSize: 11 },
-        small: { width: 36, height: 50, fontSize: 12 },
-        medium: { width: 52, height: 72, fontSize: 16 },
-        large: { width: 68, height: 94, fontSize: 20 },
+        inline: { width: 18, height: 26 },
+        small: { width: 36, height: 50 },
+        medium: { width: 52, height: 72 },
+        large: { width: 68, height: 94 },
     };
     const s = sizes[size] || sizes.inline;
+    const fileRank = rank === 'T' ? '10' : rank.toLowerCase();
 
     return (
-        <span style={{
-            width: s.width,
-            height: s.height,
-            background: 'linear-gradient(135deg, #fff, #f5f5f5)',
-            borderRadius: 3,
-            display: 'inline-flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            fontWeight: 'bold',
-            fontSize: s.fontSize,
-            color: config.color,
-            margin: '0 2px',
-            verticalAlign: 'text-bottom',
-        }}>
-            <span style={{ lineHeight: 1 }}>{rank}</span>
-            <span style={{ fontSize: s.fontSize * 1.1, lineHeight: 1 }}>{config.symbol}</span>
-        </span>
+        <img
+            className="strategy-playing-card"
+            src={`/cards/optimized/${config.file}_${fileRank}.png`}
+            alt={`${rank} Of ${config.label}`}
+            width={s.width}
+            height={s.height}
+            loading="lazy"
+            decoding="async"
+        />
     );
 }
 
@@ -713,8 +705,10 @@ export default function StrategyTrivia({ mode }) {
         // entry point shows.
         return (
             <PageTransition>
-                <div style={{ minHeight: '100vh', background: '#0a1628', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TriviaSkeleton label={`Loading ${config.title}`} />
+                <div className="trivia-console-standalone">
+                    <TriviaConsole title={config.title} eyebrow="Strategy Table" pill="Loading" titleAs="h1">
+                        <TriviaSkeleton label={`Loading ${config.title}`} />
+                    </TriviaConsole>
                 </div>
             </PageTransition>
         );
@@ -729,27 +723,20 @@ export default function StrategyTrivia({ mode }) {
             <div className="strategy-trivia">
                 <UniversalHeader pageDepth={2} />
 
-                {/* Out of Diamonds Modal */}
-                {showOutOfDiamonds && (
-                    <div
-                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="Not enough diamonds"
-                    >
-                        <div style={{ background: '#1a1a2e', borderRadius: 16, padding: 32, maxWidth: 340, textAlign: 'center', border: '1px solid rgba(0,212,255,0.3)' }}>
-                            {/* Was the literal word 'diamonds' rendered at 48px as
-                                the modal's hero icon — left over from an emoji strip. */}
-                            <div style={{ marginBottom: 16, color: '#00D4FF' }}><Gem size={48} aria-hidden /></div>
-                            <h3 style={{ color: '#fff', margin: '0 0 12px' }}>Not Enough Diamonds</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 20px', fontSize: 14 }}>You Need {entryCost} Diamonds To Play. Visit The Diamond Store To Get More!</p>
-                            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                                <button type="button" onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '12px 20px', minHeight: 44, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>Close</button>
-                                <button type="button" onClick={() => router.push('/hub/diamond-store')} style={{ padding: '12px 20px', minHeight: 44, background: 'linear-gradient(135deg, #00D4FF, #7B2FFF)', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Get Diamonds</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <TriviaConsoleDialog
+                    open={showOutOfDiamonds}
+                    onClose={() => setShowOutOfDiamonds(false)}
+                    eyebrow="Vault Access Required"
+                    title="Not Enough Diamonds"
+                    subtitle={`This Table Requires ${entryCost} Diamonds`}
+                    pill="Balance"
+                    secondaryAction={{ label: 'Close', onClick: () => setShowOutOfDiamonds(false) }}
+                    primaryAction={{ label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }}
+                >
+                    <p className="trivia-console-copy">
+                        You Need {entryCost} Diamonds To Play. Visit The Diamond Store To Get More.
+                    </p>
+                </TriviaConsoleDialog>
 
                 {/* One-time diamond cost popup for non-VIP users.
                     featureKey, not pageKey: every other call site in the repo
@@ -763,9 +750,27 @@ export default function StrategyTrivia({ mode }) {
                 />
 
                 <div className="content">
+                    <TriviaConsole
+                        eyebrow="Strategy Table"
+                        title={config.title}
+                        subtitle={config.subtitle}
+                        pill={gameState === 'lobby' ? 'Ready' : gameState === 'playing' ? 'Live' : 'Results'}
+                        titleAs="h1"
+                        secondaryAction={gameState === 'results'
+                            ? { label: 'Back To Lobby', onClick: () => router.push('/hub/trivia') }
+                            : undefined}
+                        primaryAction={gameState === 'lobby'
+                            ? { label: isPreparing ? 'Dealing In' : 'Start Challenge', onClick: startGame, disabled: isPreparing || vipInitializing }
+                            : gameState === 'playing' && showResult
+                                ? { label: currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question', onClick: nextQuestion }
+                            : gameState === 'results'
+                                ? resultAwardError
+                                    ? { label: 'Retry Settlement', onClick: finishGame }
+                                    : { label: isPreparing ? 'Dealing In' : isVip ? 'Play Again' : `Play Again ${entryCost} Diamonds`, onClick: startGame, disabled: isPreparing || vipInitializing }
+                                : undefined}
+                    >
                     {entryError && (
                         <div className="entry-error" role="alert">
-                            <AlertTriangle size={16} aria-hidden />
                             <span>{entryError}</span>
                         </div>
                     )}
@@ -800,15 +805,14 @@ export default function StrategyTrivia({ mode }) {
                                 <div className="lobby-cost-strip">
                                     <span>{QUESTIONS_PER_GAME} Questions</span>
                                     <span className="lobby-cost-chip">
-                                        {isVip ? 'VIP: Free Entry' : <>Entry {entryCost} <Gem size={12} aria-hidden /></>}
+                                        {isVip ? 'VIP: Free Entry' : <>Entry {entryCost} Diamonds</>}
                                     </span>
                                 </div>
                             </button>
                         ) : (
                             /* Fallback text lobby for modes without images */
                             <div className="lobby">
-                                <div className="mode-icon">{config.icon === 'target' ? <Target size={48} /> : config.icon === 'dollar' ? <DollarSign size={48} /> : config.icon === 'chart' ? <BarChart3 size={48} /> : <Brain size={48} />}</div>
-                                <h1 style={{ color: config.color }}>{config.title}</h1>
+                                <h2>{config.title}</h2>
                                 <p className="subtitle">{config.subtitle}</p>
 
                                 <div className="info-card">
@@ -822,7 +826,7 @@ export default function StrategyTrivia({ mode }) {
                                     </div>
                                     <div className="info-row">
                                         <span>Entry</span>
-                                        <span>{isVip ? 'Free (VIP)' : <>{entryCost} <Gem size={14} aria-hidden /></>}</span>
+                                        <span>{isVip ? 'Free (VIP)' : <>{entryCost} Diamonds</>}</span>
                                     </div>
                                     {/* Reward copy mirrors what session-submit
                                         actually pays: the base reward needs 70%+
@@ -830,27 +834,18 @@ export default function StrategyTrivia({ mode }) {
                                         and the mode's daily cap bounds the total. */}
                                     <div className="info-row">
                                         <span>Reward (70%+ Accuracy)</span>
-                                        <span>{TRIVIA_MODES[mode]?.diamondReward || 5} <Gem size={14} aria-hidden /></span>
+                                        <span>{TRIVIA_MODES[mode]?.diamondReward || 5} Diamonds</span>
                                     </div>
                                     <div className="info-row">
                                         <span>Perfect Score Bonus</span>
-                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} <Gem size={14} aria-hidden /></span>
+                                        <span>+{TRIVIA_MODES[mode]?.perfectBonus || 10} Diamonds</span>
                                     </div>
                                     <div className="info-row">
                                         <span>Daily Reward Cap</span>
-                                        <span>{DAILY_DIAMOND_CAPS[mode] || 40} <Gem size={14} aria-hidden /></span>
+                                        <span>{DAILY_DIAMOND_CAPS[mode] || 40} Diamonds</span>
                                     </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    className="start-btn"
-                                    onClick={startGame}
-                                    disabled={isPreparing || vipInitializing}
-                                    style={{ background: config.color }}
-                                >
-                                    {isPreparing ? 'Dealing In...' : 'Start Challenge'}
-                                </button>
                             </div>
                         )
                     )}
@@ -891,9 +886,9 @@ export default function StrategyTrivia({ mode }) {
                                 </div>
 
                                 {/* Question Content - Scrollable */}
-                                <div className="question-content-area" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px', display: 'flex', flexDirection: 'column' }}>
+                                <div className="question-content-area">
                                     <div>
-                                        <div className="category-badge" style={{ borderColor: config.color }}>
+                                        <div className="category-badge">
                                             {getCategoryName(currentQuestion.category)}
                                         </div>
                                     </div>
@@ -929,23 +924,9 @@ export default function StrategyTrivia({ mode }) {
                                             : '';
 
                                         return (
-                                            <div style={{ marginTop: '16px', marginBottom: '8px', width: '100%' }}>
+                                            <div className="answer-analysis">
                                                 {/* Result badge */}
-                                                <div style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                    marginBottom: '12px',
-                                                    padding: '10px 16px',
-                                                    borderRadius: '8px',
-                                                    background: wasCorrect
-                                                        ? 'rgba(34, 197, 94, 0.15)'
-                                                        : 'rgba(239, 68, 68, 0.15)',
-                                                    border: `1px solid ${wasCorrect ? '#22c55e' : '#ef4444'}`,
-                                                    color: wasCorrect ? '#22c55e' : '#ef4444',
-                                                    fontWeight: 700,
-                                                    fontSize: '15px',
-                                                }}>
+                                                <div className="answer-verdict" data-correct={wasCorrect ? 'true' : 'false'}>
                                                     {wasCorrect ? 'CORRECT' : 'INCORRECT'}
                                                 </div>
 
@@ -1005,7 +986,7 @@ export default function StrategyTrivia({ mode }) {
                                 </div>
 
                                 {/* Fixed Bottom Actions */}
-                                <div className="bottom-actions-area" style={{ flexShrink: 0, marginTop: 'auto', paddingTop: '16px', borderTop: showResult ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+                                <div className="bottom-actions-area" data-revealed={showResult ? 'true' : 'false'}>
                                     <div className="options">
                                         {/* Options are rendered in the server's display
                                             order, verbatim - reshuffling them would break
@@ -1043,16 +1024,10 @@ export default function StrategyTrivia({ mode }) {
                                                         {renderTextWithCards(option, s => formatPokerText(toTitleCase(s)))}
                                                     </span>
                                                     {revealCorrectIndex != null && index === revealCorrectIndex && (
-                                                        <>
-                                                            <CheckCircle size={20} className="icon correct" style={{ color: 'white' }} aria-hidden />
-                                                            <span className="sr-only">Correct Answer</span>
-                                                        </>
+                                                        <span className="sr-only">Correct Answer</span>
                                                     )}
                                                     {revealCorrectIndex != null && index === selectedAnswer && index !== revealCorrectIndex && (
-                                                        <>
-                                                            <XCircle size={20} className="icon incorrect" style={{ color: 'white' }} aria-hidden />
-                                                            <span className="sr-only">Your Answer, Incorrect</span>
-                                                        </>
+                                                        <span className="sr-only">Your Answer, Incorrect</span>
                                                     )}
                                                 </button>
                                             );
@@ -1063,21 +1038,7 @@ export default function StrategyTrivia({ mode }) {
                                         here are gone with the move to server grading -
                                         see the note by the serverRun declaration. */}
 
-                                    {/* Next Button */}
-                                    {showResult && (
-                                        <button
-                                            type="button"
-                                            className="next-btn"
-                                            onClick={nextQuestion}
-                                            style={{
-                                                marginTop: '16px',
-                                                width: '100%',
-                                            }}
-                                        >
-                                            {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
-                                            <ArrowRight size={18} />
-                                        </button>
-                                    )}
+                                    {/* The next action lives in the painted console plate. */}
                                 </div>
 
                             </div>
@@ -1093,10 +1054,8 @@ export default function StrategyTrivia({ mode }) {
                         const awarded = resultActualAwarded != null ? resultActualAwarded : 0;
                         return (
                             <div className="results">
-                                <div className="result-icon">
-                                    {pct >= 0.8 ? <Trophy size={48} color="#fbbf24" /> : pct >= 0.5 ? <CheckCircle size={48} color="#22c55e" /> : <Clock size={48} color="#3b82f6" />}
-                                </div>
-                                <h1>Challenge Complete!</h1>
+                                <p className="result-status">{pct >= 0.8 ? 'Expert Result' : pct >= 0.5 ? 'Strong Result' : 'Session Complete'}</p>
+                                <h2>Challenge Complete!</h2>
 
                                 <div className="score-card">
                                     <div className="score-main">
@@ -1109,7 +1068,6 @@ export default function StrategyTrivia({ mode }) {
                                 </div>
 
                                 <div className="reward-card">
-                                    <Gem size={24} aria-hidden />
                                     <span className="diamonds-earned">
                                         {/* Phase 68: shows what was ACTUALLY credited, never
                                             the calculated-but-failed amount. */}
@@ -1124,650 +1082,20 @@ export default function StrategyTrivia({ mode }) {
                                 )}
 
                                 {resultAwardError && (
-                                    <div style={{
-                                        padding: '10px 14px',
-                                        background: 'rgba(239, 68, 68, 0.12)',
-                                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                                        borderRadius: 8,
-                                        color: '#fca5a5',
-                                        fontSize: 13,
-                                        textAlign: 'center',
-                                        maxWidth: 400,
-                                        margin: '12px auto 0',
-                                    }} role="alert">
+                                    <div className="trivia-console-state trivia-console-state--error" role="alert">
                                         <div>
                                             The Run Could Not Be Settled ({resultAwardError}). Your Reward Has Not Been Paid Yet.
                                         </div>
-                                        {/* finishGame reopened finishedRef on the failure
-                                            and kept the session, so retrying settles and
-                                            pays the SAME run — it cannot double-pay. */}
-                                        <button
-                                            type="button"
-                                            onClick={finishGame}
-                                            style={{ marginTop: 10, padding: '10px 18px', minHeight: 44, background: 'rgba(239, 68, 68, 0.25)', border: '1px solid rgba(239, 68, 68, 0.6)', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}
-                                        >
-                                            Retry Settlement
-                                        </button>
+                                        {/* finishGame reopened finishedRef on failure and
+                                            the console action retries the same run. */}
                                     </div>
                                 )}
-
-                                <div className="action-buttons">
-                                    <button
-                                        type="button"
-                                        className="play-again"
-                                        onClick={startGame}
-                                        disabled={isPreparing || vipInitializing}
-                                        style={{ background: config.color }}
-                                    >
-                                        {isPreparing
-                                            ? 'Dealing In...'
-                                            : (isVip ? 'Play Again (New Questions)' : `Play Again (${entryCost} Diamonds)`)}
-                                    </button>
-                                    <button type="button" className="back-btn" onClick={() => router.push('/hub/trivia')}>
-                                        Back To Lobby
-                                    </button>
-                                </div>
                             </div>
                         );
                     })()}
+                    </TriviaConsole>
                 </div>
             </div>
-
-            <style>{`
-                .strategy-trivia {
-                    height: 100vh;
-                    height: 100dvh;
-                    overflow: hidden;
-                    background: linear-gradient(135deg, #0a0e1a 0%, #0d1525 40%, #0a1628 70%, #060b14 100%);
-                    font-family: 'Inter', -apple-system, sans-serif;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .content {
-                    padding: 12px;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    max-width: 800px;
-                    width: 100%;
-                    margin: 0 auto;
-                    overflow: hidden;
-                }
-
-                .sr-only {
-                    position: absolute;
-                    width: 1px;
-                    height: 1px;
-                    padding: 0;
-                    margin: -1px;
-                    overflow: hidden;
-                    clip: rect(0 0 0 0);
-                    white-space: nowrap;
-                    border: 0;
-                }
-
-                .entry-error {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    margin: 0 auto 12px;
-                    padding: 10px 14px;
-                    max-width: 520px;
-                    background: rgba(239, 68, 68, 0.12);
-                    border: 1px solid rgba(239, 68, 68, 0.4);
-                    border-radius: 8px;
-                    color: #fca5a5;
-                    font-size: 13px;
-                }
-
-                /* LOBBY — Full-bleed image (a <button>, so the browser
-                   defaults have to be reset back to the old div look) */
-                .lobby-image-wrapper {
-                    position: relative;
-                    display: block;
-                    width: 100%;
-                    padding: 0;
-                    background: none;
-                    border: none;
-                    font: inherit;
-                    color: inherit;
-                    text-align: left;
-                    cursor: pointer;
-                    overflow: hidden;
-                    transition: transform 0.3s ease, box-shadow 0.3s ease;
-                    max-width: 100%;
-                    margin: 0 auto;
-                }
-
-                .lobby-image-wrapper:disabled {
-                    cursor: wait;
-                }
-
-                .lobby-image-wrapper:focus-visible {
-                    outline: 2px solid #00D4FF;
-                    outline-offset: 3px;
-                }
-
-                .lobby-cost-strip {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 8px;
-                    padding: 10px 14px;
-                    background: linear-gradient(180deg, rgba(0,0,0,0.75), rgba(0,0,0,0));
-                    color: rgba(255,255,255,0.9);
-                    font-size: 12px;
-                    letter-spacing: 0.5px;
-                    text-transform: uppercase;
-                    pointer-events: none;
-                }
-
-                .lobby-cost-chip {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 4px 10px;
-                    border-radius: 999px;
-                    background: rgba(0, 212, 255, 0.15);
-                    border: 1px solid rgba(0, 212, 255, 0.35);
-                    color: #7ce7ff;
-                    font-weight: 700;
-                }
-
-                .lobby-image-wrapper:hover {
-                    transform: scale(1.02);
-                    box-shadow: 0 0 40px rgba(14, 165, 233, 0.3);
-                }
-
-                .lobby-image-wrapper:active {
-                    transform: scale(0.98);
-                }
-
-                .lobby-image {
-                    width: 100%;
-                    height: auto;
-                    display: block;
-                }
-
-                .lobby-loading-overlay {
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    background: rgba(0, 0, 0, 0.7);
-                    backdrop-filter: blur(4px);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    padding: 16px;
-                    color: rgba(255, 255, 255, 0.8);
-                    font-size: 14px;
-                }
-
-                .lobby-spinner {
-                    width: 20px;
-                    height: 20px;
-                    border: 2px solid rgba(255, 255, 255, 0.2);
-                    border-top-color: #0ea5e9;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-
-                @keyframes spin {
-                    to { transform: rotate(360deg); }
-                }
-
-                /* LOBBY — Text fallback */
-                .lobby {
-                    text-align: center;
-                    padding: 40px 0;
-                }
-
-                .mode-icon {
-                    font-size: 64px;
-                    margin-bottom: 20px;
-                }
-
-                .lobby h1 {
-                    font-size: 32px;
-                    font-weight: 700;
-                    margin: 0 0 8px 0;
-                }
-
-                .subtitle {
-                    color: rgba(255,255,255,0.6);
-                    font-size: 16px;
-                    margin: 0 0 32px 0;
-                }
-
-                .info-card {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 32px;
-                }
-
-                .info-row {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 12px 0;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                    color: rgba(255,255,255,0.8);
-                }
-
-                .info-row:last-child {
-                    border-bottom: none;
-                }
-
-                .start-btn {
-                    padding: 16px 48px;
-                    border: none;
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 18px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: transform 0.2s, box-shadow 0.2s;
-                }
-
-                .start-btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                }
-
-                /* GAME AREA — FULL SCREEN FRAME */
-                .game-area {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-
-                .game-frame {
-                    flex: 1;
-                    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 17, 35, 0.98));
-                    border: 1px solid rgba(0, 212, 255, 0.15);
-                    border-radius: 20px;
-                    padding: 16px;
-                    box-shadow:
-                        0 0 30px rgba(0, 212, 255, 0.05),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                }
-
-                .game-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                    padding: 14px 20px;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.06), rgba(0, 150, 200, 0.03));
-                    border: 1px solid rgba(0, 212, 255, 0.1);
-                    border-radius: 14px;
-                    backdrop-filter: blur(8px);
-                    flex-shrink: 0;
-                }
-
-                .progress {
-                    color: rgba(255, 255, 255, 0.85);
-                    font-weight: 600;
-                    font-size: 14px;
-                    letter-spacing: 0.5px;
-                }
-
-                .timer-ring-container {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 48px;
-                    height: 48px;
-                }
-
-                .timer-ring {
-                    transform: rotate(-90deg);
-                    position: absolute;
-                }
-
-                .timer-ring-bg {
-                    fill: none;
-                    stroke: rgba(255, 255, 255, 0.08);
-                    stroke-width: 3;
-                }
-
-                .timer-ring-progress {
-                    fill: none;
-                    stroke-width: 3;
-                    stroke-linecap: round;
-                    transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
-                }
-
-                .timer-text {
-                    font-size: 14px;
-                    font-weight: 700;
-                    font-variant-numeric: tabular-nums;
-                    position: relative;
-                    z-index: 1;
-                }
-
-                .diamonds {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    color: #00D4FF;
-                    font-weight: 600;
-                }
-
-                /* Scrollbar styling for question content area */
-                .question-content-area::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .question-content-area::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.02);
-                }
-                .question-content-area::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 3px;
-                }
-                .question-content-area::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-
-                .category-badge {
-                    display: inline-block;
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.7);
-                    text-transform: uppercase;
-                    letter-spacing: 1.5px;
-                    padding: 5px 14px;
-                    border: 1px solid;
-                    border-radius: 20px;
-                    margin-bottom: 16px;
-                    font-weight: 500;
-                }
-
-                .question-text {
-                    font-size: 19px;
-                    font-weight: 600;
-                    color: white;
-                    line-height: 1.55;
-                    margin: 0 0 24px 0;
-                    letter-spacing: 0.2px;
-                }
-
-                .options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .option {
-                    display: flex;
-                    align-items: center;
-                    gap: 14px;
-                    padding: 14px 18px;
-                    background: rgba(255,255,255,0.05);
-                    border: 2px solid rgba(255,255,255,0.1);
-                    border-radius: 12px;
-                    color: rgba(255,255,255,0.9);
-                    font-size: 15px;
-                    text-align: left;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .option:hover:not(:disabled) {
-                    background: rgba(255,255,255,0.1);
-                    border-color: rgba(255,255,255,0.3);
-                }
-
-                .option:disabled {
-                    cursor: default;
-                }
-
-                .option.correct {
-                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(21, 128, 61, 0.9));
-                    border-color: #4ade80;
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-                }
-
-                .option.incorrect {
-                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.9));
-                    border-color: #f87171;
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-                }
-
-                .option-letter {
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(255,255,255,0.1);
-                    border-radius: 6px;
-                    font-weight: 700;
-                    font-size: 13px;
-                }
-
-                .option-text {
-                    flex: 1;
-                }
-
-                .icon.correct { color: #4ade80; }
-                .icon.incorrect { color: #f87171; }
-
-                .next-btn {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    width: 100%;
-                    padding: 16px;
-                    background: linear-gradient(145deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.9));
-                    border: 1px solid rgba(6, 182, 212, 0.3);
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow:
-                        0 0 20px rgba(0, 0, 0, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                }
-
-                .next-btn:hover {
-                    transform: translateY(-2px);
-                    border-color: rgba(6, 182, 212, 0.5);
-                    box-shadow:
-                        0 4px 20px rgba(6, 182, 212, 0.15),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-                }
-
-                /* RESULTS */
-                .results {
-                    text-align: center;
-                    padding: 40px 0;
-                }
-
-                .result-icon {
-                    font-size: 80px;
-                    margin-bottom: 20px;
-                }
-
-                .results h1 {
-                    color: white;
-                    font-size: 28px;
-                    margin: 0 0 32px 0;
-                }
-
-                .score-card {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 16px;
-                    padding: 32px;
-                    margin-bottom: 24px;
-                }
-
-                .score-main {
-                    display: flex;
-                    align-items: baseline;
-                    justify-content: center;
-                    gap: 8px;
-                }
-
-                .score-num {
-                    font-size: 64px;
-                    font-weight: 700;
-                    color: #22c55e;
-                }
-
-                .score-total {
-                    font-size: 32px;
-                    color: rgba(255,255,255,0.5);
-                }
-
-                .score-label {
-                    color: rgba(255,255,255,0.6);
-                    margin-top: 8px;
-                }
-
-                .results-note {
-                    max-width: 420px;
-                    margin: 0 auto 16px;
-                    padding: 10px 14px;
-                    background: rgba(251, 191, 36, 0.1);
-                    border: 1px solid rgba(251, 191, 36, 0.3);
-                    border-radius: 8px;
-                    color: #fbbf24;
-                    font-size: 13px;
-                    line-height: 1.5;
-                }
-
-                /* Coaching notes — shown instead of the solver panel when the
-                   question carries no real EV/frequency metadata. */
-                .coaching-notes {
-                    padding: 16px;
-                    background: rgba(255, 255, 255, 0.04);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-left: 3px solid rgba(0, 212, 255, 0.5);
-                    border-radius: 10px;
-                }
-                .coaching-notes__head {
-                    font-size: 11px;
-                    letter-spacing: 1.5px;
-                    text-transform: uppercase;
-                    color: rgba(255, 255, 255, 0.5);
-                    margin-bottom: 10px;
-                }
-                .coaching-notes__answer {
-                    color: #fff;
-                    font-size: 15px;
-                    margin-bottom: 10px;
-                }
-                .coaching-notes__body {
-                    margin: 0 0 8px;
-                    color: rgba(255, 255, 255, 0.72);
-                    font-size: 14px;
-                    line-height: 1.6;
-                }
-
-                .reward-card {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 150, 200, 0.1));
-                    border: 1px solid rgba(0, 212, 255, 0.3);
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 32px;
-                    color: #00D4FF;
-                }
-
-                .diamonds-earned {
-                    font-size: 24px;
-                    font-weight: 700;
-                }
-
-                .action-buttons {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                }
-
-                .play-again {
-                    padding: 16px;
-                    border: none;
-                    border-radius: 12px;
-                    color: white;
-                    font-size: 16px;
-                    font-weight: 600;
-                    cursor: pointer;
-                }
-
-                .back-btn {
-                    padding: 16px;
-                    background: transparent;
-                    border: 1px solid rgba(255,255,255,0.2);
-                    border-radius: 12px;
-                    color: rgba(255,255,255,0.7);
-                    font-size: 16px;
-                    cursor: pointer;
-                }
-
-                .play-again:disabled,
-                .start-btn:disabled {
-                    opacity: 0.6;
-                    cursor: wait;
-                }
-
-                /* Keyboard focus + tap targets */
-                .option,
-                .next-btn,
-                .start-btn,
-                .play-again,
-                .back-btn {
-                    min-height: 48px;
-                }
-                .option:focus-visible,
-                .next-btn:focus-visible,
-                .start-btn:focus-visible,
-                .play-again:focus-visible,
-                .back-btn:focus-visible {
-                    outline: 2px solid #00D4FF;
-                    outline-offset: 2px;
-                }
-
-                @media (prefers-reduced-motion: reduce) {
-                    .lobby-spinner { animation-duration: 3s; }
-                    .lobby-image-wrapper:hover,
-                    .next-btn:hover,
-                    .start-btn:hover {
-                        transform: none;
-                    }
-                    .timer-ring-progress { transition: none; }
-                }
-
-                @media (max-width: 480px) {
-                    .game-frame { padding: 12px; border-radius: 14px; }
-                    .game-header { padding: 10px 14px; margin-bottom: 14px; }
-                    .question-text { font-size: 17px; margin-bottom: 18px; }
-                    .option { padding: 12px 14px; font-size: 14px; gap: 10px; }
-                    .lobby-cost-strip { font-size: 11px; padding: 8px 10px; }
-                }
-            `}</style>
         </PageTransition >
     );
 }

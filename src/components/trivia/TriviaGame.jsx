@@ -1,5 +1,5 @@
 /**
- * TRIVIA GAME — Core gameplay component with addictive game mechanics
+ * TRIVIA GAME - Core gameplay component with addictive game mechanics
  * 
  * Features:
  * - Fire Mode / Combo System (3+ streak = fire, escalating multipliers)
@@ -13,7 +13,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { busEmit } from '../../engine/EventBus';
-import { ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX, Skull } from 'lucide-react';
 import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
 import { toTitleCase } from '../../lib/trivia/titleCase';
@@ -34,7 +33,7 @@ const SKIP_SENTINELS = new Set([-1, -2]);
  * Skipped questions (bought with the Skip hint) are NEUTRAL: excluded from
  * both the numerator and the denominator. Previously a paid skip recorded -1,
  * which the completion filter compared against correct_index and counted as
- * WRONG — the player paid 10 diamonds to get a strictly worse result than
+ * WRONG - the player paid 10 diamonds to get a strictly worse result than
  * guessing at random.
  */
 function scoreAnswers(answers, questions) {
@@ -120,7 +119,7 @@ export default function TriviaGame({
     const opponentDataRef = useRef({ score: null, name: null });
     const stakePotRef = useRef(0); // Ref to avoid stale closure in advanceQuestion
     const confettiRef = useRef(null); // Lazy-loaded canvas-confetti
-    const answersRef = useRef([]); // Ref mirror of answers — avoids stale closure in auto-complete
+    const answersRef = useRef([]); // Ref mirror of answers - avoids stale closure in auto-complete
     const streakRef = useRef(0); // Ref mirror of streak
 
     // Server-graded verdicts keyed by questionIndex. The ref is written
@@ -199,7 +198,7 @@ export default function TriviaGame({
     // time bonus for time that never existed, and (b) called side effects
     // (audio, setIsGameActive) from INSIDE a setState updater, which React 18
     // may invoke twice. The shared hook is deadline-anchored and keeps its
-    // updater pure. pauseOnHide:false — arcade is a paid, leaderboarded mode,
+    // updater pure. pauseOnHide:false - arcade is a paid, leaderboarded mode,
     // so hiding the tab must not stop the clock.
     const {
         timeLeft: timeRemaining,
@@ -239,7 +238,7 @@ export default function TriviaGame({
     }, [timeRemaining, isGameActive, timeLimit]);
 
     // Warn user before leaving during active game.
-    // currentIndex > 0 alone skipped question 1 — a stakes player who answered
+    // currentIndex > 0 alone skipped question 1 - a stakes player who answered
     // the first question already has real diamonds on the table.
     useEffect(() => {
         const handler = (e) => {
@@ -291,7 +290,7 @@ export default function TriviaGame({
             opponentScore: opponentDataRef.current.score,
             opponentName: opponentDataRef.current.name,
         });
-    // questions, onComplete, enableStakes are stable props — safe to omit from deps
+    // questions, onComplete, enableStakes are stable props - safe to omit from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeRemaining, isGameActive, timeLimit]);
 
@@ -299,7 +298,7 @@ export default function TriviaGame({
     const spawnFloatingDiamond = (value) => {
         const id = Date.now() + Math.random();
         setFloatingDiamonds(prev => [...prev, { id, value }]);
-        // Phase 67: safeSetTimeout instead of setTimeout — was leaking the
+        // Phase 67: safeSetTimeout instead of setTimeout - was leaking the
         // setFloatingDiamonds call onto unmounted parents when the user
         // navigated away during the 1.2s animation window.
         safeSetTimeout(() => {
@@ -308,7 +307,7 @@ export default function TriviaGame({
     };
 
     // ══ ANSWER SELECTION ══
-    // Shared correct/wrong side-effect sequence for BOTH grading paths — the
+    // Shared correct/wrong side-effect sequence for BOTH grading paths - the
     // synchronous client-keyed one (correct_index) and the async serverGrader
     // one. Factored out so the server path replays exactly the same effects
     // once the verdict arrives instead of duplicating this block.
@@ -355,7 +354,7 @@ export default function TriviaGame({
                 particleCount: isFireMode ? 30 : 12,
                 spread: 50,
                 origin: { y: 0.7 },
-                colors: isFireMode ? ['#f97316', '#f02849', '#fbbf24'] : ['#31a24c', '#2374e1'],
+                colors: isFireMode ? ['#f02849', '#ff5b6e', '#ffd700'] : ['#31a24c', '#45adff'],
                 disableForReducedMotion: true,
             });
 
@@ -436,7 +435,7 @@ export default function TriviaGame({
     // advancedForIndexRef: two rapid clicks on Next both ran
     // setCurrentIndex(prev => prev + 1), skipping a question. The skipped
     // question never got an answer appended, so from that point answers[i]
-    // was scored against questions[i+1] — corrupted score AND reward.
+    // was scored against questions[i+1] - corrupted score AND reward.
     const advancedForIndexRef = useRef(-1);
     const advanceQuestion = (currentAnswers = answers) => {
         if (advancedForIndexRef.current === currentIndex) return;
@@ -488,7 +487,7 @@ export default function TriviaGame({
         setIsGameActive(false);
         setIsTimerRunning(false);
 
-        // Do NOT call onDiamondsChange here — handleComplete in [mode].js handles the award
+        // Do NOT call onDiamondsChange here - handleComplete in [mode].js handles the award
 
         fireConfetti({
             particleCount: 100, spread: 70, origin: { y: 0.5 },
@@ -518,7 +517,7 @@ export default function TriviaGame({
 
     // ══ KEYBOARD CONTROLS ══
     // 1-4 / A-D pick an answer, Enter advances, Esc moves focus to Cash Out
-    // (focus, never an instant cash-out — a stray Esc must not move diamonds).
+    // (focus, never an instant cash-out - a stray Esc must not move diamonds).
     const cashOutBtnRef = useRef(null);
     useEffect(() => {
         const onKeyDown = (e) => {
@@ -561,10 +560,10 @@ export default function TriviaGame({
 
     const getDifficultyColor = (difficulty) => {
         switch (difficulty) {
-            case 'easy': return '#22c55e';
-            case 'medium': return '#fbbf24';
-            case 'hard': return '#ef4444';
-            default: return '#6b7280';
+            case 'easy': return '#c8ffd2';
+            case 'medium': return '#ffd700';
+            case 'hard': return '#ff5b6e';
+            default: return '#9aa5b3';
         }
     };
 
@@ -583,7 +582,7 @@ export default function TriviaGame({
     const multiplier = getMultiplier();
     const canCashOut = enableStakes && currentIndex >= 5 && stakePot > 0 && selectedAnswer === null;
 
-    // With a serverGrader the answer key never reaches the client — nothing
+    // With a serverGrader the answer key never reaches the client - nothing
     // is revealed until the verdict exists (null means "no correct/incorrect
     // classes or icons yet"). Without one this is exactly correct_index, so
     // every existing mode reveals on tap as before.
@@ -623,11 +622,11 @@ export default function TriviaGame({
                 type="button"
                 className="mute-toggle"
                 onClick={() => { audio.toggleMute(); }}
-                aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+                aria-label={muted ? 'Turn Sound On' : 'Turn Sound Off'}
                 aria-pressed={muted}
-                title={muted ? 'Unmute sounds' : 'Mute sounds'}
+                title={muted ? 'Turn Sound On' : 'Turn Sound Off'}
             >
-                {muted ? <VolumeX size={18} aria-hidden /> : <Volume2 size={18} aria-hidden />}
+                {muted ? 'Sound Off' : 'Sound On'}
             </button>
 
             {/* ════ Ghost Opponent ════ */}
@@ -638,7 +637,7 @@ export default function TriviaGame({
                     playerCorrectCount={correctCount}
                     isGameActive={isGameActive}
                     realAccuracy={ghostAccuracy}
-                    // Ghost "thinking" time scales with question difficulty —
+                    // Ghost "thinking" time scales with question difficulty -
                     // without this it always used the flat 1-4s fallback.
                     questionDifficulty={currentQuestion?.difficulty}
                     onOpponentResult={(score, name) => {
@@ -651,14 +650,12 @@ export default function TriviaGame({
             {enableStakes && (
                 <div className={`stakes-bar ${showBust ? 'busted' : ''}`}>
                     <div className="stakes-pot">
-                        <Gem size={18} className="stake-gem" />
                         <span className="stake-value">{stakePot}</span>
-                        <span className="stake-label">At Risk</span>
+                        <span className="stake-label">Diamonds At Risk</span>
                     </div>
                     {multiplier > 1 && (
                         <div className="multiplier-badge">
-                            <Zap size={14} />
-                            <span>{multiplier}x</span>
+                            <span>{multiplier}x Multiplier</span>
                         </div>
                     )}
                     {canCashOut && (
@@ -667,9 +664,9 @@ export default function TriviaGame({
                             className="cash-out-btn"
                             onClick={handleCashOut}
                             ref={cashOutBtnRef}
-                            aria-label={`Cash out ${stakePot} diamonds and end the game`}
+                            aria-label={`Cash Out ${stakePot} Diamonds And End The Game`}
                         >
-                            CASH OUT <Gem size={14} aria-hidden /> {stakePot}
+                            Cash Out {stakePot} Diamonds
                         </button>
                     )}
                 </div>
@@ -684,8 +681,7 @@ export default function TriviaGame({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.8, y: -20 }}
                     >
-                        <Flame size={24} className="combo-flame" />
-                        <span>{streak} IN A ROW!</span>
+                        <span>{streak} In A Row!</span>
                         {multiplier > 1 && <span className="combo-mult">{multiplier}x</span>}
                     </motion.div>
                 )}
@@ -696,7 +692,7 @@ export default function TriviaGame({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
                     >
-                        STREAK LOST!
+                        Streak Lost!
                     </motion.div>
                 )}
                 {showBust && (
@@ -707,8 +703,7 @@ export default function TriviaGame({
                         exit={{ opacity: 0, y: 50 }}
                         role="alert"
                     >
-                        <Skull size={30} aria-hidden />
-                        <span>BUSTED!</span>
+                        <span>Busted!</span>
                     </motion.div>
                 )}
                 {cashedOut && (
@@ -719,8 +714,7 @@ export default function TriviaGame({
                         exit={{ opacity: 0 }}
                         role="status"
                     >
-                        <Gem size={26} aria-hidden />
-                        <span>CASHED OUT +{stakePotRef.current}</span>
+                        <span>Cashed Out +{stakePotRef.current} Diamonds</span>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -782,11 +776,11 @@ export default function TriviaGame({
                     <div className="question-meta">
                         <span className="category">{getCategoryName(currentQuestion.category)}</span>
                         <span className="difficulty" style={{ color: getDifficultyColor(currentQuestion.difficulty) }}>
-                            {currentQuestion.difficulty?.toUpperCase()}
+                            {toTitleCase(currentQuestion.difficulty || '')}
                         </span>
                         {enableStakes && (
                             <span className="question-stake">
-                                <Gem size={12} /> {STAKE_VALUES[Math.min(currentIndex, STAKE_VALUES.length - 1)] * multiplier}
+                                {STAKE_VALUES[Math.min(currentIndex, STAKE_VALUES.length - 1)] * multiplier} Diamonds
                             </span>
                         )}
                     </div>
@@ -821,9 +815,8 @@ export default function TriviaGame({
                                     data-trivia-answer
                                     aria-pressed={selectedAnswer === index}
                                     aria-label={isEliminated
-                                        ? `Answer ${letter}: ${label} - eliminated by 50/50`
+                                        ? `Answer ${letter}: ${label} - Eliminated By 50/50`
                                         : `Answer ${letter}: ${label}`}
-                                    whileHover={!isLocked && !reduceMotion ? { scale: 1.02, borderColor: 'rgba(14, 165, 233, 0.5)' } : {}}
                                     whileTap={!isLocked && !reduceMotion ? { scale: 0.98 } : {}}
                                     animate={
                                         reduceMotion
@@ -842,13 +835,13 @@ export default function TriviaGame({
                                     </span>
                                     {revealed && index === revealedCorrectIndex && (
                                         <>
-                                            <CheckCircle size={20} className="result-icon correct" aria-hidden />
+                                            <span className="result-icon correct" aria-hidden>Correct</span>
                                             <span className="sr-only">Correct Answer</span>
                                         </>
                                     )}
                                     {revealed && index === selectedAnswer && index !== revealedCorrectIndex && (
                                         <>
-                                            <XCircle size={20} className="result-icon incorrect" aria-hidden />
+                                            <span className="result-icon incorrect" aria-hidden>Selected</span>
                                             <span className="sr-only">Your Answer, Incorrect</span>
                                         </>
                                     )}
@@ -870,7 +863,7 @@ export default function TriviaGame({
                                 // mode without a clock (daily/history/rules/pro all
                                 // have timeLimit: null). It now gates per-hint, so the
                                 // truthful value is passed here AND extra_time is
-                                // listed as disabled — belt and braces, since paying
+                                // listed as disabled - belt and braces, since paying
                                 // for +30s with no timer must never be possible.
                                 hasTimeLimit={!!timeLimit}
                                 // Let the page surface its own out-of-diamonds
@@ -894,7 +887,7 @@ export default function TriviaGame({
                                     // questions advanceQuestion ignores the param and just
                                     // bumps the UI. The React `answers` state never got the
                                     // -1, so the next selectAnswer's `setAnswers([...answers, index])`
-                                    // missed the skipped slot — array indices were off-by-one
+                                    // missed the skipped slot - array indices were off-by-one
                                     // vs the questions[] array, causing misaligned scoring at
                                     // game end (filter compared answer N to question N-1).
                                     // Always update React state AND pass the same array to
@@ -915,12 +908,16 @@ export default function TriviaGame({
                         </div>
                     )}
 
-                    {/* Explanation — under a serverGrader it arrives with the
+                    {/* Explanation - under a serverGrader it arrives with the
                         verdict rather than on the question row. */}
                     {!isArcadeMode && selectedAnswer !== null && currentExplanation && (
                         <div className="explanation-section">
-                            <button className="explanation-toggle" onClick={() => setShowExplanation(!showExplanation)}>
-                                {showExplanation ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            <button
+                                type="button"
+                                className="explanation-toggle"
+                                onClick={() => setShowExplanation(!showExplanation)}
+                                aria-expanded={showExplanation}
+                            >
                                 {showExplanation ? 'Hide Explanation' : 'Show Explanation'}
                             </button>
                             {showExplanation && (
@@ -940,11 +937,9 @@ export default function TriviaGame({
                             type="button"
                             className="next-button"
                             onClick={() => advanceQuestion()}
-                            whileHover={reduceMotion ? {} : { y: -2 }}
                             whileTap={reduceMotion ? {} : { scale: 0.98 }}
                         >
                             {currentIndex >= questions.length - 1 ? 'See Results' : 'Next Question'}
-                            <ChevronRight size={20} />
                         </motion.button>
                     )}
                 </motion.div>
@@ -961,33 +956,35 @@ export default function TriviaGame({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 1.2 }}
                     >
-                        <Gem size={14} /> +{d.value}
+                        +{d.value} Diamonds
                     </motion.div>
                 ))}
             </AnimatePresence>
 
             <style>{`
                 .trivia-game {
-                    max-width: 700px;
+                    width: 100%;
+                    max-width: 760px;
+                    min-width: 0;
                     margin: 0 auto;
-                    padding: 20px;
+                    padding: 0;
                     position: relative;
-                    transition: background 0.5s ease;
-                    background: #18191a;
+                    color: #e4e7ec;
+                    background: transparent;
+                    font-family: Inter, system-ui, sans-serif;
                 }
 
                 /* ═══ FIRE MODE ═══ */
                 .trivia-game.fire-mode {
-                    background: radial-gradient(ellipse at center bottom, rgba(240, 40, 73, 0.1), #18191a 70%);
+                    border-top: 2px solid #f02849;
                 }
 
                 .trivia-game.fire-mode .question-card {
-                    border-color: rgba(240, 40, 73, 0.4);
-                    box-shadow: 0 0 30px rgba(240, 40, 73, 0.15), inset 0 0 30px rgba(240, 40, 73, 0.05);
+                    border-inline-start-color: #f02849;
                 }
 
                 .trivia-game.fire-mode .progress-fill {
-                    background: linear-gradient(90deg, #f97316, #f02849) !important;
+                    background: #f02849 !important;
                 }
 
                 /* ═══ SCREEN SHAKE ═══ */
@@ -1008,27 +1005,24 @@ export default function TriviaGame({
                     animation: correctPulse 0.5s ease;
                 }
                 @keyframes correctPulse {
-                    0% { box-shadow: 0 0 0 rgba(49, 162, 76, 0); }
-                    50% { box-shadow: 0 0 40px rgba(49, 162, 76, 0.3), inset 0 0 40px rgba(49, 162, 76, 0.1); }
-                    100% { box-shadow: 0 0 0 rgba(49, 162, 76, 0); }
+                    0%, 100% { border-inline-start-color: #45adff; }
+                    50% { border-inline-start-color: #35d95a; }
                 }
 
                 /* ═══ FIRE PARTICLES ═══ */
-                .fire-particles {
+                .trivia-game .fire-particles {
                     position: absolute;
                     inset: 0;
                     overflow: hidden;
                     pointer-events: none;
                     z-index: 0;
                 }
-                .ember {
+                .trivia-game .ember {
                     position: absolute;
                     bottom: -10px;
                     width: 4px;
                     height: 4px;
-                    border-radius: 50%;
-                    background: #f97316;
-                    box-shadow: 0 0 6px #f97316, 0 0 12px rgba(239, 68, 68, 0.5);
+                    background: #f02849;
                     animation: emberRise linear infinite;
                     opacity: 0;
                 }
@@ -1040,7 +1034,7 @@ export default function TriviaGame({
                 }
 
                 /* ═══ SCREEN-READER ONLY ═══ */
-                .sr-only {
+                .trivia-game .sr-only {
                     position: absolute;
                     width: 1px;
                     height: 1px;
@@ -1053,100 +1047,89 @@ export default function TriviaGame({
                 }
 
                 /* ═══ MUTE TOGGLE ═══ */
-                .mute-toggle {
+                .trivia-game .mute-toggle {
                     position: absolute;
-                    top: 8px;
-                    right: 8px;
+                    top: 0;
+                    right: 0;
                     z-index: 10;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    /* 44px minimum tap target (was a 28px icon+padding box) */
-                    width: 44px;
-                    height: 44px;
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    padding: 6px;
-                    color: rgba(255, 255, 255, 0.5);
+                    min-width: 92px;
+                    min-height: 44px;
+                    padding: 8px;
+                    border: 0;
+                    border-bottom: 1px solid #050607;
+                    color: #9aa5b3;
+                    background: transparent;
+                    font: 800 12px/1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    touch-action: manipulation;
                 }
-                .mute-toggle:hover {
-                    background: rgba(255, 255, 255, 0.15);
-                    color: rgba(255, 255, 255, 0.8);
+                .trivia-game .mute-toggle:active {
+                    color: #f4f7fb;
                 }
 
                 /* ═══ STAKES BAR ═══ */
-                .stakes-bar {
+                .trivia-game .stakes-bar {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    padding: 10px 16px;
+                    padding: 12px 0;
                     margin-bottom: 16px;
-                    background: linear-gradient(135deg, rgba(35, 116, 225, 0.1), rgba(35, 116, 225, 0.05));
-                    border: 1px solid rgba(35, 116, 225, 0.25);
-                    border-radius: 12px;
-                    transition: all 0.3s;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
+                    background: transparent;
                 }
-                .stakes-bar.busted {
-                    border-color: rgba(240, 40, 73, 0.5);
-                    background: rgba(240, 40, 73, 0.1);
+                .trivia-game .stakes-bar.busted {
+                    border-color: #f02849;
                 }
-                .stakes-pot {
+                .trivia-game .stakes-pot {
                     display: flex;
                     align-items: center;
                     gap: 6px;
                 }
-                .stake-gem { color: #2374e1; }
-                .stake-value {
+                .trivia-game .stake-value {
                     font-size: 22px;
                     font-weight: 900;
-                    color: #2374e1;
-                    font-family: 'Rajdhani', monospace;
+                    color: #45adff;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
                 }
-                .stake-label {
+                .trivia-game .stake-label {
                     font-size: 12px;
-                    color: #65676b;
+                    color: #9aa5b3;
                 }
-                .multiplier-badge {
+                .trivia-game .multiplier-badge {
                     display: flex;
                     align-items: center;
-                    gap: 4px;
-                    padding: 4px 10px;
-                    background: rgba(251, 191, 36, 0.15);
-                    border: 1px solid rgba(251, 191, 36, 0.3);
-                    border-radius: 8px;
                     color: #fbbf24;
                     font-weight: 800;
-                    font-size: 14px;
+                    font-size: 12px;
                 }
-                .cash-out-btn {
+                .trivia-game .cash-out-btn {
                     margin-left: auto;
                     display: flex;
                     align-items: center;
                     gap: 6px;
-                    padding: 8px 16px;
-                    background: linear-gradient(135deg, #31a24c, #28883f);
-                    border: none;
-                    border-radius: 8px;
-                    color: #fff;
-                    font-weight: 700;
-                    font-size: 13px;
+                    min-height: 44px;
+                    padding: 8px 0;
+                    border: 0;
+                    border-bottom: 1px solid #35d95a;
+                    color: #c8ffd2;
+                    background: transparent;
+                    font: 800 13px/1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    letter-spacing: 0.04em;
                     cursor: pointer;
-                    animation: cashPulse 2s ease-in-out infinite;
-                    transition: transform 0.2s;
+                    touch-action: manipulation;
                 }
-                .cash-out-btn:hover {
-                    transform: scale(1.05);
-                }
-                @keyframes cashPulse {
-                    0%, 100% { box-shadow: 0 0 8px rgba(49, 162, 76, 0.4); }
-                    50% { box-shadow: 0 0 20px rgba(49, 162, 76, 0.6); }
+                .trivia-game .cash-out-btn:active {
+                    color: #f4f7fb;
                 }
 
                 /* ═══ COMBO POPUP ═══ */
-                .combo-popup {
+                .trivia-game .combo-popup {
                     position: absolute;
                     top: 50%;
                     left: 50%;
@@ -1155,45 +1138,35 @@ export default function TriviaGame({
                     display: flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 12px 24px;
-                    background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(239, 68, 68, 0.9));
-                    border-radius: 16px;
-                    color: #fff;
+                    padding: 12px;
+                    color: #ffd700;
+                    background: #050607;
                     font-size: 20px;
                     font-weight: 900;
                     letter-spacing: 1px;
-                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
                     pointer-events: none;
                 }
-                .combo-flame { animation: flameFlicker 0.3s ease infinite alternate; }
-                @keyframes flameFlicker {
-                    from { transform: scale(1) rotate(-5deg); }
-                    to { transform: scale(1.1) rotate(5deg); }
-                }
-                .combo-mult {
-                    padding: 2px 8px;
-                    background: rgba(255, 255, 255, 0.2);
-                    border-radius: 6px;
+                .trivia-game .combo-mult {
                     font-size: 16px;
+                    color: #f4f7fb;
                 }
 
-                .streak-lost-popup {
+                .trivia-game .streak-lost-popup {
                     position: absolute;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
                     z-index: 20;
                     padding: 14px 28px;
-                    background: rgba(239, 68, 68, 0.9);
-                    border-radius: 12px;
-                    color: #fff;
+                    background: #050607;
+                    color: #ff5b6e;
                     font-size: 22px;
                     font-weight: 900;
                     letter-spacing: 2px;
                     pointer-events: none;
                 }
 
-                .bust-popup {
+                .trivia-game .bust-popup {
                     position: absolute;
                     top: 45%;
                     left: 50%;
@@ -1203,21 +1176,20 @@ export default function TriviaGame({
                     align-items: center;
                     gap: 12px;
                     padding: 20px 40px;
-                    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(30, 0, 0, 0.95));
-                    border: 2px solid rgba(239, 68, 68, 0.6);
-                    border-radius: 16px;
-                    color: #ef4444;
+                    border-top: 2px solid #f02849;
+                    border-bottom: 2px solid #f02849;
+                    color: #ff5b6e;
+                    background: #050607;
                     font-size: 32px;
                     font-weight: 900;
                     letter-spacing: 3px;
-                    text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
                     pointer-events: none;
                     white-space: nowrap;
                 }
 
                 /* Cash-out confirmation during the 2s hand-off to the results
-                   screen — the board used to just freeze with no feedback. */
-                .cashout-popup {
+                   screen - the board used to just freeze with no feedback. */
+                .trivia-game .cashout-popup {
                     position: absolute;
                     top: 45%;
                     left: 50%;
@@ -1227,20 +1199,19 @@ export default function TriviaGame({
                     align-items: center;
                     gap: 12px;
                     padding: 20px 36px;
-                    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 30, 12, 0.95));
-                    border: 2px solid rgba(49, 162, 76, 0.6);
-                    border-radius: 16px;
-                    color: #31a24c;
+                    border-top: 2px solid #35d95a;
+                    border-bottom: 2px solid #35d95a;
+                    color: #c8ffd2;
+                    background: #050607;
                     font-size: 26px;
                     font-weight: 900;
                     letter-spacing: 2px;
-                    text-shadow: 0 0 20px rgba(49, 162, 76, 0.45);
                     pointer-events: none;
                     white-space: nowrap;
                 }
 
                 /* ═══ FLOATING DIAMONDS ═══ */
-                .floating-diamond {
+                .trivia-game .floating-diamond {
                     position: absolute;
                     left: 50%;
                     bottom: 40%;
@@ -1252,11 +1223,10 @@ export default function TriviaGame({
                     font-size: 18px;
                     pointer-events: none;
                     z-index: 15;
-                    text-shadow: 0 0 10px rgba(35, 116, 225, 0.5);
                 }
 
                 /* ═══ HEADER & PROGRESS ═══ */
-                .game-header {
+                .trivia-game .game-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
@@ -1266,56 +1236,55 @@ export default function TriviaGame({
                     z-index: 1;
                 }
 
-                .progress-info { flex: 1; }
-                .question-count {
+                .trivia-game .progress-info { flex: 1; }
+                .trivia-game .question-count {
                     font-size: 13px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     display: block;
                     margin-bottom: 8px;
                 }
-                .progress-bar {
+                .trivia-game .progress-bar {
                     height: 6px;
-                    background: #3a3b3c;
-                    border-radius: 3px;
+                    background: #111820;
                     overflow: hidden;
                 }
-                .progress-fill {
+                .trivia-game .progress-fill {
                     height: 100%;
-                    background: linear-gradient(90deg, #2374e1, #1a5cc4);
+                    background: #45adff;
                     transition: width 0.3s ease;
                 }
 
                 /* ═══ CIRCULAR TIMER ═══ */
-                .timer-ring-container {
+                .trivia-game .timer-ring-container {
                     position: relative;
                     width: 56px;
                     height: 56px;
                     flex-shrink: 0;
                 }
-                .timer-ring-container.heartbeat {
+                .trivia-game .timer-ring-container.heartbeat {
                     animation: heartbeat 0.6s ease-in-out infinite;
                 }
                 @keyframes heartbeat {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.08); }
                 }
-                .timer-ring {
+                .trivia-game .timer-ring {
                     width: 100%;
                     height: 100%;
                     transform: rotate(-90deg);
                 }
-                .timer-ring-bg {
+                .trivia-game .timer-ring-bg {
                     fill: none;
-                    stroke: #3a3b3c;
+                    stroke: #657180;
                     stroke-width: 4;
                 }
-                .timer-ring-fill {
+                .trivia-game .timer-ring-fill {
                     fill: none;
                     stroke-width: 4;
                     stroke-linecap: round;
                     transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
                 }
-                .timer-text {
+                .trivia-game .timer-text {
                     position: absolute;
                     inset: 0;
                     display: flex;
@@ -1323,10 +1292,10 @@ export default function TriviaGame({
                     justify-content: center;
                     font-size: 16px;
                     font-weight: 800;
-                    color: rgba(255, 255, 255, 0.9);
-                    font-family: 'Rajdhani', monospace;
+                    color: #f4f7fb;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
                 }
-                .timer-text.critical {
+                .trivia-game .timer-text.critical {
                     color: #f02849;
                     animation: timerPulse 0.5s ease infinite alternate;
                 }
@@ -1336,179 +1305,189 @@ export default function TriviaGame({
                 }
 
                 /* ═══ QUESTION CARD ═══ */
-                .question-card {
-                    background: #242526;
-                    border: 1px solid #4e4f50;
-                    border-radius: 16px;
-                    padding: 32px;
+                .trivia-game .question-card {
+                    padding: 20px 0;
+                    border-inline-start: 2px solid #45adff;
                     position: relative;
                     z-index: 1;
                     perspective: 1000px;
                 }
 
-                .question-meta {
+                .trivia-game .question-meta {
                     display: flex;
                     align-items: center;
                     gap: 12px;
                     margin-bottom: 20px;
+                    padding-inline-start: 14px;
+                    flex-wrap: wrap;
                 }
-                .category {
+                .trivia-game .category {
                     font-size: 12px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     text-transform: uppercase;
                     letter-spacing: 1px;
                 }
-                .difficulty {
-                    font-size: 11px;
+                .trivia-game .difficulty {
+                    font-size: 12px;
                     font-weight: 700;
                     letter-spacing: 1px;
-                    padding: 4px 10px;
-                    background: #3a3b3c;
-                    border-radius: 4px;
                 }
-                .question-stake {
+                .trivia-game .question-stake {
                     margin-left: auto;
                     display: flex;
                     align-items: center;
                     gap: 4px;
                     font-size: 13px;
                     font-weight: 700;
-                    color: #2374e1;
+                    color: #45adff;
                 }
-                .question-text {
+                .trivia-game .question-text {
                     font-size: 22px;
                     font-weight: 600;
-                    color: #ffffff;
+                    color: #f4f7fb;
                     line-height: 1.4;
-                    margin: 0 0 28px 0;
+                    margin: 0 0 28px;
+                    padding-inline-start: 14px;
                 }
 
                 /* ═══ OPTIONS ═══ */
-                .options {
+                .trivia-game .options {
                     display: flex;
                     flex-direction: column;
                     gap: 12px;
                 }
-                .option {
-                    display: flex;
+                .trivia-game .option {
+                    display: grid;
+                    grid-template-columns: 32px minmax(0, 1fr) auto;
                     align-items: center;
-                    gap: 16px;
-                    padding: 16px 20px;
-                    background: #3a3b3c;
-                    border: 2px solid #4e4f50;
-                    border-radius: 10px;
-                    color: rgba(255, 255, 255, 0.9);
+                    gap: 12px;
+                    min-height: 52px;
+                    padding: 12px 14px;
+                    border: 0;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
+                    color: #e4e7ec;
+                    background: transparent;
                     font-size: 16px;
                     text-align: left;
                     cursor: pointer;
-                    transition: all 0.15s ease;
+                    touch-action: manipulation;
                 }
-                .option:hover:not(:disabled) {
-                    background: #4e4f50;
-                    border-color: rgba(35, 116, 225, 0.5);
-                    box-shadow: 0 0 15px rgba(35, 116, 225, 0.1);
+                .trivia-game .option:active:not(:disabled) {
+                    color: #45adff;
                 }
-                .option:disabled { cursor: default; }
-                .option.correct {
-                    background: rgba(49, 162, 76, 0.15);
-                    border-color: #31a24c;
-                    box-shadow: 0 0 20px rgba(49, 162, 76, 0.2);
+                .trivia-game .option:disabled { cursor: default; }
+                .trivia-game .option.correct {
+                    border-inline-start: 3px solid #35d95a;
+                    color: #c8ffd2;
                 }
-                .option.incorrect {
-                    background: rgba(240, 40, 73, 0.15);
-                    border-color: #f02849;
+                .trivia-game .option.incorrect {
+                    border-inline-start: 3px solid #f02849;
+                    color: #ff5b6e;
                 }
-                .option-letter {
+                .trivia-game .option-letter {
                     width: 32px;
                     height: 32px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: #4e4f50;
-                    border-radius: 6px;
+                    color: #45adff;
                     font-weight: 700;
                     font-size: 14px;
                     flex-shrink: 0;
                 }
-                .option-text { flex: 1; }
-                .result-icon { flex-shrink: 0; }
-                .result-icon.correct { color: #31a24c; }
-                .result-icon.incorrect { color: #f02849; }
+                .trivia-game .option-text {
+                    min-width: 0;
+                    text-align: left;
+                }
+                .trivia-game .result-icon {
+                    flex-shrink: 0;
+                    min-width: 62px;
+                    font-size: 12px;
+                    font-weight: 800;
+                    text-align: right;
+                    text-transform: uppercase;
+                }
+                .trivia-game .result-icon.correct { color: #c8ffd2; }
+                .trivia-game .result-icon.incorrect { color: #ff5b6e; }
 
-                .option.eliminated {
+                .trivia-game .option.eliminated {
                     opacity: 0.4;
-                    background: rgba(255, 255, 255, 0.02);
-                    border-color: rgba(255, 255, 255, 0.05);
                     cursor: not-allowed;
                 }
-                .option.eliminated .option-text {
+                .trivia-game .option.eliminated .option-text {
                     text-decoration: line-through;
                 }
 
                 /* ═══ HINTS, EXPLANATION, NEXT ═══ */
-                .hints-section {
+                .trivia-game .hints-section {
                     margin-top: 20px;
                     padding-top: 16px;
-                    border-top: 1px solid #4e4f50;
+                    border-top: 1px solid #050607;
                 }
-                .explanation-section {
+                .trivia-game .explanation-section {
                     margin-top: 24px;
                     padding-top: 24px;
-                    border-top: 1px solid #4e4f50;
+                    border-top: 1px solid #050607;
                 }
-                .explanation-toggle {
+                .trivia-game .explanation-toggle {
                     display: flex;
                     align-items: center;
                     gap: 8px;
-                    background: none;
-                    border: none;
-                    color: #65676b;
+                    min-height: 44px;
+                    padding: 8px 0;
+                    border: 0;
+                    color: #9aa5b3;
+                    background: transparent;
                     font-size: 14px;
+                    font-weight: 700;
                     cursor: pointer;
-                    padding: 0;
-                    transition: color 0.2s;
+                    touch-action: manipulation;
                 }
-                .explanation-toggle:hover { color: rgba(255, 255, 255, 0.9); }
-                .explanation-content {
+                .trivia-game .explanation-toggle:active { color: #f4f7fb; }
+                .trivia-game .explanation-content {
                     margin-top: 16px;
-                    padding: 16px;
-                    background: #18191a;
-                    border-radius: 8px;
+                    padding: 4px 0 4px 14px;
+                    border-inline-start: 2px solid #45adff;
                     overflow: hidden;
                 }
-                .explanation-content p {
+                .trivia-game .explanation-content p {
                     margin: 0;
                     font-size: 14px;
-                    color: rgba(255, 255, 255, 0.7);
+                    color: #c8cdd5;
                     line-height: 1.6;
                 }
-                .next-button {
+                .trivia-game .next-button {
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 8px;
                     width: 100%;
+                    min-height: 48px;
                     margin-top: 24px;
-                    padding: 16px 24px;
-                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
-                    border: none;
-                    border-radius: 10px;
-                    color: #ffffff;
+                    padding: 12px 8px;
+                    border: 0;
+                    border-top: 1px solid #45adff;
+                    border-bottom: 1px solid #45adff;
+                    color: #45adff;
+                    background: transparent;
                     font-size: 16px;
-                    font-weight: 600;
+                    font-weight: 800;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
                     cursor: pointer;
-                    transition: all 0.2s ease;
+                    touch-action: manipulation;
                 }
-                .next-button:hover {
-                    box-shadow: 0 4px 20px rgba(35, 116, 225, 0.4);
+                .trivia-game .next-button:active {
+                    color: #f4f7fb;
                 }
 
                 /* ═══ FOCUS VISIBILITY (keyboard play) ═══ */
-                .option:focus-visible,
-                .next-button:focus-visible,
-                .cash-out-btn:focus-visible,
-                .mute-toggle:focus-visible,
-                .explanation-toggle:focus-visible {
+                .trivia-game .option:focus-visible,
+                .trivia-game .next-button:focus-visible,
+                .trivia-game .cash-out-btn:focus-visible,
+                .trivia-game .mute-toggle:focus-visible,
+                .trivia-game .explanation-toggle:focus-visible {
                     outline: 2px solid #00D4FF;
                     outline-offset: 2px;
                 }
@@ -1519,38 +1498,54 @@ export default function TriviaGame({
                 @media (prefers-reduced-motion: reduce) {
                     .trivia-game.screen-shake,
                     .trivia-game.correct-flash .question-card,
-                    .timer-ring-container.heartbeat,
-                    .timer-text.critical,
-                    .combo-flame,
-                    .cash-out-btn,
-                    .ember {
+                    .trivia-game .timer-ring-container.heartbeat,
+                    .trivia-game .timer-text.critical,
+                    .trivia-game .ember {
                         animation: none !important;
                     }
-                    .ember { display: none; }
-                    .timer-ring-fill,
-                    .progress-fill {
+                    .trivia-game .ember { display: none; }
+                    .trivia-game .timer-ring-fill,
+                    .trivia-game .progress-fill {
                         transition: none !important;
                     }
                 }
 
                 /* ═══ MOBILE ═══ (component previously shipped zero responsive rules) */
                 @media (max-width: 480px) {
-                    .trivia-game { padding: 12px; }
-                    .question-card { padding: 20px; border-radius: 12px; }
-                    .question-text { font-size: 18px; margin-bottom: 20px; }
-                    .option {
+                    .trivia-game { padding: 0; }
+                    .trivia-game .question-card { padding: 18px 0; }
+                    .trivia-game .question-text { font-size: 18px; margin-bottom: 20px; }
+                    .trivia-game .option {
                         padding: 14px 16px;
                         gap: 12px;
                         font-size: 15px;
                         min-height: 48px;
+                        grid-template-columns: 28px minmax(0, 1fr) auto;
                     }
-                    .option-letter { width: 28px; height: 28px; font-size: 13px; }
-                    .game-header { gap: 12px; margin-bottom: 16px; }
-                    .timer-ring-container { width: 48px; height: 48px; }
-                    .bust-popup { font-size: 24px; padding: 16px 24px; letter-spacing: 2px; }
-                    .cashout-popup { font-size: 20px; padding: 16px 22px; }
-                    .combo-popup { font-size: 17px; padding: 10px 18px; }
-                    .next-button { padding: 16px 20px; }
+                    .trivia-game .option-letter { width: 28px; height: 28px; font-size: 13px; }
+                    .trivia-game .game-header { gap: 12px; margin-bottom: 16px; }
+                    .trivia-game .timer-ring-container { width: 48px; height: 48px; }
+                    .trivia-game .bust-popup { font-size: 24px; padding: 16px 24px; letter-spacing: 2px; }
+                    .trivia-game .cashout-popup { font-size: 20px; padding: 16px 22px; }
+                    .trivia-game .combo-popup { font-size: 17px; padding: 10px 18px; }
+                    .trivia-game .next-button { padding: 16px 20px; }
+                    .trivia-game .stakes-bar {
+                        align-items: flex-start;
+                        flex-direction: column;
+                        padding-right: 96px;
+                    }
+                    .trivia-game .cash-out-btn { margin-left: 0; }
+                    .trivia-game .question-meta { padding-right: 0; }
+                }
+
+                @media (forced-colors: active) {
+                    .trivia-game .option,
+                    .trivia-game .next-button,
+                    .trivia-game .cash-out-btn,
+                    .trivia-game .mute-toggle,
+                    .trivia-game .explanation-toggle {
+                        border: 1px solid ButtonText;
+                    }
                 }
             `}</style>
         </div>

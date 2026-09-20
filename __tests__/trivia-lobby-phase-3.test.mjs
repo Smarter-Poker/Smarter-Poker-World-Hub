@@ -12,13 +12,15 @@ const LOBBY = read('src/components/trivia/TriviaLobby.jsx');
 const HUB_PAGE = read('pages/hub/trivia/index.js');
 const HUB_CSS = read('src/styles/trivia/TriviaHub.module.css');
 
-test('the trivia loading state uses scoped CSS instead of hydration-sensitive style text', () => {
+test('the trivia loading state uses scoped Console status instead of a nested frame', () => {
     assert.match(SKELETON, /import styles from '\.\/TriviaSkeleton\.module\.css'/);
     assert.doesNotMatch(SKELETON, /<style>/);
     assert.doesNotMatch(SKELETON, /<style jsx/);
+    assert.doesNotMatch(SKELETON, /MetalFrame|lucide-react|framer-motion/);
     assert.match(SKELETON, /className=\{styles\.container\}/);
-    assert.match(SKELETON_CSS, /@media \(prefers-reduced-motion: no-preference\)/);
-    assert.match(SKELETON_CSS, /\.shimmerBlock::after/);
+    assert.match(SKELETON_CSS, /@media \(prefers-reduced-motion: reduce\)/);
+    assert.match(SKELETON_CSS, /\.pulseRail span/);
+    assert.doesNotMatch(SKELETON_CSS, /gradient|border-radius|box-shadow/i);
 });
 
 test('the trivia page shell also keeps CSS out of server-rendered style text', () => {

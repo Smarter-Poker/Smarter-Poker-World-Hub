@@ -1,5 +1,5 @@
 /**
- * TRIVIA RESULT — Results screen with addictive game mechanics
+ * TRIVIA RESULT - Results screen with addictive game mechanics
  * 
  * Features:
  * - Animated SVG grade ring (draws itself)
@@ -12,7 +12,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Gem, Target, Clock, Flame, RotateCcw, Home, ChevronRight, ChevronDown, ChevronUp, Crown, CheckCircle, XCircle, BookOpen, Share2 } from 'lucide-react';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -46,7 +46,7 @@ export default function TriviaResult({
     totalQuestions,
     timeSpent,
     timeRemaining,
-    xpEarned, // legacy prop — ignored, kept for backward compat
+    xpEarned, // legacy prop - ignored, kept for backward compat
     diamondsEarned,
     streak,
     streakMultiplier = 1,
@@ -87,7 +87,7 @@ export default function TriviaResult({
     const tied = hasOpponent && safeCorrect === opponentScore;
 
     // Skipped questions (sentinels: -1 skip hint, -2 skip lifeline) are neither
-    // right nor wrong — surface the count instead of hiding it inside "wrong".
+    // right nor wrong - surface the count instead of hiding it inside "wrong".
     const skippedCount = Array.isArray(answers)
         ? answers.filter(a => a === -1 || a === -2).length
         : 0;
@@ -98,7 +98,7 @@ export default function TriviaResult({
 
     // Share state
     const [shareLabel, setShareLabel] = useState('Share Result');
-    // Phase 75: the reset timeout was a raw setTimeout — navigating away within
+    // Phase 75: the reset timeout was a raw setTimeout - navigating away within
     // 2s of copying fired setState on an unmounted component.
     const shareTimerRef = useRef(null);
     useEffect(() => () => {
@@ -132,7 +132,7 @@ export default function TriviaResult({
     const countUpDone = useRef(false);
 
     useEffect(() => {
-        // Confetti. disableForReducedMotion matches TriviaGame — a full-screen
+        // Confetti. disableForReducedMotion matches TriviaGame - a full-screen
         // particle burst is exactly what "reduce motion" is asking us not to do.
         if (accuracy >= 70) {
             fireConfetti({
@@ -177,7 +177,7 @@ export default function TriviaResult({
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         if (prefersReduced) {
-            // Land on the final values immediately — no animation, no jank.
+            // Land on the final values immediately - no animation, no jank.
             setRingProgress(accuracy);
             setDisplayAccuracy(accuracy);
             setDisplayDiamonds(totalDiamonds);
@@ -231,11 +231,11 @@ export default function TriviaResult({
     }, []);
 
     const getGrade = () => {
-        if (accuracy >= 100) return { letter: 'S', color: '#fbbf24', label: 'PERFECT!' };
+        if (accuracy >= 100) return { letter: 'S', color: '#fbbf24', label: 'Perfect!' };
         if (accuracy >= 90) return { letter: 'A', color: '#31a24c', label: 'Excellent!' };
-        if (accuracy >= 80) return { letter: 'B', color: '#2374e1', label: 'Great Job!' };
-        if (accuracy >= 70) return { letter: 'C', color: '#8b5cf6', label: 'Good Work!' };
-        if (accuracy >= 60) return { letter: 'D', color: '#f97316', label: 'Keep Trying!' };
+        if (accuracy >= 80) return { letter: 'B', color: '#45adff', label: 'Great Job!' };
+        if (accuracy >= 70) return { letter: 'C', color: '#e4e7ec', label: 'Good Work!' };
+        if (accuracy >= 60) return { letter: 'D', color: '#9aa5b3', label: 'Keep Trying!' };
         return { letter: 'F', color: '#f02849', label: 'Study Up!' };
     };
 
@@ -262,24 +262,24 @@ export default function TriviaResult({
 
     const breakdownRows = [];
     if (stakePot > 0) {
-        breakdownRows.push({ key: 'stake', label: cashedOut ? 'Cashed-out pot' : 'Stake pot', value: `+${stakePot}` });
+        breakdownRows.push({ key: 'stake', label: cashedOut ? 'Cashed-Out Pot' : 'Stake Pot', value: `+${formatTriviaDisplayNumber(stakePot)}`, isDiamond: true });
     } else if (diamondsEarned > 0) {
-        breakdownRows.push({ key: 'base', label: 'Quiz reward', value: `+${diamondsEarned}` });
+        breakdownRows.push({ key: 'base', label: 'Quiz Reward', value: `+${formatTriviaDisplayNumber(diamondsEarned)}`, isDiamond: true });
     }
     if (hasMultiplier) {
-        breakdownRows.push({ key: 'mult', label: 'Streak multiplier', value: `${streakMultiplier}x` });
+        breakdownRows.push({ key: 'mult', label: 'Streak Multiplier', value: `${streakMultiplier}x` });
     }
     if (shownTimeBonus > 0) {
-        breakdownRows.push({ key: 'time', label: `Time bonus (${timeRemaining}s left)`, value: `+${shownTimeBonus}` });
+        breakdownRows.push({ key: 'time', label: `Time Bonus (${timeRemaining}s Left)`, value: `+${formatTriviaDisplayNumber(shownTimeBonus)}`, isDiamond: true });
     }
     if (showDailyBonusRow && dailyBonusDiamonds > 0) {
-        breakdownRows.push({ key: 'daily', label: 'Daily completion bonus', value: `+${dailyBonusDiamonds}` });
+        breakdownRows.push({ key: 'daily', label: 'Daily Completion Bonus', value: `+${formatTriviaDisplayNumber(dailyBonusDiamonds)}`, isDiamond: true });
     }
     if (capReached && Number.isFinite(rawDiamonds)) {
         breakdownRows.push({
             key: 'cap',
-            label: 'Daily cap reached',
-            value: `${diamondsEarned} of ${rawDiamonds}`,
+            label: 'Daily Cap Reached',
+            value: `${formatTriviaDisplayNumber(diamondsEarned)} Of ${formatTriviaDisplayNumber(rawDiamonds)}`,
             muted: true,
         });
     }
@@ -301,9 +301,7 @@ export default function TriviaResult({
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                     >
-                        <Crown size={28} />
-                        <span>FLAWLESS VICTORY</span>
-                        <Crown size={28} />
+                        <span>Flawless Victory</span>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -316,8 +314,7 @@ export default function TriviaResult({
             >
                 {/* Header */}
                 <div className="result-header">
-                    <Trophy size={48} className="trophy-icon" />
-                    <h1>{cashedOut ? 'Cashed Out!' : isArcade ? 'Arcade Complete!' : 'Quiz Complete!'}</h1>
+                    <h2>{cashedOut ? 'Cashed Out!' : isArcade ? 'Arcade Complete!' : 'Quiz Complete!'}</h2>
                     <p className="grade-label">{grade.label}</p>
                 </div>
 
@@ -358,16 +355,16 @@ export default function TriviaResult({
                         transition={{ delay: 0.5 }}
                     >
                         <div className="opp-side you">
-                            <span className="opp-label">YOU</span>
+                            <span className="opp-label">You</span>
                             <span className="opp-score">{correctCount}</span>
                         </div>
                         <div className="opp-vs">
                             {playerWon ? (
-                                <span className="win-badge">WIN!</span>
+                                <span className="win-badge">Win!</span>
                             ) : tied ? (
-                                <span className="tie-badge">TIE</span>
+                                <span className="tie-badge">Tie</span>
                             ) : (
-                                <span className="loss-badge">LOSS</span>
+                                <span className="loss-badge">Loss</span>
                             )}
                         </div>
                         <div className="opp-side them">
@@ -377,42 +374,37 @@ export default function TriviaResult({
                     </motion.div>
                 )}
 
-                {/* Stats Grid — 80ms stagger so the tiles land one after another */}
+                {/* Stats Grid - 80ms stagger so the tiles land one after another */}
                 <div className="stats-grid">
                     {[
                         {
                             key: 'correct',
                             className: 'stat-item',
-                            icon: <Target size={24} className="stat-icon" />,
                             value: `${safeCorrect}/${safeTotal}`,
                             label: 'Correct',
                         },
                         {
                             key: 'time',
                             className: 'stat-item',
-                            icon: <Clock size={24} className="stat-icon" />,
                             value: formatTime(timeSpent),
                             label: 'Time',
                         },
                         ...(stakePot > 0 || diamondsEarned > 0 ? [{
                             key: 'diamonds',
                             className: 'stat-item highlight diamond-stat',
-                            icon: <Gem size={24} className="stat-icon diamond" />,
-                            value: `+${displayDiamonds}`,
+                            value: `+${formatTriviaDisplayNumber(displayDiamonds)}`,
                             valueClass: 'stat-value diamond-value',
                             label: cashedOut ? 'Cashed Out' : 'Diamonds',
                         }] : []),
                         ...(hasMultiplier ? [{
                             key: 'mult',
                             className: 'stat-item multiplier',
-                            icon: <Zap size={24} className="stat-icon mult" />,
                             value: `${streakMultiplier}x`,
                             label: 'Streak Bonus',
                         }] : []),
                         ...(skippedCount > 0 ? [{
                             key: 'skipped',
                             className: 'stat-item skipped-stat',
-                            icon: <ChevronRight size={24} className="stat-icon" />,
                             value: `${skippedCount}`,
                             label: 'Skipped',
                         }] : []),
@@ -424,21 +416,20 @@ export default function TriviaResult({
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.15 + i * 0.08, duration: 0.3 }}
                         >
-                            {stat.icon}
                             <div className={stat.valueClass || 'stat-value'}>{stat.value}</div>
                             <div className="stat-label">{stat.label}</div>
                         </motion.div>
                     ))}
                 </div>
 
-                {/* Personal best comparison — data the pages already track */}
+                {/* Personal best comparison - data the pages already track */}
                 {Number.isFinite(personalBest) && (
                     <div className={`personal-best-line ${beatPersonalBest ? 'is-new' : ''}`}>
-                        {beatPersonalBest ? 'New personal best!' : `Your best: ${personalBest}`}
+                        {beatPersonalBest ? 'New Personal Best!' : `Your Best: ${personalBest}`}
                     </div>
                 )}
 
-                {/* Reward breakdown — one row per component of the award, so a
+                {/* Reward breakdown - one row per component of the award, so a
                     single count-up can never silently drop the rest. */}
                 {breakdownRows.length > 0 && (
                     <div className="reward-breakdown">
@@ -452,7 +443,7 @@ export default function TriviaResult({
                             >
                                 <span className="breakdown-label">{row.label}</span>
                                 <span className="breakdown-value">
-                                    <Gem size={12} /> {row.value}
+                                    {row.value}{row.isDiamond ? ' Diamonds' : ''}
                                 </span>
                             </motion.div>
                         ))}
@@ -462,16 +453,14 @@ export default function TriviaResult({
                 {/* Streak Info */}
                 {streak > 0 && !isArcade && (
                     <div className="streak-info">
-                        <Flame size={20} />
                         <span>{streak} Day Streak!</span>
                     </div>
                 )}
 
-                {/* Arcade Time Bonus — rendered only when the award really
+                {/* Arcade Time Bonus - rendered only when the award really
                     contained one (see shownTimeBonus above). */}
                 {isArcade && shownTimeBonus > 0 && (
                     <div className="time-bonus">
-                        <Clock size={16} />
                         <span>+{shownTimeBonus} Bonus Diamonds For {timeRemaining}s Remaining!</span>
                     </div>
                 )}
@@ -480,10 +469,8 @@ export default function TriviaResult({
                 {/* ════ Question Review Section ════ */}
                 {canReview && (
                     <div className="review-section">
-                        <button className="review-toggle" onClick={() => setShowReview(!showReview)}>
-                            <BookOpen size={18} />
+                        <button type="button" className="review-toggle" onClick={() => setShowReview(!showReview)}>
                             <span>{showReview ? 'Hide Answers' : 'Review Answers'}</span>
-                            {showReview ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                         </button>
                         <AnimatePresence>
                             {showReview && (
@@ -507,7 +494,9 @@ export default function TriviaResult({
                                             <div key={idx} className={`review-item ${reviewClass}`}>
                                                 <div className="review-q-header">
                                                     <span className="review-q-num">Q{idx + 1}{wasSkipped ? ' · Skipped' : ''}</span>
-                                                    {wasSkipped ? null : (isCorrect ? <CheckCircle size={16} className="review-icon correct" /> : <XCircle size={16} className="review-icon incorrect" />)}
+                                                    <span className={`review-status ${reviewClass}`}>
+                                                        {wasSkipped ? 'Skipped' : isCorrect ? 'Correct' : 'Incorrect'}
+                                                    </span>
                                                 </div>
                                                 <p className="review-question">{q.question}</p>
                                                 <div className="review-options">
@@ -518,8 +507,8 @@ export default function TriviaResult({
                                                         >
                                                             <span className="review-opt-letter">{String.fromCharCode(65 + oi)}</span>
                                                             <span>{opt}</span>
-                                                            {oi === q.correct_index && <CheckCircle size={14} />}
-                                                            {oi === userAnswer && oi !== q.correct_index && <XCircle size={14} />}
+                                                            {oi === q.correct_index && <span className="review-option-status">Correct</span>}
+                                                            {oi === userAnswer && oi !== q.correct_index && <span className="review-option-status">Selected</span>}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -535,39 +524,33 @@ export default function TriviaResult({
                     </div>
                 )}
 
-                <div className="actions">
-                    <Link href="/hub/trivia" className="action-btn secondary">
-                        <Home size={18} />
+                <div className="result-actions">
+                    <Link href="/hub/trivia" className="result-action result-action--secondary">
                         Back To Trivia
                     </Link>
-                    <button className="action-btn share" onClick={handleShare}>
-                        <Share2 size={18} />
+                    <button type="button" className="result-action result-action--share" onClick={handleShare}>
                         {shareLabel}
                     </button>
                     {!isArcade && mode !== 'daily' && (
-                        <button className="action-btn primary" onClick={onPlayAgain}>
-                            <RotateCcw size={18} />
+                        <button type="button" className="result-action result-action--primary" onClick={onPlayAgain}>
                             Play Again
                         </button>
                     )}
                     {isArcade && (
-                        <button className="action-btn primary" onClick={onPlayAgain}>
-                            <ChevronRight size={18} />
-                            Play Again (10 <Gem size={14} />)
+                        <button type="button" className="result-action result-action--primary" onClick={onPlayAgain}>
+                            Play Again (10 Diamonds)
                         </button>
                     )}
 
                     {showSpinButton && onSpinWheel && (
-                        <button className="action-btn spin-wheel" onClick={onSpinWheel}>
-                            <Trophy size={18} />
+                        <button type="button" className="result-action result-action--spin-wheel" onClick={onSpinWheel}>
                             Spin Prize Wheel!
                         </button>
                     )}
 
                     {showDoubleButton && onDoubleOrNothing && (
-                        <button className="action-btn double-or-nothing" onClick={onDoubleOrNothing}>
-                            <Zap size={18} />
-                            Double Or Nothing ({diamondsEarned} → {diamondsEarned * 2} <Gem size={14} />)
+                        <button type="button" className="result-action result-action--double" onClick={onDoubleOrNothing}>
+                            Double Or Nothing ({formatTriviaDisplayNumber(diamondsEarned)} To {formatTriviaDisplayNumber(diamondsEarned * 2)} Diamonds)
                         </button>
                     )}
                 </div>
@@ -578,82 +561,79 @@ export default function TriviaResult({
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    min-height: 70vh;
-                    padding: 20px;
+                    width: 100%;
+                    min-width: 0;
+                    padding: 0;
                     position: relative;
+                    color: #e4e7ec;
+                    font-family: Inter, system-ui, sans-serif;
                 }
 
                 /* ═══ FLAWLESS VICTORY ═══ */
-                .flawless-banner {
+                .trivia-result .flawless-banner {
                     display: flex;
                     align-items: center;
                     gap: 12px;
                     margin-bottom: 20px;
-                    padding: 14px 28px;
-                    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1));
-                    border: 2px solid rgba(251, 191, 36, 0.5);
-                    border-radius: 16px;
+                    width: 100%;
+                    padding: 14px 0;
+                    border-top: 1px solid #ffd700;
+                    border-bottom: 1px solid #ffd700;
                     color: #fbbf24;
                     font-size: 24px;
                     font-weight: 900;
                     letter-spacing: 3px;
-                    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-                    animation: flawlessGlow 2s ease-in-out infinite alternate;
-                }
-                @keyframes flawlessGlow {
-                    from { box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
-                    to { box-shadow: 0 0 35px rgba(251, 191, 36, 0.6); }
+                    justify-content: center;
                 }
 
-                .result-card {
-                    background: #242526;
-                    border: 1px solid #4e4f50;
-                    border-radius: 20px;
-                    padding: 40px;
+                .trivia-result .result-card {
+                    padding: 0;
                     text-align: center;
-                    max-width: 480px;
+                    max-width: 640px;
                     width: 100%;
+                    background: transparent;
                 }
 
-                .result-header { margin-bottom: 24px; }
-                .trophy-icon { color: #fbbf24; margin-bottom: 16px; }
-                .result-header h1 {
+                .trivia-result .result-header { margin-bottom: 24px; }
+                .trivia-result .result-header h2 {
                     font-size: 28px;
-                    font-weight: 700;
-                    color: #ffffff;
+                    font-weight: 800;
+                    color: #f4f7fb;
                     margin: 0 0 8px 0;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
                 }
-                .grade-label {
+                .trivia-result .grade-label {
                     font-size: 16px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     margin: 0;
                 }
 
                 /* ═══ ANIMATED GRADE RING ═══ */
-                .grade-ring-container {
+                .trivia-result .grade-ring-container {
                     position: relative;
                     width: 140px;
                     height: 140px;
                     margin: 0 auto 28px;
                 }
-                .grade-ring-svg {
+                .trivia-result .grade-ring-svg {
                     width: 100%;
                     height: 100%;
                     transform: rotate(-90deg);
                 }
-                .ring-bg {
+                .trivia-result .ring-bg {
                     fill: none;
-                    stroke: #3a3b3c;
+                    stroke: #657180;
                     stroke-width: 6;
                 }
-                .ring-fill {
+                .trivia-result .ring-fill {
                     fill: none;
                     stroke-width: 6;
                     stroke-linecap: round;
                     transition: stroke-dashoffset 0.05s linear;
-                    filter: drop-shadow(0 0 6px currentColor);
                 }
-                .grade-inner {
+                .trivia-result .grade-inner {
                     position: absolute;
                     inset: 0;
                     display: flex;
@@ -661,405 +641,417 @@ export default function TriviaResult({
                     align-items: center;
                     justify-content: center;
                 }
-                .grade-letter {
+                .trivia-result .grade-letter {
                     font-size: 48px;
                     font-weight: 900;
                     line-height: 1;
                 }
-                .grade-percent {
+                .trivia-result .grade-percent {
                     font-size: 16px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     margin-top: 4px;
-                    font-family: 'Rajdhani', monospace;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
                 }
 
                 /* ═══ OPPONENT COMPARISON ═══ */
-                .opponent-result {
+                .trivia-result .opponent-result {
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 16px;
                     margin-bottom: 24px;
-                    padding: 14px 20px;
-                    border-radius: 12px;
-                    border: 1px solid #4e4f50;
-                    background: #18191a;
+                    padding: 14px 0;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
+                    background: transparent;
                 }
-                .opponent-result.won { border-color: rgba(49, 162, 76, 0.3); }
-                .opponent-result.lost { border-color: rgba(240, 40, 73, 0.3); }
-                .opp-side {
+                .trivia-result .opponent-result.won { border-bottom-color: #35d95a; }
+                .trivia-result .opponent-result.lost { border-bottom-color: #f02849; }
+                .trivia-result .opponent-result.tied { border-bottom-color: #ffd700; }
+                .trivia-result .opp-side {
                     display: flex;
                     align-items: center;
                     gap: 10px;
                 }
-                .opp-label {
+                .trivia-result .opp-side.you { justify-content: flex-end; }
+                .trivia-result .opp-side.them { justify-content: flex-start; }
+                .trivia-result .opp-label {
                     font-size: 12px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     text-transform: uppercase;
                     letter-spacing: 1px;
                 }
-                .opp-score {
+                .trivia-result .opp-score {
                     font-size: 28px;
                     font-weight: 900;
-                    color: #fff;
-                    font-family: 'Rajdhani', monospace;
+                    color: #f4f7fb;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
                 }
-                .opp-vs { text-align: center; }
-                .win-badge {
-                    padding: 4px 12px;
-                    background: rgba(49, 162, 76, 0.2);
-                    border: 1px solid #31a24c;
-                    border-radius: 8px;
-                    color: #31a24c;
+                .trivia-result .opp-vs { text-align: center; }
+                .trivia-result .win-badge {
+                    color: #c8ffd2;
                     font-weight: 800;
                     font-size: 14px;
                 }
-                .tie-badge {
-                    padding: 4px 12px;
-                    background: rgba(251, 191, 36, 0.2);
-                    border: 1px solid #fbbf24;
-                    border-radius: 8px;
+                .trivia-result .tie-badge {
                     color: #fbbf24;
                     font-weight: 800;
                     font-size: 14px;
                 }
-                .loss-badge {
-                    padding: 4px 12px;
-                    background: rgba(240, 40, 73, 0.2);
-                    border: 1px solid #f02849;
-                    border-radius: 8px;
-                    color: #f02849;
+                .trivia-result .loss-badge {
+                    color: #ff5b6e;
                     font-weight: 800;
                     font-size: 14px;
                 }
 
                 /* ═══ STATS ═══ */
-                .stats-grid {
+                .trivia-result .stats-grid {
                     display: grid;
                     grid-template-columns: repeat(2, 1fr);
-                    gap: 16px;
+                    gap: 0 22px;
                     margin-bottom: 24px;
                 }
-                .stat-item {
-                    background: #18191a;
-                    border-radius: 12px;
-                    padding: 16px;
+                .trivia-result .stat-item {
+                    min-width: 0;
+                    padding: 14px 0;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
+                    background: transparent;
                 }
-                .stat-item.highlight {
-                    background: rgba(35, 116, 225, 0.1);
-                    border: 1px solid rgba(35, 116, 225, 0.2);
+                .trivia-result .stat-item.highlight {
+                    border-bottom-color: #45adff;
                 }
-                .stat-item.multiplier {
-                    background: rgba(255, 215, 0, 0.1);
-                    border: 1px solid rgba(255, 215, 0, 0.3);
+                .trivia-result .stat-item.multiplier {
+                    border-bottom-color: #ffd700;
                 }
-                .diamond-stat {
-                    background: rgba(35, 116, 225, 0.1) !important;
-                    border: 1px solid rgba(35, 116, 225, 0.3) !important;
+                .trivia-result .diamond-stat {
+                    border-bottom-color: #45adff !important;
                 }
-                .diamond-value {
-                    color: #2374e1 !important;
-                    text-shadow: 0 0 10px rgba(35, 116, 225, 0.3);
+                .trivia-result .diamond-value {
+                    color: #45adff !important;
                 }
-                .stat-icon {
-                    color: #65676b;
-                    margin-bottom: 8px;
+                .trivia-result .stat-item.skipped-stat {
+                    border-bottom-color: #ffd700;
                 }
-                .stat-icon.xp { color: #fbbf24; }
-                .stat-icon.diamond { color: #2374e1; }
-                .stat-icon.mult { color: #ffd700; }
-                .stat-value {
+                .trivia-result .stat-value {
                     font-size: 24px;
                     font-weight: 700;
-                    color: #ffffff;
+                    color: #f4f7fb;
                     margin-bottom: 4px;
                 }
-                .stat-label {
+                .trivia-result .stat-label {
                     font-size: 12px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     text-transform: uppercase;
                     letter-spacing: 1px;
                 }
 
-                .streak-info {
+                .trivia-result .streak-info {
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 10px 20px;
-                    background: rgba(249, 115, 22, 0.15);
-                    border: 1px solid rgba(249, 115, 22, 0.3);
-                    border-radius: 20px;
-                    color: #f97316;
-                    font-weight: 600;
+                    padding: 10px 0;
+                    border-top: 1px solid #ffd700;
+                    border-bottom: 1px solid #ffd700;
+                    color: #ffd700;
+                    font-weight: 700;
                     margin-bottom: 24px;
                 }
 
                 /* ═══ PERSONAL BEST + REWARD BREAKDOWN ═══ */
-                .personal-best-line {
+                .trivia-result .personal-best-line {
                     font-size: 13px;
-                    color: #65676b;
+                    color: #9aa5b3;
                     margin: -8px 0 16px;
                     letter-spacing: 0.5px;
                 }
-                .personal-best-line.is-new {
+                .trivia-result .personal-best-line.is-new {
                     color: #fbbf24;
                     font-weight: 700;
-                    text-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
                 }
-                .reward-breakdown {
+                .trivia-result .reward-breakdown {
                     display: flex;
                     flex-direction: column;
-                    gap: 6px;
+                    gap: 0;
                     margin-bottom: 20px;
-                    padding: 12px 14px;
-                    background: #18191a;
-                    border: 1px solid #4e4f50;
-                    border-radius: 12px;
+                    padding: 0;
                     text-align: left;
+                    background: transparent;
                 }
-                .breakdown-row {
+                .trivia-result .breakdown-row {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
                     gap: 12px;
+                    min-height: 44px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #050607;
                     font-size: 13px;
-                    color: rgba(255, 255, 255, 0.75);
+                    color: #c8cdd5;
                 }
-                .breakdown-row.muted {
-                    color: #65676b;
+                .trivia-result .breakdown-row.muted {
+                    color: #9aa5b3;
                 }
-                .breakdown-label {
+                .trivia-result .breakdown-label {
+                    min-width: 0;
                     letter-spacing: 0.3px;
+                    text-align: left;
                 }
-                .breakdown-value {
+                .trivia-result .breakdown-value {
                     display: inline-flex;
                     align-items: center;
                     gap: 4px;
+                    margin-left: auto;
+                    padding-left: 12px;
                     font-weight: 700;
-                    color: #2374e1;
+                    color: #45adff;
+                    text-align: right;
                     white-space: nowrap;
                 }
-                .breakdown-row.muted .breakdown-value {
-                    color: #65676b;
+                .trivia-result .breakdown-row.muted .breakdown-value {
+                    color: #9aa5b3;
                 }
-                .skipped-stat .stat-icon { color: #fbbf24; }
 
-                .time-bonus {
+                .trivia-result .time-bonus {
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 10px 20px;
-                    background: rgba(35, 116, 225, 0.15);
-                    border: 1px solid rgba(35, 116, 225, 0.3);
-                    border-radius: 20px;
-                    color: #2374e1;
+                    padding: 10px 0;
+                    border-top: 1px solid #45adff;
+                    border-bottom: 1px solid #45adff;
+                    color: #45adff;
+                    background: transparent;
                     font-size: 14px;
                     margin-bottom: 24px;
                 }
 
                 /* ═══ ACTIONS ═══ */
-                .actions {
+                .trivia-result .result-actions {
                     display: flex;
                     flex-wrap: wrap;
                     gap: 12px;
                     margin-top: 8px;
                 }
-                .action-btn {
+                .trivia-result .result-action {
                     flex: 1;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 8px;
-                    padding: 14px 20px;
-                    border-radius: 10px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    text-decoration: none;
                     min-width: 140px;
                     min-height: 48px;
-                    border: none;
+                    padding: 12px 8px;
+                    border: 0;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
+                    color: #e4e7ec;
+                    background: transparent;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    font-size: 14px;
+                    font-weight: 800;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    text-decoration: none;
+                    touch-action: manipulation;
                 }
-                .action-btn:focus-visible,
-                .review-toggle:focus-visible {
+                .trivia-result .result-action:focus-visible,
+                .trivia-result .review-toggle:focus-visible {
                     outline: 2px solid #00D4FF;
                     outline-offset: 2px;
                 }
                 @media (prefers-reduced-motion: reduce) {
-                    .flawless-banner,
-                    .action-btn.spin-wheel,
-                    .action-btn.double-or-nothing {
+                    .trivia-result .flawless-banner,
+                    .trivia-result .result-action--spin-wheel,
+                    .trivia-result .result-action--double {
                         animation: none !important;
                     }
-                    .action-btn:hover {
-                        transform: none !important;
-                    }
                 }
-                .action-btn.secondary {
-                    background: #3a3b3c;
-                    border: 1px solid #4e4f50;
-                    color: rgba(255, 255, 255, 0.8);
+                .trivia-result .result-action--secondary {
+                    color: #9aa5b3;
                 }
-                .action-btn.secondary:hover { background: #4e4f50; }
-                .action-btn.primary {
-                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
-                    border: none;
-                    color: #ffffff;
+                .trivia-result .result-action--primary {
+                    border-bottom-color: #45adff;
+                    color: #45adff;
                 }
-                .action-btn.primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 20px rgba(35, 116, 225, 0.4);
+                .trivia-result .result-action--spin-wheel {
+                    border-bottom-color: #ffd700;
+                    color: #ffd700;
                 }
-                .action-btn.spin-wheel {
-                    background: linear-gradient(135deg, #ffd700, #ff8c00);
-                    border: none;
-                    color: #000;
-                    animation: spinPulse 1.5s ease-in-out infinite;
+                .trivia-result .result-action--double {
+                    border-bottom-color: #f02849;
+                    color: #ff5b6e;
                 }
-                .action-btn.spin-wheel:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+                .trivia-result .result-action--share {
+                    color: #e4e7ec;
                 }
-                @keyframes spinPulse {
-                    0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-                    50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
-                }
-                .action-btn.double-or-nothing {
-                    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-                    border: none;
-                    color: #fff;
-                    animation: doublePulse 2s ease-in-out infinite;
-                }
-                .action-btn.double-or-nothing:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
-                }
-                @keyframes doublePulse {
-                    0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.4); }
-                    50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.7); }
-                }
-                .action-btn.share {
-                    background: #3a3b3c;
-                    border: 1px solid #4e4f50;
-                    color: rgba(255, 255, 255, 0.8);
-                }
-                .action-btn.share:hover {
-                    background: #4e4f50;
-                    color: #fff;
+                .trivia-result .result-action:active {
+                    color: #f4f7fb;
                 }
                 /* ═══ REVIEW MODE ═══ */
-                .review-section {
+                .trivia-result .review-section {
                     width: 100%;
                     margin-top: 16px;
                     margin-bottom: 16px;
                 }
-                .review-toggle {
+                .trivia-result .review-toggle {
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 8px;
                     width: 100%;
-                    padding: 12px;
-                    background: rgba(35, 116, 225, 0.1);
-                    border: 1px solid rgba(35, 116, 225, 0.25);
-                    border-radius: 10px;
-                    color: #2374e1;
-                    font-weight: 600;
+                    min-height: 48px;
+                    padding: 12px 8px;
+                    border: 0;
+                    border-top: 1px solid #45adff;
+                    border-bottom: 1px solid #45adff;
+                    color: #45adff;
+                    background: transparent;
+                    font-weight: 800;
                     font-size: 14px;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
                     cursor: pointer;
-                    transition: background 0.2s;
+                    touch-action: manipulation;
                 }
-                .review-toggle:hover {
-                    background: rgba(35, 116, 225, 0.2);
+                .trivia-result .review-toggle:active {
+                    color: #f4f7fb;
                 }
-                .review-list {
+                .trivia-result .review-list {
                     overflow: hidden;
                     margin-top: 12px;
                 }
-                .review-item {
-                    padding: 16px;
-                    border-radius: 10px;
-                    background: rgba(255, 255, 255, 0.04);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    margin-bottom: 10px;
+                .trivia-result .review-item {
+                    padding: 16px 0 16px 14px;
+                    border-inline-start: 3px solid #9aa5b3;
+                    border-bottom: 1px solid #050607;
+                    background: transparent;
                 }
-                .review-item.correct {
+                .trivia-result .review-item.correct {
                     border-left: 3px solid #31a24c;
                 }
-                .review-item.incorrect {
+                .trivia-result .review-item.incorrect {
                     border-left: 3px solid #f02849;
                 }
                 /* Phase 75: the skipped state was assigned but never styled,
                    so skipped questions rendered with no accent at all. */
-                .review-item.skipped {
+                .trivia-result .review-item.skipped {
                     border-left: 3px solid #fbbf24;
-                    background: rgba(251, 191, 36, 0.05);
                 }
-                .review-item.skipped .review-q-num {
+                .trivia-result .review-item.skipped .review-q-num {
                     color: #fbbf24;
                 }
-                .review-q-header {
+                .trivia-result .review-q-header {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
                     margin-bottom: 8px;
                 }
-                .review-q-num {
+                .trivia-result .review-q-num {
                     font-weight: 700;
                     font-size: 12px;
                     color: #65676b;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
-                .review-icon.correct { color: #31a24c; }
-                .review-icon.incorrect { color: #f02849; }
-                .review-question {
+                .trivia-result .review-icon.correct { color: #31a24c; }
+                .trivia-result .review-icon.incorrect { color: #f02849; }
+                .trivia-result .review-status,
+                .trivia-result .review-option-status {
+                    flex-shrink: 0;
+                    font-size: 12px;
+                    font-weight: 800;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                }
+                .trivia-result .review-status.correct { color: #c8ffd2; }
+                .trivia-result .review-status.incorrect { color: #ff5b6e; }
+                .trivia-result .review-status.skipped { color: #ffd700; }
+                .trivia-result .review-question {
                     color: #e4e6eb;
                     font-size: 14px;
                     line-height: 1.5;
                     margin: 0 0 10px;
                 }
-                .review-options {
+                .trivia-result .review-options {
                     display: flex;
                     flex-direction: column;
                     gap: 6px;
                 }
-                .review-option {
+                .trivia-result .review-option {
                     display: flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 8px 12px;
-                    border-radius: 6px;
+                    min-height: 44px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #050607;
                     font-size: 13px;
-                    color: rgba(255, 255, 255, 0.6);
-                    background: rgba(255, 255, 255, 0.03);
+                    color: #9aa5b3;
+                    background: transparent;
                 }
-                .review-option.is-correct {
-                    background: rgba(49, 162, 76, 0.15);
-                    border: 1px solid rgba(49, 162, 76, 0.3);
-                    color: #31a24c;
+                .trivia-result .review-option.is-correct {
+                    border-bottom-color: #35d95a;
+                    color: #c8ffd2;
                     font-weight: 600;
                 }
-                .review-option.is-wrong {
-                    background: rgba(240, 40, 73, 0.1);
-                    border: 1px solid rgba(240, 40, 73, 0.25);
-                    color: #f02849;
+                .trivia-result .review-option.is-wrong {
+                    border-bottom-color: #f02849;
+                    color: #ff5b6e;
                 }
-                .review-opt-letter {
+                .trivia-result .review-opt-letter {
                     font-weight: 700;
                     opacity: 0.5;
                     min-width: 16px;
                 }
-                .review-explanation {
+                .trivia-result .review-explanation {
                     margin: 10px 0 0;
-                    padding: 10px 12px;
-                    background: rgba(35, 116, 225, 0.08);
-                    border-radius: 6px;
-                    color: rgba(255, 255, 255, 0.7);
+                    padding: 10px 0 10px 12px;
+                    background: transparent;
+                    color: #c8cdd5;
                     font-size: 13px;
                     line-height: 1.5;
-                    border-left: 2px solid rgba(35, 116, 225, 0.3);
+                    border-left: 2px solid #45adff;
+                }
+
+                @media (max-width: 480px) {
+                    .trivia-result .flawless-banner {
+                        font-size: 18px;
+                        letter-spacing: 0.12em;
+                    }
+
+                    .trivia-result .stats-grid {
+                        grid-template-columns: 1fr 1fr;
+                        gap: 0 12px;
+                    }
+
+                    .trivia-result .opponent-result {
+                        gap: 10px;
+                    }
+
+                    .trivia-result .opp-side {
+                        align-items: center;
+                        flex-direction: column;
+                        gap: 2px;
+                    }
+
+                    .trivia-result .result-actions {
+                        flex-direction: column;
+                    }
+
+                    .trivia-result .result-action {
+                        width: 100%;
+                    }
+
+                    .trivia-result .breakdown-row {
+                        align-items: flex-start;
+                    }
+                }
+
+                @media (forced-colors: active) {
+                    .trivia-result .result-action,
+                    .trivia-result .review-toggle {
+                        border: 1px solid ButtonText;
+                    }
                 }
             `}</style>
         </div>

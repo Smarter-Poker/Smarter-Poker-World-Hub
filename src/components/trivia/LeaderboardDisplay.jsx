@@ -4,14 +4,14 @@
  * Props
  *   entries          array of leaderboard rows (trivia_scores shaped)
  *   currentUserId    highlights + anchors the sticky "your rank" row
- *   filter           'today' | 'week' — the ACTIVE range (controlled by parent)
+ *   filter           'today' | 'week' - the ACTIVE range (controlled by parent)
  *   onFilterChange   (filter) => void. REQUIRED for the range tabs to render.
  *                    Without it the tabs are hidden rather than shown as a
  *                    control that silently does nothing.
  *   previousEntries  optional prior snapshot of `entries`; drives up/down rank
  *                    movement arrows.
  *   currentUserEntry optional row for the signed-in user when they are outside
- *                    the visible slice — rendered as a pinned footer row.
+ *                    the visible slice - rendered as a pinned footer row.
  *   currentUserRank  their real rank (1-based) for that pinned row.
  *   loading          renders a skeleton instead of the empty state.
  *
@@ -21,7 +21,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Trophy, Clock, Gem, User, Crown, ChevronUp, ChevronDown, Minus } from 'lucide-react';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 
 function readScore(entry) {
     return Number(entry?.score ?? 0) || 0;
@@ -78,10 +78,10 @@ export default function LeaderboardDisplay({
     const showPinnedUserRow = Boolean(currentUserId && currentUserEntry && !currentUserInList);
 
     const getRankStyle = (rank) => {
-        if (rank === 1) return { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.1)' };
-        if (rank === 2) return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)' };
-        if (rank === 3) return { color: '#cd7f32', bg: 'rgba(205, 127, 50, 0.1)' };
-        return { color: 'rgba(255, 255, 255, 0.5)', bg: 'transparent' };
+        if (rank === 1) return { color: '#ffd700' };
+        if (rank === 2) return { color: '#e4e7ec' };
+        if (rank === 3) return { color: '#45adff' };
+        return { color: '#9aa5b3' };
     };
 
     const handleFilterClick = (next) => {
@@ -101,53 +101,45 @@ export default function LeaderboardDisplay({
         return (
             <div
                 key={key}
-                className={`leaderboard-entry${isCurrentUser ? ' current-user' : ''}${pinned ? ' pinned' : ''}`}
-                style={{ background: isCurrentUser ? 'rgba(35, 116, 225, 0.1)' : style.bg }}
+                className={`trivia-lb-entry${isCurrentUser ? ' current-user' : ''}${pinned ? ' pinned' : ''}`}
+                role="listitem"
+                aria-current={isCurrentUser ? 'true' : undefined}
             >
-                <div className="rank" style={{ color: style.color }}>
-                    {rank <= 3 && !pinned ? <Crown size={16} /> : rank}
+                <div className="trivia-lb-rank" style={{ color: style.color }}>
+                    {rank}
                 </div>
 
                 {previousRanks.size > 0 && (
-                    <div className="movement" data-dir={delta == null ? 'new' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
+                    <div className="trivia-lb-movement" data-dir={delta == null ? 'new' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
                         {delta == null ? (
-                            <span className="movement-new">NEW</span>
+                            <span className="trivia-lb-movement-new">New</span>
                         ) : delta > 0 ? (
-                            <>
-                                <ChevronUp size={12} />
-                                {delta}
-                            </>
+                            <span>Up {delta}</span>
                         ) : delta < 0 ? (
-                            <>
-                                <ChevronDown size={12} />
-                                {Math.abs(delta)}
-                            </>
+                            <span>Down {Math.abs(delta)}</span>
                         ) : (
-                            <Minus size={12} />
+                            <span>Steady</span>
                         )}
                     </div>
                 )}
 
-                <div className="user-info">
-                    <div className="avatar">
-                        <User size={16} />
-                    </div>
-                    <span className="username">
+                <div className="trivia-lb-user">
+                    <span className="trivia-lb-username">
                         {entry?.username || 'Anonymous'}
-                        {isCurrentUser && <span className="you-badge">YOU</span>}
+                        {isCurrentUser && <span className="trivia-lb-you">You</span>}
                     </span>
                 </div>
-                <div className="score">{readScore(entry).toLocaleString()} Pts</div>
+                <div className="trivia-lb-score">{formatTriviaDisplayNumber(readScore(entry))} Pts</div>
                 {time !== null && (
-                    <div className="time">
-                        <Clock size={14} />
-                        {time}s
+                    <div className="trivia-lb-time">
+                        <span className="trivia-lb-datum-label">Time</span>
+                        {formatTriviaDisplayNumber(time)}s
                     </div>
                 )}
                 {diamonds > 0 && (
-                    <div className="diamonds">
-                        <Gem size={14} />
-                        {diamonds.toLocaleString()}
+                    <div className="trivia-lb-diamonds">
+                        <span className="trivia-lb-datum-label">Diamonds</span>
+                        {formatTriviaDisplayNumber(diamonds)}
                     </div>
                 )}
             </div>
@@ -155,27 +147,24 @@ export default function LeaderboardDisplay({
     };
 
     return (
-        <div className="leaderboard">
-            <div className="leaderboard-header">
-                <h3>
-                    <Trophy size={20} />
-                    Leaderboard
-                </h3>
+        <div className="trivia-lb">
+            <div className="trivia-lb-header">
+                <h3>Leaderboard</h3>
                 {/* The range tabs only exist when the parent can actually re-query.
                     A tab that highlights but never changes the data is worse than
                     no tab at all. */}
                 {typeof onFilterChange === 'function' && (
-                    <div className="filter-tabs">
+                    <div className="trivia-lb-filters">
                         <button
                             type="button"
-                            className={`filter-tab ${activeFilter === 'today' ? 'active' : ''}`}
+                            className={`trivia-lb-filter ${activeFilter === 'today' ? 'active' : ''}`}
                             onClick={() => handleFilterClick('today')}
                         >
                             Today
                         </button>
                         <button
                             type="button"
-                            className={`filter-tab ${activeFilter === 'week' ? 'active' : ''}`}
+                            className={`trivia-lb-filter ${activeFilter === 'week' ? 'active' : ''}`}
                             onClick={() => handleFilterClick('week')}
                         >
                             This Week
@@ -184,13 +173,13 @@ export default function LeaderboardDisplay({
                 )}
             </div>
 
-            <div className="leaderboard-list">
+            <div className="trivia-lb-list" role="list" aria-label="Trivia Rankings">
                 {loading ? (
-                    <div className="empty-state">
+                    <div className="trivia-lb-empty">
                         <p>Loading Rankings...</p>
                     </div>
                 ) : rows.length === 0 ? (
-                    <div className="empty-state">
+                    <div className="trivia-lb-empty">
                         <p>No Entries Yet. Be The First!</p>
                     </div>
                 ) : (
@@ -199,8 +188,8 @@ export default function LeaderboardDisplay({
             </div>
 
             {showPinnedUserRow && (
-                <div className="pinned-wrap">
-                    <div className="pinned-divider" />
+                <div className="trivia-lb-pinned-wrap" role="list" aria-label="Your Rank">
+                    <div className="trivia-lb-pinned-divider" />
                     {renderRow(currentUserEntry, Number(currentUserRank) || rows.length + 1, {
                         pinned: true,
                         key: 'pinned-current-user'
@@ -209,133 +198,135 @@ export default function LeaderboardDisplay({
             )}
 
             <style>{`
-                .leaderboard {
-                    background: #18191a;
-                    border: 1px solid #4e4f50;
-                    border-radius: 12px;
-                    overflow: hidden;
+                .trivia-lb {
+                    width: 100%;
+                    min-width: 0;
+                    color: #e4e7ec;
+                    background: transparent;
+                    font-family: Inter, system-ui, sans-serif;
                 }
 
-                .leaderboard-header {
+                .trivia-lb-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 16px 20px;
-                    border-bottom: 1px solid #4e4f50;
+                    gap: 16px;
+                    padding: 14px 0;
+                    border-bottom: 1px solid #050607;
                 }
 
-                .leaderboard-header h3 {
+                .trivia-lb-header h3 {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
                     margin: 0;
-                    font-size: 16px;
-                    font-weight: 600;
-                    color: #fbbf24;
+                    color: #45adff;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    font-size: 18px;
+                    font-weight: 800;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
                 }
 
-                .filter-tabs {
+                .trivia-lb-filters {
                     display: flex;
-                    gap: 4px;
+                    gap: 12px;
                 }
 
-                .filter-tab {
-                    padding: 6px 12px;
+                .trivia-lb-filter {
+                    min-height: 44px;
+                    padding: 8px 2px;
                     background: transparent;
-                    border: none;
-                    border-radius: 6px;
-                    color: #65676b;
+                    border: 0;
+                    border-bottom: 2px solid transparent;
+                    color: #9aa5b3;
                     font-size: 12px;
-                    font-weight: 500;
+                    font-weight: 700;
+                    letter-spacing: 0.04em;
                     cursor: pointer;
-                    transition: all 0.2s;
+                    touch-action: manipulation;
                 }
 
-                .filter-tab:hover {
-                    color: rgba(255, 255, 255, 0.8);
+                .trivia-lb-filter:active {
+                    color: #f4f7fb;
                 }
 
-                .filter-tab.active {
-                    background: #3a3b3c;
-                    color: #ffffff;
+                .trivia-lb-filter.active {
+                    border-bottom-color: #45adff;
+                    color: #f4f7fb;
                 }
 
-                .leaderboard-list {
-                    padding: 8px;
+                .trivia-lb-list {
+                    padding: 0;
                 }
 
-                .empty-state {
+                .trivia-lb-empty {
                     padding: 40px 20px;
                     text-align: center;
-                    color: #65676b;
+                    color: #9aa5b3;
+                    font-size: 14px;
                 }
 
-                .leaderboard-entry {
+                .trivia-lb-entry {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    padding: 12px 16px;
-                    border-radius: 8px;
-                    margin-bottom: 4px;
-                    transition: background 0.2s;
+                    min-height: 56px;
+                    padding: 10px 0;
+                    border-bottom: 1px solid #050607;
                 }
 
-                .leaderboard-entry:last-child {
-                    margin-bottom: 0;
+                .trivia-lb-entry:last-child {
+                    border-bottom: 0;
                 }
 
-                .leaderboard-entry.current-user {
-                    border: 1px solid rgba(35, 116, 225, 0.3);
+                .trivia-lb-entry.current-user {
+                    border-inline-start: 3px solid #45adff;
+                    padding-inline-start: 9px;
                 }
 
-                .pinned-wrap {
-                    padding: 0 8px 8px;
-                    background: rgba(35, 116, 225, 0.04);
+                .trivia-lb-pinned-wrap {
+                    padding: 0;
+                    background: transparent;
                 }
 
-                .pinned-divider {
-                    height: 1px;
-                    margin: 0 8px 8px;
-                    background: repeating-linear-gradient(
-                        90deg,
-                        #4e4f50 0 6px,
-                        transparent 6px 12px
-                    );
+                .trivia-lb-pinned-divider {
+                    height: 0;
+                    border-top: 2px solid #45adff;
                 }
 
-                .leaderboard-entry.pinned {
+                .trivia-lb-entry.pinned {
                     position: sticky;
                     bottom: 0;
                 }
 
-                .rank {
+                .trivia-lb-rank {
                     width: 28px;
                     font-weight: 700;
                     font-size: 14px;
                     text-align: center;
                 }
 
-                .movement {
+                .trivia-lb-movement {
                     display: flex;
                     align-items: center;
                     gap: 2px;
-                    min-width: 30px;
-                    font-size: 11px;
+                    min-width: 54px;
+                    font-size: 12px;
                     font-weight: 700;
-                    color: #65676b;
+                    color: #9aa5b3;
                 }
 
-                .movement[data-dir="up"] { color: #22c55e; }
-                .movement[data-dir="down"] { color: #ef4444; }
-                .movement[data-dir="flat"] { color: #65676b; }
-                .movement[data-dir="new"] { color: #fbbf24; }
+                .trivia-lb-movement[data-dir="up"] { color: #c8ffd2; }
+                .trivia-lb-movement[data-dir="down"] { color: #ff5b6e; }
+                .trivia-lb-movement[data-dir="flat"] { color: #9aa5b3; }
+                .trivia-lb-movement[data-dir="new"] { color: #fbbf24; }
 
-                .movement-new {
-                    font-size: 9px;
+                .trivia-lb-movement-new {
+                    font-size: 12px;
                     letter-spacing: 0.5px;
                 }
 
-                .user-info {
+                .trivia-lb-user {
                     display: flex;
                     align-items: center;
                     gap: 10px;
@@ -343,21 +334,9 @@ export default function LeaderboardDisplay({
                     min-width: 0;
                 }
 
-                .avatar {
-                    width: 32px;
-                    height: 32px;
-                    background: #3a3b3c;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #65676b;
-                    flex-shrink: 0;
-                }
-
-                .username {
+                .trivia-lb-username {
                     font-size: 14px;
-                    color: rgba(255, 255, 255, 0.9);
+                    color: #e4e7ec;
                     display: flex;
                     align-items: center;
                     gap: 8px;
@@ -367,37 +346,73 @@ export default function LeaderboardDisplay({
                     white-space: nowrap;
                 }
 
-                .you-badge {
-                    font-size: 10px;
+                .trivia-lb-you {
+                    font-size: 12px;
                     font-weight: 700;
-                    color: #2374e1;
-                    background: rgba(35, 116, 225, 0.2);
-                    padding: 2px 6px;
-                    border-radius: 4px;
+                    color: #45adff;
                     flex-shrink: 0;
                 }
 
-                .score {
+                .trivia-lb-score {
                     font-weight: 600;
-                    color: #ffffff;
+                    color: #f4f7fb;
                     font-size: 14px;
                     white-space: nowrap;
                 }
 
-                .time {
+                .trivia-lb-time {
                     display: flex;
                     align-items: center;
                     gap: 4px;
                     font-size: 12px;
-                    color: #65676b;
+                    color: #9aa5b3;
                 }
 
-                .diamonds {
+                .trivia-lb-diamonds {
                     display: flex;
                     align-items: center;
                     gap: 4px;
                     font-size: 12px;
-                    color: #2374e1;
+                    color: #45adff;
+                }
+
+                .trivia-lb-datum-label {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    overflow: hidden;
+                    clip: rect(0 0 0 0);
+                    white-space: nowrap;
+                }
+
+                .trivia-lb-filter:focus-visible {
+                    outline: 2px solid #8fd4ff;
+                    outline-offset: 2px;
+                }
+
+                @media (max-width: 520px) {
+                    .trivia-lb-header {
+                        align-items: flex-start;
+                        flex-direction: column;
+                    }
+
+                    .trivia-lb-filters,
+                    .trivia-lb-filter {
+                        width: 100%;
+                    }
+
+                    .trivia-lb-movement,
+                    .trivia-lb-time {
+                        display: none;
+                    }
+
+                    .trivia-lb-entry {
+                        gap: 8px;
+                    }
+
+                    .trivia-lb-rank {
+                        width: 24px;
+                    }
                 }
             `}</style>
         </div>

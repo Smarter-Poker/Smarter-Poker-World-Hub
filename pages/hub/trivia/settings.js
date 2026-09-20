@@ -28,6 +28,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 
@@ -71,15 +72,19 @@ function readGameSettings() {
  * not manage. `audio` mirrors `soundEffects` — the games key sound off `audio`.
  */
 function writeGameSettings(prefs) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return false;
     // Sound is owned by triviaAudio (localStorage key 'trivia_audio_muted'),
     // which is what TriviaGame and every synthesized cue actually read. Writing
     // only `audio` here left a third, silently-diverging mute switch: turning
     // sound off on this page did nothing inside TriviaGame. Push the change to
     // the real owner first; `audio` below stays as a mirror for the game pages'
     // own settings blobs.
+    let audioSynced = true;
     try { triviaAudio.setMuted(!prefs.soundEffects); }
-    catch (e) { console.warn('[TriviaSettings] Could not set mute:', e?.message || e); }
+    catch (e) {
+        console.warn('[TriviaSettings] Could not set mute:', e?.message || e);
+        audioSynced = false;
+    }
     try {
         let existing = {};
         try { existing = JSON.parse(localStorage.getItem(GAME_SETTINGS_KEY) || '{}') || {}; } catch (e) { existing = {}; }
@@ -95,8 +100,10 @@ function writeGameSettings(prefs) {
             difficulty: prefs.difficulty
         };
         localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(merged));
+        return audioSynced;
     } catch (e) {
         console.warn('[TriviaSettings] Could not persist game settings:', e);
+        return false;
     }
 }
 
@@ -170,7 +177,7 @@ export default function TriviaSettings() {
     const persist = async (newPrefs, onRollback) => {
         writeGameSettings(newPrefs);
         if (!userId) {
-            flash('Saved on this device. Sign in to sync across devices.');
+            flash('Saved On This Device. Sign In To Sync Across Devices.');
             return;
         }
         try {
@@ -180,10 +187,10 @@ export default function TriviaSettings() {
                 hintsEnabled: newPrefs.hintsEnabled,
                 difficulty: newPrefs.difficulty
             });
-            flash('Settings saved');
+            flash('Settings Saved');
         } catch (error) {
             console.warn('Error auto-saving:', error);
-            flash('Failed to save. Please try again.', true);
+            flash('Failed To Save. Please Try Again.', true);
             if (onRollback) onRollback();
         }
     };
@@ -209,80 +216,50 @@ export default function TriviaSettings() {
         });
     };
 
-    /**
-     * Accessible toggle. Was a click-only <div> with no role, no tab stop and
-     * no keyboard handling — unusable with a keyboard or a screen reader.
-     */
+    /** Native button semantics provide Enter and Space activation. The shared
+     * progress chassis owns the visible two-state switch treatment. */
     const ToggleSwitch = ({ checked, onChange, label }) => (
-        <div
+        <button
+            type="button"
+            className="trivia-progress-switch"
             role="switch"
             aria-checked={!!checked}
             aria-label={label}
-            tabIndex={0}
+            data-checked={checked ? 'true' : 'false'}
             onClick={onChange}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-                    e.preventDefault();
-                    onChange();
-                }
-            }}
-            style={{
-                width: '50px',
-                height: '26px',
-                flexShrink: 0,
-                background: checked ? '#2374e1' : '#3a3b3c',
-                borderRadius: '13px',
-                position: 'relative',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-            }}
+            style={{ minWidth: 50, minHeight: 44 }}
         >
-            <div style={{
-                width: '22px',
-                height: '22px',
-                background: '#fff',
-                borderRadius: '50%',
-                position: 'absolute',
-                top: '2px',
-                left: checked ? '26px' : '2px',
-                transition: 'left 0.2s'
-            }} />
-        </div>
+            <span className="trivia-progress-switch-track" aria-hidden="true">
+                <span className="trivia-progress-switch-knob" />
+            </span>
+        </button>
     );
 
     const SettingRow = ({ title, description, children }) => (
-        <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: '180px', flex: 1 }}>
-                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>{title}</div>
-                    <div style={{ color: '#65676b', fontSize: '14px' }}>{description}</div>
+        <section className="trivia-progress-setting-panel">
+            <div className="trivia-progress-setting-row">
+                <div className="trivia-progress-setting-copy">
+                    <h2 className="trivia-progress-setting-title">{title}</h2>
+                    <p className="trivia-progress-setting-description">{description}</p>
                 </div>
-                {children}
+                <div className="trivia-progress-setting-control">{children}</div>
             </div>
-        </div>
+        </section>
     );
 
-    const ChoiceRow = ({ options, value, onSelect }) => (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+    const ChoiceRow = ({ label, options, value, onSelect }) => (
+        <div className="trivia-progress-choice-group" role="group" aria-label={label}>
             {options.map(option => (
                 <button
+                    type="button"
                     key={option}
+                    className="trivia-progress-choice"
                     onClick={() => onSelect(option)}
                     aria-pressed={value === option}
-                    style={{
-                        flex: '1 1 auto',
-                        minWidth: '76px',
-                        padding: '12px',
-                        background: value === option ? '#2374e1' : '#3a3b3c',
-                        border: value === option ? 'none' : '1px solid #4e4f50',
-                        color: '#e4e6eb',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: value === option ? 'bold' : 'normal',
-                        textTransform: 'capitalize'
-                    }}
+                    data-selected={value === option ? 'true' : 'false'}
+                    style={{ minWidth: 76, minHeight: 44 }}
                 >
-                    {option}
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
                 </button>
             ))}
         </div>
@@ -298,38 +275,37 @@ export default function TriviaSettings() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div
+                    className="trivia-progress-page trivia-progress-page--settings"
+                    data-trivia-family="progress"
+                    data-trivia-surface="settings"
+                >
                     <UniversalHeader pageDepth={2} />
 
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '800px', margin: '0 auto' }}>
-                        <button
-                            onClick={() => router.push('/hub/trivia')}
-                            style={{
-                                background: 'rgba(35, 116, 225, 0.1)',
-                                border: '1px solid rgba(35, 116, 225, 0.3)',
-                                color: '#2374e1',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
+                    <main className="trivia-progress-shell">
+                        <TriviaConsole
+                            className="trivia-progress-console"
+                            eyebrow="Player Controls"
+                            title="Trivia Settings"
+                            titleAs="h1"
+                            titleId="trivia-settings-title"
+                            subtitle="Changes Save Automatically"
+                            aria-labelledby="trivia-settings-title"
+                            secondaryAction={{
+                                label: 'Back To Trivia',
+                                onClick: () => router.push('/hub/trivia'),
                             }}
                         >
-                            Back To Trivia
-                        </button>
-
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '12px' }}>
-                            Trivia Settings
-                        </h1>
-                        <p style={{ color: '#65676b', marginBottom: '12px' }}>
+                        <p className="trivia-progress-subtitle">
                             Customize Your Trivia Experience. Changes Save Automatically.
                         </p>
 
                         {isLoading ? (
-                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
+                            <div className="trivia-progress-state trivia-progress-state--loading" role="status">
                                 Loading Settings...
                             </div>
                         ) : (
-                            <div style={{ display: 'grid', gap: '20px', marginTop: '28px' }}>
+                            <section className="trivia-progress-settings-list" aria-label="Trivia Preferences">
                                 <SettingRow
                                     title="Sound Effects"
                                     description="Countdown Heartbeat And Answer Feedback Sounds"
@@ -385,49 +361,45 @@ export default function TriviaSettings() {
                                     />
                                 </SettingRow>
 
-                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
-                                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Feedback Intensity</div>
-                                    <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '12px' }}>
+                                <section className="trivia-progress-setting-panel">
+                                    <h2 className="trivia-progress-setting-title">Feedback Intensity</h2>
+                                    <p className="trivia-progress-setting-description">
                                         How Strong The Vibration, Shake And Audio Cues Feel
-                                    </div>
+                                    </p>
                                     <ChoiceRow
+                                        label="Feedback Intensity"
                                         options={['low', 'medium', 'high']}
                                         value={preferences.intensity}
                                         onSelect={(value) => handleChoice('intensity', value)}
                                     />
-                                </div>
+                                </section>
 
-                                <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '20px' }}>
-                                    <div style={{ color: '#e4e6eb', fontWeight: 'bold', marginBottom: '4px' }}>Difficulty Level</div>
-                                    <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '12px' }}>
+                                <section className="trivia-progress-setting-panel">
+                                    <h2 className="trivia-progress-setting-title">Difficulty Level</h2>
+                                    <p className="trivia-progress-setting-description">
                                         Preferred Question Difficulty In Endless Mode
-                                    </div>
+                                    </p>
                                     <ChoiceRow
+                                        label="Difficulty Level"
                                         options={DIFFICULTY_OPTIONS}
                                         value={preferences.difficulty}
                                         onSelect={(value) => handleChoice('difficulty', value)}
                                     />
-                                </div>
-                            </div>
+                                </section>
+                            </section>
                         )}
 
                         {saveMessage && (
                             <div
-                                role="status"
-                                style={{
-                                    marginTop: '20px',
-                                    padding: '12px',
-                                    background: saveIsError ? 'rgba(240, 40, 73, 0.2)' : 'rgba(49, 162, 76, 0.2)',
-                                    border: `1px solid ${saveIsError ? 'rgba(240, 40, 73, 0.4)' : 'rgba(49, 162, 76, 0.4)'}`,
-                                    borderRadius: '8px',
-                                    color: saveIsError ? '#f02849' : '#31a24c',
-                                    textAlign: 'center'
-                                }}
+                                className="trivia-progress-status"
+                                role={saveIsError ? 'alert' : 'status'}
+                                data-tone={saveIsError ? 'error' : 'success'}
                             >
                                 {saveMessage}
                             </div>
                         )}
-                    </div>
+                        </TriviaConsole>
+                    </main>
                 </div>
     </PageTransition>
         </>

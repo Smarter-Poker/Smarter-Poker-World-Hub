@@ -1,0 +1,161 @@
+.card {
+    appearance: none;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+    color: #e6e9ee;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    container-type: inline-size;
+}
+
+.visual {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    isolation: isolate;
+}
+
+.artWell {
+    position: absolute;
+    z-index: 0;
+    left: var(--frame-art-x, 14%);
+    top: var(--frame-art-y, 17%);
+    width: var(--frame-art-w, 72%);
+    height: var(--frame-art-h, 58%);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #010407;
+}
+
+.art {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.frame {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.caption {
+    position: absolute;
+    z-index: 2;
+    left: 16%;
+    top: 81%;
+    display: grid;
+    place-items: center;
+    width: 68%;
+    height: 11.5%;
+    min-width: 0;
+    overflow: hidden;
+    color: #e4e7ec;
+    font-size: max(12px, 4.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-align: center;
+    text-shadow: 0 -1px 0 rgb(255 255 255 / 55%), 0 2px 0 #5f6872, 0 3px 0 #050607, 0 0 10px rgb(44 164 255 / 75%);
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.caption > span {
+    display: inline-block;
+    max-width: 100%;
+    font-size: max(12px, calc(1em * var(--fit, 1)));
+}
+
+.copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 4px 8% 14px;
+}
+
+.knowledge {
+    --frame-art-x: 13%;
+    --frame-art-y: 17%;
+    --frame-art-w: 74%;
+    --frame-art-h: 57%;
+}
+
+.strategy {
+    --frame-art-x: 17%;
+    --frame-art-y: 20%;
+    --frame-art-w: 70%;
+    --frame-art-h: 51%;
+}
+
+.challenge {
+    --frame-art-x: 15%;
+    --frame-art-y: 19%;
+    --frame-art-w: 70%;
+    --frame-art-h: 55%;
+}
+
+.competitive {
+    --frame-art-x: 14%;
+    --frame-art-y: 17%;
+    --frame-art-w: 72%;
+    --frame-art-h: 57%;
+}
+
+.progress {
+    --frame-art-x: 14%;
+    --frame-art-y: 18%;
+    --frame-art-w: 72%;
+    --frame-art-h: 57%;
+}
+
+.progress .caption {
+    left: 25%;
+    top: 6%;
+    width: 50%;
+    height: 8%;
+}
+
+.card:active .visual {
+    filter: brightness(1.12);
+}
+
+.card:focus-visible {
+    outline: 3px solid #8fd4ff;
+    outline-offset: -3px;
+}
+
+.card:disabled {
+    cursor: not-allowed;
+}
+
+.card:disabled .art {
+    filter: grayscale(0.75) brightness(0.55);
+}
+
+@media (min-width: 900px) {
+    .copy { padding-bottom: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card:active .visual { filter: none; }
+}

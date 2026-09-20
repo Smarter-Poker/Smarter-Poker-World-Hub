@@ -22,7 +22,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 
 const LIVE_SURVIVAL_ROUTE = '/hub/trivia/survival-game';
 
@@ -42,30 +43,36 @@ export default function SurvivalModeRedirectPage() {
                 canonical={LIVE_SURVIVAL_ROUTE}
                 noindex={true}
             />
-            <div style={{
-                minHeight: '100vh',
-                background: '#000000',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '20px',
-                gap: '16px'
-            }}>
-                <TriviaSkeleton />
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', textAlign: 'center' }}>
-                    Taking You To Survival Mode...
-                </p>
-                <a
-                    href={LIVE_SURVIVAL_ROUTE}
-                    style={{
-                        color: '#00D4FF',
-                        fontSize: '14px',
-                        textDecoration: 'underline'
-                    }}
-                >
-                    Continue To Survival Mode
-                </a>
+            <div
+                className="trivia-challenge-page trivia-challenge-page--survival-redirect"
+                data-trivia-family="challenge"
+                data-trivia-surface="survival-redirect"
+                data-game-state="redirecting"
+            >
+                <UniversalHeader pageDepth={2} />
+                <main className="trivia-challenge-shell" aria-labelledby="survival-redirect-title">
+                    <TriviaConsole
+                        className="trivia-challenge-console"
+                        eyebrow="Progressive Challenge"
+                        title="Survival Mode"
+                        titleAs="h1"
+                        titleId="survival-redirect-title"
+                        subtitle="Opening The Live Challenge"
+                        pill="Redirecting"
+                        aria-labelledby="survival-redirect-title"
+                    >
+                        <div className="trivia-challenge-state trivia-challenge-state--loading" role="status">
+                            <p>Taking You To Survival Mode</p>
+                        </div>
+                        <a
+                            className="trivia-challenge-action trivia-challenge-action--link"
+                            href={LIVE_SURVIVAL_ROUTE}
+                            style={{ minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
+                        >
+                            Continue To Survival Mode
+                        </a>
+                    </TriviaConsole>
+                </main>
             </div>
         </>
     );

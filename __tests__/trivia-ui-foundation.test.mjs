@@ -17,6 +17,8 @@ import {
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const LOBBY = read('src/components/trivia/TriviaLobby.jsx');
+const FRAME_CARD = read('src/components/trivia/console/TriviaFrameCard.jsx');
+const FRAME_CARD_CSS = read('src/components/trivia/console/TriviaFrameCard.module.css');
 const REGISTRY = read('src/config/triviaModeRegistry.mjs');
 const LOBBY_PAGE = read('pages/hub/trivia/index.js');
 
@@ -120,12 +122,18 @@ test('the lobby derives presentation and routes from the catalogue', () => {
 });
 
 test('desktop stays a grid while every mobile card stays image-first and stacked', () => {
-  const cardStart = LOBBY.indexOf('<button\n                                key={mode.id}');
-  const cardMarkup = LOBBY.slice(cardStart, LOBBY.indexOf('</button>', cardStart));
-  assert.ok(cardStart > -1);
-  assert.ok(cardMarkup.indexOf('mode-image-card__art') < cardMarkup.indexOf('mode-image-card__body'));
+  const cardStart = LOBBY.indexOf('<TriviaFrameCard');
+  const cardMarkup = LOBBY.slice(cardStart, LOBBY.indexOf('</TriviaFrameCard>', cardStart));
+  assert.ok(cardStart > -1, 'Lobby must render the shared painted frame card');
+  assert.match(cardMarkup, /image=\{mode\.image\}/);
+  assert.match(cardMarkup, /frameLabel=\{mode\.name\}/);
+  assert.ok(
+    FRAME_CARD.indexOf('className={styles.visual}') < FRAME_CARD.indexOf('className={styles.copy}'),
+    'Painted image frame must render before its description copy',
+  );
+  assert.match(FRAME_CARD_CSS, /\.card \{[\s\S]*?flex-direction: column;/);
+  assert.match(FRAME_CARD_CSS, /\.art \{[\s\S]*?object-fit: contain;/);
   assert.match(LOBBY, /\.modes-grid \{[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
-  assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.modes-grid \{[\s\S]*?grid-template-columns: 1fr !important;/);
+  assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.modes-grid \{[\s\S]*?grid-template-columns: 1fr;/);
   assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card \{[\s\S]*?flex-direction: column;/);
-  assert.match(LOBBY, /@media \(max-width: 700px\)[\s\S]*?\.mode-image-card__art \{[\s\S]*?aspect-ratio: 4 \/ 3;/);
 });

@@ -13,21 +13,21 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 import { busEmit } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { playHeartbeat, closeHeartbeatAudio } from '../../../src/lib/heartbeatAudio';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
-import TriviaSkeleton from '../../../src/components/trivia/TriviaSkeleton';
 import TriviaAnswerOption from '../../../src/components/trivia/TriviaAnswerOption';
 import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
@@ -37,7 +37,6 @@ import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
-import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
@@ -122,7 +121,7 @@ export default function EndlessModePage() {
 
     const [userDiamonds, setUserDiamonds] = useState(0);
 
-    // Lifeline usage tracking (max 3 per game, skip costs 5💎).
+    // Lifeline usage tracking (max 3 per game, skip costs 5 diamonds).
     // NOTE: the 50/50 and Double Chance lifelines are gone with the move to
     // server grading - 50/50 needs the answer key the client no longer
     // receives, and Double Chance needs a second attempt the binding
@@ -321,7 +320,7 @@ export default function EndlessModePage() {
         } catch (e) {
             console.warn('[Endless] Server session start failed:', e?.message || e);
             if (e?.status === 402) setShowOutOfDiamonds(true);
-            setLoadError('We could not load any questions right now. Please check your connection and try again.');
+            setLoadError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         } finally {
             setIsLoading(false);
@@ -329,7 +328,7 @@ export default function EndlessModePage() {
         if (!served || !Array.isArray(served.questions) || served.questions.length === 0) {
             // NEVER charge for an empty game.
             serverRun.reset();
-            setLoadError('We could not load any questions right now. Please check your connection and try again.');
+            setLoadError('We Could Not Load Any Questions Right Now. Please Check Your Connection And Try Again.');
             return;
         }
 
@@ -454,7 +453,7 @@ export default function EndlessModePage() {
             return true;
         } catch (e) {
             console.warn('[Endless] Lifeline deduction failed:', e);
-            setActionError('Could not purchase that lifeline. Please try again.');
+            setActionError('Could Not Purchase That Lifeline. Please Try Again.');
             setTimeout(() => setActionError(null), 3000);
             return false;
         }
@@ -533,7 +532,7 @@ export default function EndlessModePage() {
                 // Unlock and let the player re-tap; give the shot clock back.
                 trivia.setSelectedAnswer(null);
                 answerLockRef.current = false;
-                setActionError('Could not submit that answer. Please tap it again.');
+                setActionError('Could Not Submit That Answer. Please Tap It Again.');
                 setTimeout(() => setActionError(null), 3000);
                 timer.setIsTimerRunning(true);
             }
@@ -712,646 +711,420 @@ export default function EndlessModePage() {
     }
 
 
+    const creditedDiamonds = awardedDiamonds != null ? awardedDiamonds : diamondsEarned;
+    const balanceLabel = isVip ? 'VIP Access' : `${formatTriviaDisplayNumber(userDiamonds)} Diamonds`;
+    const stateLabel = showOutOfDiamonds
+        ? 'Balance Required'
+        : isPaused
+            ? 'Game Paused'
+            : isLoading
+                ? 'Preparing Table'
+                : {
+                    ready: balanceLabel,
+                    playing: `${formatTriviaDisplayNumber(timer.timeLeft)} Seconds`,
+                    saving: 'Securing Result',
+                    saving_error: 'Save Paused',
+                    gameover: `${formatTriviaDisplayNumber(streak)} Correct`,
+                }[gameState] || balanceLabel;
+
+    const primaryAction = showOutOfDiamonds
+        ? { label: 'Get Diamonds', onClick: () => router.push('/hub/diamond-store') }
+        : gameState === 'ready'
+            ? {
+                label: loadError ? 'Try Again' : 'Start Endless Trivia',
+                onClick: startGame,
+                disabled: isLoading,
+                'aria-disabled': isLoading,
+            }
+            : gameState === 'saving_error'
+                ? { label: 'Retry Save', onClick: handleRetrySave }
+                : gameState === 'gameover'
+                    ? { label: 'Play Again', onClick: playAgain }
+                    : null;
+
+    const secondaryAction = showOutOfDiamonds
+        ? { label: 'Close', onClick: () => setShowOutOfDiamonds(false) }
+        : gameState === 'gameover'
+            ? { label: 'Back To Trivia', onClick: () => router.push('/hub/trivia') }
+            : null;
+
     return (
         <TriviaErrorBoundary pageName="Endless Mode">
-            <SEOHead
-                title="Endless Trivia - Keep The Streak Alive"
-                description="How Many Poker Trivia Questions Can You Answer In A Row? Play Endless Mode To Test Your Limits."
-                canonical="/hub/trivia/endless"
-            />
-
-            <UniversalHeader pageDepth={2} />
-
-            {/* Per-game cost popup (one-time) */}
-            {userId && !isVip && (
-                <GameCostPopup
-                    userId={userId}
-                    featureKey="trivia_endless"
-                    isVip={isVip}
-                    cost={GAME_ENTRY_COST}
+            <>
+                <SEOHead
+                    title="Endless Trivia - Keep The Streak Alive"
+                    description="How Many Poker Trivia Questions Can You Answer In A Row? Play Endless Mode To Test Your Limits."
+                    canonical="/hub/trivia/endless"
                 />
-            )}
 
-            {/* Out of diamonds modal */}
-            {showOutOfDiamonds && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
-                    <div style={{ background: '#1a1a2e', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16, padding: 32, textAlign: 'center', maxWidth: 360 }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>💎</div>
-                        <h3 style={{ color: '#fff', marginBottom: 8 }}>Not Enough Diamonds</h3>
-                        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>Each Game Costs 10💎. Get More Diamonds Or Upgrade To VIP For Unlimited Access!</p>
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            <button onClick={() => router.push('/hub/diamond-store')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #00D4FF, #0088FF)', border: 'none', borderRadius: 20, color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Get Diamonds</button>
-                            <button onClick={() => setShowOutOfDiamonds(false)} style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, color: '#fff', cursor: 'pointer' }}>Close</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                <div
+                    className="trivia-challenge-page trivia-challenge-page--endless"
+                    data-trivia-family="challenge"
+                    data-trivia-surface="endless"
+                    data-game-state={gameState}
+                    data-screen-shake={screenShake ? 'active' : 'idle'}
+                >
+                    <UniversalHeader pageDepth={2} />
 
-            <PageTransition>
-                <div style={{
-                    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-                    background: "#0a0e1a",
-                    backgroundColor: '#000000',
-                    padding: '20px'
-                }}>
-                    <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-                        {/* In-game HUD (only visible during gameplay) */}
-                        {gameState === 'playing' && (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '16px 20px',
-                                background: '#242526',
-                                border: '1px solid #4e4f50',
-                                borderRadius: '12px',
-                                marginBottom: '20px',
-                                color: '#e4e6eb'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ color: '#2374e1', fontWeight: 'bold', fontSize: '18px' }}>ENDLESS MODE</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-                                    <span style={{ color: '#e69500' }}>Streak: {streak}</span>
-                                    <span style={{ color: '#2374e1' }}>Diamonds: {diamondsEarned}</span>
-                                    <span style={{ color: '#ef4444' }}>Misses: {misses}/{MAX_MISSES}</span>
-                                </div>
-                            </div>
-                        )}
+                    {userId && !isVip && (
+                        <GameCostPopup
+                            userId={userId}
+                            featureKey="trivia_endless"
+                            isVip={isVip}
+                            cost={GAME_ENTRY_COST}
+                        />
+                    )}
 
-                        {/* Question-pool load failure (ready screen) */}
-                        {gameState === 'ready' && loadError && (
-                            <div role="alert" style={{
-                                background: 'rgba(239, 68, 68, 0.12)',
-                                border: '1px solid rgba(239, 68, 68, 0.4)',
-                                borderRadius: '12px',
-                                padding: '14px 16px',
-                                marginBottom: '16px',
-                                color: '#fecaca',
-                                fontSize: '14px',
-                                textAlign: 'center'
-                            }}>
-                                {loadError}
-                            </div>
-                        )}
-
-                        {/* Ready State */}
-                        {gameState === 'ready' && (
-                            <div
-                                className="lobby-image-wrapper"
-                                onClick={isLoading ? undefined : startGame}
-                                aria-disabled={isLoading}
-                                style={{
-                                    opacity: isLoading ? 0.6 : 1,
-                                    pointerEvents: isLoading ? 'none' : 'auto',
-                                    cursor: isLoading ? 'wait' : 'pointer',
-                                    borderRadius: '16px',
-                                    overflow: 'hidden',
-                                    transition: 'transform 0.2s, box-shadow 0.2s',
-                                    maxHeight: 'calc(100dvh - 60px)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(35, 116, 225, 0.4)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    <PageTransition>
+                        <main className="trivia-challenge-shell" aria-labelledby="endless-trivia-title">
+                            <TriviaConsole
+                                className="trivia-challenge-console"
+                                eyebrow="Three Miss Challenge"
+                                title="Endless Trivia"
+                                titleAs="h1"
+                                titleId="endless-trivia-title"
+                                subtitle="Keep The Streak Alive"
+                                pill={stateLabel}
+                                aria-labelledby="endless-trivia-title"
+                                primaryAction={primaryAction}
+                                secondaryAction={secondaryAction}
                             >
-                                <Image src="/images/trivia/lobby-endless.jpg" alt="Endless Mode - Start Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 'calc(100dvh - 60px)', objectFit: 'contain' }} />
-                            </div>
-                        )}
-
-                        {/* Saving State (TriviaSkeleton) */}
-                        {gameState === 'saving' && (
-                            <TriviaSkeleton />
-                        )}
-
-                        {/* Saving Error State (Retry UI) */}
-                        {gameState === 'saving_error' && (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh'
-                            }}>
-                                <div style={{
-                                    background: 'rgba(30, 41, 59, 0.9)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '16px',
-                                    padding: '40px',
-                                    textAlign: 'center',
-                                    maxWidth: '480px'
-                                }}>
-                                    <h2 style={{ color: '#ef4444', marginBottom: '16px', fontSize: '24px' }}>Network Disconnected</h2>
-                                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '24px' }}>
-                                        We Couldn't Save Your Score Of {saveErrorPayload?.finalStreak} And {saveErrorPayload?.finalDiamonds}💎 Because You Lost Connection. Please Check Your Internet And Try Again So You Don't Lose Your Rewards!
-                                    </p>
-                                    <button
-                                        onClick={handleRetrySave}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
+                                {showOutOfDiamonds && (
+                                    <section
+                                        className="trivia-challenge-alert"
+                                        role="alert"
+                                        aria-labelledby="endless-diamonds-title"
                                     >
-                                        Retry Save
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                                        <h2 id="endless-diamonds-title">Not Enough Diamonds</h2>
+                                        <p>
+                                            Each Game Costs {formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds.
+                                            Get More Diamonds Or Upgrade To VIP For Unlimited Access.
+                                        </p>
+                                    </section>
+                                )}
 
-                        {/* Playing State */}
-                        {gameState === 'playing' && currentQuestion && (
-                            <div style={{
-                                animation: screenShake ? 'shake 0.1s infinite' : 'none'
-                            }}>
-                                <style>{`
-                                    @keyframes shake {
-                                        0%, 100% { transform: translateX(0); }
-                                        25% { transform: translateX(-5px); }
-                                        75% { transform: translateX(5px); }
-                                    }
-                                `}</style>
+                                {gameState === 'ready' && isLoading && (
+                                    <div className="trivia-challenge-state" role="status" aria-live="polite">
+                                        <p>Preparing Endless Trivia</p>
+                                    </div>
+                                )}
 
-                                {/* Paused Overlay */}
-                                {isPaused && (
-                                    <div style={{
-                                        position: 'fixed',
-                                        top: 0, left: 0, right: 0, bottom: 0,
-                                        background: 'rgba(0,0,0,0.85)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 1000
-                                    }}>
-                                        <span style={{ fontSize: '48px', marginBottom: '20px' }}>⏸️</span>
-                                        <h2 style={{ color: 'white', marginBottom: '10px' }}>Game Paused</h2>
-                                        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px' }}>
-                                            You Left The Screen. Time Remaining: {timer.timeLeft}s
+                                {gameState === 'ready' && !isLoading && (
+                                    <section className="trivia-challenge-intro" aria-labelledby="endless-ready-title">
+                                        <h2 id="endless-ready-title">Answer Until The Third Miss</h2>
+                                        <p>
+                                            Build The Longest Streak You Can Across A Server-Dealt
+                                            Roster Of Every Poker Trivia Category.
+                                        </p>
+                                        {loadError && (
+                                            <p className="trivia-challenge-alert" role="alert">{loadError}</p>
+                                        )}
+                                        <dl className="trivia-challenge-stats">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Questions Available</dt>
+                                                <dd>{formatTriviaDisplayNumber(QUESTIONS_PER_SESSION)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Misses Allowed</dt>
+                                                <dd>{formatTriviaDisplayNumber(MAX_MISSES)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Entry</dt>
+                                                <dd>{isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(GAME_ENTRY_COST)} Diamonds`}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Daily Reward Cap</dt>
+                                                <dd>{formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)}</dd>
+                                            </div>
+                                        </dl>
+                                        <p className="trivia-challenge-note">
+                                            Each Correct Answer Earns One Diamond. Skips Do Not Count As Misses.
+                                        </p>
+                                    </section>
+                                )}
+
+                                {gameState === 'saving' && (
+                                    <div className="trivia-challenge-state" role="status" aria-live="polite">
+                                        <p>Securing Your Endless Run</p>
+                                    </div>
+                                )}
+
+                                {gameState === 'saving_error' && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--error" role="alert">
+                                        <h2>Network Disconnected</h2>
+                                        <p>
+                                            We Could Not Save Your Score Of {formatTriviaDisplayNumber(saveErrorPayload?.finalStreak)}
+                                            {' Correct Answers And '}
+                                            {formatTriviaDisplayNumber(saveErrorPayload?.finalDiamonds)} Diamonds.
+                                            Check Your Connection And Retry To Protect Your Rewards.
+                                        </p>
+                                    </section>
+                                )}
+
+                                {gameState === 'playing' && currentQuestion && isPaused && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--paused" role="status">
+                                        <h2>Game Paused</h2>
+                                        <p>
+                                            You Left The Screen With {formatTriviaDisplayNumber(timer.timeLeft)} Seconds Remaining.
                                         </p>
                                         <button
-                                            onClick={() => { setIsPaused(false); timer.setIsTimerRunning(true); }}
-                                            style={{
-                                                padding: '16px 48px',
-                                                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '18px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer'
+                                            type="button"
+                                            className="trivia-challenge-action"
+                                            onClick={() => {
+                                                setIsPaused(false);
+                                                timer.setIsTimerRunning(true);
                                             }}
+                                            style={{ minWidth: 44, minHeight: 44 }}
                                         >
-                                            ▶️ Resume Game
+                                            Resume Game
                                         </button>
-                                    </div>
+                                    </section>
                                 )}
 
-                                {/* Lifeline purchase / answer submission failure */}
-                                {actionError && (
-                                    <div role="alert" style={{
-                                        background: 'rgba(239, 68, 68, 0.15)',
-                                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                                        borderRadius: '10px',
-                                        padding: '10px 14px',
-                                        marginBottom: '12px',
-                                        color: '#fecaca',
-                                        fontSize: '13px',
-                                        textAlign: 'center'
-                                    }}>
-                                        {actionError}
-                                    </div>
-                                )}
-
-                                {/* Shot Clock Timer */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    marginBottom: '12px'
-                                }}>
-                                    {/* Settings Button */}
-                                    <button
-                                        onClick={() => setShowSettingsPanel(prev => !prev)}
-                                        aria-label="Game Settings"
-                                        aria-expanded={showSettingsPanel}
-                                        style={{
-                                            width: '36px',
-                                            height: '36px',
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: '1px solid rgba(255,255,255,0.2)',
-                                            borderRadius: '50%',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#fff'
-                                        }}
+                                {gameState === 'playing' && currentQuestion && !isPaused && (
+                                    <section
+                                        className={`trivia-challenge-stage${screenShake ? ' trivia-challenge-stage--shaking' : ''}`}
+                                        aria-labelledby="endless-question-title"
                                     >
-                                        <SettingsIcon size={16} />
-                                    </button>
-
-                                    {/* Timer Display.
-                                        Honours the "Timer" preference from /hub/trivia/settings
-                                        (shared 'trivia_settings' store). The shot clock itself
-                                        always runs — hiding it is a display choice, not a way to
-                                        remove the time pressure that the mode is built on. */}
-                                    <div style={{
-                                        visibility: settings.timerEnabled === false ? 'hidden' : 'visible',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                        padding: '12px 24px',
-                                        background: timer.timeLeft <= 3 ? 'rgba(239, 68, 68, 0.3)' :
-                                            timer.timeLeft <= 8 ? 'rgba(251, 191, 36, 0.2)' :
-                                                'rgba(139, 92, 246, 0.15)',
-                                        border: `2px solid ${timer.timeLeft <= 3 ? '#ef4444' :
-                                            timer.timeLeft <= 8 ? '#fbbf24' : '#8b5cf6'}`,
-                                        borderRadius: '50px'
-                                    }}>
-                                        <TimerIcon size={18} color={timer.timeLeft <= 3 ? '#ef4444' : timer.timeLeft <= 8 ? '#fbbf24' : '#8b5cf6'} />
-                                        <span style={{
-                                            fontSize: '28px',
-                                            fontWeight: 'bold',
-                                            fontFamily: 'monospace',
-                                            color: timer.timeLeft <= 3 ? '#ef4444' :
-                                                timer.timeLeft <= 8 ? '#fbbf24' : '#8b5cf6',
-                                            minWidth: '40px',
-                                            textAlign: 'center'
-                                        }}>
-                                            {timer.timeLeft}
-                                        </span>
-                                        {lifelinesUsedThisGame > 0 && (
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '3px',
-                                                fontSize: '11px',
-                                                color: 'rgba(255,255,255,0.6)',
-                                                marginLeft: '8px'
-                                            }}>
-                                                <ZapIcon size={11} />
-                                                {lifelinesUsedThisGame}/{MAX_LIFELINES_PER_GAME}
-                                            </span>
+                                        {actionError && (
+                                            <p className="trivia-challenge-alert" role="alert">{actionError}</p>
                                         )}
-                                    </div>
 
-                                    {/* Spacer for symmetry */}
-                                    <div style={{ width: '36px' }} />
-                                </div>
-
-                                {/* Settings Panel */}
-                                {showSettingsPanel && (
-                                    <div style={{
-                                        background: 'rgba(0,0,0,0.8)',
-                                        border: '1px solid rgba(255,255,255,0.2)',
-                                        borderRadius: '12px',
-                                        padding: '16px',
-                                        marginBottom: '16px'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ color: 'white' }}>🔊 Sound Effects</span>
-                                            <button
-                                                onClick={() => triviaAudio.setMuted(settings.audio)}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    background: settings.audio ? '#22c55e' : '#666',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    color: 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {settings.audio ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ color: 'white' }}>📳 Haptic Vibration</span>
-                                            <button
-                                                onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    background: settings.haptics ? '#22c55e' : '#666',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    color: 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {settings.haptics ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ color: 'white' }}>📱 Screen Shake</span>
-                                            <button
-                                                onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    background: settings.screenShake ? '#22c55e' : '#666',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    color: 'white',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {settings.screenShake ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ color: 'white' }}>⚡ Intensity</span>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                {['low', 'medium', 'high'].map(level => (
-                                                    <button
-                                                        key={level}
-                                                        onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
-                                                        style={{
-                                                            padding: '4px 10px',
-                                                            background: settings.intensity === level ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
-                                                            border: 'none',
-                                                            borderRadius: '8px',
-                                                            color: 'white',
-                                                            fontSize: '11px',
-                                                            cursor: 'pointer',
-                                                            textTransform: 'capitalize'
-                                                        }}
-                                                    >
-                                                        {level}
-                                                    </button>
-                                                ))}
+                                        <dl className="trivia-challenge-stats trivia-challenge-stats--compact">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Streak</dt>
+                                                <dd>{formatTriviaDisplayNumber(streak)}</dd>
                                             </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Question Card */}
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '16px',
-                                    padding: '32px'
-                                }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        fontSize: '12px',
-                                        color: 'rgba(255,255,255,0.5)',
-                                        marginBottom: '16px',
-                                        textTransform: 'uppercase'
-                                    }}>
-                                        {/* currentIndex, not streak: skips advance the index without
-                                            advancing the streak, so "#streak + 1" under-counted. */}
-                                        <span>Question #{currentIndex + 1}</span>
-                                        <span style={{ color: '#8b5cf6' }}>{currentQuestion.category || 'Mixed'}</span>
-                                    </div>
-
-                                    <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'white', lineHeight: 1.4, margin: '0 0 24px 0' }}>
-                                        {toTitleCase(currentQuestion.question)}
-                                    </h2>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {/* TRAIN-WIRE-TRIVIA-ANSWER-OPTION-4 — shared option primitive (inline variant).
-                                            The reveal keys off the server verdict: the client never
-                                            holds a correct_index of its own. */}
-                                        {currentQuestion.options?.map((option, index) => (
-                                            <TriviaAnswerOption
-                                                variant="inline"
-                                                key={index}
-                                                index={index}
-                                                option={toTitleCase(option)}
-                                                selectedAnswer={trivia.selectedAnswer}
-                                                correctIndex={verdict ? verdict.correctDisplayIndex : null}
-                                                showResult={trivia.showResult}
-                                                disabled={trivia.selectedAnswer !== null || trivia.showResult}
-                                                onSelect={gradeAnswer}
-                                            />
-                                        ))}
-                                    </div>
-
-                                    {/* Lifeline Buttons Row.
-                                        Skip is the one lifeline that survives server grading: it
-                                        never answers, so it needs no answer key and no second
-                                        attempt. VIP members are never charged (parity with
-                                        HintButtons.jsx / StrategyTrivia). */}
-                                    {!trivia.showResult && (
-                                        <div style={{
-                                            display: 'flex',
-                                            gap: '10px',
-                                            marginTop: '16px'
-                                        }}>
-                                            {/* Skip Question Button */}
-                                            <button
-                                                onClick={useSkipQuestion}
-                                                disabled={lifelineLocked}
-                                                style={{
-                                                    flex: 1,
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '4px',
-                                                    padding: '12px 8px',
-                                                    background: (lifelineLocked)
-                                                        ? 'rgba(100, 100, 100, 0.2)'
-                                                        : 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(200, 150, 30, 0.3))',
-                                                    border: `2px solid ${(lifelineLocked) ? '#666' : '#fbbf24'}`,
-                                                    borderRadius: '12px',
-                                                    color: (lifelineLocked) ? '#666' : 'white',
-                                                    fontSize: '13px',
-                                                    fontWeight: 'bold',
-                                                    cursor: (lifelineLocked) ? 'default' : 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                <span style={{ fontSize: '20px' }}>⏭️</span>
-                                                <span>Skip</span>
-                                                <span style={{ fontSize: '11px', color: isVip ? '#22c55e' : '#fbbf24' }}>{isVip ? 'FREE' : `${LIFELINE_COST} DIAMONDS`}</span>
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '6px',
-                                        marginTop: '24px',
-                                        padding: '12px',
-                                        background: 'rgba(139, 92, 246, 0.1)',
-                                        border: '1px solid rgba(139, 92, 246, 0.2)',
-                                        borderRadius: '8px',
-                                        color: '#8b5cf6',
-                                        fontSize: '13px'
-                                    }}>
-                                        +1 Diamond Per Correct Answer (Max {DAILY_DIAMOND_CAP}/Day)
-                                    </div>
-
-                                    {/* Report-a-bad-question — feeds the 3-strike quality_score
-                                        demotion pipeline. This component was imported but never
-                                        rendered anywhere, so the whole reporting feature was dead
-                                        in every special mode. Shown once the answer is revealed
-                                        so it can't be used to stall the shot clock. */}
-                                    {trivia.showResult && currentQuestion?.id != null && (
-                                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
-                                            <ReportQuestionButton
-                                                questionId={currentQuestion.id}
-                                                userToken={accessToken}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Game Over State */}
-                        {gameState === 'gameover' && (
-                            <div style={{
-                                position: 'fixed',
-                                inset: 0,
-                                zIndex: 1000,
-                                background: 'rgba(0, 0, 0, 0.88)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '20px',
-                                animation: 'resultFadeIn 0.4s ease'
-                            }}>
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '16px',
-                                    padding: '48px',
-                                    textAlign: 'center',
-                                    maxWidth: '480px',
-                                    width: '100%'
-                                }}>
-                                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>💀</div>
-                                    <h2 style={{ color: '#ef4444', fontSize: '32px', marginBottom: '24px' }}>
-                                        GAME OVER
-                                    </h2>
-
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 1fr',
-                                        gap: '20px',
-                                        marginBottom: '24px'
-                                    }}>
-                                        <div style={{
-                                            background: 'rgba(251, 191, 36, 0.1)',
-                                            border: '1px solid rgba(251, 191, 36, 0.3)',
-                                            borderRadius: '12px',
-                                            padding: '20px'
-                                        }}>
-                                            <div style={{ fontSize: '36px', color: '#fbbf24', fontWeight: 'bold' }}>
-                                                {streak}
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Diamonds</dt>
+                                                <dd>{formatTriviaDisplayNumber(diamondsEarned)}</dd>
                                             </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-                                                Streak
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Misses</dt>
+                                                <dd>
+                                                    {formatTriviaDisplayNumber(misses)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(MAX_MISSES)}
+                                                </dd>
                                             </div>
-                                        </div>
-                                        <div style={{
-                                            background: 'rgba(0, 212, 255, 0.1)',
-                                            border: '1px solid rgba(0, 212, 255, 0.3)',
-                                            borderRadius: '12px',
-                                            padding: '20px'
-                                        }}>
-                                            <div style={{ fontSize: '36px', color: '#00D4FF', fontWeight: 'bold' }}>
-                                                {awardedDiamonds != null ? awardedDiamonds : diamondsEarned}
-                                            </div>
-                                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-                                                {'\u{1F48E}'} Earned
-                                            </div>
-                                            {awardedDiamonds != null && awardedDiamonds < diamondsEarned && (
-                                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: 6 }}>
-                                                    Daily Cap Reached - {awardedDiamonds} Of {diamondsEarned} Credited
+                                            {settings.timerEnabled !== false && (
+                                                <div className="trivia-challenge-stat">
+                                                    <dt>Time</dt>
+                                                    <dd aria-live="off">{formatTriviaDisplayNumber(timer.timeLeft)} Seconds</dd>
                                                 </div>
                                             )}
-                                        </div>
-                                    </div>
+                                        </dl>
 
-                                    {/* Strictly greater than the high score captured BEFORE this
-                                        game — `streak >= highScore` fired on a mere tie, and
-                                        highScore had already been updated by saveGameResult. */}
-                                    {streak > preGameHighScore && streak > 0 && (
-                                        <div style={{
-                                            padding: '12px 24px',
-                                            background: 'rgba(234, 179, 8, 0.1)',
-                                            border: '1px solid rgba(234, 179, 8, 0.3)',
-                                            borderRadius: '8px',
-                                            color: '#eab308',
-                                            marginBottom: '24px'
-                                        }}>
-                                            NEW HIGH SCORE!
+                                        <div className="trivia-challenge-toolbar">
+                                            <button
+                                                type="button"
+                                                className="trivia-challenge-action"
+                                                onClick={() => setShowSettingsPanel(prev => !prev)}
+                                                aria-expanded={showSettingsPanel}
+                                                aria-controls="endless-game-settings"
+                                                style={{ minWidth: 44, minHeight: 44 }}
+                                            >
+                                                {showSettingsPanel ? 'Close Settings' : 'Game Settings'}
+                                            </button>
+                                            {lifelinesUsedThisGame > 0 && (
+                                                <span className="trivia-challenge-note">
+                                                    Lifelines {formatTriviaDisplayNumber(lifelinesUsedThisGame)}
+                                                    {' Of '}
+                                                    {formatTriviaDisplayNumber(MAX_LIFELINES_PER_GAME)}
+                                                </span>
+                                            )}
                                         </div>
-                                    )}
 
-                                    {gameDurationSec > 0 && (
-                                        <div style={{
-                                            color: 'rgba(255,255,255,0.5)',
-                                            fontSize: '13px',
-                                            marginBottom: '20px'
-                                        }}>
-                                            Run Time: {Math.floor(gameDurationSec / 60)}m {gameDurationSec % 60}s
-                                            {' • '}Best: {Math.max(highScore, streak)}
+                                        {showSettingsPanel && (
+                                            <section
+                                                id="endless-game-settings"
+                                                className="trivia-challenge-settings"
+                                                aria-labelledby="endless-settings-title"
+                                            >
+                                                <h3 id="endless-settings-title">Game Settings</h3>
+                                                <div className="trivia-challenge-setting">
+                                                    <span id="endless-audio-label">Sound Effects</span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-labelledby="endless-audio-label"
+                                                        aria-checked={settings.audio}
+                                                        className="trivia-challenge-switch"
+                                                        onClick={() => triviaAudio.setMuted(settings.audio)}
+                                                        style={{ minWidth: 44, minHeight: 44 }}
+                                                    >
+                                                        {settings.audio ? 'On' : 'Off'}
+                                                    </button>
+                                                </div>
+                                                <div className="trivia-challenge-setting">
+                                                    <span id="endless-haptics-label">Haptic Vibration</span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-labelledby="endless-haptics-label"
+                                                        aria-checked={settings.haptics}
+                                                        className="trivia-challenge-switch"
+                                                        onClick={() => setSettings(prev => ({ ...prev, haptics: !prev.haptics }))}
+                                                        style={{ minWidth: 44, minHeight: 44 }}
+                                                    >
+                                                        {settings.haptics ? 'On' : 'Off'}
+                                                    </button>
+                                                </div>
+                                                <div className="trivia-challenge-setting">
+                                                    <span id="endless-shake-label">Screen Shake</span>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-labelledby="endless-shake-label"
+                                                        aria-checked={settings.screenShake}
+                                                        className="trivia-challenge-switch"
+                                                        onClick={() => setSettings(prev => ({ ...prev, screenShake: !prev.screenShake }))}
+                                                        style={{ minWidth: 44, minHeight: 44 }}
+                                                    >
+                                                        {settings.screenShake ? 'On' : 'Off'}
+                                                    </button>
+                                                </div>
+                                                <fieldset className="trivia-challenge-setting-group">
+                                                    <legend>Intensity</legend>
+                                                    <div className="trivia-challenge-actions">
+                                                        {['low', 'medium', 'high'].map(level => (
+                                                            <button
+                                                                key={level}
+                                                                type="button"
+                                                                className="trivia-challenge-action"
+                                                                aria-pressed={settings.intensity === level}
+                                                                onClick={() => setSettings(prev => ({ ...prev, intensity: level }))}
+                                                                style={{ minWidth: 44, minHeight: 44 }}
+                                                            >
+                                                                {toTitleCase(level)}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </fieldset>
+                                            </section>
+                                        )}
+
+                                        <p className="trivia-challenge-progress-label">
+                                            Question {formatTriviaDisplayNumber(currentIndex + 1)}
+                                            {' | '}
+                                            {toTitleCase(String(currentQuestion.category || 'Mixed').replaceAll('_', ' '))}
+                                        </p>
+                                        <h2 id="endless-question-title" className="trivia-challenge-question">
+                                            {toTitleCase(currentQuestion.question)}
+                                        </h2>
+
+                                        <div className="trivia-challenge-options">
+                                            {currentQuestion.options?.map((option, index) => (
+                                                <TriviaAnswerOption
+                                                    variant="inline"
+                                                    key={index}
+                                                    index={index}
+                                                    option={toTitleCase(option)}
+                                                    selectedAnswer={trivia.selectedAnswer}
+                                                    correctIndex={verdict ? verdict.correctDisplayIndex : null}
+                                                    showResult={trivia.showResult}
+                                                    disabled={trivia.selectedAnswer !== null || trivia.showResult}
+                                                    onSelect={gradeAnswer}
+                                                />
+                                            ))}
                                         </div>
-                                    )}
 
-                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                        {!trivia.showResult && (
+                                            <button
+                                                type="button"
+                                                className="trivia-challenge-action trivia-challenge-action--lifeline"
+                                                onClick={useSkipQuestion}
+                                                disabled={lifelineLocked}
+                                                style={{ minWidth: 44, minHeight: 44 }}
+                                            >
+                                                Skip Question | {isVip ? 'VIP Included' : `${formatTriviaDisplayNumber(LIFELINE_COST)} Diamonds`}
+                                            </button>
+                                        )}
+
+                                        <p className="trivia-challenge-note">
+                                            One Diamond Per Correct Answer | {formatTriviaDisplayNumber(DAILY_DIAMOND_CAP)} Daily Maximum
+                                        </p>
+
+                                        {trivia.showResult && verdict?.explanation && (
+                                            <section className="trivia-challenge-explanation" aria-labelledby="endless-explanation-title">
+                                                <h3 id="endless-explanation-title">Why This Is Correct</h3>
+                                                <p>{verdict.explanation}</p>
+                                            </section>
+                                        )}
+
+                                        {trivia.showResult && currentQuestion?.id != null && (
+                                            <div className="trivia-challenge-report">
+                                                <ReportQuestionButton
+                                                    questionId={currentQuestion.id}
+                                                    userToken={accessToken}
+                                                />
+                                            </div>
+                                        )}
+                                    </section>
+                                )}
+
+                                {gameState === 'gameover' && (
+                                    <section className="trivia-challenge-state trivia-challenge-state--results" aria-labelledby="endless-results-title">
+                                        <h2 id="endless-results-title">Endless Run Complete</h2>
+                                        <dl className="trivia-challenge-stats">
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Correct Answers</dt>
+                                                <dd>{formatTriviaDisplayNumber(streak)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Diamonds Earned</dt>
+                                                <dd>{formatTriviaDisplayNumber(creditedDiamonds)}</dd>
+                                            </div>
+                                            <div className="trivia-challenge-stat">
+                                                <dt>Best Streak</dt>
+                                                <dd>{formatTriviaDisplayNumber(Math.max(highScore, streak))}</dd>
+                                            </div>
+                                            {gameDurationSec > 0 && (
+                                                <div className="trivia-challenge-stat">
+                                                    <dt>Run Time</dt>
+                                                    <dd>
+                                                        {formatTriviaDisplayNumber(Math.floor(gameDurationSec / 60))} Minutes
+                                                        {' '}
+                                                        {formatTriviaDisplayNumber(gameDurationSec % 60)} Seconds
+                                                    </dd>
+                                                </div>
+                                            )}
+                                        </dl>
+
+                                        {awardedDiamonds != null && awardedDiamonds < diamondsEarned && (
+                                            <p className="trivia-challenge-note">
+                                                Daily Cap Reached. {formatTriviaDisplayNumber(awardedDiamonds)}
+                                                {' Of '}
+                                                {formatTriviaDisplayNumber(diamondsEarned)} Diamonds Credited.
+                                            </p>
+                                        )}
+
+                                        {streak > preGameHighScore && streak > 0 && (
+                                            <p className="trivia-challenge-note" role="status">New High Score</p>
+                                        )}
+
                                         <button
-                                            onClick={playAgain}
-                                            style={{
-                                                padding: '16px 32px',
-                                                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Play Again
-                                        </button>
-                                        <button
+                                            type="button"
+                                            className="trivia-challenge-action"
                                             onClick={async () => {
-                                                const r = await shareResult({ mode: 'Endless', score: streak, diamonds: awardedDiamonds != null ? awardedDiamonds : diamondsEarned });
-                                                if (r === 'copied') alert('Result copied to clipboard!');
+                                                const result = await shareResult({
+                                                    mode: 'Endless',
+                                                    score: streak,
+                                                    diamonds: creditedDiamonds,
+                                                });
+                                                if (result === 'copied') alert('Result Copied To Clipboard.');
                                             }}
-                                            style={{
-                                                padding: '16px 32px',
-                                                background: 'linear-gradient(135deg, #2374e1, #1b5bb8)',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                cursor: 'pointer'
-                                            }}
+                                            style={{ minWidth: 44, minHeight: 44 }}
                                         >
                                             Share Result
                                         </button>
-                                        <button
-                                            onClick={() => router.push('/hub/trivia')}
-                                            style={{
-                                                padding: '16px 32px',
-                                                background: 'rgba(255,255,255,0.1)',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                borderRadius: '12px',
-                                                color: 'white',
-                                                fontSize: '16px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Back To Trivia
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                                    </section>
+                                )}
+                            </TriviaConsole>
+                        </main>
+                    </PageTransition>
                 </div>
-    </PageTransition >
+            </>
         </TriviaErrorBoundary>
     );
 }

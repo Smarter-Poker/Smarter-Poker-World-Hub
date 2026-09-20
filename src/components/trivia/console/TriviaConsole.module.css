@@ -1,0 +1,164 @@
+.console {
+    --tc-max: 1000px;
+    position: relative;
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, var(--tc-max));
+    min-width: 0;
+    margin-inline: auto;
+    padding: 0;
+    overflow: visible;
+    color: #e6e9ee;
+    background: none;
+    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.head {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1000 / 348;
+    background: url('/images/trivia/console/spade-console-v1/top.png') top center / 100% auto no-repeat;
+}
+
+.body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 3cqw;
+    padding: 0 10.5% 3cqw;
+    background: url('/images/trivia/console/spade-console-v1/mid.png') top center / 100% auto repeat-y;
+}
+
+.foot {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1000 / 72;
+    background: url('/images/trivia/console/spade-console-v1/bottom-foot.png') bottom center / 100% auto no-repeat;
+}
+
+.withPlates .foot {
+    aspect-ratio: 1000 / 277;
+    background-image: url('/images/trivia/console/spade-console-v1/bottom-plates.png');
+}
+
+.zone {
+    position: absolute;
+    display: grid;
+    align-items: center;
+    justify-items: start;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #e4e7ec;
+    white-space: nowrap;
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+}
+
+.zone > span {
+    display: inline-block;
+    max-width: 100%;
+    font-size: max(12px, calc(1em * var(--fit, 1)));
+}
+
+.eyebrow {
+    color: #45adff;
+    font-size: max(12px, 2.6cqw);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-shadow: 0 0 0.9cqw rgb(49 168 255 / 70%), 0 0 2cqw rgb(49 168 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+}
+
+.title {
+    font-size: 7cqw;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.subtitle {
+    color: #9aa5b3;
+    font-size: max(12px, 3.2cqw);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: normal;
+}
+
+.subtitle > span {
+    display: -webkit-box;
+    width: 100%;
+    overflow: hidden;
+    line-height: 1.12;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.pill {
+    justify-items: center;
+    color: #45adff;
+    font-size: max(12px, 3.4cqw);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 0 0.9cqw rgb(49 168 255 / 70%), 0 0 2cqw rgb(49 168 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+}
+
+.plate {
+    appearance: none;
+    position: absolute;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 4%;
+    border: 0;
+    overflow: hidden;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.plateWell {
+    display: grid;
+    justify-items: center;
+    width: 70%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.plateText {
+    display: inline-block;
+    max-width: 100%;
+    color: #e4e7ec;
+    font-size: max(12px, calc(4.2cqw * var(--fit, 1)));
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+}
+
+.plate:active .plateText {
+    filter: brightness(1.25);
+}
+
+.plate:disabled .plateText {
+    opacity: 0.45;
+}
+
+.plate:focus-visible {
+    outline: 3px solid #8fd4ff;
+    outline-offset: -6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .plate:active .plateText { filter: none; }
+}

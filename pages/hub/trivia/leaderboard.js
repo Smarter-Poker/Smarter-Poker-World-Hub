@@ -12,8 +12,10 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
 // Single source of truth for the CST day boundary (Phase 73). This page used to
 // re-implement getTodayCST/getDateDaysAgo locally, via the
 // `new Date(now.toLocaleString(...))` round-trip that the shared lib explicitly
@@ -30,6 +32,13 @@ const MODE_FILTERS = [
     { id: 'survival', label: 'Survival' },
     { id: 'time-attack', label: 'Time Attack' },
     { id: 'pvp', label: 'PvP' }
+];
+
+const PERIOD_FILTERS = [
+    { id: 'today', label: 'Today' },
+    { id: 'week', label: 'Week' },
+    { id: 'month', label: 'Month' },
+    { id: 'all', label: 'All Time' }
 ];
 
 // Fetch a much wider window than we display, then de-duplicate to one row per
@@ -106,7 +115,7 @@ export default function TriviaLeaderboard() {
                 if (error) {
                     console.warn('Error loading leaderboard:', error);
                     setLeaderboard([]);
-                    setLoadError('We could not load the leaderboard right now. Please try again.');
+                    setLoadError('We Could Not Load The Leaderboard Right Now. Please Try Again.');
                     return;
                 }
 
@@ -138,7 +147,7 @@ export default function TriviaLeaderboard() {
                 setLeaderboard(ranked);
             } catch (error) {
                 console.warn('Error:', error);
-                if (!cancelled) setLoadError('We could not load the leaderboard right now. Please try again.');
+                if (!cancelled) setLoadError('We Could Not Load The Leaderboard Right Now. Please Try Again.');
             }
             if (!cancelled) setIsLoading(false);
         }
@@ -170,11 +179,19 @@ export default function TriviaLeaderboard() {
         return `#${rank}`;
     }
 
-    function getRankColor(rank) {
-        if (rank === 1) return '#FFD700';
-        if (rank === 2) return '#C0C0C0';
-        if (rank === 3) return '#CD7F32';
-        return '#e4e6eb';
+    function getRankTier(rank) {
+        if (rank === 1) return 'first';
+        if (rank === 2) return 'second';
+        if (rank === 3) return 'third';
+        return 'ranked';
+    }
+
+    function getModeLabel(mode) {
+        const knownMode = MODE_FILTERS.find(filter => filter.id === mode);
+        if (knownMode) return knownMode.label;
+        return String(mode || 'Not Available')
+            .replace(/[-_]+/g, ' ')
+            .replace(/\b\w/g, letter => letter.toUpperCase());
     }
 
     return (
@@ -187,150 +204,131 @@ export default function TriviaLeaderboard() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div
+                    className="trivia-progress-page trivia-progress-page--leaderboard"
+                    data-trivia-family="progress"
+                    data-trivia-surface="leaderboard"
+                >
                     <UniversalHeader pageDepth={2} />
 
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-                        <button
-                            onClick={() => router.push('/hub/trivia')}
-                            style={{
-                                background: 'rgba(35, 116, 225, 0.1)',
-                                border: '1px solid rgba(35, 116, 225, 0.3)',
-                                color: '#2374e1',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
+                    <main className="trivia-progress-shell" aria-labelledby="trivia-leaderboard-title">
+                        <TriviaConsole
+                            as="section"
+                            eyebrow="Player Progress"
+                            title="Trivia Leaderboard"
+                            titleAs="h1"
+                            titleId="trivia-leaderboard-title"
+                            pill={PERIOD_FILTERS.find(option => option.id === period)?.label || 'All Time'}
+                            className="trivia-progress-console"
+                            aria-labelledby="trivia-leaderboard-title"
+                            secondaryAction={{
+                                label: 'Back To Trivia',
+                                onClick: () => router.push('/hub/trivia'),
                             }}
                         >
-                            Back To Trivia
-                        </button>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
-                            <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', margin: 0 }}>
-                                Trivia Leaderboard
-                            </h1>
-
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                {['today', 'week', 'month', 'all'].map(p => (
+                        <div className="trivia-progress-header">
+                            <fieldset className="trivia-progress-filter trivia-progress-filter--period">
+                                <legend>Ranking Period</legend>
+                                <div className="trivia-progress-filter__options">
+                                {PERIOD_FILTERS.map(option => (
                                     <button
-                                        key={p}
-                                        onClick={() => setPeriod(p)}
-                                        aria-pressed={period === p}
-                                        style={{
-                                            padding: '8px 16px',
-                                            background: period === p ? '#2374e1' : '#3a3b3c',
-                                            border: period === p ? 'none' : '1px solid #4e4f50',
-                                            color: '#e4e6eb',
-                                            borderRadius: '8px',
-                                            cursor: 'pointer',
-                                            fontWeight: period === p ? 'bold' : 'normal',
-                                            textTransform: 'capitalize'
-                                        }}
+                                        type="button"
+                                        className="trivia-progress-filter__option"
+                                        key={option.id}
+                                        onClick={() => setPeriod(option.id)}
+                                        aria-pressed={period === option.id}
+                                        style={{ minWidth: 44, minHeight: 44 }}
                                     >
-                                        {p === 'all' ? 'All Time' : p}
+                                        {option.label}
                                     </button>
                                 ))}
-                            </div>
+                                </div>
+                            </fieldset>
                         </div>
 
                         {/* Mode filter — endless (streak * 100, unbounded) otherwise
                             structurally dominates every 10-question mode on raw score. */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                        <fieldset className="trivia-progress-filter trivia-progress-filter--mode">
+                            <legend>Game Mode</legend>
+                            <div className="trivia-progress-filter__options">
                             {MODE_FILTERS.map(m => (
                                 <button
+                                    type="button"
+                                    className="trivia-progress-filter__option"
                                     key={m.id}
                                     onClick={() => setModeFilter(m.id)}
                                     aria-pressed={modeFilter === m.id}
-                                    style={{
-                                        padding: '6px 14px',
-                                        background: modeFilter === m.id ? 'rgba(35, 116, 225, 0.25)' : 'transparent',
-                                        border: `1px solid ${modeFilter === m.id ? '#2374e1' : '#4e4f50'}`,
-                                        color: modeFilter === m.id ? '#e4e6eb' : '#65676b',
-                                        borderRadius: '20px',
-                                        cursor: 'pointer',
-                                        fontSize: '13px',
-                                        fontWeight: modeFilter === m.id ? 'bold' : 'normal'
-                                    }}
+                                    style={{ minWidth: 44, minHeight: 44 }}
                                 >
                                     {m.label}
                                 </button>
                             ))}
-                        </div>
+                            </div>
+                        </fieldset>
 
                         {isLoading ? (
-                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
+                            <p className="trivia-progress-state" role="status">
                                 Loading Leaderboard...
-                            </div>
+                            </p>
                         ) : loadError ? (
-                            <div role="alert" style={{
-                                padding: '40px',
-                                textAlign: 'center',
-                                background: 'rgba(240, 40, 73, 0.1)',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(240, 40, 73, 0.35)'
-                            }}>
-                                <p style={{ color: '#f02849', fontSize: '16px', marginBottom: '16px' }}>{loadError}</p>
+                            <section className="trivia-progress-state trivia-progress-state--error" role="alert">
+                                <p>{loadError}</p>
                                 <button
+                                    type="button"
+                                    className="trivia-progress-action trivia-progress-action--primary"
                                     onClick={() => setPeriod(period)}
-                                    style={{ background: '#2374e1', border: 'none', color: '#fff', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    style={{ minWidth: 44, minHeight: 44 }}
                                 >
                                     Retry
                                 </button>
-                            </div>
+                            </section>
                         ) : leaderboard.length === 0 ? (
-                            <div style={{
-                                padding: '60px',
-                                textAlign: 'center',
-                                background: '#242526',
-                                borderRadius: '12px',
-                                border: '1px solid #4e4f50'
-                            }}>
-                                <p style={{ color: '#65676b', fontSize: '18px' }}>
-                                    No Scores Yet For {modeFilter === 'all' ? 'this period' : `${MODE_FILTERS.find(m => m.id === modeFilter)?.label || modeFilter} in this period`}. Be The First!
+                            <section className="trivia-progress-state trivia-progress-state--empty">
+                                <p>
+                                    No Scores Yet For {modeFilter === 'all' ? 'This Period' : `${getModeLabel(modeFilter)} In This Period`}. Be The First!
                                 </p>
-                            </div>
+                            </section>
                         ) : (
-                            <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', overflow: 'hidden' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <div className="trivia-progress-table-wrap">
+                                <table className="trivia-progress-table">
+                                    <caption>Top Trivia Players</caption>
                                     <thead>
-                                        <tr style={{ background: '#3a3b3c' }}>
-                                            <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Rank</th>
-                                            <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Player</th>
+                                        <tr>
+                                            <th scope="col">Rank</th>
+                                            <th scope="col">Player</th>
                                             {modeFilter === 'all' && (
-                                                <th style={{ padding: '16px', textAlign: 'left', color: '#65676b', fontWeight: '600' }}>Mode</th>
+                                                <th scope="col">Mode</th>
                                             )}
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#65676b', fontWeight: '600' }}>Score</th>
-                                            <th style={{ padding: '16px', textAlign: 'right', color: '#65676b', fontWeight: '600' }}>Accuracy</th>
+                                            <th scope="col">Score</th>
+                                            <th scope="col">Accuracy</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {leaderboard.map(player => (
                                             <tr
                                                 key={player.user_id || player.rank}
-                                                style={{
-                                                    borderTop: '1px solid #4e4f50',
-                                                    background: player.user_id === currentUserId ? 'rgba(35, 116, 225, 0.1)' : 'transparent'
-                                                }}
+                                                data-player="leaderboard-entry"
+                                                data-rank-tier={getRankTier(player.rank)}
+                                                data-current-player={player.user_id === currentUserId ? 'true' : 'false'}
                                             >
-                                                <td style={{ padding: '16px', color: getRankColor(player.rank), fontWeight: 'bold' }}>
+                                                <td className="trivia-progress-table__rank" data-label="Rank">
                                                     {getRankLabel(player.rank)}
                                                 </td>
-                                                <td style={{ padding: '16px', color: '#e4e6eb' }}>
+                                                <th className="trivia-progress-table__player" scope="row" data-label="Player">
                                                     {player.displayName}
                                                     {player.user_id === currentUserId && (
-                                                        <span style={{ marginLeft: '8px', color: '#2374e1', fontSize: '12px' }}>(You)</span>
+                                                        <span className="trivia-progress-table__you">(You)</span>
                                                     )}
-                                                </td>
+                                                </th>
                                                 {modeFilter === 'all' && (
-                                                    <td style={{ padding: '16px', color: '#65676b', fontSize: '13px', textTransform: 'capitalize' }}>
-                                                        {player.mode || '-'}
+                                                    <td className="trivia-progress-table__mode" data-label="Mode">
+                                                        {getModeLabel(player.mode)}
                                                     </td>
                                                 )}
-                                                <td style={{ padding: '16px', color: '#2374e1', textAlign: 'right', fontWeight: 'bold' }}>
-                                                    {(player.score || 0).toLocaleString()}
+                                                <td className="trivia-progress-table__score" data-label="Score">
+                                                    {formatTriviaDisplayNumber(player.score || 0)}
                                                 </td>
-                                                <td style={{ padding: '16px', color: '#31a24c', textAlign: 'right', fontWeight: 'bold' }}>
+                                                <td className="trivia-progress-table__accuracy" data-label="Accuracy">
                                                     {player.accuracy}%
                                                 </td>
                                             </tr>
@@ -339,7 +337,8 @@ export default function TriviaLeaderboard() {
                                 </table>
                             </div>
                         )}
-                    </div>
+                        </TriviaConsole>
+                    </main>
                 </div>
     </PageTransition>
         </>

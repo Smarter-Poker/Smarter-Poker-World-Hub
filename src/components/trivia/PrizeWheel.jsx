@@ -13,12 +13,11 @@
  * credit, returns the prize id) still needs to be added on the DB side.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Gem, Shield, Ticket, Gift, Star, Zap } from 'lucide-react';
-import HexButton from '../ui/HexButton';
-import MetalFrame from '../ui/MetalFrame';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { busEmit } from '../../engine/EventBus';
 import { supabase } from '../../lib/supabase';
+import TriviaConsoleDialog from './console/TriviaConsoleDialog';
+import { formatTriviaDisplayNumber } from '../../lib/trivia/formatTriviaDisplayNumber';
 
 const SPIN_DURATION_MS = 4000;
 
@@ -28,14 +27,14 @@ const SPIN_DURATION_MS = 4000;
 // reward. Until a box-opening flow exists it pays real diamonds while
 // keeping the "???" surprise reveal.
 const PRIZES = [
-    { id: 'diamond_5', label: '5', icon: Gem, color: '#00d4ff', weight: 30, reward: { type: 'diamonds', amount: 5 } },
-    { id: 'diamond_10', label: '10', icon: Gem, color: '#00d4ff', weight: 25, reward: { type: 'diamonds', amount: 10 } },
-    { id: 'diamond_25', label: '25', icon: Gem, color: '#00d4ff', weight: 15, reward: { type: 'diamonds', amount: 25 } },
-    { id: 'diamond_50', label: '50', icon: Gem, color: '#ffd700', weight: 10, reward: { type: 'diamonds', amount: 50 } },
-    { id: 'diamond_100', label: '100', icon: Gem, color: '#ffd700', weight: 5, reward: { type: 'diamonds', amount: 100 } },
-    { id: 'streak_shield', label: 'Shield', icon: Shield, color: '#a78bfa', weight: 8, reward: { type: 'streak_shield', amount: 1 } },
-    { id: 'free_entry', label: 'Free Play', icon: Ticket, color: '#22c55e', weight: 5, reward: { type: 'arcade_ticket', amount: 1 } },
-    { id: 'mystery', label: '???', icon: Gift, color: '#f472b6', weight: 2, reward: { type: 'diamonds', amount: 15 } },
+    { id: 'diamond_5', label: '5', color: '#45adff', weight: 30, reward: { type: 'diamonds', amount: 5 } },
+    { id: 'diamond_10', label: '10', color: '#45adff', weight: 25, reward: { type: 'diamonds', amount: 10 } },
+    { id: 'diamond_25', label: '25', color: '#45adff', weight: 15, reward: { type: 'diamonds', amount: 25 } },
+    { id: 'diamond_50', label: '50', color: '#ffd700', weight: 10, reward: { type: 'diamonds', amount: 50 } },
+    { id: 'diamond_100', label: '100', color: '#ffd700', weight: 5, reward: { type: 'diamonds', amount: 100 } },
+    { id: 'streak_shield', label: 'Shield', color: '#e4e7ec', weight: 8, reward: { type: 'streak_shield', amount: 1 } },
+    { id: 'free_entry', label: 'Free Play', color: '#c8ffd2', weight: 5, reward: { type: 'arcade_ticket', amount: 1 } },
+    { id: 'mystery', label: 'Mystery', color: '#f02849', weight: 2, reward: { type: 'diamonds', amount: 15 } },
 ];
 
 // Weighted random selection (fallback only - see trust model above)
@@ -211,7 +210,7 @@ export default function PrizeWheel({
                 if (_persistFailed) {
                     claimingRef.current = false;
                     if (isMountedRef.current) {
-                        setClaimError('Could not save your prize. Tap Claim to retry.');
+                        setClaimError('Could Not Save Your Prize. Tap Claim To Retry.');
                     }
                     onComplete({ ...result.reward, persistFailed: true });
                     return;
@@ -223,27 +222,31 @@ export default function PrizeWheel({
     };
 
     const segmentAngle = 360 / PRIZES.length;
+    const canClose = Boolean(onClose && !isSpinning && !result && !hasSpunRef.current);
 
     return (
         <div className="prize-wheel-overlay">
-            <MetalFrame padding="32px" showBolts={true} showNeonStrips={true}>
+            <TriviaConsoleDialog
+                open
+                onClose={canClose ? onClose : undefined}
+                closeOnBackdrop={canClose}
+                eyebrow="Daily Reward"
+                title="Prize Wheel"
+                subtitle={isSpinning ? 'Resolving Your Reward' : result ? 'Reward Ready To Claim' : 'One Spin Per Perfect Game'}
+                pill={streakMultiplier > 1 ? `${streakMultiplier}x Bonus` : 'Perfect Run'}
+            >
                 <div className="prize-wheel-container">
-                    <h2 className="title">
-                        <Star className="star-icon" />
-                        Daily Spin
-                        <Star className="star-icon" />
-                    </h2>
+                    <p className="title">Daily Spin</p>
 
                     {streakMultiplier > 1 && (
                         <div className="multiplier-notice">
-                            <Zap size={14} />
                             {streakMultiplier}x Streak Bonus Active!
                         </div>
                     )}
 
                     {/* Wheel */}
-                    <div className="wheel-wrapper">
-                        <div className="wheel-pointer">▼</div>
+                    <div className="wheel-wrapper" role="img" aria-label="Prize Wheel With Eight Reward Slots">
+                        <div className="wheel-pointer">Winning Slot</div>
                         <div
                             ref={wheelRef}
                             className="wheel"
@@ -256,7 +259,6 @@ export default function PrizeWheel({
                             }}
                         >
                             {PRIZES.map((prize, index) => {
-                                const Icon = prize.icon;
                                 const startAngle = index * segmentAngle;
 
                                 return (
@@ -269,7 +271,6 @@ export default function PrizeWheel({
                                         }}
                                     >
                                         <div className="segment-content" style={{ transform: `rotate(${segmentAngle / 2}deg)` }}>
-                                            <Icon size={20} />
                                             <span>{prize.label}</span>
                                         </div>
                                     </div>
@@ -277,20 +278,17 @@ export default function PrizeWheel({
                             })}
                         </div>
                         <div className="wheel-center">
-                            <Gem size={24} color="#00d4ff" />
+                            <span>Daily Spin</span>
                         </div>
                     </div>
 
                     {/* Result display */}
                     {result && (
-                        <div className="result-display" style={{ '--prize-color': result.prize.color }}>
-                            <div className="result-icon">
-                                {React.createElement(result.prize.icon, { size: 32 })}
-                            </div>
+                        <div className="result-display" style={{ '--prize-color': result.prize.color }} role="status" aria-live="polite">
                             <div className="result-text">
                                 <span className="result-label">You Won!</span>
                                 <span className="result-amount">
-                                    {result.reward.type === 'diamonds' && `${result.reward.amount} Diamonds`}
+                                    {result.reward.type === 'diamonds' && `${formatTriviaDisplayNumber(result.reward.amount)} Diamonds`}
                                     {result.reward.type === 'streak_shield' && 'Streak Shield'}
                                     {result.reward.type === 'arcade_ticket' && 'Free Arcade Entry'}
                                 </span>
@@ -299,7 +297,7 @@ export default function PrizeWheel({
                                     hiding the value of the streak system. */}
                                 {result.reward.type === 'diamonds' && result.reward.appliedMultiplier > 1 && (
                                     <span className="result-breakdown">
-                                        {result.reward.baseAmount} X {result.reward.appliedMultiplier} Streak Bonus
+                                        {formatTriviaDisplayNumber(result.reward.baseAmount)} X {formatTriviaDisplayNumber(result.reward.appliedMultiplier)} Streak Bonus
                                     </span>
                                 )}
                             </div>
@@ -310,22 +308,22 @@ export default function PrizeWheel({
 
                     {/* Action button */}
                     {!result ? (
-                        <HexButton
+                        <button
+                            type="button"
+                            className="wheel-action"
                             onClick={spin}
                             disabled={isSpinning || hasSpunRef.current}
-                            variant="primary"
-                            size="lg"
                         >
                             {isSpinning ? 'Spinning...' : 'Spin The Wheel'}
-                        </HexButton>
+                        </button>
                     ) : (
-                        <HexButton
+                        <button
+                            type="button"
+                            className="wheel-action"
                             onClick={handleClaim}
-                            variant="primary"
-                            size="lg"
                         >
                             {claimError ? 'Retry Claim' : 'Claim Reward'}
-                        </HexButton>
+                        </button>
                     )}
 
                     {/* Skip is only an escape hatch BEFORE the spin. Leaving it
@@ -338,99 +336,74 @@ export default function PrizeWheel({
                         </button>
                     )}
                 </div>
-            </MetalFrame>
+            </TriviaConsoleDialog>
 
             <style>{`
                 .prize-wheel-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.85);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 1000;
-                    padding: 20px;
+                    display: contents;
                 }
                 
-                .prize-wheel-container {
+                .prize-wheel-overlay .prize-wheel-container {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    gap: 20px;
-                    max-width: 360px;
+                    gap: 18px;
+                    width: 100%;
+                    min-width: 0;
+                    color: #e4e7ec;
+                    font-family: Inter, system-ui, sans-serif;
                 }
                 
-                .title {
-                    font-family: 'Rajdhani', sans-serif;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #fff;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+                .prize-wheel-overlay .title {
+                    margin: 0;
+                    color: #45adff;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    font-size: 18px;
+                    font-weight: 800;
+                    letter-spacing: 0.12em;
+                    text-transform: uppercase;
                 }
                 
-                /* :global() is styled-jsx / CSS-Modules syntax and is INVALID
-                   inside a plain <style> element - browsers dropped this rule
-                   entirely, so the title stars rendered unstyled. */
-                .title .star-icon {
+                .prize-wheel-overlay .multiplier-notice {
+                    width: 100%;
+                    padding: 10px 0;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
                     color: #ffd700;
-                    animation: twinkle 1.5s ease-in-out infinite;
-                }
-                
-                @keyframes twinkle {
-                    0%, 100% { opacity: 1; transform: scale(1); }
-                    50% { opacity: 0.5; transform: scale(0.8); }
-                }
-                
-                .multiplier-notice {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 6px 14px;
-                    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-                    border-radius: 20px;
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: #000;
+                    font-size: 14px;
+                    font-weight: 700;
+                    text-align: center;
                 }
                 
                 /* 280px cramped the labels at segment edges on 375px phones */
-                .wheel-wrapper {
+                .prize-wheel-overlay .wheel-wrapper {
                     position: relative;
-                    width: min(320px, 80vw);
-                    height: min(320px, 80vw);
+                    width: min(310px, 76vw);
+                    height: min(310px, 76vw);
+                    margin-top: 18px;
                 }
                 
-                .wheel-pointer {
+                .prize-wheel-overlay .wheel-pointer {
                     position: absolute;
-                    top: -10px;
+                    top: -28px;
                     left: 50%;
                     transform: translateX(-50%);
-                    font-size: 32px;
-                    color: #fff;
+                    color: #45adff;
+                    font-size: 12px;
+                    font-weight: 800;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                    white-space: nowrap;
                     z-index: 10;
-                    text-shadow: 0 0 10px #00d4ff;
                 }
                 
-                .wheel {
+                .prize-wheel-overlay .wheel {
                     width: 100%;
                     height: 100%;
-                    border-radius: 50%;
-                    background: conic-gradient(
-                        from 0deg,
-                        ${PRIZES.map((p, i) => `${p.color}40 ${i * segmentAngle}deg ${(i + 1) * segmentAngle}deg`).join(', ')}
-                    );
-                    border: 4px solid rgba(255, 255, 255, 0.3);
                     position: relative;
-                    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5);
                 }
                 
-                .wheel-segment {
+                .prize-wheel-overlay .wheel-segment {
                     position: absolute;
                     width: 50%;
                     height: 50%;
@@ -439,7 +412,7 @@ export default function PrizeWheel({
                     transform-origin: 0% 100%;
                 }
                 
-                .segment-content {
+                .prize-wheel-overlay .segment-content {
                     position: absolute;
                     left: 10%;
                     top: 30%;
@@ -449,34 +422,36 @@ export default function PrizeWheel({
                     gap: 2px;
                     color: var(--segment-color);
                     font-size: 12px;
-                    font-weight: 600;
-                    text-shadow: 0 0 5px var(--segment-color);
+                    font-weight: 800;
+                    letter-spacing: 0.04em;
                 }
                 
-                .wheel-center {
+                .prize-wheel-overlay .wheel-center {
                     position: absolute;
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%);
-                    width: 50px;
-                    height: 50px;
-                    background: radial-gradient(circle, #1a2744 0%, #0a1628 100%);
-                    border: 3px solid rgba(0, 212, 255, 0.5);
-                    border-radius: 50%;
+                    width: 96px;
+                    min-height: 44px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+                    border-top: 1px solid #45adff;
+                    border-bottom: 1px solid #45adff;
+                    color: #f4f7fb;
+                    font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    font-size: 12px;
+                    font-weight: 800;
+                    letter-spacing: 0.08em;
+                    text-align: center;
+                    text-transform: uppercase;
                 }
                 
-                .result-display {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    padding: 16px 24px;
-                    background: rgba(0, 0, 0, 0.5);
-                    border: 2px solid var(--prize-color);
-                    border-radius: 12px;
+                .prize-wheel-overlay .result-display {
+                    width: 100%;
+                    padding: 14px 0;
+                    border-top: 1px solid var(--prize-color);
+                    border-bottom: 1px solid var(--prize-color);
                     animation: resultPop 0.5s ease-out;
                 }
                 
@@ -485,72 +460,82 @@ export default function PrizeWheel({
                     100% { transform: scale(1); opacity: 1; }
                 }
                 
-                .result-icon {
-                    color: var(--prize-color);
-                    animation: bounce 0.5s ease-out;
-                }
-                
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-10px); }
-                }
-                
-                .result-text {
+                .prize-wheel-overlay .result-text {
                     display: flex;
                     flex-direction: column;
+                    align-items: center;
+                    text-align: center;
                 }
                 
-                .result-label {
+                .prize-wheel-overlay .result-label {
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.6);
+                    color: #9aa5b3;
                     text-transform: uppercase;
                 }
                 
-                .result-amount {
+                .prize-wheel-overlay .result-amount {
                     font-size: 18px;
                     font-weight: 700;
                     color: var(--prize-color);
-                    text-shadow: 0 0 10px var(--prize-color);
                 }
                 
-                .result-breakdown {
-                    font-size: 11px;
-                    color: rgba(255, 255, 255, 0.55);
+                .prize-wheel-overlay .result-breakdown {
+                    font-size: 12px;
+                    color: #9aa5b3;
                     margin-top: 2px;
                 }
 
-                .claim-error {
-                    padding: 10px 14px;
-                    background: rgba(239, 68, 68, 0.12);
-                    border: 1px solid rgba(239, 68, 68, 0.35);
-                    border-radius: 8px;
-                    color: #ef4444;
+                .prize-wheel-overlay .claim-error {
+                    width: 100%;
+                    padding: 10px 0;
+                    border-top: 1px solid #f02849;
+                    border-bottom: 1px solid #f02849;
+                    color: #ff5b6e;
                     font-size: 12px;
                     text-align: center;
                 }
 
-                .skip-btn {
-                    background: none;
-                    border: none;
-                    color: rgba(255, 255, 255, 0.4);
-                    font-size: 13px;
-                    cursor: pointer;
-                    padding: 12px 20px;
+                .prize-wheel-overlay .wheel-action,
+                .prize-wheel-overlay .skip-btn {
+                    width: 100%;
                     min-height: 44px;
-                    transition: color 0.2s;
+                    padding: 12px 8px;
+                    border: 0;
+                    border-top: 1px solid #050607;
+                    border-bottom: 1px solid #050607;
+                    color: #9aa5b3;
+                    background: transparent;
+                    font: 800 14px/1.2 'Roboto Condensed', Inter, system-ui, sans-serif;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    touch-action: manipulation;
                 }
 
-                .skip-btn:hover {
-                    color: rgba(255, 255, 255, 0.7);
+                .prize-wheel-overlay .wheel-action {
+                    color: #45adff;
+                }
+
+                .prize-wheel-overlay .wheel-action:active,
+                .prize-wheel-overlay .skip-btn:active {
+                    color: #f4f7fb;
+                }
+
+                .prize-wheel-overlay .wheel-action:disabled {
+                    color: #657180;
+                    cursor: wait;
+                }
+
+                .prize-wheel-overlay .wheel-action:focus-visible,
+                .prize-wheel-overlay .skip-btn:focus-visible {
+                    outline: 2px solid #8fd4ff;
+                    outline-offset: 2px;
                 }
 
                 @media (prefers-reduced-motion: reduce) {
-                    .title .star-icon,
-                    .result-display,
-                    .result-icon {
+                    .prize-wheel-overlay .result-display {
                         animation: none;
                     }
-                    .skip-btn { transition: none; }
                 }
             `}</style>
         </div>

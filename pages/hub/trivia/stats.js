@@ -13,7 +13,10 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TriviaErrorBoundary from '../../../src/components/trivia/TriviaErrorBoundary';
+import TriviaConsole from '../../../src/components/trivia/console/TriviaConsole';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
+import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 export default function TriviaStats() {
     useTrainingBus('trivia-stats');
@@ -99,18 +102,19 @@ export default function TriviaStats() {
         return out;
     }
 
-    // Human-readable category labels and colors
+    // Human-readable category labels. Visual accents belong to the shared
+    // progress-family chassis rather than being painted independently here.
     const CATEGORY_META = {
-        poker_history: { label: 'Poker History', color: '#f97316' },
-        famous_hands: { label: 'Famous Hands', color: '#fbbf24' },
-        player_profiles: { label: 'Player Profiles', color: '#a855f7' },
-        tournament_facts: { label: 'Tournament Facts', color: '#ec4899' },
-        rule_knowledge: { label: 'Rules', color: '#3b82f6' },
-        gto_theory: { label: 'GTO Theory', color: '#22c55e' },
-        mtt_situations: { label: 'MTT Scenarios', color: '#ef4444' },
-        cash_game_situations: { label: 'Cash Game', color: '#14b8a6' },
-        icm_chip_ev: { label: 'ICM & Chip EV', color: '#8b5cf6' },
-        gto_scenarios: { label: 'GTO Scenarios', color: '#06b6d4' },
+        poker_history: { label: 'Poker History' },
+        famous_hands: { label: 'Famous Hands' },
+        player_profiles: { label: 'Player Profiles' },
+        tournament_facts: { label: 'Tournament Facts' },
+        rule_knowledge: { label: 'Rules' },
+        gto_theory: { label: 'GTO Theory' },
+        mtt_situations: { label: 'MTT Scenarios' },
+        cash_game_situations: { label: 'Cash Game' },
+        icm_chip_ev: { label: 'ICM & Chip EV' },
+        gto_scenarios: { label: 'GTO Scenarios' },
     };
 
     useEffect(() => {
@@ -208,7 +212,7 @@ export default function TriviaStats() {
                 }
             } catch (error) {
                 console.warn('Error loading stats:', error);
-                setLoadError('We could not load your stats right now. Please try again.');
+                setLoadError('We Could Not Load Your Stats Right Now. Please Try Again.');
             }
             setIsLoading(false);
         }
@@ -225,38 +229,45 @@ export default function TriviaStats() {
         return () => { supabase.removeChannel(_ch); };
     }, [avatarUser?.id, avatarLoading]);
 
-    const StatCard = ({ label, value, color }) => (
-        <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '24px' }}>
-            <div style={{ color: '#65676b', fontSize: '14px', marginBottom: '8px' }}>{label}</div>
-            <div style={{ color: color || '#e4e6eb', fontSize: '32px', fontWeight: 'bold' }}>{value}</div>
+    const StatCard = ({ label, value, tone = 'default' }) => (
+        <div className="trivia-progress-stat-card" data-tone={tone}>
+            <div className="trivia-progress-stat-label">{label}</div>
+            <div className="trivia-progress-stat-value">{value}</div>
         </div>
     );
 
     const CategoryBar = ({ category, totalAnswered, correctCount, masteryLevel }) => {
-        const meta = CATEGORY_META[category] || { label: category, color: '#65676b' };
+        const meta = CATEGORY_META[category] || {
+            label: toTitleCase(String(category || 'Unknown').replaceAll('_', ' ')),
+        };
         const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
         const barWidth = Math.max(accuracy, 2); // Minimum 2% width for visibility
         return (
-            <div style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ color: '#e4e6eb', fontSize: '14px', fontWeight: '500' }}>{meta.label}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#65676b', fontSize: '12px' }}>{correctCount}/{totalAnswered}</span>
-                        <span style={{ color: meta.color, fontSize: '14px', fontWeight: '700', minWidth: '40px', textAlign: 'right' }}>{accuracy}%</span>
+            <div className="trivia-progress-category" data-category={category}>
+                <div className="trivia-progress-category-header">
+                    <span className="trivia-progress-category-name">{meta.label}</span>
+                    <div className="trivia-progress-category-values">
+                        <span className="trivia-progress-category-count">
+                            {formatTriviaDisplayNumber(correctCount)}/{formatTriviaDisplayNumber(totalAnswered)}
+                        </span>
+                        <span className="trivia-progress-category-accuracy">{accuracy}%</span>
                     </div>
                 </div>
-                <div style={{ height: '8px', background: '#3a3b3c', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{
-                        height: '100%',
-                        width: `${barWidth}%`,
-                        background: `linear-gradient(90deg, ${meta.color}, ${meta.color}cc)`,
-                        borderRadius: '4px',
-                        transition: 'width 0.8s ease-out',
-                        boxShadow: `0 0 8px ${meta.color}40`,
-                    }} />
+                <div
+                    className="trivia-progress-meter"
+                    role="progressbar"
+                    aria-label={`${meta.label} Accuracy`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={accuracy}
+                >
+                    <div
+                        className="trivia-progress-meter-fill"
+                        style={{ '--trivia-progress-meter-value': `${barWidth}%` }}
+                    />
                 </div>
                 {masteryLevel > 1 && (
-                    <div style={{ color: '#65676b', fontSize: '11px', marginTop: '3px' }}>
+                    <div className="trivia-progress-category-level">
                         Mastery Level {masteryLevel}
                     </div>
                 )}
@@ -275,145 +286,124 @@ export default function TriviaStats() {
             />
 
             <PageTransition>
-                <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: '#18191a' }}>
+                <div
+                    className="trivia-progress-page trivia-progress-page--stats"
+                    data-trivia-family="progress"
+                    data-trivia-surface="stats"
+                >
                     <UniversalHeader pageDepth={2} />
 
-                    <div style={{ padding: '120px 20px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-                        <button
-                            onClick={() => router.push('/hub/trivia')}
-                            style={{
-                                background: 'rgba(35, 116, 225, 0.1)',
-                                border: '1px solid rgba(35, 116, 225, 0.3)',
-                                color: '#2374e1',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                marginBottom: '20px'
+                    <main className="trivia-progress-shell">
+                        <TriviaConsole
+                            className="trivia-progress-console"
+                            eyebrow="Player Progress"
+                            title="My Trivia Stats"
+                            titleAs="h1"
+                            titleId="trivia-stats-title"
+                            subtitle="Performance Overview"
+                            aria-labelledby="trivia-stats-title"
+                            secondaryAction={{
+                                label: 'Back To Trivia',
+                                onClick: () => router.push('/hub/trivia'),
                             }}
+                            primaryAction={!isLoading && stats.gamesPlayed === 0 ? {
+                                label: 'Start Playing',
+                                onClick: () => router.push('/hub/trivia'),
+                            } : undefined}
                         >
-                            Back To Trivia
-                        </button>
-
-                        <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#e4e6eb', marginBottom: '30px' }}>
-                            My Trivia Stats
-                        </h1>
-
                         {isLoading ? (
-                            <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
+                            <div className="trivia-progress-state trivia-progress-state--loading" role="status">
                                 Loading Stats...
                             </div>
                         ) : loadError ? (
-                            <div role="alert" style={{
-                                padding: '40px',
-                                textAlign: 'center',
-                                background: 'rgba(240, 40, 73, 0.1)',
-                                border: '1px solid rgba(240, 40, 73, 0.35)',
-                                borderRadius: '12px',
-                                color: '#f02849'
-                            }}>
+                            <div className="trivia-progress-state trivia-progress-state--error" role="alert">
                                 {loadError}
                             </div>
                         ) : (
                             <>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                                    <StatCard label="Games Played" value={stats.gamesPlayed.toLocaleString()} />
-                                    <StatCard label="Total Questions" value={stats.totalQuestions.toLocaleString()} />
-                                    <StatCard label="Accuracy" value={accuracyUnknown ? '-' : `${stats.accuracy}%`} color="#31a24c" />
-                                    <StatCard label="Current Streak" value={stats.currentStreak} color="#e69500" />
-                                    <StatCard label="Best Streak" value={stats.bestStreak} color="#2374e1" />
-                                    <StatCard label="Diamonds Earned" value={stats.diamondsEarned.toLocaleString()} color="#2374e1" />
-                                </div>
+                                <section className="trivia-progress-stat-grid" aria-label="Trivia Stats Summary">
+                                    <StatCard label="Games Played" value={formatTriviaDisplayNumber(stats.gamesPlayed)} />
+                                    <StatCard label="Total Questions" value={formatTriviaDisplayNumber(stats.totalQuestions)} />
+                                    <StatCard label="Accuracy" value={accuracyUnknown ? '-' : `${stats.accuracy}%`} tone="success" />
+                                    <StatCard label="Current Streak" value={formatTriviaDisplayNumber(stats.currentStreak)} tone="accent" />
+                                    <StatCard label="Best Streak" value={formatTriviaDisplayNumber(stats.bestStreak)} tone="accent" />
+                                    <StatCard label="Diamonds Earned" value={formatTriviaDisplayNumber(stats.diamondsEarned)} tone="accent" />
+                                </section>
 
                                 {/* Per-Mode Breakdown */}
                                 {modeBreakdown.length > 0 && (
-                                    <div style={{
-                                        marginTop: '30px',
-                                        padding: '24px',
-                                        background: '#242526',
-                                        border: '1px solid #4e4f50',
-                                        borderRadius: '12px',
-                                        overflowX: 'auto'
-                                    }}>
-                                        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#e4e6eb', marginBottom: '20px' }}>
+                                    <section className="trivia-progress-panel trivia-progress-panel--modes">
+                                        <h2 className="trivia-progress-panel-title">
                                             By Mode
                                         </h2>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '460px' }}>
+                                        <div className="trivia-progress-table-wrap">
+                                        <table className="trivia-progress-table">
                                             <thead>
                                                 <tr>
-                                                    <th style={{ textAlign: 'left', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px 8px 0' }}>Mode</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px' }}>Games</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px' }}>Best Score</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 12px' }}>Accuracy</th>
-                                                    <th style={{ textAlign: 'right', color: '#65676b', fontWeight: 600, fontSize: '13px', padding: '8px 0 8px 12px' }}>Diamonds</th>
+                                                    <th scope="col">Mode</th>
+                                                    <th scope="col">Games</th>
+                                                    <th scope="col">Best Score</th>
+                                                    <th scope="col">Accuracy</th>
+                                                    <th scope="col">Diamonds</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {modeBreakdown.map(m => (
-                                                    <tr key={m.mode} style={{ borderTop: '1px solid #3a3b3c' }}>
-                                                        <td style={{ color: '#e4e6eb', padding: '10px 12px 10px 0', textTransform: 'capitalize' }}>
-                                                            {MODE_LABELS[m.mode] || m.mode}
-                                                        </td>
-                                                        <td style={{ color: '#b0b3b8', textAlign: 'right', padding: '10px 12px' }}>{m.games.toLocaleString()}</td>
-                                                        <td style={{ color: '#b0b3b8', textAlign: 'right', padding: '10px 12px' }}>{m.best.toLocaleString()}</td>
-                                                        <td style={{ color: '#31a24c', textAlign: 'right', padding: '10px 12px', fontWeight: 700 }}>
+                                                    <tr key={m.mode}>
+                                                        <th scope="row" data-label="Mode">
+                                                            {MODE_LABELS[m.mode] || toTitleCase(String(m.mode || 'Unknown').replaceAll('_', ' '))}
+                                                        </th>
+                                                        <td data-label="Games">{formatTriviaDisplayNumber(m.games)}</td>
+                                                        <td data-label="Best Score">{formatTriviaDisplayNumber(m.best)}</td>
+                                                        <td data-label="Accuracy" data-tone="success">
                                                             {m.questions > 0 ? `${m.accuracy}%` : '-'}
                                                         </td>
-                                                        <td style={{ color: '#2374e1', textAlign: 'right', padding: '10px 0 10px 12px', fontWeight: 700 }}>{m.diamonds.toLocaleString()}</td>
+                                                        <td data-label="Diamonds" data-tone="accent">{formatTriviaDisplayNumber(m.diamonds)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
-                                    </div>
+                                        </div>
+                                    </section>
                                 )}
 
                                 {/* 30-Day Activity — derived from play_date, already stored */}
                                 {recentTrend.some(d => d.games > 0) && (
-                                    <div style={{
-                                        marginTop: '30px',
-                                        padding: '24px',
-                                        background: '#242526',
-                                        border: '1px solid #4e4f50',
-                                        borderRadius: '12px'
-                                    }}>
-                                        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#e4e6eb', marginBottom: '4px' }}>
+                                    <section className="trivia-progress-panel trivia-progress-panel--activity">
+                                        <h2 className="trivia-progress-panel-title">
                                             Last 30 Days
                                         </h2>
-                                        <div style={{ color: '#65676b', fontSize: '13px', marginBottom: '16px' }}>
-                                            {recentTrend.reduce((sum, d) => sum + d.games, 0)} Games ·{' '}
-                                            {recentTrend.filter(d => d.games > 0).length} Active Days
+                                        <div className="trivia-progress-panel-summary">
+                                            {formatTriviaDisplayNumber(recentTrend.reduce((sum, d) => sum + d.games, 0))} Games ·{' '}
+                                            {formatTriviaDisplayNumber(recentTrend.filter(d => d.games > 0).length)} Active Days
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '72px' }}>
+                                        <div
+                                            className="trivia-progress-activity"
+                                            role="list"
+                                            aria-label="Games Played During The Last 30 Days"
+                                        >
                                             {recentTrend.map(d => {
                                                 const max = Math.max(1, ...recentTrend.map(x => x.games));
                                                 const pct = d.games > 0 ? Math.max(8, Math.round((d.games / max) * 100)) : 3;
                                                 return (
                                                     <div
                                                         key={d.date}
-                                                        title={`${d.date}: ${d.games} game${d.games === 1 ? '' : 's'}`}
-                                                        style={{
-                                                            flex: 1,
-                                                            height: `${pct}%`,
-                                                            minWidth: '4px',
-                                                            background: d.games > 0 ? '#2374e1' : '#3a3b3c',
-                                                            borderRadius: '2px'
-                                                        }}
+                                                        className="trivia-progress-activity-bar"
+                                                        data-active={d.games > 0 ? 'true' : 'false'}
+                                                        role="listitem"
+                                                        aria-label={`${d.date}: ${formatTriviaDisplayNumber(d.games)} ${d.games === 1 ? 'Game' : 'Games'}`}
+                                                        style={{ '--trivia-progress-bar-height': `${pct}%` }}
                                                     />
                                                 );
                                             })}
                                         </div>
-                                    </div>
+                                    </section>
                                 )}
 
                                 {/* Category Mastery Breakdown */}
                                 {categoryMastery.length > 0 && (
-                                    <div style={{
-                                        marginTop: '30px',
-                                        padding: '24px',
-                                        background: '#242526',
-                                        border: '1px solid #4e4f50',
-                                        borderRadius: '12px',
-                                    }}>
-                                        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#e4e6eb', marginBottom: '20px' }}>
+                                    <section className="trivia-progress-panel trivia-progress-panel--categories">
+                                        <h2 className="trivia-progress-panel-title">
                                             Category Breakdown
                                         </h2>
                                         {categoryMastery.map((cat) => (
@@ -425,40 +415,20 @@ export default function TriviaStats() {
                                                 masteryLevel={cat.mastery_level || 1}
                                             />
                                         ))}
-                                    </div>
+                                    </section>
                                 )}
                             </>
                         )}
 
                         {!isLoading && stats.gamesPlayed === 0 && (
-                            <div style={{
-                                marginTop: '40px',
-                                padding: '40px',
-                                background: 'rgba(35, 116, 225, 0.1)',
-                                border: '1px solid rgba(35, 116, 225, 0.3)',
-                                borderRadius: '12px',
-                                textAlign: 'center'
-                            }}>
-                                <p style={{ color: '#e4e6eb', fontSize: '18px', marginBottom: '16px' }}>
+                            <section className="trivia-progress-empty">
+                                <p className="trivia-progress-empty-copy">
                                     No Trivia Games Played Yet!
                                 </p>
-                                <button
-                                    onClick={() => router.push('/hub/trivia')}
-                                    style={{
-                                        background: '#2374e1',
-                                        border: 'none',
-                                        color: '#fff',
-                                        padding: '12px 24px',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        fontWeight: 'bold'
-                                    }}
-                                >
-                                    Start Playing
-                                </button>
-                            </div>
+                            </section>
                         )}
-                    </div>
+                        </TriviaConsole>
+                    </main>
                 </div>
     </PageTransition>
         </>
