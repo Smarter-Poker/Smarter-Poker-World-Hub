@@ -40,7 +40,6 @@ test.describe('Smoke Tests — Hub Pages (may redirect to login)', () => {
     'diamond-store',
     'bankroll',
     'preflop-charts',
-    'diamond-arena',
     'trivia',
     'leaderboards',
     'social-media',
@@ -57,6 +56,24 @@ test.describe('Smoke Tests — Hub Pages (may redirect to login)', () => {
       expect(response?.status()).toBeLessThan(500);
     });
   }
+});
+
+/* RETIRED, NOT HEALTHY. /hub/diamond-arena sat in the list above and passed
+   every run, because the only thing that list asserts is a status under 500 and
+   404 is under 500. The standalone Diamond Arena route was removed when the
+   arena became a selection inside Poker Arena at /hub/club-arena; there is no
+   page file for it and production answers 404. Asserting that exact 404 is the
+   difference between proving the route is gone and proving nothing at all. */
+test.describe('Smoke Tests — Retired Hub Routes', () => {
+  test('/hub/diamond-arena is retired; the Diamond Arena lives inside /hub/club-arena', async ({
+    page,
+  }) => {
+    const retired = await page.goto('/hub/diamond-arena');
+    expect(retired?.status()).toBe(404);
+
+    const arena = await page.goto('/hub/club-arena');
+    expect(arena?.status()).toBeLessThan(400);
+  });
 });
 
 test.describe('Smoke Tests — Demo Pages', () => {

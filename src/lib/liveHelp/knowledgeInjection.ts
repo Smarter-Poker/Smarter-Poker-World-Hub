@@ -43,12 +43,15 @@ export function categorizeQuestion(message: string): string[] {
     }
 
     // Club Arena
-    if (lowerMessage.match(/club|arena|agent|union|rake|chip|table|poker room/i)) {
+    if (lowerMessage.match(/club|arena|agent|union|rake|chip|table|poker room|tournament|competitive|multiplayer/i)) {
         categories.push('club_arena');
     }
 
-    // Diamond Arena
-    if (lowerMessage.match(/diamond arena|tournament|competitive|multiplayer/i)) {
+    // Diamond Arena. Keyed on the arena itself, never on 'tournament',
+    // 'competitive' or 'multiplayer': those are ordinary Poker Arena words, and
+    // keying on them sent every tournament question to this category, which had
+    // no knowledge case at all, so the asker received nothing.
+    if (lowerMessage.match(/diamond arena|diamond club|diamond table|diamond seat|diamond buy-?in/i)) {
         categories.push('diamond_arena');
     }
 
@@ -124,6 +127,17 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
 - **Chip Economy**: 38💎 = 100 chips (75% cheaper than competitors)
 - **Rake**: 10% flat, 2.5x BB cap, 0.5x BBJ drop, "No Flop No Drop"
 - **Access**: Orb #2 from Hub OR https://club.smarter.poker
+`);
+                break;
+
+            case 'diamond_arena':
+                knowledgeSections.push(`
+## DIAMOND ARENA
+- **What It Is**: The diamonds-only club inside Poker Arena, beside Shark Club and any chip clubs the player has joined
+- **Access**: Orb #2 from Hub, then select Diamond Arena at /hub/club-arena. It has no route of its own
+- **Membership**: Every platform user is automatically a member. Chip clubs require joining
+- **Currency**: Played with Diamonds instead of chips. No unions, no agents, no chip conversion
+- **Status**: Closed to the public while both arena switches are off
 `);
                 break;
 
