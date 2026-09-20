@@ -408,10 +408,21 @@ const styles = {
     margin: '0 auto',
     lineHeight: 1.6,
   },
+  // The global 44px rule is `a { min-height: 44px }`, and min-height does
+  // nothing to a non-replaced INLINE box, so this anchor stood 19px tall at
+  // 320px and 14px at 1024px while appearing to be covered. It measured 44px
+  // at exactly one width, 390px, and only because the text wrapped onto a
+  // second line there. inline-block makes the height real; the negative block
+  // margin gives the padding back to the paragraph so the legal note's own
+  // rhythm is unchanged. Same remedy as .rewardDetailLink in
+  // DiamondStoreShell.module.css.
   link: {
     color: '#00D4FF',
     textDecoration: 'underline',
     textUnderlineOffset: 3,
+    display: 'inline-block',
+    paddingBlock: 14,
+    marginBlock: -14,
   },
   // YELLOW BALL REWARD SYSTEM STYLES
   rewardSystem: {
