@@ -501,7 +501,13 @@
   box-shadow: none !important;
 }
 
+/* Four stat tiles at a 148px floor plus gaps measure 646px across. The row is
+   a flex line with no wrap and no scroll, so inside a 313px column on a 393px
+   phone the last tiles were clipped where nobody could reach them, and
+   main.scrollWidth read 687 against a 393px viewport. A stats readout is not a
+   browsing rail, so it wraps instead of running off the side. */
 .rewardsQuickStats {
+  flex-wrap: wrap;
   gap: 10px !important;
 }
 
@@ -513,6 +519,13 @@
   border: 0 !important;
   background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
     center / 100% 100% no-repeat !important;
+}
+
+@media (max-width: 700px) {
+  .rewardsQuickStats > div {
+    min-width: 0;
+    flex: 1 1 calc(50% - 5px);
+  }
 }
 
 .rewardsCapBanner {
