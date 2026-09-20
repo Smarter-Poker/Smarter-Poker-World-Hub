@@ -150,7 +150,9 @@ export default function SmarterStoreShowcase({
               Swipe To Compare Packages Or Use Arrow Keys
             </span>
           </div>
-          <div className={styles.starterRail} aria-label="Starter Diamond Packs">
+          {/* A name on a role-less div is dropped by assistive technology. This
+              rail is one labelled set of packs, so it is grouped as one. */}
+          <div className={styles.starterRail} role="group" aria-label="Starter Diamond Packs">
             <span className={styles.starterLabel}>Starter Access</span>
             {starterPackages.map((pkg) => (
               <article
