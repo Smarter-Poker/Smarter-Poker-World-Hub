@@ -10,7 +10,7 @@ Smarter.Poker is a comprehensive poker ecosystem featuring:
 - ** World Hub **: 3D spatial navigation with 13 interactive orbs
     - ** GTO Training Engine **: 100 professional training games with PIO Solver integration
         - ** Club Arena **: PokerBros - style private poker club management
-            - ** Diamond Arena **: The diamonds - only club inside Poker Arena at / hub / club - arena
+            - ** Diamond Arena **: The diamonds - only club inside Poker Arena at `/hub/club-arena`
                 - ** Social Hub **: Complete social media platform(posts, reels, messenger, live streams)
                     - ** Diamond Store **: In - app purchases and VIP memberships
                         - ** Ghost Fleet **: 100 AI poker horses generating 24 / 7 content

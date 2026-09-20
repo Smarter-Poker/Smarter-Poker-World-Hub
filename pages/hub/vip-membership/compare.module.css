@@ -16,8 +16,8 @@
 }
 
 .planAction:focus-visible {
-  outline: 3px solid #45adff;
-  outline-offset: 3px;
+  outline: 3px solid #45adff !important;
+  outline-offset: 3px !important;
 }
 
 @media (max-width: 460px) {

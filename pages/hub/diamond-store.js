@@ -4973,11 +4973,6 @@ export default function DiamondStorePage({
                                         className={shellStyles.clubItemBody}
                                         style={{ padding: 14 }}
                                       >
-                                        {/* clubPriceActions carries
-                                            margin-top:auto for the price row
-                                            at the foot of the card. On the
-                                            title it would push the name down
-                                            the moment a card had slack. */}
                                         <div
                                           style={{
                                             fontSize: 15,
@@ -5013,6 +5008,7 @@ export default function DiamondStorePage({
                                           View Item Details
                                         </Link>
                                         <div
+                                          className={shellStyles.clubPriceActions}
                                           style={{
                                             display: 'flex',
                                             justifyContent: 'space-between',

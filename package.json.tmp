@@ -1,2 +1,0 @@
-
-"postinstall": "patch -p0 < scripts/postinstall-memory-hotfix.patch || true",

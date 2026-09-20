@@ -1509,13 +1509,11 @@ export default function MerchStore({
               : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
             : 'Order Was Placed And Your Balance Was Updated, But Secure Purchase Recovery Could Not Be Cleared. Do Not Submit This Purchase Again.'
         );
-        try {
-          new Audio('/sounds/purchase-success.mp3')
-            .play()
-            .catch((e) => console.warn('[MerchStore] Sound blocked:', e?.message || e));
-        } catch (e) {
-          console.warn('[MerchStore] Sound unavailable:', e?.message || e);
-        }
+        // There used to be a `new Audio('/sounds/purchase-success.mp3')` here.
+        // That file has never existed in this repository: production answers
+        // 404 and git has no record of it at any revision. The only thing it
+        // did was log a warning on every successful purchase. The success
+        // toast above is the confirmation.
 
         if (!replayed) busEmit.diamondsSpent(spent, 'Merch Store Purchase');
         setBalance(verifiedPurchase.newBalance);

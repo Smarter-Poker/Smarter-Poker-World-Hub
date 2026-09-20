@@ -291,8 +291,8 @@
 }
 
 .console :is(button, a):focus-visible {
-  outline: 2px solid #8befff;
-  outline-offset: 3px;
+  outline: 2px solid #8befff !important;
+  outline-offset: 3px !important;
 }
 
 @media (max-width: 780px) {
@@ -314,11 +314,13 @@
   }
 
   .rewardSignal {
+    --signal-plate-width: min(440px, 100%);
+
     grid-template-columns: minmax(0, 1fr);
-    width: min(440px, 100%);
+    width: var(--signal-plate-width);
     aspect-ratio: 1105 / 1133;
     margin-inline: auto;
-    padding: 17%;
+    padding: calc(var(--signal-plate-width) * 0.17);
     background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
     text-align: center;
   }

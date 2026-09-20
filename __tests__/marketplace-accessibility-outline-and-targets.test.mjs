@@ -184,6 +184,11 @@ test('a keyboard user can see where they are on every Marketplace surface', () =
   // measured on production, MarketplaceDetailExperience's inspect button
   // reported `outline-style: none` while `:focus-visible` matched. Every
   // Marketplace focus ring that uses `outline` has to out-rank that reset.
+  //
+  // For the record, because an earlier note here overstated it: this is about a
+  // module getting the ring it declares, not about a keyboard user being
+  // stranded. src/styles/premium.css:480 already rings every focusable element
+  // with a box-shadow the reset cannot erase.
   assert.match(
     globalCss,
     /button:focus \{[^}]*outline:\s*none\s*!important/,

@@ -273,7 +273,7 @@ export default function RewardTelemetryConsole({ reward, canonical }) {
             />
           </div>
 
-          <div className={styles.signalGrid} aria-label="Reward Account Signals">
+          <div className={styles.signalGrid} role="group" aria-label="Reward Account Signals">
             <div>
               <span>Login Streak</span>
               <strong>{Number(data.loginStreak || 0)} Days</strong>

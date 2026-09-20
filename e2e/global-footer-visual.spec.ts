@@ -69,7 +69,8 @@ const WORLD_ROUTES = [
 // identical to pageOwnedFooterRoutes in
 // scripts/generate-world-footer-route-matrix.mjs, which is what produces the
 // documented total this file asserts against;
-// __tests__/marketplace-page-owned-footer-routes-agree.test.mjs pins them together.
+// __tests__/the-footer-gate-tests-a-world-that-exists.law.test.mjs pins them
+// together, in the file `prebuild` runs.
 const PAGE_OWNED_FOOTER_ROUTES = new Set([
   '/hub/diamond-store',
   '/hub/marketplace',

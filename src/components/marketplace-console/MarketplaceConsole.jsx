@@ -408,7 +408,7 @@ export function MarketplaceConsoleMediaCard({
         minScale={0.42}
         className={joinClasses(styles.mediaTitle, inkClass('blue'))}
       />
-      <div className={styles.mediaWell} aria-label={mediaLabel}>
+      <div className={styles.mediaWell} role="img" aria-label={mediaLabel}>
         {media}
       </div>
       {caption ? (

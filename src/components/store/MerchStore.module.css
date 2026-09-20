@@ -31,15 +31,22 @@
   line-height: 1.65;
 }
 
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .balanceReadout {
+  --balance-plate-width: min(360px, 100%);
+
   display: inline-flex;
-  width: min(360px, 100%);
+  width: var(--balance-plate-width);
   aspect-ratio: 1800 / 386;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin-top: 16px;
-  padding: 4.2% 7% 4.2% 25%;
+  padding: calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.07)
+    calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.25);
   background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #c3d2da;
@@ -537,15 +544,22 @@
   color: #f1d46b;
 }
 
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .catalogAlert {
+  --alert-plate-width: min(900px, 100%);
+
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(130px, 20%);
-  width: min(900px, 100%);
+  width: var(--alert-plate-width);
   aspect-ratio: 1800 / 386;
   align-items: center;
   gap: 12px;
   margin: 0 auto 24px;
-  padding: 4.2% 6% 4.2% 25%;
+  padding: calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.06)
+    calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.25);
   background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #f2d978;
@@ -562,15 +576,18 @@
   text-align: center;
 }
 
+/* This was a 1105x1133 console housing with a percentage padding measured
+   against the page column rather than the plate, which left almost no room
+   for the text inside it. Sized by its content now, in the same readable card
+   the rewards and VIP consoles already use. */
 .emptyState {
   display: grid;
-  width: min(440px, 100%);
-  aspect-ratio: 1105 / 1133;
+  width: min(560px, 100%);
   place-content: center;
   margin-inline: auto;
-  padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 28px 24px;
+  border: 1px solid #23394a;
+  background: #070e15;
   color: #a7b6bd;
   font-size: 13px;
   text-align: center;
@@ -629,10 +646,11 @@
   }
 
   .catalogAlert {
+    --alert-plate-width: min(440px, 100%);
+
     grid-template-columns: minmax(0, 1fr);
-    width: min(440px, 100%);
     aspect-ratio: 1105 / 1133;
-    padding: 18%;
+    padding: calc(var(--alert-plate-width) * 0.18);
     background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
     text-align: center;
   }

@@ -791,9 +791,14 @@
   padding: 18px !important;
 }
 
+/* `margin-top: auto` inside the flex column of .clubItemBody is what pins the
+   price row to the foot of a Club Shop card. The class was taken off the title
+   and never put on the row it names, so it sat orphaned and the row floated
+   wherever the content left it. The former `align-items: flex-end !important`
+   is gone: it existed to out-rank an inline style on the title, and on the row
+   it would fight the inline centring that is already correct there. */
 .clubPriceActions {
   gap: 14px;
-  align-items: flex-end !important;
   margin-top: auto;
 }
 

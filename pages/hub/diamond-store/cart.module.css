@@ -99,8 +99,8 @@
 }
 
 .paymentChoice:focus-visible {
-  outline: 2px solid #a7f2ff;
-  outline-offset: 3px;
+  outline: 2px solid #a7f2ff !important;
+  outline-offset: 3px !important;
 }
 
 .paymentCopy {
@@ -264,8 +264,8 @@
 .removeButton:focus-visible,
 .clearCartButton:focus-visible,
 .checkoutButton:focus-visible {
-  outline: 2px solid #a7f2ff;
-  outline-offset: 3px;
+  outline: 2px solid #a7f2ff !important;
+  outline-offset: 3px !important;
 }
 
 .quantityControl {
