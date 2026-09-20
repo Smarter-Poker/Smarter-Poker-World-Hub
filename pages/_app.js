@@ -963,9 +963,10 @@ export default function App({ Component, pageProps }) {
     isClubArenaRoute || suppressWorldFooterOnMarketplaceStore
       ? null
       : bottomNavRoutes[router.pathname] || null;
-  // Page 1 owns an in-flow Marketplace footer instead of the fixed artwork
-  // footer. Keep its Marketplace identity independent from footer rendering so
-  // Title Case and banned-long-bar normalization remain active on the route.
+  // All five Marketplace storefronts own an in-flow commerce footer instead of
+  // the fixed artwork footer, not just Page 1. Keep their Marketplace identity
+  // independent from footer rendering so Title Case and banned-long-bar
+  // normalization remain active on those routes.
   const routeWorldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
   const worldCopyWorldId = routeWorldFooterConfig?.id || null;
   const bottomNavConfig = suppressWorldFooterOnMarketplaceStore

@@ -92,8 +92,8 @@
 }
 
 .dismiss:focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 2px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 2px !important;
 }
 
 @keyframes storeToastIn {
@@ -114,10 +114,12 @@
   }
 
   .toast {
+    --toast-plate-width: min(360px, 100%);
+
     grid-template-columns: minmax(0, 1fr);
-    width: min(360px, 100%);
+    width: var(--toast-plate-width);
     aspect-ratio: 1105 / 1133;
-    padding: 18%;
+    padding: calc(var(--toast-plate-width) * 0.18);
     background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
     text-align: center;
   }

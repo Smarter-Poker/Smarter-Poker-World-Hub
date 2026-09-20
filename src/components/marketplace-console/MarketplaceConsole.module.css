@@ -177,8 +177,8 @@
 .wideAction:focus-visible,
 .navigationControl:focus-visible,
 .sharkAction:focus-visible {
-  outline: 0.55cqw solid #45adff;
-  outline-offset: -1.4cqw;
+  outline: 0.55cqw solid #45adff !important;
+  outline-offset: -1.4cqw !important;
 }
 
 .pagePlateAction:active,

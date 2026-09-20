@@ -151,10 +151,12 @@ test('the written contract requires in-place upgrades without cloned page layout
 
 test('VIP choices retain the approved gold art with refined live text and no icon overlay', async () => {
   const cards = await read(paths.cards);
-  const vipSource = cards.slice(
-    cards.indexOf('export function VIPCard'),
-    cards.indexOf('export function MerchCard')
-  );
+  // VIPCard is the last export in the module now that the two unused card
+  // components are gone, so this slices to the end rather than to a delimiter
+  // that can disappear and silently turn indexOf into -1.
+  const vipStart = cards.indexOf('export function VIPCard');
+  assert.ok(vipStart >= 0, 'VIPCard must still be exported');
+  const vipSource = cards.slice(vipStart);
 
   assert.match(vipSource, /src="\/images\/vip-card\.webp"/);
   assert.match(vipSource, /className=\{styles\.vipPlanName\}/);

@@ -4,8 +4,8 @@
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
 .removeLabel:focus-visible {
-  outline: 2px solid #8defff;
-  outline-offset: 3px;
+  outline: 2px solid #8defff !important;
+  outline-offset: 3px !important;
 }
 
 .drawerTitle {

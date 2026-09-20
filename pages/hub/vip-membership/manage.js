@@ -571,7 +571,7 @@ export default function VipManagePage() {
                   Switching Plans Keeps Your Renewal Date. Stripe Applies Unused Paid Time As A
                   Prorated Credit To The Next Invoice.
                 </p>
-                <div className={styles.planGrid} aria-label="VIP Recurring Plan Controls">
+                <div className={styles.planGrid} role="group" aria-label="VIP Recurring Plan Controls">
                   <div
                     className={`${styles.plan} ${membership.tier === 'monthly' ? styles.planActive : ''}`}
                   >

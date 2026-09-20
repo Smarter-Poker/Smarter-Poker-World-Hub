@@ -62,8 +62,8 @@
 .packageGrid:focus-visible,
 .starterPack button:focus-visible,
 .packageCard button:focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 3px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 3px !important;
 }
 .hero {
   position: relative;

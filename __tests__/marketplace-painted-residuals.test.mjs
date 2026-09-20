@@ -171,16 +171,42 @@ test('merch and fulfillment keep variable-height cards honest while upgrading co
   const merch = read(files.merch);
   const fulfillment = read(files.fulfillment);
 
+  // Both keep their painted plate. What changed is that the padding the
+  // artwork asks for is now measured against the plate instead of the page
+  // column: .balanceReadout had 293px + 82px of horizontal padding on a 360px
+  // box, so its content box was exactly zero.
   assert.match(merch, /\.balanceReadout\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
   assert.match(merch, /\.catalogAlert\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
-  assert.match(merch, /\.emptyState\s*\{[\s\S]*?utility\/utility-shell\.webp/);
+  for (const plate of ['balanceReadout', 'catalogAlert']) {
+    const rule = merch.match(new RegExp(`\\.${plate} \\{[\\s\\S]*?\\n\\}`))?.[0] || '';
+    assert.ok(rule, `${plate} rule is gone`);
+    assert.match(rule, /--[a-z-]+-plate-width:/, `${plate} must name its own plate width`);
+    assert.match(rule, /padding:\s*calc\(/, `${plate} must measure padding against that width`);
+  }
+  // .emptyState used to be the same 1105/1133 housing with `padding: 18%`
+  // resolving against the page column: an 18px content box inside a 440px
+  // plate. An empty state is a sentence and a control, so it is sized by them.
+  const emptyState = merch.match(/\.emptyState \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(emptyState, 'the merch empty state rule is gone');
+  assert.doesNotMatch(emptyState, /utility\/utility-shell\.webp/);
+  assert.doesNotMatch(emptyState, /padding:\s*\d+(?:\.\d+)?%/);
   assert.doesNotMatch(
     merch.match(/\.productCard\s*\{[\s\S]*?\n\}/)?.[0] || '',
     /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/
   );
 
   assert.match(fulfillment, /\.status\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
-  assert.match(fulfillment, /\.dialog\s*\{[\s\S]*?utility\/utility-shell\.webp/);
+  // The fulfillment dialog carried the VIP dialog's fault: `padding: 16%`
+  // against the fixed backdrop rather than the 620px dialog, which is 223px a
+  // side at 1440, 300px at 1920, and a content box that reaches zero at about
+  // 1982px. max-height kept its actions reachable, so only the horizontal
+  // collapse showed. Readable card now, like the VIP one.
+  const fulfillmentDialog = fulfillment.match(/\n\.dialog \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(fulfillmentDialog, 'the fulfillment dialog rule is gone');
+  assert.doesNotMatch(fulfillmentDialog, /utility\/utility-shell\.webp/);
+  assert.doesNotMatch(fulfillmentDialog, /aspect-ratio/);
+  assert.doesNotMatch(fulfillmentDialog, /padding:\s*\d+(?:\.\d+)?%/);
+  assert.match(fulfillmentDialog, /overflow-y:\s*auto/);
   assert.doesNotMatch(
     fulfillment.match(/\.order\s*\{[\s\S]*?\n\}/)?.[0] || '',
     /navigation\/nav-shell|shark-panel\/bay|utility\/utility-shell/

@@ -173,8 +173,8 @@
 }
 
 .vipCard:focus-visible {
-  outline: 3px solid #9bf4ff;
-  outline-offset: 3px;
+  outline: 3px solid #9bf4ff !important;
+  outline-offset: 3px !important;
 }
 
 .vipCard:active {
