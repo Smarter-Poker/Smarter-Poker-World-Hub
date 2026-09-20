@@ -55,10 +55,11 @@ test('the shared family rail wraps and still names every destination', () => {
   assert.match(nav, /poker-near-me\/events-calendar/);
 });
 
-test('both lobby location recovery sheets are focus-managed physical dialogs', () => {
+test('both lobby location recovery sheets are focus-managed painted consoles', () => {
   const permission = read('src/components/poker-near-me/modals/LocationEnablePopup.js');
   const manual = read('src/components/poker-near-me/modals/ManualLocationModal.js');
-  const theme = read('src/styles/worlds/poker-near-me.css');
+  const dialogs = read('src/styles/worlds/poker-near-me-console-dialogs.css');
+  const app = read('pages/_app.js');
 
   for (const modal of [permission, manual]) {
     assert.match(modal, /role="dialog"/);
@@ -67,13 +68,42 @@ test('both lobby location recovery sheets are focus-managed physical dialogs', (
     assert.match(modal, /event\.key !== 'Tab'/);
     assert.match(modal, /acquireScrollLock/);
     assert.match(modal, /returnFocusRef\.current\?\.focus\?\.\(\)/);
-    assert.doesNotMatch(modal, /backdropFilter|borderRadius:\s*1[028]/);
+    assert.match(modal, /<PokerNearMeConsole/);
+    assert.match(modal, /crest="locator"/);
+    assert.match(modal, /secondary:\s*\{/);
+    assert.match(modal, /primary:\s*\{/);
+    assert.doesNotMatch(modal, /<svg|style=|<style jsx|backdropFilter|borderRadius/);
   }
 
-  assert.match(theme, /\.pnm-location-sheet__frame \{/);
-  assert.match(theme, /\.pnm-location-sheet__energy \{/);
-  assert.match(theme, /border-radius: 4px;/);
-  assert.match(theme, /grid-template-columns: minmax\(0, 2fr\) minmax\(110px, 0\.8fr\)/);
+  assert.match(dialogs, /\.pnm-console-dialog-overlay \{/);
+  assert.match(dialogs, /\.pnm-console-dialog__close \{/);
+  assert.match(dialogs, /min-height:\s*44px/);
+  assert.match(dialogs, /grid-template-columns:\s*minmax\(0, 2fr\) minmax\(110px, 0\.8fr\)/);
+  assert.doesNotMatch(dialogs, /(?:linear|radial|conic)-gradient|(?:^|[;{\s])border(?:-radius)?\s*:|box-shadow\s*:|backdrop-filter\s*:|:hover/im);
+  assert.ok(
+    app.indexOf("import '../src/styles/worlds/poker-near-me-console-dialogs.css';")
+      > app.indexOf("import '../src/styles/worlds/poker-near-me-console.css';")
+  );
+});
+
+test('the lobby login prompt is a focus-managed painted two-action console', () => {
+  const login = read('src/components/poker-near-me/modals/LoginPromptModal.js');
+
+  assert.match(login, /if \(!showLoginPrompt\) return null/);
+  assert.match(login, /role="dialog"/);
+  assert.match(login, /aria-modal="true"/);
+  assert.match(login, /aria-labelledby=\{titleId\}/);
+  assert.match(login, /aria-describedby=\{descriptionId\}/);
+  assert.match(login, /event\.key === 'Escape'/);
+  assert.match(login, /event\.key !== 'Tab'/);
+  assert.match(login, /acquireScrollLock\('PokerNearMeLoginPromptModal'\)/);
+  assert.match(login, /returnFocusRef\.current\?\.focus\?\.\(\)/);
+  assert.match(login, /<PokerNearMeConsole/);
+  assert.match(login, /crest="diamond"/);
+  assert.match(login, /label:\s*'Cancel'/);
+  assert.match(login, /label:\s*'Sign In'/);
+  assert.match(login, /router\.push\(`\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/poker-near-me\/lobby'\)\}`\)/);
+  assert.doesNotMatch(login, /<svg|style=|<style jsx|(?:linear|radial|conic)-gradient/);
 });
 
 test('the lobby never stacks a location prompt over its first-run tutorial', () => {

@@ -20,6 +20,7 @@ import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, es
 import { openNativeMaps } from '../../utils/openNativeMaps';
 import { homeGameUrl } from '../../lib/home-games/urls';
 import { cashGameCountLabel, isModeledCashGameData } from '../../lib/poker-near-me/liveCashGameData';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -63,44 +64,6 @@ const VENUE_TYPE_LABELS = {
     tour: 'Poker Tour',
     tour_stop: 'Poker Tour',
     poker_tour: 'Poker Tour',
-};
-
-const VENUE_TYPE_ICONS = {
-    casino: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-    ),
-    card_room: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
-        </svg>
-    ),
-    poker_club: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
-        </svg>
-    ),
-    home_game: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-    ),
-    charity: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-        </svg>
-    ),
-    tour: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 6 9 6 9zm12 0h1.5a2.5 2.5 0 000-5C17 4 18 9 18 9z" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0012 0V2z" />
-        </svg>
-    ),
-    series: (
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-    ),
 };
 
 const VENUE_TYPE_COLORS = {
@@ -228,9 +191,7 @@ function buildCharityEventBlock(venue) {
                 {/* Prominent date badge under location */}
                 {dateLabel && !isTomorrow ? (
                     <div className="vc3-charity-date-badge">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
+                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
                         {dateLabel}
                     </div>
                 ) : null}
@@ -369,7 +330,7 @@ const VC3_CARD_STYLES = `
                 /* ── Tournament Calendar Button ─────────────────────────── */
                 .vc3-calendar-btn {
                     display: inline-flex; align-items: center; gap: 5px;
-                    background: linear-gradient(90deg, rgba(74,222,128,0.12), rgba(74,222,128,0.06));
+                    background: rgba(74,222,128,0.12);
                     border: 1px solid rgba(74,222,128,0.3);
                     border-radius: 6px; padding: 5px 10px;
                     font-size: 12px; color: #4ade80; font-weight: 700;
@@ -379,7 +340,7 @@ const VC3_CARD_STYLES = `
                 }
                 .vc3-calendar-btn:hover,
                 .vc3-calendar-btn:active {
-                    background: linear-gradient(90deg, rgba(74,222,128,0.22), rgba(74,222,128,0.12));
+                    background: rgba(74,222,128,0.22);
                     box-shadow: 0 0 14px rgba(74,222,128,0.2);
                     border-color: rgba(74,222,128,0.5);
                 }
@@ -577,7 +538,7 @@ const VC3_CARD_STYLES = `
                 .vc3-charity-event {
                     margin: 2px 0 8px;
                     padding: 10px 12px 10px;
-                    background: linear-gradient(135deg, rgba(59,130,246,0.10), rgba(139,92,246,0.06));
+                    background: rgba(59,130,246,0.10);
                     border: 1px solid rgba(59,130,246,0.28);
                     border-radius: 10px;
                     display: flex;
@@ -585,7 +546,7 @@ const VC3_CARD_STYLES = `
                     gap: 4px;
                 }
                 .vc3-charity-today {
-                    background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.07));
+                    background: rgba(34,197,94,0.12);
                     border-color: rgba(34,197,94,0.35);
                     box-shadow: 0 0 16px rgba(34,197,94,0.12);
                 }
@@ -687,7 +648,7 @@ const VC3_CARD_STYLES = `
                 }
                 .vc3-checkin-backdrop { position: fixed; inset: 0; background: rgba(5,8,16,0.75); backdrop-filter: blur(6px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; padding-top: max(env(safe-area-inset-top, 0px), 20px); padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px); box-sizing: border-box; animation: vc3-fade-in 0.15s ease; }
                 @keyframes vc3-fade-in { from { opacity: 0; } to { opacity: 1; } }
-                .vc3-checkin-modal { background: linear-gradient(180deg,#1a2744 0%,#0d1626 100%); border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+                .vc3-checkin-modal { background: #0d1626; border: 1px solid rgba(34,211,238,0.2); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; color: #fff; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
                 .vc3-checkin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; font-weight: 700; color: #22d3ee; }
                 .vc3-checkin-close { --sp-btn-size: 44px; background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
                 .vc3-checkin-close:hover, .vc3-checkin-close:active { color: #fff; }
@@ -706,7 +667,7 @@ const VC3_CARD_STYLES = `
                 .vc3-checkin-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
                 .vc3-checkin-count { font-size: 12px; color: rgba(255,255,255,0.35); margin-right: auto; }
                 .vc3-checkin-cancel { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); border-radius: 8px; min-height: 44px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
-                .vc3-checkin-submit { background: linear-gradient(135deg,#0ea5e9,#0284c7); border: none; color: #fff; border-radius: 8px; min-height: 44px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
+                .vc3-checkin-submit { background: #0284c7; border: none; color: #fff; border-radius: 8px; min-height: 44px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; touch-action: manipulation; }
                 .vc3-checkin-submit:disabled { opacity: 0.5; cursor: not-allowed; }
                 .vc3-checkin-done { text-align: center; padding: 20px; font-size: 18px; font-weight: 700; color: #22d3ee; }
                 .vc3-checkin-error { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #f85149; font-size: 12px; font-weight: 600; }
@@ -843,7 +804,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const trust = getTrustLevel(venue.trust_score || 0);
     const detailUrl = getVenueUrl(venue);
     const typeColor = VENUE_TYPE_COLORS[venue.venue_type] || VENUE_TYPE_COLORS.casino;
-    const typeIcon = VENUE_TYPE_ICONS[venue.venue_type] || VENUE_TYPE_ICONS.casino;
     const openStatus = getOpenStatus(venue);
     const logoUrl = getVenueLogoUrl(venue);
 
@@ -949,16 +909,16 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     };
 
     return (
-        <div
-            ref={cardRef}
-            className="vc3-card"
+        <PokerNearMePanelShell
+            surfaceRef={cardRef}
+            className="pnm-console-card pnm-console-card--venue"
+            bodyClassName="pnm-console-card__body"
             onClick={() => onNavigate && onNavigate(detailUrl)}
             style={{
                 opacity: mounted ? 1 : 0,
                 transform: mounted ? 'translateY(0)' : 'translateY(12px)',
                 transition: `opacity 0.35s ease ${Math.min(index * 0.04, 0.4)}s, transform 0.35s ease ${Math.min(index * 0.04, 0.4)}s`,
                 cursor: 'pointer',
-                borderColor: typeColor.accent,
             }}
         >
 
@@ -967,7 +927,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {/* Left: Logo + Name */}
                 <div className="vc3-header-left">
                     {/* Venue Logo — 1.5x size */}
-                    <div className="vc3-logo" style={!logoUrl || logoError ? { background: getVenueColor(venue).bg, border: `1px solid ${getVenueColor(venue).border}` } : {}}>
+                    <div className="vc3-logo" style={!logoUrl || logoError ? { background: getVenueColor(venue).bg } : {}}>
                         {logoUrl && !logoError ? (
                             <img
                                 src={logoUrl}
@@ -1028,9 +988,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         className="vc3-city-state"
                                         title="Open In Maps"
                                     >
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.7 }}>
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                        </svg>
+                                        <PokerNearMeConsoleIcon name="location" className="pnm-console-card__meta-icon" />
                                         <span>{displayCity}{displayCity && displayState ? ', ' : ''}{displayState}</span>
                                     </a>
                                     <span className="vc3-type-label" style={{ color: typeColor.color }}>
@@ -1077,16 +1035,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         aria-label={isFavorited ? `Remove ${venue.name || 'venue'} from saved venues` : `Save ${venue.name || 'venue'}`}
                         aria-pressed={!!isFavorited}
                     >
-                        <svg width="21" height="21" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
-                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                        </svg>
+                        <PokerNearMeConsoleIcon name="saved" />
                     </button>
                     {/* Distance pill below heart */}
                     {venue.distance_mi != null && (
                         <span className="vc3-distance">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__meta-icon" />
                             {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} Mi
                         </span>
                     )}
@@ -1143,7 +1097,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <img src={venue.host_avatar_url} alt="" className="vc3-host-avatar" loading="lazy" />
                     ) : (
                         <div className="vc3-host-avatar vc3-host-avatar-fallback">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <PokerNearMeConsoleIcon name="home" className="pnm-console-card__avatar-icon" />
                         </div>
                     )}
                     <div className="vc3-host-info">
@@ -1160,7 +1114,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* Home Game Schedule */}
             {venue.venue_type === 'home_game' && venue.schedule && (
                 <div className="vc3-schedule">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                    <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
                     <span>{venue.schedule}</span>
                 </div>
             )}
@@ -1168,7 +1122,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {venue.venue_type === 'home_game' && venue.saves_count > 0 && (
                 <div className="vc3-follow-row">
                     <span className="vc3-saves-count">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
+                        <PokerNearMeConsoleIcon name="saved" className="pnm-console-card__meta-icon" />
                         {venue.saves_count} Saved
                     </span>
                 </div>
@@ -1177,16 +1131,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* === REVIEW RATING === */}
             {reviewStats && reviewStats.total_reviews > 0 && (
                 <div className="vc3-rating-row" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?action=review'); }}>
-                    <div className="vc3-rating-stars">
-                        {[1, 2, 3, 4, 5].map(star => (
-                            <svg key={star} width="14" height="14" viewBox="0 0 24 24"
-                                fill={star <= Math.round(Number(reviewStats.avg_rating) || 0) ? '#ffffff' : 'rgba(255,255,255,0.1)'}
-                                stroke={star <= Math.round(Number(reviewStats.avg_rating) || 0) ? '#ffffff' : 'rgba(255,255,255,0.15)'}
-                                strokeWidth="1">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                        ))}
-                    </div>
                     <span className="vc3-rating-score">{(Number(reviewStats.avg_rating) || 0).toFixed(1)}</span>
                     <span className="vc3-rating-count">({reviewStats.total_reviews} Review{reviewStats.total_reviews !== 1 ? 's' : ''})</span>
                 </div>
@@ -1196,7 +1140,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             <div className="vc3-badges">
                 {venue.is_featured && <span className="vc3-badge vc3-badge-featured">Featured</span>}
                 {hasPromo && <span className="vc3-badge vc3-badge-promo">Active Promo</span>}
-                {isNewcomer && <span className="vc3-badge vc3-badge-new" style={{color:'#fff', background:'#6366f1', borderColor:'#4f46e5'}}>New Addition</span>}
+                {isNewcomer && <span className="vc3-badge vc3-badge-new">New Addition</span>}
                 {hasCashGameSignal && publishedCashGameLabel && (
                     <span className={'vc3-badge vc3-badge-live' + (modeledCashGames ? ' vc3-badge-modeled' : '')}>
                         <span className="vc3-live-dot" />
@@ -1205,14 +1149,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
                 {venue.has_tournaments && <></>}
                 {venue.max_gtd > 0 && (
-                    <span className="vc3-badge vc3-badge-gtd" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
+                    <span className="vc3-badge vc3-badge-gtd">
                         {formatMoney(venue.max_gtd)}+ GTD
                     </span>
                 )}
 
                 {/* SCHEMA FIX: `total_tables` is not a poker_venues column (it is `poker_tables`),
                     so this badge could never render. */}
-                {(venue.poker_tables ?? venue.total_tables) > 20 && <span className="vc3-badge" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>Large Room</span>}
+                {(venue.poker_tables ?? venue.total_tables) > 20 && <span className="vc3-badge">Large Room</span>}
                 {checkinCount > 0 && (
                     <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
                         {checkinCount} Here Today
@@ -1226,9 +1170,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {(hasLiveData || checkinCount > 0) && (
                 <div className="vc3-crowd-meter">
                     <div className="vc3-crowd-header">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={crowd.color} strokeWidth="2">
-                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-                        </svg>
                         <span className="vc3-crowd-label" style={{ color: crowd.color }}>{crowd.label}</span>
                         {waitEstimate && (
                             <span className="vc3-wait-estimate">
@@ -1239,8 +1180,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <div className="vc3-crowd-track">
                         <div className="vc3-crowd-fill" style={{
                             width: mounted ? `${crowd.score}%` : '0%',
-                            background: `linear-gradient(90deg, ${crowd.color}cc, ${crowd.color}55)`,
-                            boxShadow: `0 0 8px ${crowd.color}33`,
+                            background: crowd.color,
                         }} />
                     </div>
                 </div>
@@ -1297,9 +1237,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 
                                 {venue.live_data.last_updated && (
                                     <div style={{ fontSize: 12, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
-                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                        </svg>
                                         {catalogCashGames
                                             ? `Catalog Updated ${staleInfo.age || 'Recently'}`
                                             : modeledCashGames
@@ -1360,7 +1297,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             <span key={g || idx} className="vc3-game-chip" style={{
                                                 background: chipStyle.bg || 'rgba(255,255,255,0.06)',
                                                 color: chipStyle.color || 'rgba(255,255,255,0.65)',
-                                                borderColor: chipStyle.border || 'rgba(255,255,255,0.1)',
                                                 padding: '2px 6px',
                                                 fontSize: '12px'
                                             }}>
@@ -1441,9 +1377,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                             )}
                                                             {tIdx === 0 && (
                                                                 <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
-                                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                                                                    </svg>
+                                                                    <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
                                                                     <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Today</span>
                                                                 </div>
                                                             )}
@@ -1491,9 +1425,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                                 }
                                                                 return (
                                                                     <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
-                                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                                                                        </svg>
+                                                                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
                                                                         <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>NEXT EVENT: {dateStr}</span>
                                                                     </div>
                                                                 );
@@ -1543,9 +1475,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                     )}
                                                     {daysBadgeLabel && (
                                                         <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
-                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={daysBadgeColor} strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                                                            </svg>
+                                                            <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
                                                             <span style={{ color: daysBadgeColor, fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{daysBadgeLabel}</span>
                                                         </div>
                                                     )}
@@ -1584,9 +1514,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                         {ntp.guaranteed > 0 ? <span className="vc3-tourney-gtd">{formatMoney(ntp.guaranteed)} GTD</span> : null}
                                                     </div>
                                                     <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                                                        </svg>
+                                                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__meta-icon" />
                                                         <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Next: {dayLabel}</span>
                                                     </div>
                                                     {ntp.total_that_day > 1 && (
@@ -1620,16 +1548,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     {venue.website && (
                         <a href={venue.website.toLowerCase().startsWith('http') ? safeHref(venue.website) : safeHref('https://' + venue.website)}
                             target="_blank" rel="noopener noreferrer" className="vc3-icon-btn" onClick={e => e.stopPropagation()} title="Website" aria-label={`Open ${venue.name || 'venue'} website`}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="globe" />
                         </a>
                     )}
                     {venue.phone && (
                         <a href={'tel:' + venue.phone} className="vc3-icon-btn" onClick={e => e.stopPropagation()} title="Call" aria-label={`Call ${venue.name || 'venue'}`}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="phone" />
                         </a>
                     )}
                     <button type="button" className="vc3-icon-btn" aria-label={`Get directions to ${venue.name || 'venue'}`} onClick={e => {
@@ -1637,42 +1561,32 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             e.preventDefault();
                             openNativeMaps({ address: [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(' '), lat: parseFloat(venue.latitude), lng: parseFloat(venue.longitude), mode: 'directions' });
                         }} title="Directions">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                        </svg>
+                        <PokerNearMeConsoleIcon name="directions" />
                     </button>
                 </div>
 
                 {/* Primary actions */}
                 <div className="vc3-actions-primary">
                     <button className="vc3-pill vc3-pill-checkin" onClick={handleCheckinOpen} title="Check In">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                        </svg>
+                        <PokerNearMeConsoleIcon name="location" className="pnm-console-card__action-icon" />
                         <span>Check In</span>
                     </button>
                     {/* Message Host button for home games replaces Review */}
                     {venue.venue_type === 'home_game' && venue.host_id ? (
                         <button className="vc3-pill vc3-pill-message" onClick={e => { e.stopPropagation(); onNavigate && onNavigate('/hub/messenger?to=' + venue.host_id + '&game=' + venue.id + '&gameName=' + encodeURIComponent(venue.name || '')); }} title="Message Host">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                            </svg>
+                            <PokerNearMeConsoleIcon name="share" className="pnm-console-card__action-icon" />
                             <span>Message Host</span>
                         </button>
                     ) : (
                         venue.has_tournaments ? (
                             <button className="vc3-pill vc3-pill-schedule" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '?tab=tournaments'); }} title="Tournament Schedule">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
+                                <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__action-icon" />
                                 <span>Schedule</span>
                             </button>
                         ) : null
                     )}
                     <button className="vc3-pill vc3-pill-details" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }} title="Details">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="9 18 15 12 9 6" />
-                        </svg>
+                        <PokerNearMeConsoleIcon name="directions" className="pnm-console-card__action-icon" />
                         <span>Details</span>
                     </button>
                 </div>
@@ -1692,8 +1606,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{
                                 width: mounted ? Math.round((Number(reviewStats.avg_rating) / 5) * 100) + '%' : '0%',
-                                background: `linear-gradient(90deg, ${reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b'}, ${reviewStats.avg_rating >= 4 ? '#22c55e77' : reviewStats.avg_rating >= 3 ? '#ffffff77' : '#f59e0b77'})`,
-                                boxShadow: `0 0 8px ${reviewStats.avg_rating >= 4 ? '#22c55e33' : reviewStats.avg_rating >= 3 ? '#ffffff33' : '#f59e0b33'}`,
+                                background: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b',
                             }} />
                         </div>
                     </>
@@ -1706,8 +1619,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{
                                 width: mounted ? trust.pct + '%' : '0%',
-                                background: `linear-gradient(90deg, ${trust.color}, ${trust.color}77)`,
-                                boxShadow: `0 0 8px ${trust.color}33`,
+                                background: trust.color,
                             }} />
                         </div>
                     </>
@@ -1737,7 +1649,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <div className="vc3-checkin-handle" aria-hidden="true" />
                         <div className="vc3-checkin-header">
                             <span>Check In At {venue.name}</span>
-                            <button type="button" className="vc3-checkin-close sp-icon-btn" aria-label="Close" onClick={closeCheckin}>×</button>
+                            <button type="button" className="vc3-checkin-close sp-icon-btn" aria-label="Close" onClick={closeCheckin}><PokerNearMeConsoleIcon name="close" /></button>
                         </div>
                         {checkinDone ? (
                             <div className="vc3-checkin-done">✓ Checked In!</div>
@@ -1770,6 +1682,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* Old Calendar display successfully abstracted */}
             {/* Card CSS is injected into <head> exactly once (see VC3_CARD_STYLES
                 below) instead of being duplicated per card instance. */}
-        </div>
+        </PokerNearMePanelShell>
     );
 }
