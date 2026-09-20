@@ -1,6 +1,8 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
-export const SOLVER_WORKER_PROTOCOL = 'smarter-poker.solver-worker.v1';
+// v2 makes the signed admission_mode part of the wire contract. A v1 worker
+// cannot be interpreted as backlog or bounded-canary authority.
+export const SOLVER_WORKER_PROTOCOL = 'smarter-poker.solver-worker.v2';
 export const SOLVER_WORKER_MAX_CLOCK_SKEW_SECONDS = 300;
 export const SOLVER_WORKER_MAX_BODY_BYTES = 2 * 1024 * 1024;
 export const SOLVER_WORKER_OPERATIONS = Object.freeze([
@@ -102,6 +104,7 @@ export function solverWorkerEnvelopeIsValid(envelope, workerId) {
       || Array.isArray(envelope.worker)) return false;
   const workerKeys = Object.keys(envelope.worker).sort();
   if (workerKeys.join('|') !== [
+    'admission_mode',
     'machine_id',
     'manifest_checksum',
     'manifest_version',
@@ -111,6 +114,7 @@ export function solverWorkerEnvelopeIsValid(envelope, workerId) {
   ].sort().join('|')) return false;
   const worker = envelope.worker;
   return worker.machine_id === workerId
+    && ['backlog', 'bounded_canary'].includes(worker.admission_mode)
     && typeof worker.solver_version === 'string'
     && worker.solver_version.trim().length >= 1
     && worker.solver_version.length <= 120
