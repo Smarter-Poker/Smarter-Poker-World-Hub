@@ -17,6 +17,8 @@ const showcase = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const detailCss = read('src/components/store/MarketplaceDetailExperience.module.css');
 const legacyStyles = read('src/components/diamond-store/diamondStoreStyles.js');
 const shellCss = read('src/components/diamond-store/DiamondStoreShell.module.css');
+const merchCss = read('src/components/store/MerchStore.module.css');
+const vipCss = read('src/components/store/VipMembershipConsole.module.css');
 
 test('the merch product card takes its heading level from its surroundings', () => {
   assert.match(
@@ -119,4 +121,56 @@ test('an inline link is given a height that min-height cannot give it', () => {
   assert.match(reward[0], /display:\s*inline-block/);
   assert.match(reward[0], /padding-block:\s*14px/);
   assert.match(reward[0], /margin-block:\s*-14px/);
+});
+
+test('an unavailable product does not become an unreadable one', () => {
+  // Fading the whole card carried the state. At 0.68 the card's own 9px bold
+  // text composited against #000305 to 3.78:1 on the price note, 4.17:1 on the
+  // control label and 3.76:1 on the reason line, all under the 4.5:1 that text
+  // size needs. Measured with axe-core on /hub/merch-store/hoodie-neural.
+  const rule = /\.productCardUnavailable \{[^}]*\}/.exec(merchCss);
+  assert.ok(rule, 'the unavailable card rule is gone');
+  assert.doesNotMatch(
+    rule[0],
+    /opacity/,
+    'a card that fades its own text takes the reason for the sale with it'
+  );
+  assert.match(
+    merchCss,
+    /\.productCardUnavailable \.mediaBay \{[^}]*opacity/,
+    'the state belongs on the imagery'
+  );
+});
+
+test('the VIP surfaces are sized by their content, not by a painted plate', () => {
+  // Two instances of the same fault, both measured on production. The
+  // confirmation dialog: 211px of padding a side at 1280px wide, 973px tall
+  // inside a 720px viewport, both actions below the fold and unclickable. The
+  // signed-out panel: 480x754 with 212.4px a side and a 55px content box.
+  for (const [name, pattern] of [
+    ['dialog', /\n\.dialog \{[^}]*\}/],
+    ['signedOut', /\.signedOut,\n\.loading \{[^}]*\}/],
+  ]) {
+    const rule = pattern.exec(vipCss);
+    assert.ok(rule, `the VIP ${name} rule is gone`);
+    assert.doesNotMatch(rule[0], /padding:\s*\d+(?:\.\d+)?%/, `${name} must not take a percentage padding`);
+    assert.doesNotMatch(rule[0], /aspect-ratio/, `${name} must be sized by its content`);
+    assert.doesNotMatch(rule[0], /utility-shell\.webp/, `${name} must not carry the console housing`);
+  }
+  // The approved gold plan artwork stays exactly as it is.
+  assert.match(vipCss, /\.plan \{[^}]*utility-shell\.webp/s, 'the VIP plan artwork is approved and stays');
+});
+
+test('the rewards stats readout wraps instead of running off the side', () => {
+  // Four tiles at a 148px floor measured 646px across inside a 313px column,
+  // with no wrap and no scroll: main.scrollWidth read 687 against a 393px
+  // viewport and the last tiles were clipped out of reach.
+  const rule = /\.rewardsQuickStats \{[^}]*\}/.exec(shellCss);
+  assert.ok(rule, 'the rewards stats rule is gone');
+  assert.match(rule[0], /flex-wrap:\s*wrap/, 'the stats row must wrap');
+  assert.match(
+    shellCss,
+    /@media \(max-width: 700px\) \{\s*\.rewardsQuickStats > div \{[^}]*min-width:\s*0/,
+    'the tiles must be allowed to shrink on a narrow screen'
+  );
 });

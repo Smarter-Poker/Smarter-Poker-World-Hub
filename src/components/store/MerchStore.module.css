@@ -232,8 +232,18 @@
     0 16px 34px #000;
 }
 
+/* Unavailability used to fade the whole card. At 0.68 the card's own text
+   composited against #000305 to 3.78:1 on the price note, 4.17:1 on the
+   control label and 3.76:1 on the reason line, all below the 4.5:1 that 9px
+   bold text needs. The reason a product cannot be bought is the one thing a
+   shopper has to be able to read, so the state is carried by the imagery and
+   the border now, and the text keeps its contrast. */
 .productCardUnavailable {
-  opacity: 0.68;
+  border-color: #3a4a55;
+}
+
+.productCardUnavailable .mediaBay {
+  opacity: 0.6;
 }
 
 .mediaBay {

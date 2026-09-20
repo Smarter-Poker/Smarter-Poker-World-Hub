@@ -444,8 +444,29 @@ test.describe('5. Storefront Routes And Design Contract', () => {
       }));
     });
 
+    // The cart is owner-scoped and fails closed: it verifies the wallet before
+    // it will show any payment control, and a synthetic session cannot pass
+    // that check against a real server. Refusing to price a cart whose owner
+    // cannot be verified is the behaviour we want, and the test below asserts
+    // it directly. To reach the payment controls the verification is answered
+    // by a deterministic read-only fixture; nothing about the guard itself is
+    // relaxed.
+    await page.route('**/api/store/diamond-transactions*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, balance: 25000, transactions: [] }),
+    }));
+    // The owner-scoped read of the saved cart. Same reasoning: answered, not
+    // bypassed. The page still refuses to price a cart it cannot verify.
+    await page.route('**/rest/v1/user_preferences*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{ preferences: {} }]),
+    }));
+
     await page.goto('/hub/diamond-store/cart', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { level: 1, name: 'Your Cart' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Could Not Verify Your Cart' })).toHaveCount(0);
     const paymentChoices = page.getByRole('radiogroup', { name: 'Payment Method' });
     await expect(paymentChoices.getByRole('radio')).toHaveCount(2);
     await expect(paymentChoices.getByRole('radio', { name: /Pay With Card/ })).toHaveAttribute('aria-checked', 'true');

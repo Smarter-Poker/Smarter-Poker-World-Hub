@@ -176,16 +176,22 @@
     sans-serif;
 }
 
+/* The same percentage-padding fault as the dialog, and the one a signed-out
+   member actually meets first. `padding: 18%` resolved against the page column,
+   not this 480px panel: measured on production at both 1440px and 1280px, the
+   panel was 480x754 with 212.4px of padding a side and a content box 55px
+   wide. The heading and the sign-in link were wrapping inside 55px. Sized by
+   its content now, in the same readable card the rewards console already
+   uses. */
 .signedOut,
 .loading {
   display: grid;
   place-items: center;
-  width: min(480px, 100%);
-  aspect-ratio: 1105 / 1133;
+  width: min(560px, 100%);
   margin-inline: auto;
-  padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 28px 24px;
+  border: 1px solid #23394a;
+  background: #070e15;
   text-align: center;
 }
 
@@ -220,15 +226,28 @@
   backdrop-filter: blur(7px);
 }
 
+/* This dialog used to be a 1105x1133 console housing with `padding: 17%`.
+   A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   which here is the fixed backdrop, not the 520px dialog: 211px of padding at
+   1280px wide and 239px at 1440px. With `aspect-ratio` fixing the height from
+   the width, the box grew to 973px tall at 1280x720 and 1285px at 1440x1000,
+   and neither the dialog nor the backdrop could scroll. Both action buttons
+   sat below the fold and could not be clicked at all, so a member on a desktop
+   could not confirm a plan switch or a cancellation. It only worked on a phone
+   because the percentage shrinks with the viewport.
+
+   The housing is replaced by a readable commerce card, the padding is real
+   pixels, and the card can never be taller than the space it is given. */
 .dialog {
   display: flex;
   width: min(520px, 100%);
-  aspect-ratio: 1105 / 1133;
+  max-height: 100%;
   flex-direction: column;
-  justify-content: center;
-  padding: 17%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
-    100% 100% no-repeat;
+  overflow-y: auto;
+  padding: 26px 24px;
+  border: 1px solid #23394a;
+  background: #070e15;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
 .dialog h2 {
@@ -277,7 +296,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 20px;
+  /* The actions are the reason the dialog exists. They stay the last thing in
+     the flow and are never pushed out of it. */
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.dialogActions button {
+  min-height: 44px;
 }
 
 .dialogActions .dangerButton {
@@ -317,7 +343,7 @@
   }
 
   .dialog {
-    padding: 16%;
+    padding: 20px 16px;
   }
 
   .dialog h2 {

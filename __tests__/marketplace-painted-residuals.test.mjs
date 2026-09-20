@@ -73,7 +73,24 @@ test('reward and VIP live data use painted rows without duplicate outer consoles
 
   assert.match(vip, /\.statusLine div\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
   assert.match(vip, /\.plan\s*\{[\s\S]*?utility\/utility-shell\.webp/);
-  assert.match(vip, /\.dialog\s*\{[\s\S]*?utility\/utility-shell\.webp/);
+
+  // The confirmation dialog is the one place that housing could not stay. Its
+  // `padding: 17%` resolved against the fixed backdrop, not the 520px dialog:
+  // 211px a side at 1280px wide and 239px at 1440px. With `aspect-ratio`
+  // deriving the height from the width, the box measured 973px tall inside a
+  // 720px viewport and 1285px inside 1000px, and nothing could scroll. Both
+  // action buttons sat below the fold at top 720 and top 1006 and could not be
+  // clicked at all, so a member on a desktop could not confirm a plan switch or
+  // a cancellation. It is a readable commerce card now, and it is bounded.
+  const dialog = vip.match(/\n\.dialog \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.ok(dialog, 'the VIP dialog rule is gone');
+  assert.doesNotMatch(dialog, /utility\/utility-shell\.webp/);
+  assert.doesNotMatch(dialog, /aspect-ratio/);
+  assert.doesNotMatch(dialog, /padding:\s*\d+(?:\.\d+)?%/);
+  assert.match(dialog, /max-height:\s*100%/);
+  assert.match(dialog, /overflow-y:\s*auto/);
+  const dialogActions = vip.match(/\.dialogActions \{[\s\S]*?\n\}/)?.[0] || '';
+  assert.match(dialogActions, /margin-top:\s*auto/, 'the actions must stay at the end of the flow');
   assert.match(vip, /\.panel\s*\{[\s\S]*?background:\s*transparent/);
 });
 
