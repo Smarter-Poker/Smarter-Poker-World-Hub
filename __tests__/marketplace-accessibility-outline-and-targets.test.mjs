@@ -15,6 +15,8 @@ const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const merch = read('src/components/store/MerchStore.jsx');
 const showcase = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const detailCss = read('src/components/store/MarketplaceDetailExperience.module.css');
+const legacyStyles = read('src/components/diamond-store/diamondStoreStyles.js');
+const shellCss = read('src/components/diamond-store/DiamondStoreShell.module.css');
 
 test('the merch product card takes its heading level from its surroundings', () => {
   assert.match(
@@ -97,4 +99,24 @@ test('a breadcrumb link is a target in both directions', () => {
     /min-width:/,
     'the separators are text, not targets, and must not be padded out to 44px'
   );
+});
+
+test('an inline link is given a height that min-height cannot give it', () => {
+  // `min-height` does nothing to a non-replaced inline box. The global
+  // `a { min-height: 44px }` rule therefore left the legal note's link 19px
+  // tall at 320px and 14px at 1024px, and it measured 44px at exactly one
+  // width, 390px, only because the text wrapped onto a second line there.
+  const link = /\n  link: \{[^}]*\}/.exec(legacyStyles);
+  assert.ok(link, 'the legal note link style is gone');
+  assert.match(link[0], /display:\s*'inline-block'/, 'the link must not stay an inline box');
+  assert.match(link[0], /paddingBlock:\s*14/, 'the link must reach 44px through real padding');
+  assert.match(link[0], /marginBlock:\s*-14/, 'the paragraph must keep its own rhythm');
+
+  // The same remedy, already shipped, on the reward detail link. Both are
+  // asserted here so neither can be reverted as the odd one out.
+  const reward = /\.rewardDetailLink \{[^}]*\}/.exec(shellCss);
+  assert.ok(reward, 'the reward detail link rule is gone');
+  assert.match(reward[0], /display:\s*inline-block/);
+  assert.match(reward[0], /padding-block:\s*14px/);
+  assert.match(reward[0], /margin-block:\s*-14px/);
 });
