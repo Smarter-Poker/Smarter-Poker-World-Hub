@@ -31,12 +31,26 @@ export function alertmanagerEvents(payload, source = 'alertmanager') {
     // Preserve every label, annotation and timestamp. Do not truncate evidence
     // to the old SMS character limit or combine unrelated alerts into one row.
     const evidence = { alert, receiver: payload.receiver || null, externalURL: payload.externalURL || null };
+    // The event key is the hash of the evidence alone, so a repeat delivery of the
+    // same alert keeps deduplicating against the row that already exists. The
+    // destination task id is stored beside the evidence, never inside the hash.
     return { source, event_key: alertEventKey(evidence), alertname: alert.labels.alertname,
-      status: alert.status, severity: alert.labels.severity || 'unknown', payload: evidence };
+      status: alert.status, severity: alert.labels.severity || 'unknown',
+      payload: withDestination(evidence) };
   });
 }
-export async function recordOperationalAlerts(events) {
-  if (!events.length) return [];
+// Every row this writer records names its destination. Rows without
+// payload.target_task_id were indistinguishable from mis-routed ones (A2 board,
+// 2026-09-20: 13/13 alertmanager arrivals carried none), so the writer fills it
+// in for any caller that did not, and never overwrites one that did.
+export function withDestination(payload) {
+  if (!object(payload)) return payload;
+  if (typeof payload.target_task_id === 'string' && payload.target_task_id.trim()) return payload;
+  return { ...payload, target_task_id: ALERT_TASK_ID };
+}
+export async function recordOperationalAlerts(rawEvents) {
+  if (!rawEvents.length) return [];
+  const events = rawEvents.map((event) => (object(event) ? { ...event, payload: withDestination(event.payload) } : event));
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   if (!url || !key) throw new Error('Operational inbox is not configured');
