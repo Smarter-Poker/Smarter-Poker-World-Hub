@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertEventKey, alertmanagerEvents, recordOperationalAlerts } from '../src/lib/operationalAlerts.mjs';
+import { ALERT_TASK_ID, alertEventKey, alertmanagerEvents, recordOperationalAlerts, withDestination } from '../src/lib/operationalAlerts.mjs';
 import pager from '../pages/api/internal/alertmanager-page.js';
 import intake from '../pages/api/internal/operational-alert.js';
 import engine from '../pages/api/alerts/engine.js';
@@ -63,4 +63,47 @@ test('engine receiver preserves legacy history and refuses to acknowledge failed
     globalThis.fetch=async(url,init)=>{assert.match(url,/\/rest\/v1\/rpc\/fn_record_engine_alerts$/);assert.equal(JSON.parse(init.body).p_alerts[0].labels.alertname,'HorseFleetHeartbeatStale');return {ok:true,json:async()=>[{id:17,event_id:null}]};};
     const r=response();await engine(req,r);assert.equal(r.code,200);assert.equal(r.body.recorded,1);
   } finally {globalThis.fetch=original;}
+});
+
+// Regression, 2026-09-20 (A2 board: alertmanager rows stored without a destination).
+// Fails on the pre-fix writer: payload.target_task_id was undefined and the direct
+// route stored whatever payload it was given.
+test('every alertmanager event names its destination task without changing its event key', () => {
+  const a = alert();
+  const [event] = alertmanagerEvents({ alerts: [a], receiver: 'codex', externalURL: 'https://am.example' });
+  assert.equal(event.payload.target_task_id, ALERT_TASK_ID);
+  assert.deepEqual(event.payload.alert, a);
+  // Dedup stability: the key is the hash of the evidence WITHOUT the destination,
+  // so alerts recorded before this change keep matching their existing rows.
+  const { target_task_id, ...evidence } = event.payload;
+  assert.equal(event.event_key, alertEventKey(evidence));
+  assert.equal(target_task_id, ALERT_TASK_ID);
+});
+
+test('the writer fills a missing destination for any caller and never overwrites a supplied one', async () => {
+  assert.equal(withDestination({ note: 'x' }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination({ target_task_id: 'other-task' }).target_task_id, 'other-task');
+  assert.equal(withDestination({ target_task_id: '  ' }).target_task_id, ALERT_TASK_ID);
+  assert.equal(withDestination(null), null);
+  const env = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  const realFetch = globalThis.fetch;
+  let body = null;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://inbox.example';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+  globalThis.fetch = async (_url, init) => { body = JSON.parse(init.body); return { ok: true, json: async () => [101, 102] }; };
+  try {
+    const ids = await recordOperationalAlerts([
+      { source: 'worker', event_key: 'k1', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 1 } },
+      { source: 'worker', event_key: 'k2', alertname: 'fault', status: 'firing', severity: 'critical', payload: { detail: 2, target_task_id: 'kept' } },
+    ]);
+    assert.deepEqual(ids, [101, 102]);
+    assert.equal(body.p_events[0].payload.target_task_id, ALERT_TASK_ID);
+    assert.equal(body.p_events[0].payload.detail, 1);
+    assert.equal(body.p_events[1].payload.target_task_id, 'kept');
+  } finally {
+    globalThis.fetch = realFetch;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = env.url; process.env.SUPABASE_SERVICE_ROLE_KEY = env.key;
+    if (env.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (env.key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  }
 });
