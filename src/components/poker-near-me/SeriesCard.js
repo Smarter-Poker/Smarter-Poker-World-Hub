@@ -3,6 +3,7 @@
  * Handles both poker_series objects and poker_venues entries with venue_type='series'
  */
 import { TourBadge, formatDate, formatMoney } from './TourCard';
+import { PokerNearMeConsoleIcon, PokerNearMePanelShell } from './PokerNearMeConsole';
 
 // BUG FIX: Sanitize scraped URLs — block javascript:/data:/vbscript: XSS vectors.
 // Mirrors safeHref in NewSeriesVenueCard.jsx and the inline guard in TourCard.js.
@@ -27,7 +28,11 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
     const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
 
     return (
-        <div className="entity-card series-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
+        <PokerNearMePanelShell
+            className="pnm-console-card pnm-console-card--series"
+            bodyClassName="pnm-console-card__body"
+            onClick={() => onNavigate && onNavigate(detailUrl)}
+        >
             <button
                 type="button"
                 className={'fav-btn' + (isFavorited ? ' active' : '')}
@@ -35,14 +40,12 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
                 aria-label={isFavorited ? `Remove ${s.name || 'series'} from saved series` : `Save ${s.name || 'series'}`}
                 aria-pressed={!!isFavorited}
             >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                </svg>
+                <PokerNearMeConsoleIcon name="saved" />
             </button>
             <div className="card-header">
                 <TourBadge tourCode={shortCode} size="small" />
                 {s.series_type && <span className="badge series-type">{s.series_type}</span>}
-                {isVenueEntry && <span className="badge series-type" style={{ background: 'rgba(6,182,212,0.15)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>Series</span>}
+                {isVenueEntry && <span className="badge series-type pnm-console-card__tag--blue">Series</span>}
             </div>
             <h4>{s.name}</h4>
             <p className="card-location">{displayLocation}</p>
@@ -60,7 +63,7 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             </div>
             {/* Stakes — from poker_venues data */}
             {!s.main_event_guaranteed && Array.isArray(s.stakes_cash) && s.stakes_cash.length > 0 && (
-                <p className="card-detail" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 4 }}>
+                <p className="card-detail">
                     Stakes: {s.stakes_cash.slice(0, 3).join(', ')}
                 </p>
             )}
@@ -77,15 +80,16 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
                             onNavigate?.(detailUrl);
                         }}
                     >
+                        <PokerNearMeConsoleIcon name="calendar" className="pnm-console-card__action-icon" />
                         Details
                     </button>
                     {(() => {
                         const href = safeHref(s.source_url || s.website);
                         if (!href) return null;
-                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>{s.source_url ? 'Source' : 'Website'}</a>;
+                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}><PokerNearMeConsoleIcon name="globe" className="pnm-console-card__action-icon" />{s.source_url ? 'Source' : 'Website'}</a>;
                     })()}
                 </div>
             </div>
-        </div>
+        </PokerNearMePanelShell>
     );
 }

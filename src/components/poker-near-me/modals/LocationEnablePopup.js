@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { acquireScrollLock } from '../../../lib/scrollLock';
+import PokerNearMeConsole from '../PokerNearMeConsole';
 
 const FOCUSABLE = 'button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const INSTRUCTIONS = {
@@ -79,72 +80,77 @@ export default function LocationEnablePopup({
       releaseScrollLock();
       returnFocusRef.current?.focus?.();
     };
-  }, [showEnablePopup]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showEnablePopup]);
 
   if (!showEnablePopup) return null;
 
   return (
     <div
-      className="pnm-location-sheet pnm-location-sheet--permission"
+      className="pnm-console-dialog-overlay pnm-console-dialog-overlay--location"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) closePopup();
       }}
     >
       <section
         ref={dialogRef}
-        className="pnm-location-sheet__frame"
+        className="pnm-console-dialog-shell pnm-console-dialog-shell--location"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pnm-location-permission-title"
         aria-describedby="pnm-location-permission-description"
         tabIndex={-1}
       >
-        <div className="pnm-location-sheet__energy" aria-hidden="true" />
-        <header className="pnm-location-sheet__header">
-          <div>
-            <span className="pnm-location-sheet__eyebrow">Location Recovery</span>
-            <h2 id="pnm-location-permission-title">Enable Location</h2>
-            <p id="pnm-location-permission-description">Use Your Position For Nearby Rooms And Distance-Aware Results.</p>
+        <PokerNearMeConsole
+          as="div"
+          className="pnm-console-dialog"
+          crest="locator"
+          eyebrow="Location Recovery"
+          title="Enable Location"
+          titleId="pnm-location-permission-title"
+          plates={{
+            secondary: {
+              label: 'Enter Manually',
+              onClick: () => {
+                setShowEnablePopup(false);
+                setShowManualLocation(true);
+              },
+              'aria-label': 'Enter location manually',
+            },
+            primary: {
+              label: 'Try Location',
+              ink: 'blue',
+              buttonRef: retryRef,
+              onClick: () => {
+                setShowEnablePopup(false);
+                handleGpsClick({ fromModal: true });
+              },
+              'aria-label': 'Try enabling location',
+            },
+          }}
+        >
+          <div className="pnm-console-dialog__body">
+            <p id="pnm-location-permission-description" className="pnm-console-dialog__copy">
+              Use Your Position For Nearby Rooms And Distance-Aware Results.
+            </p>
+            <div className="pnm-console-dialog__instructions">
+              <span className="pnm-console-dialog__label">
+                {safeDeviceType === 'ios' ? 'iPhone / iPad' : safeDeviceType === 'android' ? 'Android' : 'Desktop Browser'}
+              </span>
+              <ol>
+                {INSTRUCTIONS[safeDeviceType].map((instruction) => <li key={instruction}>{instruction}</li>)}
+              </ol>
+            </div>
           </div>
-          <button type="button" className="pnm-location-sheet__close" onClick={closePopup} aria-label="Close location instructions">&times;</button>
-        </header>
-
-        <div className="pnm-location-sheet__body">
-          <button
-            ref={retryRef}
-            type="button"
-            className="pnm-location-sheet__gps"
-            onClick={() => {
-              setShowEnablePopup(false);
-              handleGpsClick({ fromModal: true });
-            }}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
-            </svg>
-            Try Enabling Location
-          </button>
-
-          <div className="pnm-location-sheet__instructions">
-            <span>{safeDeviceType === 'ios' ? 'iPhone / iPad' : safeDeviceType === 'android' ? 'Android' : 'Desktop Browser'}</span>
-            <ol>
-              {INSTRUCTIONS[safeDeviceType].map((instruction) => <li key={instruction}>{instruction}</li>)}
-            </ol>
-          </div>
-
-          <div className="pnm-location-sheet__divider"><span>Or</span></div>
-
-          <button
-            type="button"
-            className="pnm-location-sheet__manual"
-            onClick={() => {
-              setShowEnablePopup(false);
-              setShowManualLocation(true);
-            }}
-          >
-            Enter Location Manually
-          </button>
-        </div>
+        </PokerNearMeConsole>
+        <button
+          type="button"
+          className="pnm-console-dialog__close"
+          onClick={closePopup}
+          aria-label="Close location instructions"
+        >
+          Close
+        </button>
       </section>
     </div>
   );
