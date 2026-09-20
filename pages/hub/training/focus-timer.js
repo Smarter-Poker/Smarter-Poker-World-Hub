@@ -157,7 +157,7 @@ export default function FocusTimerPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -194,7 +194,7 @@ export default function FocusTimerPage() {
           </button>
           <div>
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Focus Timer</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Pomodoro Training</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Pomodoro Training</div>
           </div>
         </div>
 
@@ -223,7 +223,7 @@ export default function FocusTimerPage() {
                   border: 'none',
                   background: phase.id === p.id ? `${p.color}15` : 'transparent',
                   color: phase.id === p.id ? p.color : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
@@ -354,7 +354,7 @@ export default function FocusTimerPage() {
               <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-fg)' }}>
                 {completedBlocks}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                 Blocks
               </div>
             </div>
@@ -371,7 +371,7 @@ export default function FocusTimerPage() {
               <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--sp-accent-green)' }}>
                 {Math.round(((completedBlocks * 25) / 60) * 10) / 10}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                 Hours
               </div>
             </div>
@@ -394,7 +394,7 @@ export default function FocusTimerPage() {
               >
                 {notify ? <BellIcon size={20} /> : <BellOffIcon size={20} />}
               </button>
-              <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
                 {notify ? 'on' : 'off'}
               </div>
             </div>
@@ -412,7 +412,7 @@ export default function FocusTimerPage() {
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-fg-faint)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
@@ -431,8 +431,8 @@ export default function FocusTimerPage() {
                     borderBottom: '1px solid rgba(255,255,255,0.02)',
                   }}
                 >
-                  <span style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{s.time}</span>
-                  <span style={{ fontSize: 11, color: 'var(--sp-accent-green)', fontWeight: 600 }}>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{s.time}</span>
+                  <span style={{ fontSize: 12, color: 'var(--sp-accent-green)', fontWeight: 600 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.duration}min Focus <FtCheckIcon size={12} /></span>
                   </span>
                 </div>

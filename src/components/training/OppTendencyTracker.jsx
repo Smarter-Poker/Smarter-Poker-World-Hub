@@ -42,7 +42,7 @@ export default function OppTendencyTracker() {
             style={{ padding: '8px 4px', borderRadius: 8, border: selected === i ? `2px solid ${TYPE_COLORS[p.type]}` : '1px solid rgba(255,255,255,0.06)',
               background: selected === i ? `${TYPE_COLORS[p.type]}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: TYPE_COLORS[p.type] }}>{p.pos}</div>
-            <div style={{ fontSize: 9, color: '#64748b' }}>{p.type}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{p.type}</div>
           </button>
         ))}
       </div>
@@ -69,7 +69,7 @@ export default function OppTendencyTracker() {
             { label: 'AF', val: player.af.toFixed(1), color: player.af > 2.5 ? '#ef4444' : '#3b82f6' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.val}</div>
             </div>
           ))}

@@ -121,14 +121,14 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8,
             }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5 }}>
                     {'\uD83D\uDD25'} POSITION WEAKNESS MAP
                 </span>
                 {hasBothViews && (
                     <button
                         onClick={() => setViewMode(v => v === 'session' ? 'alltime' : 'session')}
                         style={{
-                            padding: '2px 8px', fontSize: 8, fontWeight: 700, letterSpacing: 0.5,
+                            padding: '2px 8px', fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
                             background: viewMode === 'alltime' ? 'rgba(168,139,250,0.2)' : 'rgba(255,255,255,0.06)',
                             border: `1px solid ${viewMode === 'alltime' ? 'rgba(168,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: 10, color: viewMode === 'alltime' ? '#A78BFA' : 'rgba(255,255,255,0.4)',
@@ -175,7 +175,7 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
                             }}
                         >
                             <div style={{
-                                fontSize: 9, fontWeight: 700,
+                                fontSize: 12, fontWeight: 700,
                                 color: seat.count > 0 ? '#fff' : 'rgba(255,255,255,0.35)',
                                 lineHeight: 1,
                             }}>
@@ -183,7 +183,7 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
                             </div>
                             {seat.count > 0 && (
                                 <div style={{
-                                    fontSize: 8, fontWeight: 600,
+                                    fontSize: 12, fontWeight: 600,
                                     color: 'rgba(255,255,255,0.7)',
                                     lineHeight: 1,
                                     marginTop: 1,
@@ -199,7 +199,7 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCu
             {/* Legend */}
             <div style={{
                 display: 'flex', justifyContent: 'center', gap: 12, marginTop: 4,
-                fontSize: 9, color: 'rgba(255,255,255,0.35)',
+                fontSize: 12, color: 'rgba(255,255,255,0.35)',
             }}>
                 <span>{'\uD83D\uDFE2'} Clean</span>
                 <span>{'\uD83D\uDFE1'} Weak</span>

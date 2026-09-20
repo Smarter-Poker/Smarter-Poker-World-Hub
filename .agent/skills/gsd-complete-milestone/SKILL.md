@@ -50,7 +50,7 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 
    {If audit has gaps:}
    ⚠ Milestone audit found gaps. Run `/gsd-plan-milestone-gaps` to create
-   phases that close the gaps, or proceed anyway to accept as tech debt.
+   scoped work that closes required gaps before claiming completion.
 
    {If audit passed:}
    ✓ Milestone audit passed. Proceeding with completion.
@@ -60,14 +60,14 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 
    - Check all phases in milestone have completed plans (SUMMARY.md exists)
    - Present milestone scope and stats
-   - Wait for confirmation
+   - Verify actual required outcomes and continue within the assignment
 
 2. **Gather stats:**
 
    - Count phases, plans, tasks
    - Calculate git range, file changes, LOC
    - Extract timeline from git log
-   - Present summary, confirm
+   - Present the verified summary
 
 3. **Extract accomplishments:**
 
@@ -123,7 +123,7 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 
 - **Load workflow first:** Read complete-milestone.md before executing
 - **Verify completion:** All phases must have SUMMARY.md files
-- **User confirmation:** Wait for approval at verification gates
+- **Agent verification:** Complete required checks and direct visual/behavioral verification yourself; no additional human approval gate. Report actual unavailable access and continue independent work.
 - **Archive before deleting:** Always create archive files before updating/deleting originals
 - **One-line summary:** Collapsed milestone in ROADMAP.md should be single line with link
 - **Context efficiency:** Archive keeps ROADMAP.md and REQUIREMENTS.md constant size per milestone

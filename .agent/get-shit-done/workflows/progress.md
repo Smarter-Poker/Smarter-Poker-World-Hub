@@ -502,6 +502,6 @@ Ready to plan the next milestone.
 - [ ] Current position clear with visual progress
 - [ ] What's next clearly explained
 - [ ] Smart routing: /gsd-execute-phase if plans exist, /gsd-plan-phase if not
-- [ ] User confirms before any action
+- [ ] Action remains within the existing assignment and uses required checks
 - [ ] Seamless handoff to appropriate gsd command
       </success_criteria>

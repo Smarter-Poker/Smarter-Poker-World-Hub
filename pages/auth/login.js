@@ -149,8 +149,7 @@ export default function LoginPage() {
   }, [router.query.redirect]);
 
   // ── [2026-08-04] Server-side error visibility ────────────────────────────
-  // Client Sentry is disabled (OOM workaround), so console.warn in these catch
-  // blocks was invisible in production — a big reason auth failures looked
+  // Local-only errors were invisible after the tab closed and looked
   // "silent". Lifted into src/lib/authErrors.js on 2026-08-25 so signup.js and
   // callback.js share it rather than each keeping a private copy; signup.js had
   // no copy at all, which is why a Facebook failure started from the signup
@@ -485,7 +484,7 @@ export default function LoginPage() {
           width: '100%',
           maxWidth: 'min(100vw, 66.6dvh)',
           aspectRatio: '682 / 1024',
-          backgroundImage: `url('/images/dynamic-login-bg.jpg')`,
+          backgroundImage: `url('/images/dynamic-login-bg.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

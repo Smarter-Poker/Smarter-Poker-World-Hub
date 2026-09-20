@@ -45,7 +45,7 @@ export default function RangePolarizerTool() {
             style={{ padding: '8px 6px', borderRadius: 8, border: streetIdx === i ? '2px solid #8b5cf6' : '1px solid rgba(255,255,255,0.06)',
               background: streetIdx === i ? 'rgba(139,92,246,0.15)' : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 18 }}>{s.icon}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: streetIdx === i ? '#8b5cf6' : '#64748b' }}>{s.street}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: streetIdx === i ? '#8b5cf6' : '#64748b' }}>{s.street}</div>
           </button>
         ))}
       </div>
@@ -57,20 +57,20 @@ export default function RangePolarizerTool() {
             <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>{r.action}</div>
             <div style={{ display: 'flex', height: 24, borderRadius: 6, overflow: 'hidden', marginBottom: 4 }}>
               <motion.div initial={{ width: 0 }} animate={{ width: `${r.value}%` }} transition={{ duration: 0.6 }}
-                style={{ background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#000' }}>
+                style={{ background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#000' }}>
                 {r.value > 8 && `${r.value}%`}
               </motion.div>
               <motion.div initial={{ width: 0 }} animate={{ width: `${r.medium}%` }} transition={{ duration: 0.6, delay: 0.1 }}
-                style={{ background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#000' }}>
+                style={{ background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#000' }}>
                 {r.medium > 8 && `${r.medium}%`}
               </motion.div>
               <motion.div initial={{ width: 0 }} animate={{ width: `${r.bluff}%` }} transition={{ duration: 0.6, delay: 0.2 }}
-                style={{ background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>
+                style={{ background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
                 {r.bluff > 8 && `${r.bluff}%`}
               </motion.div>
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)' }} />
             </div>
-            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#64748b' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
               <span><span style={{ color: '#22c55e' }}>●</span> Value {r.value}%</span>
               <span><span style={{ color: '#f59e0b' }}>●</span> Medium {r.medium}%</span>
               <span><span style={{ color: '#ef4444' }}>●</span> Bluff {r.bluff}%</span>

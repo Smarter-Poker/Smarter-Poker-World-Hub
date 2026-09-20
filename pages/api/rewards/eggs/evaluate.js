@@ -39,7 +39,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { safeAward } from '../../../../src/lib/rewards/awardGuard';
 import { createEggContext, verifyEgg, verifiableEggKeys } from '../../../../src/lib/rewards/eggVerifiers';
 import { CATALOG_VERSION, getEasterEgg } from '../../../../src/config/diamondRewards';

@@ -94,7 +94,7 @@ export function PageOutro({ isActive, onComplete }) {
             }}>
                 {/* Brain Logo - Using circuit-brain with blend mode for transparency */}
                 <img
-                    src="/circuit-brain-bg.png"
+                    src="/circuit-brain-bg.webp"
                     alt="Smarter.Poker Brain"
                     style={{
                         width: 250,

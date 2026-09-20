@@ -50,7 +50,7 @@ export default function PositionalAwareness() {
             style={{ padding: '8px 4px', borderRadius: 8, border: posIdx === i ? `2px solid ${p.color}` : '1px solid rgba(255,255,255,0.06)',
               background: posIdx === i ? `${p.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{p.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: posIdx === i ? p.color : '#64748b' }}>{p.pos.substring(0, 8)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: posIdx === i ? p.color : '#64748b' }}>{p.pos.substring(0, 8)}</div>
           </button>
         ))}
       </div>
@@ -59,23 +59,23 @@ export default function PositionalAwareness() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: pos.color }}>{pos.pos}</div>
-          <div style={{ fontSize: 10, color: '#64748b' }}>{pos.seats}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>{pos.seats}</div>
         </div>
         <div style={{ background: `${pos.color}08`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Open Range</div>
-          <div style={{ fontSize: 11, color: pos.color }}>{pos.openRange}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Open Range</div>
+          <div style={{ fontSize: 12, color: pos.color }}>{pos.openRange}</div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Advantage</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Advantage</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{pos.advantage}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Disadvantage</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Disadvantage</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{pos.disadvantage}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Key Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Tip</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{pos.keyTip}</div>
           </div>
         </div>

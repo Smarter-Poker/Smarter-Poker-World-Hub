@@ -47,45 +47,6 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
-import {
-  ShoppingCart,
-  Unlock,
-  Gamepad2,
-  Joystick,
-  Gift,
-  PartyPopper,
-  Calendar,
-  Puzzle,
-  Flame,
-  Crown,
-  Trophy,
-  Zap,
-  Medal,
-  Swords,
-  Target,
-  Brain,
-  PenLine,
-  UserPlus,
-  Heart,
-  MessageCircle,
-  Link2,
-  Users,
-  CheckCircle,
-  Camera,
-  Video,
-  Star,
-  MapPin,
-  Ticket,
-  Send,
-  RotateCcw,
-  Settings,
-  Search,
-  X,
-  Clock,
-  ArrowUpRight,
-  ArrowDownRight,
-  Sparkles,
-} from 'lucide-react';
 import supabase from '../../lib/supabase';
 import CapHitPopup from '../diamonds/CapHitPopup';
 import DiamondInPlayBalance from './DiamondInPlayBalance';
@@ -98,17 +59,13 @@ import {
   getOrCreateCommerceRequestId,
 } from '../../lib/store/checkoutIntentStore';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
-import {
-  formatWalletDescriptionParts,
-  titleCaseWalletText as toTitleCase,
-} from '../../lib/store/walletDescription.mjs';
+import { formatWalletDescriptionParts } from '../../lib/store/walletDescription.mjs';
 // #SMARTERCASINOREALISM. Same tokens as the Club Arena vault; see the header.
 import styles from './DiamondWalletModal.module.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Transaction type config: Lucide icons, labels, colors (R8-I10)
+// Transaction type config: labels and colors for a plain-language ledger.
 // ─────────────────────────────────────────────────────────────────────────────
-const ICON_SIZE = 16;
 const MARKETPLACE_ANALYTICS_COLORS = [
   '#00d4ff',
   '#58d9ff',
@@ -120,58 +77,81 @@ const MARKETPLACE_ANALYTICS_COLORS = [
   '#06b6d4',
 ];
 const TX_TYPES = {
-  // Purchases & Spending
-  purchase: { Icon: ShoppingCart, label: 'Purchase', color: '#ef4444' },
-  feature_unlock: { Icon: Unlock, label: 'Feature Unlock', color: '#ffffff' },
-  game_cost: { Icon: Gamepad2, label: 'Game Entry', color: '#ef4444' },
-  arcade_entry: { Icon: Joystick, label: 'Arcade Entry', color: '#ef4444' },
-  // Bonuses & Rewards
-  bonus: { Icon: Gift, label: 'Bonus', color: '#8aa8b8' },
-  signup_bonus: { Icon: PartyPopper, label: 'Welcome Bonus', color: '#8aa8b8' },
-  daily_bonus: { Icon: Calendar, label: 'Daily Bonus', color: '#3b82f6' },
-  daily_login: { Icon: Calendar, label: 'Daily Login', color: '#3b82f6' },
-  daily_trivia: { Icon: Puzzle, label: 'Daily Trivia', color: '#7395a8' },
-  streak_reward: { Icon: Flame, label: 'Streak Reward', color: '#ffffff' },
-  vip_reward: { Icon: Crown, label: 'VIP Reward', color: '#eab308' },
-  vip_stipend: { Icon: Crown, label: 'VIP Stipend', color: '#eab308' },
-  // Achievements & Challenges
-  achievement: { Icon: Trophy, label: 'Achievement', color: '#f59e0b' },
-  challenge: { Icon: Zap, label: 'Challenge', color: '#06b6d4' },
-  // Competition
-  tournament_prize: { Icon: Medal, label: 'Tournament Prize', color: '#eab308' },
-  tournament_refund: { Icon: RotateCcw, label: 'Tournament Refund', color: '#94a3b8' },
-  pvp_win: { Icon: Swords, label: 'PvP Win', color: '#00a8e8' },
-  pvp_refund: { Icon: RotateCcw, label: 'PvP Refund', color: '#94a3b8' },
-  game_reward: { Icon: Target, label: 'Game Reward', color: '#00a8e8' },
-  trivia_reward: { Icon: Brain, label: 'Trivia Reward', color: '#7395a8' },
-  // Social & Community
-  social_post: { Icon: PenLine, label: 'Social Post', color: '#c4d3da' },
-  follow: { Icon: UserPlus, label: 'Follow Reward', color: '#06b6d4' },
-  reaction: { Icon: Heart, label: 'Reaction Reward', color: '#f43f5e' },
-  comment: { Icon: MessageCircle, label: 'Comment Reward', color: '#06b6d4' },
-  share: { Icon: Link2, label: 'Share Reward', color: '#3b82f6' },
-  referral: { Icon: Users, label: 'Referral Bonus', color: '#189fd0' },
-  // Profile & Content
-  profile_complete: { Icon: CheckCircle, label: 'Profile Bonus', color: '#00a8e8' },
-  profile_pic: { Icon: Camera, label: 'Profile Pic Bonus', color: '#06b6d4' },
-  video_watch: { Icon: Video, label: 'Video Watch', color: '#7395a8' },
-  video_favorite: { Icon: Star, label: 'Video Favorite', color: '#eab308' },
-  hendonmob_link: { Icon: Link2, label: 'HendonMob Link', color: '#189fd0' },
-  venue_review: { Icon: MapPin, label: 'Venue Review', color: '#f59e0b' },
-  promo_code: { Icon: Ticket, label: 'Promo Code', color: '#8aa8b8' },
-  // Gifts / Transfers
-  diamond_gift_sent: { Icon: Send, label: 'Gift Sent', color: '#ffffff' },
-  diamond_gift_received: { Icon: Gift, label: 'Gift Received', color: '#00a8e8' },
-  // Written by pages/api/store/diamond-transfer.js when a transfer is rolled back
-  diamond_gift_refund: { Icon: RotateCcw, label: 'Gift Refunded', color: '#00a8e8' },
-  // Written by pages/api/store/diamond-transfer.js on the recipient's ledger
-  diamond_received: { Icon: Gift, label: 'Diamonds Received', color: '#00a8e8' },
-  // Written by pages/api/store/purchase-daily-vip.js
-  vip_daily: { Icon: Crown, label: 'Daily VIP Pass', color: '#eab308' },
-  // Other
-  refund: { Icon: RotateCcw, label: 'Refund', color: '#94a3b8' },
-  adjustment: { Icon: Settings, label: 'Adjustment', color: '#94a3b8' },
+  purchase: { label: 'Purchase' },
+  feature_unlock: { label: 'Feature Unlock' },
+  game_cost: { label: 'Game Entry' },
+  arcade_entry: { label: 'Arcade Entry' },
+  bonus: { label: 'Bonus' },
+  signup_bonus: { label: 'Welcome Bonus' },
+  daily_bonus: { label: 'Daily Bonus' },
+  daily_login: { label: 'Daily Login' },
+  daily_trivia: { label: 'Daily Trivia' },
+  streak_reward: { label: 'Streak Reward' },
+  vip_reward: { label: 'VIP Reward' },
+  vip_stipend: { label: 'VIP Stipend' },
+  achievement: { label: 'Achievement' },
+  challenge: { label: 'Challenge' },
+  tournament_prize: { label: 'Tournament Prize' },
+  tournament_refund: { label: 'Tournament Refund' },
+  pvp_win: { label: 'PvP Win' },
+  pvp_refund: { label: 'PvP Refund' },
+  game_reward: { label: 'Game Reward' },
+  trivia_reward: { label: 'Trivia Reward' },
+  social_post: { label: 'Social Post' },
+  follow: { label: 'Follow Reward' },
+  reaction: { label: 'Reaction Reward' },
+  comment: { label: 'Comment Reward' },
+  share: { label: 'Share Reward' },
+  referral: { label: 'Referral Bonus' },
+  profile_complete: { label: 'Profile Bonus' },
+  profile_pic: { label: 'Profile Pic Bonus' },
+  video_watch: { label: 'Video Watch' },
+  video_favorite: { label: 'Video Favorite' },
+  hendonmob_link: { label: 'HendonMob Link' },
+  venue_review: { label: 'Venue Review' },
+  promo_code: { label: 'Promo Code' },
+  diamond_gift_sent: { label: 'Gift Sent' },
+  diamond_gift_received: { label: 'Gift Received' },
+  diamond_gift_refund: { label: 'Gift Refunded' },
+  diamond_received: { label: 'Diamonds Received' },
+  vip_daily: { label: 'Daily VIP Pass' },
+  refund: { label: 'Refund' },
+  adjustment: { label: 'Adjustment' },
+  arena_deposit: { label: 'Diamond Arena Buy-In' },
+  arena_withdraw: { label: 'Diamond Arena Cash-Out' },
+  live_gift_sent: { label: 'Live Gift Sent' },
+  live_gift_received: { label: 'Live Gift Received' },
+  debt_settlement: { label: 'Owed Diamonds Settled' },
+  daily_challenge_claim: { label: 'Daily Challenge' },
+  daily_challenge_reroll: { label: 'Challenge Reroll' },
+  daily_mission_milestone: { label: 'Mission Milestone' },
+  training_reward: { label: 'Training Reward' },
+  easter_egg: { label: 'Easter Egg' },
+  pvp_stake: { label: 'PvP Stake' },
+  plinko_drop: { label: 'Plinko Drop' },
+  crash_bet: { label: 'Crash Bet' },
+  wheel_spin: { label: 'Wheel Spin' },
+  wheel_prize: { label: 'Wheel Prize' },
+  chip_mint: { label: 'Chip Mint' },
+  reconciliation: { label: 'Balance Reconciliation' },
+  transfer: { label: 'Transfer' },
+  credit: { label: 'Diamond Credit' },
 };
+
+/**
+ * A kind nobody has taught the map about must still read like English - never
+ * a confident "Adjustment" that claims an admin touched the account when
+ * nobody did (2026-09-13: that is what every daily challenge claim said here).
+ * Underscores become spaces and each word takes a capital, so a
+ * `weekly_streak_bonus` added server-side tomorrow reads "Weekly Streak Bonus"
+ * on the day it appears. Same rule as Club Arena's diamondTxLabel.
+ */
+function txConfigFor(rawType) {
+  const known = rawType ? TX_TYPES[rawType] : undefined;
+  if (known) return known;
+  const text = String(rawType || '').trim();
+  return { label: text ? marketplaceCopy(text) : 'Diamond Movement' };
+}
 
 const FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -274,7 +254,7 @@ const WalletDescription = ({ value }) => {
 
 async function copyReceiptToClipboard(tx) {
   const txType = tx.transaction_type || tx.type;
-  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+  const config = txConfigFor(txType);
   const dt = new Date(tx.created_at);
   const receipt = `Smarter.Poker Diamond Receipt\nRef: ${tx.id || 'N/A'}\nType: ${config.label}\nAmount: ${tx.amount >= 0 ? '+' : ''}${tx.amount} Diamonds\nBalance After: ${tx.balance_after ?? 'N/A'} Diamonds\nDate: ${dt.toLocaleString()}`;
   try {
@@ -293,7 +273,7 @@ function showConfettiAnimation() {
   container.id = 'wallet-confetti';
   container.style.cssText =
     'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden;';
-  const colors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#f43f5e', '#FFD700'];
+  const colors = ['#00d4ff', '#58d9ff', '#f59e0b', '#8aa8b8', '#d7edf7', '#FFD700'];
   for (let i = 0; i < 60; i++) {
     const p = document.createElement('div');
     const c = colors[i % colors.length];
@@ -305,72 +285,6 @@ function showConfettiAnimation() {
     container.remove();
   }, 4000);
 }
-
-// ── R8-I1: Inline SVG empty-state diamond (replaces broken PNG) ──
-const EmptyStateDiamond = () => (
-  <svg
-    width="80"
-    height="80"
-    viewBox="0 0 80 80"
-    fill="none"
-    className={styles.emptyDiamond}
-  >
-    <defs>
-      <linearGradient
-        id="diamondGrad"
-        x1="20"
-        y1="0"
-        x2="60"
-        y2="80"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop offset="0%" stopColor="#00d4ff" />
-        <stop offset="50%" stopColor="#8aa8b8" />
-        <stop offset="100%" stopColor="#3b82f6" />
-      </linearGradient>
-      <linearGradient
-        id="diamondHighlight"
-        x1="30"
-        y1="10"
-        x2="50"
-        y2="40"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-        <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-      </linearGradient>
-    </defs>
-    {/* Diamond shape */}
-    <polygon
-      points="40,8 68,30 40,72 12,30"
-      fill="url(#diamondGrad)"
-      stroke="rgba(0,212,255,0.4)"
-      strokeWidth="1"
-    />
-    {/* Top facets */}
-    <polygon points="40,8 28,30 40,30" fill="rgba(255,255,255,0.15)" />
-    <polygon points="40,8 52,30 40,30" fill="rgba(255,255,255,0.08)" />
-    <polygon points="40,8 12,30 28,30" fill="rgba(0,0,0,0.1)" />
-    <polygon points="40,8 68,30 52,30" fill="rgba(0,0,0,0.05)" />
-    {/* Bottom facets */}
-    <polygon points="28,30 40,72 40,30" fill="rgba(0,0,0,0.15)" />
-    <polygon points="52,30 40,72 40,30" fill="rgba(0,0,0,0.08)" />
-    <polygon points="12,30 40,72 28,30" fill="rgba(0,0,0,0.25)" />
-    <polygon points="68,30 40,72 52,30" fill="rgba(0,0,0,0.2)" />
-    {/* Highlight shimmer */}
-    <polygon points="40,8 28,30 40,30" fill="url(#diamondHighlight)" />
-    {/* Sparkles */}
-    <circle cx="22" cy="18" r="1.5" fill="rgba(255,255,255,0.6)">
-      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
-    </circle>
-    <circle cx="62" cy="22" r="1" fill="rgba(255,255,255,0.5)">
-      <animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite" />
-    </circle>
-    <circle cx="50" cy="12" r="1.2" fill="rgba(255,255,255,0.4)">
-      <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.5s" repeatCount="indefinite" />
-    </circle>
-  </svg>
-);
 
 // ── R8-I6: Transaction category donut chart (SVG) ──
 const DonutChart = ({ data }) => {
@@ -434,7 +348,7 @@ const DonutChart = ({ data }) => {
           fill="rgba(255,255,255,0.6)"
           fontSize="10"
           fontWeight="700"
-          fontFamily="Rajdhani, monospace"
+          fontFamily="var(--font-roboto-condensed), 'Roboto Condensed', Arial, sans-serif"
         >
           {total.toLocaleString()}
         </text>
@@ -1222,7 +1136,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         data = { error: `Server error ${res.status}. Please try again.` };
       }
       if (data.success) {
-        clearCommerceRequestId(transferIntent);
+        clearCommerceRequestId({ ...transferIntent, expectedRequestId: transferRequestId });
         const tierLabel = data.tier === 'vip' ? ' (VIP Friend)' : '';
         const successMsg = `Sent ${amount} Diamonds To ${recipient.display_name || recipient.username}${tierLabel}!`;
         setTransferSuccess(successMsg);
@@ -1284,7 +1198,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         successTimeoutRef.current = setTimeout(() => setTransferSuccess(''), 4000);
       } else {
         if (data.idempotencyTerminal === true) {
-          clearCommerceRequestId(transferIntent);
+          clearCommerceRequestId({ ...transferIntent, expectedRequestId: transferRequestId });
         }
         const errMsg = data.error || 'Transfer failed';
         if (data?.gateType) {
@@ -1453,7 +1367,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
       const q = searchQuery.trim().toLowerCase();
       result = result.filter((tx) => {
         const txType = tx.transaction_type || tx.type;
-        const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+        const config = txConfigFor(txType);
         return (
           config.label.toLowerCase().includes(q) ||
           (tx.description || '').toLowerCase().includes(q) ||
@@ -1556,7 +1470,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
     // Server keys the sources by raw kind; render them by their label.
     const sourceMap = {};
     for (const [kind, value] of Object.entries(lifetime.bySource || {})) {
-      const label = (TX_TYPES[kind] || TX_TYPES.adjustment).label;
+      const label = txConfigFor(kind).label;
       sourceMap[label] = (sourceMap[label] || 0) + value;
     }
 
@@ -1632,9 +1546,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
         {/* Close button */}
         <div className={styles.closeBar}>
           {/* Close button */}
-          <button onClick={onClose} aria-label="Close" className={`sp-icon-btn ${styles.closeBtn}`}>
-            <X size={16} aria-hidden="true" />
-            <span className={styles.srOnly}>Close Wallet</span>
+          <button onClick={onClose} aria-label="Close" className={styles.closeBtn}>
+            Close
           </button>
         </div>
         {/* Scrollable Modal Content */}
@@ -1765,8 +1678,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
           {/* ENH-2: Search Bar */}
           <div className={styles.searchWrap}>
             <div className={styles.searchField}>
-              <Search size={14} className={styles.searchIcon} aria-hidden="true" />
               <input
+                data-preserve-case="true"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1780,8 +1693,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   onClick={() => setSearchQuery('')}
                   className={styles.searchClear}
                 >
-                  <X size={10} aria-hidden="true" />
-                  <span className={styles.srOnly}>Clear Search</span>
+                  Clear
                 </button>
               )}
             </div>
@@ -1805,11 +1717,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               className={`${styles.rangeSelect} ${dateRange !== 'all' ? styles.rangeSelectActive : ''}`}
             >
               {DATE_RANGE_OPTIONS.map((opt) => (
-                <option
-                  key={opt.value}
-                  value={opt.value}
-                  className={styles.rangeOption}
-                >
+                <option key={opt.value} value={opt.value} className={styles.rangeOption}>
                   {opt.label}
                 </option>
               ))}
@@ -1913,7 +1821,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       >
                         {transferRecipient.display_name || transferRecipient.username}
                       </span>
-                      {transferRecipient.is_vip && <Crown size={12} color="#eab308" />}
+                      {transferRecipient.is_vip && <span className={styles.vipMark}>VIP</span>}
                       <button
                         type="button"
                         aria-label="Choose A Different Friend"
@@ -1925,7 +1833,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         }}
                         className={styles.sendClear}
                       >
-                        <X size={10} aria-hidden="true" />
+                        Clear
                       </button>
                     </div>
                   ) : (
@@ -1955,8 +1863,8 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                         </div>
                       )}
                       <div className={styles.sendField}>
-                        <Search size={14} className={styles.sendFieldIcon} aria-hidden="true" />
                         <input
+                          data-preserve-case="true"
                           type="text"
                           value={friendSearch}
                           onChange={(e) => setFriendSearch(e.target.value)}
@@ -1972,7 +1880,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             onClick={() => setFriendSearch('')}
                             className={`${styles.sendClear} ${styles.sendClearSmall}`}
                           >
-                            <X size={10} aria-hidden="true" />
+                            Clear
                           </button>
                         )}
                       </div>
@@ -2007,7 +1915,11 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                   className={styles.sendMatch}
                                 >
                                   {f.avatar_url ? (
-                                    <img src={f.avatar_url} alt="" className={styles.sendMatchAvatar} />
+                                    <img
+                                      src={f.avatar_url}
+                                      alt=""
+                                      className={styles.sendMatchAvatar}
+                                    />
                                   ) : (
                                     <div className={styles.sendMatchInitial} aria-hidden="true">
                                       {(f.display_name || f.username || '?')[0].toUpperCase()}
@@ -2031,7 +1943,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                                       </div>
                                     )}
                                   </div>
-                                  {f.is_vip && <Crown size={12} color="#eab308" />}
+                                  {f.is_vip && <span className={styles.vipMark}>VIP</span>}
                                 </button>
                               ));
                             })()
@@ -2040,7 +1952,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       )}
                       {/* Hint text when less than 3 chars */}
                       {friendSearch.trim().length > 0 && friendSearch.trim().length < 3 && (
-                        <div className={styles.sendHint}>Type At Least 3 Characters To Search...</div>
+                        <div className={styles.sendHint}>
+                          Type At Least 3 Characters To Search...
+                        </div>
                       )}
                     </>
                   )}
@@ -2052,7 +1966,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div className={styles.sendFieldLabel}>Amount</div>
                     <div className={styles.sendAmountRow}>
                       <div className={`${styles.sendField} ${styles.sendFieldGrow}`}>
-                        <Sparkles size={14} className={styles.sendAmountIcon} aria-hidden="true" />
                         <input
                           type="number"
                           min="1"
@@ -2093,7 +2006,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
               {/* Error / Success feedback */}
               {transferError && (
                 <div className={`${styles.sendNote} ${styles.sendNoteError}`} role="alert">
-                  {cooldownSeconds > 0 && <Clock size={12} aria-hidden="true" />}
                   {cooldownSeconds > 0
                     ? `Cooldown: ${cooldownSeconds}s Remaining`
                     : marketplaceCopy(transferError)}
@@ -2182,7 +2094,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   </div>
                 </div>
               </div>
-              <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>Top Sources</div>
+              <div className={`${styles.statsHeading} ${styles.statsHeadingTight}`}>
+                Top Sources
+              </div>
               {stats.topSources.map(([name, amount], i) => (
                 <div key={name} className={styles.statsBarRow}>
                   <div className={styles.statsBarTrack}>
@@ -2232,11 +2146,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               : styles.statsTrendDown
                           }`}
                         >
-                          {stats.monthlyTrend.earnedChange >= 0 ? (
-                            <ArrowUpRight size={10} aria-hidden="true" />
-                          ) : (
-                            <ArrowDownRight size={10} aria-hidden="true" />
-                          )}
+                          {stats.monthlyTrend.earnedChange >= 0 ? 'Up ' : 'Down '}
                           {Math.abs(stats.monthlyTrend.earnedChange).toFixed(0)}% Vs Last Month
                         </div>
                       )}
@@ -2260,11 +2170,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                               : styles.statsTrendDown
                           }`}
                         >
-                          {stats.monthlyTrend.spentChange >= 0 ? (
-                            <ArrowUpRight size={10} aria-hidden="true" />
-                          ) : (
-                            <ArrowDownRight size={10} aria-hidden="true" />
-                          )}
+                          {stats.monthlyTrend.spentChange >= 0 ? 'Up ' : 'Down '}
                           {Math.abs(stats.monthlyTrend.spentChange).toFixed(0)}% Vs Last Month
                         </div>
                       )}
@@ -2363,9 +2269,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             {/* ── BUG-3: Error state with retry button ── */}
             {error ? (
               <div className={styles.stateBox} role="alert">
-                <div className={styles.stateGlyph} aria-hidden="true">
-                  &#X26A0;&#XFE0F;
-                </div>
                 <div className={styles.stateText}>{marketplaceCopy(error)}</div>
                 <button type="button" onClick={() => fetchTransactions()} className={styles.litKey}>
                   Retry
@@ -2381,7 +2284,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
             ) : groupedTx.length === 0 ? (
               <div className={`${styles.stateBox} ${styles.stateBoxEmpty}`}>
                 {/* R8-I1: Inline SVG diamond (replaces broken PNG) */}
-                <EmptyStateDiamond />
+                <span className={styles.emptyStateMark} aria-hidden="true">
+                  No Ledger Entries
+                </span>
                 {/*
                     AN EMPTY VIEW IS NOT AN EMPTY WALLET.
                     ═══════════════════════════════════════════════════════════
@@ -2394,13 +2299,21 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     narrowing produced the blank, and offers to undo it.
                 */}
                 <div className={styles.stateTitle}>
-                  {searchQuery
-                    ? `No Loaded Transactions Match "${searchQuery}"`
-                    : dateRange !== 'all'
-                      ? `Nothing In The ${DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label || 'Selected Range'}`
-                      : filter === 'all'
-                        ? 'No Transactions Yet'
-                        : `No ${FILTER_OPTIONS.find((o) => o.value === filter)?.label || ''} Yet`}
+                  {searchQuery ? (
+                    <>
+                      No Loaded Transactions Match "
+                      <span data-preserve-case="true" data-user-content="true">
+                        {searchQuery}
+                      </span>
+                      "
+                    </>
+                  ) : dateRange !== 'all' ? (
+                    `Nothing In The ${DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label || 'Selected Range'}`
+                  ) : filter === 'all' ? (
+                    'No Transactions Yet'
+                  ) : (
+                    `No ${FILTER_OPTIONS.find((o) => o.value === filter)?.label || ''} Yet`
+                  )}
                 </div>
                 {/* The way out of a filter the player may have forgotten. */}
                 {(searchQuery || dateRange !== 'all') && (
@@ -2459,7 +2372,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                   // Transaction row
                   const tx = item.data;
                   const txType = tx.transaction_type || tx.type;
-                  const config = TX_TYPES[txType] || TX_TYPES.adjustment;
+                  const config = txConfigFor(txType);
                   const isPositive = tx.amount >= 0;
                   const dt = new Date(tx.created_at);
 
@@ -2469,7 +2382,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     <div
                       key={tx.id}
                       role="listitem"
-                      aria-label={`${config.label}: ${isPositive ? '+' : ''}${tx.amount ?? 0} diamonds`}
+                      aria-label={`${config.label}: ${isPositive ? '+' : ''}${tx.amount ?? 0} Diamonds`}
                       onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
                       /* R8-I11: Swipe-to-copy gesture (mobile) */
                       onTouchStart={(e) => {
@@ -2499,18 +2412,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                       className={`${styles.txRow} ${isExpanded ? styles.txRowOpen : ''}`}
                     >
                       <div className={styles.txRowMain}>
-                        {/* Icon: R8-I10: Lucide React */}
-                        <div className={styles.txIcon}>
-                          {config.Icon ? (
-                            <config.Icon size={ICON_SIZE} color={config.color} />
-                          ) : (
-                            <Sparkles size={ICON_SIZE} color={config.color} />
-                          )}
-                        </div>
-
                         {/* Details */}
                         <div className={styles.txBody}>
-                          <div className={styles.txLabel}>{toTitleCase(config.label)}</div>
+                          <div className={styles.txLabel}>{marketplaceCopy(config.label)}</div>
                           <div className={styles.txDesc}>
                             <WalletDescription value={tx.description || config.label} />
                           </div>
@@ -2542,7 +2446,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                           <div className={styles.txDetailGrid}>
                             <div>
                               <span className={styles.txDetailKey}>Type: </span>
-                              <span className={styles.txDetailValue}>{toTitleCase(txType)}</span>
+                              <span className={styles.txDetailValue}>{config.label}</span>
                             </div>
                             <div>
                               <span className={styles.txDetailKey}>Date: </span>
@@ -2551,7 +2455,9 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                             {tx.reference_id && (
                               <div className={styles.txDetailWide}>
                                 <span className={styles.txDetailKey}>Ref: </span>
-                                <span className={styles.txDetailRef}>{tx.reference_id}</span>
+                                <span className={styles.txDetailRef} data-preserve-case="true">
+                                  {tx.reference_id}
+                                </span>
                               </div>
                             )}
                             {tx.description && tx.description !== config.label && (
@@ -2595,7 +2501,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
                     >
                       {loadingMore
                         ? 'Loading...'
-                        : `Load More (${transactions.length} of ${total})`}
+                        : `Load More (${transactions.length} Of ${total})`}
                     </button>
                   </div>
                 )}
@@ -2615,7 +2521,6 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick, initia
 
       {/* Keyframe animations */}
       <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@700;900&display=swap');
                 @keyframes walletFadeScale {
                     from { opacity: 0; transform: scale(0.97) translateY(6px); }
                     to { opacity: 1; transform: scale(1) translateY(0); }

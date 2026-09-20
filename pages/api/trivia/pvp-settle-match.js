@@ -51,7 +51,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
  */
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { serviceClient } from './tournament-lifecycle';
 import {
     PVP_MATCH_JOIN_WINDOW_MS,
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
         });
     } catch (e) {
         console.warn('[pvp-settle-match] unexpected:', e);
-        try { reportApiError(e, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(e, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

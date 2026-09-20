@@ -70,6 +70,21 @@ export default function ReceiptScanner({
     resumeScan = null,
     /** Told when a scan could not be sent and was written to the device. */
     onHeld,
+    /**
+     * Confirm the scan as soon as it has uploaded and been read, with no tap.
+     *
+     * Only ever set for a HELD scan being sent after the signal returned. The
+     * player already approved that photograph, in a basement, before the
+     * upload was possible; asking them to approve it a second time is asking
+     * them to do the work twice.
+     *
+     * It changes WHO presses Confirm and nothing else: the same
+     * uploadApprovedScan, the same /api/bankroll/scan-receipt with the same
+     * bankroll_pro gate, the same onScanComplete. There is no second reader,
+     * because a second reader would eventually disagree with this one about
+     * what a receipt said.
+     */
+    autoConfirm = false,
 }) {
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerSeed, setScannerSeed] = useState(null);   // a File, when the user chose one
@@ -430,6 +445,24 @@ export default function ReceiptScanner({
         // The effect below this one is what uploads whatever approvedScan holds.
     }, [resumeScan, approvedScan, uploadedUrl]);
 
+    /**
+     * A HELD SCAN CONFIRMS ITSELF, ONCE.
+     *
+     * Fires when the upload has finished AND the read has settled, which is
+     * exactly when uploadApprovedScan clears isUploading - it awaits the OCR
+     * promise before it does. Guarded by a ref rather than state so a re-render
+     * cannot file the same photograph twice; bankroll_receipts is the system of
+     * record and `the-receipt-inbox-files-in-bulk-and-never-twice` is the law
+     * that protects it.
+     */
+    const autoConfirmedRef = useRef(false);
+    useEffect(() => {
+        if (!autoConfirm || autoConfirmedRef.current) return;
+        if (!uploadedUrl || isUploading) return;
+        autoConfirmedRef.current = true;
+        handleConfirmRef.current();
+    }, [autoConfirm, uploadedUrl, isUploading]);
+
     const retryUpload = useCallback(() => {
         if (approvedScan) uploadApprovedScan(approvedScan);
     }, [approvedScan, uploadApprovedScan]);
@@ -476,6 +509,9 @@ export default function ReceiptScanner({
         resetScanner();
     }, [confirmDiscard, resetScanner]);
 
+    // handleConfirm is declared below the auto-confirm effect, so the effect
+    // reaches it through a ref rather than the file being reordered around it.
+    const handleConfirmRef = useRef(() => {});
     const handleConfirm = useCallback(() => {
         if (uploadedUrl && onScanComplete) {
             onScanComplete({
@@ -496,6 +532,9 @@ export default function ReceiptScanner({
         }
         resetScanner();
     }, [uploadedUrl, onScanComplete, extractedData, tripId, resetScanner, scanKind, typeOverridden]);
+    // Keep the ref pointing at the current closure, so the auto-confirm effect
+    // above calls the handler that has today's extractedData in it.
+    handleConfirmRef.current = handleConfirm;
 
     const handleVerifyLock = async () => {
         setVerifying(true);

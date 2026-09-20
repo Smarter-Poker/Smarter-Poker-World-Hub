@@ -24,22 +24,33 @@ test('connects all five store destinations to the shared showcase', () => {
   assert.doesNotMatch(component, /target=["']_blank["']|window\.open/);
 });
 
-test('keeps diamond values centered below art and buys through the existing checkout', () => {
+test('keeps readable diamond offer details below art and buys through the existing checkout', () => {
   assert.match(component, /pkg\.diamonds \|\| 0\) \+ \(pkg\.bonus \|\| 0/);
-  assert.match(component, /Includes \{Number\(pkg\.bonus\)/);
+  for (const hook of [
+    'data-diamond-package',
+    'data-package-media',
+    'data-package-quantity',
+    'data-package-bonus',
+    'data-package-price',
+    'data-package-primary-action',
+  ]) {
+    assert.match(component, new RegExp(hook));
+  }
   assert.match(component, /onClick=\{\(\) => onBuy\(pkg\)\}/);
-  assert.match(styles, /\.packageValue\s*\{[^}]*text-align:\s*center/s);
-  assert.match(styles, /\.packageValue\s*\{[^}]*position:\s*relative/s);
+  assert.match(component, /disabled=\{isProcessing \|\| catalogState !== 'database'\}/);
+  assert.match(component, /aria-busy=\{busyPackageId === pkg\.id\}/);
 });
 
 test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
-  for (const asset of [
-    'diamond-vault-hero.png',
-    'diamond-packages-sheet.png',
-  ]) {
+  for (const asset of ['diamond-vault-hero.png', 'diamond-packages-sheet.png']) {
     assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
   }
-  for (const asset of ['vip-hero.webp', 'merch-hero.webp', 'rewards-hero.webp', 'club-shop-hero.webp']) {
+  for (const asset of [
+    'vip-hero.webp',
+    'merch-hero.webp',
+    'rewards-hero.webp',
+    'club-shop-hero.webp',
+  ]) {
     assert.equal(fs.existsSync(path.join(root, 'public/images/store-v3', asset)), true);
   }
   const radii = [...styles.matchAll(/border-radius:\s*([^;]+);/g)].map((match) => match[1].trim());
@@ -50,7 +61,7 @@ test('uses the dedicated cinematic artwork and sharp-corner treatment', () => {
 test('keeps every redesign rule outside the locked global header', () => {
   assert.match(
     page,
-    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}\s*>/
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
   );
   assert.doesNotMatch(page, /\.diamond-store-page button/);
   assert.doesNotMatch(page, /\.diamond-store-page a,/);
@@ -66,5 +77,6 @@ test('ships a purpose-built mobile layout instead of a stacked desktop grid', ()
   assert.match(styles, /\.packageGrid\s*\{[^}]*scroll-snap-type:\s*x mandatory/s);
   assert.match(styles, /\.packageCard\s*\{[^}]*flex:\s*0 0 min\(86vw, 360px\)/s);
   assert.match(styles, /\.packageCard button\s*\{[^}]*min-height:\s*50px/s);
+  assert.doesNotMatch(styles, /padding:\s*270px|padding:[^;]*22%/);
   assert.doesNotMatch(styles, /background-position-x:\s*72%/);
 });

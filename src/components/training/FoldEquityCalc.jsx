@@ -59,7 +59,7 @@ function FoldEquityCalc() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {BLUFF_SCENARIOS.map(s => (
             <button key={s.name} onClick={() => { setBetPct(s.betPct); setVillainFoldPct(s.foldPct); setEquityWhenCalled(s.equity); }} style={{
-              padding: '4px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)', border: 'none',
             }}>{s.name}</button>
           ))}
@@ -74,7 +74,7 @@ function FoldEquityCalc() {
             { label: 'Villain Fold %', value: villainFoldPct, set: setVillainFoldPct, min: 0, max: 100, step: 1, color: '#f59e0b', display: `${villainFoldPct}%` },
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{s.label}</div>
               <input type="range" min={s.min} max={s.max} step={s.step} value={s.value} onChange={e => s.set(parseInt(e.target.value))} style={{ width: '100%', accentColor: s.color }} />
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color, textAlign: 'center' }}>{s.display}</div>
             </div>
@@ -106,14 +106,14 @@ function FoldEquityCalc() {
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Fold % vs EV Visual */}
         <div style={{ padding: 10, background: 'rgba(192,132,252,0.06)', borderRadius: 8, border: '1px solid rgba(192,132,252,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', marginBottom: 6 }}>How It Works</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', marginBottom: 6 }}>How It Works</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
             When Villain Folds ({villainFoldPct}%), You Win The {potSize}bb Pot.
             When Called ({100 - villainFoldPct}%), You Have {equityWhenCalled}% Equity In A {potSize + calc.bet * 2}bb Pot.

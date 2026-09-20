@@ -69,14 +69,14 @@ function RangeConstructionGuide() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {range.steps.map((s, i) => (
             <div key={i} style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `4px solid ${range.color}`, position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 8, right: 8, background: `${range.color}20`, padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 700, color: range.color }}>
+              <div style={{ position: 'absolute', top: 8, right: 8, background: `${range.color}20`, padding: '2px 8px', borderRadius: 10, fontSize: 12, fontWeight: 700, color: range.color }}>
                 ~{s.pct}%
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: range.color, marginBottom: 4 }}>
                 {i + 1}. {s.step}
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{s.hands}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{s.reason}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{s.reason}</div>
               {/* Cumulative bar */}
               <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginTop: 8 }}>
                 <div style={{ width: `${Math.min(s.pct * 2, 100)}%`, height: '100%', background: range.color, borderRadius: 2 }} />

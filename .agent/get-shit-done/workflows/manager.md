@@ -231,7 +231,7 @@ Steps:
 6. If plan-checker is enabled, spawn a gsd-plan-checker subagent to verify.
 7. Commit plan files when complete.
 
-Important: You are running in the background. Do NOT use AskUserQuestion — make autonomous decisions based on project context. If you hit a blocker, write it to STATE.md as a blocker and stop. Do NOT silently work around permission or file access errors — let them fail so the manager can surface them with resolution hints."
+Important: You are running in the background. Do NOT use AskUserQuestion — make autonomous decisions based on project context. If you hit a blocker, record its evidence in STATE.md and complete independent assigned work. Diagnose actual access errors through supported configured routes, preserve safeguards and return only genuinely unavailable inputs."
 )
 ```
 
@@ -266,7 +266,7 @@ Steps:
 6. Update ROADMAP.md and STATE.md with progress.
 7. Commit all changes.
 
-Important: You are running in the background. Do NOT use AskUserQuestion — make autonomous decisions. Use --no-verify on git commits. If you hit a permission error, file lock, or any access issue, do NOT work around it — let it fail and write the error to STATE.md as a blocker so the manager can surface it with resolution guidance."
+Important: You are running in the background. Do NOT use AskUserQuestion — make autonomous decisions. Use ordinary hooks and explicit owned paths for commits; never bypass verification. If you hit a permission error, file lock, or any access issue, do NOT work around it — let it fail and write the error to STATE.md as a blocker so the manager can surface it with resolution guidance."
 )
 ```
 

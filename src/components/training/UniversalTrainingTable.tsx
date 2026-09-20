@@ -362,7 +362,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         return (
             <div style={{
                 width: '100%',
-                height: '100vh',
+                height: '100dvh',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -390,7 +390,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             return (
                 <div style={{
                     width: '100%',
-                    height: '100vh',
+                    height: '100dvh',
                     background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
                     display: 'flex',
                     alignItems: 'center',
@@ -411,7 +411,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         return (
             <div style={{
                 width: '100%',
-                height: '100vh',
+                height: '100dvh',
                 background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
@@ -591,7 +591,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         return (
             <div style={{
                 width: '100%',
-                height: '100vh',
+                height: '100dvh',
                 background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
                 display: 'flex',
                 alignItems: 'center',
@@ -612,7 +612,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     return (
         <div style={{
             width: '100%',
-            height: '100vh',
+            height: '100dvh',
             background: 'linear-gradient(to bottom, #0f172a, #1e293b)',
             position: 'relative',
             overflow: 'hidden'

@@ -29,6 +29,7 @@ import { prizeSchedule, splitPrizePool } from '../../../src/lib/trivia/prizeSche
 import useVIPGate from '../../../src/hooks/useVIPGate';
 import VIPGateModal from '../../../src/components/ui/VIPGateModal';
 import { triviaTournamentPageReleaseResult } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // Direct navigation cannot boot the legacy tournament client while the
 // nightly server-owned tournament engine is being rebuilt.
@@ -780,7 +781,7 @@ export default function TournamentsPage() {
         <PageTransition>
             <SEOHead
                 title="Trivia Tournaments - Compete For Prizes"
-                description="Enter Poker Trivia Tournaments. Compete Against The Community For Diamonds, XP, And Leaderboard Glory."
+                description="Poker Trivia Tournaments On Smarter.Poker: A Scheduled Field Answering The Same Questions In The Same Order, Ranked On Accuracy And Speed. Free To Enter, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/tournaments"
             >
 
@@ -2031,6 +2032,9 @@ export default function TournamentsPage() {
             />
 
     </PageTransition>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-tournaments" />
         </TriviaErrorBoundary>
     );
 }

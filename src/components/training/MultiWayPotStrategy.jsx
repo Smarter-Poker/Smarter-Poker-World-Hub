@@ -71,7 +71,7 @@ function MultiWayPotStrategy() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {CONCEPTS.map((c, i) => (
             <button key={c.title} onClick={() => setSelected(i)} style={{
-              padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selected === i ? c.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{c.icon} {c.title}</button>
@@ -83,12 +83,12 @@ function MultiWayPotStrategy() {
           <div style={{ padding: 12, background: 'rgba(59,130,246,0.06)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.15)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', marginBottom: 6 }}>Heads-Up</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#3b82f6', marginBottom: 4 }}>{concept.headsUp.value}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{concept.headsUp.desc}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{concept.headsUp.desc}</div>
           </div>
           <div style={{ padding: 12, background: `${concept.color}10`, borderRadius: 8, border: `1px solid ${concept.color}25` }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: concept.color, marginBottom: 6 }}>Multiway (3+)</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: concept.color, marginBottom: 4 }}>{concept.multiway.value}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{concept.multiway.desc}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{concept.multiway.desc}</div>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ function MultiWayPotStrategy() {
 
         {/* Quick Rules */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#22d3ee', marginBottom: 6 }}>Multiway Golden Rules</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', marginBottom: 6 }}>Multiway Golden Rules</div>
           {[
             'Bet less often, but bet bigger when you do',
             'Top pair is a check, not a bet',
@@ -109,7 +109,7 @@ function MultiWayPotStrategy() {
             'Position is 2-3x more valuable than heads-up',
             'Never bluff into 3+ players without a strong draw',
           ].map((rule, i) => (
-            <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', padding: '3px 0', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+            <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', padding: '3px 0', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
               {i + 1}. {rule}
             </div>
           ))}

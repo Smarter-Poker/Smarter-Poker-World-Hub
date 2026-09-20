@@ -35,10 +35,10 @@ async function defaultDeps() {
   const rl = await import('../apiRateLimit.js');
   let reportApiError = () => {};
   try {
-    const sentry = await import('../sentryWrap.js');
-    if (typeof sentry.reportApiError === 'function') reportApiError = sentry.reportApiError;
+    const reporter = await import('../apiErrorHandler.js');
+    if (typeof reporter.reportApiError === 'function') reportApiError = reporter.reportApiError;
   } catch {
-    /* sentry is optional in tests */
+    /* Reporting is optional in isolated tests. */
   }
   return {
     applyRateLimit: rl.applyRateLimit,

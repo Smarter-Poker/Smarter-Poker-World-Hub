@@ -35,6 +35,16 @@ import { resolveCityCoords } from '../../src/data/city-coordinates';
 import dynamic from 'next/dynamic';
 import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import { fetchJsonWithDeadline } from '../../src/lib/server/fetchJsonWithDeadline';
+import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const EVENTS_SCHEMA = hubCollectionSchema({
+  path: '/hub/events-calendar',
+  name: 'Poker Events Calendar | Smarter.Poker',
+  description:
+    'Live Poker Tournaments, Series, Tour Stops And Public Home Games By Date, Location, Buy In And Game Type, In One Calendar.',
+  trail: [['Hub', '/hub'], ['Events Calendar', '/hub/events-calendar']],
+});
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => m.default || m), { ssr: false });
 
 // -- COMPONENT DOM VIRTUALIZATION ENGINE --
@@ -795,8 +805,9 @@ export default function EventsCalendarPage({ fallbackData }) {
     <>
       <SEOHead
         title="Poker Events Calendar - Find Any Tournament"
-        description="Search poker tournaments by date, location, buy-in, and game type. Daily tournaments, series, tours, and public home games are all in one place."
+        description="Search Live Poker Tournaments By Date, Location, Buy In And Game Type On Smarter.Poker. Daily Tournaments, Series, Tour Stops And Public Home Games In One Calendar. Free To Browse."
         canonical="/hub/events-calendar"
+        jsonLd={EVENTS_SCHEMA}
       />
       <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onBackClick={() => {
         router.back();

@@ -73,7 +73,7 @@ function ShortStackStrategy() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#fb7185' }}>Short Stack Strategy</h3>
           <button onClick={() => setShowCalls(!showCalls)} style={{
-            padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
             background: showCalls ? '#fb7185' : 'rgba(255,255,255,0.08)',
             color: showCalls ? '#000' : 'rgba(255,255,255,0.6)',
           }}>{showCalls ? 'Shove Ranges' : 'Call Ranges'}</button>
@@ -105,7 +105,7 @@ function ShortStackStrategy() {
                     <span style={{ fontSize: 14, fontWeight: 700, color: p.color }}>{p.pos}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: p.color }}>{p.pct}% Of Hands</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{p.range}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{p.range}</div>
                   <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, marginTop: 6 }}>
                     <div style={{ width: `${p.pct}%`, height: '100%', background: p.color, borderRadius: 3 }} />
                   </div>
@@ -115,7 +115,7 @@ function ShortStackStrategy() {
 
             {/* Notes */}
             <div style={{ padding: 10, background: 'rgba(251,113,133,0.06)', borderRadius: 8, border: '1px solid rgba(251,113,133,0.12)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#fb7185', marginBottom: 4 }}>Strategy Notes</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#fb7185', marginBottom: 4 }}>Strategy Notes</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{chart.notes}</div>
             </div>
           </>
@@ -123,7 +123,7 @@ function ShortStackStrategy() {
           <>
             <div style={{ textAlign: 'center', padding: 10, background: 'rgba(251,113,133,0.06)', borderRadius: 8, marginBottom: 16 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#fb7185' }}>BB Call Ranges Vs Shoves</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>How Wide To Call When Facing An All-In</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>How Wide To Call When Facing An All-In</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {CALL_RANGES.map((c, i) => (
@@ -132,7 +132,7 @@ function ShortStackStrategy() {
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#3b82f6' }}>{c.vsPos}</span>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>~{c.width}% Call</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{c.range}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{c.range}</div>
                 </div>
               ))}
             </div>

@@ -203,7 +203,17 @@ test('rule 4: the row is written before a choice can be taken, and closing keeps
     // count-based window silently stops covering the code it was written to
     // pin the moment somebody adds a line inside the handler, which is the
     // failure mode the playbook keeps warning about.
-    const from = src.indexOf('onScanComplete={async');
+    //
+    // AND ANCHORED ON THE VISIBLE SCANNER, not the first match in the file.
+    // There are two ReceiptScanners now - the one the player opens, and the
+    // one that sends a scan held offline once the signal returns - and the
+    // sender deliberately does NOT open the sheet. Taking the first
+    // `onScanComplete=` silently re-aimed this law at the wrong element the
+    // moment the second one appeared, which is the same failure the comment
+    // above describes, wearing a different hat.
+    const visible = src.indexOf('onPendingChange={setScannerHasUnsaved}');
+    assert.ok(visible > 0, 'the visible scanner must still be identifiable');
+    const from = src.indexOf('onScanComplete={async', visible);
     assert.ok(from > 0, 'the scanner hand-off must exist');
     const end = src.indexOf('/>', from);
     assert.ok(end > from, 'the hand-off must be a closed element');

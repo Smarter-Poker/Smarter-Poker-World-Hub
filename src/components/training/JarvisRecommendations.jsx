@@ -180,14 +180,14 @@ const styles = {
         gap: '8px'
     },
     difficultyBadge: {
-        fontSize: '10px',
+        fontSize: '12px',
         fontWeight: 600,
         padding: '3px 8px',
         borderRadius: '4px',
         textTransform: 'capitalize'
     },
     categoryBadge: {
-        fontSize: '10px',
+        fontSize: '12px',
         fontWeight: 500,
         padding: '3px 8px',
         borderRadius: '4px',

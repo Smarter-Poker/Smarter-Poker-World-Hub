@@ -572,7 +572,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                     <span style={{ color: accColor, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {accuracy}%
                     </span>
-                    <span style={{ fontSize: 9, color: '#64748b' }}>({score.correct}/{score.total})</span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>({score.correct}/{score.total})</span>
                 </div>
             </div>
 
@@ -584,7 +584,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         onClick={() => handleCategoryChange(cat.id)}
                         style={{
                             padding: '6px 10px', border: 'none', cursor: 'pointer',
-                            fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
+                            fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
                             whiteSpace: 'nowrap', flexShrink: 0,
                             background: spotCategory === cat.id ? 'rgba(168,85,247,0.15)' : 'transparent',
                             color: spotCategory === cat.id ? '#a855f7' : '#64748b',
@@ -608,7 +608,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                             background: activeSpot?.key === spot.key ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
                             color: activeSpot?.key === spot.key ? '#00d4ff' : '#94a3b8',
                             borderColor: activeSpot?.key === spot.key ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)',
-                            fontSize: 10,
+                            fontSize: 12,
                             padding: '6px 10px',
                             minWidth: 40,
                         }}
@@ -617,7 +617,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                     </button>
                 ))}
                 {categorySpots.length > 0 && (
-                    <div style={{ fontSize: 9, color: '#64748b', alignSelf: 'center', marginLeft: 4 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', alignSelf: 'center', marginLeft: 4 }}>
                         {rangePercent}%
                     </div>
                 )}
@@ -678,7 +678,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         </div>
                         <div style={S.handNotation}>{currentHand}</div>
                         {streak >= 3 && (
-                            <div style={{ fontSize: 11, color: '#f97316' }}>
+                            <div style={{ fontSize: 12, color: '#f97316' }}>
                                 {streak} Streak
                             </div>
                         )}
@@ -740,7 +740,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                             }}
                         >
                             {action.label}
-                            {showFeedback && isSelected && <span style={{ fontSize: 10, marginLeft: 4 }}>{CLASSIFICATION_CONFIG[feedbackResult.classification]?.icon === 'check'? '✓': '✕'}</span>}
+                            {showFeedback && isSelected && <span style={{ fontSize: 12, marginLeft: 4 }}>{CLASSIFICATION_CONFIG[feedbackResult.classification]?.icon === 'check'? '✓': '✕'}</span>}
                         </motion.button>
                     );
                 })}
@@ -761,12 +761,12 @@ export default function PreflopRangeTrainer({ onExit }) {
                         }}>
                             {CLASSIFICATION_CONFIG[feedbackResult.classification]?.label.toUpperCase()}
                             {feedbackResult.evLoss > 0 && (
-                                <span style={{ fontSize: 11, background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: 4 }}>
+                                <span style={{ fontSize: 12, background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: 4 }}>
                                     -{feedbackResult.evLoss} EV
                                 </span>
                             )}
                         </div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
                             {currentHand} • {activeSpot?.label || position}:{' '}
                             {handActions.raise === 0 && handActions.call === 0
                                 ? 'Not in range - Fold'
@@ -798,7 +798,7 @@ export default function PreflopRangeTrainer({ onExit }) {
             {trainerMode === 'quiz' ? (
                 <div style={S.matrixContainer}>
                     <div style={S.matrixTitle}>{activeSpot?.label || `${position} Open`} ({rangePercent}% Of Hands)</div>
-                    <div style={S.matrix}>
+                    <div data-allow-small="true" style={S.matrix}>
                         {matrix.flat().map((cell, i) => {
                             const isHighlighted = showFeedback && cell.isCurrentHand;
                             return (
@@ -817,7 +817,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                             { label: 'Mixed', color: 'linear-gradient(135deg, #3b82f6 50%, #22c55e 50%)' },
                             { label: 'Fold', color: 'rgba(255,255,255,0.08)' },
                         ].map(l => (
-                            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
+                            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: '#94a3b8' }}>
                                 <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
                                 {l.label}
                             </div>
@@ -828,7 +828,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                 /* RANGE BUILDER MODE */
                 <div style={S.matrixContainer}>
                     <div style={S.matrixTitle}>Build: {activeSpot?.label || `${position} Open`}</div>
-                    <div style={S.matrix}>
+                    <div data-allow-small="true" style={S.matrix}>
                         {matrix.flat().map((cell, i) => {
                             const isSelected = userRange.has(cell.hand);
                             const solverInRange = cell.freq >= 0.5;
@@ -861,24 +861,24 @@ export default function PreflopRangeTrainer({ onExit }) {
                                     <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", color: rangeScore.f1 >= 80 ? '#22c55e' : rangeScore.f1 >= 60 ? '#fbbf24' : '#ef4444' }}>
                                         {rangeScore.f1}%
                                     </div>
-                                    <div style={{ fontSize: 9, color: '#64748b', letterSpacing: 1 }}>SCORE</div>
+                                    <div style={{ fontSize: 12, color: '#64748b', letterSpacing: 1 }}>SCORE</div>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(34,197,94,0.5)' }} />
                                     <span style={{ color: '#22c55e' }}>Correct: {rangeScore.correct}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(251,146,60,0.5)' }} />
                                     <span style={{ color: '#fb923c' }}>Missed: {rangeScore.missed}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} />
                                     <span style={{ color: '#ef4444' }}>Extra: {rangeScore.extra}</span>
                                 </div>
                             </div>
-                            <div style={{ fontSize: 9, color: '#64748b', textAlign: 'center', marginTop: 6 }}>
+                            <div style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 6 }}>
                                 Precision: {rangeScore.precision}% · Recall: {rangeScore.recall}% · Solver: {rangeScore.total} Hands
                             </div>
                         </motion.div>
@@ -945,7 +945,7 @@ export default function PreflopRangeTrainer({ onExit }) {
 
 const S = {
     container: {
-        width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        width: '100%', minHeight: '100dvh', display: 'flex', flexDirection: 'column',
         background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)',
         fontFamily: "'Inter', -apple-system, sans-serif",
     },
@@ -977,7 +977,7 @@ const S = {
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '16px 0',
     },
     handLabel: {
-        fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
+        fontSize: 12, color: '#94a3b8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
     },
     handCards: {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1011,7 +1011,7 @@ const S = {
         padding: '12px 16px', flex: 1,
     },
     matrixTitle: {
-        fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: 1,
+        fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: 1,
         textTransform: 'uppercase', marginBottom: 6, textAlign: 'center',
     },
     matrix: {

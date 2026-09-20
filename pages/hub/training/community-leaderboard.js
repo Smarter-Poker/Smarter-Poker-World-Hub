@@ -11,7 +11,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-7 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, authedFetch } from '../../../src/lib/authUtils';
@@ -157,17 +157,30 @@ export default function CommunityLeaderboardPage() {
   const topThree = entries.slice(0, 3);
   const restEntries = entries.slice(3);
 
-  if (!mounted) return null;
+  // AEO phase 3 (2026-09-18): the head used to sit below this guard. The
+  // guard is true on the server, so the branch a crawler always takes
+  // returned nothing and the page served a 200 with no title and zero
+  // words. The head is hoisted above it and returned from it, so the page
+  // says what it is before it says it is still loading.
+  // It also only had a bare <title>. The shared wrapper adds the
+  // description, the canonical and the robots line every other page has.
+  const pageHead = (
+    <SEOHead
+      title="GTO Training Community Leaderboard"
+      description="Where You Stand Against Everyone Else Training On Smarter.Poker: Accuracy, Volume And Streaks Across The Whole Community, Updated As Sessions Are Graded."
+      canonical="/hub/training/community-leaderboard"
+    />
+  );
+
+  if (!mounted) return pageHead;
 
   return (
     <>
-      <Head>
-        <title>Leaderboard | Smarter.Poker GTO Training</title>
-      </Head>
+      {pageHead}
       <div
         className="sp-training-intelligence sp-training-intelligence--community"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -208,7 +221,7 @@ export default function CommunityLeaderboardPage() {
           <div>
             {/* TRAIN-COMMUNITY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Community Leaderboard</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Global GTO Rankings</div>
           </div>
         </div>
 
@@ -257,7 +270,7 @@ export default function CommunityLeaderboardPage() {
                   border: `1px solid ${category === c.id ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
                   background: category === c.id ? 'rgba(251,191,36,0.06)' : 'transparent',
                   color: category === c.id ? 'var(--sp-accent-amber)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -320,13 +333,13 @@ export default function CommunityLeaderboardPage() {
                     </div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         marginBottom: 2,
                         color: p.isYou ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        whiteSpace: 'normal',
                       }}
                     >
                       {p.name}
@@ -401,7 +414,7 @@ export default function CommunityLeaderboardPage() {
                   <div
                     style={{
                       width: 24,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-faint)',
                       textAlign: 'center',
@@ -418,7 +431,7 @@ export default function CommunityLeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 800,
                       color: '#fff',
                     }}
@@ -435,7 +448,7 @@ export default function CommunityLeaderboardPage() {
                     >
                       {entry.name}
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
                       {entry.correctAnswers} Correct Answers · {entry.sessions} Sessions
                     </div>
                   </div>

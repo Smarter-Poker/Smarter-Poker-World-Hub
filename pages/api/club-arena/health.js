@@ -13,7 +13,7 @@
  * club.smarter.poker -> smarter.poker/hub/club-arena.
  */
 
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 // Node.js runtime (default) — uses process.uptime which is not edge-compatible
 
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json(payload);
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         if (!res.headersSent) {
             return res.status(500).json({ status: 'error', error: err?.message || 'health check failed' });
         }

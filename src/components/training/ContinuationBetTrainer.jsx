@@ -54,10 +54,10 @@ const SCENARIOS = [
 function FrequencyBar({ label, pct, color }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', width: 50, textAlign: 'right' }}>{label}</span>
+      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', width: 50, textAlign: 'right' }}>{label}</span>
       <div style={{ flex: 1, height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.3s ease' }} />
-        <span style={{ position: 'absolute', right: 6, top: 0, fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: '16px' }}>{pct}%</span>
+        <span style={{ position: 'absolute', right: 6, top: 0, fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: '16px' }}>{pct}%</span>
       </div>
     </div>
   );
@@ -179,7 +179,7 @@ function ContinuationBetTrainer() {
                 { label: 'Check', hands: scenario.keyHands.check, color: '#6b7280' },
               ].map(k => (
                 <div key={k.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 6, borderTop: `2px solid ${k.color}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: k.color, marginBottom: 4 }}>{k.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: k.color, marginBottom: 4 }}>{k.label}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{k.hands}</div>
                 </div>
               ))}

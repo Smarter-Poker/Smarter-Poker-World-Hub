@@ -28,7 +28,10 @@ READ = SCOPE['_read_controller_release_bundle']
 
 class ReleaseBundleTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        # macOS exposes /var as a system symlink to /private/var. The release
+        # guard is correct to reject links in a supplied bundle path, so keep
+        # the fixture on the canonical temp path instead of weakening it.
+        self.temp = tempfile.TemporaryDirectory(dir=os.path.realpath(tempfile.gettempdir()))
         self.addCleanup(self.temp.cleanup)
         self.bundle = Path(self.temp.name) / 'bundle'
         self.bundle.mkdir()

@@ -6,9 +6,9 @@ import { marketplaceCopy } from './marketplaceCopy.js';
 
 function comparePackages(left, right) {
   return (
-    left.priceCents - right.priceCents
-    || left.diamonds + left.bonus - (right.diamonds + right.bonus)
-    || left.id.localeCompare(right.id)
+    left.priceCents - right.priceCents ||
+    left.diamonds + left.bonus - (right.diamonds + right.bonus) ||
+    left.id.localeCompare(right.id)
   );
 }
 
@@ -20,16 +20,23 @@ function comparePackages(left, right) {
 export function projectDiamondStorefrontPackages(catalog) {
   if (!catalog || typeof catalog !== 'object') return Object.freeze([]);
 
-  const packages = Object.entries(catalog).map(([id, entry]) => Object.freeze({
-    id,
-    name: marketplaceCopy(String(entry?.name || id).slice(0, 200)),
-    diamonds: Number(entry?.diamonds),
-    bonus: Number(entry?.bonus || 0),
-    price: Number(entry?.price),
-    priceCents: Number(entry?.priceCents),
-    popular: id === 'standard',
-    hasDiscount: Number(entry?.bonus || 0) > 0,
-  }));
+  const packages = Object.entries(catalog).map(([id, entry]) => {
+    const rawDisplayName = typeof entry?.name === 'string' ? entry.name.trim().slice(0, 200) : '';
+    // A missing database display_name is normalized to the internal package
+    // key upstream. Never expose that checkout identifier as shopper copy.
+    const displayName =
+      rawDisplayName && rawDisplayName !== id ? marketplaceCopy(rawDisplayName) : 'Diamond Package';
+    return Object.freeze({
+      id,
+      name: displayName,
+      diamonds: Number(entry?.diamonds),
+      bonus: Number(entry?.bonus || 0),
+      price: Number(entry?.price),
+      priceCents: Number(entry?.priceCents),
+      popular: id === 'standard',
+      hasDiscount: Number(entry?.bonus || 0) > 0,
+    });
+  });
 
   packages.sort(comparePackages);
   return Object.freeze(packages);
@@ -52,10 +59,12 @@ export async function loadDiamondStorefrontPackages(supabase, options = {}) {
 }
 
 export function sameDiamondStorefrontOffer(left, right) {
-  return Boolean(left && right)
-    && left.id === right.id
-    && left.name === right.name
-    && left.diamonds === right.diamonds
-    && left.bonus === right.bonus
-    && left.priceCents === right.priceCents;
+  return (
+    Boolean(left && right) &&
+    left.id === right.id &&
+    left.name === right.name &&
+    left.diamonds === right.diamonds &&
+    left.bonus === right.bonus &&
+    left.priceCents === right.priceCents
+  );
 }

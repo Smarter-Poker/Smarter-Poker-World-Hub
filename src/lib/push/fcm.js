@@ -22,6 +22,7 @@
  * DO NOT import this from a client component. It pulls in Node crypto.
  */
 import { createSign } from 'node:crypto';
+import { accountingDisplayPayload } from './accounting-display.mjs';
 
 const SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
 const TOKEN_EARLY_MS = 60_000;
@@ -108,6 +109,9 @@ async function getAccessToken(fetchImpl) {
  * url the tap opens, so src/lib/native/push.ts in Club Arena can route it.
  */
 export function buildFcmMessage(token, payload = {}, opts = {}) {
+    // The OS can display this notification block before native JavaScript runs.
+    // Sanitize here even if a caller bypassed the canonical dispatch formatter.
+    payload = accountingDisplayPayload(payload);
     const title = String(payload.title || 'Smarter Poker').slice(0, 120);
     const body = String(payload.body || '').slice(0, 500);
     const url = String(payload.url || '/hub');

@@ -127,6 +127,15 @@ Work: redefine `[data-pills-row]` ONCE as a wrapping row (fixes 7 pages);
 category chips wrap; culled labels return; tables become stacked cards;
 consolidate breakpoints to 900/768/600.
 
+**Shipped 2026-09-13** (`docs/changelog/2026-09-13-mobile-phase5-training-games.md`):
+`[data-pills-row]` redefined once as a wrapping grid for all six adopters, the
+category chips and three component rails wrapped, five culls returned to
+layout, 866 sub-12px nodes on the hub to 0 (3,016 declarations across 400
+files), 104 x 100vh and 60 x overflow-x hidden fixed, fifteen breakpoints to
+three, the phase 0a set on the hub, and an eight-step tutorial registered for
+the whole prefix. Measured clean at 375 and 390 on eight routes. Budget row
+converted.
+
 ## Phase 6: Poker News (MED-LARGE)
 
 Files: `pages/hub/news.js` (4,407), `src/components/news/LiveWireStyles.js`

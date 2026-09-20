@@ -110,7 +110,7 @@ export default function ActionAccuracyPanel({ actionAccuracy }) {
 
                             {/* Label */}
                             <div style={styles.gaugeLabel}>
-                                <span style={{ color: action.config.color, fontWeight: 'bold', fontSize: 11 }}>
+                                <span style={{ color: action.config.color, fontWeight: 'bold', fontSize: 12 }}>
                                     {action.config.icon} {action.config.label}
                                 </span>
                                 <span style={styles.gaugeMeta}>
@@ -160,7 +160,7 @@ export default function ActionAccuracyPanel({ actionAccuracy }) {
                 </div>
                 <div style={styles.usageLegend}>
                     {actions.map(a => (
-                        <span key={a.key} style={{ fontSize: 8, color: '#64748b', display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span key={a.key} style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 3 }}>
                             <div style={{ width: 5, height: 5, borderRadius: 1, background: a.config.color }} />
                             {a.config.label} {Math.round((a.total / totalHands) * 100)}%
                         </span>
@@ -218,16 +218,16 @@ const styles = {
     gaugeLabel: {
         textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1,
     },
-    gaugeMeta: { fontSize: 9, color: '#475569' },
+    gaugeMeta: { fontSize: 12, color: '#475569' },
     evBadge: {
-        fontSize: 8, fontWeight: 600,
+        fontSize: 12, fontWeight: 600,
         padding: '2px 6px', borderRadius: 4,
         border: '1px solid',
         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
     usageSection: { marginBottom: 8 },
     usageLabel: {
-        fontSize: 9, color: '#475569', fontWeight: 600, marginBottom: 4,
+        fontSize: 12, color: '#475569', fontWeight: 600, marginBottom: 4,
         textTransform: 'uppercase', letterSpacing: 0.5,
     },
     usageBar: {
@@ -240,6 +240,6 @@ const styles = {
     insight: {
         marginTop: 8, padding: '6px 10px',
         background: 'rgba(0,0,0,0.15)', borderRadius: 8,
-        fontSize: 10, color: '#64748b', textAlign: 'center',
+        fontSize: 12, color: '#64748b', textAlign: 'center',
     },
 };

@@ -535,7 +535,7 @@ function ActivityCard({ date, category, questions, correct, accuracy }) {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -706,7 +706,7 @@ const styles = {
     display: 'inline-block',
   },
   loadingContainer: {
-    minHeight: '100vh',
+    minHeight: '100dvh',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

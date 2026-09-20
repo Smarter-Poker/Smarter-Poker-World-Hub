@@ -167,7 +167,7 @@ export default function CustomRakePage() {
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: '#0a0a1a',
           color: '#e4e6eb',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -236,10 +236,10 @@ export default function CustomRakePage() {
                 >
                   {r.label}
                 </div>
-                <div style={{ fontSize: 11, color: '#b0b3b8' }}>
+                <div style={{ fontSize: 12, color: '#b0b3b8' }}>
                   {r.pct}% / Cap ${r.cap}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{r.desc}</div>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{r.desc}</div>
               </button>
             ))}
           </div>
@@ -250,7 +250,7 @@ export default function CustomRakePage() {
               <div style={{ flex: 1 }}>
                 <label
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 600,
                     color: '#b0b3b8',
                     display: 'block',
@@ -279,7 +279,7 @@ export default function CustomRakePage() {
               <div style={{ flex: 1 }}>
                 <label
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 600,
                     color: '#b0b3b8',
                     display: 'block',
@@ -306,7 +306,7 @@ export default function CustomRakePage() {
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#b0b3b8', display: 'block', marginBottom: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#b0b3b8', display: 'block', marginBottom: 4 }}>
                   Big Blind ($)
                 </label>
                 <input
@@ -367,7 +367,7 @@ export default function CustomRakePage() {
               >
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: s.color,
                     letterSpacing: '0.08em',

@@ -4,7 +4,22 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import useHasMounted from '../../src/hooks/useHasMounted';
+import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): the hub is an index of the products, not a
+// product of its own, so CollectionPage is the honest type. It carries
+// 3,276 server-rendered words and shipped no structured data at all.
+const HUB_SCHEMA = hubCollectionSchema({
+    path: '/hub',
+    name: 'Smarter.Poker Hub',
+    description:
+        'Every Smarter.Poker Product In One Place: GTO Training, Private Clubs In Poker Arena, Club Commander Room Management, Poker Near Me, Home Games And The Bankroll Manager.',
+    trail: [['Hub', '/hub']],
+});
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import dynamic from 'next/dynamic';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -50,11 +65,24 @@ const WorldHub = dynamic(
                 fontFamily: 'Orbitron, sans-serif',
                 fontSize: 18,
             }}>
-                Loading World Hub...
+                <WorldHubLoadingText />
             </div>
         ),
     }
 );
+
+/**
+ * The words, once a browser is actually waiting for them (AEO phase 3,
+ * 2026-09-19). With ssr: false, Next renders this loading component on the
+ * server, so "Loading World Hub..." was the first sentence of the front
+ * door of the hub for every crawler that does not run JavaScript, above a
+ * summary that describes the page perfectly well. The box stays, so the
+ * layout does not move; the sentence waits for someone to read it.
+ */
+function WorldHubLoadingText() {
+    const hasMounted = useHasMounted();
+    return hasMounted ? <>Loading World Hub...</> : null;
+}
 
 export default function HubPage() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -122,10 +150,17 @@ export default function HubPage() {
     return (
         <>
             <SEOHead
-                title="Poker Hub - Your Command Center"
-                description="Access All Smarter.Poker Features From One Hub: GTO Training, Poker Near Me, Bankroll Tracking, Trivia, News, Social, And More."
+                title="Poker Hub: Training, Clubs And Live Games"
+                description="Access All Smarter.Poker Features From One Hub: GTO Training, Private Clubs In Poker Arena, Poker Near Me, Home Games, Bankroll Tracking, Trivia, News And Social. Free To Play, No Real-Money Gambling."
                 canonical="/hub"
+                jsonLd={HUB_SCHEMA}
             />
+            <Head>
+                {/* The hub's largest paint is the circuit-brain background that
+                    WorldHub sets from JavaScript. Preloading it lets the fetch
+                    start with the HTML instead of after the bundle runs. */}
+                <link rel="preload" as="image" href="/circuit-brain-bg.webp" />
+            </Head>
             <UniversalHeader
                 pageDepth={1}
                 hideLeftIcon
@@ -164,6 +199,20 @@ export default function HubPage() {
                     unlockedSpecialIds={unlockedSpecialIds}
                 />
             </HubErrorBoundary>
+
+            {/* THE HUB SAYS WHAT IT IS (AEO phase 3, 2026-09-17). WorldHub is
+                `ssr: false`, so the server sends no part of it; measured on
+                production with scripts stripped, this page - priority 0.9,
+                changefreq daily in the sitemap - carried 31 words and NO
+                heading for any crawler that does not run JavaScript.
+
+                It stays in the flow for good. The first cut removed it once
+                the carousel mounted, and a page that adds 200 words to the
+                flow and then takes them away is a layout shift waiting to
+                happen: measured 0.95 on one load in three. The carousel is a
+                position:fixed layer over the whole viewport, so this sits
+                under it, out of the way, and a reader who scrolls finds it. */}
+            <HubPageSummary page="hub" as="h1" />
 
             {/* WorldHub 3D carousel — isolated so a bad orb/import NEVER crashes the page */}
             <HubErrorBoundary name="World Hub">

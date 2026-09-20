@@ -50,7 +50,7 @@ export default function StackOffRanges() {
             style={{ padding: '8px 4px', borderRadius: 8, border: sprIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: sprIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: sprIdx === i ? s.color : '#64748b' }}>{s.spr.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: sprIdx === i ? s.color : '#64748b' }}>{s.spr.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -59,17 +59,17 @@ export default function StackOffRanges() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: spr.color, marginBottom: 4 }}>{spr.spr}</div>
         <div style={{ background: `${spr.color}10`, borderRadius: 8, padding: 8, marginBottom: 10, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Stack-Off Range</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Stack-Off Range</div>
           <div style={{ fontSize: 12, color: spr.color }}>{spr.stackOff}</div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{spr.why}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Example</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Example</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spr.example}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Avoid</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Avoid</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spr.avoid}</div>
           </div>
         </div>

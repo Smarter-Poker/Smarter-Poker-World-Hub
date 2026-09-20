@@ -476,7 +476,7 @@ async function loadHandler({ mode = 'new', authenticated = true, today = '2026-0
       withTiming: () => {},
       reconcileAnswerKey: () => {},
     },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
     '../../../src/lib/trivia/getTodayCST': { getTodayCST: () => today },
     '../../../src/lib/training/questionContract.mjs': {
       enforceTrainingQuestionContract: (question) => question,

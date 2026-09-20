@@ -32,7 +32,7 @@ export default function AnteStealGuide() {
           <button key={i} onClick={() => setScenIdx(i)}
             style={{ padding: '8px 4px', borderRadius: 8, border: scenIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: scenIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: scenIdx === i ? s.color : '#64748b' }}>{s.scenario}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: scenIdx === i ? s.color : '#64748b' }}>{s.scenario}</div>
           </button>
         ))}
       </div>
@@ -46,7 +46,7 @@ export default function AnteStealGuide() {
             { label: 'CO Open %', val: scen.openPct, color: '#3b82f6' },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}10`, borderRadius: 8, padding: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: '#64748b' }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.val}</div>
             </div>
           ))}

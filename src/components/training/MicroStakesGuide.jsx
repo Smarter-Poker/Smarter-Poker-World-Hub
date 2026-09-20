@@ -44,7 +44,7 @@ export default function MicroStakesGuide() {
           <button key={i} onClick={() => setTipIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: tipIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: tipIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: tipIdx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: tipIdx === i ? t.color : '#64748b' }}>
             {t.icon} {t.title}
           </button>
         ))}
@@ -55,11 +55,11 @@ export default function MicroStakesGuide() {
         <div style={{ fontSize: 16, fontWeight: 800, color: tip.color, marginBottom: 8 }}>{tip.icon} {tip.title}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{tip.detail}</p>
         <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: '3px solid #ef4444' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>COMMON MISTAKE</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>COMMON MISTAKE</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{tip.mistake}</div>
         </div>
         <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>ADJUSTMENT</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>ADJUSTMENT</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{tip.adjustment}</div>
         </div>
       </motion.div>

@@ -50,7 +50,7 @@ export default function ProgressDashboard() {
             style={{ padding: '8px 4px', borderRadius: 8, border: areaIdx === i ? `2px solid ${a.color}` : '1px solid rgba(255,255,255,0.06)',
               background: areaIdx === i ? `${a.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{a.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: areaIdx === i ? a.color : '#64748b' }}>{a.area.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: areaIdx === i ? a.color : '#64748b' }}>{a.area.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -62,22 +62,22 @@ export default function ProgressDashboard() {
           <span style={{ fontSize: 16, fontWeight: 800, color: area.color }}>{area.area}</span>
         </div>
         <div style={{ background: `${area.color}08`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: area.color, marginBottom: 4 }}>Skills To Develop</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: area.color, marginBottom: 4 }}>Skills To Develop</div>
           {area.skills.map((s, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0' }}>• {s}</div>
           ))}
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Key Metrics</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Key Metrics</div>
             <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{area.metrics}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Checkpoints</div>
-            <div style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{area.checkpoints}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Checkpoints</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{area.checkpoints}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Mastery Signal</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Mastery Signal</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{area.mastery}</div>
           </div>
         </div>

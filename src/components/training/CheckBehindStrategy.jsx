@@ -65,11 +65,11 @@ function CheckBehindStrategy() {
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#8b5cf6' }}>Check Behind Strategy</h3>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}/{SPOTS.length}</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}/{SPOTS.length}</span>
         </div>
 
         <div style={{ padding: 14, background: 'rgba(139,92,246,0.06)', borderRadius: 10, border: '1px solid rgba(139,92,246,0.15)', marginBottom: 12, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{spot.street} - In Position</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{spot.street} - In Position</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{spot.hand}</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#8b5cf6' }}>{spot.title}</div>
         </div>
@@ -94,8 +94,8 @@ function CheckBehindStrategy() {
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{spot.reason}</div>
             </div>
             <div style={{ padding: 8, background: 'rgba(16,185,129,0.06)', borderRadius: 6, border: '1px solid rgba(16,185,129,0.12)' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', marginBottom: 2 }}>Key Benefit</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{spot.benefit}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 2 }}>Key Benefit</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{spot.benefit}</div>
             </div>
           </div>
         )}

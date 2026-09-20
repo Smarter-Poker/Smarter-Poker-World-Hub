@@ -17,6 +17,30 @@ function compact(value) {
   );
 }
 
+/**
+ * A street address we are not willing to publish as fact.
+ *
+ * AEO phase 2, 2026-09-17. Venue 1828 (Lodge Poker Club, Austin) carried
+ * "123 Test St" and shipped it to Google inside PostalAddress on the Austin
+ * and Texas directory pages: a placeholder left in a real business's record,
+ * republished by us as its location. Structured data is a claim of fact, and
+ * a wrong one about a real venue is worse than none at all, so an address
+ * that looks like a placeholder is dropped and the locality, region and
+ * country still stand. The row itself is the venue pipeline's to correct;
+ * this is the guard that stops the next one reaching an engine.
+ */
+export function isPublishableStreetAddress(value) {
+  const address = String(value || '').trim();
+  if (address.length < 5) return false;
+  if (/\btest\b|\bsample\b|\bexample\b|\bdummy\b|\bplaceholder\b/i.test(address)) return false;
+  if (/^(unknown|n\/?a|tbd|none|null|undefined)$/i.test(address)) return false;
+  // "123 Main St", "123 Test St": the canonical made-up street number.
+  if (/^123\s+(test|main|fake|any)\b/i.test(address)) return false;
+  // An address with no digit at all is a neighbourhood, not a street address.
+  if (!/\d/.test(address)) return false;
+  return true;
+}
+
 export function serializePokerJsonLd(value) {
   return JSON.stringify(compact(value)).replace(/</g, '\\u003c');
 }
@@ -88,7 +112,7 @@ export function buildLocationDirectorySchema({
             '@type': 'PostalAddress',
             addressLocality: venue.city || undefined,
             addressRegion: venue.state || undefined,
-            streetAddress: venue.address || undefined,
+            streetAddress: isPublishableStreetAddress(venue.address) ? venue.address : undefined,
             addressCountry: 'US',
           } : undefined,
         },

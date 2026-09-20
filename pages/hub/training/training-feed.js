@@ -222,7 +222,7 @@ function FeedItem({ item }) {
               background: `${eventType.color}12`,
               border: `1px solid ${eventType.color}22`,
               color: eventType.color,
-              fontSize: 9,
+              fontSize: 12,
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: 0.5,
@@ -234,7 +234,7 @@ function FeedItem({ item }) {
               {eventType.label}
             </span>
           </span>
-          <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>{formatTimeAgo(item.timestamp)}</span>
+          <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>{formatTimeAgo(item.timestamp)}</span>
         </div>
       </div>
     </motion.div>
@@ -306,7 +306,7 @@ export default function TrainingFeedPage() {
       <div
         className="sp-training-command sp-training-command--feed"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -346,7 +346,7 @@ export default function TrainingFeedPage() {
           </button>
           <div>
             <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)', margin: 0 }}>Training Feed</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Your Verified Training Activity</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Your Verified Training Activity</div>
           </div>
         </div>
 
@@ -378,7 +378,7 @@ export default function TrainingFeedPage() {
                 border: `1px solid ${filter === f.id ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                 background: filter === f.id ? 'rgba(0,212,255,0.06)' : 'transparent',
                 color: filter === f.id ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -431,7 +431,7 @@ export default function TrainingFeedPage() {
             style={{
               textAlign: 'center',
               padding: '20px 16px',
-              fontSize: 10,
+              fontSize: 12,
               color: 'var(--sp-fg-faint)',
             }}
           >

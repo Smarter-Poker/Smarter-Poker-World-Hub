@@ -49,7 +49,7 @@ Check for .planning/STATE.md - loads context if project already initialized
    - Agent 2: arch focus → writes ARCHITECTURE.md, STRUCTURE.md
    - Agent 3: quality focus → writes CONVENTIONS.md, TESTING.md
    - Agent 4: concerns focus → writes CONCERNS.md
-4. Wait for agents to complete, collect confirmations (NOT document contents)
+4. When delegation is already authorized, verify returned mapping evidence while completing independent work. If a helper is unavailable, personally finish its unowned remainder; chat availability is not a gate.
 5. Verify all 7 documents exist with line counts
 6. Commit codebase map
 7. Offer next steps (typically: /gsd-new-project or /gsd-plan-phase)

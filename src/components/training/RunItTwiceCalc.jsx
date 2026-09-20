@@ -44,7 +44,7 @@ export default function RunItTwiceCalc() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {RIT_SCENARIOS.map((s, i) => (
           <button key={i} onClick={() => setScenIdx(i)}
-            style={{ padding: '6px 10px', borderRadius: 8, border: 'none', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 10px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: scenIdx === i ? `linear-gradient(135deg, ${s.color}, ${s.color}cc)` : 'rgba(255,255,255,0.06)',
               color: scenIdx === i ? '#fff' : '#94a3b8' }}>
             {s.spot.substring(0, 15)}
@@ -58,15 +58,15 @@ export default function RunItTwiceCalc() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'rgba(59,130,246,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Equity</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Equity</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#3b82f6' }}>{scen.equity}%</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Pot Size</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Pot Size</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#22c55e' }}>${scen.potSize}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Your EV</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Your EV</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b' }}>${evOnce}</div>
           </div>
         </div>
@@ -75,11 +75,11 @@ export default function RunItTwiceCalc() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(139,92,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #8b5cf6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6' }}>Variance Impact</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6' }}>Variance Impact</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scen.varianceReduction}</div>
           </div>
           <div style={{ background: `${scen.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${scen.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: scen.color }}>Should You RIT?</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: scen.color }}>Should You RIT?</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scen.shouldRun}</div>
           </div>
         </div>

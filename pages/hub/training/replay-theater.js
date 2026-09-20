@@ -156,7 +156,7 @@ function MistakeCard({ mistake, onPractice }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
               {mistake.position} · {mistake.street}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               {mistake.gameName} · {formatDate(mistake.timestamp)}
             </div>
           </div>
@@ -203,7 +203,7 @@ function MistakeCard({ mistake, onPractice }) {
                 >
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -228,7 +228,7 @@ function MistakeCard({ mistake, onPractice }) {
                 >
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -371,7 +371,7 @@ export default function ReplayTheaterPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -407,7 +407,7 @@ export default function ReplayTheaterPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Replay Theater</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Review And Learn From Your Mistakes
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function ReplayTheaterPage() {
               </div>
               <div
                 style={{
-                  fontSize: 9,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
@@ -460,7 +460,7 @@ export default function ReplayTheaterPage() {
               </div>
               <div
                 style={{
-                  fontSize: 9,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
@@ -487,7 +487,7 @@ export default function ReplayTheaterPage() {
                   border: `1px solid ${filter === p ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: filter === p ? 'rgba(0,212,255,0.06)' : 'transparent',
                   color: filter === p ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -513,7 +513,7 @@ export default function ReplayTheaterPage() {
                   border: `1px solid ${streetFilter === s ? 'rgba(168,85,247,0.2)' : 'transparent'}`,
                   background: streetFilter === s ? 'rgba(168,85,247,0.06)' : 'transparent',
                   color: streetFilter === s ? 'var(--sp-accent-purple)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -553,9 +553,9 @@ export default function ReplayTheaterPage() {
                 alignItems: 'center',
               }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Biggest Leak</div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-red)' }}>{worstLeak[0]}</div>
-                  <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{worstLeak[1].count} Mistakes · {worstLeak[1].evLoss.toFixed(1)} BB Lost</div>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 2 }}>{worstLeak[1].count} Mistakes · {worstLeak[1].evLoss.toFixed(1)} BB Lost</div>
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -577,7 +577,7 @@ export default function ReplayTheaterPage() {
                     background: 'rgba(0,212,255,0.06)',
                     border: '1px solid rgba(0,212,255,0.2)',
                     color: 'var(--sp-accent-cyan)',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}

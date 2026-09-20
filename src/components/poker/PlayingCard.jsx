@@ -148,8 +148,8 @@ function buildAltText(parts, faceDown) {
 }
 
 function buildSrc(parts, { faceDown, cardBack, optimized }) {
-  if (faceDown) return `/cards/back.png`;
-  if (!parts) return `/cards/back.png`;
+  if (faceDown) return `/cards/back.webp`;
+  if (!parts) return `/cards/back.webp`;
   const base = optimized ? '/cards/optimized' : '/cards';
   return `${base}/${parts.suit}_${parts.rank}.png`;
 }

@@ -34,3 +34,12 @@ test('an already-contained remote branch does not rewrite a tested merge from ma
   assert.match(script, /git merge-base --is-ancestor FETCH_HEAD HEAD/);
   assert.match(script, /elif ! GIT_EDITOR=true git rebase FETCH_HEAD/);
 });
+
+test('a first push can create a feature branch without retrying an impossible fetch', async () => {
+  const script = await readFile(scriptUrl, 'utf8');
+
+  assert.match(script, /git ls-remote --heads "\$\{REMOTE\}" "refs\/heads\/\$\{BRANCH\}"/);
+  assert.match(script, /REMOTE_BRANCH_MISSING=true/);
+  assert.match(script, /is new; it will be created by this push/);
+  assert.match(script, /if \[ "\$REMOTE_BRANCH_MISSING" = true \]/);
+});

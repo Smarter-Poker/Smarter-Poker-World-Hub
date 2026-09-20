@@ -69,7 +69,7 @@ export default function PotCommittedCalc() {
           { label: 'Remaining Stack', val: `${analysis.remainAfterCall} BB`, color: '#22c55e' },
         ].map((s, i) => (
           <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.val}</div>
           </div>
         ))}

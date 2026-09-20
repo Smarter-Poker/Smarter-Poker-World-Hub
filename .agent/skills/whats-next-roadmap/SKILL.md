@@ -18,7 +18,7 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 | API Domains | 46 directories + 5 standalone routes |
 | Cron Jobs | 55 automated tasks |
 | Dependencies | 76 production + 14 dev |
-| MCP Servers | 7 connected (Vercel, Playwright, Context7, Sequential Thinking, GitHub, Sentry, Supabase) |
+| MCP Servers | Inspect the currently installed tool inventory; historical connection counts are not authoritative. |
 | Agent Skills | 40+ |
 | Knowledge Items | 20+ authoritative KIs |
 
@@ -80,51 +80,11 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 1.3 — Automated Sentry Error Monitoring Pipeline (OpenClaw-Powered) `[x]`
-
-> **OpenClaw** is a full autonomous AI agent — not just a scraper. It supports shell execution, API interaction, scheduled tasks, proactive alerts, and multi-step workflow chains. This pipeline leverages OpenClaw for **zero-human-involvement daily error triage**.
-
-**What to build**:
-
-1. `[x]` **OpenClaw Scheduled Triage Task** (runs daily, fully autonomous)
-   - Connects to Sentry API → pulls top 20 unresolved errors by user impact
-   - Categorizes by: page, severity, user count, first/last seen
-   - Stores results in `sentry_error_log` Supabase table (via API)
-   - Compares against previous day's snapshot to detect **new** vs **recurring** errors
-
-2. `[x]` **Auto-Create GitHub Issues** (via OpenClaw → GitHub API)
-   - New errors affecting 5+ users → auto-creates GitHub issue
-   - Labels with `bug`, `sentry-auto`, and affected page name
-   - Includes: stack trace, affected URL, user count, Sentry permalink
-   - Deduplicates: checks if issue already exists before creating
-
-3. `[x]` **Proactive Alert Delivery** (via OpenClaw alerting)
-   - Daily summary notification: "3 new errors, 2 trending, 1 resolved"
-   - Critical alert (immediate): any error with 50+ user impact or 500-level spike
-   - Delivered via: push notification (1.4), Slack/Discord, or email
-
-4. `[x]` **Error Dashboard in Horses Admin**
-   - New tab in `/horses` showing real-time error stats
-   - Trending errors, resolved vs unresolved, affected pages
-   - One-click link to Sentry for deep investigation
-   - Historical trend graph: errors over time
-
-5. `[x]` **Weekly Auto-Report** (OpenClaw generates and delivers)
-   - "This week: 12 new errors, 8 resolved, top offender: /hub/poker-near-me"
-   - Includes severity breakdown and page-level error heat map
-   - Stored as artifact in Supabase for historical tracking
-
-**Automation boundary** (what OpenClaw handles vs. what requires human):
-- ✅ Pull errors from Sentry API — AUTOMATED
-- ✅ Categorize and store in Supabase — AUTOMATED
-- ✅ Create GitHub issues — AUTOMATED
-- ✅ Send alerts and reports — AUTOMATED
-- ✅ Track trends and detect regressions — AUTOMATED
-- ❌ Auto-fixing code — NOT AUTOMATED (too risky without human review)
-- ❌ Auto-deploying fixes — NOT AUTOMATED
-- ❌ Modifying production database schema — NOT AUTOMATED
-
-**RISK LEVEL**: LOW — read-only monitoring + issue creation, no code changes
+### 1.3 — External Error Monitoring Retired
+The former provider integration and automated triage are retired at the owner's
+request. Do not reinstall that SDK, MCP integration, credentials or transport.
+Use the existing first-party crash records and local application error logs.
+The historical integration remains in Git history for audit evidence.
 
 ---
 
@@ -498,7 +458,7 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 |-------|------|------|------|-------------|
 | 1 | E2E Test Suite (Playwright) | 1.1 | Low | 1-2 days |
 | 2 | Bundle Size Splitting | 1.2 | Low | 1-2 days |
-| 3 | Sentry Monitoring Pipeline | 1.3 | Low | 1 day |
+| 3 | External Error Monitoring | 1.3 | Retired | No work |
 | 4 | PWA Push Notifications (FULL) | 1.4 | Medium | 3-5 days |
 | 5 | VIP Paywall Audit | 2.2 | Low | 2-3 days |
 | 6 | Commander Stripe Subscription | 2.3 | Medium | 2-3 days |

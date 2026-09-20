@@ -104,11 +104,11 @@ function SlowPlayDecisionTrainer() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, borderRadius: 8, textAlign: 'center', background: 'rgba(239,68,68,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#ef4444' }}>{spot.evFast}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Fast ({spot.fastFreq}%)</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Fast ({spot.fastFreq}%)</div>
               </div>
               <div style={{ flex: 1, padding: 10, borderRadius: 8, textAlign: 'center', background: 'rgba(59,130,246,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#3b82f6' }}>{spot.evSlow}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Slow ({spot.slowFreq}%)</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Slow ({spot.slowFreq}%)</div>
               </div>
             </div>
             <div style={{ padding: 12, background: 'rgba(250,204,21,0.06)', borderRadius: 8, border: '1px solid rgba(250,204,21,0.12)', marginBottom: 12 }}>

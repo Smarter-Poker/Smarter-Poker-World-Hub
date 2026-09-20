@@ -513,7 +513,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                     aria-pressed={timerEnabled}
                                     style={{
                                         padding: '2px 10px', borderRadius: 12,
-                                        fontSize: 10, fontWeight: 700,
+                                        fontSize: 12, fontWeight: 700,
                                         border: timerEnabled ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.15)',
                                         background: timerEnabled ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
                                         color: timerEnabled ? '#00d4ff' : '#64748b',
@@ -584,7 +584,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             outline: 3px solid #8feaff !important;
                             outline-offset: 3px;
                         }
-                        @media (max-width: 700px) {
+                        @media (max-width: 768px) {
                             .sp-trainer-config-row {
                                 flex-direction: column;
                                 gap: 0 !important;
@@ -673,7 +673,7 @@ const styles = {
         marginBottom: 20,
     },
     sectionLabel: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         color: '#64748b',
         letterSpacing: 1.5,
@@ -713,7 +713,7 @@ const styles = {
         color: '#e2e8f0',
     },
     optionDesc: {
-        fontSize: 10,
+        fontSize: 12,
         color: '#64748b',
     },
     chipRow: {
@@ -759,7 +759,7 @@ const styles = {
         fontWeight: 700,
     },
     stackDesc: {
-        fontSize: 9,
+        fontSize: 12,
         opacity: 0.6,
     },
     streetChip: {
@@ -799,7 +799,7 @@ const styles = {
         borderRadius: 6,
         background: 'rgba(255,255,255,0.06)',
         color: '#94a3b8',
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 600,
     },
     startBtn: {

@@ -59,7 +59,7 @@ export default function PKOSolverGuide() {
           <button key={i} onClick={() => setScenarioIdx(i)}
             style={{ padding: '6px 10px', borderRadius: 8, border: scenarioIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: scenarioIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 10, fontWeight: 700, color: scenarioIdx === i ? s.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: scenarioIdx === i ? s.color : '#64748b' }}>
             {s.icon} {s.name}
           </button>
         ))}
@@ -72,37 +72,37 @@ export default function PKOSolverGuide() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{scenario.adjust}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>CALLING ADJUSTMENT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>CALLING ADJUSTMENT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scenario.calling}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>SHOVING ADJUSTMENT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>SHOVING ADJUSTMENT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{scenario.shoving}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'monospace' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>EXAMPLE</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{scenario.example}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>EXAMPLE</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{scenario.example}</div>
           </div>
         </div>
       </motion.div>
 
       {/* Bounty Math Table */}
       <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
           BOUNTY ADJUSTMENT CHART
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           {['Stack', 'Bounty', 'Range Adj', 'EV Gain'].map(h => (
-            <div key={h} style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</div>
+            <div key={h} style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</div>
           ))}
         </div>
         {BOUNTY_MATH.map((row, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: '8px 12px',
             borderBottom: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-            <span style={{ fontSize: 11, color: '#e2e8f0', fontFamily: 'monospace' }}>{row.stack}</span>
-            <span style={{ fontSize: 11, color: '#f59e0b', fontFamily: 'monospace' }}>{row.bounty}</span>
-            <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 700, fontFamily: 'monospace' }}>{row.adj}</span>
-            <span style={{ fontSize: 11, color: '#3b82f6', fontWeight: 700, fontFamily: 'monospace' }}>{row.evGain}</span>
+            <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'monospace' }}>{row.stack}</span>
+            <span style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'monospace' }}>{row.bounty}</span>
+            <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 700, fontFamily: 'monospace' }}>{row.adj}</span>
+            <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 700, fontFamily: 'monospace' }}>{row.evGain}</span>
           </div>
         ))}
       </div>

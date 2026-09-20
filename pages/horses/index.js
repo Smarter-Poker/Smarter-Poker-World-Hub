@@ -100,6 +100,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+import useCashoutTerminalScope from '../../src/components/horses/useCashoutTerminalScope';
+import { retainCashoutTerminalIntent } from '../../src/lib/club-arena/cashoutTerminalIntent.mjs';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
@@ -606,6 +608,10 @@ export default function HorsesAdmin() {
    *  shared ConfirmDialog, never by window.confirm, so the sentence about
    *  whether chips move on Confirm is the same sentence the Mint shows. */
   const [cashoutConfirm, setCashoutConfirm] = useState(null);
+  const [cashoutBusy, setCashoutBusy] = useState(false);
+  const cashoutAttemptRef = useRef(null);
+  const cashoutDialogEpoch = useRef(0);
+  const cashoutReadEpoch = useRef(0);
   /**
    * Every OTHER confirmation this console asks for, through the one shared
    * dialog: { title, body, confirmLabel, tone, requireTyped, onConfirm }.
@@ -660,6 +666,15 @@ export default function HorsesAdmin() {
    *  adds an AbortController per call (aborted on unmount) and surfaces the
    *  operator envelope's `code` and `requestId` on the thrown Error. */
   const authFetch = useOperatorFetch();
+  const cashoutViewKey = JSON.stringify([user?.id, router.asPath, activeTab, caSection, caSelectedClub?.id]);
+  const cashoutScopeKey = JSON.stringify([cashoutViewKey, cashoutDialogEpoch.current,
+    cashoutConfirm?.cashout.id, cashoutConfirm?.action]);
+  const captureCashoutScope = useCashoutTerminalScope(user?.id, cashoutScopeKey, router);
+  useEffect(() => {
+    cashoutAttemptRef.current = null;
+    setCashoutBusy(false);
+    setCashoutConfirm(null);
+  }, [cashoutViewKey]);
 
   const broadcastUpdate = useCallback((eventType = 'horses-updated') => {
     window.dispatchEvent(new CustomEvent(eventType));
@@ -1501,6 +1516,7 @@ export default function HorsesAdmin() {
   // CLUB ARENA - all of this now goes through the service-role admin route.
   // ═══════════════════════════════════════════════════════════════════════════
   const loadClubArenaData = useCallback(async () => {
+    const cashoutCurrent = captureCashoutScope(), cashoutRead = ++cashoutReadEpoch.current;
     setCaLoading(true);
     setCaError(null);
     setCaWarnings(null);
@@ -1513,7 +1529,7 @@ export default function HorsesAdmin() {
       setCaStats(d.stats || null);
       setCaClubs(d.clubs || []);
       setCaUnions(d.unions || []);
-      setCaPendingCashouts(d.pendingCashouts || []);
+      if (cashoutCurrent() && cashoutReadEpoch.current === cashoutRead) setCaPendingCashouts(d.pendingCashouts || []);
       setCaFinance(d.finance || null);
       setCaPages(d.pages || null);
       setCaWarnings(d.failedSources || null);
@@ -1523,7 +1539,7 @@ export default function HorsesAdmin() {
     } finally {
       setCaLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, captureCashoutScope]);
 
   // Click club A then club B fast enough and A's late response used to render
   // under B's header. Same shape on the user loaders, where the stale response
@@ -1636,6 +1652,7 @@ export default function HorsesAdmin() {
    * truth.
    */
   const resolveCashout = useCallback((cashout, action) => {
+    cashoutDialogEpoch.current += 1;
     setCashoutConfirm({
       cashout,
       action,
@@ -1662,14 +1679,29 @@ export default function HorsesAdmin() {
   }, []);
 
   const submitCashout = useCallback(async () => {
-    if (!cashoutConfirm) return;
+    if (!cashoutConfirm || cashoutAttemptRef.current) return;
     const { cashout, action } = cashoutConfirm;
-    setCaProcessing(true);
+    const scopeCurrent = captureCashoutScope(), dialogEpoch = cashoutDialogEpoch.current;
+    const readEpoch = caReqRef.current, overviewEpoch = cashoutReadEpoch.current;
+    const isCurrent = () => scopeCurrent() && cashoutDialogEpoch.current === dialogEpoch &&
+      caReqRef.current === readEpoch && cashoutReadEpoch.current === overviewEpoch;
+    if (!isCurrent()) { showNotification('Refresh This Cashout In The Original Account.', 'error'); return; }
+    const attempt = {};
+    cashoutAttemptRef.current = attempt;
+    setCashoutBusy(true);
     try {
+      const note = action === 'approve' ? 'Approved' : 'Cancelled by agent';
+      const operationId = await retainCashoutTerminalIntent({ actorId: user.id, clubId: cashout.club_id,
+        cashoutId: cashout.id, action, note }, { storage: window.localStorage, locks: navigator.locks,
+        randomUUID: () => globalThis.crypto.randomUUID(), isCurrent });
+      if (!isCurrent()) return;
       const body = await authFetch('/api/club-arena/approve-cashout', {
         method: 'POST',
-        body: JSON.stringify({ cashoutId: cashout.id, clubId: cashout.club_id, action }),
+        isCurrent,
+        headers: { 'X-Idempotency-Key': operationId },
+        body: JSON.stringify({ cashoutId: cashout.id, clubId: cashout.club_id, action, expectedActorId: user.id }),
       });
+      if (!isCurrent()) return;
 
       // ── 202: SENT FOR APPROVAL, NO CHIPS HAVE MOVED ────────────────────
       //
@@ -1687,29 +1719,41 @@ export default function HorsesAdmin() {
         return;
       }
 
+      if (body?.receipt?.operationId !== operationId || body.receipt.request?.id !== cashout.id ||
+          body.receipt.cashier?.actor_user_id !== user.id ||
+          body.receipt.cashier?.event_kind !== (action === 'approve' ? 'approval' : 'decline')) {
+        throw new Error('Cashout receipt is unconfirmed. Retain this operation and refresh its status.');
+      }
+      caReqRef.current += 1;
+      cashoutReadEpoch.current += 1;
       setCaPendingCashouts((prev) => prev.filter((c) => c.id !== cashout.id));
       setCaClubDetail((prev) => (prev
         ? { ...prev, pendingCashouts: (prev.pendingCashouts || []).filter((c) => c.id !== cashout.id) }
         : prev));
       setCashoutConfirm(null);
-      if (action === 'approve' && body && body.trailClosed === false) {
+      if (body.trailClosed === false) {
         // The RPC paid the request; markApprovalExecuted could not close the
         // approval row that authorised it. The money is right and the trail
         // is not, and the operator has to hear the second half.
         showNotification(
-          'The Cashout Went Through But The Approval Row Could Not Be Closed. Check The Audit Trail.',
+          'The Chip Transfer Is Confirmed. The Approval Or Audit Follow-Up Still Needs Attention.',
           'info',
         );
+      } else if (body.trailStatus === 'not_checked') {
+        showNotification('The Original Chip Transfer Is Confirmed. Its Audit Follow-Up Has Not Been Rechecked.', 'info');
       } else {
         showNotification(action === 'approve' ? 'Cashout Approved' : 'Cashout Cancelled, Chips Returned');
       }
       loadBadges();
     } catch (err) {
-      showNotification(err.message, 'error');
+      if (isCurrent()) showNotification(err.message, 'error');
     } finally {
-      setCaProcessing(false);
+      if (cashoutAttemptRef.current === attempt) {
+        cashoutAttemptRef.current = null;
+        setCashoutBusy(false);
+      }
     }
-  }, [authFetch, cashoutConfirm, markCashoutPendingApproval, showNotification, loadBadges]);
+  }, [authFetch, cashoutConfirm, captureCashoutScope, user?.id, markCashoutPendingApproval, showNotification, loadBadges]);
 
 
   const loadApplications = useCallback(async (statusFilter = 'pending') => {
@@ -5785,16 +5829,16 @@ export default function HorsesAdmin() {
                 <ConfirmDialog
                   title={cashoutConfirm.action === 'approve' ? 'Force Approve Cashout' : 'Return Chips To The Player'}
                   tone={cashoutConfirm.action === 'approve' ? 'danger' : 'go'}
-                  busy={caProcessing}
-                  sticky={caProcessing}
-                  blockEscape={caProcessing}
+                  busy={cashoutBusy}
+                  sticky={cashoutBusy}
+                  blockEscape={cashoutBusy}
                   confirmLabel={cashoutConfirm.action !== 'approve'
                     ? 'Yes, Return The Chips'
                     : cashoutConfirm.decision?.willRequest
                       ? 'Yes, Send For Approval'
                       : 'Yes, Force Approve'}
                   onConfirm={submitCashout}
-                  onCancel={() => setCashoutConfirm(null)}
+                  onCancel={() => { cashoutDialogEpoch.current += 1; setCashoutConfirm(null); }}
                 >
                   <p style={{ marginTop: 0 }}>
                     {cashoutConfirm.action === 'approve' ? 'Force Approve' : 'Cancel'} A Cashout Of{' '}

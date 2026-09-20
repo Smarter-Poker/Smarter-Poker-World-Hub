@@ -81,7 +81,7 @@ function PreFlopSimulator() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {ACTION_TREES.map(t => (
             <button key={t.id} onClick={() => setSelectedId(t.id)} style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedId === t.id ? '#e879f9' : 'rgba(255,255,255,0.06)',
               color: selectedId === t.id ? '#000' : 'rgba(255,255,255,0.7)', border: 'none',
             }}>{t.name}</button>
@@ -104,7 +104,7 @@ function PreFlopSimulator() {
 
         {/* Opener Range */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16, borderLeft: '3px solid #e879f9' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Opening Range</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Opening Range</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{tree.openerRange}</div>
         </div>
 
@@ -134,7 +134,7 @@ function PreFlopSimulator() {
             return (
               <div key={i} style={{
                 flex: pct, background: opt.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 700, color: '#fff',
+                fontSize: 12, fontWeight: 700, color: '#fff',
               }}>{pct}%</div>
             );
           })}
@@ -142,7 +142,7 @@ function PreFlopSimulator() {
 
         {/* Postflop Notes */}
         <div style={{ padding: 10, background: 'rgba(232,121,249,0.06)', borderRadius: 8, border: '1px solid rgba(232,121,249,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Postflop Notes</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#e879f9', marginBottom: 4 }}>Postflop Notes</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{tree.postflopNotes}</div>
         </div>
       </div>

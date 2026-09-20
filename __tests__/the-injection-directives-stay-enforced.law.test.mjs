@@ -5,7 +5,7 @@
  * 6.1.14 with a comment saying it graduates to enforcing "once violations have
  * been monitored and confirmed zero". Nothing ever monitored it: the policy has
  * no `report-uri` and no `report-to`, so a violation writes one line to one
- * browser console and is forgotten. The file says so itself, about the Sentry
+ * browser console and is forgotten. The file says so itself, about the retired error provider
  * allowance that was missing for ten days.
  *
  * On 2026-09-11 four directives graduated - the ones that govern INJECTION
@@ -130,7 +130,7 @@ test('the enforced header is served everywhere, not only on Vercel', () => {
 test('the resource-loading directives are still only report-only', () => {
   // Graduating one of these by accident is the failure the staged rollout
   // exists to avoid: they name hosts, and a missing host takes the feature with
-  // it. Sentry was missing for ten days under this very policy.
+  // it. retired error provider was missing for ten days under this very policy.
   for (const directive of ['script-src', 'connect-src', 'img-src', 'style-src', 'font-src']) {
     assert.ok(
       !ENFORCED.includes(directive),

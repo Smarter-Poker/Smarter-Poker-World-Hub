@@ -1,4 +1,4 @@
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
                 summary: data.analysis?.summary?.substring(0, 100) || 'N/A'
             });
         } catch (error) {
-            try { reportApiError(error, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+            try { reportApiError(error, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
             results.push({
                 videoId: video.videoId,
                 title: video.title,

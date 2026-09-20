@@ -37,6 +37,7 @@ import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 
@@ -753,7 +754,7 @@ export default function EndlessModePage() {
             <>
                 <SEOHead
                     title="Endless Trivia - Keep The Streak Alive"
-                    description="How Many Poker Trivia Questions Can You Answer In A Row? Play Endless Mode To Test Your Limits."
+                    description="Endless Poker Trivia On Smarter.Poker: Questions Keep Coming Until You Stop, And A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And Nothing In It Is A Wager."
                     canonical="/hub/trivia/endless"
                 />
 
@@ -1125,6 +1126,9 @@ export default function EndlessModePage() {
                     </PageTransition>
                 </div>
             </>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-endless" as="h1" />
         </TriviaErrorBoundary>
     );
 }

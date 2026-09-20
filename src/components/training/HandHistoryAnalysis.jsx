@@ -49,7 +49,7 @@ export default function HandHistoryAnalysis() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${step.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${step.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? step.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? step.color : '#64748b' }}>
             {step.icon} Step {i + 1}
           </button>
         ))}
@@ -61,15 +61,15 @@ export default function HandHistoryAnalysis() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{s.detail}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: s.color }}>HOW TO DO IT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: s.color }}>HOW TO DO IT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.howto}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>WHY IT MATTERS</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>WHY IT MATTERS</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.why}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>RECOMMENDED TOOL</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>RECOMMENDED TOOL</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.tool}</div>
           </div>
         </div>

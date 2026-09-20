@@ -51,7 +51,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
         >
             {/* Header */}
             <div style={{
-                fontSize: 10, fontWeight: 800, color: '#00d4ff',
+                fontSize: 12, fontWeight: 800, color: '#00d4ff',
                 letterSpacing: 1.5, textTransform: 'uppercase',
                 marginBottom: 12, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
             }}>
@@ -67,7 +67,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                     {rfiPct}%
                 </div>
                 <div style={{
-                    fontSize: 11, color: '#64748b', marginTop: 4, fontWeight: 600,
+                    fontSize: 12, color: '#64748b', marginTop: 4, fontWeight: 600,
                 }}>
                     {totalCombos} / {maxCombos} Combos
                 </div>
@@ -93,7 +93,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
 
             {/* Category Breakdown */}
             <div style={{
-                fontSize: 9, fontWeight: 700, color: '#64748b',
+                fontSize: 12, fontWeight: 700, color: '#64748b',
                 letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
             }}>
                 HAND CATEGORIES
@@ -102,7 +102,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                 <div key={item.label} style={{ marginBottom: 8 }}>
                     <div style={{
                         display: 'flex', justifyContent: 'space-between',
-                        fontSize: 10, color: '#94a3b8', fontWeight: 600, marginBottom: 2,
+                        fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 2,
                     }}>
                         <span>{item.label}</span>
                         <span style={{ color: item.color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
@@ -131,7 +131,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
 
             {/* Pure vs Mixed */}
             <div style={{
-                fontSize: 9, fontWeight: 700, color: '#64748b',
+                fontSize: 12, fontWeight: 700, color: '#64748b',
                 letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
             }}>
                 FREQUENCY TYPE
@@ -148,7 +148,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                     }}>
                         {pureHands}
                     </div>
-                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 2 }}>
                         PURE
                     </div>
                 </div>
@@ -163,7 +163,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                     }}>
                         {mixedHands}
                     </div>
-                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 2 }}>
                         MIXED
                     </div>
                 </div>
@@ -174,7 +174,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                 <>
                     <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
                     <div style={{
-                        fontSize: 9, fontWeight: 700, color: '#64748b',
+                        fontSize: 12, fontWeight: 700, color: '#64748b',
                         letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
                     }}>
                         ACTIONS
@@ -185,7 +185,7 @@ export default function PreflopChartStats({ stats, position, scenario, actions =
                         return (
                             <div key={action} style={{
                                 display: 'flex', alignItems: 'center', gap: 6,
-                                fontSize: 10, color: '#94a3b8', marginBottom: 4,
+                                fontSize: 12, color: '#94a3b8', marginBottom: 4,
                             }}>
                                 <div style={{
                                     width: 10, height: 10, borderRadius: 2,

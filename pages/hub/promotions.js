@@ -5,6 +5,7 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
@@ -15,6 +16,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import HubPromoRail from '../../src/components/ads/HubPromoRail';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const C = {
     bg: '#F0F2F5',
@@ -57,6 +59,9 @@ function getDetailUrl(pageType, pageId) {
 }
 
 export default function PromotionsPage() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19).
+    const hasMounted = useHasMounted();
     const [menuOpen, setMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-promotions', 'all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -212,7 +217,7 @@ export default function PromotionsPage() {
                         by somebody else. */}
                     <HubPromoRail limit={3} />
 
-                    {loading ? (
+                    {hasMounted && loading ? (
                         <div className="state-box">
                             <div className="spinner" />
                             <p>Loading Promotions...</p>
@@ -677,6 +682,9 @@ export default function PromotionsPage() {
                     }
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="promotions" />
         </PageTransition>
     );
 }

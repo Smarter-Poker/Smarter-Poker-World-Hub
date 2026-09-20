@@ -49,7 +49,7 @@ export default function MTTFinalTableGuide() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.title}
           </button>
         ))}
@@ -60,15 +60,15 @@ export default function MTTFinalTableGuide() {
         <div style={{ fontSize: 16, fontWeight: 800, color: c.color, marginBottom: 8 }}>{c.icon} {c.title}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{c.detail}</p>
         <div style={{ background: `${c.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${c.color}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: c.color }}>KEY PRINCIPLE</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: c.color }}>KEY PRINCIPLE</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.key}</div>
         </div>
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Example</div>
-          <div style={{ fontSize: 11, color: '#94a3b8' }}>{c.example}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Example</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.example}</div>
         </div>
         <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>KEY NUMBERS</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>KEY NUMBERS</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.numbers}</div>
         </div>
       </motion.div>

@@ -40,7 +40,7 @@ export default function MultiWayCheckGuide() {
             style={{ padding: '8px 4px', borderRadius: 8, border: ruleIdx === i ? `2px solid ${r.color}` : '1px solid rgba(255,255,255,0.06)',
               background: ruleIdx === i ? `${r.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{r.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: ruleIdx === i ? r.color : '#64748b' }}>{r.rule.substring(0,10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: ruleIdx === i ? r.color : '#64748b' }}>{r.rule.substring(0,10)}</div>
           </button>
         ))}
       </div>

@@ -64,6 +64,39 @@ test('VIP plan switching and cancellation stay inside the marketplace page', () 
   assert.doesNotMatch(page, /target=["']_blank["']|window\.open/);
 });
 
+test('VIP management and reward telemetry reject stale account work', () => {
+  const manage = read('pages/hub/vip-membership/manage.js');
+  const rewards = read('src/components/store/RewardTelemetryConsole.jsx');
+
+  for (const source of [manage, rewards]) {
+    assert.match(source, /useAvatar/);
+    assert.match(source, /const synchronousAccountId = getAuthUser\(\)\?\.id \|\| null/);
+    assert.match(source, /const committedAccountId =/);
+    assert.match(source, /contextUser\?\.id === synchronousAccountId/);
+    assert.match(source, /const activeAccountIdRef = useRef/);
+    assert.match(source, /useIsomorphicLayoutEffect\(\(\) => \{/);
+    assert.match(source, /getAuthUser\(\)\?\.id === expectedAccountId/);
+  }
+
+  assert.match(manage, /viewOwnerId === committedAccountId/);
+  assert.match(manage, /membershipControllerRef\.current\?\.abort\(\)/);
+  assert.match(manage, /actionGenerationRef\.current === actionId/);
+  assert.match(manage, /actionControllerRef\.current === controller/);
+  assert.match(manage, /actionControllerRef\.current = null;\s*actionBusyRef\.current = false/);
+  assert.match(manage, /if \(!attemptOwnsCurrentAccount\(\)\) return/);
+  assert.match(manage, /const identity = JSON\.stringify\(\{ accountId, endpoint, body \}\)/);
+  assert.match(manage, /membershipActionKeys\.get\(identity\)/);
+  assert.match(manage, /clearRetainedMembershipAction\(intentIdentity, intentKey\)/);
+  assert.match(manage, /accountView\.status !== 'ready'/);
+
+  assert.match(rewards, /stateOwnerId === committedAccountId/);
+  assert.match(rewards, /requestRef\.current === requestId/);
+  assert.match(rewards, /abortRef\.current === controller/);
+  assert.match(rewards, /const accountState =/);
+  assert.match(rewards, /Promise\.race\(\[response\.json\(\)\.catch\(\(\) => null\), deadline\]\)/);
+  assert.match(rewards, /accountState\.status === 'ready' && \([\s\S]{0,120}Ledger Verified/);
+});
+
 test('diamond VIP passes are never sent to Stripe cancellation', () => {
   const cancel = read('pages/api/store/cancel-vip.js');
   assert.match(cancel, /startsWith\(['"]diamond_['"]\)/);
@@ -81,4 +114,26 @@ test('phase 12 surfaces preserve the cyan steel palette and accessible controls'
   assert.match(sources, /min-height:\s*44px/);
   assert.match(sources, /:focus-visible/);
   assert.match(sources, /prefers-reduced-motion/);
+});
+
+test('VIP and reward console controls use the approved painted shells without Lucide glyphs', () => {
+  const compare = read('pages/hub/vip-membership/compare.js');
+  const manage = read('pages/hub/vip-membership/manage.js');
+  const rewards = read('src/components/store/RewardTelemetryConsole.jsx');
+  const controlStyles = [
+    read('pages/hub/vip-membership/compare.module.css'),
+    read('src/components/store/VipMembershipConsole.module.css'),
+    read('src/components/store/RewardTelemetryConsole.module.css'),
+  ].join('\n');
+
+  assert.doesNotMatch(
+    `${compare}\n${manage}\n${rewards}`,
+    /lucide-react|<(?:Activity|CalendarClock|CreditCard|Crown|Gauge|Gem|RefreshCw|ShieldCheck|Sparkles|WalletCards|X)\b/
+  );
+  assert.match(compare, /compare\.module\.css/);
+  assert.match(controlStyles, /shark-panel\/button-primary\.png/);
+  assert.match(controlStyles, /shark-panel\/button-secondary\.png/);
+  assert.doesNotMatch(controlStyles, /navigation\/nav-shell\.(?:png|webp)/);
+  assert.match(controlStyles, /Roboto Condensed/);
+  assert.doesNotMatch(controlStyles, /Rajdhani|border-radius|\bgreen\b|\bpurple\b/i);
 });

@@ -117,7 +117,7 @@ export function TrainingAchievements({ userId, compact = false, onNewUnlock }) {
                                         )}
                                     </div>
                                     <div style={styles.reward}>
-                                        <span style={{ fontSize: 10, color: '#888' }}>Reward</span>
+                                        <span style={{ fontSize: 12, color: '#888' }}>Reward</span>
                                         <span style={styles.diamonds}>◆ {ach.diamond_reward}</span>
                                     </div>
                                 </motion.div>
@@ -168,7 +168,7 @@ const styles = {
         border: 'none',
         borderRadius: 6,
         color: '#888',
-        fontSize: 11,
+        fontSize: 12,
         cursor: 'pointer'
     },
     catBtnActive: {
@@ -210,7 +210,7 @@ const styles = {
         fontSize: 13
     },
     achDesc: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#888',
         marginTop: 2
     },

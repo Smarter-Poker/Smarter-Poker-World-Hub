@@ -248,11 +248,20 @@ test('the device copy is released only after the row exists', () => {
     // Released in onScanComplete, which the scanner calls once the image has
     // uploaded. Releasing on resume would delete the only copy of a scan whose
     // upload is about to fail.
+    // Anchored on the VISIBLE scanner: there are two onScanComplete handlers
+    // now, and taking the first match in the file measured the auto-sender.
     const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
-    const complete = page.slice(page.indexOf('onScanComplete={async'));
+    const visible = page.slice(page.indexOf('onPendingChange={setScannerHasUnsaved}'));
+    const complete = visible.slice(visible.indexOf('onScanComplete={async'));
     assert.match(complete.slice(0, 900), /releaseResumedScan\(\)/,
         'the release belongs in onScanComplete');
-    const resume = page.slice(page.indexOf('const resumeHeldScan'), page.indexOf('const releaseResumedScan'));
+    // Bounded to resumeHeldScan's OWN body - up to where its useCallback deps
+    // close - not to the next named function. finishAutoFlush now sits between
+    // the two and legitimately calls releaseHeld, so the looser slice was
+    // reading a different function's correctness as this one's failure.
+    const from = page.indexOf('const resumeHeldScan');
+    const resume = page.slice(from, page.indexOf('}, [', from));
+    assert.ok(resume.length > 40 && resume.length < 1200, 'the slice must be one function');
     assert.ok(!/releaseHeld\(/.test(resume),
         'resuming must not release: the upload has not happened yet');
 });
@@ -265,8 +274,72 @@ test('the count comes from the hold, never from a tally the page keeps', () => {
 });
 
 test('what the caps dropped is said out loud', () => {
+    // Anchored on the VISIBLE scanner, not the first onHeld in the file. There
+    // are two ReceiptScanners now - the one the player opens and the one that
+    // sends a held scan on its own - and a slice that just took the first match
+    // silently measured the wrong one the moment the second appeared.
     const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
-    const onHeld = page.slice(page.indexOf('onHeld={'), page.indexOf('onScanComplete={async'));
+    const visible = page.slice(page.indexOf('onPendingChange={setScannerHasUnsaved}'));
+    const onHeld = visible.slice(visible.indexOf('onHeld={'), visible.indexOf('onScanComplete={async'));
     assert.match(onHeld, /dropped/, 'a dropped scan must reach the player');
     assert.match(onHeld, /toast\.error/, 'and as an error, not a success with a number in it');
+});
+
+// ── AND IT SENDS ITSELF ───────────────────────────────────────────────────
+// The first version of this made the player press Send, on a branch called
+// "a scan in the basement files itself", which is not what that says.
+
+test('a held scan sends itself when the signal returns', () => {
+    const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
+    assert.match(page, /if \(!online \|\| !userId\) return;/, 'it waits for a signal and a user');
+    assert.match(page, /setAutoFlushing\(next\)/, 'and then starts on its own');
+});
+
+test('it never files underneath somebody who is scanning', () => {
+    // The sheet has one piece of state. A scan filing itself while the player
+    // is mid-scan is how the wrong photograph gets the wrong destination.
+    const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
+    assert.match(page, /if \(autoFlushing \|\| resumingHeld \|\| showScanner\) return;/,
+        'one at a time, and never while the scanner is open');
+});
+
+test('the sender is the same component, not a second reader', () => {
+    const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
+    const sender = page.slice(page.indexOf('{autoFlushing && ('), page.indexOf('{(heldScans.length > 0'));
+    assert.match(sender, /<ReceiptScanner/, 'the same scanner does the sending');
+    assert.match(sender, /autoConfirm/);
+    assert.match(sender, /saveReceiptRow\(/, 'and the same row writer files it');
+    // A quieter path that read receipts its own way is the thing to prevent.
+    assert.ok(!/parseReceiptText/.test(page) && !/scan-receipt'/.test(sender),
+        'the page must not read a receipt itself; that is the paid route\'s job');
+});
+
+test('autoConfirm changes who presses Confirm and nothing else', () => {
+    const scanner = withoutLineComments(read('src/components/bankroll/ReceiptScanner.jsx'));
+    // It fires the SAME handleConfirm the button fires.
+    assert.match(scanner, /handleConfirmRef\.current\(\)/);
+    // Only once, however many times React re-renders: bankroll_receipts is the
+    // system of record and a double file is a double receipt.
+    assert.match(scanner, /if \(!autoConfirm \|\| autoConfirmedRef\.current\) return;/);
+    assert.match(scanner, /autoConfirmedRef\.current = true;/);
+    // And only once the read has settled, not merely once the image uploaded.
+    assert.match(scanner, /if \(!uploadedUrl \|\| isUploading\) return;/);
+});
+
+test('a scan that cannot be sent is not retried forever', () => {
+    // A queue that retries a poisoned item until the end of time is a queue
+    // that never drains. After three attempts it stops being picked up
+    // automatically; Send by hand still works.
+    const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
+    assert.match(page, /\(h\.attempts \|\| 0\) < 3/);
+    assert.match(page, /await noteAttempt\(next\.id\)/, 'and the attempt is recorded before it is made');
+});
+
+test('the device copy survives a send that did not land', () => {
+    const page = withoutLineComments(read('pages/hub/bankroll-manager.js'));
+    assert.match(page, /if \(filed && record\) await releaseHeld\(record\.id\)/,
+        'released only when a row actually exists');
+    const sender = page.slice(page.indexOf('{autoFlushing && ('), page.indexOf('{(heldScans.length > 0'));
+    assert.match(sender, /finishAutoFlush\(autoFlushing, Boolean\(id\)\)/,
+        'a null row id must not count as filed');
 });

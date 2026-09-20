@@ -6,7 +6,7 @@
  * Live checks cover stripe, supabase, and printful without mutating commerce.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 const { runMarketplaceReadiness } = require('../../../src/lib/store/marketplaceReadiness');
 const {

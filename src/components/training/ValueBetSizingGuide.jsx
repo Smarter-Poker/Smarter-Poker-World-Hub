@@ -51,7 +51,7 @@ export default function ValueBetSizingGuide() {
               background: selectedTier === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 20 }}>{t.emoji}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: t.color }}>{t.size}</div>
-            <div style={{ fontSize: 10, color: '#64748b' }}>{t.label}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{t.label}</div>
           </button>
         ))}
       </div>
@@ -65,7 +65,7 @@ export default function ValueBetSizingGuide() {
         <input type="range" min={5} max={200} value={pot} onChange={e => setPot(+e.target.value)}
           style={{ width: '100%', accentColor: tier.color, marginBottom: 12 }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#64748b' }}>Bet Size Range</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Bet Size Range</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: tier.color }}>{sizingRange.low} - {sizingRange.high} BB</div>
         </div>
       </div>

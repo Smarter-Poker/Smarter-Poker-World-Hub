@@ -124,7 +124,7 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
       withTiming() {},
       reconcileAnswerKey() {},
     },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
     '../../../src/lib/training/cacheContract.mjs': {
       filterCachedRowsForGame: (rows) => rows,
       hydrateMissingPIOScenarioContract: (question) => question,

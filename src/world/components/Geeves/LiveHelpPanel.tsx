@@ -177,7 +177,7 @@ export function LiveHelpPanel({
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <img
-                            src="/images/geeves-avatar.png"
+                            src="/images/geeves-avatar.webp"
                             alt="Geeves"
                             style={{
                                 width: 48,

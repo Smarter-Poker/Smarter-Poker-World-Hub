@@ -1,10 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import {
-    ArrowLeft, CheckCircle2, Clock3, Mail, Radio, RefreshCw,
-    Search, Send, ShieldCheck, Users, XCircle,
-} from 'lucide-react';
+import OperatorGlyph from '../../src/components/admin/OperatorGlyph';
 import { getFreshAccessToken } from '../../src/lib/authUtils';
 import styles from '../../src/components/admin/NewsletterOperations.module.css';
 
@@ -133,23 +130,23 @@ export default function NewsletterOperations() {
             <main className={styles.page}>
                 <header className={styles.header}>
                     <div>
-                        <Link href="/hub/news" className={styles.back}><ArrowLeft size={15} /> News Hub</Link>
-                        <p className={styles.eyebrow}><Radio size={13} /> Live Intelligence Wire</p>
+                        <Link href="/hub/news" className={styles.back}><OperatorGlyph kind="back" size={15} /> News Hub</Link>
+                        <p className={styles.eyebrow}><OperatorGlyph kind="radio" size={13} /> Live Intelligence Wire</p>
                         <h1>Newsletter Operations</h1>
                         <p className={styles.subtitle}>Compose From Verified Stories, Inspect The Audience, Dispatch Once, And Retain An Audit Trail.</p>
                     </div>
                     <button className={styles.refresh} onClick={() => load()} disabled={loading || !token}>
-                        <RefreshCw size={15} className={loading ? styles.spin : ''} /> Refresh
+                        <OperatorGlyph kind="refresh" size={15} className={loading ? styles.spin : ''} /> Refresh
                     </button>
                 </header>
 
-                {error && <div className={styles.error} role="alert"><XCircle size={16} /> {error}</div>}
+                {error && <div className={styles.error} role="alert"><OperatorGlyph kind="alert" size={16} /> {error}</div>}
 
                 <section className={styles.signalGrid} aria-label="Newsletter health">
-                    <article><Users size={17} /><span>Active Audience</span><strong>{data?.stats?.active ?? '-'}</strong></article>
-                    <article><Mail size={17} /><span>Opted Out</span><strong>{data?.stats?.inactive ?? '-'}</strong></article>
-                    <article><Send size={17} /><span>Recorded Campaigns</span><strong>{data?.stats?.campaigns ?? '-'}</strong></article>
-                    <article><Clock3 size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
+                    <article><OperatorGlyph kind="users" size={17} /><span>Active Audience</span><strong>{data?.stats?.active ?? '-'}</strong></article>
+                    <article><OperatorGlyph kind="mail" size={17} /><span>Opted Out</span><strong>{data?.stats?.inactive ?? '-'}</strong></article>
+                    <article><OperatorGlyph kind="send" size={17} /><span>Recorded Campaigns</span><strong>{data?.stats?.campaigns ?? '-'}</strong></article>
+                    <article><OperatorGlyph kind="clock" size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
                 </section>
 
                 <section className={styles.dispatch}>
@@ -158,7 +155,7 @@ export default function NewsletterOperations() {
                             <p className={styles.eyebrow}>Dispatch Circuit</p>
                             <h2>Build The Next Wire</h2>
                         </div>
-                        <ShieldCheck size={22} />
+                        <OperatorGlyph kind="shield" size={22} />
                     </div>
                     <div className={styles.dispatchBody}>
                         <div className={styles.controls}>
@@ -178,11 +175,11 @@ export default function NewsletterOperations() {
                                 </select>
                             </label>
                             <button className={styles.previewButton} onClick={() => runDigest(true)} disabled={Boolean(running)}>
-                                {running === 'preview' ? <RefreshCw size={15} className={styles.spin} /> : <Radio size={15} />}
+                                {running === 'preview' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="radio" size={15} />}
                                 Run Safe Preview
                             </button>
                             <button className={styles.sendButton} onClick={() => runDigest(false)} disabled={Boolean(running) || !preview || preview.recipients === 0}>
-                                {running === 'send' ? <RefreshCw size={15} className={styles.spin} /> : <Send size={15} />}
+                                {running === 'send' ? <OperatorGlyph kind="refresh" size={15} className={styles.spin} /> : <OperatorGlyph kind="send" size={15} />}
                                 Confirm And Send
                             </button>
                         </div>
@@ -200,7 +197,7 @@ export default function NewsletterOperations() {
                                 </>
                             ) : (
                                 <div className={styles.previewEmpty}>
-                                    <Radio size={28} />
+                                    <OperatorGlyph kind="radio" size={28} />
                                     <p>Run A Preview To Resolve The Real Subject, Current Stories, And Exact Active Audience Before Send Unlocks.</p>
                                 </div>
                             )}
@@ -242,7 +239,7 @@ export default function NewsletterOperations() {
                     <div className={styles.subscriberHeader}>
                         <div><p className={styles.eyebrow}>Audience Control</p><h2>Subscribers</h2></div>
                         <form onSubmit={searchSubscribers} className={styles.search}>
-                            <Search size={15} />
+                            <OperatorGlyph kind="search" size={15} />
                             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search email" aria-label="Search subscriber email" />
                             <button type="submit">Find</button>
                         </form>

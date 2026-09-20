@@ -35,6 +35,7 @@ import MetalFrame from '../../../src/components/ui/MetalFrame';
 import { Trophy, Gem, Clock, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import { triviaPvpPageReleaseResult } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
 // How long a finished player waits for their opponent before being offered an
@@ -929,7 +930,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
         <TriviaErrorBoundary pageName="PvP Battle">
             <SEOHead
                 title="PvP Trivia - Player vs Player"
-                description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
+                description="Head To Head Poker Trivia On Smarter.Poker: Two Players, The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Free To Play, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/pvp"
             >
 
@@ -2051,6 +2052,9 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                     }
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-pvp" />
         </TriviaErrorBoundary>
     );
 }

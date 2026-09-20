@@ -48,6 +48,7 @@ import { PodErrorBoundary } from '../../../src/components/poker-near-me/Controll
 // ─── Extracted Utilities (Bundle Splitting) ───
 import { playClickSound, playPanelOpenSound, playPanelCloseSound } from '../../../src/components/poker-near-me/lobby/PnmSoundUtils';
 import { cachedFetch, fetchWithRetry, invalidateCache, PAGE_SIZE } from '../../../src/components/poker-near-me/lobby/PnmApiCache';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import {
   CHECKIN_BATCH_MAX_IDS,
   CHECKIN_BATCH_SIZE,
@@ -2467,7 +2468,7 @@ export default function PokerNearMeLobby() {
   return (
     <>
       <SEOHead
-        title="Poker Near Me - Find Live Poker Rooms & Casinos"
+        title="Poker Near Me: Live Poker Rooms And Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
         canonical="/hub/poker-near-me/lobby"
         jsonLd={LOBBY_JSON_LD}
@@ -3794,6 +3795,7 @@ export default function PokerNearMeLobby() {
         }
       }
     `}</style>
+    <HubPageSummary page="poker-near-me" />
     </>
   );
 }

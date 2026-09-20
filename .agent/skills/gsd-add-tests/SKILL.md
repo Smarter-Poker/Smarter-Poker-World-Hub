@@ -6,7 +6,7 @@ description: Generate tests for a completed phase based on UAT criteria and impl
 <objective>
 Generate unit and E2E tests for a completed phase, using its SUMMARY.md, CONTEXT.md, and VERIFICATION.md as specifications.
 
-Analyzes implementation files, classifies them into TDD (unit), E2E (browser), or Skip categories, presents a test plan for user approval, then generates tests following RED-GREEN conventions.
+Analyzes implementation files, classifies them into TDD (unit), E2E (browser), or Skip categories, records a proportionate test plan within the assigned scope, then generates tests following RED-GREEN conventions.
 
 Output: Test files committed with message `test(phase-{N}): add unit and E2E tests from add-tests command`
 </objective>

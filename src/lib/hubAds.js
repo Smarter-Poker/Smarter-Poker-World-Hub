@@ -82,6 +82,9 @@ export async function resolveHubAds(limit = 3) {
             targetUrl: r.target_url == null ? null : String(r.target_url),
             ctaLabel: r.cta_label == null ? null : String(r.cta_label),
             imageUrl: r.image_url == null ? null : String(r.image_url),
+            posterUrl: r.poster_url == null ? null : String(r.poster_url),
+            advertiserKind: r.advertiser_kind == null ? 'house' : String(r.advertiser_kind),
+            advertiserName: r.advertiser_name == null ? null : String(r.advertiser_name),
         }));
     } catch (e) {
         console.warn('[hubAds] resolve threw:', e?.message || e);
@@ -170,6 +173,23 @@ export function isSafeHubDestination(url) {
  */
 export function leavesTheNextRouter(url) {
     return typeof url === 'string' && url.startsWith('/hub/club-arena');
+}
+
+/**
+ * A SPONSOR'S DESTINATION IS A CODE, AND THE CLICK IS COUNTED BY THE REDIRECT.
+ *
+ * The resolver never hands a client a sponsor's address. It serves `/c/<code>`,
+ * which `pages/api/c/[code].js` resolves through `fn_ad_click_redirect` -
+ * logging the click server-side - and 302s to the approved https address.
+ * So for one of these the client must NOT log a click (it would be counted
+ * twice) and must leave through a real navigation in a NEW tab with
+ * `noopener` (the sponsor's page gets no handle on ours, and the player keeps
+ * the Hub). Same prefix and same rule as Club Arena's `isExternalAdClick`.
+ */
+export const AD_CLICK_PREFIX = '/c/';
+
+export function isExternalAdClick(url) {
+    return typeof url === 'string' && url.startsWith(AD_CLICK_PREFIX);
 }
 
 /**

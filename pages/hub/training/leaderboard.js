@@ -23,6 +23,7 @@ import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 // ICON COMPONENTS — TRAIN-LEADERBOARD-A11Y-1
@@ -56,7 +57,7 @@ function MedalIcon({ rank, size = 22, color = 'currentColor' }) {
       <path d="M7 2l3 5" />
       <path d="M17 2l-3 5" />
       <circle cx="12" cy="14" r="7" />
-      <text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="700"
+      <text x="12" y="17" textAnchor="middle" fontSize='12px' fontWeight="700"
         fill={color} stroke="none">{rank}</text>
     </svg>
   );
@@ -115,7 +116,7 @@ export default function TrainingLeaderboard() {
     <PageTransition>
       <SEOHead
         title="Training Leaderboard - Top Students"
-        description="See Who Leads The GTO Training Leaderboard On Smarter.Poker."
+        description="The GTO Training Leaderboard On Smarter.Poker, Ranked On Decision Accuracy Against The Solver Baseline Rather Than On Volume, With The Sample Each Score Was Measured Over. Free To Appear On."
         canonical="/hub/training/leaderboard"
       />
 
@@ -227,6 +228,9 @@ export default function TrainingLeaderboard() {
         </div>
       </div>
       <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-leaderboard" />
     </PageTransition>
   );
 }
@@ -306,7 +310,7 @@ function LeaderboardEntry({
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -422,7 +426,7 @@ const styles = {
     padding: '2px 8px',
     background: '#00E0FF',
     color: '#000',
-    fontSize: '10px',
+    fontSize: '12px',
     fontWeight: 700,
     borderRadius: '4px',
   },

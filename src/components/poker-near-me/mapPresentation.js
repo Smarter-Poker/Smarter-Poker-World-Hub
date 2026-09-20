@@ -28,7 +28,7 @@ export const POKER_TOUR_COLORS = Object.freeze({
   ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
 });
 
-const DEFAULT_LOGO = '/smarter-poker-logo-nobg.png';
+const DEFAULT_LOGO = '/smarter-poker-logo-nobg.webp';
 const SIGNATURE_FIELDS = Object.freeze([
   'id', 'name', 'latitude', 'longitude', 'venue_type', 'tour_code', 'tour_name', 'is_running',
   'logo_url', 'avatar_url', 'profile_photo_url', 'cover_photo_url', 'image_url', 'trust_score',

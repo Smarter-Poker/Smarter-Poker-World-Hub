@@ -52,12 +52,12 @@ function MDFCalculator() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Pot Size</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Pot Size</div>
             <input type="range" min={2} max={100} value={pot} onChange={e => setPot(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#10b981' }} />
             <div style={{ fontSize: 18, fontWeight: 900, color: '#10b981' }}>{pot} BB</div>
           </div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Bet Size</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Bet Size</div>
             <input type="range" min={1} max={100} value={betSize} onChange={e => setBetSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#ef4444' }} />
             <div style={{ fontSize: 18, fontWeight: 900, color: '#ef4444' }}>{betSize} BB ({calc.betPotPct}% Pot)</div>
           </div>
@@ -66,19 +66,19 @@ function MDFCalculator() {
         {/* Results */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 12, background: 'rgba(139,92,246,0.08)', borderRadius: 10, textAlign: 'center', border: '1px solid rgba(139,92,246,0.2)' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>MDF</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>MDF</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#8b5cf6' }}>{calc.mdf}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Must Defend</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Must Defend</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(59,130,246,0.08)', borderRadius: 10, textAlign: 'center', border: '1px solid rgba(59,130,246,0.2)' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Pot Odds</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Pot Odds</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#3b82f6' }}>{calc.potOdds}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Need To Win</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Need To Win</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(239,68,68,0.08)', borderRadius: 10, textAlign: 'center', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Max Fold %</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Max Fold %</div>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#ef4444' }}>{calc.foldPct}%</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Can Fold</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Can Fold</div>
           </div>
         </div>
 
@@ -86,28 +86,28 @@ function MDFCalculator() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', height: 24, borderRadius: 6, overflow: 'hidden' }}>
             <div style={{ width: `${calc.mdf}%`, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>Defend {calc.mdf}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Defend {calc.mdf}%</span>
             </div>
             <div style={{ width: `${calc.foldPct}%`, background: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>Fold {calc.foldPct}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Fold {calc.foldPct}%</span>
             </div>
           </div>
         </div>
 
         {/* Reference table */}
         <div style={{ padding: 10, background: 'rgba(139,92,246,0.06)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#8b5cf6', marginBottom: 6 }}>Quick Reference</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', marginBottom: 6 }}>Quick Reference</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3 }}>Size</div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3, textAlign: 'center' }}>MDF</div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3, textAlign: 'center' }}>Pot Odds</div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3, textAlign: 'right' }}>Fold</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3 }}>Size</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3, textAlign: 'center' }}>MDF</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3, textAlign: 'center' }}>Pot Odds</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', padding: 3, textAlign: 'right' }}>Fold</div>
             {calc.benchmarks.map(b => (
               <React.Fragment key={b.size}>
-                <div style={{ fontSize: 10, color: '#fff', padding: 3 }}>{b.size}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8b5cf6', padding: 3, textAlign: 'center' }}>{b.mdf}%</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', padding: 3, textAlign: 'center' }}>{b.potOdds}%</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', padding: 3, textAlign: 'right' }}>{Math.round((100 - b.mdf) * 10) / 10}%</div>
+                <div style={{ fontSize: 12, color: '#fff', padding: 3 }}>{b.size}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#8b5cf6', padding: 3, textAlign: 'center' }}>{b.mdf}%</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', padding: 3, textAlign: 'center' }}>{b.potOdds}%</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', padding: 3, textAlign: 'right' }}>{Math.round((100 - b.mdf) * 10) / 10}%</div>
               </React.Fragment>
             ))}
           </div>

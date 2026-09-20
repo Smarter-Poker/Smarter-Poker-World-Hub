@@ -141,23 +141,23 @@ function ThinValueTrainer() {
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
               <div style={{ flex: 1, padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'bet' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>{spot.evBet}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Betting</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Of Betting</div>
               </div>
               <div style={{ flex: 1, padding: 10, background: 'rgba(107,114,128,0.06)', borderRadius: 8, textAlign: 'center', border: spot.correct === 'check' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#9ca3af' }}>{spot.evCheck}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Of Checking</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Of Checking</div>
               </div>
             </div>
 
             {/* Range Breakdown */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
               <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, borderLeft: '3px solid #10b981' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981' }}>Called By: </span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{spot.calledBy}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#10b981' }}>Called By: </span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{spot.calledBy}</span>
               </div>
               <div style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, borderLeft: '3px solid #ef4444' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Beaten By: </span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{spot.beatenBy}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Beaten By: </span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{spot.beatenBy}</span>
               </div>
             </div>
 

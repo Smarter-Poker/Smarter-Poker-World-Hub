@@ -9,20 +9,27 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'u
 const showcase = read('src/components/diamond-store/SmarterStoreShowcase.jsx');
 const page = read('pages/hub/diamond-store.js');
 const cards = read('src/components/store/StoreCards.js');
+const consoleControls = read('src/components/marketplace-console/MarketplaceConsole.jsx');
 const merch = read('src/components/store/MerchStore.jsx');
 const shell = read('src/components/diamond-store/DiamondStoreShell.module.css');
 
 test('announces active store navigation and complete package purchase names', () => {
-  assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
   assert.match(showcase, /import Link from 'next\/link'/);
+  assert.match(showcase, /className=\{`\$\{styles\.tab\}/);
+  assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
+  assert.match(showcase, /href=\{TAB_ROUTES\[id\]\}/);
+  assert.doesNotMatch(showcase, /MarketplaceConsoleSelectorGrid|MARKETPLACE_SELECTOR_ART/);
   assert.doesNotMatch(showcase, /target=["']_blank["']|Opens In New Tab/);
+  assert.doesNotMatch(consoleControls, /target=["']_blank["']|window\.open/);
   assert.match(showcase, /className=\{styles\.packageUnit\}>Diamonds/);
   assert.match(showcase, /Diamonds For \$\$\{Number\(pkg\.price/);
 });
 
 test('makes VIP plan selection and checkout native keyboard controls', () => {
-  assert.match(cards, /export function VIPCard[\s\S]*<button/);
+  assert.match(cards, /export function VIPCard[\s\S]*?<button/);
   assert.match(cards, /aria-pressed=\{isSelected\}/);
+  assert.match(cards, /src="\/images\/vip-card\.webp"/);
+  assert.doesNotMatch(cards, /MarketplaceConsoleVipPlanCard|<Gem[^>]*vip/i);
   assert.doesNotMatch(
     cards,
     /export function VIPCard[\s\S]*?<div\s+onClick=\{\(\) => onSelect\(plan\.id\)\}/
@@ -72,7 +79,12 @@ test('exposes rewards, club filters, fields, and status changes semantically', (
 
 test('gives merchandise cards useful structure and product-specific purchase names', () => {
   assert.match(merch, /<article[\s\S]{0,240}aria-labelledby=\{titleId\}/);
-  assert.match(merch, /<h4\s+id=\{titleId\}/);
+  // The product name is still the card's labelling heading. Its level is no
+  // longer fixed at h4: a detail page renders no category h3, so the card takes
+  // that level instead of skipping it. See
+  // __tests__/marketplace-accessibility-outline-and-targets.test.mjs.
+  assert.match(merch, /const ProductHeading = `h\$\{headingLevel\}`;/);
+  assert.match(merch, /<ProductHeading\s+id=\{titleId\}/);
   assert.match(merch, /aria-label=\{`Buy \$\{product\.name\} With Card For/);
   assert.match(
     merch,
@@ -85,7 +97,7 @@ test('gives merchandise cards useful structure and product-specific purchase nam
 test('adds a scoped metallic mobile shell without touching the global header', () => {
   assert.match(
     page,
-    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}\s*>/
+    /<UniversalHeader pageDepth=\{1\} \/>\s*<main\s+className=\{`store-redesign-content \$\{shellStyles\.root\}`\}\s+data-marketplace-route=\{TAB_ROUTES\[activeTab\]\}[\s\S]{0,120}?data-title-case-strategy="css"\s*>/
   );
   assert.match(shell, /\.root[\s\S]*?:is\([\s\S]*?\):focus-visible\s*\{/);
   assert.match(shell, /\.planRail > button\s*\{[^}]*flex:\s*0 0 min\(82vw, 320px\)/s);

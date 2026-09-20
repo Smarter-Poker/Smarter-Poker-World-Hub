@@ -110,18 +110,18 @@ export default function LifetimeStatsCard({
             {/* Pot-Type Breakdown */}
             {handHistory && handHistory.length > 0 && (
                 <div style={{ marginBottom: 12, marginTop: 12 }}>
-                    <div style={{ color: '#64748b', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, textAlign: 'center' }}>Pot-Type Accuracy</div>
+                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, textAlign: 'center' }}>Pot-Type Accuracy</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
-                            <div style={{ color: '#94a3b8', fontSize: 9 }}>SRP ({potStats.srp.count})</div>
+                            <div style={{ color: '#94a3b8', fontSize: 12 }}>SRP ({potStats.srp.count})</div>
                             <div style={{ color: srpAvg >= 80 ? '#22c55e' : srpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{srpAvg}%</div>
                         </div>
                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
-                            <div style={{ color: '#94a3b8', fontSize: 9 }}>3BP ({potStats['3bp'].count})</div>
+                            <div style={{ color: '#94a3b8', fontSize: 12 }}>3BP ({potStats['3bp'].count})</div>
                             <div style={{ color: tbpAvg >= 80 ? '#22c55e' : tbpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{tbpAvg}%</div>
                         </div>
                         <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
-                            <div style={{ color: '#94a3b8', fontSize: 9 }}>4BP+ ({potStats['4bp'].count})</div>
+                            <div style={{ color: '#94a3b8', fontSize: 12 }}>4BP+ ({potStats['4bp'].count})</div>
                             <div style={{ color: fbpAvg >= 80 ? '#22c55e' : fbpAvg >= 60 ? '#fbbf24' : '#ef4444', fontSize: 12, fontWeight: 700 }}>{fbpAvg}%</div>
                         </div>
                     </div>
@@ -157,7 +157,7 @@ const styles = {
         textTransform: 'uppercase', letterSpacing: 1,
     },
     sessionCount: {
-        fontSize: 11, color: '#64748b', fontWeight: 600,
+        fontSize: 12, color: '#64748b', fontWeight: 600,
     },
     heroScore: {
         textAlign: 'center', marginBottom: 14, padding: '10px 0',
@@ -167,8 +167,8 @@ const styles = {
         fontSize: 36, fontWeight: 800, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         lineHeight: 1,
     },
-    heroLabel: { fontSize: 11, color: '#64748b', marginTop: 4 },
-    heroBest: { fontSize: 10, color: '#475569', marginTop: 2 },
+    heroLabel: { fontSize: 12, color: '#64748b', marginTop: 4 },
+    heroBest: { fontSize: 12, color: '#475569', marginTop: 2 },
     grid: {
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 8, marginBottom: 12,
@@ -181,10 +181,10 @@ const styles = {
     statValue: {
         fontSize: 16, fontWeight: 'bold', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
-    statLabel: { fontSize: 9, color: '#64748b', fontWeight: 600, marginTop: 2 },
-    statSub: { fontSize: 8, color: '#475569', marginTop: 1 },
+    statLabel: { fontSize: 12, color: '#64748b', fontWeight: 600, marginTop: 2 },
+    statSub: { fontSize: 12, color: '#475569', marginTop: 1 },
     narrative: {
-        fontSize: 11, color: '#64748b', textAlign: 'center',
+        fontSize: 12, color: '#64748b', textAlign: 'center',
         fontStyle: 'italic', padding: '4px 0',
     },
 };

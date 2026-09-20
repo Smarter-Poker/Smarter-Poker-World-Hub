@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getNewsPreferences, updateNewsPreferences } from '../../../src/services/newsPreferences';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const MUTED_SOURCES_KEY = 'news_muted_sources';
 
@@ -141,7 +142,7 @@ export default function NewsSources() {
         <>
             <SEOHead
                 title="News Sources - Poker Media Outlets"
-                description="Browse Poker News Sources And Media Outlets Aggregated On Smarter.Poker."
+                description="Every Outlet The Smarter.Poker News Feed Reads, How Often It Checks Each One And When It Last Succeeded. Nothing Is Republished In Full: A Story Is A Headline, A Summary And A Link Back. Free To Read."
                 canonical="/hub/news/sources"
             />
 
@@ -318,6 +319,9 @@ export default function NewsSources() {
                     `}</style>
                 </div>
             </PageTransition>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="news-sources" />
         </>
     );
 }

@@ -49,7 +49,7 @@ export default function PokerPsychology() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${topic.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${topic.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? topic.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? topic.color : '#64748b' }}>
             {topic.icon} {topic.title}
           </button>
         ))}
@@ -61,15 +61,15 @@ export default function PokerPsychology() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{t.detail}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>WARNING SIGNS</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>WARNING SIGNS</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.signs}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>TOOLS & TACTICS</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>TOOLS & TACTICS</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.tools}</div>
           </div>
           <div style={{ background: `${t.color}06`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${t.color}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: t.color }}>THE SCIENCE</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: t.color }}>THE SCIENCE</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.science}</div>
           </div>
         </div>

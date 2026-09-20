@@ -1,7 +1,9 @@
 import React from 'react';
+import Link from 'next/link';
 import { parseCalendarDate, parseStopDates, pokerCalendarStart } from '../../utils/tourGeoUtils';
 import useTrackedTours from '../../hooks/useTrackedTours';
 import CasinoActionDialog from '../poker-near-me/CasinoActionDialog';
+import { tourCanonical } from '../../lib/seo/tourPageSeo';
 
 export const TOUR_COLORS = {
     'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
@@ -110,6 +112,13 @@ export default function TourCard({
         }
         void toggleTrackTour(tour.tour_code);
     };
+
+    // tour.detail_path is resolved in pages/api/poker/tours.js, where a tour
+    // held under two database codes is reduced to the one the sitemap offers.
+    // tourCanonical is the fallback for a payload that predates that field,
+    // and it is the same function the sitemap and the tour page itself use,
+    // so this href cannot drift from the URL the page is indexed at.
+    const detailHref = tour.detail_path || (tour.tour_code ? tourCanonical(tour.tour_code) : null);
 
     return (
         <>
@@ -276,7 +285,24 @@ export default function TourCard({
                     <span className="tour-card-established">Est. {tour.established}</span>
                 )}
                 <div className="tour-card-actions">
-                    <span className="tour-action-btn primary">Details</span>
+                    {/* A REAL LINK, NOT A CLICK (AEO phase 3, 2026-09-19).
+                        This card used to navigate only through the wrapper's
+                        onClick, so the server HTML carried no href and every
+                        one of the 28 tour pages was unreachable by following
+                        links. tour.detail_path is resolved in
+                        pages/api/poker/tours.js, the same place the sitemap
+                        agrees with. */}
+                    {detailHref ? (
+                        <Link
+                            href={detailHref}
+                            className="tour-action-btn primary"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            Details
+                        </Link>
+                    ) : (
+                        <span className="tour-action-btn primary">Details</span>
+                    )}
                     {(tour.official_website) && (
                         <a
                             href={safeHref(tour.official_website.startsWith('http') ? tour.official_website : 'https://' + tour.official_website)}

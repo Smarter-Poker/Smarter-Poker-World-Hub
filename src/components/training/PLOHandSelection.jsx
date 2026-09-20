@@ -49,7 +49,7 @@ export default function PLOHandSelection() {
           <button key={i} onClick={() => setTierIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: tierIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: tierIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: tierIdx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: tierIdx === i ? t.color : '#64748b' }}>
             {t.icon} {t.tier.split(' - ')[1]}
           </button>
         ))}
@@ -63,17 +63,17 @@ export default function PLOHandSelection() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
           {tier.hands.map((h, i) => (
             <span key={i} style={{ padding: '4px 8px', borderRadius: 6, background: `${tier.color}15`, border: `1px solid ${tier.color}30`,
-              fontSize: 11, fontFamily: 'monospace', color: tier.color, fontWeight: 700 }}>{h}</span>
+              fontSize: 12, fontFamily: 'monospace', color: tier.color, fontWeight: 700 }}>{h}</span>
           ))}
         </div>
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${tier.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${tier.color}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: tier.color }}>VPIP GUIDE</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tier.color }}>VPIP GUIDE</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tier.vpip}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>EV EXPECTATION</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>EV EXPECTATION</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tier.ev}</div>
           </div>
         </div>

@@ -109,7 +109,7 @@ function TableHeatmap({ positionData }) {
         y="128"
         textAnchor="middle"
         fill="rgba(255,255,255,0.15)"
-        fontSize="11"
+        fontSize='12px'
         fontWeight="700"
         style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
       >
@@ -118,7 +118,7 @@ function TableHeatmap({ positionData }) {
 
       {/* Dealer button */}
       <circle cx="230" cy="170" r="8" fill="#d4a020" stroke="#fff" strokeWidth="1" />
-      <text x="230" y="173" textAnchor="middle" fill="#1a1d24" fontSize="7" fontWeight="900">
+      <text x="230" y="173" textAnchor="middle" fill="#1a1d24" fontSize='12px' fontWeight="900">
         D
       </text>
 
@@ -156,7 +156,7 @@ function TableHeatmap({ positionData }) {
               y={seat.cy - 4}
               textAnchor="middle"
               fill="#e2e8f0"
-              fontSize="9"
+              fontSize='12px'
               fontWeight="800"
             >
               {seat.label}
@@ -167,7 +167,7 @@ function TableHeatmap({ positionData }) {
               y={seat.cy + 9}
               textAnchor="middle"
               fill={color}
-              fontSize="10"
+              fontSize='12px'
               fontWeight="900"
               style={{ fontFamily: "var(--font-orbitron), 'Orbitron', monospace" }}
             >
@@ -281,7 +281,7 @@ export default function PositionMasteryPage() {
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -325,7 +325,7 @@ export default function PositionMasteryPage() {
             </h1>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-accent-green)',
                 background: 'rgba(34,197,94,0.1)',
                 padding: '3px 8px',
@@ -366,7 +366,7 @@ export default function PositionMasteryPage() {
                   padding: '4px 12px',
                   color: 'var(--sp-accent-green)',
                   cursor: 'pointer',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                 }}
               >
@@ -424,7 +424,7 @@ export default function PositionMasteryPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -458,7 +458,7 @@ export default function PositionMasteryPage() {
                       <div
                         style={{ width: 8, height: 8, borderRadius: '50%', background: l.color }}
                       />
-                      <span style={{ fontSize: 9, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
+                      <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                         {l.label}
                       </span>
                     </div>
@@ -485,7 +485,7 @@ export default function PositionMasteryPage() {
                   <div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: 'var(--sp-accent-red)',
                         textTransform: 'uppercase',
@@ -497,7 +497,7 @@ export default function PositionMasteryPage() {
                     <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--sp-fg)', marginTop: 2 }}>
                       {weakest.name} ({positionData[weakest.id]?.accuracy || 0}%)
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 2 }}>
                       Focus Your Drills Here To Improve Fastest
                     </div>
                   </div>
@@ -533,7 +533,7 @@ export default function PositionMasteryPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -561,7 +561,7 @@ export default function PositionMasteryPage() {
                         style={{
                           width: 32,
                           textAlign: 'right',
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 800,
                           color: POSITION_COLORS[pos.id],
                         }}
@@ -591,7 +591,7 @@ export default function PositionMasteryPage() {
                       <span
                         style={{
                           width: 32,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 900,
                           fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
                           color: getAccuracyColor(acc),
@@ -657,14 +657,14 @@ export default function PositionMasteryPage() {
                           {acc > 0 ? `${acc}%` : '--'}
                         </span>
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginBottom: 4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginBottom: 4 }}>
                         {pos.desc}
                       </div>
                       <div
                         style={{
                           display: 'flex',
                           gap: 8,
-                          fontSize: 9,
+                          fontSize: 12,
                           color: 'var(--sp-fg-dim)',
                           fontWeight: 600,
                         }}
@@ -678,7 +678,7 @@ export default function PositionMasteryPage() {
                       <div
                         style={{
                           marginTop: 4,
-                          fontSize: 9,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: getAccuracyColor(acc),
                           textTransform: 'uppercase',
@@ -703,7 +703,7 @@ export default function PositionMasteryPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',

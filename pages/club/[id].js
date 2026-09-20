@@ -10,6 +10,7 @@ import { supabase } from '../../src/lib/supabase';
 import { getSafeUser } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { isPublishableStreetAddress } from '../../src/lib/poker-near-me/structuredData';
 import {
   MapPin,
   Phone,
@@ -887,7 +888,9 @@ export default function ClubPage() {
           description: venue.tagline || `Poker room in ${venue.city}, ${venue.state}`,
           address: {
             '@type': 'PostalAddress',
-            streetAddress: venue.address,
+            // A placeholder left in a venue record is not a fact about a real
+            // business; publish the locality and leave the street out.
+            streetAddress: isPublishableStreetAddress(venue.address) ? venue.address : undefined,
             addressLocality: venue.city,
             addressRegion: venue.state,
           },

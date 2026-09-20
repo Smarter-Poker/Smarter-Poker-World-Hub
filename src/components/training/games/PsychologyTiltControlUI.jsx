@@ -112,7 +112,7 @@ const styles = {
     },
 
     tiltLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         color: '#94a3b8',
         textTransform: 'uppercase',
@@ -156,7 +156,7 @@ const styles = {
     },
 
     emotionalLabel: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 600,
         color: '#94a3b8',
         textTransform: 'uppercase',

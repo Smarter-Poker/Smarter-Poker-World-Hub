@@ -26,6 +26,18 @@ import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): a title and a description, and no canonical.
+const SOLUTIONS_SCHEMA = hubCollectionSchema({
+  path: '/hub/training/solutions',
+  name: 'GTO Solutions Browser | Smarter.Poker',
+  description:
+    'Provenance-Complete PioSOLVER Flop Solutions With Audited Action Frequencies And Hand-Class Expected Values. The Baseline Every Training Drill Is Scored Against.',
+  trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Solutions', '/hub/training/solutions']],
+});
 
 const trainingFetch = createBoundedTrainingFetch(authedFetch);
 
@@ -115,7 +127,7 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
         >
           {spot.heroPosition} • {spot.board?.join(' ') || 'Preflop'}
         </div>
-        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
           {spot.stackDepth}BB • {spot.gameType}
         </div>
       </div>
@@ -166,7 +178,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
     >
       <div
         style={{
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
           color: 'var(--sp-fg-dim)',
           textTransform: 'uppercase',
@@ -208,7 +220,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
             >
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: g.color,
                 }}
@@ -218,7 +230,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
               </span>
               <span
                 style={{
-                  fontSize: 9,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   background: 'rgba(255,255,255,0.04)',
                   padding: '1px 6px',
@@ -237,7 +249,7 @@ function ClassificationSidebar({ groups, actions, lockedClassifications, onToggl
                   <span
                     key={action}
                     style={{
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: 600,
                       color: ACTION_COLORS[action] || '#888',
                       background: 'rgba(255,255,255,0.04)',
@@ -356,17 +368,17 @@ function AuditedProvenanceSeal({ spot = null }) {
     >
       <span aria-hidden="true" style={{ color: 'var(--sp-accent-green)', fontSize: 18 }}>◆</span>
       <div style={{ flex: '1 1 220px' }}>
-        <div style={{ color: 'var(--sp-fg)', fontSize: 11, fontWeight: 800, letterSpacing: 0.7 }}>
+        <div style={{ color: 'var(--sp-fg)', fontSize: 12, fontWeight: 800, letterSpacing: 0.7 }}>
           Audited PioSOLVER • Provenance-Complete V2 Only
         </div>
-        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 9, marginTop: 2 }}>
+        <div style={{ color: 'var(--sp-fg-dim)', fontSize: 12, marginTop: 2 }}>
           {spot
             ? `Validated On ${formatAuditedAt(provenance?.auditedAt)}`
             : 'Legacy, Partial, And Unverified Solver Rows Are Never Displayed.'}
         </div>
       </div>
       {spot && (
-        <div style={{ fontSize: 9, color: 'var(--sp-accent-cyan)', textAlign: 'right' }}>
+        <div style={{ fontSize: 12, color: 'var(--sp-accent-cyan)', textAlign: 'right' }}>
           <div>Solver {provenance.solverVersion} • Machine {provenance.machineId}</div>
           <div>Manifest {provenance.manifestVersion} • Pipeline {provenance.pipelineCommit.slice(0, 8)}</div>
         </div>
@@ -403,7 +415,7 @@ function AuditedStrategyReport({ spot, classificationGroups }) {
       <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 4 }}>
         Audited Strategy Report
       </div>
-      <p style={{ margin: '0 0 14px', fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--sp-fg-dim)' }}>
         Action Frequencies And Hand EVs Come From This Verified V2 Artifact. Hand Labels Are Derived Locally From The Displayed Flop.
       </p>
 
@@ -417,16 +429,16 @@ function AuditedStrategyReport({ spot, classificationGroups }) {
           ['Hand EV Coverage', evSummary ? `${evSummary.count} Classes` : 'Unavailable'],
         ].map(([label, value]) => (
           <div key={label} style={{ padding: 9, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6 }}>
-            <div style={{ fontSize: 8, color: 'var(--sp-fg-faint)', textTransform: 'uppercase', letterSpacing: 0.7 }}>{label}</div>
-            <div style={{ marginTop: 3, fontSize: 11, color: 'var(--sp-fg)', fontWeight: 700, overflowWrap: 'anywhere' }}>{value}</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', textTransform: 'uppercase', letterSpacing: 0.7 }}>{label}</div>
+            <div style={{ marginTop: 3, fontSize: 12, color: 'var(--sp-fg)', fontWeight: 700, overflowWrap: 'anywhere' }}>{value}</div>
           </div>
         ))}
       </div>
 
       {evSummary && (
         <div style={{ marginBottom: 14, padding: 10, background: 'rgba(34,197,94,0.045)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 6 }}>
-          <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>Returned Hand-Class EV Values (BB)</div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 11, fontWeight: 700 }}>
+          <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 4 }}>Returned Hand-Class EV Values (BB)</div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12, fontWeight: 700 }}>
             <span>Mean {evSummary.mean.toFixed(2)}</span>
             <span>Low {evSummary.minimum.toFixed(2)}</span>
             <span>High {evSummary.maximum.toFixed(2)}</span>
@@ -434,14 +446,14 @@ function AuditedStrategyReport({ spot, classificationGroups }) {
         </div>
       )}
 
-      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: 0.8 }}>
         Locally Derived Hand Classifications
       </div>
       {classificationGroups.length > 0 ? classificationGroups.map((group) => (
         <div key={group.classification} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <span style={{ width: 110, color: group.color, fontSize: 10, fontWeight: 700 }}>{group.label}</span>
-          <span style={{ color: 'var(--sp-fg-muted)', fontSize: 9 }}>{group.handCount} Hand Classes</span>
-          <span style={{ marginLeft: 'auto', color: 'var(--sp-fg-dim)', fontSize: 9 }}>
+          <span style={{ width: 110, color: group.color, fontSize: 12, fontWeight: 700 }}>{group.label}</span>
+          <span style={{ color: 'var(--sp-fg-muted)', fontSize: 12 }}>{group.handCount} Hand Classes</span>
+          <span style={{ marginLeft: 'auto', color: 'var(--sp-fg-dim)', fontSize: 12 }}>
             {Object.entries(group.actionSummary || {})
               .filter(([, percent]) => percent > 0)
               .sort((a, b) => b[1] - a[1])
@@ -451,7 +463,7 @@ function AuditedStrategyReport({ spot, classificationGroups }) {
           </span>
         </div>
       )) : (
-        <p style={{ color: 'var(--sp-fg-dim)', fontSize: 10 }}>No Local Classification Could Be Derived For This Audited Flop.</p>
+        <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12 }}>No Local Classification Could Be Derived For This Audited Flop.</p>
       )}
     </div>
   );
@@ -467,11 +479,16 @@ export default function SolutionsBrowser() {
 
   if (renderError) {
     return (
+      <>
       <div style={{ padding: 40, textAlign: 'center', color: '#ff4444' }}>
         <h2>Error Loading Solutions Browser</h2>
         <p>{renderError.message}</p>
         <button onClick={() => setRenderError(null)} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 20, cursor: 'pointer', marginTop: 10 }}>Retry</button>
       </div>
+      {/* A page that failed to load still says what it is, to a reader and
+          to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-solutions" />
+      </>
     );
   }
 
@@ -807,17 +824,19 @@ function SolutionsBrowserInner() {
 
   return (
     <>
-      <Head>
-        <title>GTO Solutions Browser | Smarter.Poker Training</title>
-        <meta
-          name="description"
-          content="Browse provenance-complete PioSOLVER v2 flop artifacts with audited action frequencies and hand-class EVs."
-        />
-      </Head>
+      {/* SEOHead rather than a bare next/head block: this page shipped a
+          title and a description and no canonical at all, so a crawler had
+          to guess which URL it was reading (AEO phase 3, 2026-09-17). */}
+      <SEOHead
+        title="GTO Solutions Browser"
+        description="Browse Provenance-Complete PioSOLVER Flop Solutions On Smarter.Poker, With Audited Action Frequencies And Hand-Class Expected Values. The Baseline Every Training Drill Is Scored Against. Free To Read."
+        canonical="/hub/training/solutions"
+        jsonLd={SOLUTIONS_SCHEMA}
+      />
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -861,7 +880,7 @@ function SolutionsBrowserInner() {
             </h1>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-fg-dim)',
                 background: 'rgba(255,255,255,0.04)',
                 padding: '3px 8px',
@@ -916,7 +935,7 @@ function SolutionsBrowserInner() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -935,7 +954,7 @@ function SolutionsBrowserInner() {
                   style={{
                     padding: '4px 10px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
@@ -956,7 +975,7 @@ function SolutionsBrowserInner() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -975,7 +994,7 @@ function SolutionsBrowserInner() {
                 style={{
                   padding: '4px 8px',
                   borderRadius: 6,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                   border: 'none',
@@ -997,7 +1016,7 @@ function SolutionsBrowserInner() {
                   style={{
                     padding: '4px 8px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
@@ -1014,7 +1033,7 @@ function SolutionsBrowserInner() {
             {/* Phase 17: Board Texture Filter */}
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.08)' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>This Page Texture:</span>
+              <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>This Page Texture:</span>
               {BOARD_TEXTURES.map((tex) => (
                 <button
                   key={tex}
@@ -1025,7 +1044,7 @@ function SolutionsBrowserInner() {
                   style={{
                     padding: '4px 8px',
                     borderRadius: 6,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: 'none',
@@ -1048,7 +1067,7 @@ function SolutionsBrowserInner() {
           style={{
             display: 'flex',
             flexWrap: 'wrap',
-            minHeight: 'calc(100vh - 160px)',
+            minHeight: 'calc(100dvh - 160px)',
             width: '100%',
           }}
         >
@@ -1086,7 +1105,7 @@ function SolutionsBrowserInner() {
                     ? 'The Audited Solver Catalog Is Unavailable'
                     : 'No Provenance-Complete Flop Artifacts Found'}
                 </p>
-                <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11, marginTop: 4 }}>
+                <p style={{ color: 'var(--sp-fg-faint)', fontSize: 12, marginTop: 4 }}>
                   {fetchError
                     ? 'No Legacy Or Partially Audited Row Has Been Substituted.'
                     : 'Try A Different Verified Family, Stack Depth, Or Position.'}
@@ -1112,7 +1131,7 @@ function SolutionsBrowserInner() {
                       flex: 1,
                       padding: '5px 0',
                       borderRadius: 6,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
                       border: 'none',
@@ -1134,7 +1153,7 @@ function SolutionsBrowserInner() {
                       flex: 1,
                       padding: '5px 0',
                       borderRadius: 6,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
                       border: 'none',
@@ -1154,7 +1173,7 @@ function SolutionsBrowserInner() {
                     <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, margin: 0 }}>
                       No Returned Spots Match This Page Filter
                     </p>
-                    <p style={{ color: 'var(--sp-fg-faint)', fontSize: 10, marginTop: 5 }}>
+                    <p style={{ color: 'var(--sp-fg-faint)', fontSize: 12, marginTop: 5 }}>
                       Clear The Bookmark Or Texture Filter. Use Next To Inspect Another Audited Page When Available.
                     </p>
                   </div>
@@ -1198,7 +1217,7 @@ function SolutionsBrowserInner() {
                     </button>
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                         padding: '6px 8px',
                         fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -1246,7 +1265,7 @@ function SolutionsBrowserInner() {
                 <p style={{ color: 'var(--sp-accent-red)', fontSize: 13, fontWeight: 700, margin: 0 }}>
                   Artifact Verification Failed
                 </p>
-                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>
+                <p style={{ color: 'var(--sp-fg-dim)', fontSize: 12, lineHeight: 1.5, marginTop: 8 }}>
                   {detailError}
                 </p>
                 {selectedSpot && (
@@ -1292,7 +1311,7 @@ function SolutionsBrowserInner() {
                   <line x1="9" y1="21" x2="9" y2="9" />
                 </svg>
                 <p style={{ color: 'var(--sp-fg-dim)', fontSize: 14 }}>Select An Audited Flop Artifact</p>
-                <p style={{ color: 'var(--sp-fg-faint)', fontSize: 11 }}>
+                <p style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>
                   Inspect Its 13×13 Strategy Grid, Actual Hand EVs, And Verified Provenance.
                 </p>
               </div>
@@ -1379,7 +1398,7 @@ function SolutionsBrowserInner() {
                         style={{
                           padding: '3px 10px',
                           borderRadius: 12,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
                           background: 'rgba(255,255,255,0.06)',
                           color: 'var(--sp-fg-muted)',
@@ -1420,7 +1439,7 @@ function SolutionsBrowserInner() {
                         style={{
                           padding: '6px 14px',
                           borderRadius: 8,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
                           cursor: 'pointer',
                           border: 'none',
@@ -1460,7 +1479,7 @@ function SolutionsBrowserInner() {
                             onClick={() => setColorMode(mode.key)}
                             style={{
                               padding: '4px 10px',
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: 600,
                               cursor: 'pointer',
                               border: 'none',
@@ -1538,7 +1557,7 @@ function SolutionsBrowserInner() {
                         padding: '8px 12px',
                         borderRadius: 8,
                         background: 'rgba(255,255,255,0.02)',
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                       }}
                     >
@@ -1560,6 +1579,9 @@ function SolutionsBrowserInner() {
       {fetchError && <ErrorBanner message={fetchError} onRetry={() => { setFetchError(null); fetchSpots(); }} />}
       {bookmarkError && <ErrorBanner message={bookmarkError} onRetry={() => setBookmarkError(null)} />}
       <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-solutions" />
     </>
   );
 }

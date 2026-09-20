@@ -67,7 +67,7 @@ function StatBadge({ label, value, color }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: color || '#fff' }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{label}</div>
     </div>
   );
 }
@@ -114,7 +114,7 @@ function TableCard({ table, selected, onClick }) {
         <MiniSparkline data={table.recentHands} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
         <span>Win Rate: <span style={{ color: table.winRate >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}>{table.winRate >= 0 ? '+' : ''}{table.winRate} BB/100</span></span>
         <span>{table.players} Players • {table.status}</span>
       </div>
@@ -181,7 +181,7 @@ function MultiTableTracker() {
               key={s.id}
               onClick={() => setSortBy(s.id)}
               style={{
-                padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 background: sortBy === s.id ? '#3b82f6' : 'rgba(255,255,255,0.06)',
                 color: sortBy === s.id ? '#fff' : 'rgba(255,255,255,0.6)',
                 border: 'none',
@@ -216,19 +216,19 @@ function MultiTableTracker() {
                 { label: 'Status', value: detail.status.toUpperCase() },
               ].map(s => (
                 <div key={s.label} style={{ padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>{s.label}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>{s.label}</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{s.value}</div>
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Recent Results</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Recent Results</div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {detail.recentHands.map((h, i) => {
                   const val = parseProfit(h);
                   return (
                     <span key={i} style={{
-                      padding: '3px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
+                      padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, fontFamily: 'monospace',
                       background: val >= 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
                       color: val >= 0 ? '#10b981' : '#ef4444',
                     }}>{h}</span>

@@ -69,7 +69,7 @@ function RangeVsRangeSim() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {MATCHUPS.map((m, i) => (
             <button key={i} onClick={() => switchMatchup(i)} style={{
-              padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: matchupIdx === i ? '#06b6d4' : 'rgba(255,255,255,0.06)',
               color: matchupIdx === i ? '#000' : 'rgba(255,255,255,0.5)',
             }}>{m.name}</button>
@@ -81,7 +81,7 @@ function RangeVsRangeSim() {
           {[matchup.range1, matchup.range2].map((r, i) => (
             <div key={i} style={{ padding: 10, background: `${r.color}11`, borderRadius: 8, border: `1px solid ${r.color}33` }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: r.color, marginBottom: 4 }}>{r.label}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{r.hands}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{r.hands}</div>
             </div>
           ))}
         </div>
@@ -92,7 +92,7 @@ function RangeVsRangeSim() {
             <button key={i} onClick={() => setBoardIdx(i)} style={{
               flex: 1, padding: '6px 4px', borderRadius: 6, border: 'none', cursor: 'pointer',
               background: boardIdx === i ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-              color: '#fff', fontSize: 11, fontWeight: 600,
+              color: '#fff', fontSize: 12, fontWeight: 600,
             }}>{b.texture}</button>
           ))}
         </div>
@@ -111,8 +111,8 @@ function RangeVsRangeSim() {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, color: matchup.range1.color }}>{matchup.range1.label}</span>
-            <span style={{ fontSize: 11, color: matchup.range2.color }}>{matchup.range2.label}</span>
+            <span style={{ fontSize: 12, color: matchup.range1.color }}>{matchup.range1.label}</span>
+            <span style={{ fontSize: 12, color: matchup.range2.color }}>{matchup.range2.label}</span>
           </div>
         </div>
 

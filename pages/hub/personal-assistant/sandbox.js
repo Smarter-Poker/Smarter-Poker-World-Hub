@@ -55,7 +55,7 @@ export default function VerifiedEvidenceSandboxBoundary() {
     <div className="sandbox-boundary-page">
       <PersonalAssistantCopyPolicy />
       <SEOHead
-        title="Scenario Analysis · Verified Evidence Required"
+        title="Scenario Analysis: Verified Evidence"
         description="Approximate scenario grading is retired. Continue in an evidence-backed Smarter.Poker Training experience."
         canonical="/hub/personal-assistant/sandbox"
       />

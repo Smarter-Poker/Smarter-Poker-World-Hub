@@ -50,7 +50,7 @@ export default function HandCombinatorics() {
             style={{ padding: '8px 4px', borderRadius: 8, border: topicIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: topicIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{t.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: topicIdx === i ? t.color : '#64748b' }}>{t.topic.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: topicIdx === i ? t.color : '#64748b' }}>{t.topic.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -62,20 +62,20 @@ export default function HandCombinatorics() {
           <span style={{ fontSize: 16, fontWeight: 800, color: topic.color }}>{topic.topic}</span>
         </div>
         <div style={{ background: `${topic.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Base Combos</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Base Combos</div>
           <div style={{ fontSize: 12, color: topic.color }}>{topic.combos}</div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>On A Board</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>On A Board</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{topic.onBoard}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Why It Matters</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Why It Matters</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{topic.why}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Practice Exercise</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Practice Exercise</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{topic.exercise}</div>
           </div>
         </div>

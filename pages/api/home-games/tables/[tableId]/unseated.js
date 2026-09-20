@@ -27,7 +27,7 @@
  * is not readable by ordinary members.
  */
 import { bridgeRequest, mapRpcError, LIMITS } from '../../../../../src/lib/home-games/rpcBridge';
-import { reportApiError } from '../../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../../src/lib/apiErrorHandler';
 
 export default async function handler(req, res) {
   try {

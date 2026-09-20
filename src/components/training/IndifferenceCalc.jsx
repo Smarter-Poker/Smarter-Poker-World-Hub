@@ -45,7 +45,7 @@ export default function IndifferenceCalc() {
             style={{ padding: '8px 4px', borderRadius: 8, border: spotIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: spotIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.bet}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.bet}</div>
           </button>
         ))}
       </div>
@@ -55,22 +55,22 @@ export default function IndifferenceCalc() {
         <div style={{ fontSize: 16, fontWeight: 800, color: spot.color, marginBottom: 8 }}>Bet: {spot.bet}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 10 }}>
           <div style={{ background: 'rgba(34,197,94,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Villain Must Defend</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Villain Must Defend</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#22c55e' }}>{spot.mdf}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Your Bluff Frequency</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Your Bluff Frequency</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>{spot.bluffFreq}</div>
           </div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{spot.explain}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${spot.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Implication</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>Implication</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.implication}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Practical Use</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Practical Use</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.practical}</div>
           </div>
         </div>

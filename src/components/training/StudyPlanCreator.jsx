@@ -50,7 +50,7 @@ export default function StudyPlanCreator() {
             style={{ padding: '8px 4px', borderRadius: 8, border: planIdx === i ? `2px solid ${p.color}` : '1px solid rgba(255,255,255,0.06)',
               background: planIdx === i ? `${p.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{p.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: planIdx === i ? p.color : '#64748b' }}>{p.level.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: planIdx === i ? p.color : '#64748b' }}>{p.level.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -63,11 +63,11 @@ export default function StudyPlanCreator() {
             <span style={{ fontSize: 15, fontWeight: 800, color: plan.color }}>{plan.level}</span>
           </div>
           <div style={{ background: `${plan.color}20`, borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: plan.color }}>{plan.weeklyHours}/Wk</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: plan.color }}>{plan.weeklyHours}/Wk</span>
           </div>
         </div>
         <div style={{ background: `${plan.color}08`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: plan.color, marginBottom: 4 }}>Focus Areas</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: plan.color, marginBottom: 4 }}>Focus Areas</div>
           {plan.focus.map((f, i) => (
             <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0', borderBottom: i < plan.focus.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
               {i + 1}. {f}
@@ -76,11 +76,11 @@ export default function StudyPlanCreator() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Play:Study Ratio</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Play:Study Ratio</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{plan.ratio}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Milestone</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Milestone</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{plan.milestone}</div>
           </div>
         </div>

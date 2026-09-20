@@ -97,10 +97,10 @@ function StackDepthStrategyGuide() {
               flex: 1, padding: '10px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: selected === i ? d.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 11, fontWeight: 700, textAlign: 'center',
+              fontSize: 12, fontWeight: 700, textAlign: 'center',
             }}>
               <div>{d.label}</div>
-              <div style={{ fontSize: 9, opacity: 0.8, marginTop: 2 }}>{d.range}</div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>{d.range}</div>
             </button>
           ))}
         </div>
@@ -119,15 +119,15 @@ function StackDepthStrategyGuide() {
         {/* Strategy sections */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', marginBottom: 6 }}>Preflop</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', marginBottom: 6 }}>Preflop</div>
             {depth.preflop.map((p, i) => (
-              <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, paddingLeft: 8, borderLeft: '2px solid rgba(59,130,246,0.2)', marginBottom: 4 }}>{p}</div>
+              <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, paddingLeft: 8, borderLeft: '2px solid rgba(59,130,246,0.2)', marginBottom: 4 }}>{p}</div>
             ))}
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>Postflop</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>Postflop</div>
             {depth.postflop.map((p, i) => (
-              <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, paddingLeft: 8, borderLeft: '2px solid rgba(16,185,129,0.2)', marginBottom: 4 }}>{p}</div>
+              <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, paddingLeft: 8, borderLeft: '2px solid rgba(16,185,129,0.2)', marginBottom: 4 }}>{p}</div>
             ))}
           </div>
         </div>
@@ -135,11 +135,11 @@ function StackDepthStrategyGuide() {
         {/* Key hands & tip */}
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1, padding: 10, background: `${depth.color}09`, borderRadius: 8, border: `1px solid ${depth.color}22` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: depth.color, marginBottom: 4 }}>Key Hands</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: depth.color, marginBottom: 4 }}>Key Hands</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{depth.keyHands}</div>
           </div>
           <div style={{ flex: 1, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Pro Tip</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Pro Tip</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{depth.tip}</div>
           </div>
         </div>

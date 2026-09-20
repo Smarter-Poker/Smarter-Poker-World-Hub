@@ -44,37 +44,70 @@ test('the three plans are actually RENDERED, not merely imported', () => {
 test('the subscribe control exists and is wired to the handler', () => {
   assert.match(STORE, /onClick=\{handleVIPSubscribe\}/, 'no control calls handleVIPSubscribe');
   assert.match(STORE, /subscribe-button\.webp/, 'the subscribe button artwork is not rendered');
-  assert.match(STORE, /\{isProcessing \? 'Processing\.\.\.' : vipSubscribeLabel\}/,
-    'the plan-aware caption must render — the button image is a static $19.99/month picture');
+  assert.match(
+    STORE,
+    /\{isProcessing \? 'Processing\.\.\.' : vipSubscribeLabel\}/,
+    'the plan-aware caption must render — the button image is a static $19.99/month picture'
+  );
 });
 
 test('handleVIPSubscribe exposes card subscriptions and gates Lifetime to its atomic Diamond path', () => {
   assert.match(STORE, /const handleVIPSubscribe = async/);
   assert.match(STORE, /await startStripeCheckout\(plan\)/, 'card plans must reach Stripe');
   assert.match(STORE, /runDiamondPlanPurchase/, 'the diamond plan path must be reachable');
-  assert.match(DATA, /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*false/,
-    'lifetime must stay Diamond-only until its complete card refund/provenance lifecycle is published');
-  assert.match(PUBLIC_CATALOG, /id:\s*'vip-monthly',[\s\S]*?cardCheckoutReady:\s*true/,
-    'the public catalog must explicitly advertise the live monthly Card path');
-  assert.match(PUBLIC_CATALOG, /id:\s*'vip-yearly',[\s\S]*?cardCheckoutReady:\s*true/,
-    'the public catalog must explicitly advertise the live yearly Card path');
-  assert.match(PUBLIC_CATALOG, /id:\s*'vip-lifetime',[\s\S]*?cardCheckoutReady:\s*false/,
-    'the public catalog must not advertise the paused Lifetime Card path');
-  assert.match(CHECKOUT, /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/,
-    'the server must mirror the storefront capability gate');
-  assert.match(STORE, /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,
-    'the dormant browser card path must remain one-time rather than recurring');
-  assert.match(CHECKOUT, /type === 'vip_lifetime'/,
-    'the server must retain the one-time lifetime recovery implementation behind the gate');
-  assert.match(WEBHOOK, /metadata\?\.type === 'vip_lifetime'/,
-    'the webhook must remain able to settle any already-created lifetime checkout');
+  assert.match(
+    DATA,
+    /lifetime:\s*\{[\s\S]*?oneTime:\s*true,[\s\S]*?cardCheckoutReady:\s*false/,
+    'lifetime must stay Diamond-only until its complete card refund/provenance lifecycle is published'
+  );
+  assert.match(
+    PUBLIC_CATALOG,
+    /id:\s*'vip-monthly',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must explicitly advertise the live monthly Card path'
+  );
+  assert.match(
+    PUBLIC_CATALOG,
+    /id:\s*'vip-yearly',[\s\S]*?cardCheckoutReady:\s*true/,
+    'the public catalog must explicitly advertise the live yearly Card path'
+  );
+  assert.match(
+    PUBLIC_CATALOG,
+    /id:\s*'vip-lifetime',[\s\S]*?cardCheckoutReady:\s*false/,
+    'the public catalog must not advertise the paused Lifetime Card path'
+  );
+  assert.match(
+    CHECKOUT,
+    /code: 'LIFETIME_CARD_CHECKOUT_PAUSED'/,
+    'the server must mirror the storefront capability gate'
+  );
+  assert.match(
+    STORE,
+    /const checkoutType = plan\.oneTime \? 'vip_lifetime' : 'subscription'/,
+    'the dormant browser card path must remain one-time rather than recurring'
+  );
+  assert.match(
+    CHECKOUT,
+    /type === 'vip_lifetime'/,
+    'the server must retain the one-time lifetime recovery implementation behind the gate'
+  );
+  assert.match(
+    WEBHOOK,
+    /metadata\?\.type === 'vip_lifetime'/,
+    'the webhook must remain able to settle any already-created lifetime checkout'
+  );
 });
 
 test('paying for a membership in diamonds is offered and correctly wired', () => {
-  assert.match(STORE, /\/api\/store\/purchase-vip-with-diamonds/,
-    'the diamond-purchase endpoint exists server-side and must be called');
-  assert.match(STORE, /'x-idempotency-key': idempotencyKey/,
-    'a money path must send the idempotency key the API accepts');
+  assert.match(
+    STORE,
+    /\/api\/store\/purchase-vip-with-diamonds/,
+    'the diamond-purchase endpoint exists server-side and must be called'
+  );
+  assert.match(
+    STORE,
+    /'x-idempotency-key': durableRequestId/,
+    'a money path must send the idempotency key the API accepts'
+  );
   assert.match(STORE, /Pay With Diamonds Instead/, 'the option must be visible to the member');
   // The FAQ promises this. If the button goes, the promise becomes false again.
   // The wording moved on 2026-09-05 when the Daily Pass left the same sentence
@@ -87,8 +120,11 @@ test('the diamond cost shown matches the server formula (100 per dollar)', () =>
   const usd = DATA.match(/monthly:\s*\{[\s\S]*?price:\s*([\d.]+)/);
   assert.ok(usd, 'monthly price not found in the catalog');
   assert.equal(Math.round(Number(usd[1]) * 100), 1999, 'monthly must derive to 1,999 diamonds');
-  assert.match(STORE, /Math\.round\(Number\(selectedVIPPlan\.price\) \* 100\)/,
-    'the client must derive the cost the same way the server does, from the same price');
+  assert.match(
+    STORE,
+    /Math\.round\(Number\(selectedVIPPlan\.price\) \* 100\)/,
+    'the client must derive the cost the same way the server does, from the same price'
+  );
 });
 
 test('an existing member is told so before being invited to pay again', () => {
@@ -98,12 +134,16 @@ test('an existing member is told so before being invited to pay again', () => {
 });
 
 test('no native confirm() on a path that spends diamonds', () => {
-  const vipRegion = STORE.slice(0, STORE.indexOf('activeTab === \'club-shop\''));
+  const vipRegion = STORE.slice(0, STORE.indexOf("activeTab === 'club-shop'"));
   assert.ok(
     !/if \(confirm\(/.test(vipRegion),
     'window.confirm blocks the tab and is easy to miss in an installed PWA; use the in-page dialog'
   );
-  assert.match(STORE, /role="dialog"[\s\S]{0,200}aria-modal="true"/, 'the replacement dialog must exist');
+  assert.match(
+    STORE,
+    /role="dialog"[\s\S]{0,200}aria-modal="true"/,
+    'the replacement dialog must exist'
+  );
 });
 
 test('the obsolete image maps are gone and store actions use native buttons', () => {

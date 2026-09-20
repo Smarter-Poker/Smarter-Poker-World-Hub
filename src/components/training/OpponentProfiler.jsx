@@ -110,8 +110,8 @@ const ARCHETYPES = {
 const StatBar = memo(({ label, value, max = 60, color, description }) => (
     <div style={{ marginBottom: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, color: '#94a3b8' }} title={description}>{label}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }} title={description}>{label}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 {value}%
             </span>
         </div>
@@ -151,7 +151,7 @@ const ProfileCard = memo(({ archetype, isSelected, onClick }) => {
                 <span style={{ fontSize: 20 }}>{a.icon}</span>
                 <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: a.color }}>{a.fullName}</div>
-                    <div style={{ fontSize: 9, color: '#64748b' }}>{a.label}</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>{a.label}</div>
                 </div>
             </div>
 
@@ -164,7 +164,7 @@ const ProfileCard = memo(({ archetype, isSelected, onClick }) => {
                 <StatBar label="WTSD" value={a.stats.wtsd} max={45} color={a.color} description="Went to Showdown %" />
             </div>
 
-            <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5, fontStyle: 'italic' }}>
+            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, fontStyle: 'italic' }}>
                 {a.description}
             </div>
         </motion.div>
@@ -184,7 +184,7 @@ const AdjustmentsPanel = memo(({ archetype }) => {
             border: `1px solid ${a.color}15`,
         }}>
             <div style={{
-                fontSize: 11, fontWeight: 700, color: a.color, marginBottom: 8,
+                fontSize: 12, fontWeight: 700, color: a.color, marginBottom: 8,
                 textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
                 Exploitative Adjustments Vs {a.fullName}
@@ -197,11 +197,11 @@ const AdjustmentsPanel = memo(({ archetype }) => {
                         width: 16, height: 16, borderRadius: '50%',
                         background: `${a.color}15`, border: `1px solid ${a.color}22`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 8, fontWeight: 700, color: a.color, flexShrink: 0,
+                        fontSize: 12, fontWeight: 700, color: a.color, flexShrink: 0,
                     }}>
                         {i + 1}
                     </div>
-                    <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
                         {adj}
                     </div>
                 </div>
@@ -222,15 +222,15 @@ const StatComparisonTable = memo(({ selectedTypes }) => {
             background: 'rgba(0,0,0,0.15)',
             border: '1px solid rgba(100,116,139,0.08)',
         }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase' }}>
                 Stat Comparison
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: `80px repeat(${selectedTypes.length}, 1fr)`, gap: 4 }}>
                 {/* Header */}
-                <div style={{ fontSize: 8, color: '#475569', fontWeight: 600 }}>Stat</div>
+                <div style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>Stat</div>
                 {selectedTypes.map(t => (
                     <div key={t} style={{
-                        fontSize: 8, fontWeight: 700, color: ARCHETYPES[t].color,
+                        fontSize: 12, fontWeight: 700, color: ARCHETYPES[t].color,
                         textAlign: 'center',
                     }}>
                         {ARCHETYPES[t].label}
@@ -239,10 +239,10 @@ const StatComparisonTable = memo(({ selectedTypes }) => {
                 {/* Rows */}
                 {stats.map(s => (
                     <React.Fragment key={s}>
-                        <div style={{ fontSize: 9, color: '#94a3b8', fontWeight: 600 }}>{labels[s]}</div>
+                        <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{labels[s]}</div>
                         {selectedTypes.map(t => (
                             <div key={t} style={{
-                                fontSize: 11, fontWeight: 700, textAlign: 'center',
+                                fontSize: 12, fontWeight: 700, textAlign: 'center',
                                 color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                             }}>
                                 {ARCHETYPES[t].stats[s]}%
@@ -290,7 +290,7 @@ export default function OpponentProfiler() {
                 <button
                     onClick={() => setCompareMode(!compareMode)}
                     style={{
-                        padding: '3px 10px', fontSize: 10, fontWeight: 600,
+                        padding: '3px 10px', fontSize: 12, fontWeight: 600,
                         borderRadius: 4, border: '1px solid',
                         cursor: 'pointer',
                         background: compareMode ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -313,7 +313,7 @@ export default function OpponentProfiler() {
                         key={key}
                         onClick={() => compareMode ? toggleCompareType(key) : setSelectedType(key)}
                         style={{
-                            padding: '4px 10px', fontSize: 10, fontWeight: 600,
+                            padding: '4px 10px', fontSize: 12, fontWeight: 600,
                             borderRadius: 5, border: '1px solid',
                             cursor: 'pointer',
                             background: (compareMode ? compareTypes.includes(key) : selectedType === key)

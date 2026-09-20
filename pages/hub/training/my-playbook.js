@@ -178,7 +178,7 @@ export default function MyPlaybookPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -218,7 +218,7 @@ export default function MyPlaybookPage() {
             <div>
               {/* TRAIN-PLAYBOOK-A11Y-1: semantic h1 */}
               <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>My Playbook</h1>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} Plays Saved</div>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }} role="status" aria-label={`${plays.length} plays saved`}>{plays.length} Plays Saved</div>
             </div>
           </div>
           {view === 'list' && (
@@ -280,7 +280,7 @@ export default function MyPlaybookPage() {
                 <label
                   style={{
                     display: 'block',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',
@@ -311,7 +311,7 @@ export default function MyPlaybookPage() {
                   <label
                     style={{
                       display: 'block',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-muted)',
                       textTransform: 'uppercase',
@@ -340,7 +340,7 @@ export default function MyPlaybookPage() {
                   <label
                     style={{
                       display: 'block',
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-muted)',
                       textTransform: 'uppercase',
@@ -371,7 +371,7 @@ export default function MyPlaybookPage() {
                 <label
                   style={{
                     display: 'block',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',
@@ -403,7 +403,7 @@ export default function MyPlaybookPage() {
                 <label
                   style={{
                     display: 'block',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-muted)',
                     textTransform: 'uppercase',

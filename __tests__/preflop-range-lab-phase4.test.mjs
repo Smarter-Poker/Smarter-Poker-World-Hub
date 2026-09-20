@@ -70,7 +70,7 @@ test('submission, timeout, persistence, and adaptive launch regressions stay rep
     assert.doesNotMatch(PAGE, /questionsCorrect: result\.correctHands \|\| 0/);
     assert.match(PAGE, /LOCAL PRACTICE AUTHORITY BOUNDARY/);
     assert.doesNotMatch(PAGE, /(?:recordSession|checkAndUnlock|updateLeaderboard|completeChallenge|processGameResult)\s*\(/);
-    assert.match(PAGE, /if \(!user\?\.id && economyReady\) DiamondEngine\.award\(totalReward\)/);
+    assert.match(PAGE, /if \(!user\?\.id && economyReady\)\s*DiamondEngine\.award\(totalReward\)/);
     assert.match(PAGE, /setMode\('game'\)/);
     assert.doesNotMatch(PAGE, /setGameState\(/);
     assert.doesNotMatch(PAGE, /setUserId\(user\.id\)|setEloRank|setGamesPlayed|correctHands\?\.length/);

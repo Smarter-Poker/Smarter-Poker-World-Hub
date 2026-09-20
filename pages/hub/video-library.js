@@ -7,6 +7,17 @@ import { Component, useState, useEffect, useRef, useCallback, useMemo } from 're
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
+
+// AEO phase 3 (2026-09-17).
+const VIDEO_LIBRARY_SCHEMA = hubProductSchema({
+    path: '/hub/video-library',
+    name: 'Smarter.Poker Video Library',
+    description:
+        'A Curated Poker Video Library: Strategy Content, Tournament Coverage And Training Videos, With Watch History And AI Tactical Analysis. Free To Watch.',
+    trail: [['Hub', '/hub'], ['Video Library', '/hub/video-library']],
+});
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { getVideoPlaylists, createPlaylist, addVideoToPlaylist, removeVideoFromPlaylist } from '../../src/services/videoPlaylists';
@@ -27,7 +38,14 @@ import { updateWatchDuration, flushWatchDuration, getWatchedVideos, getWatchProg
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
-const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
+// DISCOVERABILITY PHASE 7 (2026-09-19). This was dynamic(..., { ssr: false })
+// and the whole page body sits inside it, so the server rendered the head and
+// nothing else: a crawler got 106 words and not one video title, even though
+// `videos` is seeded from STATIC_CATALOG and needs no fetch to render. An
+// earlier fix pulled SEOHead out of this wrapper for the same reason, which
+// treated the symptom without naming the cause. PageTransition is a
+// framer-motion div that touches no browser API during render.
+import PageTransition from '../../src/components/transitions/PageTransition';
 // ReelsViewer is dynamically loaded to reduce initial bundle size
 const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
 import { findBestGames } from '../../src/utils/videoToTrainingMapper';
@@ -1583,13 +1601,23 @@ export default function VideoLibraryPage() {
         : 0;
 
     return (
-        <PageTransition>
-            
+        <>
+            {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
+                PageTransition is dynamic(..., { ssr: false }), so a head that
+                sits inside it never reaches the server HTML. This page shipped
+                no title, no description and no canonical to any crawler, while
+                sitting in the sitemap at priority 0.8. */}
             <SEOHead
-                title="Poker Video Library - Watch & Learn"
-                description="Curated Poker Video Library With Strategy Content, Tournament Coverage, And Training Videos. Track Your Watch History And Get AI Tactical Analysis."
+                title="Poker Video Library: Strategy And Coverage"
+                description="A Curated Poker Video Library On Smarter.Poker: Strategy Content, Tournament Coverage And Training Videos, With Watch History And AI Tactical Analysis. Free To Watch."
                 canonical="/hub/video-library"
+                jsonLd={VIDEO_LIBRARY_SCHEMA}
             />
+
+        {/* disableInitialAnimation: the entrance variant starts at opacity 0,
+            and text that arrives invisible and waits for JavaScript is the
+            wrong thing to serve a crawler or a slow connection. */}
+        <PageTransition disableInitialAnimation>
 
             <div className="video-library-page" style={{
                 minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
@@ -1626,7 +1654,7 @@ export default function VideoLibraryPage() {
                         sortMode={sortMode}
                         libraryViews={LIBRARY_VIEW_OPTIONS}
                         personalViewCounts={personalViewCounts}
-                        visibleCount={catalogLoading ? 0 : videos.length}
+                        visibleCount={videos.length}
                         onBrowse={selectBrowseView}
                         onLibrary={selectPersonalView}
                         onSort={(nextSortMode, button) => {
@@ -2100,7 +2128,16 @@ export default function VideoLibraryPage() {
                             <span className="vl-skeleton-line" />
                         </div>
                     ))}
-                    {!catalogLoading && videos.map((video, index) => {
+                    {/* `videos` is seeded from STATIC_CATALOG - 161 titles that
+                        need no request - and the comment on that import says it
+                        exists to be shown "until DB fetch resolves". The
+                        `!catalogLoading` gate meant it never was: every first
+                        paint, and every server render, showed six skeletons
+                        instead of the catalogue it already had, which is why a
+                        crawler read 106 words on a page of 161 videos. The
+                        skeleton branch just above still covers the only case
+                        that needs it - loading with nothing to show yet. */}
+                    {videos.map((video, index) => {
                         const progress = getProgressPercent(video.id, video.duration);
                         const roundedProgress = Math.round(progress);
                         const openLabel = progress > 0 && progress < 95 ? 'Resume' : 'Play';
@@ -3235,5 +3272,12 @@ export default function VideoLibraryPage() {
             `}</style>
 
         </PageTransition>
+        {/* Outside <PageTransition> for the same reason the head is, and
+            AFTER it so the app still opens at the top of the page: this is the
+            only body copy a crawler that runs no JavaScript ever sees here. */}
+        {/* as="h1" while the body did not server-render and this was the only
+            heading a crawler saw. The body renders now and brings its own. */}
+        <HubPageSummary page="video-library" />
+        </>
     );
 }

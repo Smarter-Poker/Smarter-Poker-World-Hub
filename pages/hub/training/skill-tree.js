@@ -329,7 +329,7 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
           >
             {node.name}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 1 }}>
+          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 1 }}>
             {isLocked
               ? 'Locked - complete prerequisite'
               : isMastered
@@ -356,7 +356,7 @@ function SkillNode({ node, nodeStatus, branchColor, onTap }) {
             >
               {accuracy !== null ? `${accuracy}%` : '-'}
             </div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
               {hands} Verified {hands === 1 ? 'Hand' : 'Hands'}
             </div>
           </>
@@ -441,7 +441,7 @@ export default function SkillTreePage() {
       <div
         className="sp-training-journey sp-training-journey--skill-tree"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -497,7 +497,7 @@ export default function SkillTreePage() {
           <div style={{ flex: 1 }}>
             {/* TRAIN-SKILL-TREE-A11Y-1: page heading uses semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Skill Tree</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Mastery From Sealed Training Sessions
             </div>
           </div>
@@ -519,7 +519,7 @@ export default function SkillTreePage() {
             <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-amber)', fontVariantNumeric: 'tabular-nums' }}>
               {stats ? `${masteredCount}/${totalNodes}` : '\u2014'}
             </span>
-            <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>
+            <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginLeft: 4 }}>
               Verified Mastery
             </span>
           </div>
@@ -551,7 +551,7 @@ export default function SkillTreePage() {
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--sp-fg-dim)',
                   textTransform: 'uppercase',
@@ -639,7 +639,7 @@ export default function SkillTreePage() {
                   <div
                     style={{
                       marginLeft: 'auto',
-                      fontSize: 10,
+                      fontSize: 12,
                       color: 'var(--sp-fg-faint)',
                     }}
                   >

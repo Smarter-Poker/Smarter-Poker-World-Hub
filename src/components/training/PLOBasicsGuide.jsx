@@ -44,7 +44,7 @@ export default function PLOBasicsGuide() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.title}
           </button>
         ))}
@@ -55,11 +55,11 @@ export default function PLOBasicsGuide() {
         <div style={{ fontSize: 16, fontWeight: 800, color: b.color, marginBottom: 8 }}>{b.icon} {b.title}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{b.detail}</p>
         <div style={{ background: `${b.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace', borderLeft: `3px solid ${b.color}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: b.color }}>EXAMPLES</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: b.color }}>EXAMPLES</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.examples}</div>
         </div>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{b.tip}</div>
         </div>
       </motion.div>

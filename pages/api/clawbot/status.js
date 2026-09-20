@@ -1,4 +1,4 @@
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 /**
  * ClawBot Status Dashboard API
  * 
@@ -23,7 +23,6 @@ import {
 
 // Task metadata for display
 const TASK_CATALOG = [
-  { id: TASK_IDS.SENTRY_TRIAGE, name: 'Sentry Error Triage', domain: 'Operations', enabled: true },
   { id: TASK_IDS.CRON_HEALTH, name: 'Cron Job Health', domain: 'Operations', enabled: false },
   { id: TASK_IDS.DEPLOY_HEALTH, name: 'Deploy Health Monitor', domain: 'Operations', enabled: false },
   { id: TASK_IDS.DB_PERFORMANCE, name: 'DB Performance Watchdog', domain: 'Data Quality', enabled: false },
@@ -98,7 +97,7 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[ClawBot Status] Error:', err.message);
     return res.status(500).json({
       success: false,

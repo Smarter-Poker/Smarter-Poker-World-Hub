@@ -218,7 +218,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
     <div ref={ref} style={{ position: 'relative' }}>
       <label
         style={{
-          fontSize: 9,
+          fontSize: 12,
           color: 'var(--sp-fg-dim)',
           fontWeight: 700,
           textTransform: 'uppercase',
@@ -255,7 +255,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
           <>
             <Card rank={rank} suit={suit} size="small" />
             <span
-              style={{ position: 'absolute', top: 2, right: 5, fontSize: 10, color: 'var(--sp-fg-dim)' }}
+              style={{ position: 'absolute', top: 2, right: 5, fontSize: 12, color: 'var(--sp-fg-dim)' }}
             >
               ✕
             </span>
@@ -276,7 +276,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
             border: '1px solid rgba(255,255,255,0.07)',
             background: 'none',
             color: 'var(--sp-fg-faint)',
-            fontSize: 9,
+            fontSize: 12,
             cursor: 'pointer',
             fontWeight: 700,
           }}
@@ -307,7 +307,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
           >
             <div
               style={{
-                fontSize: 9,
+                fontSize: 12,
                 color: 'var(--sp-fg-dim)',
                 fontWeight: 700,
                 marginBottom: 6,
@@ -379,7 +379,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'none',
                     color: 'var(--sp-fg-muted)',
-                    fontSize: 11,
+                    fontSize: 12,
                     cursor: 'pointer',
                   }}
                 >
@@ -398,7 +398,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
                   border: '1px solid rgba(255,255,255,0.08)',
                   background: 'none',
                   color: 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   cursor: 'pointer',
                 }}
               >
@@ -486,7 +486,7 @@ export default function HandComparison() {
     : null;
 
   const container = {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
     color: 'var(--sp-fg)',
     fontFamily: "'Inter', sans-serif",
@@ -537,7 +537,7 @@ export default function HandComparison() {
                   borderRadius: 8,
                   color: 'var(--sp-accent-red)',
                   padding: '4px 12px',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
@@ -578,7 +578,7 @@ export default function HandComparison() {
               >
                 HAND COMPARISON
               </h1>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 600 }}>
                 A/B Equity Analysis · Best-5-From-7 · Monte Carlo
               </p>
             </div>
@@ -689,7 +689,7 @@ export default function HandComparison() {
               }}
             >
               BOARD{' '}
-              <span style={{ color: 'var(--sp-fg-faint)', fontWeight: 600, fontSize: 10 }}>
+              <span style={{ color: 'var(--sp-fg-faint)', fontWeight: 600, fontSize: 12 }}>
                 (Min 3 For Flop)
               </span>
             </div>
@@ -810,7 +810,7 @@ export default function HandComparison() {
                       >
                         <span
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 800,
                             color: row.color,
                             fontFamily: "var(--font-orbitron), 'Orbitron', monospace",
@@ -819,7 +819,7 @@ export default function HandComparison() {
                           {row.label}
                         </span>
                         <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                          <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
+                          <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)', fontWeight: 700 }}>
                             {row.cat}
                           </span>
                           <span
@@ -888,7 +888,7 @@ export default function HandComparison() {
                         </div>
                         <div
                           style={{
-                            fontSize: 9,
+                            fontSize: 12,
                             color: 'var(--sp-fg-faint)',
                             fontWeight: 700,
                             textTransform: 'uppercase',
@@ -927,7 +927,7 @@ export default function HandComparison() {
                     background: 'rgba(255,255,255,0.02)',
                     borderRadius: 10,
                     border: '1px solid rgba(255,255,255,0.05)',
-                    fontSize: 11,
+                    fontSize: 12,
                     color: 'var(--sp-fg-dim)',
                     lineHeight: 1.6,
                   }}

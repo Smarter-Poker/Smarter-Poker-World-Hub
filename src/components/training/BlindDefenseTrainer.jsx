@@ -98,9 +98,9 @@ function BlindDefenseTrainer() {
           <>
             {/* BB Defense Breakdown */}
             <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
-              <div style={{ width: `${data.bb3bet.pct}%`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>3B {data.bb3bet.pct}%</div>
-              <div style={{ width: `${data.bbCall.pct}%`, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Call {data.bbCall.pct}%</div>
-              <div style={{ width: `${data.bbFold.pct}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Fold {data.bbFold.pct}%</div>
+              <div style={{ width: `${data.bb3bet.pct}%`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>3B {data.bb3bet.pct}%</div>
+              <div style={{ width: `${data.bbCall.pct}%`, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Call {data.bbCall.pct}%</div>
+              <div style={{ width: `${data.bbFold.pct}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Fold {data.bbFold.pct}%</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -114,7 +114,7 @@ function BlindDefenseTrainer() {
                     <span style={{ fontSize: 13, fontWeight: 700, color: item.color }}>{item.label}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: item.color }}>{item.data.pct}%</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{item.data.hands}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{item.data.hands}</div>
                 </div>
               ))}
             </div>
@@ -125,17 +125,17 @@ function BlindDefenseTrainer() {
             {data.sb3bet.pct > 0 ? (
               <>
                 <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
-                  <div style={{ width: `${data.sb3bet.pct}%`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>3B {data.sb3bet.pct}%</div>
-                  <div style={{ width: `${data.sbFold.pct}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>Fold {data.sbFold.pct}%</div>
+                  <div style={{ width: `${data.sb3bet.pct}%`, background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>3B {data.sb3bet.pct}%</div>
+                  <div style={{ width: `${data.sbFold.pct}%`, background: '#4b5563', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Fold {data.sbFold.pct}%</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                   <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: '4px solid #ef4444' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>SB 3-Bet ({data.sb3bet.pct}%)</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{data.sb3bet.hands}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{data.sb3bet.hands}</div>
                   </div>
                   <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: '4px solid #6b7280' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', marginBottom: 4 }}>SB Fold ({data.sbFold.pct}%)</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{data.sbFold.hands}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{data.sbFold.hands}</div>
                   </div>
                 </div>
               </>
@@ -149,7 +149,7 @@ function BlindDefenseTrainer() {
 
         {/* Notes */}
         <div style={{ padding: 10, background: 'rgba(244,114,182,0.06)', borderRadius: 8, border: '1px solid rgba(244,114,182,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f472b6', marginBottom: 4 }}>Key Concept</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f472b6', marginBottom: 4 }}>Key Concept</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{data.notes}</div>
         </div>
       </div>

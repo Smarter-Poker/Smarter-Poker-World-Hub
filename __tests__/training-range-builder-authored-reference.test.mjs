@@ -70,7 +70,7 @@ function loadRoute({ authUser = { id: 'user-1' } } = {}) {
       RFI: referenceByPosition,
       getHandFrequencies: (spot, hand) => ({ raise: spot?.[hand]?.raise || 0, call: 0 }),
     },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
   });
 }
 

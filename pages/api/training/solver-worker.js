@@ -1,7 +1,7 @@
 import { TextDecoder } from 'node:util';
 
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { parseSolverScenarioHash, SOLVER_POSITIONS } from '../../../src/lib/training/solverRowIdentity.mjs';
 import {

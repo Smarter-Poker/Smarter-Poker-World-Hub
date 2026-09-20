@@ -37,7 +37,7 @@ export default function RangeAdvantageGuide() {
     const color = who === 'PFR' ? '#3b82f6' : who === 'Caller' ? '#ef4444' : '#64748b';
     return (
       <div style={{ background: `${color}15`, border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 12px', flex: 1 }}>
-        <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{label}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color }}>{who}</div>
       </div>
     );

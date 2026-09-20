@@ -97,7 +97,7 @@
  */
 import process from 'node:process';
 
-import { groupByWorkflow, redWorkflows } from './lib/workflowVerdicts.mjs';
+import { classifyAcrossBranches, groupByWorkflow, redWorkflows } from './lib/workflowVerdicts.mjs';
 
 /**
  * The estate, in the same order and with the same names as `REPOS` in Club
@@ -167,7 +167,11 @@ async function scanRepo(repo) {
     if (batch.length < 100) break;
   }
 
-  if (runs.length === 0) return { repo, workflows: 0, runs: 0, red: [] };
+  // No runs on main at all does not mean nothing to see: a repo whose CI is
+  // entirely pull_request-driven would have returned "green" here forever.
+  if (runs.length === 0) {
+    return { repo, workflows: 0, runs: 0, red: [], prOnly: await scanOffMain(repo, new Set(), Date.now()) };
+  }
 
   // Newest first, then group by workflow.
   //
@@ -185,7 +189,43 @@ async function scanRepo(repo) {
   const now = Date.now();
   const red = redWorkflows(runs, now).map((r) => ({ ...r, repo }));
 
-  return { repo, workflows: byWorkflow.size, runs: runs.length, red };
+  // ── AND THE WORKFLOWS THAT NEVER TOUCH main ────────────────────────────
+  // Everything above reads ?branch=main. A pull_request-only workflow has
+  // nothing there, so it was invisible to the detector written because one of
+  // them rotted. `Global Footer E2E` is the case: red on every run for sixteen
+  // hours on 2026-09-09 and found by accident, again.
+  //
+  // These are judged by a stricter rule, because off main every run belongs to
+  // somebody's branch - see classifyAcrossBranches for the measured reason.
+  const prOnly = await scanOffMain(repo, new Set(byWorkflow.keys()), now);
+
+  return { repo, workflows: byWorkflow.size, runs: runs.length, red, prOnly };
+}
+
+/**
+ * Workflows with NO runs on BRANCH at all, red across several branches at once.
+ *
+ * `onMain` is the set of workflow names the main sweep already saw; anything in
+ * it is that sweep's business and is skipped here rather than reported twice.
+ */
+async function scanOffMain(repo, onMain, now) {
+  const runs = [];
+  for (let page = 1; page <= PAGES; page++) {
+    const d = await api(`/repos/${repo}/actions/runs?status=completed&per_page=100&page=${page}`);
+    const batch = d.workflow_runs || [];
+    runs.push(...batch);
+    if (batch.length < 100) break;
+  }
+  runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const out = [];
+  for (const [name, list] of groupByWorkflow(runs)) {
+    if (onMain.has(name)) continue;                       // the main sweep owns it
+    if (list.some((r) => r.head_branch === BRANCH)) continue;  // it does reach main
+    const verdict = classifyAcrossBranches(name, list, { now });
+    if (verdict) out.push({ ...verdict, repo, prOnly: true });
+  }
+  return out;
 }
 
 /**
@@ -241,9 +281,14 @@ if (readable.length === 0) {
 }
 
 const red = readable.flatMap((r) => r.red);
+// Workflows that never touch BRANCH, red across several branches at once.
+// Reported separately because the rule that found them is stricter, and saying
+// "on 3 branches" is the difference between rot and somebody's bad branch.
+const prOnly = readable.flatMap((r) => r.prOnly || []);
 for (const r of readable) {
-  const issues = red.some((x) => x.repo === r.repo) ? await openIssuesFor(r.repo) : [];
-  for (const x of red) if (x.repo === r.repo) x.loud = hasOpenAlarm(issues, x.name, x.since);
+  const mine = [...red, ...prOnly].filter((x) => x.repo === r.repo);
+  const issues = mine.length ? await openIssuesFor(r.repo) : [];
+  for (const x of mine) x.loud = hasOpenAlarm(issues, x.name, x.since);
 }
 
 const totalRuns = readable.reduce((n, r) => n + r.runs, 0);
@@ -271,16 +316,31 @@ for (const r of red) {
 if (red.length === 0) console.log(`  every workflow's latest VERDICT on ${BRANCH} is green.`);
 console.log('');
 
+for (const r of prOnly) {
+  const mark = r.loud ? 'loud ' : r.hours >= HOURS ? 'SILENT' : 'fresh';
+  console.log(
+    `  ${mark} ${r.repo} :: ${r.name} - never runs on ${BRANCH}; ${r.consecutive} consecutive` +
+      ` failure(s) over ${hrs(r.hours)} across ${r.branchCount} branches` +
+      (r.lastGreen ? `, last green ${r.lastGreen}` : ', no green run in the window') +
+      (r.loud ? ' [an open issue already names it]' : '')
+  );
+}
+if (prOnly.length === 0) {
+  console.log(`  no ${BRANCH}-less workflow is failing across several branches at once.`);
+}
+console.log('');
+
 // Alarm only on SILENT failures that have outlived the threshold. Under it is a
 // normal transient - somebody broke main a moment ago and is probably already
 // fixing it.
-const overdue = red.filter((r) => r.hours >= HOURS && !r.loud);
+const overdue = [...red, ...prOnly].filter((r) => r.hours >= HOURS && !r.loud);
 
 if (overdue.length === 0 && unreadable.length === 0) {
-  const loud = red.filter((r) => r.loud).length;
+  const all = [...red, ...prOnly];
+  const loud = all.filter((r) => r.loud).length;
   console.log(
     `Nothing silent past ${HOURS}h. ${loud} failing workflow(s) already have an open issue; ` +
-      `${red.length - loud} are still fresh.`
+      `${all.length - loud} are still fresh.`
   );
   process.exit(0);
 }
@@ -291,6 +351,7 @@ if (overdue.length) {
     ...overdue.map(
       (r) =>
         `- **${r.repo}** :: **${r.name}** - ${r.consecutive} consecutive failures over ${hrs(r.hours)}` +
+        (r.prOnly ? ` across ${r.branchCount} branches (it never runs on \`${BRANCH}\`, so no merge is blocked by it)` : '') +
         (r.lastGreen ? `, last green \`${r.lastGreen}\`` : ', no green run in the scanned window') +
         `\n  ${r.url}`
     )

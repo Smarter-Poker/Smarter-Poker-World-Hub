@@ -104,7 +104,7 @@ const styles = {
     },
 
     chipLabel: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 600,
         color: '#94a3b8',
         textTransform: 'uppercase',

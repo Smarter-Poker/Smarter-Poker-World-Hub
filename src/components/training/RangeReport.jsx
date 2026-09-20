@@ -97,7 +97,7 @@ function DonutChart({ segments, size = 100 }) {
             <text x="50" y="48" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="800" style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 {total}
             </text>
-            <text x="50" y="62" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="600">
+            <text x="50" y="62" textAnchor="middle" fill="#64748b" fontSize='12px' fontWeight="600">
                 Combos
             </text>
         </svg>
@@ -207,7 +207,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
                                     width: 10, height: 10, borderRadius: 2,
                                     background: info.gradient,
                                 }} />
-                                <span style={{ fontSize: 10, color: '#cbd5e1', fontWeight: 600 }}>
+                                <span style={{ fontSize: 12, color: '#cbd5e1', fontWeight: 600 }}>
                                     {info.label}
                                 </span>
                             </div>
@@ -229,12 +229,12 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
                 background: 'rgba(255,255,255,0.03)', borderRadius: 6,
                 border: '1px solid rgba(255,255,255,0.06)',
             }}>
-                <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                     Board:
                 </span>
                 {tags.map(tag => (
                     <span key={tag} style={{
-                        fontSize: 9, fontWeight: 700, color: '#00d4ff',
+                        fontSize: 12, fontWeight: 700, color: '#00d4ff',
                         background: 'rgba(0,212,255,0.1)',
                         padding: '1px 6px', borderRadius: 10,
                     }}>
@@ -250,7 +250,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
                     padding: '6px 8px', marginBottom: 10,
                     background: 'rgba(255,255,255,0.02)', borderRadius: 6,
                 }}>
-                    <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>AVG RANGE EV</span>
+                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>AVG RANGE EV</span>
                     <span style={{
                         fontSize: 13, fontWeight: 800, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         color: avgEV >= 0 ? '#4ade80' : '#f87171',
@@ -261,7 +261,7 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
             )}
 
             {/* Category Action Breakdown */}
-            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase' }}>
                 Action By Category
             </div>
             {Object.entries(CATEGORY_COLORS || {}).map(([cat, info]) => {
@@ -275,13 +275,13 @@ export default function RangeReport({ classificationGroups = [], gridData = {}, 
                         display: 'flex', alignItems: 'center', gap: 8,
                         marginBottom: 4, padding: '3px 0',
                     }}>
-                        <span style={{ width: 60, fontSize: 9, color: info.color, fontWeight: 700 }}>
+                        <span style={{ width: 60, fontSize: 12, color: info.color, fontWeight: 700 }}>
                             {info.label}
                         </span>
                         <div style={{ flex: 1, display: 'flex', gap: 6 }}>
                             {topActions.map(([action, pct]) => (
                                 <span key={action} style={{
-                                    fontSize: 8, color: '#94a3b8', fontWeight: 600,
+                                    fontSize: 12, color: '#94a3b8', fontWeight: 600,
                                 }}>
                                     {action.toUpperCase()}: {pct.toFixed(0)}%
                                 </span>

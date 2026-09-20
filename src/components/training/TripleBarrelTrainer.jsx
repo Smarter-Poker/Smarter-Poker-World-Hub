@@ -76,19 +76,19 @@ function TripleBarrelTrainer() {
       <div style={{ padding: 20, background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 18, color: '#f59e0b' }}>Triple Barrel Trainer</h3>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}/{SCENARIOS.length}</span>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{idx + 1}/{SCENARIOS.length}</span>
         </div>
 
         <div style={{ padding: 14, background: 'rgba(245,158,11,0.06)', borderRadius: 10, border: '1px solid rgba(245,158,11,0.15)', marginBottom: 12, textAlign: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: 2, marginBottom: 4 }}>{s.board}</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 2 }}>Hero: {s.hero}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Line: {s.line}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Line: {s.line}</div>
         </div>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, justifyContent: 'center' }}>
           {s.sizing.map((sz, i) => (
             <div key={i} style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700,
               background: 'rgba(255,255,255,0.06)', color: sz === '-' ? 'rgba(255,255,255,0.3)' : '#fff',
             }}>
               {['Flop', 'Turn', 'River'][i]}: {sz}
@@ -116,7 +116,7 @@ function TripleBarrelTrainer() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {s.keys.map((k, i) => (
-                <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: `2px solid ${s.color}44` }}>{k}</div>
+                <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: `2px solid ${s.color}44` }}>{k}</div>
               ))}
             </div>
           </div>

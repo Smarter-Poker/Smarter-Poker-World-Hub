@@ -46,8 +46,8 @@ const CHIP_COLORS: Record<number, { main: string; edge: string; stripe: string }
 };
 
 const SIZES = {
-    small: { width: 24, height: 24, borderWidth: 2, fontSize: 8 },
-    medium: { width: 36, height: 36, borderWidth: 3, fontSize: 11 },
+    small: { width: 24, height: 24, borderWidth: 2, fontSize: 12 },
+    medium: { width: 36, height: 36, borderWidth: 3, fontSize: 12 },
     large: { width: 48, height: 48, borderWidth: 4, fontSize: 14 },
 };
 

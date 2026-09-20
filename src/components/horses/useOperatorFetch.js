@@ -52,10 +52,16 @@ export default function useOperatorFetch() {
   }, []);
 
   return useCallback(async (url, options = {}) => {
+    const { isCurrent, ...fetchOptions } = options;
+    const checkScope = () => {
+      if (isCurrent && isCurrent() !== true) throw new Error('The account or view changed. Refresh the original operation.');
+    };
+    checkScope();
     // getFreshAccessToken reads the token out of storage and only hits the
     // network when it is close to expiry. The argument-less client session
     // read is banned repo-wide (pre-commit CHECK C).
     const token = await getFreshAccessToken();
+    checkScope();
     if (!token) throw new Error('Session Expired. Please Sign In Again.');
 
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -63,7 +69,7 @@ export default function useOperatorFetch() {
 
     try {
       const res = await fetch(url, {
-        ...options,
+        ...fetchOptions,
         signal: options.signal || (controller ? controller.signal : undefined),
         headers: {
           'Content-Type': 'application/json',
@@ -72,6 +78,7 @@ export default function useOperatorFetch() {
         },
       });
       const body = await readJsonBody(res);
+      checkScope();
       if (!res.ok) throw operatorError(body, res.status);
       if (body.success === false) throw operatorError(body, res.status);
       return body;

@@ -125,7 +125,9 @@ export async function getServerSideProps({ res }) {
 }
 
 export default function HomeGamesByStateIndex({ states, totalGames, directoryUnavailable = false }) {
-  const pageTitle = 'Poker Home Games by State - Find a Home Game Near You';
+  // 53 characters here, 69 once SEOHead appends the site name, and a search
+  // result cut it at "Find a Home" (AEO phase 3, 2026-09-17).
+  const pageTitle = 'Poker Home Games By State And City';
   const pageDescription = directoryUnavailable
     ? 'The Poker Home Games directory is temporarily unavailable. Please try again shortly.'
     : totalGames > 0

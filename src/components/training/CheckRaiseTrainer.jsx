@@ -148,7 +148,7 @@ function CheckRaiseTrainer() {
               <div style={{ height: 10, background: 'rgba(255,255,255,0.08)', borderRadius: 5, overflow: 'hidden', position: 'relative' }}>
                 <div style={{ height: '100%', width: `${Math.min(spot.xrFreq * 3, 100)}%`, background: 'linear-gradient(90deg, #14b8a6, #2dd4bf)', borderRadius: 5 }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
                 <span>0%</span><span>10%</span><span>20%</span><span>30%+</span>
               </div>
             </div>
@@ -161,7 +161,7 @@ function CheckRaiseTrainer() {
                 { label: 'Check-Call Range', range: spot.checkCallRange, color: '#3b82f6' },
               ].map(r => (
                 <div key={r.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid ${r.color}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: r.color, marginBottom: 4 }}>{r.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: r.color, marginBottom: 4 }}>{r.label}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{r.range}</div>
                 </div>
               ))}

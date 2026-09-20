@@ -90,7 +90,7 @@ export default function HandNoteTagger() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Hand Notes</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
               {filteredHands.length} Hands • {hands.filter(h => h.starred).length} Starred • Total EV Loss: {totalEVLoss.toFixed(1)}bb
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function HandNoteTagger() {
               <button key={s} onClick={() => setSortBy(s)} style={{
                 padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: sortBy === s ? '#3b82f6' : 'rgba(255,255,255,0.06)',
-                color: sortBy === s ? '#fff' : '#94a3b8', fontSize: 10, fontWeight: 600,
+                color: sortBy === s ? '#fff' : '#94a3b8', fontSize: 12, fontWeight: 600,
               }}>{s === 'id' ? 'Recent' : s === 'evLoss' ? 'EV Loss' : 'Result'}</button>
             ))}
           </div>
@@ -112,7 +112,7 @@ export default function HandNoteTagger() {
             placeholder="Search hands, notes, positions..."
             style={{
               flex: 1, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 11,
+              background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 12,
             }}
           />
           <button onClick={() => setFilterStarred(!filterStarred)} style={{
@@ -127,13 +127,13 @@ export default function HandNoteTagger() {
           <button onClick={() => setFilterTag(null)} style={{
             padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
             background: !filterTag ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-            color: !filterTag ? '#f1f5f9' : '#64748b', fontSize: 10, fontWeight: 600,
+            color: !filterTag ? '#f1f5f9' : '#64748b', fontSize: 12, fontWeight: 600,
           }}>All ({hands.length})</button>
           {tagCounts.filter(t => t.count > 0).map(t => (
             <button key={t.id} onClick={() => setFilterTag(filterTag === t.id ? null : t.id)} style={{
               padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
               background: filterTag === t.id ? `${t.color}20` : 'rgba(255,255,255,0.04)',
-              color: filterTag === t.id ? t.color : '#64748b', fontSize: 10, fontWeight: 600,
+              color: filterTag === t.id ? t.color : '#64748b', fontSize: 12, fontWeight: 600,
               border: filterTag === t.id ? `1px solid ${t.color}30` : '1px solid transparent',
             }}>{t.icon} {t.label} ({t.count})</button>
           ))}
@@ -153,23 +153,23 @@ export default function HandNoteTagger() {
                   color: hand.starred ? '#f59e0b' : '#475569',
                 }}>★</button>
                 <span style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 800 }}>{hand.hand}</span>
-                <span style={{ color: '#f59e0b', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)' }}>
+                <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)' }}>
                   {hand.position}
                 </span>
-                <span style={{ color: '#64748b', fontSize: 10, flex: 1 }}>{hand.board}</span>
+                <span style={{ color: '#64748b', fontSize: 12, flex: 1 }}>{hand.board}</span>
                 <span style={{
                   color: hand.result.startsWith('+') ? '#22c55e' : '#ef4444',
                   fontSize: 13, fontWeight: 800,
                 }}>{hand.result}</span>
                 {hand.evLoss > 0 && (
-                  <span style={{ color: '#ef4444', fontSize: 9, fontWeight: 600, padding: '1px 4px', borderRadius: 3, background: 'rgba(239,68,68,0.1)' }}>
+                  <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600, padding: '1px 4px', borderRadius: 3, background: 'rgba(239,68,68,0.1)' }}>
                     -{hand.evLoss.toFixed(1)}bb EV
                   </span>
                 )}
               </div>
 
               {/* Action line */}
-              <div style={{ color: '#94a3b8', fontSize: 10, marginBottom: 6 }}>{hand.action}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>{hand.action}</div>
 
               {/* Tags */}
               <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -178,7 +178,7 @@ export default function HandNoteTagger() {
                   return tag ? (
                     <span key={tagId} role="button" tabIndex={0} aria-label={`Remove ${tag.label} tag`} onClick={() => toggleTag(hand.id, tagId)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleTag(hand.id, tagId); } }} style={{
                       padding: '2px 6px', borderRadius: 3, cursor: 'pointer',
-                      background: `${tag.color}15`, color: tag.color, fontSize: 9, fontWeight: 600,
+                      background: `${tag.color}15`, color: tag.color, fontSize: 12, fontWeight: 600,
                       border: `1px solid ${tag.color}25`,
                     }}>{tag.icon} {tag.label} ✕</span>
                   ) : null;
@@ -189,7 +189,7 @@ export default function HandNoteTagger() {
                     value="" onChange={e => e.target.value && toggleTag(hand.id, e.target.value)}
                     style={{
                       padding: '2px 4px', borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)',
-                      background: 'rgba(0,0,0,0.3)', color: '#64748b', fontSize: 9, cursor: 'pointer',
+                      background: 'rgba(0,0,0,0.3)', color: '#64748b', fontSize: 12, cursor: 'pointer',
                     }}
                   >
                     <option value="">+ Tag</option>
@@ -205,20 +205,20 @@ export default function HandNoteTagger() {
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input value={editText} onChange={e => setEditText(e.target.value)} style={{
                     flex: 1, padding: '4px 8px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.15)',
-                    background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 10,
+                    background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 12,
                   }} />
                   <button onClick={() => saveNote(hand.id)} style={{
                     padding: '4px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                    background: '#22c55e', color: '#fff', fontSize: 9, fontWeight: 700,
+                    background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 700,
                   }}>Save</button>
                   <button onClick={() => setEditingNote(null)} style={{
                     padding: '4px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                    background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 9,
+                    background: 'rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: 12,
                   }}>Cancel</button>
                 </div>
               ) : (
                 <div role="button" tabIndex={0} aria-label={`Edit note for ${hand.hand}`} onClick={() => { setEditingNote(hand.id); setEditText(hand.note); }} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setEditingNote(hand.id); setEditText(hand.note); } }}
-                  style={{ color: '#94a3b8', fontSize: 10, cursor: 'pointer', padding: '4px 0', fontStyle: hand.note ? 'normal' : 'italic' }}>
+                  style={{ color: '#94a3b8', fontSize: 12, cursor: 'pointer', padding: '4px 0', fontStyle: hand.note ? 'normal' : 'italic' }}>
                   {hand.note || 'Click to add note...'}
                 </div>
               )}

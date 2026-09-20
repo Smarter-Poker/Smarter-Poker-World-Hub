@@ -10,7 +10,7 @@
 // TRAIN-CSS-TOKENS-BATCH5-17 — hex sweep batch 5: literals routed to --sp-* tokens
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
@@ -302,6 +302,50 @@ const TERMS = [
 ];
 
 const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Theory'];
+
+/* ─────────────────────────────────────────────────────────────────────────
+   AEO PHASE 3 (2026-09-17). This page already server-renders all 49
+   definitions - 866 words of prose that an engine with no JavaScript can
+   read -
+   and it was invisible anyway: absent from the sitemap, carrying a bare
+   <title> and not one line of structured data. A glossary is the single
+   most quotable thing a site owns, because a definitional question is the
+   question an AI engine answers most often.
+
+   DefinedTermSet is the schema built for exactly this. Each term becomes a
+   DefinedTerm with a stable @id and a url pointing at its own anchor, so an
+   engine can cite one definition rather than the whole page, and the set
+   points back at the WebSite node so the glossary is part of one entity
+   graph instead of a loose document.
+   ───────────────────────────────────────────────────────────────────────── */
+const termSlug = (term) =>
+  String(term)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const GLOSSARY_URL = 'https://smarter.poker/hub/training/glossary';
+
+const GLOSSARY_SCHEMA = {
+  '@type': 'DefinedTermSet',
+  '@id': `${GLOSSARY_URL}#glossary`,
+  name: 'Smarter.Poker Poker Glossary',
+  url: GLOSSARY_URL,
+  inLanguage: 'en-US',
+  description:
+    'Definitions Of The Preflop, Postflop, Math And Game Theory Terms Used In Poker Strategy And In Smarter.Poker GTO Training.',
+  isPartOf: { '@id': 'https://smarter.poker/#website' },
+  publisher: { '@id': 'https://smarter.poker/#organization' },
+  hasDefinedTerm: TERMS.map((t) => ({
+    '@type': 'DefinedTerm',
+    '@id': `${GLOSSARY_URL}#term-${termSlug(t.term)}`,
+    name: t.term,
+    description: t.def,
+    url: `${GLOSSARY_URL}#term-${termSlug(t.term)}`,
+    inDefinedTermSet: { '@id': `${GLOSSARY_URL}#glossary` },
+    termCode: t.cat,
+  })),
+};
 const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
 
 export default function GlossaryPage() {
@@ -350,12 +394,15 @@ export default function GlossaryPage() {
 
   return (
     <>
-      <Head>
-        <title>GTO Glossary | Smarter.Poker Training</title>
-      </Head>
+      <SEOHead
+        title="Poker Glossary: 49 GTO And Strategy Terms"
+        description="A Free Poker Glossary From Smarter.Poker. 49 Preflop, Postflop, Math And Game Theory Terms Defined In Plain Language, From 3-Bet To Wet Board."
+        canonical="/hub/training/glossary"
+        jsonLd={GLOSSARY_SCHEMA}
+      />
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -394,7 +441,7 @@ export default function GlossaryPage() {
           <div>
             {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Glossary</h1>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               {TERMS.length} Terms · {favorites.size} Saved
             </div>
           </div>
@@ -437,7 +484,7 @@ export default function GlossaryPage() {
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
                   color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -449,7 +496,7 @@ export default function GlossaryPage() {
 
           {/* Results count */}
           {/* TRAIN-GLOSSARY-A11Y-1: live region for filtered count */}
-          <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
+          <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 10, paddingLeft: 4 }} role="status" aria-live="polite" aria-atomic="true">
             {filtered.length} Terms
           </div>
 
@@ -457,6 +504,9 @@ export default function GlossaryPage() {
           {filtered.map((t, i) => (
             <motion.div
               key={t.term}
+              // AEO phase 3: a stable anchor per term, so the DefinedTerm node
+              // has a real URL and an engine can cite one definition.
+              id={`term-${termSlug(t.term)}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: i * 0.015 }}
@@ -471,16 +521,16 @@ export default function GlossaryPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', flex: 1 }}>
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)', flex: 1, margin: 0 }}>
                   {t.term}
-                </span>
+                </h2>
                 <span
                   style={{
                     padding: '1px 6px',
                     borderRadius: 3,
                     background: `${CAT_COLORS[t.cat]}12`,
                     color: CAT_COLORS[t.cat],
-                    fontSize: 8,
+                    fontSize: 12,
                     fontWeight: 700,
                   }}
                 >
@@ -521,13 +571,13 @@ export default function GlossaryPage() {
               ) : (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     color: 'var(--sp-fg-faint)',
                     lineHeight: 1.4,
                     marginTop: 4,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    whiteSpace: 'normal',
                   }}
                 >
                   {t.def}

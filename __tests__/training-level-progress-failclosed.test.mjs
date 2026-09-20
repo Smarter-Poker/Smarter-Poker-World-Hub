@@ -55,7 +55,7 @@ async function loadHandler({ authError = null, user = { id: USER_ID }, history, 
         diamondMultiplier: 1, accentColor: '#00e0ff',
       }),
     },
-    '../../../src/lib/sentryWrap': { reportApiError: () => {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError: () => {} },
   };
   const module = new SourceTextModule(SOURCE, { identifier: 'training-progress.js' });
   await module.link(async (specifier) => {

@@ -61,7 +61,7 @@ function FlopCBetMatrix() {
             { id: 'OOP-MW', label: 'OOP Multiway' },
           ].map(p => (
             <button key={p.id} onClick={() => setPosition(p.id)} style={{
-              padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: position === p.id ? '#06b6d4' : 'rgba(255,255,255,0.06)',
               color: position === p.id ? '#000' : 'rgba(255,255,255,0.6)', border: 'none', flex: 1,
             }}>{p.label}</button>
@@ -74,7 +74,7 @@ function FlopCBetMatrix() {
             const catColor = b.category === 'dry' ? '#3b82f6' : b.category === 'wet' ? '#ef4444' : '#f59e0b';
             return (
               <button key={b.name} onClick={() => setSelectedBoard(i)} style={{
-                padding: '4px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 background: selectedBoard === i ? catColor : 'rgba(255,255,255,0.06)',
                 color: selectedBoard === i ? '#fff' : 'rgba(255,255,255,0.6)', border: 'none',
               }}>{b.name}</button>
@@ -92,36 +92,36 @@ function FlopCBetMatrix() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: strat.freq > 50 ? '#10b981' : strat.freq > 30 ? '#f59e0b' : '#ef4444' }}>{strat.freq}%</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>C-Bet Frequency</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>C-Bet Frequency</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#06b6d4' }}>{strat.sizing}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Bet Sizing</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Bet Sizing</div>
           </div>
           <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, marginBottom: 8, marginTop: 10 }}>
               <div style={{ width: `${strat.freq}%`, height: '100%', background: strat.freq > 50 ? '#10b981' : strat.freq > 30 ? '#f59e0b' : '#ef4444', borderRadius: 4 }} />
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Frequency Bar</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Frequency Bar</div>
           </div>
         </div>
 
         <div style={{ padding: 12, background: 'rgba(6,182,212,0.06)', borderRadius: 8, border: '1px solid rgba(6,182,212,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>Strategy: {position.replace('-', ' ')}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>Strategy: {position.replace('-', ' ')}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{strat.strategy}</div>
         </div>
 
         {/* Quick Matrix View */}
-        <div style={{ marginTop: 16, fontSize: 11, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Quick Reference ({position.replace('-', ' ')})</div>
+        <div style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 6 }}>Quick Reference ({position.replace('-', ' ')})</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
           {['dry', 'mid', 'wet'].map(cat => {
             const s = STRATEGIES[position][cat];
             const color = cat === 'dry' ? '#3b82f6' : cat === 'wet' ? '#ef4444' : '#f59e0b';
             return (
               <div key={cat} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, textAlign: 'center', borderTop: `3px solid ${color}` }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 2 }}>{cat.toUpperCase()}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color, marginBottom: 2 }}>{cat.toUpperCase()}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{s.freq}%</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{s.sizing}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{s.sizing}</div>
               </div>
             );
           })}

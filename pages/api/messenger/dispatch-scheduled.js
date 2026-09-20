@@ -23,7 +23,7 @@
  */
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
 function getSupabase() {
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true, ...(data || {}) });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_e) { console.warn('[dispatch-scheduled] sentry failed'); }
+        try { reportApiError(err, req); } catch (_e) { console.warn('[dispatch-scheduled] error reporting failed'); }
         console.error('[dispatch-scheduled] error:', err.message);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

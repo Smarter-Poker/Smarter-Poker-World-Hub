@@ -218,10 +218,10 @@ function RangeGrid({ rangeStr, color, label }) {
           marginBottom: 8,
         }}
       >
-        <span style={{ fontSize: 11, fontWeight: 700, color }}>{label}</span>
-        <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{pct}% Of Hands</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
+        <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{pct}% Of Hands</span>
       </div>
-      <div data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
+      <div data-allow-small="true" data-stats-grid style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1 }}>
         {grid.map((cell, i) => (
           <div
             key={i}
@@ -285,7 +285,7 @@ export default function MultiwayPreflopPage() {
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -345,7 +345,7 @@ export default function MultiwayPreflopPage() {
               background: 'rgba(var(--sp-accent-purple-rgb), 0.08)',
               border: '1px solid rgba(var(--sp-accent-purple-rgb), 0.25)',
               color: 'var(--sp-accent-purple)',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               padding: '6px 12px',
               borderRadius: 12,
@@ -416,7 +416,7 @@ export default function MultiwayPreflopPage() {
               >
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: selectedScenario === key ? 'var(--sp-accent-purple)' : 'var(--sp-fg)',
                     marginBottom: 4,
@@ -424,7 +424,7 @@ export default function MultiwayPreflopPage() {
                 >
                   {s.name}
                 </div>
-                <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>{s.positions.join(' → ')}</div>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{s.positions.join(' → ')}</div>
               </motion.button>
             ))}
           </div>
@@ -442,7 +442,7 @@ export default function MultiwayPreflopPage() {
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-accent-purple)', marginBottom: 4 }}>
               {scenario.name}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>{scenario.desc}</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{scenario.desc}</div>
           </div>
 
           {/* Range Grids for Each Position */}
@@ -479,7 +479,7 @@ export default function MultiwayPreflopPage() {
               border: '1px solid rgba(255,255,255,0.06)',
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)', marginBottom: 8 }}>
               Action Flow
             </div>
             <div data-pills-row style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -492,7 +492,7 @@ export default function MultiwayPreflopPage() {
                       style={{
                         padding: '4px 10px',
                         borderRadius: 6,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         background: `${posColors[pos] || 'var(--sp-fg-muted)'}20`,
                         color: posColors[pos] || 'var(--sp-fg-muted)',
@@ -519,7 +519,7 @@ export default function MultiwayPreflopPage() {
                 borderRadius: 8,
                 background: 'rgba(0,212,255,0.05)',
                 border: '1px solid rgba(0,212,255,0.15)',
-                fontSize: 11,
+                fontSize: 12,
                 color: 'var(--sp-fg-muted)',
               }}
             >
@@ -541,7 +541,7 @@ export default function MultiwayPreflopPage() {
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-fg)', marginBottom: 8 }}>
               Why This Page Is Ungraded
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', lineHeight: 1.65 }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.65 }}>
               A Multiway Decision Depends On Exact Stacks, Raise Sizes, Antes, Payouts, Players,
               And Prior Action. Those Inputs Are Not Proven For These Authored Examples, So A
               Correct/Incorrect Quiz Would Create False Authority. Open A Verified Training Game

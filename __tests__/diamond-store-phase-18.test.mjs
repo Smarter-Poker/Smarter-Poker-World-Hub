@@ -3,15 +3,12 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const ROOT = new URL('../', import.meta.url);
-const read = path => readFile(new URL(path, ROOT), 'utf8');
+const read = (path) => readFile(new URL(path, ROOT), 'utf8');
 
 test('Club Shop card returns verify independently of mutable catalog context', async () => {
   const source = await read('pages/hub/club-shop/[itemId].js');
   assert.match(source, /const checkoutSessionId = Array\.isArray\(router\.query\.session_id\)/);
-  assert.match(
-    source,
-    /router\.query\.success !== 'true' \|\| !checkoutSessionId\) return/
-  );
+  assert.match(source, /router\.query\.success !== 'true' \|\| !checkoutSessionId\) return/);
   assert.doesNotMatch(
     source,
     /router\.query\.success !== 'true' \|\| !checkoutSessionId \|\| !clubId/
@@ -19,7 +16,9 @@ test('Club Shop card returns verify independently of mutable catalog context', a
   assert.match(source, /encodeURIComponent\(checkoutSessionId\)/);
   assert.match(source, /const returnClubId = clubId \|\| requestedClubId/);
   assert.match(source, /clubId=\$\{encodeURIComponent\(returnClubId\)\}/);
-  assert.match(source, /body\.data\?\.walletBalance/);
+  assert.match(source, /receipt\.walletBalance/);
+  assert.match(source, /normalizeVerifiedCheckoutStatus\(body, \{/);
+  assert.match(source, /accountId: expectedAccountId/);
   assert.doesNotMatch(source, /clubId=\$\{clubId\}.*shallow/);
 });
 
@@ -40,8 +39,16 @@ test('card checkout stays in the same browser surface on Club Shop and merchandi
     read('pages/hub/club-shop/[itemId].js'),
     read('src/components/store/MerchStore.jsx'),
   ]);
-  assert.match(club, /window\.location\.href = body\.data\.url/);
-  assert.match(merch, /window\.location\.href = data\.data\.url/);
+  assert.match(
+    club,
+    /normalizeVerifiedCheckoutSession\([\s\S]{0,100}body,[\s\S]{0,100}checkoutRequestId,[\s\S]{0,100}offerConfirmation/
+  );
+  assert.match(
+    merch,
+    /normalizeVerifiedCheckoutSession\([\s\S]{0,100}data,[\s\S]{0,100}checkoutRequestId,[\s\S]{0,100}offerConfirmation/
+  );
+  assert.match(club, /window\.location\.assign\(checkoutSession\.url\)/);
+  assert.match(merch, /window\.location\.assign\(checkoutSession\.url\)/);
   assert.doesNotMatch(`${club}\n${merch}`, /window\.open\s*\(/);
   assert.doesNotMatch(`${club}\n${merch}`, /target=["']_blank["']/);
 });

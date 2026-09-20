@@ -127,7 +127,7 @@ const styles = {
     },
 
     icmLabel: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 600,
         color: '#94a3b8',
         textTransform: 'uppercase',
@@ -168,7 +168,7 @@ const styles = {
         background: 'rgba(34, 197, 94, 0.2)',
         border: '1px solid #22c55e',
         borderRadius: 8,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         color: '#22c55e',
         textAlign: 'center',

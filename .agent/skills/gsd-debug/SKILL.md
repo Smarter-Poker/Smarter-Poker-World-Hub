@@ -109,12 +109,11 @@ Task(
   - "Manual fix" - done
 
 **If `## CHECKPOINT REACHED`:**
-- Present checkpoint details to user
-- Get user response
-- If checkpoint type is `human-verify`:
-  - If user confirms fixed: continue so agent can finalize/resolve/archive
-  - If user reports issues: continue so agent returns to investigation/fixing
-- Spawn continuation agent (see step 5)
+Recover the actual completed work and outstanding verification. Run the checks
+and inspect behavior directly under the checkpoint reference; repair failures
+and continue without renewed approval. A missing input blocks only its dependent
+action. Preserve operation identity and avoid competing writers. This does not
+authorize new delegation when the task's instructions do not permit it.
 
 **If `## INVESTIGATION INCONCLUSIVE`:**
 - Show what was checked and eliminated

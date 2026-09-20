@@ -17,7 +17,7 @@ function Tooltip({ children, content, visible }) {
                 padding: '6px 10px',
                 background: 'rgba(0,0,0,0.95)',
                 color: '#fff',
-                fontSize: 10,
+                fontSize: 12,
                 borderRadius: 6,
                 whiteSpace: 'nowrap',
                 pointerEvents: 'none',
@@ -55,7 +55,7 @@ function TrendArrow({ current, previous, showPercentage = true }) {
 
     return (
         <span style={{
-            fontSize: 9,
+            fontSize: 12,
             fontWeight: 'bold',
             color: isPositive ? '#22c55e' : '#ef4444',
             display: 'inline-flex',
@@ -63,7 +63,7 @@ function TrendArrow({ current, previous, showPercentage = true }) {
             gap: 2,
             marginLeft: 6
         }}>
-            <span style={{ fontSize: 11 }}>{isPositive ? '↑' : '↓'}</span>
+            <span style={{ fontSize: 12 }}>{isPositive ? '↑' : '↓'}</span>
             {showPercentage && <span>{Math.abs(parseFloat(percentChange))}%</span>}
         </span>
     );
@@ -160,9 +160,9 @@ export function ClassificationDonut({ handHistory = [], gtowScore = 0, previousS
                         <span style={{ fontSize: 18, fontWeight: 'bold', color: '#fff' }}>{formatSignedScore(gtowScore)}</span>
                         <TrendArrow current={gtowScore} previous={previousScore} showPercentage={false} />
                     </div>
-                    <span style={{ fontSize: 8, color: '#94a3b8' }}>SCORE</span>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>SCORE</span>
                     {avgScore && (
-                        <span style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
+                        <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                             Avg: {avgScore}
                         </span>
                     )}
@@ -179,7 +179,7 @@ export function ClassificationDonut({ handHistory = [], gtowScore = 0, previousS
                         style={{
                             display: 'flex',
                             justifyContent: 'space-between',
-                            fontSize: 11,
+                            fontSize: 12,
                             color: '#e2e8f0',
                             padding: '2px 0',
                             transition: 'all 0.2s',
@@ -231,7 +231,7 @@ export function AccuracyByPositionChart({ handHistory = [], previousStats = null
         <div style={{ marginBottom: 16, padding: '16px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Positional Accuracy</span>
-                <span style={{ fontSize: 10, color: '#64748b', fontWeight: 'normal' }}>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 'normal' }}>
                     Session Avg: {avgAccuracy}%
                 </span>
             </div>
@@ -263,7 +263,7 @@ export function AccuracyByPositionChart({ handHistory = [], previousStats = null
                                 visible={hoveredPos === d.pos}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <span style={{ fontSize: 9, color: acc >= 80 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444' }}>
+                                    <span style={{ fontSize: 12, color: acc >= 80 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444' }}>
                                         {acc}%
                                     </span>
                                     <TrendArrow current={acc} previous={prevAcc} showPercentage={false} />
@@ -281,7 +281,7 @@ export function AccuracyByPositionChart({ handHistory = [], previousStats = null
                                     opacity: hoveredPos === null || hoveredPos === d.pos ? 1 : 0.5
                                 }}
                             />
-                            <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 'bold' }}>{d.pos}</span>
+                            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 'bold' }}>{d.pos}</span>
                             {posHistory.length > 0 && (
                                 <Sparkline data={posHistory} color={acc >= 80 ? '#22c55e' : acc >= 50 ? '#fbbf24' : '#ef4444'} height={12} width={28} />
                             )}
@@ -311,7 +311,7 @@ export function EVLossGraph({ handHistory = [], avgEvLoss = null }) {
             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>EV Loss Timeline</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 10, color: '#64748b', fontWeight: 'normal' }}>
+                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 'normal' }}>
                         Session: -{sessionAvgLoss}
                         {avgEvLoss && (
                             <>
@@ -373,16 +373,16 @@ export function DailyChallengeBanner({ gtowScore }) {
         >
             <div>
                 <div style={{ fontSize: 13, fontWeight: 'bold', color: '#00d4ff' }}>Daily Study Goal</div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Complete 1 Session With A +70% Score</div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>Complete 1 Session With A +70% Score</div>
             </div>
             {/* GTOW parity #25: the goal threshold was 85 on the legacy 0-100
                 scale. gtowScore is now signed -100..+100, where 85 maps to 70. */}
             {gtowScore >= 70 ? (
-                <div style={{ padding: '4px 10px', background: 'rgba(34,197,94,0.2)', color: '#22c55e', borderRadius: 12, fontSize: 11, fontWeight: 'bold', border: '1px solid rgba(34,197,94,0.4)' }}>
+                <div style={{ padding: '4px 10px', background: 'rgba(34,197,94,0.2)', color: '#22c55e', borderRadius: 12, fontSize: 12, fontWeight: 'bold', border: '1px solid rgba(34,197,94,0.4)' }}>
                     ✓ COMPLETED
                 </div>
             ) : (
-                <div style={{ padding: '4px 10px', background: 'rgba(0,0,0,0.3)', color: '#94a3b8', borderRadius: 12, fontSize: 11, fontWeight: 'bold' }}>
+                <div style={{ padding: '4px 10px', background: 'rgba(0,0,0,0.3)', color: '#94a3b8', borderRadius: 12, fontSize: 12, fontWeight: 'bold' }}>
                     IN PROGRESS
                 </div>
             )}

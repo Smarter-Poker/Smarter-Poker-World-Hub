@@ -38,7 +38,7 @@ export default function RiverOverbetGuide() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {OVERBET_SPOTS.map((s, i) => (
           <button key={i} onClick={() => setSpotIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.scenario.substring(0, 25)}...
@@ -49,7 +49,7 @@ export default function RiverOverbetGuide() {
       <motion.div key={spotIdx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 4, background: `${typeColor}15`, color: typeColor }}>{spot.type}</span>
+          <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 4, background: `${typeColor}15`, color: typeColor }}>{spot.type}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: '#f59e0b' }}>{spot.sizing}</span>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 8 }}>{spot.scenario}</div>

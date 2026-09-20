@@ -55,7 +55,7 @@ export default function RangeVsRange() {
             style={{ padding: '8px 4px', borderRadius: 8, border: matchIdx === i ? `2px solid ${m.color}` : '1px solid rgba(255,255,255,0.06)',
               background: matchIdx === i ? `${m.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{m.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: matchIdx === i ? m.color : '#64748b' }}>{m.matchup.substring(0, 12)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: matchIdx === i ? m.color : '#64748b' }}>{m.matchup.substring(0, 12)}</div>
           </button>
         ))}
       </div>
@@ -64,20 +64,20 @@ export default function RangeVsRange() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: match.color, marginBottom: 8 }}>{match.matchup}</div>
         <div style={{ display: 'grid', gap: 6, marginBottom: 10 }}>
-          <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 6, padding: 8, fontFamily: 'monospace', fontSize: 11 }}>
+          <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 6, padding: 8, fontFamily: 'monospace', fontSize: 12 }}>
             <span style={{ color: '#3b82f6' }}>{match.range1}</span>
           </div>
-          <div style={{ background: 'rgba(239,68,68,0.05)', borderRadius: 6, padding: 8, fontFamily: 'monospace', fontSize: 11 }}>
+          <div style={{ background: 'rgba(239,68,68,0.05)', borderRadius: 6, padding: 8, fontFamily: 'monospace', fontSize: 12 }}>
             <span style={{ color: '#ef4444' }}>{match.range2}</span>
           </div>
         </div>
         <div style={{ background: `${match.color}10`, borderRadius: 8, padding: 8, textAlign: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Equity</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Equity</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: match.color }}>{match.equity}</div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 8 }}>{match.insight}</p>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Key Takeaway</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Takeaway</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{match.key}</div>
         </div>
       </motion.div>

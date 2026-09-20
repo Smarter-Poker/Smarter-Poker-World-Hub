@@ -73,7 +73,7 @@ export default function HUSNGSolver() {
               background: depthIdx === i ? `${d.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{d.icon}</div>
             <div style={{ fontSize: 13, fontWeight: 800, color: depthIdx === i ? d.color : '#64748b' }}>{d.label}</div>
-            <div style={{ fontSize: 9, color: '#64748b' }}>{d.phase}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{d.phase}</div>
           </button>
         ))}
       </div>
@@ -90,8 +90,8 @@ export default function HUSNGSolver() {
               { label: 'NOTES', value: depth.notes, color: '#f59e0b' },
             ].map((item, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${item.color}` }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: item.color }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>{item.value}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: item.color }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>{item.value}</div>
               </div>
             ))}
           </div>
@@ -99,20 +99,20 @@ export default function HUSNGSolver() {
 
         {/* Nash Chart */}
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 11, fontWeight: 700, color: '#ef4444' }}>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12, fontWeight: 700, color: '#ef4444' }}>
             NASH PUSH/FOLD CHART (HU SNG)
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             {['Hand', 'SB 10bb', 'BB 10bb', 'SB 7bb', 'BB 7bb'].map(h => (
-              <div key={h} style={{ fontSize: 8, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</div>
+              <div key={h} style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</div>
             ))}
           </div>
           {NASH_CHART.map((row, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '5px 12px',
               borderBottom: '1px solid rgba(255,255,255,0.03)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-              <span style={{ fontSize: 11, color: '#e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>{row.hand}</span>
+              <span style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>{row.hand}</span>
               {[row.sb10, row.bb10, row.sb7, row.bb7].map((v, j) => (
-                <span key={j} style={{ fontSize: 10, fontWeight: 700, fontFamily: 'monospace',
+                <span key={j} style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace',
                   color: v === 'PUSH' ? '#ef4444' : v === 'CALL' ? '#22c55e' : '#64748b' }}>{v}</span>
               ))}
             </div>

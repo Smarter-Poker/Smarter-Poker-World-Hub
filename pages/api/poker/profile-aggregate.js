@@ -1,7 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 const { applyCors } = require('../../../src/lib/cors');
 
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -334,7 +334,7 @@ export default async function handler(req, res) {
         return res.status(200).json(payload);
 
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {}
+        try { reportApiError(err, req); } catch (_reportError) {}
         console.warn('[Profile Aggregate Error]', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });
     }

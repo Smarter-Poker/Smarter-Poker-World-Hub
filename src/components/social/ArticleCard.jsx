@@ -117,7 +117,6 @@ const _batchInflight = new Set();
  * When the ArticleCards then mount, their useEffect finds data already cached
  * and skips the individual GET entirely.  Fire-and-forget safe; errors are non-fatal.
  *
- * Sentry issue #7720346314 — N+1 API Call on /hub/social-media (2026-09-10).
  */
 export async function prewarmLinkPreviews(urls) {
     if (!Array.isArray(urls) || urls.length === 0) return;

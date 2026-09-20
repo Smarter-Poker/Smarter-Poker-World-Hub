@@ -132,7 +132,7 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
                                                     {rank === 'T' ? '10' : rank}
                                                 </span>
                                                 <span style={{
-                                                    fontSize: 10,
+                                                    fontSize: 12,
                                                     color: isDead ? '#333' : suit.color,
                                                 }}>
                                                     {suit.symbol}
@@ -146,7 +146,7 @@ export default function CardSelectorModal({ isOpen, onClose, onSelectCard, deadC
 
                         {/* Info */}
                         <p style={{
-                            margin: '16px 0 0', fontSize: 11, color: '#64748b',
+                            margin: '16px 0 0', fontSize: 12, color: '#64748b',
                             textAlign: 'center',
                         }}>
                             Click A Card To Navigate To The Next Street • Grayed Cards Are Already In Play

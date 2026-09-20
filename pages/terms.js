@@ -1,6 +1,16 @@
 import SEOHead from '../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState } from 'react';
+import { hubCollectionSchema } from '../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const TERMS_SCHEMA = hubCollectionSchema({
+  path: '/terms',
+  name: 'Terms Of Service | Smarter.Poker',
+  description:
+    'The Agreement Between A Player And Smarter Software Inc.: What Club Chips And Diamonds Are, What They Are Not, And The Rules Every Account Is Held To.',
+  trail: [['Terms Of Service', '/terms']],
+});
 
 export default function TermsOfService() {
     const [activeSection, setActiveSection] = useState('terms');
@@ -16,8 +26,9 @@ export default function TermsOfService() {
         <>
             <SEOHead
                 title="Terms Of Service"
-                description="Smarter.Poker Terms Of Service. Read Our Usage Policies And User Agreements."
+                description="The Smarter.Poker Terms Of Service: The Agreement Between You And Smarter Software Inc., What Club Chips And Diamonds Are, What They Are Not, And The Rules Every Account Is Held To. Free To Play, No Real-Money Gambling."
                 canonical="/terms"
+              jsonLd={TERMS_SCHEMA}
             />
 
             <div style={styles.container}>
@@ -291,7 +302,7 @@ export function PrivacySection() {
             <ul style={styles.list}>
                 <li><strong>Purchases:</strong> Diamonds And VIP Are Sold Through The App Store Or Google Play. We Receive A Receipt And The Product Purchased From RevenueCat; We Never See Your Card.</li>
                 <li><strong>Notifications:</strong> If You Turn Them On, Your Device's Push Token Is Stored So We Can Send You Seat, Tournament And Club Alerts. Turn Them Off In Settings Or In Your Phone's Notification Settings And The Token Is Retired.</li>
-                <li><strong>Crash Reports:</strong> Sent To Sentry Without Your Email Address, To Fix Errors.</li>
+                <li><strong>Crash Reports:</strong> Stored In Our Error Logs To Diagnose And Fix Errors.</li>
                 <li><strong>Analytics:</strong> Product Analytics (PostHog) Run Only After You Say Yes In The App, And Can Be Turned Off In Settings At Any Time.</li>
                 <li><strong>Age:</strong> We Ask Your Date Of Birth Once. Under 18 Cannot Create An Account, And Nothing About A Minor Is Sent To Us.</li>
                 <li><strong>Deleting Your Account:</strong> Settings, Then Delete Account, Removes Your Profile, Your Wallet And Your Push Tokens. Records We Must Keep By Law Are Retained Only As Long As Required.</li>
@@ -366,7 +377,7 @@ function SMSSection() {
             <ul style={styles.list}>
                 <li>Reply <strong>HELP</strong> To Any Message For Support Information</li>
                 <li>Email Us At <a href="mailto:support@smarter.poker" style={styles.link}>Support@Smarter.Poker</a></li>
-                <li>Visit Our Help Center At <a href="https://smarter.poker/help" style={styles.link}>Smarter.Poker/Help</a></li>
+                <li>Visit Our Help Center At <a href="https://smarter.poker/hub/help" style={styles.link}>Smarter.Poker/Hub/Help</a></li>
             </ul>
 
             <h2 style={styles.heading}>6. Carrier Disclaimer</h2>

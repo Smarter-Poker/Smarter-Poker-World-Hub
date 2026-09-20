@@ -35,7 +35,7 @@ export default function OverbetBluffGuide() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BLUFF_SPOTS.map((s, i) => (
           <button key={i} onClick={() => { setSpotIdx(i); setShowMath(false); }}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? `linear-gradient(135deg, ${s.color}, ${s.color}cc)` : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.title.substring(0, 18)}
@@ -50,7 +50,7 @@ export default function OverbetBluffGuide() {
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 12 }}>
           <div style={{ background: `${spot.color}15`, borderRadius: 8, padding: '6px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Sizing</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Sizing</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: spot.color }}>{spot.sizing}</div>
           </div>
         </div>
@@ -61,22 +61,22 @@ export default function OverbetBluffGuide() {
         </div>
 
         <button onClick={() => setShowMath(!showMath)}
-          style={{ width: '100%', padding: '6px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: '#64748b', fontSize: 11, fontWeight: 600 }}>
+          style={{ width: '100%', padding: '6px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: '#64748b', fontSize: 12, fontWeight: 600 }}>
           {showMath ? '▼' : '▶'} Show Math
         </button>
         {showMath && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Expected Fold %</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Expected Fold %</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#22c55e' }}>{spot.foldEq}%</div>
               </div>
               <div style={{ background: 'rgba(245,158,11,0.08)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#64748b' }}>Need To Fold</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>Need To Fold</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{spot.neededFoldEq}%</div>
               </div>
             </div>
-            <div style={{ fontSize: 11, color: '#22c55e', textAlign: 'center', marginTop: 6, fontWeight: 700 }}>
+            <div style={{ fontSize: 12, color: '#22c55e', textAlign: 'center', marginTop: 6, fontWeight: 700 }}>
               ✓ +EV Bluff ({spot.foldEq}% Fold &gt; {spot.neededFoldEq}% Needed)
             </div>
           </motion.div>

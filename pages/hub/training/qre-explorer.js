@@ -138,7 +138,7 @@ export default function QREExplorerPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -175,7 +175,7 @@ export default function QREExplorerPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>QRE Toy Model</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Authored Illustration • No Solver Or Population Data
             </div>
           </div>
@@ -203,7 +203,7 @@ export default function QREExplorerPage() {
               <div>
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-accent-purple)',
                     textTransform: 'uppercase',
@@ -212,7 +212,7 @@ export default function QREExplorerPage() {
                 >
                   Concentration Parameter (λ)
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                   Lower = More Even → Higher = More Concentrated
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function QREExplorerPage() {
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: 9,
+                fontSize: 12,
                 color: 'var(--sp-fg-dim)',
                 marginTop: 4,
               }}
@@ -253,7 +253,7 @@ export default function QREExplorerPage() {
           {/* Pool Presets */}
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
@@ -288,7 +288,7 @@ export default function QREExplorerPage() {
                 }}
               >
                 <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 2 }}>{p.label}</div>
-                <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>λ = {p.lambda}</div>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>λ = {p.lambda}</div>
               </motion.button>
             ))}
           </div>
@@ -296,7 +296,7 @@ export default function QREExplorerPage() {
           {/* Spot Selector */}
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
@@ -323,7 +323,7 @@ export default function QREExplorerPage() {
                   padding: '8px 14px',
                   borderRadius: 8,
                   border: 'none',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -359,7 +359,7 @@ export default function QREExplorerPage() {
               </div>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 700,
                   padding: '3px 8px',
                   borderRadius: 4,
@@ -379,14 +379,14 @@ export default function QREExplorerPage() {
                 marginBottom: 8,
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>ACTION</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-green)', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-dim)' }}>ACTION</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)', textAlign: 'center' }}>
                 AUTHORED
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-purple)', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-purple)', textAlign: 'center' }}>
                 MODEL
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-amber)', textAlign: 'center' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-amber)', textAlign: 'center' }}>
                 DELTA
               </div>
             </div>
@@ -411,7 +411,7 @@ export default function QREExplorerPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                       {a.action}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                       Model Utility: {a.utility}
                     </div>
                   </div>
@@ -500,7 +500,7 @@ export default function QREExplorerPage() {
                 display: 'flex',
                 gap: 16,
                 justifyContent: 'center',
-                fontSize: 10,
+                fontSize: 12,
                 marginTop: 8,
               }}
             >
@@ -520,7 +520,7 @@ export default function QREExplorerPage() {
           >
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-accent-amber)',
                 textTransform: 'uppercase',

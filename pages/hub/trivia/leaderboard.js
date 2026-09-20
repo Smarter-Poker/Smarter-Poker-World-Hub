@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import useHasMounted from '../../../src/hooks/useHasMounted';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -22,6 +23,7 @@ import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaD
 // documents as undefined behaviour — so the leaderboard's day window could drift
 // away from the play_date the game pages actually write.
 import { getTodayCST, getCSTDateParts } from '../../../src/lib/trivia/getTodayCST';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // Ranking raw `score` across all modes is not like-for-like: endless scores
 // streak*100 with no ceiling and structurally dominates the 10-question modes.
@@ -49,6 +51,9 @@ const FETCH_WINDOW = 500;
 const DISPLAY_LIMIT = 20;
 
 export default function TriviaLeaderboard() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19).
+    const hasMounted = useHasMounted();
     useTrainingBus('trivia-leaderboard');
     const router = useRouter();
     const [period, setPeriod] = usePersistedState('sp-filters-trivia-leaderboard', 'all');
@@ -199,7 +204,7 @@ export default function TriviaLeaderboard() {
         <>
             <SEOHead
                 title="Trivia Leaderboard - Top Players"
-                description="See Who Dominates The Poker Trivia Leaderboard. Global Rankings Across All Game Modes."
+                description="The Poker Trivia Leaderboard On Smarter.Poker: Daily, Weekly And All Time Rankings Across Every Mode, Updated As Runs Finish. Free To Appear On, And Nothing On It Is A Payout."
                 canonical="/hub/trivia/leaderboard"
             />
 
@@ -266,7 +271,7 @@ export default function TriviaLeaderboard() {
                             </div>
                         </fieldset>
 
-                        {isLoading ? (
+                        {hasMounted && isLoading ? (
                             <p className="trivia-progress-state" role="status">
                                 Loading Leaderboard...
                             </p>
@@ -342,6 +347,9 @@ export default function TriviaLeaderboard() {
                 </div>
     </PageTransition>
         </>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-leaderboard" />
         </TriviaErrorBoundary>
     );
 }

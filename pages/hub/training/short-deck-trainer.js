@@ -234,7 +234,7 @@ export default function ShortDeckTrainerPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #1e0b0b 0%, #0a0a0a 50%, #120808 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -293,7 +293,7 @@ export default function ShortDeckTrainerPage() {
                 background: 'rgba(var(--sp-accent-red-rgb), 0.08)',
                 border: '1px solid rgba(var(--sp-accent-red-rgb), 0.25)',
                 color: 'var(--sp-accent-red)',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 padding: '4px 12px',
                 borderRadius: 12,
@@ -308,7 +308,7 @@ export default function ShortDeckTrainerPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
                 Short Deck (Six Plus)
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sp-accent-red)' }}>36-Card Dynamics Trainer</div>
+              <div style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>36-Card Dynamics Trainer</div>
             </div>
           </div>
           {/* Mode Toggle */}
@@ -323,7 +323,7 @@ export default function ShortDeckTrainerPage() {
                   border: `1px solid ${mode === m ? 'rgba(239,68,68,0.3)' : 'transparent'}`,
                   background: mode === m ? 'rgba(239,68,68,0.08)' : 'transparent',
                   color: mode === m ? 'var(--sp-accent-red)' : 'var(--sp-fg-dim)',
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
                   textTransform: 'uppercase',
@@ -352,7 +352,7 @@ export default function ShortDeckTrainerPage() {
               <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--sp-accent-red)' }}>
                 Trainer Ruleset: Flush Ranks Above Full House
               </div>
-              <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+              <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                 {showRules ? '● Hide' : '● Show All'}
               </span>
             </div>
@@ -377,7 +377,7 @@ export default function ShortDeckTrainerPage() {
                         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-red)' }}>
                           {r.rule}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                           {r.reason}
                         </div>
                       </div>
@@ -409,7 +409,7 @@ export default function ShortDeckTrainerPage() {
                     background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     color: 'var(--sp-fg-muted)',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
                   }}
@@ -422,7 +422,7 @@ export default function ShortDeckTrainerPage() {
               <div style={{ marginBottom: 24, textAlign: 'center' }}>
                 <label
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -451,7 +451,7 @@ export default function ShortDeckTrainerPage() {
                 >
                   {BENCHMARK_HANDS.map((hand) => <option key={hand.value} value={hand.value}>{hand.label}</option>)}
                 </select>
-                <div style={{ color: 'var(--sp-fg-faint)', fontSize: 10 }}>Exact Hand Vs Hand Calculation - Not A Range Estimate</div>
+                <div style={{ color: 'var(--sp-fg-faint)', fontSize: 12 }}>Exact Hand Vs Hand Calculation - Not A Range Estimate</div>
               </div>
 
               {/* Run Button */}
@@ -502,7 +502,7 @@ export default function ShortDeckTrainerPage() {
                   >
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                         fontWeight: 700,
                         textTransform: 'uppercase',
@@ -523,7 +523,7 @@ export default function ShortDeckTrainerPage() {
                     >
                       {equity}%
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginTop: 8 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginTop: 8 }}>
                       Estimated Via Short Deck Monte Carlo (36 Cards)
                     </div>
                   </motion.div>

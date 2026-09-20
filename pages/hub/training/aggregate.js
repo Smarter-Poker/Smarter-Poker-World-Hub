@@ -99,7 +99,7 @@ export default function AggregateReports() {
 
         <style jsx>{`
           .aggregate-boundary {
-            min-height: 100vh;
+            min-height: 100dvh;
             padding: clamp(28px, 6vw, 76px) clamp(16px, 4vw, 44px) 80px;
             box-sizing: border-box;
             color: var(--sp-fg, #e9f8ff);
@@ -140,14 +140,14 @@ export default function AggregateReports() {
             border-radius: 10px;
             background: rgba(8,145,178,0.10);
             box-shadow: inset 0 1px rgba(255,255,255,0.10), 0 0 24px rgba(34,211,238,0.10);
-            font: 900 10px/1 var(--font-orbitron, 'Orbitron', sans-serif);
+            font: 900 12px/1 var(--font-orbitron, 'Orbitron', sans-serif);
             letter-spacing: 1px;
             text-transform: uppercase;
           }
           .aggregate-kicker {
             margin: 28px 0 8px;
             color: #8fdcf0;
-            font: 800 11px/1.4 var(--font-orbitron, 'Orbitron', sans-serif);
+            font: 800 12px/1.4 var(--font-orbitron, 'Orbitron', sans-serif);
             letter-spacing: 2px;
             text-transform: uppercase;
           }
@@ -178,7 +178,7 @@ export default function AggregateReports() {
             background: linear-gradient(155deg, rgba(255,255,255,0.065), rgba(255,255,255,0.015));
             box-shadow: inset 0 1px rgba(255,255,255,0.08), 0 12px 28px rgba(0,0,0,0.22);
           }
-          article span { color: #61dff6; font: 900 9px/1 var(--font-orbitron, 'Orbitron', sans-serif); letter-spacing: 1.5px; }
+          article span { color: #61dff6; font: 900 12px/1 var(--font-orbitron, 'Orbitron', sans-serif); letter-spacing: 1.5px; }
           article strong { display: block; margin-top: 10px; color: #e8faff; font-size: 14px; }
           article p { margin: 9px 0 0; color: #8fa8b4; font-size: 12px; line-height: 1.55; }
           .aggregate-note {
@@ -205,7 +205,7 @@ export default function AggregateReports() {
             background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.025));
           }
           button:focus-visible { outline: 3px solid #67e8f9; outline-offset: 3px; }
-          @media (max-width: 720px) {
+          @media (max-width: 768px) {
             .aggregate-grid { grid-template-columns: 1fr; }
             article { min-height: 0; }
             .aggregate-actions button { width: 100%; }

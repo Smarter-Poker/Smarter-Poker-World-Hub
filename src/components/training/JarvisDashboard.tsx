@@ -226,7 +226,7 @@ const styles = {
         color: '#fff'
     },
     statLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: '#888'
     },
     adviceBox: {
@@ -245,7 +245,7 @@ const styles = {
         flex: 1
     },
     adviceLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: '#00d4ff',
         textTransform: 'uppercase',
         marginBottom: 4
@@ -277,7 +277,7 @@ const styles = {
         color: '#fff'
     },
     insightMsg: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#888',
         marginTop: 2
     },
@@ -341,7 +341,7 @@ const styles = {
         color: '#fff'
     },
     weeklyLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: '#888'
     }
 };

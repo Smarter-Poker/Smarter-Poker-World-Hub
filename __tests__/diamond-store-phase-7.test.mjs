@@ -36,7 +36,10 @@ test('marketplace account pages share same-surface navigation and accessible cas
   assert.doesNotMatch(SHELL, /target=|window\.open/);
   assert.match(SHELL, /aria-current=\{active === id \? 'page'/);
   assert.match(SHELL, /aria-label="Marketplace Account Pages"/);
-  assert.match(SHELL_CSS, /border-radius:\s*0/);
+  assert.doesNotMatch(
+    SHELL_CSS,
+    /border-radius|(?:linear|radial|conic)-gradient|box-shadow|:hover/
+  );
   assert.match(SHELL_CSS, /:focus-visible/);
   assert.match(SHELL_CSS, /@media \(prefers-reduced-motion: reduce\)/);
 });
@@ -59,9 +62,17 @@ test('diamond checkout accepts a validated client idempotency key', () => {
   assert.match(DIAMOND_PURCHASE, /buildRequestHash/);
   assert.match(DIAMOND_PURCHASE, /createHash\('sha256'\)/);
   assert.match(DIAMOND_PURCHASE, /purchase_merch_with_diamonds_atomic/);
-  assert.match(MERCH, /purchaseRequestId: getOrCreateCommerceRequestId/);
-  assert.match(MERCH, /clearCommerceRequestId\(pendingDiamondPurchase\.commerceIntent\)/);
-  assert.match(MERCH, /'X-Idempotency-Key': pendingDiamondPurchase\.purchaseRequestId/);
+  assert.match(
+    MERCH,
+    /purchaseRequestId\s*=\s*purchaseWasResumed[\s\S]{0,120}?recovery\.requestId[\s\S]{0,120}?getOrCreateCommerceRequestId\(commerceIntent\)/
+  );
+  assert.match(MERCH, /const durableRequestId = getOrCreateCommerceRequestId/);
+  assert.match(
+    MERCH,
+    /clearCommerceRequestId\(\{[\s\S]{0,160}\.\.\.pendingDiamondPurchase\.commerceIntent,[\s\S]{0,100}expectedRequestId: durableRequestId/
+  );
+  assert.match(MERCH, /'X-Idempotency-Key': durableRequestId/);
+  assert.match(MERCH, /replaceCommerceRequestId\(/);
 });
 
 test('all cart lines obey the API quantity ceiling', () => {
@@ -72,7 +83,10 @@ test('all cart lines obey the API quantity ceiling', () => {
 
 test('order history is allowlisted and includes VIP subscription activity', () => {
   assert.match(ORDERS, /authedFetch\(`\/api\/store\/order-ledger\?limit=/);
-  assert.doesNotMatch(ORDERS, /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/);
+  assert.doesNotMatch(
+    ORDERS,
+    /\.from\(['"](?:diamond_purchases|merchandise_orders|vip_subscriptions)['"]\)/
+  );
   assert.match(ORDER_LEDGER, /table: 'vip_subscriptions'/);
   assert.match(ORDER_LEDGER, /table: 'diamond_purchases'/);
   assert.match(ORDER_LEDGER, /table: 'merchandise_orders'/);

@@ -10,7 +10,7 @@
  *   - operatorRoute.withOperatorRoute (405, rate limit, auth, durable, envelope, scrub)
  *   - paged.js (range math, totals, fetchAll truncation)
  *
- * Nothing here touches Supabase, Sentry or the network: every dependency the
+ * Nothing here touches Supabase, retired error provider or the network: every dependency the
  * modules reach for is injected.
  */
 import assert from 'node:assert/strict';

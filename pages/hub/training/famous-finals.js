@@ -46,11 +46,11 @@ export default function FamousFinalsArchivePage() {
       <main
         data-training-authority="archive-ungraded"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           width: '100%',
           maxWidth: '100vw',
           boxSizing: 'border-box',
-          overflowX: 'hidden',
+          overflowX: 'clip',
           padding: '32px 18px 80px',
           color: 'var(--sp-fg)',
           background:
@@ -93,7 +93,7 @@ export default function FamousFinalsArchivePage() {
                 border: '1px solid rgba(251,191,36,0.5)',
                 color: '#fcd56a',
                 background: 'rgba(90,61,10,0.24)',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 900,
                 letterSpacing: 1.2,
                 textTransform: 'uppercase',

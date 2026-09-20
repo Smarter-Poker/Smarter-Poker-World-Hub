@@ -62,8 +62,8 @@ node ".agent/get-shit-done/bin/gsd-tools.cjs" commit "docs: initialize [project-
 Each task gets its own commit immediately after completion.
 
 > **Parallel agents:** When running as a parallel executor (spawned by execute-phase),
-> use `--no-verify` on all commits to avoid pre-commit hook lock contention.
-> The orchestrator validates hooks once after all agents complete.
+> use an isolated owned worktree and ordinary hooks. Resolve actual contention
+> through supported isolation, then verify affected integration checks.
 
 ```
 {type}({phase}-{plan}): {task-name}

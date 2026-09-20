@@ -25,7 +25,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
 function getSupabase() {

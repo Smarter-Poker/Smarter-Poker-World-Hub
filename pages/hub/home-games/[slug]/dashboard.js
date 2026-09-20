@@ -224,7 +224,7 @@ function MembersTab({ group, token }) {
       {members.map(m => (
         <div key={m.user_id || m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${C.border}` }}>
           {m.avatar_url ? (
-            <img src={m.avatar_url} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+            <img src={m.avatar_url} alt="" loading="lazy" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
           ) : (
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 16 }}>
               {(m.display_name || m.username || '?')[0].toUpperCase()}

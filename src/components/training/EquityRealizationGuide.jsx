@@ -57,7 +57,7 @@ function EquityRealizationGuide() {
               flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: activeFactor === i ? f.color : 'rgba(255,255,255,0.06)',
               color: activeFactor === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 11, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
             }}>{f.factor}</button>
           ))}
         </div>
@@ -77,24 +77,24 @@ function EquityRealizationGuide() {
                   <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 2 }}>
                     <div style={{ height: '100%', width: `${s.raw}%`, background: '#6b7280', borderRadius: 4 }} />
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Raw: {s.raw}%</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Raw: {s.raw}%</div>
                 </div>
                 <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)' }}>→</div>
                 <div style={{ flex: 1, textAlign: 'center' }}>
                   <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 2 }}>
                     <div style={{ height: '100%', width: `${s.realized}%`, background: s.realized > s.raw ? '#10b981' : '#ef4444', borderRadius: 4 }} />
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Realized: {s.realized}%</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Realized: {s.realized}%</div>
                 </div>
               </div>
 
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{s.note}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{s.note}</div>
             </div>
           ))}
         </div>
 
         <div style={{ marginTop: 12, padding: 10, background: 'rgba(6,182,212,0.06)', borderRadius: 8, border: '1px solid rgba(6,182,212,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>Key Takeaway</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>Key Takeaway</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
             Raw Equity Doesnt Equal Money Won. A Hand With 40% Equity IP Might Be More Profitable Than A Hand With 50% Equity OOP. Always Consider How Much Equity You Can Actually REALIZE Before Calling Or Raising.
           </div>

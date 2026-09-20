@@ -97,7 +97,7 @@ function BlockerAnalysis() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {SCENARIOS.map(s => (
             <button key={s.id} onClick={() => setSelectedId(s.id)} style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedId === s.id ? '#d946ef' : 'rgba(255,255,255,0.06)',
               color: selectedId === s.id ? '#fff' : 'rgba(255,255,255,0.7)', border: 'none',
             }}>{s.name}</button>

@@ -72,12 +72,12 @@ score: N/M must-haves verified
 
 **Anti-patterns:** {N} found ({blockers} blockers, {warnings} warnings)
 
-## Human Verification Required
+## Direct Verification Outstanding
 
-{If no human verification needed:}
+{If no direct verification outstanding:}
 None — all verifiable items checked programmatically.
 
-{If human verification needed:}
+{If direct verification outstanding:}
 
 ### 1. {Test Name}
 **Test:** {What to do}
@@ -164,7 +164,7 @@ None — all verifiable items checked programmatically.
 **Status values:**
 - `passed` — All must-haves verified, no blockers
 - `gaps_found` — One or more critical gaps found
-- `human_needed` — Automated checks pass but human verification required
+- `human_needed` — Automated checks pass but direct behavior checks remain for the assigned agent to perform
 
 **Evidence types:**
 - For EXISTS: "File at path, exports X"
@@ -257,7 +257,7 @@ score: 2/5 must-haves verified
 
 **Anti-patterns:** 3 found (2 blockers, 1 warning)
 
-## Human Verification Required
+## Direct Verification Outstanding
 
 None needed until automated gaps are fixed.
 

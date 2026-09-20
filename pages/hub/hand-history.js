@@ -14,6 +14,8 @@ const ShareableHandCard = dynamic(() => import('../../src/components/poker/Share
 // 2026-05-07 — UI-UX-Pro-Max icons (no-emoji-icons rule)
 import { History, Check, X, Share2, Sparkles } from 'lucide-react';
 
+import SEOHead from '../../src/components/seo/SEOHead';
+
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
 // Card index → display string (matches engine output: 0-51)
@@ -41,7 +43,7 @@ function parseCards(str) {
   return tokens.map(cardToIdx).filter(n => n !== null);
 }
 
-export default function HandHistoryPage() {
+function HandHistoryPageBody() {
   useTrainingBus('hand-history');
   const [hands, setHands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -525,5 +527,26 @@ export default function HandHistoryPage() {
       />
       
     </div>
+  );
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this page served 200 with no <title> and no
+ * robots meta, so an engine saw a nameless page of thirteen words and had
+ * to judge the site on it. A signed-in library of one account’s own saved
+ * hands. It now names itself and asks not to be indexed, which is what
+ * /hub/vip-membership/manage already does.
+ */
+export default function HandHistoryPage() {
+  return (
+    <>
+      <SEOHead
+        title="Your Saved Hands"
+        description="The Signed In Library Of Hands You Have Saved, Pasted, Or Imported, Ready To Replay And Review."
+        canonical="/hub/hand-history"
+        noindex
+      />
+      <HandHistoryPageBody />
+    </>
   );
 }

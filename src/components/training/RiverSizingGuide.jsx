@@ -73,7 +73,7 @@ function RiverSizingGuide() {
               flex: 1, padding: '8px 4px', borderRadius: 6, border: 'none', cursor: 'pointer',
               background: selected === i ? sz.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 10, fontWeight: 700, textAlign: 'center',
+              fontSize: 12, fontWeight: 700, textAlign: 'center',
             }}>
               <div style={{ fontSize: 14 }}>{sz.icon}</div>
               <div>{sz.label}</div>
@@ -83,20 +83,20 @@ function RiverSizingGuide() {
 
         <div style={{ padding: 14, background: `${s.color}11`, borderRadius: 10, border: `1px solid ${s.color}33`, marginBottom: 12 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: s.color, marginBottom: 2 }}>{s.name}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Best For: {s.when}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>Best For: {s.when}</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{s.logic}</div>
         </div>
 
         <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.12)', marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Good Examples</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Good Examples</div>
           {s.examples.map((ex, i) => (
-            <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 2, lineHeight: 1.5 }}>• {ex}</div>
+            <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 2, lineHeight: 1.5 }}>• {ex}</div>
           ))}
         </div>
 
         <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 2 }}>Avoid</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.avoid}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 2 }}>Avoid</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{s.avoid}</div>
         </div>
       </div>
     );

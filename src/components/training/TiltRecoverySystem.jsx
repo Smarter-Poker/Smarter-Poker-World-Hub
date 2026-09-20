@@ -85,11 +85,11 @@ function TiltRecoverySystem() {
         {/* Tilt level meter */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Current Tilt Level</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Current Tilt Level</span>
             <span style={{ fontSize: 13, fontWeight: 800, color: tiltColors[tiltLevel] }}>{tiltLabels[tiltLevel]}</span>
           </div>
           <input type="range" min={0} max={6} value={tiltLevel} onChange={e => setTiltLevel(parseInt(e.target.value))} style={{ width: '100%', accentColor: tiltColors[tiltLevel] }} />
-          <div style={{ textAlign: 'center', fontSize: 11, marginTop: 4, color: tiltLevel >= 4 ? '#ef4444' : tiltLevel >= 2 ? '#f59e0b' : '#10b981', fontWeight: 600 }}>
+          <div style={{ textAlign: 'center', fontSize: 12, marginTop: 4, color: tiltLevel >= 4 ? '#ef4444' : tiltLevel >= 2 ? '#f59e0b' : '#10b981', fontWeight: 600 }}>
             {tiltLevel >= 5 ? 'STOP PLAYING. Take a break immediately.' :
              tiltLevel >= 4 ? 'Warning: Your decisions are likely compromised.' :
              tiltLevel >= 2 ? 'Monitor closely. Slow down your decisions.' :
@@ -101,7 +101,7 @@ function TiltRecoverySystem() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {TILT_TYPES.map((t, i) => (
             <button key={i} onClick={() => setSelected(selected === i ? null : i)} style={{
-              padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? t.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{t.type}</button>
@@ -115,18 +115,18 @@ function TiltRecoverySystem() {
               <div style={{ padding: 12, background: `${tilt.color}11`, borderRadius: 10, border: `1px solid ${tilt.color}33`, marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: tilt.color }}>{tilt.type}</span>
-                  <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: `${sevColors[tilt.severity]}22`, color: sevColors[tilt.severity] }}>{tilt.severity}</span>
+                  <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: `${sevColors[tilt.severity]}22`, color: sevColors[tilt.severity] }}>{tilt.severity}</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Trigger: {tilt.trigger}</div>
 
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#ef4444', marginBottom: 4 }}>Symptoms:</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#ef4444', marginBottom: 4 }}>Symptoms:</div>
                 {tilt.symptoms.map((s, i) => (
-                  <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: '2px solid rgba(239,68,68,0.2)', marginBottom: 3 }}>{s}</div>
+                  <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: '2px solid rgba(239,68,68,0.2)', marginBottom: 3 }}>{s}</div>
                 ))}
               </div>
 
               <div style={{ padding: 12, background: 'rgba(16,185,129,0.06)', borderRadius: 10, border: '1px solid rgba(16,185,129,0.15)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>Recovery Protocol:</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 6 }}>Recovery Protocol:</div>
                 {tilt.recovery.map((r, i) => (
                   <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, paddingLeft: 8, borderLeft: '2px solid rgba(16,185,129,0.3)', marginBottom: 4 }}>{r}</div>
                 ))}

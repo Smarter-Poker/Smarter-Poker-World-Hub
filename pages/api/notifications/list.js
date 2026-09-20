@@ -3,7 +3,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -59,9 +59,10 @@ export default async function handler(req, res) {
 
           // Fetch notifications
           let query = getSupabase()
-              .from('notifications')
+              .from('personal_notifications')
               .select('*')
               .eq('user_id', userId)
+              .or('type.is.null,type.neq.accounting_invoice_detail')
               .order('created_at', { ascending: false })
               .limit(limit);
 
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
 
           if (error) {
               console.warn('[Notifications List] Error:', error);
-              return res.status(200).json({ success: true, notifications: [] });
+              return res.status(503).json({ success: false, error: 'Notifications Unavailable' });
           }
 
           return res.status(200).json({
@@ -84,11 +85,11 @@ export default async function handler(req, res) {
 
       } catch (err) {
           console.warn('[Notifications List] Error:', err);
-          return res.status(200).json({ success: true, notifications: [] });
+          return res.status(503).json({ success: false, error: 'Notifications Unavailable' });
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

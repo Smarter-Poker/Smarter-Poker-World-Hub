@@ -42,7 +42,6 @@ Just add `use context7` to any prompt:
 | Stripe | `/stripe/stripe-node` | Diamond store payments |
 | Leaflet | `/Leaflet/Leaflet` | Poker Near Me maps |
 | Framer Motion | `/framer/motion` | UI animations |
-| Sentry | `/getsentry/sentry-javascript` | Error monitoring |
 | OneSignal | `/OneSignal/onesignal-node` | Push notifications |
 | Chart.js | `/chartjs/Chart.js` | Training analytics graphs |
 

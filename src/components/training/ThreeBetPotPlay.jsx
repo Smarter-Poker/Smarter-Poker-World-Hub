@@ -48,10 +48,10 @@ export default function ThreeBetPotPlay() {
           <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12, borderLeft: `3px solid ${persp.color}` }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>{s.spot}</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: `${persp.color}15`, color: persp.color, fontWeight: 700 }}>
+              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: `${persp.color}15`, color: persp.color, fontWeight: 700 }}>
                 {s.cbet}
               </span>
-              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontWeight: 700 }}>
+              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontWeight: 700 }}>
                 Size: {s.sizing}
               </span>
             </div>

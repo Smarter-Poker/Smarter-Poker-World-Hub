@@ -16,7 +16,9 @@ test('fulfillment privacy and mutation guards cover every early exit and stale c
   const [api, page, migration] = await Promise.all([
     read('pages/api/store/fulfillment-operations.js'),
     read('pages/hub/merch-store/fulfillment.js'),
-    read('supabase/migrations/20260906150000_marketplace_phase6_lifetime_and_fulfillment_guards.sql'),
+    read(
+      'supabase/migrations/20260906150000_marketplace_phase6_lifetime_and_fulfillment_guards.sql'
+    ),
   ]);
 
   const handler = api.indexOf('export default async function handler');
@@ -29,8 +31,13 @@ test('fulfillment privacy and mutation guards cover every early exit and stale c
   assert.match(page, /transitionInFlightRef\.current = true/);
   assert.match(page, /transitionAbortRef\.current\?\.abort\(\)/);
   assert.match(page, /signal: controller\.signal/);
-  assert.match(page, /controller\.signal\.aborted \|\| !mountedRef\.current/);
-  assert.match(page, /if \(mountedRef\.current\) setBusyId\(null\)/);
+  assert.match(page, /controller\.signal\.aborted\s*\|\|\s*!mountedRef\.current/);
+  assert.match(page, /const stillOwnsTransition = transitionAbortRef\.current === controller/);
+  assert.match(page, /if \(stillOwnsTransition\) \{/);
+  assert.match(
+    page,
+    /mountedRef\.current && authOwnerRef\.current === expectedAccountId\) setBusyId\(null\)/
+  );
   assert.match(api, /refund_diamond_merch_order_atomic_v2/);
   assert.match(api, /p_expected_version: expectedVersion/);
   assert.match(migration, /v_order\.fulfillment_version IS DISTINCT FROM p_expected_version/);
@@ -67,35 +74,41 @@ test('deployment verifier probes the complete private operations surface and acc
     }
     if (req.url === '/api/store/merch-catalog') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({
-        success: true,
-        data: {
-          items: [{
-            id: 'verified-item',
-            price_usd: 19.99,
-            price_diamonds: 1_999,
-            variants: [],
-            fulfillment_ready: true,
-            fulfillment_mode: 'manual',
-            card_checkout_ready: true,
-            diamond_checkout_ready: true,
-            payment_methods: ['card', 'diamonds'],
-          }],
-          count: 1,
-          catalog_available: true,
-          diamonds_per_dollar: 100,
-          manual_fulfillment_available: true,
-          print_on_demand_available: false,
-        },
-      }));
+      return res.end(
+        JSON.stringify({
+          success: true,
+          data: {
+            items: [
+              {
+                id: 'verified-item',
+                price_usd: 19.99,
+                price_diamonds: 1_999,
+                variants: [],
+                fulfillment_ready: true,
+                fulfillment_mode: 'manual',
+                card_checkout_ready: true,
+                diamond_checkout_ready: true,
+                payment_methods: ['card', 'diamonds'],
+              },
+            ],
+            count: 1,
+            catalog_available: true,
+            diamonds_per_dollar: 100,
+            manual_fulfillment_available: true,
+            print_on_demand_available: false,
+          },
+        })
+      );
     }
     if (req.url === '/api/store/readiness') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({
-        success: true,
-        ready: true,
-        capabilities: { cardCheckout: true, diamondCheckout: true },
-      }));
+      return res.end(
+        JSON.stringify({
+          success: true,
+          ready: true,
+          capabilities: { cardCheckout: true, diamondCheckout: true },
+        })
+      );
     }
     if (req.url === '/api/store/fulfillment-operations' && req.method === 'POST') {
       res.writeHead(405, {
@@ -137,8 +150,12 @@ test('deployment verifier probes the complete private operations surface and acc
     });
     let stdout = '';
     let stderr = '';
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
     child.on('error', reject);
     child.on('close', (code) => resolve({ code, stdout, stderr }));
   });

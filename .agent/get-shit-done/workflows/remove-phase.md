@@ -59,8 +59,8 @@ To abandon current work, use /gsd-pause-work instead.
 Exit.
 </step>
 
-<step name="confirm_removal">
-Present removal summary and confirm:
+<step name="verify_removal">
+Verify the explicitly assigned removal target and preserve any owned work before removal:
 
 ```
 Removing Phase {target}: {Name}
@@ -70,10 +70,10 @@ This will:
 - Renumber all subsequent phases
 - Update: ROADMAP.md, STATE.md
 
-Proceed? (y/n)
+Record the exact assigned target and preserved state.
 ```
 
-Wait for confirmation.
+Complete the assigned removal without another approval after verifying target ownership and preservation. Do not delete another task's work or infer this operation from an unrelated request.
 </step>
 
 <step name="execute_removal">
@@ -83,7 +83,7 @@ Wait for confirmation.
 RESULT=$(node ".agent/get-shit-done/bin/gsd-tools.cjs" phase remove "${target}")
 ```
 
-If the phase has executed plans (SUMMARY.md files), gsd-tools will error. Use `--force` only if the user confirms:
+If the phase has executed plans (SUMMARY.md files), gsd-tools will error. Do not force removal of retained executed work. A separately assigned removal must preserve its evidence and ownership before any supported removal operation:
 
 ```bash
 RESULT=$(node ".agent/get-shit-done/bin/gsd-tools.cjs" phase remove "${target}" --force)

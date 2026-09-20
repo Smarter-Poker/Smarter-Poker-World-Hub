@@ -7,7 +7,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   YouTubeErrorOverlay,
   reportFailureToServer,
-  reportToSentry,
 } from '../../src/hooks/useYouTubeErrorManager';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -27,6 +26,7 @@ import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
 import {
   findBestGames,
 } from '../../src/utils/videoToTrainingMapper';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const C = {
   bg: '#000000',
@@ -2317,12 +2317,11 @@ export default function ReelsPage() {
           const errorCode = Number(data.info);
           console.warn('[Reels] YouTube error:', errorCode);
           setYtError({ code: errorCode });
-          // Report to server + Sentry (best-effort)
+          // Report to server (best-effort)
           try {
             const vid = iframeRef.current?.src ? getYouTubeVideoId(iframeRef.current.src) : null;
             if (vid) {
               reportFailureToServer(vid, errorCode, 'HubReels');
-              reportToSentry(vid, errorCode, 'HubReels');
             }
           } catch {
             /* best-effort */
@@ -2481,7 +2480,7 @@ export default function ReelsPage() {
       <>
         <SEOHead
           title="Poker Reels - Short Poker Content"
-          description="Watch And Share Short Poker Videos, Highlights, And Tips On Smarter.Poker Reels."
+          description="Watch And Share Short Poker Video On Smarter.Poker Reels: Hands Worth Watching Twice, Reads That Paid Off And Moments From The Circuit. Free To Watch, No Account Needed, And Nothing In It Is A Wager."
           canonical="/hub/reels"
         />
         <div
@@ -2533,6 +2532,7 @@ export default function ReelsPage() {
           </div>
           <style>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
         </div>
+        <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
@@ -2601,6 +2601,7 @@ export default function ReelsPage() {
             Try Again
           </button>
         </div>
+        <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
@@ -2661,6 +2662,7 @@ export default function ReelsPage() {
             Back To Feed
           </Link>
         </div>
+        <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
@@ -5893,6 +5895,9 @@ export default function ReelsPage() {
                     }
                 `}</style>
       </div>
+      {/* Server rendered: measured on production this page returned
+          almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="reels" as="h1" />
     </>
   );
 }

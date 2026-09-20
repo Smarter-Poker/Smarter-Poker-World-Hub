@@ -362,10 +362,10 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: isToday ? 'var(--sp-accent-cyan)' : 'var(--sp-fg)' }}>
               {dayPlan.day}{' '}
               {isToday && (
-                <span style={{ fontSize: 10, color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>- TODAY</span>
+                <span style={{ fontSize: 12, color: 'var(--sp-accent-cyan)', fontWeight: 600 }}>- TODAY</span>
               )}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               {dayPlan.areas.length} Focus {dayPlan.areas.length === 1 ? 'area' : 'areas'} ·{' '}
               {dayPlan.totalQuestions} Questions
             </div>
@@ -424,21 +424,21 @@ function DayCard({ dayPlan, isToday, onStartArea, completedGames }) {
                         >
                           {area.name}
                           {isDone && (
-                            <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--sp-accent-green)' }}>
+                            <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--sp-accent-green)' }}>
                               ✓ Practiced This Week
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
                           {area.reason}
                         </div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: area.color }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: area.color }}>
                         {area.questionCount}Q
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--sp-fg-faint)' }}>Goal: {area.goal}%</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>Goal: {area.goal}%</div>
                     </div>
                   </motion.div>
                 );
@@ -573,7 +573,7 @@ export default function StudyPlanPage() {
       <div
         className="sp-training-journey sp-training-journey--study-plan"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -613,7 +613,7 @@ export default function StudyPlanPage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
                 Weekly Study Plan
               </div>
-              <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+              <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                 {loading
                   ? 'Loading Verified Training History'
                   : signedOut
@@ -636,7 +636,7 @@ export default function StudyPlanPage() {
                 border: '1px solid rgba(255,255,255,0.1)',
                 background: 'rgba(255,255,255,0.03)',
                 color: 'var(--sp-fg-muted)',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -715,7 +715,7 @@ export default function StudyPlanPage() {
               <div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -732,7 +732,7 @@ export default function StudyPlanPage() {
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-accent-cyan)' }}>
                   {totalCompleted}/{totalAreas}
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>Drills Completed</div>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Drills Completed</div>
               </div>
             </div>
             {/* Progress bar */}
@@ -790,7 +790,7 @@ export default function StudyPlanPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-accent-red)',
                     textTransform: 'uppercase',
@@ -830,7 +830,7 @@ export default function StudyPlanPage() {
                           {w.accuracy}%
                         </span>
                         {w.measuredEvDecisions > 0 && w.evLoss !== null && (
-                          <span style={{ fontSize: 10, color: 'var(--sp-accent-red)' }}>
+                          <span style={{ fontSize: 12, color: 'var(--sp-accent-red)' }}>
                             {Math.round(w.evLoss * 10) / 10} BB Measured EV Loss
                           </span>
                         )}
@@ -865,13 +865,13 @@ export default function StudyPlanPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                     Today's Focus
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sp-fg)' }}>
                     {focus.icon} {focus.name}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                     {focus.accuracy}% Accuracy - Needs Attention
                   </div>
                 </div>
@@ -884,7 +884,7 @@ export default function StudyPlanPage() {
                     border: '1px solid rgba(0,212,255,0.25)',
                     background: 'rgba(0,212,255,0.08)',
                     color: 'var(--sp-accent-cyan)',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
@@ -914,7 +914,7 @@ export default function StudyPlanPage() {
               style={{
                 textAlign: 'center',
                 padding: '20px 16px',
-                fontSize: 11,
+                fontSize: 12,
                 color: 'var(--sp-fg-faint)',
                 lineHeight: 1.5,
               }}

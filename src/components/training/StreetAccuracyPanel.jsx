@@ -191,16 +191,16 @@ const styles = {
         display: 'flex', flexDirection: 'column', gap: 1,
     },
     accuracyValue: { fontSize: 13, fontWeight: 'bold' },
-    evValue: { fontSize: 9, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" },
+    evValue: { fontSize: 12, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" },
     countCol: {
         width: 32, textAlign: 'right',
         display: 'flex', flexDirection: 'column',
     },
-    handCount: { fontSize: 11, color: '#94a3b8', fontWeight: 600 },
-    handLabel: { fontSize: 7, color: '#475569' },
+    handCount: { fontSize: 12, color: '#94a3b8', fontWeight: 600 },
+    handLabel: { fontSize: 12, color: '#475569' },
     insight: {
         marginTop: 10, padding: '6px 10px',
         background: 'rgba(0,0,0,0.15)', borderRadius: 8,
-        fontSize: 10, color: '#64748b', textAlign: 'center',
+        fontSize: 12, color: '#64748b', textAlign: 'center',
     },
 };

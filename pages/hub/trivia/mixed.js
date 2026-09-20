@@ -27,6 +27,7 @@ import { shareResult } from '../../../src/lib/trivia/shareResult';
 import { getDailyDiamondsEarned } from '../../../src/lib/trivia/diamondCap';
 import { calculateDiamonds, DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import ReportQuestionButton from '../../../src/components/trivia/ReportQuestionButton';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Cap comes from triviaEngine so the lobby and the payout can never disagree.
@@ -479,7 +480,7 @@ export default function MixedModePage() {
             <>
                 <SEOHead
                     title="Mixed Trivia - All Categories"
-                    description="Challenge Yourself With Mixed Poker Trivia Covering All Categories And Difficulty Levels."
+                    description="Mixed Poker Trivia On Smarter.Poker: Every Category At Once And In Random Order, So You Cannot Prepare For What Is Coming. Free To Play, No Account Needed, And Nothing In It Is A Wager."
                     canonical="/hub/trivia/mixed"
                 />
 
@@ -736,6 +737,9 @@ export default function MixedModePage() {
                     </main>
                 </div>
             </>
+          {/* Server rendered: measured on production this page returned
+              only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="trivia-mixed" as="h1" />
         </TriviaErrorBoundary>
     );
 }

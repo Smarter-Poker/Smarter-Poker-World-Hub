@@ -50,7 +50,7 @@ export default function RiverBluffCatcher() {
             style={{ padding: '8px 4px', borderRadius: 8, border: spotIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: spotIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.spot.substring(0, 12)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.spot.substring(0, 12)}</div>
           </button>
         ))}
       </div>
@@ -66,17 +66,17 @@ export default function RiverBluffCatcher() {
         </div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center', flex: 2 }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Board</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Board</div>
             <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: '#e2e8f0' }}>{spot.board}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center', flex: 1 }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Bet Size</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Bet Size</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: spot.color }}>{spot.betSize}</div>
           </div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{spot.reason}</p>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Decision Checklist</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Decision Checklist</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.checklist}</div>
         </div>
       </motion.div>

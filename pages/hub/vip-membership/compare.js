@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { CreditCard, Gem } from 'lucide-react';
 
 import MarketplaceDetailExperience from '../../../src/components/store/MarketplaceDetailExperience';
 import detailStyles from '../../../src/components/store/MarketplaceDetailExperience.module.css';
-import { VIP_BENEFITS, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
+import styles from './compare.module.css';
+import { getVipBenefitsForPlan, VIP_MEMBERSHIP } from '../../../src/data/diamondStoreData';
+import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 
 /* Monthly, Yearly, Lifetime (Dan 2026-09-05). Was daily/monthly/annual - with
    `.daily` deleted this array would have held an `undefined` and thrown on
@@ -16,7 +17,8 @@ export default function VipComparePage() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: 'Compare Smarter.Poker VIP Membership Plans',
-    description: 'Compare monthly, yearly, and lifetime VIP access with card and diamond payment options.',
+    description:
+      'Compare monthly, yearly, and lifetime VIP access with card and diamond payment options.',
     url: `https://smarter.poker${canonical}`,
   };
 
@@ -34,10 +36,11 @@ export default function VipComparePage() {
         { label: 'Compare Plans', href: canonical },
       ]}
       status="All Diamond Plans Live"
+      presentation="membership"
       actions={
         <>
-          <Link href="/hub/vip-membership"><CreditCard size={16} aria-hidden="true" /> Choose A Plan</Link>
-          <Link href="/hub/vip-membership/manage"><Gem size={16} aria-hidden="true" /> Manage Membership</Link>
+          <Link href="/hub/vip-membership">Choose A Plan</Link>
+          <Link href="/hub/vip-membership/manage">Manage Membership</Link>
         </>
       }
       structuredData={schema}
@@ -51,31 +54,66 @@ export default function VipComparePage() {
           const cardEquivalent = Number(plan.price).toFixed(2);
           const lifetime = plan.interval === 'lifetime';
           const cardReady = plan.cardCheckoutReady === true;
+          const benefits = getVipBenefitsForPlan(plan.interval);
           return (
             <section className={detailStyles.detailCard} key={plan.id}>
-              <h2>{plan.name}</h2>
+              <h2>{marketplaceCopy(plan.name)}</h2>
               <p>
-                {cardReady ? <><strong>${cardEquivalent}</strong> By Card Or </> : null}
+                {cardReady ? (
+                  <>
+                    <strong>${cardEquivalent}</strong> By Card Or{' '}
+                  </>
+                ) : null}
                 <strong>{diamondCost.toLocaleString()} Diamonds</strong>
                 {cardReady ? '.' : ' With The Atomic Diamond Settlement Path.'}
               </p>
               <ul>
-                <li>{lifetime ? 'Permanent' : plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access</li>
+                <li>
+                  {lifetime
+                    ? 'Permanent Full VIP Access'
+                    : `${plan.interval === 'year' ? '365 Days' : '30 Days'} Of Full VIP Access`}
+                </li>
                 {!lifetime && <li>Extends Existing Access Instead Of Replacing It</li>}
                 {lifetime && <li>Never Renews And Never Expires</li>}
                 {lifetime && <li>Lifetime Card Checkout Remains Safely Paused</li>}
-                <li>Includes All {VIP_BENEFITS.length} Currently Enforced VIP Benefits</li>
-                {plan.savings > 0 && <li>Saves ${Number(plan.savings).toFixed(2)} Against Monthly Billing</li>}
+                {lifetime && <li>Unlimited Throwables, Rabbit Hunts, And Standard Time Banks</li>}
+                {lifetime && (
+                  <li>
+                    Every Cataloged Digital Table Skin, Background, Card Back, And Dealer Button
+                    Included
+                  </li>
+                )}
+                {lifetime && (
+                  <li>Every VIP Avatar, Frame, Aura, And Safe Digital Feature Pack Included</li>
+                )}
+                <li>Includes All {benefits.length} Included Benefits For This Plan</li>
+                {plan.savings > 0 && (
+                  <li>Saves ${Number(plan.savings).toFixed(2)} Against Monthly Billing</li>
+                )}
               </ul>
-              <Link href={`/hub/vip-membership?plan=${plan.id}`}>Select {plan.name}</Link>
+              <Link className={styles.planAction} href={`/hub/vip-membership?plan=${plan.id}`}>
+                Select {marketplaceCopy(plan.name)}
+              </Link>
             </section>
           );
         })}
       </div>
       <div className={detailStyles.assuranceGrid}>
-        <div><strong>Card</strong><span>Stripe Checkout Verifies Monthly And Yearly Terms. Lifetime Card Checkout Remains Paused Until Its Full Refund, Dispute, And Cross-Method Lifecycle Is Published.</span></div>
-        <div><strong>Diamonds</strong><span>Every Term, Lifetime Included, Settles Against Your Verified Diamond Wallet.</span></div>
-        <div><strong>Entitlements</strong><span>Access Expiry, Tier, And Benefits Are Updated From Server-Owned Records.</span></div>
+        <div>
+          <strong>Card</strong>
+          <span>
+            Stripe Checkout Verifies Monthly And Yearly Terms. Lifetime Card Checkout Remains Paused
+            Until Its Full Refund, Dispute, And Cross-Method Lifecycle Is Published.
+          </span>
+        </div>
+        <div>
+          <strong>Diamonds</strong>
+          <span>Every Term, Lifetime Included, Settles Against Your Verified Diamond Wallet.</span>
+        </div>
+        <div>
+          <strong>Entitlements</strong>
+          <span>Access Expiry, Tier, And Benefits Are Updated From Server-Owned Records.</span>
+        </div>
       </div>
     </MarketplaceDetailExperience>
   );

@@ -302,22 +302,10 @@ Phase ${PHASE_NUM} ✅ ${PHASE_NAME} — Verification passed
 Proceed to iterate step.
 
 **If `human_needed`:**
-
-Read the human_verification section from VERIFICATION.md to get the count and items requiring manual testing.
-
-Display the items, then ask user via AskUserQuestion:
-- **question:** "Phase ${PHASE_NUM} has items needing manual verification. Validate now or continue to next phase?"
-- **options:** "Validate now" / "Continue without validation"
-
-On **"Validate now"**: Present the specific items from VERIFICATION.md's human_verification section. After user reviews, ask:
-- **question:** "Validation result?"
-- **options:** "All good — continue" / "Found issues"
-
-On "All good — continue": Display `Phase ${PHASE_NUM} ✅ Human validation passed` and proceed to iterate step.
-
-On "Found issues": Go to handle_blocker with the user's reported issues as the description.
-
-On **"Continue without validation"**: Display `Phase ${PHASE_NUM} ⏭ Human validation deferred` and proceed to iterate step.
+Perform the outstanding verification directly using the checkpoint reference.
+Proceed only on actual evidence. Repair failures and report unavailable required
+access precisely while continuing independent work. Never choose "continue
+without validation" or substitute user approval for a required check.
 
 **If `gaps_found`:**
 
@@ -804,7 +792,7 @@ If the archive file does not exist, go to handle_blocker: "Complete milestone di
 Skill(skill="gsd-cleanup")
 ```
 
-Cleanup shows its own dry-run and asks user for approval internally — this is an acceptable pause per CTRL-01 since it's an explicit decision about file deletion.
+Run cleanup only when already assigned, inspect the concrete dry-run and ownership, preserve retained work, and follow actual tool constraints. Do not add a human approval gate or expand scope to create busywork.
 
 **5d. Final Completion**
 

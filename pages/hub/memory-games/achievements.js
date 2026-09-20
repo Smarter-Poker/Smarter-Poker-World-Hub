@@ -59,7 +59,7 @@ export default function MemoryGamesAchievements() {
 
   return (
     <>
-      <SEOHead title="Preflop Charts Achievements" description="Track verified Preflop Charts milestones and mastery awards." canonical="/hub/preflop-charts/achievements" />
+      <SEOHead title="Preflop Charts Achievements" description="Track Verified Preflop Charts Milestones And Mastery Awards On Smarter.Poker: Which Ranges You Have Drilled To Accuracy And Which Are Still Open. Free To Practise, And Nothing In It Is A Wager." canonical="/hub/preflop-charts/achievements" />
       <PreflopSubpageShell eyebrow="AWARD VAULT // PLAYER MILESTONES" title="Range distinctions" description="Permanent records for precision, consistency, speed, and progression." metric={`${percent}%`}>
         <section className="preflop-award-progress" aria-label={`${unlocked} of ${achievements.length} achievements unlocked`}>
           <ShieldCheck size={28} aria-hidden /><div><small>VAULT COMPLETION</small><strong>{unlocked} / {achievements.length} Unlocked</strong><div role="progressbar" aria-label={`Achievement vault completion: ${percent}%`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><i style={{ '--award-progress': `${percent}%` }} /></div></div>{nextLocked && <span>Next Target<strong>{nextLocked.name}</strong></span>}

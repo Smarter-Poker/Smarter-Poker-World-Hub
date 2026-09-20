@@ -1,7 +1,7 @@
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { parseHandHistory } from '../../../src/engines/HandHistoryParser';
 import { auditParsedHands } from '../../../src/lib/training/handAuditEngine';
 

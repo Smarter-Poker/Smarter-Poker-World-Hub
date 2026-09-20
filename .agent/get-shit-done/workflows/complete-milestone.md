@@ -95,30 +95,7 @@ cat .planning/config.json 2>/dev/null || true
 
 </config-check>
 
-<if mode="yolo">
-
-```
-⚡ Auto-approved: Milestone scope verification
-[Show breakdown summary without prompting]
-Proceeding to stats gathering...
-```
-
-Proceed to gather_stats.
-
-</if>
-
-<if mode="interactive" OR="custom with gates.confirm_milestone_scope true">
-
-```
-Ready to mark this milestone as shipped?
-(yes / wait / adjust scope)
-```
-
-Wait for confirmation.
-- "adjust scope": Ask which phases to include.
-- "wait": Stop, user returns when ready.
-
-</if>
+Verify the assigned milestone scope and actual completion evidence. Required gaps must be resolved before marking it shipped. Continue to gather_stats without another approval. Preserve a new explicit owner STOP; do not add an unassigned next milestone.
 
 </step>
 

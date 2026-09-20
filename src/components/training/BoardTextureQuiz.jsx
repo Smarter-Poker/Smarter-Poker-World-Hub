@@ -170,7 +170,7 @@ function BoardTextureQuiz() {
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                 {Object.entries(board.properties || {}).map(([k, v]) => (
                   <span key={k} style={{
-                    fontSize: 11, padding: '2px 8px', borderRadius: 4,
+                    fontSize: 12, padding: '2px 8px', borderRadius: 4,
                     background: (selectedProps[k] || false) === v ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
                     color: (selectedProps[k] || false) === v ? '#10b981' : '#ef4444',
                     textTransform: 'capitalize',

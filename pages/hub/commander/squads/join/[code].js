@@ -82,16 +82,25 @@ export default function SquadJoinPage() {
   }
 
 
-  if (!router.isReady) return null;
+  // AEO phase 3 (2026-09-18): the head used to sit below this guard.
+  // The guard is true on the server, so the branch a crawler always
+  // takes returned nothing and the page served a 200 with no title and
+  // zero words. The head is hoisted above it and returned from it, so
+  // the page says what it is before it says it is still loading.
+  const pageHead = (
+    <SEOHead
+              title="Join Squad"
+              description="Smarter.Poker - The Future Of The Game."
+              noindex={true}
+          />
+  );
+
+  if (!router.isReady) return pageHead;
 
   return (
     <CommanderPageShell>
     <>
-      <SEOHead
-                title="Join Squad"
-                description="Smarter.Poker - The Future Of The Game."
-                noindex={true}
-            />
+      {pageHead}
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
         <header className="cmd-header-bar">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">

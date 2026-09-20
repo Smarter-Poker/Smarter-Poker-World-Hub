@@ -125,12 +125,12 @@ export default function MixedStrategyTrainer() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Mixed Strategy Trainer</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Practice Executing GTO Frequencies</div>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Practice Executing GTO Frequencies</div>
           </div>
           <div style={{
             padding: '4px 10px', borderRadius: 4,
             background: `${driftColors[driftStatus]}15`,
-            color: driftColors[driftStatus], fontSize: 11, fontWeight: 700,
+            color: driftColors[driftStatus], fontSize: 12, fontWeight: 700,
           }}>{driftLabels[driftStatus]}</div>
         </div>
 
@@ -140,7 +140,7 @@ export default function MixedStrategyTrainer() {
             <button key={s.id} onClick={() => setScenarioIdx(i)} style={{
               padding: '5px 10px', borderRadius: 5, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
               background: scenarioIdx === i ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
-              color: scenarioIdx === i ? '#3b82f6' : '#94a3b8', fontSize: 10, fontWeight: 600,
+              color: scenarioIdx === i ? '#3b82f6' : '#94a3b8', fontSize: 12, fontWeight: 600,
               border: scenarioIdx === i ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
             }}>#{s.id} {s.hand}</button>
           ))}
@@ -150,48 +150,48 @@ export default function MixedStrategyTrainer() {
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 14, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
             <div>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Hand</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Hand</div>
               <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800 }}>{scenario.hand}</div>
             </div>
             <div>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Board</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Board</div>
               <div style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800 }}>{scenario.board}</div>
             </div>
             <div>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>Pot</div>
               <div style={{ color: '#f59e0b', fontSize: 22, fontWeight: 800 }}>{scenario.pot}bb</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-            <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 9, fontWeight: 600 }}>{scenario.position}</span>
-            <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 9, fontWeight: 600 }}>{scenario.street}</span>
+            <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 12, fontWeight: 600 }}>{scenario.position}</span>
+            <span style={{ padding: '2px 6px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: 12, fontWeight: 600 }}>{scenario.street}</span>
           </div>
-          <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.5 }}>{scenario.situation}</div>
+          <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.5 }}>{scenario.situation}</div>
         </div>
 
         {/* GTO Frequencies */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>GTO Strategy</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>GTO Strategy</div>
           <div style={{ display: 'flex', gap: 2, height: 24, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
             {scenario.actions.map((a, i) => (
               <div key={i} style={{
                 width: `${a.freq}%`, background: a.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: 0.6, transition: 'width 0.3s',
               }}>
-                <span style={{ color: '#fff', fontSize: 8, fontWeight: 700 }}>{a.label} {a.freq}%</span>
+                <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{a.label} {a.freq}%</span>
               </div>
             ))}
           </div>
           {scenarioHistory.length > 0 && (
             <>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Your Actual</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Your Actual</div>
               <div style={{ display: 'flex', gap: 2, height: 24, borderRadius: 6, overflow: 'hidden' }}>
                 {scenario.actions.map((a, i) => (
                   <div key={i} style={{
                     width: `${actualFreqs[i] || 1}%`, background: a.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'width 0.3s',
                   }}>
-                    {actualFreqs[i] > 10 && <span style={{ color: '#fff', fontSize: 8, fontWeight: 700 }}>{actualFreqs[i]}%</span>}
+                    {actualFreqs[i] > 10 && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{actualFreqs[i]}%</span>}
                   </div>
                 ))}
               </div>
@@ -237,7 +237,7 @@ export default function MixedStrategyTrainer() {
               border: `1px solid ${a.color}30`, transition: 'all 0.2s',
             }}>
               {a.label}
-              <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2 }}>Target: {a.freq}%</div>
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>Target: {a.freq}%</div>
             </button>
           ))}
         </div>
@@ -251,8 +251,8 @@ export default function MixedStrategyTrainer() {
             {drifts.map((d, i) => (
               <div key={i} style={{ marginBottom: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ color: d.color, fontSize: 11, fontWeight: 600 }}>{d.action}</span>
-                  <span style={{ color: d.drift < 10 ? '#22c55e' : d.drift < 20 ? '#f59e0b' : '#ef4444', fontSize: 10 }}>
+                  <span style={{ color: d.color, fontSize: 12, fontWeight: 600 }}>{d.action}</span>
+                  <span style={{ color: d.drift < 10 ? '#22c55e' : d.drift < 20 ? '#f59e0b' : '#ef4444', fontSize: 12 }}>
                     {d.actual}% Actual Vs {d.target}% Target (Drift: {d.drift}%)
                   </span>
                 </div>

@@ -38,7 +38,7 @@ export default function RiverValueOwnedGuide() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {TRAP_HANDS.map((s, i) => (
           <button key={i} onClick={() => setSpotIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.hand.split(' on ')[0]}
@@ -52,11 +52,11 @@ export default function RiverValueOwnedGuide() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'rgba(34,197,94,0.08)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Correct</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Correct</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#22c55e' }}>{spot.action}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.08)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Mistake</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Mistake</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', textDecoration: 'line-through' }}>{spot.wrong}</div>
           </div>
         </div>

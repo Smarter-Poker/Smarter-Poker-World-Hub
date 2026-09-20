@@ -45,7 +45,7 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s
 test('the page is built on the phase 0a foundation', () => {
   const src = read(PAGE);
   assert.match(src, /import HubPageShell from '\.\.\/\.\.\/src\/components\/ui\/HubPageShell'/);
-  assert.match(src, /<HubPageShell className="preflop" maxWidth=\{1080\}/);
+  assert.match(src, /<HubPageShell\s+className="preflop"\s+maxWidth=\{1080\}/);
   assert.match(
     src,
     /<PageTransition disableInitialAnimation>/,
@@ -72,14 +72,17 @@ test('every remaining network mutation is guarded and every mode pick has a hapt
   const guards = (src.match(/requireOnline\(\)/g) || []).length;
   assert.ok(guards >= 5, `expected at least 5 requireOnline() guards, found ${guards}`);
   assert.doesNotMatch(src, /checkAndDeductDiamonds|DiamondEngine\.deduct\s*\(/, 'free local practice has no entry-fee mutation');
-  assert.match(src, /const updatePreference = useCallback\(async \(key, value\) => \{\s*if \(!requireOnline\(\)\) return;/);
+  assert.match(
+    src,
+    /const updatePreference = useCallback\(\s*async \(key, value\) => \{\s*if \(!requireOnline\(\)\) return;/
+  );
   assert.match(src, /LOCAL PRACTICE AUTHORITY BOUNDARY/, 'locally graded results stop at the browser boundary');
   assert.doesNotMatch(
     src,
     /(?:recordSession|checkAndUnlock|updateLeaderboard|completeChallenge|processGameResult)\s*\(/,
     'locally graded results cannot reach retired persistence services',
   );
-  assert.match(src, /haptic\('light'\); setGameType\(m\.key\);/, 'mode card haptic');
+  assert.match(src, /haptic\('light'\);\s*setGameType\(m\.key\);/, 'mode card haptic');
   assert.match(src, /const handleStrokeStart = useCallback[\s\S]*?haptic\('light'\);/, 'one haptic per stroke');
   assert.match(src, /haptic\('success'\)/, 'pass haptic');
 });
@@ -137,7 +140,7 @@ test('memory-games.css uses only the 900 / 768 / 600 boundaries', () => {
 });
 
 test('live rankings stay responsive and the retired browser-owned board renders no unverified table', () => {
-  assert.match(read(PAGE), /<ResponsiveTable columns=\{LEADERBOARD_COLUMNS\}/);
+  assert.match(read(PAGE), /<ResponsiveTable\s+columns=\{LEADERBOARD_COLUMNS\}/);
   const retiredLeaderboard = read('pages/hub/memory-games/leaderboard.js');
   assert.doesNotMatch(retiredLeaderboard, /<ResponsiveTable|from\(['"]training_leaderboard['"]\)/);
   assert.match(retiredLeaderboard, /No Unverified Scores Displayed/);

@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic';
 import supabase from '../src/lib/supabase';
 import { analyzeSession, analyzeHand } from '../src/lib/poker-brain/session-audit';
 
+import SEOHead from '../src/components/seo/SEOHead';
+
 // Lazy-load the HUD launcher — it uses getDisplayMedia (browser-only)
 const PokerBrainLaunchButton = dynamic(
   () => import('../src/components/poker-brain/LaunchButton'),
@@ -784,7 +786,7 @@ function AuditTab({ userId }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────
-export default function PokerBrainDashboard() {
+function PokerBrainDashboardBody() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
@@ -886,5 +888,26 @@ export default function PokerBrainDashboard() {
       </div>
 
     </div>
+  );
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this page served 200 with no <title> and no
+ * robots meta, so an engine saw a nameless page of ten words and had to
+ * judge the site on it. A signed-in stats dashboard. There is nothing here
+ * for a reader without an account. It now names itself and asks not to be
+ * indexed, which is what /hub/vip-membership/manage already does.
+ */
+export default function PokerBrainDashboard() {
+  return (
+    <>
+      <SEOHead
+        title="Poker Brain Dashboard"
+        description="The Signed In Poker Brain Dashboard: Session Stats, Hand Review, And Audit Results For Your Own Play."
+        canonical="/pokerbrain"
+        noindex
+      />
+      <PokerBrainDashboardBody />
+    </>
   );
 }

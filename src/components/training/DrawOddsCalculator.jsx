@@ -75,7 +75,7 @@ function DrawOddsCalculator() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {DRAW_TYPES.map((d, i) => (
             <button key={d.name} onClick={() => { setSelectedDraw(i); setCustomOuts(null); }} style={{
-              padding: '4px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedDraw === i && customOuts === null ? '#34d399' : 'rgba(255,255,255,0.06)',
               color: selectedDraw === i && customOuts === null ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{d.icon} {d.name}</button>
@@ -87,13 +87,13 @@ function DrawOddsCalculator() {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>
             {DRAW_TYPES[selectedDraw].name} - {outs} Outs
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{DRAW_TYPES[selectedDraw].description}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Ex: {DRAW_TYPES[selectedDraw].example}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{DRAW_TYPES[selectedDraw].description}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Ex: {DRAW_TYPES[selectedDraw].example}</div>
         </div>
 
         {/* Custom Outs Slider */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Custom Outs (Override)</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Custom Outs (Override)</div>
           <input type="range" min={1} max={20} step={0.5} value={outs} onChange={e => setCustomOuts(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#34d399' }} />
           <div style={{ fontSize: 16, fontWeight: 800, color: '#34d399', textAlign: 'center' }}>{outs} Outs</div>
         </div>
@@ -108,14 +108,14 @@ function DrawOddsCalculator() {
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Bet Size & Profitability */}
         <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Villain Bet Size (% Pot)</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Villain Bet Size (% Pot)</div>
           <input type="range" min={10} max={200} step={5} value={betPct} onChange={e => setBetPct(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#34d399' }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{betPct}% Pot</div>
         </div>

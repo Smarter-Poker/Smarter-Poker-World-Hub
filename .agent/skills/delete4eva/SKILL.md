@@ -279,4 +279,4 @@ SET is_suppressed = false,
 WHERE id = <VENUE_ID>;
 ```
 
-⚠️ Only do this with explicit user approval.
+Perform this only when necessary within the assigned scope, with exact-record evidence, ownership checks and readback. No renewed human approval is required; preserve higher-priority tool constraints.

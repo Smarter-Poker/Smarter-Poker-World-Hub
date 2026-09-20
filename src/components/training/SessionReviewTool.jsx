@@ -50,7 +50,7 @@ export default function SessionReviewTool() {
             style={{ padding: '8px 4px', borderRadius: 8, border: stepIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: stepIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{s.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: stepIdx === i ? s.color : '#64748b' }}>Step {i + 1}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: stepIdx === i ? s.color : '#64748b' }}>Step {i + 1}</div>
           </button>
         ))}
       </div>
@@ -63,20 +63,20 @@ export default function SessionReviewTool() {
             <span style={{ fontSize: 15, fontWeight: 800, color: step.color }}>{step.step}</span>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '3px 10px' }}>
-            <span style={{ fontSize: 10, color: '#94a3b8' }}>{step.time}</span>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>{step.time}</span>
           </div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${step.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${step.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: step.color }}>What To Do</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: step.color }}>What To Do</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{step.what}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Key Questions</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Questions</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{step.questions}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Recommended Tool</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Recommended Tool</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{step.tool}</div>
           </div>
         </div>

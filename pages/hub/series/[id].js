@@ -7,6 +7,19 @@
 
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import useHasMounted from '../../../src/hooks/useHasMounted';
+import {
+  fetchSeries,
+  formatRange,
+  isPublicSeries,
+  originFrom,
+  seriesDescription,
+  seriesPath,
+  seriesPlace,
+  seriesSchema,
+  seriesTitle,
+} from '../../../src/lib/poker-near-me/seriesSeo.mjs';
+import { isPokerSeriesRouteId, tournamentSeriesIdFromPointerUid } from '../../../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import Link from 'next/link';
 import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
@@ -256,7 +269,227 @@ function getLocationParts(series) {
   return { city: '', state: '' };
 }
 
-export default function SeriesDetailPage() {
+/**
+ * The series itself is rendered on the server (discoverability, 2026-09-18).
+ * Before this the server HTML was the loading branch: the placeholder title
+ * "Poker Series Details", the placeholder site description, `noindex,
+ * nofollow` and about 75 words of chrome — on 246 pages the sitemap offers,
+ * a fifth of every URL in it. Events, results, followers and activity are
+ * still fetched in the browser exactly as before; only the series' own
+ * words are in the HTML now.
+ */
+/**
+ * The tournament_series row that owns this series' route, when this record is
+ * a poker_series duplicate of it (AEO phase 3, 2026-09-18).
+ *
+ * seriesRouteIdentity.mjs already states the rule: poker_series may supply
+ * fresher metadata, never the public route identity. So a duplicate points
+ * its canonical at the primary instead of both declaring themselves the
+ * original. A lookup that cannot run leaves the page canonical to itself,
+ * which is what it did before and is never worse than guessing.
+ */
+async function primarySeriesRouteId(series) {
+  if (!series?.seriesUid) return null;
+  if (!isPokerSeriesRouteId(Number(series.id))) return null;
+
+  // A uid that is a bare integer already names the row that owns the route.
+  const pointsAt = tournamentSeriesIdFromPointerUid(series.seriesUid);
+  if (pointsAt !== null) return String(pointsAt);
+
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return null;
+    const { createClient } = await import('@supabase/supabase-js');
+    const { data } = await createClient(url, key)
+      .from('tournament_series')
+      .select('id, is_suppressed')
+      .eq('series_uid', series.seriesUid)
+      .limit(1)
+      .maybeSingle();
+    if (!data || data.is_suppressed === true) return null;
+    const id = Number(data.id);
+    return Number.isSafeInteger(id) && id > 0 ? String(id) : null;
+  } catch (e) {
+    console.warn('[series] primary route lookup failed:', e?.message || e);
+    return null;
+  }
+}
+
+export async function getServerSideProps({ params, req, res }) {
+  const { series: seoSeries, status } = await fetchSeries(params?.id, originFrom(req));
+  if (seoSeries) {
+    const primary = await primarySeriesRouteId(seoSeries);
+    if (primary && primary !== String(seoSeries.id)) seoSeries.canonicalId = primary;
+  }
+  if (status === 'unavailable') {
+    // The API did not answer: the browser still fetches as before, but a
+    // crawler is told to come back rather than to index a spinner.
+    res.statusCode = 503;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '120');
+  } else if (status === 'not-found') {
+    // A 404 IS NOT CACHED THE WAY A PAGE IS (AEO phase 3, 2026-09-19).
+    //
+    // This used to fall through to the shared branch below, which sets
+    // s-maxage=300 with stale-while-revalidate=600 and then the 404 status,
+    // so a single bad lookup was published as "this page does not exist" for
+    // five minutes and re-served stale for ten more. Measured on production,
+    // four series pages were answering 404 from the edge with
+    // x-vercel-cache: HIT and an age past four minutes, while the same URLs
+    // with a cache busting parameter answered 200.
+    //
+    // A 404 still caches, because a genuinely missing id should not cost a
+    // lookup on every bot that finds it, but for a minute and with no stale
+    // window: a mistake clears itself instead of outliving its cause.
+    res.statusCode = 404;
+    res.setHeader('Cache-Control', 'public, s-maxage=60');
+  } else {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  }
+  return { props: { seoSeries } };
+}
+
+/**
+ * One head for every branch, so the title, description and canonical are in
+ * the server HTML whether the browser data has arrived or not. A series with
+ * nothing to index (missing, or no name) stays out of the index.
+ */
+function SeriesHead({ series }) {
+  if (!isPublicSeries(series)) {
+    return (
+      <SEOHead
+        title="Series Not Found"
+        description="This poker tournament series is not available. Browse every tournament series and schedule on Smarter.Poker instead."
+        noindex={true}
+      />
+    );
+  }
+  return (
+    <SEOHead
+      title={seriesTitle(series)}
+      description={seriesDescription(series)}
+      canonical={seriesPath(series)}
+      ogImage={series.logoUrl || null}
+      jsonLd={seriesSchema(series)}
+    />
+  );
+}
+
+/**
+ * What a reader gets before, or without, JavaScript. Googlebot renders JS,
+ * but the crawlers that decide what ChatGPT, Claude and Perplexity can cite
+ * largely do not, and before this they were served a spinner and 75 words of
+ * chrome on all 246 series pages the sitemap offers. These are the facts the
+ * server already has; the browser replaces this with the full schedule the
+ * moment its own fetch resolves.
+ */
+function SeriesSummary({ series }) {
+  if (!isPublicSeries(series)) return null;
+  const place = seriesPlace(series);
+  const range = formatRange(series.startDate, series.endDate);
+  const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
+  const events = Array.isArray(series.events) ? series.events : [];
+  return (
+    <section className="series-summary" aria-label="Series Summary">
+      <h1>{series.name}</h1>
+      <dl>
+        {place && (
+          <div>
+            <dt>Where</dt>
+            <dd>{place}</dd>
+          </div>
+        )}
+        {range && (
+          <div>
+            <dt>When</dt>
+            <dd>{range}</dd>
+          </div>
+        )}
+        {series.mainEventBuyin ? (
+          <div>
+            <dt>Main Event</dt>
+            <dd>
+              {money(series.mainEventBuyin)} Buy-In
+              {series.mainEventGuaranteed ? ` With A ${money(series.mainEventGuaranteed)} Guarantee` : ''}
+            </dd>
+          </div>
+        ) : null}
+        {series.totalEvents ? (
+          <div>
+            <dt>Events</dt>
+            <dd>{series.totalEvents} Tournaments On The Schedule</dd>
+          </div>
+        ) : null}
+      </dl>
+      {/* THE SCHEDULE (AEO phase 3, 2026-09-19). Measured on production,
+          every one of the 225 series pages served about 139 words and the
+          sentence "Loading Series Details...", under a paragraph promising
+          the full schedule below. The events were already in the API
+          response this page awaits on the server; they were being dropped
+          before the props were built. The paragraph below now promises the
+          schedule only when the schedule is there. */}
+      {events.length > 0 ? (
+        <>
+          <p>
+            The Schedule For {series.name} Is Below, With Buy Ins And Start Times As The Venue
+            Published Them. Browse Every Tournament Series On{' '}
+            <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
+            <a href="/hub/poker-near-me">Poker Near Me</a>.
+          </p>
+          <h2 className="series-summary-schedule-heading">
+            {events.length === 1 ? 'The Event' : `All ${events.length} Events`} At {series.name}
+          </h2>
+          <ol className="series-summary-schedule">
+            {events.map((event, index) => (
+              <li key={`${event.name}-${index}`}>
+                <span className="sss-name">
+                  {event.number ? `Event ${event.number}: ` : ''}{event.name}
+                </span>
+                <span className="sss-when">
+                  {[formatEventDay(event.startDate), event.startTime ? `${event.startTime} Start` : null]
+                    .filter(Boolean).join(' · ') || 'Date Not Announced'}
+                </span>
+                <span className="sss-terms">
+                  {[
+                    event.buyin ? `${money(event.buyin)} Buy In` : null,
+                    event.guarantee ? `${money(event.guarantee)} Guaranteed` : null,
+                    event.game,
+                    event.flight,
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              </li>
+            ))}
+          </ol>
+          {series.totalEvents > events.length && (
+            <p className="series-summary-more">
+              Showing {events.length} Of {series.totalEvents} Events. The Rest Load On The Full
+              Schedule Below.
+            </p>
+          )}
+        </>
+      ) : (
+        <p>
+          The Schedule For {series.name} Has Not Been Published Yet. Buy Ins, Start Times And
+          Results Are Added Here As The Venue Releases Them. Browse Every Tournament Series On{' '}
+          <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
+          <a href="/hub/poker-near-me">Poker Near Me</a>.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** "Monday, April 20" - the year is already in the series date range above. */
+function formatEventDay(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+  if (!m) return null;
+  const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+export default function SeriesDetailPage({ seoSeries = null }) {
+  const hasMounted = useHasMounted();
   const router = useRouter();
   const { id } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -502,11 +735,7 @@ export default function SeriesDetailPage() {
   if (loading || !id) {
     return (
       <>
-        <SEOHead
-          title="Poker Series Details"
-          description="Smarter.Poker - The Future Of The Game."
-          noindex={true}
-        />
+        <SeriesHead series={seoSeries} />
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
@@ -517,10 +746,17 @@ export default function SeriesDetailPage() {
         <PokerNearMeFamilyNav />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <main className="series-page" data-pnm-secondary-foundation="interaction-v1">
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <p className="loading-text">Loading Series Details...</p>
-          </div>
+          <SeriesSummary series={seoSeries} />
+          {/* The spinner is for the reader who is waiting. On the server
+              nothing is waiting, and the summary above already carries the
+              schedule, so saying it is still loading contradicts the page it
+              sits in (AEO phase 3, 2026-09-19). */}
+          {hasMounted && (
+            <div className="loading-container">
+              <div className="loading-spinner" />
+              <p className="loading-text">Loading Series Details...</p>
+            </div>
+          )}
         </main>
         <style suppressHydrationWarning>{styles}</style>
       </>
@@ -531,7 +767,7 @@ export default function SeriesDetailPage() {
   if (error || !series) {
     return (
       <>
-        <Head><title>Series Not Found | Smarter.Poker</title></Head>
+        <SeriesHead series={seoSeries} />
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
@@ -622,7 +858,7 @@ export default function SeriesDetailPage() {
       <SEOHead
         title={series.name}
         description={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)}
-        ogImage={series.logo_url || null}
+        ogImage={series.logo_url || seoSeries?.logoUrl || null}
         canonical={`/hub/series/${id}`}
       />
       <UniversalHeader 
@@ -1908,7 +2144,74 @@ const styles = `
   }
 
   /* Loading */
-  .loading-container {
+  .series-summary {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 0;
+  color: #e2e8f0;
+}
+.series-summary h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  color: #fff;
+  margin: 0 0 12px;
+}
+.series-summary dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.series-summary dl > div {
+  display: contents;
+}
+.series-summary dt {
+  color: rgba(148, 163, 184, 0.9);
+  font-weight: 600;
+}
+.series-summary dd {
+  margin: 0;
+  color: #e2e8f0;
+}
+.series-summary p {
+  font-size: 14px;
+  color: rgba(148, 163, 184, 0.95);
+  line-height: 1.6;
+  margin: 0;
+}
+.series-summary a {
+  color: #d4a853;
+}
+.series-summary-schedule-heading {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #e2e8f0;
+  margin: 22px 0 10px;
+}
+.series-summary-schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 9px;
+}
+.series-summary-schedule li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 13px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.42);
+}
+.sss-name { font-size: 13.5px; font-weight: 700; color: #f1f5f9; line-height: 1.35; }
+.sss-when { font-size: 12.5px; color: #9fd8ff; font-weight: 600; }
+.sss-terms { font-size: 12.5px; color: rgba(148, 163, 184, 0.9); }
+.series-summary-more { margin-top: 12px !important; font-size: 13px !important; }
+.loading-container {
     display: flex;
     flex-direction: column;
     align-items: center;

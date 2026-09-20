@@ -110,7 +110,7 @@ function FreqBar({ value, maxVal = 80, color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
       <div
-        style={{ width: 36, fontSize: 11, fontWeight: 700, color: 'var(--sp-fg-muted)', textAlign: 'right' }}
+        style={{ width: 36, fontSize: 12, fontWeight: 700, color: 'var(--sp-fg-muted)', textAlign: 'right' }}
       >
         {label}
       </div>
@@ -172,7 +172,7 @@ export default function RakeSolutionsPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -209,7 +209,7 @@ export default function RakeSolutionsPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Rake Sensitivity Model</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
               Authored Toy Curve • Not Solver Or Strategy Data
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function RakeSolutionsPage() {
           {/* Rake Selector */}
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
@@ -268,13 +268,13 @@ export default function RakeSolutionsPage() {
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 2 }}>{rk.label}</div>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     color: activeRake.id === rk.id ? `${rk.color}aa` : 'var(--sp-fg-dim)',
                   }}
                 >
                   {rk.desc}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, color: 'var(--sp-fg)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6, color: 'var(--sp-fg)' }}>
                   {rk.pct}% / ${rk.cap} Cap
                 </div>
               </motion.button>
@@ -343,7 +343,7 @@ export default function RakeSolutionsPage() {
             <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
               {selectedPosition} - {activeRake.label}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginBottom: 20 }}>
               Illustrative Values After The Authored Rake Curve
             </div>
 
@@ -374,7 +374,7 @@ export default function RakeSolutionsPage() {
                       {delta !== 0 && (
                         <span
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 700,
                             color: delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                           }}
@@ -401,7 +401,7 @@ export default function RakeSolutionsPage() {
           {/* Position Overview Grid */}
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--sp-fg-dim)',
               textTransform: 'uppercase',
@@ -440,7 +440,7 @@ export default function RakeSolutionsPage() {
                   {delta !== 0 && (
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: delta > 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)',
                         marginTop: 2,
@@ -467,7 +467,7 @@ export default function RakeSolutionsPage() {
           >
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-accent-amber)',
                 textTransform: 'uppercase',

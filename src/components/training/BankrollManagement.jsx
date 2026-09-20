@@ -45,8 +45,8 @@ export default function BankrollManagement() {
           <button key={i} onClick={() => setFormatIdx(i)}
             style={{ padding: '8px 4px', borderRadius: 8, border: formatIdx === i ? `2px solid ${f.color}` : '1px solid rgba(255,255,255,0.06)',
               background: formatIdx === i ? `${f.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: formatIdx === i ? f.color : '#64748b' }}>{f.name}</div>
-            <div style={{ fontSize: 9, color: '#94a3b8' }}>{f.buyins}+ BIs</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: formatIdx === i ? f.color : '#64748b' }}>{f.name}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{f.buyins}+ BIs</div>
           </button>
         ))}
       </div>
@@ -62,15 +62,15 @@ export default function BankrollManagement() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
           <div style={{ background: `${format.color}15`, borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Play At</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Play At</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: format.color }}>{analysis.recommended.name}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Buy-Ins</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Buy-Ins</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b' }}>{analysis.buyinsAtRec}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.1)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Move Down</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Move Down</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444' }}>{analysis.moveDown.name}</div>
           </div>
         </div>

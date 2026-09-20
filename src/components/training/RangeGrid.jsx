@@ -300,24 +300,24 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     whiteSpace: 'nowrap',
                 }}
                 >
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 3, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--sp-accent-cyan)', marginBottom: 3, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {hand}
                     </div>
                     {classificationInfo && (
                         <div style={{
-                            fontSize: 9, fontWeight: 700, marginBottom: 4,
+                            fontSize: 12, fontWeight: 700, marginBottom: 4,
                             color: getClassificationColor(classificationInfo.classification),
                         }}>
                             {classificationInfo.subType || classificationInfo.classification}
                         </div>
                     )}
                     {handEV !== undefined && handEV !== null && !useBlocker && (
-                        <div style={{ fontSize: 9, color: handEV >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: handEV >= 0 ? 'var(--sp-accent-green)' : 'var(--sp-accent-red)', fontWeight: 600 }}>
                             EV: {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
                         </div>
                     )}
                     {useBlocker && blockerScore !== null && (
-                        <div style={{ fontSize: 9, color: 'var(--sp-accent-red)', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', fontWeight: 600 }}>
                             Blocked: {Math.round(blockerScore * 100)}% Combos
                         </div>
                     )}
@@ -326,7 +326,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                             {Object.entries(freqs || {}).filter(([_, f]) => f > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([act, freq]) => {
                                 const d = getActionDisplay(act, actionPresentation);
                                 return (
-                                    <div key={act} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, gap: 6 }}>
+                                    <div key={act} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, gap: 6 }}>
                                         <span style={{ color: d.color, fontWeight: 700 }}>{d.short}</span>
                                         <span style={{ color: 'var(--sp-fg-muted)' }}>{freq.toFixed(1)}%</span>
                                     </div>
@@ -347,7 +347,7 @@ function FrequencyBar({ action, frequency, actionPresentation }) {
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <div style={{
-                width: 32, fontSize: 11, fontWeight: 700, color: display.color,
+                width: 32, fontSize: 12, fontWeight: 700, color: display.color,
                 fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
             }}>
                 {display.short}
@@ -368,13 +368,13 @@ function FrequencyBar({ action, frequency, actionPresentation }) {
                 />
                 <span style={{
                     position: 'absolute', right: 6, top: 2,
-                    fontSize: 11, fontWeight: 600, color: '#fff',
+                    fontSize: 12, fontWeight: 600, color: '#fff',
                 }}>
                     {frequency.toFixed(1)}%
                 </span>
             </div>
             <div style={{
-                width: 50, fontSize: 10, color: 'var(--sp-fg-muted)', textAlign: 'right',
+                width: 50, fontSize: 12, color: 'var(--sp-fg-muted)', textAlign: 'right',
             }}>
                 {display.label}
             </div>
@@ -420,7 +420,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                     </span>
                     {isMixed && (
                         <span style={{
-                            fontSize: 10, color: 'var(--sp-accent-amber)',
+                            fontSize: 12, color: 'var(--sp-accent-amber)',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -446,14 +446,14 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
             }}>
                 {classificationInfo ? (
                     <span style={{
-                        fontSize: 10, fontWeight: 700,
+                        fontSize: 12, fontWeight: 700,
                         color: getClassificationColor(classificationInfo.classification),
                         textTransform: 'uppercase', letterSpacing: 0.5,
                     }}>
                         {classificationInfo.subType || classificationInfo.classification}
                     </span>
                 ) : (
-                    <span style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>-</span>
+                    <span style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>-</span>
                 )}
                 {handEV !== undefined && handEV !== null && (
                     <span style={{
@@ -469,7 +469,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
             {bestAction && (
                 <div style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    marginBottom: 8, fontSize: 10, color: 'var(--sp-fg-muted)',
+                    marginBottom: 8, fontSize: 12, color: 'var(--sp-fg-muted)',
                 }}>
                     <span style={{ color: 'var(--sp-accent-amber)' }}>★</span>
                     <span>Best:</span>
@@ -491,7 +491,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
                             {index === 0 && handEV !== undefined && handEV !== null && sorted.length > 1 && (
                                 <div style={{
                                     position: 'absolute', right: 58, top: 4,
-                                    fontSize: 9, fontWeight: 700, color: 'var(--sp-accent-green)',
+                                    fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)',
                                     background: 'rgba(0,0,0,0.5)', padding: '1px 4px', borderRadius: 4,
                                 }}>
                                     BEST
@@ -503,7 +503,7 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV, actionPr
             </div>
 
             <div style={{
-                marginTop: 8, fontSize: 10, color: 'var(--sp-fg-faint)',
+                marginTop: 8, fontSize: 12, color: 'var(--sp-fg-faint)',
                 borderTop: '1px solid rgba(255,255,255,0.06)',
                 paddingTop: 6,
             }}>
@@ -660,10 +660,10 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
                     padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 8,
                 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         Range: {rangeStats.rangePercent.toFixed(1)}%
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                         ({Math.round(rangeStats.activeCombos)}/{Math.round(rangeStats.totalCombos)} Combos)
                     </div>
                 </div>
@@ -685,7 +685,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                             background: !actionFilter ? 'rgba(0,212,255,0.1)' : 'transparent',
                         }}
                     >
-                        <span style={{ fontSize: 10, color: !actionFilter ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)', fontWeight: 600 }}>All</span>
+                        <span style={{ fontSize: 12, color: !actionFilter ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-muted)', fontWeight: 600 }}>All</span>
                     </button>
                     {activeActions.map(a => {
                         const isActive = actionFilter === a.code;
@@ -707,7 +707,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                                     width: 10, height: 10, borderRadius: 2,
                                     backgroundColor: a.color, opacity: 0.85,
                                 }} />
-                                <span style={{ fontSize: 10, color: isActive ? a.color : 'var(--sp-fg-muted)', fontWeight: 600 }}>
+                                <span style={{ fontSize: 12, color: isActive ? a.color : 'var(--sp-fg-muted)', fontWeight: 600 }}>
                                     {a.label}{pct ? ` ${pct}%` : ''}
                                 </span>
                             </button>
@@ -718,7 +718,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                             width: 6, height: 6, borderRadius: '50%',
                             backgroundColor: 'var(--sp-accent-amber)',
                         }} />
-                        <span style={{ fontSize: 10, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>Mixed</span>
+                        <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)', fontWeight: 600 }}>Mixed</span>
                     </div>
                 </div>
             )}
@@ -729,7 +729,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 flexWrap: 'wrap', width: '100%'
             }}>
                 {/* 13×13 Grid */}
-                <div style={{
+                <div data-allow-small="true" style={{
                     display: 'grid',
                     gridTemplateColumns: typeof cellSize === 'string' ? `repeat(13, ${cellSize})` : 'repeat(13, 1fr)',
                     gap: 1,

@@ -1,0 +1,677 @@
+.storefront {
+  color: #edf7fb;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+}
+
+.intro {
+  margin-bottom: 40px;
+}
+
+.storeTitle,
+.categoryTitle,
+.productTitle,
+.emptyStateTitle {
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.012em;
+}
+
+.storeTitle {
+  margin: 0 0 12px;
+  color: #f4f8fb;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1;
+}
+
+.storeIntro {
+  max-width: 680px;
+  margin: 0 auto;
+  color: #b8c6ce;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
+.balanceReadout {
+  --balance-plate-width: min(360px, 100%);
+
+  display: inline-flex;
+  width: var(--balance-plate-width);
+  aspect-ratio: 1800 / 386;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.07)
+    calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.25);
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
+  color: #c3d2da;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+}
+
+.balanceReadout strong,
+.detailWallet {
+  color: #53dcff;
+  font-variant-numeric: tabular-nums;
+}
+
+.operatorLink,
+.actionControl,
+.categoryControl,
+.wishlistControl,
+.optionControl,
+.quantityButton {
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+}
+
+.operatorLink {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 30px;
+  color: #bceeff;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.detailStatus {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px 28px;
+  border-top: 1px solid #4c6d80;
+  border-bottom: 1px solid #4c6d80;
+  background: transparent;
+  color: #d7e4ea;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+.discoveryControls {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 8px 0 20px;
+  background: transparent;
+}
+
+.searchControl,
+.sortSelect {
+  min-height: 48px;
+  background-color: #02070b;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.searchControl {
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  outline: 0;
+  color: #eef9fd;
+  background: transparent;
+  font:
+    600 14px/1 var(--font-inter),
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+.searchInput::placeholder {
+  color: #8798a2;
+  opacity: 1;
+}
+
+.sortControl {
+  display: grid;
+  gap: 6px;
+  color: #a9bbc4;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.sortSelect {
+  padding: 0 22px;
+  border: 0;
+  color: #eef9fd;
+  font:
+    700 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+}
+
+.categoryControl,
+.actionControl,
+.wishlistControl,
+.optionControl,
+.quantityButton {
+  border: 0;
+  color: #c7d3da;
+  background-color: #02070b;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  font-weight: 800;
+  letter-spacing: 0.018em;
+}
+
+.categoryControl {
+  min-height: 44px;
+  padding: 7px 22px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.categoryControlSelected,
+.optionControlSelected,
+/* One primary action per card.
+
+   actionPrimary and actionDiamond both used button-primary.png, and
+   actionControl gave all four actions the same 48px height, weight 800 and
+   13px size. Measured on production, View Details, Add To Cart, Buy With Card
+   and Pay With Diamonds rendered with identical background-color, font-weight
+   and font-size: four equally dominant calls to action with nothing to say
+   which one was the main path. Each action now sits at its own weight, and
+   every path stays wired and visible. */
+.actionPrimary,
+.wishlistControlSelected {
+  color: #eafcff;
+  background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
+}
+
+.resultCount,
+.controlLabel,
+.priceNote,
+.quantityTotal,
+.purchaseReason,
+.legalCopy,
+.loadingStatus {
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+}
+
+.resultCount {
+  grid-column: 1 / -1;
+  color: #93a9b3;
+  font-size: 11px;
+  letter-spacing: 0.035em;
+}
+
+.productCard {
+  position: relative;
+  overflow: hidden;
+  padding: 5px;
+  color: #eef6fa;
+  border: 1px solid #5a7688;
+  background: #02070b;
+  box-shadow:
+    inset 0 1px 0 rgba(232, 251, 255, 0.3),
+    inset 0 0 0 4px #02070b,
+    0 16px 34px #000;
+}
+
+/* Unavailability used to fade the whole card. At 0.68 the card's own text
+   composited against #000305 to 3.78:1 on the price note, 4.17:1 on the
+   control label and 3.76:1 on the reason line, all below the 4.5:1 that 9px
+   bold text needs. The reason a product cannot be bought is the one thing a
+   shopper has to be able to read, so the state is carried by the imagery and
+   the border now, and the text keeps its contrast. */
+.productCardUnavailable {
+  border-color: #3a4a55;
+}
+
+.productCardUnavailable .mediaBay {
+  opacity: 0.6;
+}
+
+.mediaBay {
+  position: relative;
+  display: flex;
+  height: 220px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #02070b;
+}
+
+.productImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Each reviewed legacy atlas cell is half as wide as it is tall. Preserve
+   that physical-product crop instead of stretching it across a landscape bay. */
+.atlasProductImage {
+  width: auto;
+  aspect-ratio: 1 / 2;
+  flex: 0 0 auto;
+}
+
+.mediaUnavailable {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 28px;
+  border: 1px solid #f02849;
+  color: #ff5b6e;
+  background: #02070b;
+  font:
+    800 13px/1.4 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  letter-spacing: 0.045em;
+  text-align: center;
+}
+
+.mediaBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 18px;
+  color: #eef8fc;
+  background: #02070b url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
+    center / 100% 100% no-repeat;
+  font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+}
+
+.mediaBadgeUnavailable {
+  right: auto;
+  left: 10px;
+  color: #ff6b6b;
+}
+
+/* Sits beside the product name, not over the photograph. */
+.wishlistControl {
+  display: inline-flex;
+  flex: none;
+  min-width: 76px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 18px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 15px 17px;
+  background: rgb(0 4 8 / 90%);
+}
+
+.productTitle {
+  margin: 0 0 5px;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.productDescription {
+  color: #b3c1c8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.price {
+  color: #48dcff;
+  font:
+    800 22px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.012em;
+}
+
+.priceNote {
+  color: #8f9da5;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+}
+
+.controlLabel {
+  margin-bottom: 7px;
+  color: #96a8b1;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
+.optionControl {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 17px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.optionControl:disabled {
+  color: #68737a;
+  cursor: not-allowed;
+  filter: saturate(0);
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.quantityRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.quantityRow > .controlLabel {
+  margin-bottom: 0;
+}
+
+.quantityControl {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.quantityButton {
+  display: inline-flex;
+  width: 66px;
+  min-width: 66px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quantityButton:disabled {
+  color: #68737a;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.quantityValue {
+  min-width: 34px;
+  color: #fff;
+  font:
+    800 13px/1 var(--font-roboto-condensed),
+    'Roboto Condensed',
+    'Arial Narrow',
+    Arial,
+    sans-serif;
+  text-align: center;
+}
+
+.quantityTotal {
+  color: #94a7b0;
+  font-size: 9px;
+}
+
+.purchaseControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.purchasePair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actionControl {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 22px;
+  font-size: 13px;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Primary: the default settlement path. */
+.actionPrimary {
+  min-height: 54px;
+  font-size: 14px;
+  letter-spacing: 0.032em;
+}
+
+/* Secondary: the alternate settlement path, still a painted commerce control
+   so the Diamond route reads as a real option, one step below primary. */
+.actionDiamond {
+  min-height: 48px;
+  color: #8fe8ff;
+  font-size: 13px;
+}
+
+/* Tertiary: deferred purchase. */
+.actionGold {
+  min-height: 44px;
+  color: #f6d76d;
+  font-size: 12px;
+}
+
+/* Quaternary: navigation, not commerce, so it carries no painted plate. */
+.actionSecondary {
+  min-height: 44px;
+  border: 1px solid #23394a;
+  color: #a9c2ce;
+  background-color: #060d13;
+  background-image: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.actionControl:disabled {
+  color: #68747b;
+  cursor: not-allowed;
+  filter: saturate(0);
+  opacity: 0.52;
+}
+
+.purchaseReason {
+  color: #ff6b6b;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.purchaseReason[data-shortfall='true'] {
+  color: #f1d46b;
+}
+
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
+.catalogAlert {
+  --alert-plate-width: min(900px, 100%);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 20%);
+  width: var(--alert-plate-width);
+  aspect-ratio: 1800 / 386;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto 24px;
+  padding: calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.06)
+    calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.25);
+  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
+    100% 100% no-repeat;
+  color: #f2d978;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.loadingStatus {
+  padding: 12px 0 20px;
+  color: #9db0ba;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+/* This was a 1105x1133 console housing with a percentage padding measured
+   against the page column rather than the plate, which left almost no room
+   for the text inside it. Sized by its content now, in the same readable card
+   the rewards and VIP consoles already use. */
+.emptyState {
+  display: grid;
+  width: min(560px, 100%);
+  place-content: center;
+  margin-inline: auto;
+  padding: 28px 24px;
+  border: 1px solid #23394a;
+  background: #070e15;
+  color: #a7b6bd;
+  font-size: 13px;
+  text-align: center;
+}
+
+.emptyStateTitle {
+  margin-bottom: 7px;
+  color: #eef7fb;
+  font-size: 18px;
+}
+
+.categoryTitle {
+  margin: 0 0 14px;
+  color: #eaf4f8;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.legalCopy {
+  max-width: 720px;
+  margin: 16px auto 0;
+  color: #9eabb2;
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* `!important` for the same reason the store shell uses it: the global reset in
+   src/index.css ends `button:focus` with `outline: none !important`, which
+   silently beats any focus-visible outline declared at normal specificity
+   here. */
+.operatorLink:focus-visible,
+.actionControl:focus-visible,
+.categoryControl:focus-visible,
+.wishlistControl:focus-visible,
+.optionControl:focus-visible,
+.quantityButton:focus-visible,
+.searchInput:focus-visible,
+.sortSelect:focus-visible {
+  outline: 3px solid #8befff !important;
+  outline-offset: 3px !important;
+}
+
+.operatorLink:active,
+.actionControl:active:not(:disabled),
+.categoryControl:active,
+.wishlistControl:active:not(:disabled),
+.optionControl:active:not(:disabled),
+.quantityButton:active:not(:disabled) {
+  opacity: 0.78;
+}
+
+@media (max-width: 620px) {
+  .discoveryControls {
+    padding: 8px 0 20px;
+  }
+
+  .catalogAlert {
+    --alert-plate-width: min(440px, 100%);
+
+    grid-template-columns: minmax(0, 1fr);
+    aspect-ratio: 1105 / 1133;
+    padding: calc(var(--alert-plate-width) * 0.18);
+    background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
+    text-align: center;
+  }
+
+  .purchasePair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailStatus {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .productCard,
+  .actionControl,
+  .categoryControl,
+  .wishlistControl,
+  .optionControl,
+  .quantityButton {
+    scroll-behavior: auto;
+  }
+}

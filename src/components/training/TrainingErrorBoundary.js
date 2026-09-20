@@ -45,7 +45,7 @@ class TrainingErrorBoundary extends React.Component {
             
             return (
                 <div style={{
-                    minHeight: '100vh',
+                    minHeight: '100dvh',
                     background: '#0a0a0a',
                     display: 'flex',
                     alignItems: 'center',
@@ -156,7 +156,7 @@ class TrainingErrorBoundary extends React.Component {
                                 </summary>
                                 <pre style={{
                                     color: '#ef4444',
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     margin: '8px 0 0',
                                     whiteSpace: 'pre-wrap',
                                     wordBreak: 'break-word',

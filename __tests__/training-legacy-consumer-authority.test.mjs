@@ -90,7 +90,7 @@ function loadGtoRoute(relativePath, resultsByTable) {
   const sampleRange = { CO: { AA: { raise: 1 } }, BTN: { AA: { raise: 1 } } };
   const module = compile(relativePath, {
     '../../../src/lib/supabaseServerClient': { createClient: () => client },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
     '../../../src/lib/jarvisCache': {
       async getCachedResponse() { return null; },
       async setCachedResponse() {},
@@ -123,7 +123,7 @@ function loadSessionsRoute(resultsByTable) {
       clampPagination: (value) => ({ limit: Number(value) || 50 }),
       withTiming() {},
     },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
     '../../../src/lib/training/trainingPersistence.mjs': {
       runTrainingPersistenceQuery: async (queryFactory) => queryFactory(),
     },
@@ -224,7 +224,7 @@ test('the authoritative level-history fallback excludes legacy and practice rows
 test('weakness and profile derivation use canonical projections rather than legacy answer claims', () => {
   const commonDependencies = {
     '../../../src/lib/supabaseServerClient': { createClient() { return {}; } },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
   };
   const { analyzeWeakSpots } = compile('pages/api/gto/get-weak-spots.js', commonDependencies);
   const { deriveVerifiedProfile } = compile('pages/api/gto/lobby-suggestions.js', commonDependencies);
@@ -263,7 +263,7 @@ test('secondary insight surfaces preserve missing and true-zero accuracy honestl
   const jarvisDependencies = {
     '../../../src/lib/serverAuth': { getServerUserWithFallback: async () => ({ user: null, error: null }) },
     '../../../src/lib/supabaseServerClient': { createClient() { return {}; } },
-    '../../../src/lib/sentryWrap': { reportApiError() {} },
+    '../../../src/lib/apiErrorHandler': { reportApiError() {} },
   };
   const { summarizeVerifiedTrainingPerformance } = compile(
     'pages/api/jarvis/user-insights.js',

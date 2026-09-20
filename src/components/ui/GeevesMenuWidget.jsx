@@ -235,7 +235,7 @@ export default function GeevesMenuWidget() {
                 }}
             >
                 <img
-                    src="/images/geeves-avatar.png"
+                    src="/images/geeves-avatar.webp"
                     alt="Geeves"
                     style={{
                         width: 32,

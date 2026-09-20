@@ -49,7 +49,7 @@ export default function SpinAndGoStrategy() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.phase.split(' (')[0]}
           </button>
         ))}
@@ -60,16 +60,16 @@ export default function SpinAndGoStrategy() {
         <div style={{ fontSize: 16, fontWeight: 800, color: p.color, marginBottom: 8 }}>{p.icon} {p.phase}</div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{p.detail}</p>
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, marginBottom: 8, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Opening Ranges</div>
-          <div style={{ fontSize: 11, color: p.color }}>{p.opens}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Opening Ranges</div>
+          <div style={{ fontSize: 12, color: p.color }}>{p.opens}</div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${p.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${p.color}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: p.color }}>STRATEGY</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: p.color }}>STRATEGY</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.strategy}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>PRO TIP</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{p.tip}</div>
           </div>
         </div>

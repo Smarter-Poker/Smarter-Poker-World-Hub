@@ -16,9 +16,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 
+import SEOHead from '../../src/components/seo/SEOHead';
+
 const CACHE_KEY = 'sp-profile-username';
 
-export default function ProfileRedirect() {
+function ProfileRedirectBody() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
 
@@ -112,7 +114,7 @@ export default function ProfileRedirect() {
             <div style={{ textAlign: 'center' }}>
                 {/* Smarter.Poker logo with pulse animation */}
                 <img
-                    src="/smarter-poker-logo-transparent.png"
+                    src="/smarter-poker-logo-transparent.webp"
                     alt="Smarter.Poker"
                     width={72}
                     height={72}
@@ -131,4 +133,25 @@ export default function ProfileRedirect() {
             </div>
         </div>
     );
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this page served 200 with no <title> and no
+ * robots meta, so an engine saw a nameless page of nine words and had to
+ * judge the site on it. A redirect shim, not a destination. It now names
+ * itself and asks not to be indexed, which is what /hub/vip-
+ * membership/manage already does.
+ */
+export default function ProfileRedirect() {
+  return (
+    <>
+      <SEOHead
+        title="Opening Your Profile"
+        description="A Redirect That Sends A Signed In Player To Their Own Profile Page."
+        canonical="/hub/profile"
+        noindex
+      />
+      <ProfileRedirectBody />
+    </>
+  );
 }

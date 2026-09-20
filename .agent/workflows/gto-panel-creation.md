@@ -38,10 +38,10 @@ Use `generate_image` with:
 - **ImageName**: Use format `gto_{position}_{action}_{stack}bb`
 
 ### Step 3: Show User
-Display the generated panel to the user and wait for approval before continuing.
+Display the generated panel, verify it against the assigned content and template, correct any defect and continue without another approval gate.
 
 ### Step 4: Upload to Supabase
-After user approval, upload to `gto-panels/panels/` bucket.
+After the required content and visual checks pass, upload to `gto-panels/panels/` bucket.
 
 ## Panel Filename Format
 

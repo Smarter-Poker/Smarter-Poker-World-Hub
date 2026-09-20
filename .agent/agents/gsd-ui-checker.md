@@ -164,11 +164,11 @@ fix_hint: "Use 8px or 12px instead"
 - Third-party registry listed AND Safety Gate column says "shadcn view + diff required" (intent only — vetting was NOT performed by researcher)
 - Third-party registry listed AND Safety Gate column is empty or generic
 - Registry listed with no specific blocks identified (blanket access — attack surface undefined)
-- Safety Gate column says "BLOCKED" (researcher flagged issues, developer declined)
+- Safety Gate column says "BLOCKED" (unresolved source or behavior risk)
 
 **PASS if:**
 - Safety Gate column contains `view passed — no flags — {date}` (researcher ran view, found nothing)
-- Safety Gate column contains `developer-approved after view — {date}` (researcher found flags, developer explicitly approved after review)
+- Safety Gate column contains `reviewed source and verified behavior — {date}` with specific file/line evidence and a valid rationale for each flagged behavior
 - No third-party registries listed (shadcn official only or no shadcn)
 
 **FLAG if:**

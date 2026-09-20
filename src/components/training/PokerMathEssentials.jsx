@@ -49,7 +49,7 @@ export default function PokerMathEssentials() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? t.color : '#64748b' }}>
             {t.icon} {t.title}
           </button>
         ))}
@@ -59,18 +59,18 @@ export default function PokerMathEssentials() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: m.color, marginBottom: 8 }}>{m.icon} {m.title}</div>
         <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace', borderLeft: `3px solid ${m.color}` }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>FORMULA</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>FORMULA</div>
           <div style={{ fontSize: 13, color: m.color, fontWeight: 700 }}>{m.formula}</div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{m.example}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>SHORTCUT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>SHORTCUT</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.shortcut}</div>
           </div>
           <div style={{ background: `${m.color}06`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${m.color}`, fontFamily: 'monospace' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: m.color }}>PRACTICE</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{m.practice}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: m.color }}>PRACTICE</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{m.practice}</div>
           </div>
         </div>
       </motion.div>

@@ -161,7 +161,7 @@ export default function PublicProfilePage() {
                       style={{ display: 'flex', alignItems: 'center', gap: 14, background: C.card, border: `1px solid ${C.tealBorder}`, borderRadius: 14, padding: 16, textDecoration: 'none', transition: 'border-color .2s' }}
                     >
                       {g.profile_photo_url ? (
-                        <img src={g.profile_photo_url} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
+                        <img src={g.profile_photo_url} alt="" loading="lazy" style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
                       ) : (
                         <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg,#0d9488,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🏠</div>
                       )}

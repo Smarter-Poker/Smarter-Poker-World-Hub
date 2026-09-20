@@ -22,6 +22,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // TRAIN-CSS-MOTION-ADOPT-10 — durations routed through MOTION tokens matched to
 // --sp-motion-* CSS contract (TRAIN-CSS-MOTION-1). Values kept in seconds (the
@@ -123,7 +124,7 @@ export default function ChallengesPage() {
       <PageTransition>
         <SEOHead
           title="Daily Training Challenges"
-          description="Review Smarter.Poker Training Challenge Availability."
+          description="Daily GTO Training Challenges On Smarter.Poker: A Short Set Of Hands Chosen From The Spots You Have Been Getting Wrong, Scored Against A Solver Baseline. Free To Play, And Nothing In It Is A Wager."
           canonical="/hub/training/challenges"
         />
         <div style={styles.container}>
@@ -142,6 +143,7 @@ export default function ChallengesPage() {
             </div>
           </div>
         </div>
+        <HubPageSummary page="training-challenges" as="h1" />
       </PageTransition>
     );
   }
@@ -262,6 +264,9 @@ export default function ChallengesPage() {
       </div>
     </PageTransition>
     <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-challenges" as="h1" />
     </>
   );
 }
@@ -272,7 +277,7 @@ export default function ChallengesPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -347,7 +352,7 @@ const styles = {
     padding: '4px 10px',
     background: 'rgba(255,255,255,0.1)',
     borderRadius: '8px',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 600,
     color: 'var(--sp-fg-muted)',
     marginBottom: '12px',

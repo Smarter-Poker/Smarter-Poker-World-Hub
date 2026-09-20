@@ -40,7 +40,7 @@ export default function PreFlopLimpStrategy() {
           <button key={i} onClick={() => setScenarioIdx(i)}
             style={{ padding: '8px 4px', borderRadius: 8, border: scenarioIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: scenarioIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: scenarioIdx === i ? s.color : '#64748b' }}>{s.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: scenarioIdx === i ? s.color : '#64748b' }}>{s.title}</div>
           </button>
         ))}
       </div>

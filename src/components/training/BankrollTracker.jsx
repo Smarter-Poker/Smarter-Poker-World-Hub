@@ -80,13 +80,13 @@ function BankrollChart({ sessions, startingBR }) {
         />
       ))}
       {/* Labels */}
-      <text x={PAD} y={12} fill="#64748b" fontSize="8" fontWeight="600">
+      <text x={PAD} y={12} fill="#64748b" fontSize='12px' fontWeight="600">
         ${maxY.toLocaleString()}
       </text>
-      <text x={PAD} y={H - 5} fill="#64748b" fontSize="8" fontWeight="600">
+      <text x={PAD} y={H - 5} fill="#64748b" fontSize='12px' fontWeight="600">
         ${minY.toLocaleString()}
       </text>
-      <text x={W - PAD} y={toY(finalBR) - 8} fill={isUp ? '#22c55e' : '#ef4444'} fontSize="9" fontWeight="700" textAnchor="end">
+      <text x={W - PAD} y={toY(finalBR) - 8} fill={isUp ? '#22c55e' : '#ef4444'} fontSize='12px' fontWeight="700" textAnchor="end">
         ${finalBR.toLocaleString()}
       </text>
     </svg>
@@ -112,16 +112,16 @@ function RiskOfRuin({ sessions, bankroll }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div>
           <div style={{ color: rorColor, fontSize: 28, fontWeight: 800 }}>{ror.toFixed(1)}%</div>
-          <div style={{ color: rorColor, fontSize: 10, fontWeight: 600 }}>{rorLabel} Risk</div>
+          <div style={{ color: rorColor, fontSize: 12, fontWeight: 600 }}>{rorLabel} Risk</div>
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ height: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(100, ror)}%`, height: '100%', background: rorColor, borderRadius: 4 }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ color: '#64748b', fontSize: 8 }}>0%</span>
-            <span style={{ color: '#64748b', fontSize: 8 }}>Std Dev: ${stdDev.toFixed(0)}</span>
-            <span style={{ color: '#64748b', fontSize: 8 }}>100%</span>
+            <span style={{ color: '#64748b', fontSize: 12 }}>0%</span>
+            <span style={{ color: '#64748b', fontSize: 12 }}>Std Dev: ${stdDev.toFixed(0)}</span>
+            <span style={{ color: '#64748b', fontSize: 12 }}>100%</span>
           </div>
         </div>
       </div>
@@ -175,12 +175,12 @@ export default function BankrollTracker() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Bankroll Tracker</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Track Sessions, Manage Bankroll, Calculate Risk</div>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Track Sessions, Manage Bankroll, Calculate Risk</div>
           </div>
           <button onClick={() => setShowAddForm(!showAddForm)} style={{
             padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
             background: showAddForm ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
-            color: showAddForm ? '#ef4444' : '#22c55e', fontSize: 11, fontWeight: 700,
+            color: showAddForm ? '#ef4444' : '#22c55e', fontSize: 12, fontWeight: 700,
           }}>
             {showAddForm ? 'Cancel' : '+ Log Session'}
           </button>
@@ -190,17 +190,17 @@ export default function BankrollTracker() {
         {showAddForm && (
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12, marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, marginBottom: 2 }}>Stakes</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Stakes</div>
               <select value={newSession.stakes} onChange={e => setNewSession(p => ({ ...p, stakes: e.target.value }))} style={{
                 padding: '5px 8px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 11,
+                background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 12,
               }}>
                 {STAKES.map(s => <option key={s.label} value={`${s.label} NL`}>{s.label} NL</option>)}
               </select>
             </div>
             {['buyIn', 'cashOut', 'hours'].map(field => (
               <div key={field}>
-                <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, marginBottom: 2, textTransform: 'capitalize' }}>
+                <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, marginBottom: 2, textTransform: 'capitalize' }}>
                   {field === 'buyIn' ? 'Buy-In ($)' : field === 'cashOut' ? 'Cash-Out ($)' : 'Hours'}
                 </div>
                 <input
@@ -209,26 +209,26 @@ export default function BankrollTracker() {
                   placeholder="0"
                   style={{
                     padding: '5px 8px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 11, width: 80,
+                    background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 12, width: 80,
                   }}
                 />
               </div>
             ))}
             <div style={{ flex: 1, minWidth: 120 }}>
-              <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, marginBottom: 2 }}>Notes</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, marginBottom: 2 }}>Notes</div>
               <input
                 type="text" value={newSession.notes}
                 onChange={e => setNewSession(p => ({ ...p, notes: e.target.value }))}
                 placeholder="Session notes..."
                 style={{
                   padding: '5px 8px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 11, width: '100%',
+                  background: 'rgba(0,0,0,0.3)', color: '#f1f5f9', fontSize: 12, width: '100%',
                 }}
               />
             </div>
             <button onClick={addSession} style={{
               padding: '5px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
-              background: '#22c55e', color: '#fff', fontSize: 11, fontWeight: 700,
+              background: '#22c55e', color: '#fff', fontSize: 12, fontWeight: 700,
             }}>Save</button>
           </div>
         )}
@@ -242,7 +242,7 @@ export default function BankrollTracker() {
             { label: 'Win Rate', value: `${Math.round(stats.winSessions / stats.sessions * 100)}%`, color: '#3b82f6' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
               <div style={{ color: s.color, fontSize: 18, fontWeight: 800 }}>{s.value}</div>
             </div>
           ))}
@@ -258,7 +258,7 @@ export default function BankrollTracker() {
           <RiskOfRuin sessions={sessions} bankroll={stats.currentBR} />
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 12 }}>
             <div style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Stake Recommendation</div>
-            <div style={{ color: '#f59e0b', fontSize: 11, marginBottom: 8 }}>
+            <div style={{ color: '#f59e0b', fontSize: 12, marginBottom: 8 }}>
               Max Recommended: <strong>{stats.maxStake.label} NL</strong>
             </div>
             {STAKES.map((s, i) => {
@@ -269,8 +269,8 @@ export default function BankrollTracker() {
                     width: 8, height: 8, borderRadius: '50%',
                     background: canPlay ? '#22c55e' : 'rgba(255,255,255,0.1)',
                   }} />
-                  <span style={{ color: canPlay ? '#f1f5f9' : '#475569', fontSize: 10, flex: 1 }}>{s.label} NL</span>
-                  <span style={{ color: '#64748b', fontSize: 9 }}>${s.minBR.toLocaleString()} Min</span>
+                  <span style={{ color: canPlay ? '#f1f5f9' : '#475569', fontSize: 12, flex: 1 }}>{s.label} NL</span>
+                  <span style={{ color: '#64748b', fontSize: 12 }}>${s.minBR.toLocaleString()} Min</span>
                 </div>
               );
             })}
@@ -284,7 +284,7 @@ export default function BankrollTracker() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '80px 60px 60px 60px 60px 1fr', gap: 4, marginBottom: 6 }}>
             {['Date', 'Stakes', 'Buy-In', 'Out', 'P/L', 'Notes'].map(h => (
-              <div key={h} style={{ color: '#475569', fontSize: 8, fontWeight: 700, textTransform: 'uppercase' }}>{h}</div>
+              <div key={h} style={{ color: '#475569', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>{h}</div>
             ))}
           </div>
           {[...sessions].reverse().map((s, i) => {
@@ -294,14 +294,14 @@ export default function BankrollTracker() {
                 display: 'grid', gridTemplateColumns: '80px 60px 60px 60px 60px 1fr', gap: 4, padding: '4px 0',
                 borderTop: i > 0 ? '1px solid rgba(255,255,255,0.03)' : 'none',
               }}>
-                <span style={{ color: '#94a3b8', fontSize: 10 }}>{s.date}</span>
-                <span style={{ color: '#f1f5f9', fontSize: 10, fontWeight: 600 }}>{s.stakes}</span>
-                <span style={{ color: '#94a3b8', fontSize: 10 }}>${s.buyIn}</span>
-                <span style={{ color: '#94a3b8', fontSize: 10 }}>${s.cashOut}</span>
-                <span style={{ color: pl >= 0 ? '#22c55e' : '#ef4444', fontSize: 10, fontWeight: 700 }}>
+                <span style={{ color: '#94a3b8', fontSize: 12 }}>{s.date}</span>
+                <span style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 600 }}>{s.stakes}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12 }}>${s.buyIn}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12 }}>${s.cashOut}</span>
+                <span style={{ color: pl >= 0 ? '#22c55e' : '#ef4444', fontSize: 12, fontWeight: 700 }}>
                   {pl >= 0 ? '+' : ''}${pl}
                 </span>
-                <span style={{ color: '#64748b', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.notes}</span>
+                <span style={{ color: '#64748b', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal' }}>{s.notes}</span>
               </div>
             );
           })}

@@ -22,7 +22,7 @@
 // and the patched client carries the JWT-decode/GoTrue resilience fixes).
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 
 const REASONS = ['wrong_answer', 'unclear', 'duplicate', 'offensive', 'broken', 'other'];
@@ -184,7 +184,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ error: 'Internal server error' });
   }

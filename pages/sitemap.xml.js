@@ -7,9 +7,12 @@
  */
 
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes';
+import { isTriviaPvpReleased } from '../src/lib/trivia/pvpReleaseControl.mjs';
+import { areTriviaTournamentsReleased } from '../src/lib/trivia/tournamentReleaseControl.mjs';
 import {
   isServableSeriesParentEvidence,
   toPokerSeriesRouteId,
+  tournamentSeriesIdFromPointerUid,
 } from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import bundledSeriesData from '../data/poker-tour-series-2026.json';
 import tourSourceRegistry from '../data/tour-source-registry.json';
@@ -19,6 +22,12 @@ const SITEMAP_DB_PAGE_SIZE = 1000;
 const SERVABLE_SERIES_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
 const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'id',
+  // AEO phase 3 (2026-09-18): the same scraped series lives in both
+  // tournament_series and poker_series, carrying the same series_uid, and
+  // the sitemap offered a URL for each. 23 pairs of byte-identical pages,
+  // each declaring itself canonical. The uid is selected so one of them can
+  // be dropped.
+  'series_uid',
   'is_suppressed',
   'data_quality',
   'source_url',
@@ -29,10 +38,42 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
 ].join(', ');
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
+// PAGES ABOUT THE VIEWER ARE NOT IN THE SITEMAP EITHER (AEO phase 3,
+// 2026-09-17). The September sweep took out the routes that redirect a
+// signed-out visitor to a login page. It left the ones that load, render
+// their chrome, and then show the viewer their own results: training
+// progress, streaks, achievements, reports and aggregates; trivia stats and
+// achievements; preflop practice stats and achievements; the friends list;
+// the avatar picker; the bankroll export; the social page create form;
+// /hub/profile, which is a client-side redirect to the viewer's own profile
+// and nothing else; and /hub/article, which needs an ?id= query and serves
+// an empty shell without one.
+//
+// Measured on production as OAI-SearchBot with scripts stripped, those
+// fifteen pages returned between 0 and 49 words, and several returned no
+// <title> and no <h1> at all. There is nothing on any of them an engine
+// could cite, because what they show depends entirely on who is looking.
+// A sitemap is a list of pages worth indexing, not a list of routes, and
+// every entry that cannot be cited spends crawl budget teaching an engine
+// nothing.
+//
+// ACCOUNT-ONLY PAGES ARE NOT IN THE SITEMAP (2026-09-16). Messenger,
+// notifications, settings, profile edit, the store cart/orders/wishlist and a
+// player's own reels all need a session; a crawler lands on the login page
+// and Search Console files each one as an error. A sitemap is a list of pages
+// worth indexing, not a list of routes.
 const staticPages = [
   // Landing
   { path: '/', priority: '1.0', changefreq: 'weekly' },
+  // The entity anchor an AI engine reads to answer "what is Smarter Poker"
+  // and "who makes Club Commander" (AEO phase 2, 2026-09-17).
+  { path: '/about', priority: '0.8', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
+  // /privacy was missing (AEO phase 3, 2026-09-18). It is a 524 word page
+  // that every hub summary links to in its compliance line, and the URL the
+  // app stores read, and it was the one legal document the sitemap did not
+  // offer.
+  { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/legal/official-rules', priority: '0.3', changefreq: 'yearly' },
 
   // Hub — Core
@@ -63,72 +104,78 @@ const staticPages = [
   { path: '/hub/poker-series', priority: '0.8', changefreq: 'daily' },
   { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/leaderboards', priority: '0.7', changefreq: 'daily' },
-  { path: '/hub/friends', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/club-arena', priority: '0.8', changefreq: 'weekly' },
+  // Poker Arena is NOT listed here (discoverability phase 2, 2026-09-17).
+  // The arena publishes its own sitemap from what it prerenders, dated from
+  // its git history, at https://smarter.poker/hub/club-arena/sitemap.xml
+  // (Smarter-Poker-Club-Arena scripts/generate-arena-sitemap.mjs), and
+  // public/robots.txt names it beside this one. Two repositories no longer
+  // keep one hand-typed list.
+  // Club Commander, player side. The pages that need no session and were
+  // noindex until 2026-09-16 (see pages/hub/commander/index.js). Pages that
+  // show one player's own rewards, services, profile or history stay out.
+  { path: '/hub/commander', priority: '0.9', changefreq: 'daily' },
+  { path: '/hub/commander/venues', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/commander/tournaments', priority: '0.8', changefreq: 'daily' },
+  { path: '/hub/commander/home-games', priority: '0.7', changefreq: 'daily' },
+  { path: '/hub/commander/leagues', priority: '0.6', changefreq: 'weekly' },
+  { path: '/hub/commander/faq', priority: '0.6', changefreq: 'monthly' },
+  { path: '/hub/commander/responsible-gaming', priority: '0.5', changefreq: 'monthly' },
   { path: '/hub/promotions', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/reels', priority: '0.7', changefreq: 'daily' },
   { path: '/hub/lives', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/messenger', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/notifications', priority: '0.3', changefreq: 'weekly' },
   { path: '/hub/help', priority: '0.5', changefreq: 'monthly' },
-  { path: '/hub/settings', priority: '0.3', changefreq: 'monthly' },
-  { path: '/hub/profile', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/profile-edit', priority: '0.3', changefreq: 'monthly' },
-  { path: '/hub/avatars', priority: '0.4', changefreq: 'monthly' },
-  { path: '/hub/article', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/pages', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Trivia
   { path: '/hub/trivia', priority: '0.8', changefreq: 'weekly' },
   { path: '/hub/trivia/endless', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/survival', priority: '0.7', changefreq: 'weekly' },
+  // /hub/trivia/survival IS NOT LISTED (AEO phase 3, 2026-09-18). It is a
+  // deprecated duplicate implementation kept alive for old bookmarks: it
+  // declares noindex={true}, canonicals to /hub/trivia/survival-game and
+  // redirects there on mount. A sitemap entry says "index this" while the
+  // page says "do not", and the crawler believes the page. Survival is
+  // described and linked from /hub/trivia, which is indexed.
+  { path: '/hub/trivia/survival-game', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/time-attack', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/mixed', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' },
+  // /hub/trivia/pvp and /hub/trivia/tournaments ARE NOT HERE. Both sit
+  // behind a server side release gate and redirect to /hub/trivia while it
+  // is closed, so the sitemap was inviting a crawler to two 307s. They are
+  // added below, by asking the same gate the pages ask, so that enabling
+  // either feature puts it back in the sitemap with no second edit here
+  // and no chance of the two disagreeing (AEO phase 3, 2026-09-18).
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/trivia/achievements', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/trivia/stats', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/trivia/settings', priority: '0.3', changefreq: 'monthly' },
 
+  // A ROUTE THAT ONLY REDIRECTS IS NOT A PAGE (AEO phase 3, 2026-09-17).
+  // /hub/training/analyzer is getServerSideProps returning a 307 to the
+  // hand-history upload, and /hub/training/play-mode renders
+  // CanonicalTrainingRedirect and sends the reader into the arena. A crawler
+  // that follows a sitemap entry to a redirect learns the destination it
+  // could have reached anyway, and spends a fetch to do it.
   // Hub — Training sub-pages
-  { path: '/hub/training/achievements', priority: '0.5', changefreq: 'weekly' },
+  // 866 server-rendered words defining 49 terms, and the sitemap never
+  // mentioned it. A definitional question is the question an AI engine
+  // answers most often, so this is the most quotable page the site owns
+  // (AEO phase 3, 2026-09-17).
+  { path: '/hub/training/glossary', priority: '0.8', changefreq: 'monthly' },
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
-  { path: '/hub/training/progress', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/training/streaks', priority: '0.5', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
+  { path: '/hub/training/hand-history-upload', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
-  { path: '/hub/training/play-mode', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
-  { path: '/hub/training/analyzer', priority: '0.6', changefreq: 'weekly' },
-  { path: '/hub/training/reports', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/training/aggregate', priority: '0.5', changefreq: 'weekly' },
-
-  // Hub — Diamond Store sub-pages
-  { path: '/hub/diamond-store/cart', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/diamond-store/orders', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/diamond-store/wishlist', priority: '0.4', changefreq: 'weekly' },
 
   // Hub — Preflop Charts sub-pages
-  { path: '/hub/preflop-charts/achievements', priority: '0.5', changefreq: 'weekly' },
   { path: '/hub/preflop-charts/leaderboard', priority: '0.5', changefreq: 'daily' },
-  { path: '/hub/preflop-charts/stats', priority: '0.4', changefreq: 'weekly' },
   { path: '/hub/preflop-charts/tutorial', priority: '0.5', changefreq: 'monthly' },
-
-  // Hub — Reels sub-pages
-  { path: '/hub/reels/saved', priority: '0.4', changefreq: 'weekly' },
-  { path: '/hub/reels/my-reels', priority: '0.4', changefreq: 'weekly' },
 
   // Hub — News sub-pages
   { path: '/hub/news/sources', priority: '0.5', changefreq: 'weekly' },
 
   // Hub — Bankroll Manager sub-pages
-  { path: '/hub/bankroll-manager/export', priority: '0.4', changefreq: 'monthly' },
 
   // Hub — Social Pages
   { path: '/hub/social-pages', priority: '0.5', changefreq: 'weekly' },
-  { path: '/hub/social-pages/create', priority: '0.4', changefreq: 'monthly' },
 
   // Hub — Home Games (geo index; individual game + state/city pages are added dynamically)
   { path: '/hub/home-games/in', priority: '0.8', changefreq: 'daily' },
@@ -136,8 +183,13 @@ const staticPages = [
   // node, yet it was absent from the sitemap entirely (audit M-4).
   { path: '/hub/home-games/near-me', priority: '0.8', changefreq: 'daily' },
 
-  // Horses
-  { path: '/horses', priority: '0.7', changefreq: 'daily' },
+  // /horses IS THE STAFF ADMIN CONSOLE, NOT A PRODUCT (AEO phase 3,
+  // 2026-09-17). pages/horses/index.js is HorsesAdmin: an email and password
+  // form, a roster table and an SQL console, gated on profiles.is_admin. It
+  // sat here at priority 0.7. Measured on production as OAI-SearchBot it
+  // returned 11 words and no <title> at all, because its head sits below the
+  // session gate. A public sitemap is the wrong place to advertise an admin
+  // login, and there was never anything on it to index.
 ];
 
 // ─── Dynamic Home-Game URLs ──────────────────────────────────────────────────
@@ -312,9 +364,11 @@ async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilt
 // 1,000-row limit.
 async function buildPokerEventDetailUrls() {
   const urls = new Map();
+  const offeredSeriesIds = new Set();
   const addSeries = (rawId) => {
     const id = Number(rawId);
     if (!Number.isSafeInteger(id) || id <= 0) return;
+    offeredSeriesIds.add(String(id));
     const path = `/hub/series/${id}`;
     urls.set(path, { path, priority: '0.7', changefreq: 'daily' });
   };
@@ -335,8 +389,15 @@ async function buildPokerEventDetailUrls() {
     if (!series?.is_suppressed) addSeries(index + 1);
   });
 
+  // ONE URL PER TOUR. The bundled registry is added first and claims the
+  // name, so a database row holding the same tour under a second code is
+  // not offered again.
+  const claimedTourNames = new Set();
+  const tourNameKey = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
   for (const [registryCode, tour] of Object.entries(tourSourceRegistry?.tours || {})) {
     if (tour?.is_active === false) continue;
+    const key = tourNameKey(tour?.tour_name);
+    if (key) claimedTourNames.add(key);
     addTour(tour?.tour_code || registryCode);
   }
 
@@ -369,28 +430,67 @@ async function buildPokerEventDetailUrls() {
       fetchAllSitemapRows({
         supabase,
         table: 'tour_source_registry',
-        select: 'tour_code',
+        // tour_name comes along so one tour held under two codes is offered
+        // once: ROUGHRIDER and RRPT are both "Roughrider Poker Tour", down to
+        // the same official website (AEO phase 3, 2026-09-18).
+        select: 'tour_code, tour_name',
         orderBy: 'tour_code',
         applyFilters: (query) => query.eq('is_active', true),
       }),
     ]);
 
+    // ONE URL PER SERIES (AEO phase 3, 2026-09-18).
+    //
+    // The same scraped series is held in both tables under the same
+    // series_uid, and both were listed: /hub/series/470 and
+    // /hub/series/5000692 are the same event, word for word, each with a
+    // self canonical. Measured live, 23 pairs. Two URLs for one page split
+    // whatever authority the page has and spend the crawl budget twice.
+    //
+    // tournament_series wins, because its ids are the ones the sitemap has
+    // been offering longest and dropping them would discard whatever
+    // indexing they already have. A row with no uid cannot be matched to
+    // anything, so it is kept as itself.
+    const claimedUids = new Set();
     if (results[0].status === 'fulfilled') {
       results[0].value
         .filter(row => isServableSeriesParentEvidence(row))
-        .forEach((row) => addSeries(row.id));
+        .forEach((row) => {
+          const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
+          if (uid) claimedUids.add(uid);
+          addSeries(row.id);
+        });
     } else {
       console.warn('[sitemap] tournament_series detail URLs unavailable:', results[0].reason?.message);
     }
     if (results[1].status === 'fulfilled') {
       results[1].value
         .filter(row => isServableSeriesParentEvidence(row))
-        .forEach((row) => addSeries(toPokerSeriesRouteId(row.id)));
+        .forEach((row) => {
+          const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
+          // A uid that is a bare integer is not a uid at all: it is the
+          // tournament_series id this row mirrors. /hub/series/5001068
+          // carried "593". Comparing uid to uid can never catch that,
+          // because the two are not equal, one points at the other
+          // (AEO phase 3, 2026-09-18).
+          const pointsAt = tournamentSeriesIdFromPointerUid(uid);
+          if (pointsAt !== null && offeredSeriesIds.has(String(pointsAt))) return;
+          // Two rows in THIS table can share a real uid as well. claimedUids
+          // is added to as this pass runs, so the first row wins here too.
+          if (uid && claimedUids.has(uid)) return;
+          if (uid) claimedUids.add(uid);
+          addSeries(toPokerSeriesRouteId(row.id));
+        });
     } else {
       console.warn('[sitemap] poker_series detail URLs unavailable:', results[1].reason?.message);
     }
     if (results[2].status === 'fulfilled') {
-      results[2].value.forEach((row) => addTour(row.tour_code));
+      results[2].value.forEach((row) => {
+        const key = tourNameKey(row.tour_name);
+        if (key && claimedTourNames.has(key)) return; // already offered under its other code
+        if (key) claimedTourNames.add(key);
+        addTour(row.tour_code);
+      });
     } else {
       console.warn('[sitemap] tour detail URLs unavailable:', results[2].reason?.message);
     }
@@ -412,13 +512,27 @@ ${urls
   .map(
     (url) => `  <url>
     <loc>${SITE_URL}${url.path}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>${url.changefreq}</changefreq>
+${sitemapLastmodLine(url.lastmod)}    <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
   </url>`
   )
   .join('\n')}
 </urlset>`;
+}
+
+// LASTMOD IS EVIDENCE, NOT A TIMESTAMP OF GENERATION (AEO phase 1, 2026-09-17).
+// Every entry used to carry today's date, so the file said that 1,000 pages
+// changed every day. Bing's sitemap guidance for AI search says a lastmod set
+// to generation time is ignored and the sitemap discounted; AI engines weight
+// freshness, so a fake date is worse than none. An entry now carries lastmod
+// only when its source has real change evidence (venue verification and scrape
+// times through buildPokerVenueSitemapUrls); otherwise the element is omitted,
+// which the sitemap protocol permits.
+function sitemapLastmodLine(lastmod) {
+  if (!lastmod) return '';
+  const time = new Date(lastmod).getTime();
+  if (!Number.isFinite(time) || time <= 0) return '';
+  return `    <lastmod>${new Date(time).toISOString()}</lastmod>\n`;
 }
 
 export async function getServerSideProps({ res }) {
@@ -427,8 +541,21 @@ export async function getServerSideProps({ res }) {
     buildPokerVenueUrls(),
     buildPokerEventDetailUrls(),
   ]);
+  // A page the release gate is currently redirecting is not a page. The
+  // gate is read here, from the same functions the pages read, so the
+  // sitemap can never advertise a feature that is switched off.
+  const releaseGatedPages = [
+    ...(isTriviaPvpReleased(process.env)
+      ? [{ path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' }]
+      : []),
+    ...(areTriviaTournamentsReleased(process.env)
+      ? [{ path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' }]
+      : []),
+  ];
+
   const sitemap = generateSitemapXml([
     ...staticPages,
+    ...releaseGatedPages,
     ...homeGameUrls,
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,

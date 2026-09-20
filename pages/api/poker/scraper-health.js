@@ -19,7 +19,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import {
   classifyScraperHealth,
   fetchAllRows,
@@ -352,7 +352,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(httpStatus).json(detailedPayload);
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('Scraper health check error:', err);
     return res.status(500).json({ error: 'Health check failed' });
   }

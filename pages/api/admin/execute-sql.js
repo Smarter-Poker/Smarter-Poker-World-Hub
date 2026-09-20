@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { Pool } from 'pg';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
@@ -518,7 +518,7 @@ export default async function handler(req, res) {
       // instance, lands here before anyone has proved who they are. Returning
       // err.message to an unauthenticated caller leaks internals. Log it
       // server-side, return a fixed string.
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
       console.warn('[API Error] execute-sql:', err);
       if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

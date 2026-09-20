@@ -154,6 +154,9 @@ import './pa-closeout-hardening.test.mjs';
 // Decision Loop label and session date, the wrapping trend row and coaching
 // views, 100dvh, overflow-x clip, the 12px floor and the eight-step tutorial.
 import './pa-mobile-upgrades.test.mjs';
+// Mobile phase 5 (Training Games): pins the wrapping pills row, the 12px
+// floor, the returned labels, the three breakpoints and the tutorial.
+import './training-mobile-upgrades.test.mjs';
 import './preflop-accessibility-phase7.test.mjs';
 import './preflop-mobile-upgrades.test.mjs';
 // Mobile phase 3 (Poker Near Me): pins the stacked-section discovery page,
@@ -191,6 +194,7 @@ import './solver-policy-service.test.mjs';
 // atomic counters, the live drift schedule, and legacy writer retirement are
 // release gates rather than an optional developer-only audit.
 import './horse-phase3-training-cache-truth.test.mjs';
+import './marketplace-phase-8-lifetime-entitlements.test.mjs';
 import './training-arena-phase-5.test.mjs';
 import './training-card-visual-contract.test.mjs';
 import './training-history-outage-honesty.test.mjs';
@@ -288,7 +292,7 @@ const REQUIRED_TEST_FILES = [
     '__tests__/openclaw-workers-secret.test.mjs',
     '__tests__/signup-hardening.test.mjs',
     '__tests__/build-2-deliverables.test.mjs',
-    '__tests__/sentry-coverage.test.mjs',
+    '__tests__/retired-error-provider.test.mjs',
     '__tests__/phase-3-deliverables.test.mjs',
     '__tests__/phase-4-deliverables.test.mjs',
     // Personal Assistant guards. menu-routes catches dead hamburger links;

@@ -31,7 +31,7 @@ const GodModeArena = dynamic(() => import('../../../src/components/training/GodM
   loading: () => (
     <div
       style={{
-        minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+        minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
         background: '#0a0a1a',
         display: 'flex',
         alignItems: 'center',
@@ -374,7 +374,7 @@ export default function AutopilotPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -412,7 +412,7 @@ export default function AutopilotPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sp-fg)' }}>
               Weak Spot Autopilot
             </div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Zero-Decision Training Mode</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Zero-Decision Training Mode</div>
           </div>
         </div>
 
@@ -472,7 +472,7 @@ export default function AutopilotPage() {
                         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-fg)' }}>
                           {avgAccuracy}% Overall
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
                           {totalCorrect}/{totalQ} Questions Correct
                         </div>
                       </div>
@@ -499,7 +499,7 @@ export default function AutopilotPage() {
                     <div style={{ fontSize: 14, display: 'inline-flex', color: r.spot.color }} aria-hidden><SpotIcon kind={r.spot.iconKind} size={14} /></div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: r.accuracy >= 75 ? 'var(--sp-accent-green)' : 'var(--sp-accent-amber)',
                         marginTop: 4,
@@ -507,7 +507,7 @@ export default function AutopilotPage() {
                     >
                       {r.accuracy}%
                     </div>
-                    <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>{r.spot.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{r.spot.name}</div>
                   </div>
                 ))}
               </div>
@@ -525,7 +525,7 @@ export default function AutopilotPage() {
                     textAlign: 'left',
                     marginBottom: 16,
                   }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-cyan)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                       Coach Recommendation
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--sp-fg)', lineHeight: 1.5 }}>
@@ -637,7 +637,7 @@ export default function AutopilotPage() {
               <div style={{ marginBottom: 16 }}>
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -683,7 +683,7 @@ export default function AutopilotPage() {
                         <div style={{ fontSize: 13, fontWeight: 700, color: spot.color }}>
                           {i + 1}. {spot.name}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 1 }}>
                           {spot.reason}
                         </div>
                       </div>

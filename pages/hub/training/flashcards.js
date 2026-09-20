@@ -465,7 +465,7 @@ export default function FlashcardsPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -500,7 +500,7 @@ export default function FlashcardsPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Flashcards</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Spaced Repetition (SM-2)</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Spaced Repetition (SM-2)</div>
           </div>
         </div>
 
@@ -517,26 +517,26 @@ export default function FlashcardsPage() {
         >
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>{stats.newCount}</div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>New</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>New</div>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-amber)' }}>{stats.learning}</div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Learning
             </div>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-green)' }}>{stats.mastered}</div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Mastered
             </div>
           </div>
           <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--sp-accent-orange)' }}>{stats.dueCount}</div>
-            <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', textTransform: 'uppercase' }}>
               Due
             </div>
           </div>
@@ -557,7 +557,7 @@ export default function FlashcardsPage() {
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
                   background: catFilter === c ? 'rgba(0,212,255,0.06)' : 'transparent',
                   color: catFilter === c ? 'var(--sp-accent-cyan)' : 'var(--sp-fg-dim)',
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -609,14 +609,14 @@ export default function FlashcardsPage() {
                       borderRadius: 4,
                       background: `${CAT_COLORS[current.cat] || 'var(--sp-fg-dim)'}15`,
                       color: CAT_COLORS[current.cat] || 'var(--sp-fg-dim)',
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: 700,
                       textTransform: 'uppercase',
                     }}
                   >
                     {current.cat}
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--sp-fg-faint)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--sp-fg-faint)' }}>
                     {currentIdx + 1}/{sessionDeck.length} Today
                   </span>
                   {(() => {
@@ -628,7 +628,7 @@ export default function FlashcardsPage() {
                       else { label = 'Learning'; bg = 'rgba(251,191,36,0.1)'; clr = 'var(--sp-accent-amber)'; }
                     }
                     return (
-                      <span style={{ padding: '2px 6px', borderRadius: 4, background: bg, color: clr, fontSize: 8, fontWeight: 700, textTransform: 'uppercase' }}>
+                      <span style={{ padding: '2px 6px', borderRadius: 4, background: bg, color: clr, fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
                         {label}
                       </span>
                     );
@@ -647,7 +647,7 @@ export default function FlashcardsPage() {
                     >
                       {current.q}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-faint)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', textAlign: 'center' }}>
                       Tap To Reveal Answer
                     </div>
                   </>
@@ -677,7 +677,7 @@ export default function FlashcardsPage() {
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-accent-green)',
                     textTransform: 'uppercase',
@@ -705,7 +705,7 @@ export default function FlashcardsPage() {
                     }}
                   />
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)' }}>
+                <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>
                   {stats.mastered}/{CARDS.length} Cards Mastered (21+ Day Interval)
                 </div>
               </div>
@@ -733,7 +733,7 @@ export default function FlashcardsPage() {
                 Hard
                 <span
                   style={{
-                    fontSize: 9,
+                    fontSize: 12,
                     display: 'block',
                     color: 'rgba(248,113,113,0.6)',
                     marginTop: 2,
@@ -760,7 +760,7 @@ export default function FlashcardsPage() {
                 Good
                 <span
                   style={{
-                    fontSize: 9,
+                    fontSize: 12,
                     display: 'block',
                     color: 'rgba(251,191,36,0.6)',
                     marginTop: 2,
@@ -787,7 +787,7 @@ export default function FlashcardsPage() {
                 Easy
                 <span
                   style={{
-                    fontSize: 9,
+                    fontSize: 12,
                     display: 'block',
                     color: 'rgba(74,222,128,0.6)',
                     marginTop: 2,

@@ -7,6 +7,7 @@ const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const STORE = read('pages/hub/diamond-store.js');
 const MERCH = read('src/components/store/MerchStore.jsx');
+const MERCH_CSS = read('src/components/store/MerchStore.module.css');
 const DIALOG = read('src/components/store/MerchPurchaseDialog.jsx');
 const DIALOG_CSS = read('src/components/store/MerchPurchaseDialog.module.css');
 const STATUS_PANEL = read('src/components/diamond-store/CheckoutStatusPanel.jsx');
@@ -49,13 +50,16 @@ test('checkout return verification retries slow fulfillment and cancels stale re
   assert.match(STORE, /controller\.abort\(\)/);
   const clearIndex = STORE.indexOf(
     'clearCheckoutTransport();',
-    STORE.indexOf("setCheckoutReturn({ status: 'verifying' })")
+    STORE.indexOf("setCheckoutReturn({ status: 'verifying', sessionId: rawSession })")
   );
   const fetchIndex = STORE.indexOf('/api/store/checkout-status?session_id=', clearIndex);
   assert.ok(
     clearIndex > -1 && fetchIndex > clearIndex,
     'checkout transport must clear before verification fetch'
   );
+  assert.match(STORE, /controller\.signal\.removeEventListener\('abort', settle\)/);
+  assert.match(STORE, /normalizeVerifiedCheckoutStatus\(body, \{/);
+  assert.doesNotMatch(STORE, /receipt: body\.data/);
 });
 
 test('checkout status is visible before the catalog and receives focus when it changes', () => {
@@ -77,7 +81,11 @@ test('mobile purchase rails are labelled, focusable, and keyboard scrollable', (
 });
 
 test('VIP headings no longer skip level two and store corners stay sharp without touching the header', () => {
-  assert.match(STORE, /<h2 style=\{styles\.benefitsTitle\}>Everything Included With VIP<\/h2>/);
+  assert.match(
+    STORE,
+    /<h2 style=\{styles\.benefitsTitle\}>[\s\S]{0,100}Everything Included With[\s\S]{0,100}<\/h2>/
+  );
+  assert.match(STORE, /lifetimeSelected \? 'Lifetime VIP' : 'VIP'/);
   assert.doesNotMatch(STORE, /<h3 style=\{styles\.benefitsTitle\}>/);
   assert.match(SHELL_CSS, /\.root :is\(article, button, a\[href\]/);
   assert.match(SHELL_CSS, /border-radius:\s*0 !important/);
@@ -89,12 +97,13 @@ test('wide merchandise purchase controls preserve an accessibility-safe height',
     MERCH.indexOf('{/* Purchase buttons */}'),
     MERCH.indexOf('{/* Honest, specific reason instead of a silently dead button */}')
   );
-  assert.equal((purchaseArea.match(/minHeight:\s*46/g) || []).length, 2);
+  assert.equal((purchaseArea.match(/merchStyles\.actionControl/g) || []).length, 4);
+  assert.match(MERCH_CSS, /\.actionControl\s*\{[\s\S]*?min-height:\s*48px;/);
   const fallbackArea = MERCH.slice(
     MERCH.indexOf('{usingFallback && loadError && ('),
     MERCH.indexOf('{loading && (')
   );
-  assert.match(fallbackArea, /minHeight:\s*46/);
+  assert.match(fallbackArea, /merchStyles\.actionControl/);
 });
 
 test('authenticated Club Shop controls preserve the 44-pixel target at every viewport', () => {
@@ -120,6 +129,14 @@ test('live merchandise variants keep their labels, prices, stock, and selection 
   assert.match(MERCH, /variant\?\.priceDiamonds,[\s\S]*?product\.priceDiamonds/);
   assert.match(MERCH, /product\.source !== 'catalog'/);
   assert.match(MERCH, /Options Temporarily Unavailable/);
+  assert.match(MERCH, /if \(typeof raw !== 'object' \|\| Array\.isArray\(raw\)\) return null/);
+  assert.match(MERCH, /const id = firstString\(\[raw\.id, raw\.variant_id, raw\.sku\]\)/);
+  assert.match(MERCH, /if \(!id\) return null/);
+  assert.match(
+    MERCH,
+    /const hasVariants = firstBoolean\(\[raw\.has_variants, raw\.hasVariants\]\) \?\? rawVariants\.length > 0/
+  );
+  assert.match(MERCH, /if \(variant\.id\) item\.variantId = variant\.id/);
 });
 
 test('store purchase controls close synchronous double-submit gaps', () => {
@@ -130,9 +147,20 @@ test('store purchase controls close synchronous double-submit gaps', () => {
     STORE,
     /if \(!purchaseTarget \|\| !targetClubId \|\| clubShopProcessingRef\.current\) return/
   );
-  assert.match(STORE, /purchaseRequestId:[\s\S]*getOrCreateCommerceRequestId\(commerceIntent\)/);
-  assert.match(STORE, /clearCommerceRequestId\(purchaseTarget\.commerceIntent\)/);
-  assert.match(STORE, /const idempotencyKey = purchaseTarget\.purchaseRequestId/);
+  assert.match(STORE, /purchaseRequestId\s*=\s*getOrCreateCommerceRequestId\(commerceIntent\)/);
+  assert.match(
+    STORE,
+    /clearCommerceRequestId\(\{[\s\S]{0,140}\.\.\.purchaseTarget\.commerceIntent,[\s\S]{0,100}expectedRequestId: idempotencyKey/
+  );
+  assert.match(
+    STORE,
+    /const idempotencyKey = getOrCreateCommerceRequestId\(purchaseTarget\.commerceIntent\)/
+  );
+  assert.match(STORE, /idempotencyKey !== purchaseTarget\.purchaseRequestId/);
+  assert.match(
+    STORE,
+    /Purchase Status Is Uncertain\. Confirm Again To Verify The Original Purchase\./
+  );
 });
 
 test('physical merch and Club Shop items expose both card and diamond purchase paths', () => {
@@ -143,7 +171,9 @@ test('physical merch and Club Shop items expose both card and diamond purchase p
   assert.match(STORE, /handleClubCardCheckout/);
   assert.match(STORE, /redemptionIntent:\s*\{[\s\S]{0,80}?kind: 'club_shop'/);
   assert.doesNotMatch(STORE, /smarter_poker_pending_club_card_purchase/);
-  assert.match(STORE, /<CreditCard size=\{12\}/);
+  assert.match(STORE, /'Buy With Diamonds'/);
+  assert.match(STORE, /`Card \$\$\{cardCharge\.toFixed\(2\)\}`/);
+  assert.doesNotMatch(STORE, /<CreditCard\b|<Gem\b/);
 });
 
 test('Club Shop currency, authoritative availability, refresh, and atomic purchase match the API contract', () => {
@@ -162,9 +192,15 @@ test('Club Shop currency, authoritative availability, refresh, and atomic purcha
 });
 
 test('diamond merch returns the locked RPC balance and verifies refund business results', () => {
-  assert.match(MERCH_PURCHASE, /new_balance: Number\.isFinite\(Number\(result\?\.new_balance\)\)/);
+  assert.match(MERCH_PURCHASE, /const result = normalizeSuccessfulPurchaseResult\(/);
+  assert.match(
+    MERCH_PURCHASE,
+    /!Number\.isSafeInteger\(raw\.new_balance\)\s*\|\|\s*raw\.new_balance < 0/
+  );
+  assert.match(MERCH_PURCHASE, /new_balance: result\.new_balance/);
   assert.match(MERCH_PURCHASE, /purchase_merch_with_diamonds_atomic/);
-  assert.match(MERCH_PURCHASE, /if \(!result\.success\)/);
+  assert.match(MERCH_PURCHASE, /if \(!parsedResult\.success\)/);
+  assert.match(MERCH_PURCHASE, /if \(!result\)/);
   assert.match(MERCH_PURCHASE, /reference_conflict/);
 });
 

@@ -92,7 +92,7 @@ function StackOffRangeCalc() {
               <div key={i} style={{
                 width: `${cat.pct}%`, background: colors[i] || '#6b7280',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 700, color: '#fff',
+                fontSize: 12, fontWeight: 700, color: '#fff',
               }}>{cat.pct}%</div>
             );
           })}
@@ -108,7 +108,7 @@ function StackOffRangeCalc() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: colors[i] || '#6b7280' }}>{cat.category}</span>
                   <span style={{ fontSize: 12, fontWeight: 700, color: colors[i] || '#6b7280' }}>{cat.pct}%</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{cat.hands}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{cat.hands}</div>
               </div>
             );
           })}
@@ -116,7 +116,7 @@ function StackOffRangeCalc() {
 
         {/* Tip */}
         <div style={{ padding: 10, background: `${data.color}08`, borderRadius: 8, border: `1px solid ${data.color}20` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: data.color, marginBottom: 4 }}>Key Insight</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: data.color, marginBottom: 4 }}>Key Insight</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{data.tip}</div>
         </div>
       </div>

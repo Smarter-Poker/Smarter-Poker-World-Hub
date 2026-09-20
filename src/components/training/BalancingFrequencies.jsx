@@ -42,7 +42,7 @@ export default function BalancingFrequencies() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {BALANCE_SPOTS.map((s, i) => (
           <button key={i} onClick={() => setSpotIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: spotIdx === i ? `linear-gradient(135deg, ${s.color}, ${s.color}cc)` : 'rgba(255,255,255,0.06)',
               color: spotIdx === i ? '#fff' : '#94a3b8' }}>
             {s.spot.substring(0, 20)}...
@@ -70,11 +70,11 @@ export default function BalancingFrequencies() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${spot.color}08`, borderLeft: `3px solid ${spot.color}`, borderRadius: 8, padding: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>BET WITH</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>BET WITH</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.betRange}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid #475569', borderRadius: 8, padding: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>CHECK WITH</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>CHECK WITH</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{spot.checkRange}</div>
           </div>
         </div>

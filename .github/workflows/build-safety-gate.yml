@@ -42,6 +42,49 @@ permissions:
   packages: read
 
 jobs:
+  # PR merge-ref caches cannot be restored by a different PR. Seed the same
+  # lockfile/runtime keys on protected main, where all PRs can restore them.
+  # This installs only on a miss; it neither builds nor publishes the app.
+  dependency-cache:
+    name: Shared dependencies (Node ${{ matrix.node }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: '24.12.0'
+            node-major: '24'
+            cache-prefix: nm-wh-noscripts
+          - node: '20.x'
+            node-major: '20'
+            cache-prefix: nm-wh-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore shared dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ matrix.cache-prefix }}-${{ runner.os }}-node${{ matrix.node-major }}-${{ hashFiles('package-lock.json') }}
+      - name: Install dependencies only on a miss
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+
   safety-checks:
     name: Pre-Deploy Safety Checks
     # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
@@ -83,12 +126,17 @@ jobs:
           scope: '@smarter-poker'
           always-auth: true
 
+      - name: Agent policy integrity and delivery scenarios
+        run: |
+          node docs/agent-policy/agent-policy.mjs check
+          node --test docs/agent-policy/agent-policy.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-training-authority-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
 
       - name: Install Dependencies For Training Authority
         if: steps.training-authority-nm-cache.outputs.cache-hit != 'true'
@@ -98,7 +146,33 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Operational Alert Delivery Contracts
-        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs
+        run: node --test __tests__/deploy-autofix-inbox.test.mjs __tests__/engine-alert-receipts.test.mjs __tests__/deploy-monitor-inbox.test.mjs __tests__/alertmanager-page.test.mjs __tests__/operational-alert-inbox.test.mjs __tests__/openclaw-critical-jobs.test.mjs __tests__/operational-notification-destination.test.mjs __tests__/operational-push-routing.test.mjs __tests__/operational-push-metadata.test.mjs __tests__/notifications-send-operational-persistence.test.mjs
+
+      - name: Local Scraper Runtime Integrity And Delivery
+        run: python3 -m unittest scripts/test_local_scraper_runtime.py -v
+
+      - name: Messenger Club And Invoice Separation
+        run: >-
+          node --test
+          __tests__/messenger-workspace.test.mjs
+          __tests__/messenger-accounting-ui.test.mjs
+          __tests__/messenger-conversation-link.test.mjs
+          __tests__/messenger-search-lifecycle.test.mjs
+          __tests__/cashier-accounting-display.test.mjs
+          __tests__/cashout-v2-bridge.test.mjs
+          __tests__/correction-accounting-display.test.mjs
+          __tests__/credit-change-accounting-display.test.mjs
+
+      - name: Accounting Push Receipt And Ownership Contracts
+        run: >-
+          node --test
+          __tests__/accounting-push-delivery.test.mjs
+          __tests__/accounting-push-privacy.test.mjs
+          __tests__/push-invoice-routing.test.mjs
+          __tests__/push-subscription-ownership.test.mjs
+          __tests__/push-rotation-ownership.test.mjs
+          __tests__/push-health-snapshot.test.mjs
+          __tests__/zombie-endpoint-retirement.test.mjs
 
       - name: "CHECK 24: Training server-authority contracts"
         run: npm run test:training:phase6-authority
@@ -165,6 +239,24 @@ jobs:
 
       - name: Engine Alert Receipt PostgreSQL Contracts
         run: node --test __tests__/engine-alert-receipts-postgres.test.mjs
+      - name: One Reaction Invokes One Notification Handler
+        run: PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-reaction-notification-postgres.py
+
+      - name: Owner Operational Notification PostgreSQL Contracts
+        id: owner_notification_postgres
+        run: |
+          python3 -m unittest discover -s scripts/ci -p test_owner_operational_notification_postgres.py
+          PG_BIN="$PHASE6_POSTGRES_BIN" python3 scripts/ci/test-owner-operational-notification-postgres.py
+
+      - name: Retain Owner Notification PostgreSQL Evidence
+        if: always() && steps.owner_notification_postgres.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-notification-postgres-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/owner-operational-notification/
+          retention-days: 7
+          if-no-files-found: warn
+
 
       - name: "CHECK 24B: Lint inventory deletion contract"
         run: node --test __tests__/lint-inventory-deletion-contract.test.mjs
@@ -510,6 +602,7 @@ jobs:
           # see .agent/audits/2026-08-15-check13-phantom-column-burndown.md),
           # so --warn-only was removed the same day the scanner first
           # reported clean.
+          node --test tests/check-phantom-column-select-parser.test.mjs
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set — phantom-column check is NOT enforced."
             exit 0
@@ -522,6 +615,7 @@ jobs:
           # That is not a crash — it renders an empty state forever, which is
           # indistinguishable from "no data yet" and is exactly why this class
           # of bug survives review. Pure static analysis; no DB access needed.
+          node --test __tests__/stranded-writers.test.mjs
           node scripts/ci/check-stranded-writers.mjs
 
       - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"
@@ -959,7 +1053,8 @@ jobs:
             tests/spin-activation-route.test.mjs \
             __tests__/signup-hardening.test.mjs \
             __tests__/build-2-deliverables.test.mjs \
-            __tests__/sentry-coverage.test.mjs \
+            __tests__/retired-error-provider.test.mjs \
+            __tests__/notification-feed-recovery.test.mjs \
             __tests__/phase-3-deliverables.test.mjs \
             __tests__/phase-4-deliverables.test.mjs \
             __tests__/scroll-lock.test.mjs \
@@ -971,6 +1066,7 @@ jobs:
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
             __tests__/vercel-build-queue.test.mjs \
+            __tests__/shared-dependency-cache.test.mjs \
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
             __tests__/horse-solver-v31-ingress.test.mjs \
@@ -992,7 +1088,53 @@ jobs:
             tests/autopilot-merges-when-the-ruleset-is-satisfied.test.mjs \
             __tests__/avatar-art-has-no-punched-holes.test.mjs \
             __tests__/a-skipped-run-is-not-a-green-run.test.mjs \
-            __tests__/the-injection-directives-stay-enforced.law.test.mjs
+            __tests__/the-injection-directives-stay-enforced.law.test.mjs \
+            __tests__/club-commander-and-poker-arena-are-discoverable.law.test.mjs \
+            __tests__/the-live-seo-contract-reads-the-site.law.test.mjs \
+            __tests__/robots-crawler-policy.law.test.mjs \
+            __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
+            __tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs \
+            __tests__/the-series-pages-are-indexable.law.test.mjs \
+            __tests__/a-home-game-page-describes-itself.law.test.mjs \
+            __tests__/the-help-page-works-without-an-account.law.test.mjs \
+            __tests__/indexnow-submit.test.mjs \
+            __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
+            __tests__/every-title-fits-a-result-and-every-page-says-what-it-is.law.test.mjs \
+            __tests__/the-hub-product-pages-say-what-they-are.law.test.mjs \
+            __tests__/the-community-pages-say-what-they-are.law.test.mjs \
+            __tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs \
+            __tests__/the-commander-pages-say-what-they-are.law.test.mjs \
+            __tests__/the-entity-graph-is-connected.law.test.mjs \
+            __tests__/llms-txt-states-the-entity.law.test.mjs \
+            __tests__/the-summary-carries-the-schema.law.test.mjs \
+            __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \
+            __tests__/a-page-never-returns-nothing-before-its-head.law.test.mjs \
+            __tests__/a-summary-only-links-to-a-page-that-exists.law.test.mjs \
+            __tests__/no-public-page-is-nameless.law.test.mjs \
+            __tests__/a-venue-title-survives-a-result.law.test.mjs \
+            __tests__/one-place-decides-if-a-title-fits.law.test.mjs \
+            __tests__/a-series-page-carries-its-schema.law.test.mjs \
+            __tests__/one-page-per-real-thing.law.test.mjs \
+            __tests__/two-pages-never-share-a-title.law.test.mjs \
+            __tests__/a-link-in-the-copy-goes-somewhere.law.test.mjs \
+            __tests__/a-directory-lists-what-it-contains.law.test.mjs \
+            __tests__/a-tour-page-serves-its-schedule.law.test.mjs \
+            __tests__/a-series-page-lists-its-events.law.test.mjs \
+            __tests__/a-page-that-exists-is-never-cached-as-missing.law.test.mjs \
+            __tests__/a-city-is-a-city.law.test.mjs \
+            __tests__/a-page-with-its-content-is-not-loading.law.test.mjs \
+            __tests__/the-charts-are-on-the-chart-page.law.test.mjs \
+            __tests__/poker-near-me-phase-3.test.mjs \
+            __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
+            __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
+            __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
+            __tests__/the-glossary-is-readable-by-an-engine.law.test.mjs \
+            __tests__/search-engines-can-verify-ownership.law.test.mjs \
+            __tests__/every-public-asset-path-resolves.test.mjs \
+            __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
+            __tests__/the-faq-answers-its-own-questions.law.test.mjs \
+            __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
+            tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
       # CHECK 6: Cron governance — enforce CLAUDE.md section 11
@@ -1326,7 +1468,8 @@ jobs:
     # `needs` a skipped job is skipped too unless it says always(). This job
     # only polls the Vercel API for a GitHub-500 clone failure; it never
     # needed the checks' verdict, only their ordering.
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Owner restoration policy: Vercel Git publishes directly; no automatic repair loop.
+    if: ${{ false }}
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 

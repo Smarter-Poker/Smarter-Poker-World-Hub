@@ -6,7 +6,9 @@ import { useState } from 'react';
 import { PageOutro } from '../../src/components/transitions/PageOutro.jsx';
 import { useRouter } from 'next/router';
 
-export default function OutroDemo() {
+import SEOHead from '../../src/components/seo/SEOHead';
+
+function OutroDemoBody() {
     const [showOutro, setShowOutro] = useState(false);
     const router = useRouter();
 
@@ -126,4 +128,25 @@ export default function OutroDemo() {
             </div>
         </div>
     );
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this page served 200 with no <title> and no
+ * robots meta, so an engine saw a nameless page of twenty two words and
+ * had to judge the site on it. An internal transition demo. It now names
+ * itself and asks not to be indexed, which is what /hub/vip-
+ * membership/manage already does.
+ */
+export default function OutroDemo() {
+  return (
+    <>
+      <SEOHead
+        title="Page Outro Demo"
+        description="An Internal Demo Of The Page Outro Transition, Kept For Development Rather Than For Reading."
+        canonical="/demo/outro"
+        noindex
+      />
+      <OutroDemoBody />
+    </>
+  );
 }

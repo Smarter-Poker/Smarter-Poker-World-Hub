@@ -57,14 +57,14 @@ function GTOGlossary() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {categories.map(c => (
             <button key={c} onClick={() => setSelectedCat(c)} style={{
-              padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedCat === c ? '#06b6d4' : 'rgba(255,255,255,0.06)',
               color: selectedCat === c ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{c}</button>
           ))}
         </div>
 
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{filtered.length} Terms</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{filtered.length} Terms</div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 400, overflowY: 'auto' }}>
           {filtered.map((t, i) => (
@@ -75,9 +75,9 @@ function GTOGlossary() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: '#06b6d4' }}>{t.term}</span>
-                  {t.full !== t.term && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>{t.full}</span>}
+                  {t.full !== t.term && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>{t.full}</span>}
                 </div>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4 }}>{t.category}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: 4 }}>{t.category}</span>
               </div>
               {expanded === i && (
                 <div style={{ marginTop: 8 }}>
@@ -85,7 +85,7 @@ function GTOGlossary() {
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {t.related.map(r => (
                       <span key={r} role="button" tabIndex={0} onClick={e => { e.stopPropagation(); setSearch(r); }} onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSearch(r); } }} style={{
-                        fontSize: 9, padding: '2px 6px', borderRadius: 4,
+                        fontSize: 12, padding: '2px 6px', borderRadius: 4,
                         background: 'rgba(6,182,212,0.1)', color: '#06b6d4', cursor: 'pointer',
                       }}>→ {r}</span>
                     ))}

@@ -66,7 +66,7 @@ Three good reasons:
 1. **All routes must auth-gate or rate-limit.** No anonymous mutations. Use the standard `getServerUserWithFallback()` + `validateBearer()` pattern from `src/lib/auth/`.
 2. **Method restrictions are mandatory.** GET for reads, POST for mutations. Reject other methods with 405. (Verified — `union-application`, `player-retention`, etc. all return 405 on GET.)
 3. **No raw `supabase.auth.getUser()`.** Use the validated wrapper. (Pre-push hook blocks this team-wide.)
-4. **No `export const runtime = 'edge'`.** These routes import `sentryWrap` and `supabaseServerClient` (both Node-only). The 81-route revert in commit `683a8d380` proved this.
+4. **No `export const runtime = 'edge'`.** These routes import `apiErrorHandler` and `supabaseServerClient` (both Node-only). The 81-route revert in commit `683a8d380` proved this.
 5. **No business logic that belongs in the engine.** If the change affects gameplay state (active hand, betting round, pot calc), it goes in `Smarter-Poker-Club-Arena/server/src/`, not here.
 
 ---

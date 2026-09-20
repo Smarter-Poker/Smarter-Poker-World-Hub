@@ -45,7 +45,7 @@ export default function EquityBucketGuide() {
           <motion.div key={i} onClick={() => setBucketIdx(i)}
             style={{ width: `${b.width}%`, background: bucketIdx === i ? b.color : `${b.color}60`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#fff', borderRight: '1px solid rgba(0,0,0,0.3)',
+              fontSize: 12, fontWeight: 700, color: '#fff', borderRight: '1px solid rgba(0,0,0,0.3)',
               transition: 'all 0.2s' }}
             whileHover={{ filter: 'brightness(1.2)' }}>
             {b.icon}
@@ -56,7 +56,7 @@ export default function EquityBucketGuide() {
       {/* Labels */}
       <div style={{ display: 'flex', marginBottom: 16 }}>
         {BUCKETS.map((b, i) => (
-          <div key={i} style={{ width: `${b.width}%`, textAlign: 'center', fontSize: 9, fontWeight: 600,
+          <div key={i} style={{ width: `${b.width}%`, textAlign: 'center', fontSize: 12, fontWeight: 600,
             color: bucketIdx === i ? b.color : '#64748b' }}>
             {b.range}
           </div>
@@ -76,15 +76,15 @@ export default function EquityBucketGuide() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${bucket.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: bucket.color }}>TYPICAL HANDS</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: bucket.color }}>TYPICAL HANDS</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{bucket.hands}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>DEFAULT ACTION</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>DEFAULT ACTION</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{bucket.action}</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>STRATEGY</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>STRATEGY</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{bucket.strategy}</div>
           </div>
         </div>

@@ -30,6 +30,7 @@ import useServerGradedRun from '../../../src/hooks/useServerGradedRun';
 import { getTodayStartCST } from '../../../src/lib/trivia/getTodayCST';
 import { DAILY_DIAMOND_CAPS } from '../../../src/lib/trivia/triviaEngine';
 import { formatTriviaDisplayNumber } from '../../../src/lib/trivia/formatTriviaDisplayNumber';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 // Roster size requested from /api/trivia/session-start. The 30-second clock
 // realistically allows well under 30 answers, so 60 is generous headroom;
@@ -351,8 +352,8 @@ export default function TimeAttackPage() {
         <TriviaErrorBoundary pageName="Time Attack">
             <>
                 <SEOHead
-                    title="Time Attack Trivia - Beat The Clock"
-                    description="Race Against The Clock In Time Attack Poker Trivia. Answer As Many Questions As Possible Before Time Runs Out."
+                    title="Time Attack Trivia: Beat The Clock"
+                    description="Race Against The Clock In Time Attack Poker Trivia On Smarter.Poker. Answer As Many Questions As You Can Before Time Runs Out. Free To Play, And Nothing In It Is A Wager."
                     canonical="/hub/trivia/time-attack"
                 />
 
@@ -516,6 +517,9 @@ export default function TimeAttackPage() {
                     </main>
                 </div>
             </>
+          {/* Server rendered in every state (AEO phase 3, 2026-09-17): a
+              crawler always arrives while the roster is still loading. */}
+          <HubPageSummary page="trivia-time-attack" as="h1" />
         </TriviaErrorBoundary>
     );
 }

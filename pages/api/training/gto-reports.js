@@ -2,7 +2,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { runTrainingPersistenceQuery } from '../../../src/lib/training/trainingPersistence.mjs';
 import {
     finiteTrainingNumber,
@@ -259,8 +259,8 @@ export default async function handler(req, res) {
             report: buildVerifiedTrainingReport(data, { period: rawPeriod, gameId }),
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {
-            console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+        try { reportApiError(err, req); } catch (_reportError) {
+            console.warn('[App] Handled exception:', _reportError?.message || _reportError);
         }
         console.warn('[VerifiedTrainingReport] Error:', err);
         if (!res.headersSent) {

@@ -4,9 +4,11 @@ import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import { eventBus } from '../../src/engine/EventBus';
 
+import SEOHead from '../../src/components/seo/SEOHead';
+
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
-export default function SessionHistoryPage() {
+function SessionHistoryPageBody() {
   useTrainingBus('session-history');
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -560,5 +562,26 @@ export default function SessionHistoryPage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+/**
+ * AEO phase 3 (2026-09-18): this page served 200 with no <title> and no
+ * robots meta, so an engine saw a nameless page of nineteen words and had
+ * to judge the site on it. A signed-in record of one account’s own
+ * sessions. It now names itself and asks not to be indexed, which is what
+ * /hub/vip-membership/manage already does.
+ */
+export default function SessionHistoryPage() {
+  return (
+    <>
+      <SEOHead
+        title="Your Session History"
+        description="The Signed In Record Of Your Own Poker Sessions, With Results, Duration, And The Hands You Saved From Each One."
+        canonical="/hub/session-history"
+        noindex
+      />
+      <SessionHistoryPageBody />
+    </>
   );
 }

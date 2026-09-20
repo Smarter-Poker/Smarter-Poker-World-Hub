@@ -22,6 +22,7 @@ import styles from '../../../src/styles/trivia/TriviaHub.module.css';
 import * as triviaAudio from '../../../src/lib/trivia/triviaAudio';
 import { isTriviaPvpReleased } from '../../../src/lib/trivia/pvpReleaseControl.mjs';
 import { areTriviaTournamentsReleased } from '../../../src/lib/trivia/tournamentReleaseControl.mjs';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const GAME_SETTINGS_KEY = 'trivia_settings';
 
@@ -247,6 +248,9 @@ export default function TriviaHubPage({ modeAvailability }) {
                 </main>
             </div>
 
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="trivia" />
     </PageTransition>
     );
 }

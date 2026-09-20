@@ -46,7 +46,7 @@ const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 
     });
 
     if (chartData.length < 2) {
-        return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 10 }}>Not Enough Data</div>;
+        return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontSize: 12 }}>Not Enough Data</div>;
     }
 
     const values = chartData.map(d => Number(typeof d === 'number' ? d : d[valueKey]));
@@ -83,7 +83,7 @@ const MiniTrendChart = memo(({ data, color = '#22c55e', height = 60, valueKey = 
             <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y}
                 r="3" fill={color} stroke="#0f172a" strokeWidth="1.5" />
             {/* Trend arrow */}
-            <text x={svgW - 8} y={12} fontSize="10" fill={trending === 'up' ? '#22c55e' : trending === 'down' ? '#ef4444' : '#94a3b8'}
+            <text x={svgW - 8} y={12} fontSize='12px' fill={trending === 'up' ? '#22c55e' : trending === 'down' ? '#ef4444' : '#94a3b8'}
                 textAnchor="end" fontWeight="bold">
                 {trending === 'up' ? '↑' : trending === 'down' ? '↓' : '→'}
             </text>
@@ -142,13 +142,13 @@ const PositionHeatmap = memo(({ sessions, positionAccuracy }) => {
                         background: `${color}10`,
                         border: `1px solid ${color}20`,
                     }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
                             {p.position}
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 700, color, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {(acc * 100).toFixed(0)}%
                         </div>
-                        <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                             {p.total} Hands
                         </div>
                     </div>
@@ -203,8 +203,8 @@ const SpotTypeBreakdown = memo(({ sessions, spotAccuracy }) => {
                 return (
                     <div key={spot.label} style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: spot.color }}>{spot.label}</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: spot.color }}>{spot.label}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                                 {(acc * 100).toFixed(0)}%
                             </span>
                         </div>
@@ -260,7 +260,7 @@ const LeakTimeline = memo(({ sessions }) => {
 
     if (leaks.length === 0) {
         return (
-            <div style={{ padding: 12, textAlign: 'center', color: '#22c55e', fontSize: 11 }}>
+            <div style={{ padding: 12, textAlign: 'center', color: '#22c55e', fontSize: 12 }}>
                 No Significant Leaks Detected. Keep It Up!
             </div>
         );
@@ -276,17 +276,17 @@ const LeakTimeline = memo(({ sessions }) => {
                     borderRadius: 6,
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                        <span style={{ fontSize: 9, color: '#64748b' }}>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
                             Session {entry.sessionIndex}
                         </span>
                         {entry.date && (
-                            <span style={{ fontSize: 9, color: '#64748b' }}>
+                            <span style={{ fontSize: 12, color: '#64748b' }}>
                                 {new Date(entry.date).toLocaleDateString()}
                             </span>
                         )}
                     </div>
                     {entry.leaks.map((leak, j) => (
-                        <div key={j} style={{ fontSize: 10, color: '#f87171', fontWeight: 500 }}>
+                        <div key={j} style={{ fontSize: 12, color: '#f87171', fontWeight: 500 }}>
                             {leak.description || leak.type || 'Unspecified leak'}
                         </div>
                     ))}
@@ -351,8 +351,8 @@ const MilestoneBadges = memo(({ sessions }) => {
                         border: `1px solid ${m.color}22`,
                     }}
                 >
-                    <span style={{ fontSize: 10 }}>{m.icon}</span>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: m.color }}>{m.label}</span>
+                    <span style={{ fontSize: 12 }}>{m.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: m.color }}>{m.label}</span>
                 </motion.div>
             ))}
         </div>
@@ -403,7 +403,7 @@ const StudyVolumeChart = memo(({ sessions, timeRange }) => {
                                 : 'rgba(100,116,139,0.1)',
                         }}
                     />
-                    <div style={{ fontSize: 7, color: '#64748b', marginTop: 2 }}>{w.label}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{w.label}</div>
                 </div>
             ))}
         </div>
@@ -432,19 +432,19 @@ const RecentSessionsList = memo(({ sessions }) => {
                         padding: '5px 2px',
                         borderBottom: i < recent.length - 1 ? '1px solid rgba(100,116,139,0.08)' : 'none',
                     }}>
-                        <span style={{ fontSize: 9, color: '#64748b', width: 64, flexShrink: 0 }}>
+                        <span style={{ fontSize: 12, color: '#64748b', width: 64, flexShrink: 0 }}>
                             {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : '-'}
                         </span>
-                        <span style={{ flex: 1, fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ flex: 1, fontSize: 12, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal' }}>
                             {s.gameName || s.gameId || 'Training'}
                         </span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 38, textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace", width: 38, textAlign: 'right' }}>
                             {score === null ? '-' : score > 0 ? `+${score}` : score}
                         </span>
-                        <span style={{ fontSize: 10, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: '#e2e8f0', width: 34, textAlign: 'right' }}>
                             {acc !== null ? `${acc}%` : '-'}
                         </span>
-                        <span style={{ fontSize: 10, color: '#ef4444', width: 44, textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: '#ef4444', width: 44, textAlign: 'right' }}>
                             {Number.isFinite(s.evLossTotal) ? `-${s.evLossTotal.toFixed(1)}` : '-'}
                         </span>
                     </div>
@@ -467,7 +467,7 @@ const DashSection = memo(({ title, icon, children, color = '#94a3b8' }) => (
             marginBottom: 10,
         }}>
             <span style={{ fontSize: 12 }}>{icon}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {title}
             </span>
         </div>
@@ -552,7 +552,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                             key={tr.id}
                             onClick={() => setTimeRange(tr)}
                             style={{
-                                padding: '3px 8px', fontSize: 9, fontWeight: 600,
+                                padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 4, border: '1px solid',
                                 cursor: 'pointer',
                                 background: timeRange.id === tr.id ? 'rgba(0,212,255,0.1)' : 'transparent',
@@ -574,7 +574,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                     display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8,
                 }}>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Avg Score</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Avg Score</div>
                         <div style={{
                             fontSize: 18, fontWeight: 700,
                             color: metrics.avgScore === null ? '#64748b' : metrics.avgScore >= 70 ? '#22c55e' : metrics.avgScore >= 55 ? '#f59e0b' : '#ef4444',
@@ -583,7 +583,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                             {metrics.avgScore === null ? '-' : metrics.avgScore.toFixed(0)}
                         </div>
                         <div style={{
-                            fontSize: 9, fontWeight: 600,
+                            fontSize: 12, fontWeight: 600,
                             color: metrics.trend === null ? '#64748b' : metrics.trend >= 0 ? '#22c55e' : '#ef4444',
                         }}>
                             {metrics.trend === null
@@ -592,25 +592,25 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Best</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.bestScore ?? '-'}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Sessions</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Sessions</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.sessionCount}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Hands</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Hands</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#818cf8', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.totalHands}
                         </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EV Lost</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EV Lost</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                             {metrics.totalEV === null ? '-' : `-${metrics.totalEV.toFixed(0)}`}
                         </div>
@@ -625,7 +625,7 @@ export default function CrossSessionAnalytics({ sessionHistory = [], analytics =
                         {loading ? 'Loading session history\u2026' : 'No sessions yet'}
                     </div>
                     {!loading && (
-                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>
                             Complete A Training Session And Your Score Trend, Position Accuracy And Session History Will Build Here.
                         </div>
                     )}

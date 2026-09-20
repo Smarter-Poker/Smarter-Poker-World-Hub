@@ -37,7 +37,7 @@ export default function HiJackStrategy() {
             style={{ padding: '8px 4px', borderRadius: 8, border: topicIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: topicIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 16 }}>{t.icon}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: topicIdx === i ? t.color : '#64748b' }}>{t.title}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: topicIdx === i ? t.color : '#64748b' }}>{t.title}</div>
           </button>
         ))}
       </div>
@@ -64,14 +64,14 @@ export default function HiJackStrategy() {
           { pos: 'BTN', pct: 45, color: '#22c55e' },
         ].map((p, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: p.highlight ? 800 : 600, color: p.highlight ? '#8b5cf6' : '#94a3b8', minWidth: 30 }}>
+            <span style={{ fontSize: 12, fontWeight: p.highlight ? 800 : 600, color: p.highlight ? '#8b5cf6' : '#94a3b8', minWidth: 30 }}>
               {p.pos}{p.highlight ? ' ←' : ''}
             </span>
             <div style={{ flex: 1, height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
               <motion.div initial={{ width: 0 }} animate={{ width: `${p.pct * 2}%` }}
                 style={{ height: '100%', background: p.color, borderRadius: 4, border: p.highlight ? '1px solid #8b5cf6' : 'none' }} />
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: p.color, minWidth: 35, textAlign: 'right' }}>{p.pct}%</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: p.color, minWidth: 35, textAlign: 'right' }}>{p.pct}%</span>
           </div>
         ))}
       </div>

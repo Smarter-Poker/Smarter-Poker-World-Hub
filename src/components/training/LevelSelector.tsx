@@ -190,16 +190,16 @@ const LevelCard: React.FC<{
 
                 {/* Pass requirement + Reward info */}
                 <div style={styles.requirement}>
-                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 11 }}>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12 }}>
                         Pass: {passingGrade}%
                     </span>
                     {attempts > 0 && (
-                        <span style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 10, marginLeft: 12 }}>
+                        <span style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 12, marginLeft: 12 }}>
                             {attempts} attempt{attempts !== 1 ? 's' : ''}
                         </span>
                     )}
                     {diamondMultiplier && diamondMultiplier > 1.0 && (
-                        <span style={{ color: '#FBBF24', fontSize: 10, marginLeft: 12, fontWeight: 600 }}>
+                        <span style={{ color: '#FBBF24', fontSize: 12, marginLeft: 12, fontWeight: 600 }}>
                             {diamondMultiplier}x Diamonds
                         </span>
                     )}
@@ -664,17 +664,36 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
             <style jsx global>{`
                 .sp-level-selector {
+                    position: relative
                     position: relative;
+                    isolation: isolate
                     isolation: isolate;
-                    overflow-x: hidden;
+                    /* clip, not hidden. A lone overflow-x: hidden computes the
+                       other axis to auto, which makes this a scroll container,
+                       and WebKit then resolves the position: fixed ::before
+                       backdrop below against IT instead of the viewport. */
+                    overflow-x: clip
+                    /* clip, not hidden. A lone overflow-x: hidden computes the
+                       other axis to auto, which makes this a scroll container,
+                       and WebKit then resolves the position: fixed ::before
+                       backdrop below against IT instead of the viewport. */
+                    overflow-x: clip;
                 }
 
                 .sp-level-selector::before {
+                    content: ''
                     content: '';
+                    position: fixed
                     position: fixed;
+                    inset: 0
                     inset: 0;
+                    z-index: -1
                     z-index: -1;
+                    pointer-events: none
                     pointer-events: none;
+                    background:
+                        repeating-linear-gradient(90deg, rgba(121, 220, 255, .018) 0 1px, transparent 1px 5px),
+                        linear-gradient(115deg, transparent 20%, rgba(93, 211, 255, .035) 48%, transparent 72%)
                     background:
                         repeating-linear-gradient(90deg, rgba(121, 220, 255, .018) 0 1px, transparent 1px 5px),
                         linear-gradient(115deg, transparent 20%, rgba(93, 211, 255, .035) 48%, transparent 72%);
@@ -682,75 +701,109 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
 
                 .sp-level-card.is-open:hover,
                 .sp-level-card.is-complete:hover {
+                    transform: translateY(-2px)
                     transform: translateY(-2px);
+                    border-color: rgba(174, 239, 255, .82) !important
                     border-color: rgba(174, 239, 255, .82) !important;
+                    box-shadow: 0 22px 48px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 255, 255, .28), 0 0 28px rgba(35, 215, 255, .14) !important
                     box-shadow: 0 22px 48px rgba(0, 0, 0, .52), inset 0 1px 0 rgba(255, 255, 255, .28), 0 0 28px rgba(35, 215, 255, .14) !important;
                 }
 
                 .sp-level-play:hover {
+                    filter: brightness(1.14)
                     filter: brightness(1.14);
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,.52), inset 0 -2px 0 rgba(0,0,0,.72), 0 10px 24px rgba(0, 153, 214, .3) !important
                     box-shadow: inset 0 1px 0 rgba(255,255,255,.52), inset 0 -2px 0 rgba(0,0,0,.72), 0 10px 24px rgba(0, 153, 214, .3) !important;
                 }
 
-                @media (max-width: 700px) {
+                @media (max-width: 768px) {
                     .sp-level-map {
+                        padding: 16px 10px 24px !important
                         padding: 16px 10px 24px !important;
                     }
 
                     .sp-level-card {
+                        display: grid !important
                         display: grid !important;
+                        grid-template-columns: 42px minmax(0, 1fr)
                         grid-template-columns: 42px minmax(0, 1fr);
+                        gap: 0 12px
                         gap: 0 12px;
+                        align-items: center !important
                         align-items: center !important;
+                        padding: 15px 14px !important
                         padding: 15px 14px !important;
+                        margin-bottom: 10px !important
                         margin-bottom: 10px !important;
                     }
 
                     .sp-level-badge {
+                        width: 42px !important
                         width: 42px !important;
+                        height: 42px !important
                         height: 42px !important;
+                        grid-column: 1
                         grid-column: 1;
+                        grid-row: 1
                         grid-row: 1;
                     }
 
                     .sp-level-info {
+                        grid-column: 2
                         grid-column: 2;
+                        grid-row: 1
                         grid-row: 1;
+                        margin-left: 0 !important
                         margin-left: 0 !important;
                     }
 
                     .sp-level-info h3 {
+                        font-size: 15px !important
                         font-size: 15px !important;
                     }
 
                     .sp-level-info p {
+                        font-size: 12px !important
                         font-size: 12px !important;
                     }
 
                     .sp-level-score {
+                        grid-column: 1 / -1
                         grid-column: 1 / -1;
+                        grid-row: 2
                         grid-row: 2;
+                        min-width: 0 !important
                         min-width: 0 !important;
+                        margin-top: 13px
                         margin-top: 13px;
+                        padding-top: 12px
                         padding-top: 12px;
+                        border-top: 1px solid rgba(139, 234, 255, .16)
                         border-top: 1px solid rgba(139, 234, 255, .16);
+                        flex-direction: row !important
                         flex-direction: row !important;
+                        align-items: center !important
                         align-items: center !important;
+                        justify-content: space-between
                         justify-content: space-between;
                     }
 
                     .sp-level-score .sp-level-play {
+                        min-width: 116px
                         min-width: 116px;
+                        min-height: 40px
                         min-height: 40px;
                     }
                 }
 
-                @media (max-width: 390px) {
+                @media (max-width: 600px) {
                     .sp-level-card {
+                        padding-inline: 12px !important
                         padding-inline: 12px !important;
                     }
 
                     .sp-level-info p {
+                        line-height: 1.32 !important
                         line-height: 1.32 !important;
                     }
                 }
@@ -758,6 +811,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 @media (prefers-reduced-motion: reduce) {
                     .sp-level-card,
                     .sp-level-play {
+                        transition: none !important
                         transition: none !important;
                     }
                 }
@@ -806,7 +860,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     categoryBadge: {
         padding: '7px 12px', background: 'linear-gradient(180deg, rgba(43,73,89,.95), rgba(4,16,24,.96))',
-        border: '1px solid rgba(139,234,255,.4)', borderRadius: 0, fontSize: 11, fontWeight: 700,
+        border: '1px solid rgba(139,234,255,.4)', borderRadius: 0, fontSize: 12, fontWeight: 700,
         color: '#cceef8', letterSpacing: 1.2, whiteSpace: 'nowrap',
     },
     levelMap: { padding: '28px clamp(14px, 4vw, 40px)', maxWidth: 980, margin: '0 auto' },
@@ -829,9 +883,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     requirement: { marginTop: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' as const, rowGap: 4 },
     scoreSection: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 8, minWidth: 112 },
     highScore: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end' },
-    highScoreLabel: { fontSize: 10, color: '#829cab', letterSpacing: 1 },
+    highScoreLabel: { fontSize: 12, color: '#829cab', letterSpacing: 1 },
     highScoreValue: { fontSize: 22, fontWeight: 800, fontFamily: "var(--font-orbitron, 'Orbitron'), sans-serif" },
-    notAttempted: { fontSize: 11, color: '#829cab' },
+    notAttempted: { fontSize: 12, color: '#829cab' },
     playButton: {
         padding: '9px 18px', border: '1px solid rgba(217,248,255,.7)', borderRadius: 0,
         fontSize: 12, fontWeight: 800, cursor: 'pointer', letterSpacing: 0.8,
@@ -839,7 +893,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     lockedSection: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 4 },
     lockIcon: { fontSize: 16, color: '#607583' },
-    lockText: { fontSize: 10, color: '#78909e', textAlign: 'center' as const },
+    lockText: { fontSize: 12, color: '#78909e', textAlign: 'center' as const },
     connectionLine: {
         position: 'absolute' as const, bottom: -14, left: 42, width: 2, height: 14,
         borderRadius: 0, boxShadow: '0 0 8px rgba(35,215,255,.25)',

@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary, { HUB_PAGE_SUMMARIES } from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
@@ -4186,6 +4187,17 @@ export default function PokerNearMePage({ initialDirectory = null }) {
               {/* end pnm-main */}
             </section>
             {/* end pnm-layout */}
+
+            {/* WHAT THIS TAB IS (AEO phase 3, 2026-09-19).
+                Every tab of this route served the same 351 words of venue
+                lobby chrome to a crawler with no JavaScript, differing only
+                in the title, the h1 and one label in the nav. ROUTE_META
+                gave each tab a name; nothing gave it a body. This is the
+                body, and it renders on the server for the tab the URL asks
+                for. */}
+            {HUB_PAGE_SUMMARIES[`pnm-${canonicalSlug}`] && (
+              <HubPageSummary page={`pnm-${canonicalSlug}`} />
+            )}
           </div>
         </PullToRefresh>
 

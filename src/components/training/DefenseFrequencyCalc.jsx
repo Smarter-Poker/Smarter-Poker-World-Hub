@@ -65,7 +65,7 @@ function DefenseFrequencyCalc() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {COMMON_SIZINGS.map(s => (
             <button key={s.label} onClick={() => setBetPct(s.pct)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: betPct === s.pct ? '#2dd4bf' : 'rgba(255,255,255,0.06)',
               color: betPct === s.pct ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{s.label}</button>
@@ -75,12 +75,12 @@ function DefenseFrequencyCalc() {
         {/* Sliders */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Bet Size (% Of Pot)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Bet Size (% Of Pot)</div>
             <input type="range" min={10} max={300} step={5} value={betPct} onChange={e => setBetPct(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#2dd4bf' }} />
             <div style={{ fontSize: 20, fontWeight: 800, color: '#2dd4bf', textAlign: 'center' }}>{betPct}%</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (BB)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (BB)</div>
             <input type="range" min={2} max={100} step={1} value={potSize} onChange={e => setPotSize(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#2dd4bf' }} />
             <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{potSize} BB</div>
           </div>
@@ -93,10 +93,10 @@ function DefenseFrequencyCalc() {
             <span style={{ fontSize: 14, fontWeight: 800, color: '#2dd4bf' }}>{calc.mdfPct}%</span>
           </div>
           <div style={{ height: 24, borderRadius: 6, overflow: 'hidden', display: 'flex' }}>
-            <div style={{ width: `${calc.mdfPct}%`, background: 'linear-gradient(90deg, #2dd4bf, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#000' }}>
+            <div style={{ width: `${calc.mdfPct}%`, background: 'linear-gradient(90deg, #2dd4bf, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#000' }}>
               Defend {calc.mdfPct}%
             </div>
-            <div style={{ width: `${calc.foldPct}%`, background: 'linear-gradient(90deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+            <div style={{ width: `${calc.foldPct}%`, background: 'linear-gradient(90deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
               Fold {calc.foldPct}%
             </div>
           </div>
@@ -114,7 +114,7 @@ function DefenseFrequencyCalc() {
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -136,8 +136,8 @@ function DefenseFrequencyCalc() {
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{s.name}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#2dd4bf' }}>MDF: {mdf}%</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Villain Range: {s.villainRange}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{s.heroDefense}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Villain Range: {s.villainRange}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{s.heroDefense}</div>
                 </div>
               );
             })}

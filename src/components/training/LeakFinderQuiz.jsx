@@ -118,8 +118,8 @@ function LeakFinderQuiz() {
 
         <div style={{ padding: 12, background: 'rgba(244,63,94,0.06)', borderRadius: 10, border: '1px solid rgba(244,63,94,0.15)', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#f43f5e' }}>{leak.category}</span>
-            <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: `${sevColors[leak.severity]}22`, color: sevColors[leak.severity] }}>{leak.severity}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#f43f5e' }}>{leak.category}</span>
+            <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 4, background: `${sevColors[leak.severity]}22`, color: sevColors[leak.severity] }}>{leak.severity}</span>
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{leak.scenario}</div>
         </div>
@@ -174,9 +174,9 @@ function LeakFinderQuiz() {
                 )}
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, marginBottom: 6 }}>{leak.explanation}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#10b981' }}>Fix: {leak.fix}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#10b981' }}>Fix: {leak.fix}</div>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, lineHeight: 1.5, marginBottom: 10, textAlign: 'center' }}>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, lineHeight: 1.5, marginBottom: 10, textAlign: 'center' }}>
               Review The Explanation. This Result Will Stay Open Until You Click Next.
             </div>
             <div style={{ textAlign: 'center' }}>

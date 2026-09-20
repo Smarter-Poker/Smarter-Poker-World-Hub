@@ -72,7 +72,7 @@ function CheckRaiseStrategyGuide() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {SCENARIOS.map((s, i) => (
             <button key={i} onClick={() => setSelected(i)} style={{
-              padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? typeColors[s.type] : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#000' : 'rgba(255,255,255,0.5)',
             }}>
@@ -84,7 +84,7 @@ function CheckRaiseStrategyGuide() {
         <div style={{ padding: 14, background: `${spot.color}11`, borderRadius: 10, border: `1px solid ${spot.color}33`, marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>{spot.board}</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: spot.color, marginBottom: 4 }}>Hero: {spot.hero}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.street}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.street}</div>
           <div style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 6, background: `${typeColors[spot.type]}33`, marginBottom: 4 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: typeColors[spot.type] }}>{spot.type} Check-Raise</span>
           </div>
@@ -92,23 +92,23 @@ function CheckRaiseStrategyGuide() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#3b82f6' }}>{spot.sizing}</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Frequency</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Frequency</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b' }}>{spot.frequency}</div>
           </div>
         </div>
 
         <div style={{ padding: 12, background: 'rgba(6,182,212,0.06)', borderRadius: 8, border: '1px solid rgba(6,182,212,0.12)', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>GTO Reasoning</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', marginBottom: 4 }}>GTO Reasoning</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6 }}>{spot.reasoning}</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {spot.tips.map((tip, i) => (
-            <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, fontSize: 11, color: 'rgba(255,255,255,0.6)', paddingLeft: 12, borderLeft: `2px solid ${spot.color}` }}>
+            <div key={i} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, fontSize: 12, color: 'rgba(255,255,255,0.6)', paddingLeft: 12, borderLeft: `2px solid ${spot.color}` }}>
               {tip}
             </div>
           ))}

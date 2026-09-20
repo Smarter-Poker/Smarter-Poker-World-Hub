@@ -17,9 +17,10 @@ export default class MyDocument extends Document {
                     {/* Supabase project API — every page's first DB/auth call goes here */}
                     <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
                     <link rel="dns-prefetch" href="https://kuklfnapbkmacvwxktbh.supabase.co" />
-                    {/* Google Fonts — loaded by many hub pages; preconnect cuts TLS latency */}
-                    <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
-                    <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                    {/* No preconnect to Google Fonts: _app.js loads every font
+                        through next/font, which self-hosts them under
+                        /_next/static/media, so the two connections were opened
+                        on every page for nothing (AEO phase 1, 2026-09-17). */}
                     {/* The dns-prefetch to cdn.onesignal.com is gone. Its comment
                         claimed the SDK was "loaded on every page"; it had not been
                         loaded by any hub page since OneSignal was retired on
@@ -56,6 +57,17 @@ export default class MyDocument extends Document {
                         here. */}
                     <meta name="author" content="Smarter.Poker" />
                     <meta name="publisher" content="Smarter Software Inc." />
+
+                    {/* SEARCH ENGINE OWNERSHIP (AEO phase 1, 2026-09-17). These two
+                        tokens are how Google Search Console and Bing Webmaster
+                        Tools know smarter.poker is ours; the sitemap, index
+                        coverage and Core Web Vitals reports hang off them. They
+                        are public by design (every visitor's HTML carries them)
+                        and they are read on every page, so removing them
+                        un-verifies the property. Google also accepts the file
+                        public/google4a08a61d13d67e09.html; keep both. */}
+                    <meta name="google-site-verification" content="uPsE17EgFSxEEZwMy8_v87NvDJVLqnGdL4c5z2B3roE" />
+                    <meta name="msvalidate.01" content="6A4ECB27751F6F74E131B598604D6175" />
 
                     {/* Open Graph and Twitter defaults live in _app.js. Unlike
                         _document, next/head can deduplicate and replace those

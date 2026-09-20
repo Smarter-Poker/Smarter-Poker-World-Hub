@@ -4,7 +4,7 @@
 
 - Supabase project status page shows red for `api`, `db`, or `realtime`.
 - `/api/health` reports `db.status: degraded` or latency > 2000ms.
-- Sentry spike of `PGRST` errors, connection timeouts, or `57P01`
+- Application error spike of `PGRST` errors, connection timeouts, or `57P01`
   (admin-shutdown) rows.
 - Club Arena wallet / hand-history pages show "Unable to load" at scale.
 
@@ -114,8 +114,7 @@ Health. Look at CPU and Disk I/O. If both pegged, go to Step 3C.
    ```
    Note the `query` column in the timeline doc — that's the bug to fix.
 
-4. If the instance is legitimately undersized for current load, page the
-   lead. Upsizing Supabase compute is a paid change and needs approval.
+4. If measurements prove the instance is undersized, resolve the assigned capacity blocker under current owner authority and applicable non-Actions budget limits. No additional human approval is required; retain the diagnosis, cost and resulting provider evidence.
 
 ### Step 4 — Reset the connection pool after mitigation
 

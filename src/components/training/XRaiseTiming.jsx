@@ -57,9 +57,9 @@ export default function XRaiseTiming() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{s.hand}</span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: actionColor, background: `${actionColor}15`, padding: '2px 8px', borderRadius: 4 }}>{s.action}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: actionColor, background: `${actionColor}15`, padding: '2px 8px', borderRadius: 4 }}>{s.action}</span>
                   {s.sizing !== 'N/A' && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.sizing}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: 4 }}>{s.sizing}</span>
                   )}
                 </div>
               </div>

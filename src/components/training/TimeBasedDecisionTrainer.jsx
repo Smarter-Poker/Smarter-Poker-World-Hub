@@ -104,7 +104,7 @@ function TimeBasedDecisionTrainer() {
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Timer:</span>
           {TIME_LIMITS.map(t => (
             <button key={t} onClick={() => { setTimeLimit(t); setTimeLeft(t); }} style={{
-              padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: timeLimit === t ? '#f472b6' : 'rgba(255,255,255,0.06)',
               color: timeLimit === t ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{t}s</button>
@@ -182,7 +182,7 @@ function TimeBasedDecisionTrainer() {
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {history.map((h, i) => (
                 <span key={i} style={{
-                  padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
+                  padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
                   background: h.timedOut ? 'rgba(245,158,11,0.12)' : h.correct ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
                   color: h.timedOut ? '#f59e0b' : h.correct ? '#10b981' : '#ef4444',
                 }}>{h.time}s {h.timedOut ? '⏰': h.correct ? '✓': '✕'}</span>

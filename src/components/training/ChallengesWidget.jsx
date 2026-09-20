@@ -175,7 +175,7 @@ const styles = {
         marginBottom: '6px'
     },
     challengeType: {
-        fontSize: '10px',
+        fontSize: '12px',
         color: '#6b7280'
     },
     progressBar: {

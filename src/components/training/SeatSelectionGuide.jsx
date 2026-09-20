@@ -75,7 +75,7 @@ function SeatSelectionGuide() {
                 <span style={{ fontSize: 18 }}>{s.icon}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.pos}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                     {'★'.repeat(s.rating)}{'☆'.repeat(5 - s.rating)}
                   </div>
                 </div>
@@ -89,7 +89,7 @@ function SeatSelectionGuide() {
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: 10 }}>{SEATS[selected].reason}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {SEATS[selected].tips.map((tip, j) => (
-              <div key={j} style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', paddingLeft: 10, borderLeft: `2px solid ${SEATS[selected].color}44` }}>
+              <div key={j} style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', paddingLeft: 10, borderLeft: `2px solid ${SEATS[selected].color}44` }}>
                 {tip}
               </div>
             ))}
@@ -109,7 +109,7 @@ function SeatSelectionGuide() {
             {PRINCIPLES.map((p, i) => (
               <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 2 }}>{p.title}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{p.desc}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{p.desc}</div>
               </div>
             ))}
           </div>

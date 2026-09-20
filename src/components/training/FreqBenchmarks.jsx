@@ -45,7 +45,7 @@ export default function FreqBenchmarks() {
             style={{ padding: '8px 4px', borderRadius: 8, border: freqIdx === i ? `2px solid ${f.color}` : '1px solid rgba(255,255,255,0.06)',
               background: freqIdx === i ? `${f.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{f.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: freqIdx === i ? f.color : '#64748b' }}>{f.action.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: freqIdx === i ? f.color : '#64748b' }}>{f.action.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -60,15 +60,15 @@ export default function FreqBenchmarks() {
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Too High</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Too High</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.tooHigh}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Too Low</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Too Low</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.tooLow}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How To Adjust</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>How To Adjust</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{freq.adjust}</div>
           </div>
         </div>

@@ -79,7 +79,7 @@ const RARITY_CONFIG = {
 function DiamondImg({ size = 20 }: { size?: number }) {
     return (
         <img
-            src="/images/diamond.png"
+            src="/images/diamond.webp"
             alt="Diamond"
             style={{ width: size, height: size, display: 'inline-block', verticalAlign: 'middle' }}
         />
@@ -307,7 +307,7 @@ function CelebrationPopup({
                     marginBottom: 8,
                     textShadow: `0 0 40px ${config.glow}`,
                 }}>
-                    +{celebration.diamonds.toLocaleString()} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
+                    +{celebration.diamonds.toLocaleString()} <img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
                 </div>
 
                 {/* Multiplier badge */}
@@ -505,7 +505,7 @@ export function MiniCelebration({
                 fontWeight: 700,
                 color: '#ffffff',
             }}>
-                +{diamonds} <img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
+                +{diamonds} <img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/>
             </span>
         </div>
     );

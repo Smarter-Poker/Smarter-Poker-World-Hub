@@ -17,7 +17,7 @@ import { createClient } from '../../../../src/lib/supabaseServerClient';
 const { applyCors } = require('../../../../src/lib/cors');
 const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 let _supabase = null;
 function getSupabase() {
@@ -181,7 +181,7 @@ try {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

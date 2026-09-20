@@ -188,7 +188,7 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
                     x={(parentX + x) / 2 + 12}
                     y={(parentY + y) / 2}
                     fill="#64748b"
-                    fontSize={8}
+                    fontSize={12}
                     fontWeight={700}
                     style={{ fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}
                     textAnchor="start"
@@ -228,7 +228,7 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
                 <text
                     x={x} y={y + 1}
                     fill={node.color || '#e2e8f0'}
-                    fontSize={10}
+                    fontSize={12}
                     fontWeight={800}
                     textAnchor="middle"
                     dominantBaseline="middle"
@@ -241,7 +241,7 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
                 <text
                     x={x} y={y + nodeRadius + 12}
                     fill="#94a3b8"
-                    fontSize={8}
+                    fontSize={12}
                     fontWeight={600}
                     textAnchor="middle"
                     style={{ pointerEvents: 'none' }}
@@ -254,7 +254,7 @@ function TreeNode({ node, x, y, parentX, parentY, expandedNodes, onToggle, nodeW
                     <text
                         x={x} y={y + nodeRadius + 22}
                         fill="#475569"
-                        fontSize={8}
+                        fontSize={12}
                         textAnchor="middle"
                         style={{ pointerEvents: 'none' }}
                     >
@@ -332,7 +332,7 @@ export default function SolverTreeViewer({ spotDetail, width = 600, height = 400
                 <button
                     onClick={expandAll}
                     style={{
-                        padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                        padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                         cursor: 'pointer', border: 'none',
                         background: 'rgba(0,212,255,0.1)', color: '#00d4ff',
                     }}
@@ -342,7 +342,7 @@ export default function SolverTreeViewer({ spotDetail, width = 600, height = 400
                 <button
                     onClick={collapseAll}
                     style={{
-                        padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                        padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                         cursor: 'pointer', border: 'none',
                         background: 'rgba(255,255,255,0.06)', color: '#94a3b8',
                     }}
@@ -358,7 +358,7 @@ export default function SolverTreeViewer({ spotDetail, width = 600, height = 400
                         { color: '#3b82f6', label: 'Check' },
                         { color: '#64748b', label: 'Fold' },
                     ].map(l => (
-                        <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9, color: '#64748b' }}>
+                        <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: '#64748b' }}>
                             <span style={{ width: 6, height: 6, borderRadius: 3, background: l.color }} />
                             {l.label}
                         </span>
@@ -393,7 +393,7 @@ export default function SolverTreeViewer({ spotDetail, width = 600, height = 400
             <div style={{
                 marginTop: 8, padding: '8px 12px', borderRadius: 8,
                 background: 'rgba(255,255,255,0.02)',
-                fontSize: 10, color: '#64748b', lineHeight: 1.5,
+                fontSize: 12, color: '#64748b', lineHeight: 1.5,
             }}>
                 <strong style={{ color: '#94a3b8' }}>How To Read:</strong> Click Nodes To Expand/Collapse Branches.
                 Edge Thickness = Action Frequency. Circles = Decisions, Diamonds = Chance Nodes, Dashed = Terminal.

@@ -164,8 +164,8 @@ export default function QuizModeEngine() {
               transition: 'all 0.2s',
             }}>
               <div style={{ color: d.color, fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{d.label}</div>
-              <div style={{ color: '#94a3b8', fontSize: 11 }}>{d.questions} Questions</div>
-              <div style={{ color: '#64748b', fontSize: 11 }}>{d.timer > 0 ? `${d.timer}s per question` : 'No time limit'}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12 }}>{d.questions} Questions</div>
+              <div style={{ color: '#64748b', fontSize: 12 }}>{d.timer > 0 ? `${d.timer}s per question` : 'No time limit'}</div>
             </div>
           ))}
         </div>
@@ -211,7 +211,7 @@ export default function QuizModeEngine() {
             { label: 'Difficulty', value: difficulty.label, color: difficulty.color },
           ].map(s => (
             <div key={s.label} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
               <div style={{ color: s.color, fontSize: 18, fontWeight: 800 }}>{s.value}</div>
             </div>
           ))}
@@ -219,11 +219,11 @@ export default function QuizModeEngine() {
 
         {/* Type breakdown */}
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>By Category</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>By Category</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {Object.entries(typeBreakdown || {}).map(([type, data]) => (
               <div key={type} style={{ padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.04)', textAlign: 'center' }}>
-                <div style={{ color: '#94a3b8', fontSize: 10, fontWeight: 600, textTransform: 'capitalize' }}>{type}</div>
+                <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 600, textTransform: 'capitalize' }}>{type}</div>
                 <div style={{ color: data.correct === data.total ? '#22c55e' : '#f59e0b', fontSize: 14, fontWeight: 700 }}>
                   {data.correct}/{data.total}
                 </div>
@@ -252,9 +252,9 @@ export default function QuizModeEngine() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: '#f1f5f9', fontSize: 14, fontWeight: 700 }}>Q{currentQ + 1}/{questions.length}</span>
-          <span style={{ color: '#64748b', fontSize: 11 }}>Score: {totalScore}</span>
+          <span style={{ color: '#64748b', fontSize: 12 }}>Score: {totalScore}</span>
           {streak > 1 && (
-            <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 12, fontWeight: 700 }}>
               ▲ {streak} Streak
             </span>
           )}
@@ -286,7 +286,7 @@ export default function QuizModeEngine() {
       }}>
         <div style={{
           padding: '2px 8px', borderRadius: 4, display: 'inline-block', marginBottom: 8,
-          background: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: 10, fontWeight: 700,
+          background: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: 12, fontWeight: 700,
           textTransform: 'uppercase',
         }}>
           {q.type}

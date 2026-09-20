@@ -17,19 +17,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
 import { validatePushEndpoint, validatePushKeys } from '../../../src/lib/push/push-endpoint';
 import { notify } from '../../../src/lib/notify';
-import { timingSafeEqual } from 'crypto';
-
-/**
- * Constant-time compare. Guards length separately because timingSafeEqual
- * throws on a length mismatch, and the length is not the secret.
- */
-function timingSafeEquals(a, b) {
-    if (typeof a !== 'string' || typeof b !== 'string') return false;
-    const bufA = Buffer.from(a, 'utf8');
-    const bufB = Buffer.from(b, 'utf8');
-    if (bufA.length !== bufB.length || bufA.length === 0) return false;
-    return timingSafeEqual(bufA, bufB);
-}
+import { changePushSubscription } from '../../../src/lib/push/subscription-ownership.mjs';
 
 let _supabase = null;
 function getSupabase() {
@@ -60,30 +48,10 @@ export default async function handler(req, res) {
     // ---- DELETE: deactivate ------------------------------------------------
     if (req.method === 'DELETE') {
         try {
-            await supabase
-                .from('push_subscriptions')
-                .update({ is_active: false, updated_at: new Date().toISOString() })
-                .eq('user_id', user.id)
-                .eq('endpoint', endpoint);
-
-            // If this was their last active device, flip push_enabled off so the
-            // settings UI and the gate agree with reality.
-            const { data: remaining } = await supabase
-                .from('push_subscriptions')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('is_active', true)
-                .limit(1);
-
-            if (!remaining || remaining.length === 0) {
-                await supabase
-                    .from('notification_preferences')
-                    .upsert({ user_id: user.id, push_enabled: false, updated_at: new Date().toISOString() },
-                        { onConflict: 'user_id' });
-            }
+            await changePushSubscription(supabase, user.id, { endpoint }, false);
             return res.status(200).json({ ok: true, deactivated: true });
         } catch (e) {
-            return res.status(500).json({ error: e?.message || 'Failed to deactivate subscription' });
+            return res.status(e.status || 503).json({ error: e?.message || 'Failed to deactivate subscription' });
         }
     }
 
@@ -128,153 +96,32 @@ export default async function handler(req, res) {
         }
     }
 
-    const nowIso = new Date().toISOString();
-
     try {
-        // ONE ACCOUNT PER DEVICE -- with proof of possession.
-        //
-        // This deactivates rows other users hold for the same endpoint, which is
-        // what stops a shared phone leaking one person's notifications to the
-        // next person who logs in. But taken on the caller's word alone it is
-        // also a mute button: any authenticated user who learns someone's
-        // endpoint could silence that device, and the victim would just see
-        // themselves flagged as "subscription dead" on push-health as though it
-        // were their own fault.
-        //
-        // The browser only hands `auth` to the origin that owns the
-        // subscription, so requiring it to MATCH the stored secret proves the
-        // caller is really sitting at that device. A mismatch means the endpoint
-        // was learned some other way -- refuse, and leave the incumbent alone.
-        const { data: incumbents } = await supabase
-            .from('push_subscriptions')
-            .select('id, user_id, auth')
-            .eq('endpoint', endpoint)
-            .eq('is_active', true)
-            .neq('user_id', user.id);
-
-        for (const row of incumbents || []) {
-            // A native token has no keys: the same phone signing in as another
-            // account IS the takeover, and it is allowed - the token can only
-            // ever reach that one phone, so possession is proven by having it.
-            if (transport === 'webpush' && !timingSafeEquals(auth, row.auth)) {
-                console.warn('[push/subscribe] refused takeover of an endpoint without matching keys');
-                return res.status(409).json({
-                    error: 'This endpoint is registered to another account and the keys do not match.',
-                });
-            }
-            await supabase
-                .from('push_subscriptions')
-                .update({ is_active: false, last_failure_reason: 'reassigned_to_other_user', updated_at: nowIso })
-                .eq('id', row.id);
-
-            // Tell the displaced account what happened. Being silently unsubscribed
-            // is indistinguishable from push being broken, and that is precisely
-            // the confusion this stack exists to eliminate. Bell only -- their
-            // push on this device is exactly what just stopped working.
+        // The service-only RPC serializes competing account enrollments and
+        // verifies stored key possession in the same transaction as retirement,
+        // the new subscription, endpoint replacement, and the preference update.
+        const rawDeviceId = typeof body?.deviceId === 'string' ? body.deviceId.trim() : '';
+        const deviceId = /^[A-Za-z0-9-]{8,64}$/.test(rawDeviceId) ? rawDeviceId : null;
+        const result = await changePushSubscription(supabase, user.id, {
+            endpoint, p256dh, auth, transport, platform, device_id: deviceId,
+            user_agent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 500),
+            device_label: body.deviceLabel ? String(body.deviceLabel).slice(0, 120) : null,
+            replaces_endpoint: typeof body.replacesEndpoint === 'string' ? body.replacesEndpoint : null,
+        }, true);
+        for (const displacedUserId of result.displaced_user_ids) {
             try {
                 await notify(supabase, {
-                    userId: row.user_id,
-                    type: 'system',
-                    withPush: false,
+                    userId: displacedUserId, type: 'system', withPush: false,
                     title: 'Notifications moved to another account',
                     body: 'Another account signed in on a device you had notifications enabled on, so they were turned off here. Re-enable them on your own device any time.',
                     url: '/hub/settings/notifications',
                 });
-            } catch { /* never block enrollment on a courtesy notice */ }
+            } catch { /* enrollment is already committed; this is a courtesy notice */ }
         }
-
-        /* ═══ ONE LIVE ENDPOINT PER DEVICE (Dan 2026-08-30) ═══════════════════
-           `replacesEndpoint` below only works while the CLIENT still remembers
-           what it is replacing. It does not after a service-worker reinstall,
-           cleared site data or a PWA re-add — the browser mints a fresh
-           endpoint and the old row is left is_active with nothing referencing
-           it. The push service never 410s it (it is a perfectly valid
-           endpoint), so nothing reaps it, and every send pays for it. Measured
-           2026-08-29: one account, eleven active rows, nine redundant, and one
-           seat offer delivered to the same iPhone twice.
-
-           `deviceId` is a random id the client keeps in localStorage — stable
-           across re-subscribes on one browser profile, different between
-           devices. It is the only safe key here: the endpoint is not stable,
-           and user_agent is not unique (two identical iPhones on one account
-           produce byte-identical strings, and deduping on that would switch
-           off one of the person's real devices).
-
-           This runs BEFORE the upsert, and must: the partial unique index
-           `push_subscriptions_one_active_per_device_uidx` would otherwise
-           reject the insert of a second live row for the same device.
-
-           Validated to the shape the client mints. An unusable value is
-           ignored rather than rejected — a bad device id must never cost
-           somebody their subscription, and without one they simply keep the
-           pre-2026-08-30 behaviour. */
-        const rawDeviceId = typeof body?.deviceId === 'string' ? body.deviceId.trim() : '';
-        const deviceId = /^[A-Za-z0-9-]{8,64}$/.test(rawDeviceId) ? rawDeviceId : null;
-
-        if (deviceId) {
-            const { error: retireErr } = await supabase
-                .from('push_subscriptions')
-                .update({
-                    is_active: false,
-                    last_failure_reason: 'superseded_same_device',
-                    updated_at: nowIso,
-                })
-                .eq('user_id', user.id)
-                .eq('device_id', deviceId)
-                .eq('is_active', true)
-                .neq('endpoint', endpoint);
-            if (retireErr) {
-                // Not fatal on its own, but the upsert below is about to hit
-                // the unique index if a live row really is still there, so the
-                // caller gets a real error rather than a confusing 500 later.
-                console.warn('[push/subscribe] same-device retire failed:', retireErr.message);
-            }
-        }
-
-        const { error: upsertErr } = await supabase
-            .from('push_subscriptions')
-            .upsert(
-                {
-                    user_id: user.id,
-                    endpoint,
-                    p256dh,
-                    auth,
-                    transport,
-                    platform,
-                    user_agent: String(body.userAgent || req.headers['user-agent'] || '').slice(0, 500),
-                    device_label: body.deviceLabel ? String(body.deviceLabel).slice(0, 120) : null,
-                    device_id: deviceId,
-                    is_active: true,
-                    failure_count: 0,
-                    last_failure_reason: null,
-                    updated_at: nowIso,
-                },
-                { onConflict: 'user_id,endpoint' }
-            );
-
-        if (upsertErr) return res.status(500).json({ error: upsertErr.message });
-
-        // Retire the endpoint this subscription supersedes. The browser rotates
-        // endpoints on VAPID-key change and on a failed-then-retried subscribe;
-        // without this the superseded row stays is_active=true, inflating the
-        // device count and costing a wasted send on every future notification.
-        const replaces = body?.replacesEndpoint;
-        if (replaces && typeof replaces === 'string' && replaces !== endpoint) {
-            await supabase
-                .from('push_subscriptions')
-                .update({ is_active: false, last_failure_reason: 'superseded', updated_at: nowIso })
-                .eq('user_id', user.id)
-                .eq('endpoint', replaces);
-        }
-
-        await supabase
-            .from('notification_preferences')
-            .upsert({ user_id: user.id, push_enabled: true, browser_push: true, updated_at: nowIso },
-                { onConflict: 'user_id' });
 
         return res.status(200).json({ ok: true, subscribed: true });
     } catch (e) {
-        return res.status(500).json({ error: e?.message || 'Failed to save subscription' });
+        return res.status(e.status || 503).json({ error: e?.message || 'Failed to save subscription' });
     }
 }
 

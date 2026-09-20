@@ -36,8 +36,8 @@ export default function IsoRaiseStrategy() {
           <button key={i} onClick={() => setSpotIdx(i)}
             style={{ padding: '8px 4px', borderRadius: 8, border: spotIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: spotIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.limpers}</div>
-            <div style={{ fontSize: 9, color: '#94a3b8' }}>{s.position}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: spotIdx === i ? s.color : '#64748b' }}>{s.limpers}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.position}</div>
           </button>
         ))}
       </div>
@@ -49,7 +49,7 @@ export default function IsoRaiseStrategy() {
           <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>{spot.sizing}</span>
         </div>
         <div style={{ background: `${spot.color}08`, borderRadius: 8, padding: 10, marginBottom: 8, borderLeft: `3px solid ${spot.color}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: spot.color }}>Range</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: spot.color }}>Range</div>
           <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{spot.range}</div>
         </div>
         <p style={{ fontSize: 12, color: '#cbd5e1' }}>{spot.reason}</p>

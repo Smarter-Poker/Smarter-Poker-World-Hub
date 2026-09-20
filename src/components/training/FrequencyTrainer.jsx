@@ -178,7 +178,7 @@ function FrequencyDial({ score, grade, size = 100 }) {
                     {grade}
                 </div>
                 <div style={{
-                    fontSize: size * 0.12, color: '#94a3b8', fontWeight: 600,
+                    fontSize: Math.max(12, size * 0.12), color: '#94a3b8', fontWeight: 600,
                 }}>
                     {score}%
                 </div>
@@ -209,10 +209,10 @@ function FrequencyComparisonBar({ action, targetPct, actualPct, deviation, devia
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: 3,
             }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>
                     {actionLabel}
                 </span>
-                <span style={{ fontSize: 9, color: deviationColor, fontWeight: 700 }}>
+                <span style={{ fontSize: 12, color: deviationColor, fontWeight: 700 }}>
                     {deviation === 0 ? '✓ Perfect' :
                         `${deviationDirection === 'over' ? '+' : '-'}${deviation}%`}
                 </span>
@@ -254,10 +254,10 @@ function FrequencyComparisonBar({ action, targetPct, actualPct, deviation, devia
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '0 6px',
                 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: '#e2e8f0' }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
                         You: {actualPct}%
                     </span>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: '#00d4ff', opacity: 0.8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#00d4ff', opacity: 0.8 }}>
                         GTO: {targetPct}%
                     </span>
                 </div>
@@ -314,7 +314,7 @@ function MixingTips({ analysis }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
             {tips.map((tip, i) => (
                 <div key={i} style={{
-                    fontSize: 9, color: tip.color, lineHeight: 1.4,
+                    fontSize: 12, color: tip.color, lineHeight: 1.4,
                     padding: '4px 8px', borderRadius: 6,
                     background: `${tip.color}10`,
                     border: `1px solid ${tip.color}25`,
@@ -364,10 +364,10 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                 background: 'rgba(255,255,255,0.02)', borderRadius: 12,
                 border: '1px solid rgba(255,255,255,0.06)',
             }}>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
                     Frequency Training
                 </div>
-                <div style={{ fontSize: 10, color: '#475569' }}>
+                <div style={{ fontSize: 12, color: '#475569' }}>
                     Need At Least 3 Mixed-Strategy Hands To Analyze Frequency Adherence.
                 </div>
             </div>
@@ -392,7 +392,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                     }}>
                         FREQUENCY ADHERENCE
                     </div>
-                    <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                         Are You Randomizing Like The Solver?
                     </div>
                 </div>
@@ -408,7 +408,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                             key={w.id}
                             onClick={() => setWindow(w.id)}
                             style={{
-                                padding: '3px 8px', borderRadius: 4, fontSize: 9,
+                                padding: '3px 8px', borderRadius: 4, fontSize: 12,
                                 fontWeight: 600, border: 'none', cursor: 'pointer',
                                 background: window === w.id ? 'rgba(0,212,255,0.12)' : 'transparent',
                                 color: window === w.id ? '#00d4ff' : '#64748b',
@@ -436,10 +436,10 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
                         size={compact ? 80 : 100}
                     />
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, color: '#64748b' }}>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>
                             {analysis.totalHands} Mixed Hands
                         </div>
-                        <div style={{ fontSize: 8, color: '#475569' }}>
+                        <div style={{ fontSize: 12, color: '#475569' }}>
                             Entropy: {analysis.entropyScore}%
                         </div>
                     </div>
@@ -468,7 +468,7 @@ export default function FrequencyTrainer({ handHistory, compact = false }) {
 
             {/* Footer */}
             <div style={{
-                marginTop: 8, fontSize: 8, color: '#475569', textAlign: 'center',
+                marginTop: 8, fontSize: 12, color: '#475569', textAlign: 'center',
                 paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.04)',
             }}>
                 GTO Mixing = Taking Each Action At Solver-Specified Frequencies Over Many Hands.

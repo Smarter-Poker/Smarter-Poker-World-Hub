@@ -59,7 +59,7 @@ const MiniCard = memo(({ card, isNew = false }) => {
             }}
         >
             <span>{rank}</span>
-            <span style={{ fontSize: 9 }}>{SuitSymbol[suit] || suit}</span>
+            <span style={{ fontSize: 12 }}>{SuitSymbol[suit] || suit}</span>
         </motion.div>
     );
 });
@@ -68,7 +68,7 @@ const MiniCard = memo(({ card, isNew = false }) => {
 
 const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
-        <div style={{ width: 55, fontSize: 10, fontWeight: 600, color: '#94a3b8', textAlign: 'right' }}>
+        <div style={{ width: 55, fontSize: 12, fontWeight: 600, color: '#94a3b8', textAlign: 'right' }}>
             {action}
         </div>
         <div style={{
@@ -86,7 +86,7 @@ const FreqBar = memo(({ action, freq, color = '#3b82f6' }) => (
             />
         </div>
         <div style={{
-            width: 35, fontSize: 10, fontWeight: 700, color: '#e2e8f0',
+            width: 35, fontSize: 12, fontWeight: 700, color: '#e2e8f0',
             textAlign: 'right', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
         }}>
             {(freq * 100).toFixed(0)}%
@@ -153,7 +153,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{
-                        padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+                        padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 700,
                         textTransform: 'uppercase', letterSpacing: '0.05em',
                         background: meta.bg, color: meta.color,
                         border: `1px solid ${meta.color}33`,
@@ -161,14 +161,14 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                         {meta.label}
                     </div>
                     {handStrength?.made && (
-                        <span style={{ fontSize: 10, color: '#818cf8', fontWeight: 600, fontStyle: 'italic' }}>
+                        <span style={{ fontSize: 12, color: '#818cf8', fontWeight: 600, fontStyle: 'italic' }}>
                             {handStrength.made.description || handStrength.made.rank}
                         </span>
                     )}
                 </div>
                 {potSize > 0 && (
                     <div style={{
-                        fontSize: 11, fontWeight: 700, color: '#f59e0b',
+                        fontSize: 12, fontWeight: 700, color: '#f59e0b',
                         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                     }}>
                         {potSize.toFixed(1)} BB
@@ -194,7 +194,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                         ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
                 }}>
                     <div>
-                        <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>YOU</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>YOU</div>
                         <div style={{
                             fontSize: 13, fontWeight: 700,
                             color: handData.classification === 'correct' || handData.classification === 'best'
@@ -205,7 +205,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     </div>
                     {handData.correctAction && handData.action !== handData.correctAction && (
                         <div>
-                            <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>
+                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                                 {handData.solverVerified === true ? 'VERIFIED SOLVER' : 'REFERENCE'}
                             </div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e' }}>
@@ -215,7 +215,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     )}
                     {handData.evLoss > 0 && (
                         <div style={{
-                            marginLeft: 'auto', fontSize: 11, fontWeight: 700,
+                            marginLeft: 'auto', fontSize: 12, fontWeight: 700,
                             color: '#ef4444', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
                         }}>
                             -{handData.evLoss.toFixed(2)} BB
@@ -230,7 +230,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
                     background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8,
                     marginTop: 4,
                 }}>
-                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
                         Illustrative Local Weights - Not Solver Frequencies
                     </div>
                     {Object.entries(strategy.actions || {})
@@ -251,7 +251,7 @@ const StreetNode = memo(({ street, handData, isActive, isCompleted, onSelect, he
 
             {/* Draw outs */}
             {isActive && handStrength?.draws?.outs > 0 && (
-                <div style={{ marginTop: 6, fontSize: 10, color: '#818cf8' }}>
+                <div style={{ marginTop: 6, fontSize: 12, color: '#818cf8' }}>
                     {handStrength.draws.outs} Outs · {(handStrength.draws.equity * 100).toFixed(0)}% Draw Equity
                 </div>
             )}
@@ -272,11 +272,11 @@ const SPRBadge = memo(({ potSize, effectiveStack = 100 }) => {
             padding: '3px 8px', borderRadius: 10,
             background: `${sprColor}10`, border: `1px solid ${sprColor}22`,
         }}>
-            <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>SPR</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: sprColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
+            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>SPR</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: sprColor, fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                 {spr.toFixed(1)}
             </span>
-            <span style={{ fontSize: 8, color: sprColor, fontWeight: 600 }}>{sprLabel}</span>
+            <span style={{ fontSize: 12, color: sprColor, fontWeight: 600 }}>{sprLabel}</span>
         </div>
     );
 });
@@ -403,7 +403,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                     </div>
                     {totalEVLoss > 0 && (
                         <div style={{
-                            fontSize: 10, padding: '2px 8px', borderRadius: 10,
+                            fontSize: 12, padding: '2px 8px', borderRadius: 10,
                             background: 'rgba(239,68,68,0.1)', color: '#f87171', fontWeight: 600,
                         }}>
                             -{totalEVLoss.toFixed(2)} BB Total
@@ -417,7 +417,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                         value={selectedHandIdx}
                         onChange={e => { setSelectedHandIdx(Number(e.target.value)); setActiveStreet(null); }}
                         style={{
-                            padding: '4px 8px', fontSize: 10, fontWeight: 600,
+                            padding: '4px 8px', fontSize: 12, fontWeight: 600,
                             background: 'rgba(0,0,0,0.3)', color: '#94a3b8',
                             border: '1px solid rgba(100,116,139,0.2)',
                             borderRadius: 4, outline: 'none',
@@ -439,7 +439,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                     borderBottom: '1px solid rgba(100,116,139,0.08)',
                     display: 'flex', alignItems: 'center', gap: 12,
                 }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
                         Hero
                     </div>
                     <div style={{ display: 'flex', gap: 3 }}>
@@ -447,7 +447,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                     </div>
                     {currentGroup?.streets?.preflop?.heroPosition && (
                         <div style={{
-                            fontSize: 10, fontWeight: 600, color: '#64748b',
+                            fontSize: 12, fontWeight: 600, color: '#64748b',
                             padding: '2px 6px', background: 'rgba(100,116,139,0.1)',
                             borderRadius: 3,
                         }}>
@@ -483,7 +483,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                                         border: `2px solid ${isActive ? meta.color : hasData ? meta.color + '44' : 'rgba(100,116,139,0.15)'}`,
                                         background: isActive ? meta.bg : 'transparent',
                                         color: isActive ? meta.color : hasData ? meta.color + '88' : '#334155',
-                                        fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                                        fontSize: 12, fontWeight: 700, cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     }}
                                 >
@@ -517,7 +517,7 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
 
                 {/* All streets summary below */}
                 <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>
                         Street Summary
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
@@ -540,22 +540,22 @@ export default function MultiStreetNavigator({ handHistory = [] }) {
                                         border: `1px solid ${s === effectiveActive ? meta.color + '33' : 'rgba(100,116,139,0.06)'}`,
                                     }}
                                 >
-                                    <div style={{ fontSize: 9, fontWeight: 700, color: meta.color, textTransform: 'uppercase' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: meta.color, textTransform: 'uppercase' }}>
                                         {meta.label}
                                     </div>
                                     {sd ? (
                                         <>
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: isOk ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: isOk ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
                                                 {sd.action || '-'}
                                             </div>
                                             {sd.evLoss > 0 && (
-                                                <div style={{ fontSize: 9, color: '#ef4444', fontWeight: 600 }}>
+                                                <div style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>
                                                     -{sd.evLoss.toFixed(2)}
                                                 </div>
                                             )}
                                         </>
                                     ) : (
-                                        <div style={{ fontSize: 9, color: '#334155', marginTop: 2 }}>-</div>
+                                        <div style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>-</div>
                                     )}
                                 </div>
                             );

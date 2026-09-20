@@ -41,9 +41,9 @@ export default function SmallBallStrategy() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
           {SIZING_GUIDE.map((s, i) => (
             <div key={i} style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{s.street}</div>
+              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.street}</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#22c55e' }}>{s.size}</div>
-              <div style={{ fontSize: 10, color: '#94a3b8' }}>{s.freq}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.freq}</div>
             </div>
           ))}
         </div>

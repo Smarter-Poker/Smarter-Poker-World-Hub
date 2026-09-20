@@ -835,7 +835,7 @@ function StatBox({ label, value, color }: { label: string; value: string | numbe
             textAlign: 'center'
         }}>
             <div style={{ fontSize: '24px', fontWeight: 700, color }}>{value}</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>{label}</div>
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>{label}</div>
         </div>
     );
 }

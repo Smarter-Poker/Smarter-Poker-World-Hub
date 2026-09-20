@@ -125,7 +125,7 @@ export default function LeakFinderEngine() {
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Leak Finder</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Automated Leak Detection With Fix Recommendations</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Automated Leak Detection With Fix Recommendations</div>
         </div>
 
         {/* Summary cards */}
@@ -137,7 +137,7 @@ export default function LeakFinderEngine() {
             { label: 'Fix Progress', value: `${avgProgress}%`, color: '#22c55e' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 8, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
               <div style={{ color: s.color, fontSize: 18, fontWeight: 800 }}>{s.value}</div>
             </div>
           ))}
@@ -148,13 +148,13 @@ export default function LeakFinderEngine() {
           <button onClick={() => setFilterCategory(null)} style={{
             padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
             background: !filterCategory ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-            color: !filterCategory ? '#f1f5f9' : '#64748b', fontSize: 10, fontWeight: 600,
+            color: !filterCategory ? '#f1f5f9' : '#64748b', fontSize: 12, fontWeight: 600,
           }}>All</button>
           {LEAK_CATEGORIES.map(c => (
             <button key={c.id} onClick={() => setFilterCategory(filterCategory === c.id ? null : c.id)} style={{
               padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
               background: filterCategory === c.id ? `${c.color}20` : 'rgba(255,255,255,0.04)',
-              color: filterCategory === c.id ? c.color : '#64748b', fontSize: 10, fontWeight: 600,
+              color: filterCategory === c.id ? c.color : '#64748b', fontSize: 12, fontWeight: 600,
             }}>{c.label}</button>
           ))}
         </div>
@@ -165,7 +165,7 @@ export default function LeakFinderEngine() {
               <button key={s} onClick={() => setFilterSeverity(filterSeverity === s ? null : s)} style={{
                 padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: filterSeverity === s ? cfg.bg : 'rgba(255,255,255,0.04)',
-                color: filterSeverity === s ? cfg.color : '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                color: filterSeverity === s ? cfg.color : '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
               }}>{s}</button>
             );
           })}
@@ -187,11 +187,11 @@ export default function LeakFinderEngine() {
                 {/* Leak header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{
-                    padding: '2px 5px', borderRadius: 3, fontSize: 8, fontWeight: 800,
+                    padding: '2px 5px', borderRadius: 3, fontSize: 12, fontWeight: 800,
                     background: sev.bg, color: sev.color, letterSpacing: '0.5px',
                   }}>{sev.label}</span>
                   <span style={{
-                    padding: '2px 5px', borderRadius: 3, fontSize: 8, fontWeight: 600,
+                    padding: '2px 5px', borderRadius: 3, fontSize: 12, fontWeight: 600,
                     background: `${cat.color}15`, color: cat.color,
                   }}>{cat.label}</span>
                   <span style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 700, flex: 1 }}>{leak.title}</span>
@@ -199,7 +199,7 @@ export default function LeakFinderEngine() {
                 </div>
 
                 {/* Description */}
-                <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 8, lineHeight: 1.5 }}>{leak.description}</div>
+                <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8, lineHeight: 1.5 }}>{leak.description}</div>
 
                 {/* Progress bar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -210,7 +210,7 @@ export default function LeakFinderEngine() {
                       transition: 'width 0.3s',
                     }} />
                   </div>
-                  <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>{leak.progress}% Fixed</span>
+                  <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{leak.progress}% Fixed</span>
                 </div>
 
                 {/* Expanded content */}
@@ -218,20 +218,20 @@ export default function LeakFinderEngine() {
                   <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10 }}>
                     {/* Examples */}
                     <div style={{ marginBottom: 10 }}>
-                      <div style={{ color: '#475569', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Hand Examples</div>
+                      <div style={{ color: '#475569', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Hand Examples</div>
                       {leak.examples.map((ex, i) => (
-                        <div key={i} style={{ color: '#94a3b8', fontSize: 10, padding: '2px 0' }}>• {ex}</div>
+                        <div key={i} style={{ color: '#94a3b8', fontSize: 12, padding: '2px 0' }}>• {ex}</div>
                       ))}
                     </div>
 
                     {/* Fix recommendation */}
                     <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 6, padding: 10, border: '1px solid rgba(34,197,94,0.1)' }}>
-                      <div style={{ color: '#22c55e', fontSize: 10, fontWeight: 700, marginBottom: 4 }}>Recommended Fix</div>
-                      <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.5 }}>{leak.fix}</div>
+                      <div style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Recommended Fix</div>
+                      <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.5 }}>{leak.fix}</div>
                     </div>
 
                     {/* Frequency */}
-                    <div style={{ marginTop: 8, color: '#64748b', fontSize: 10 }}>
+                    <div style={{ marginTop: 8, color: '#64748b', fontSize: 12 }}>
                       Frequency: <strong style={{ color: '#f1f5f9' }}>{leak.frequency}</strong>
                     </div>
                   </div>

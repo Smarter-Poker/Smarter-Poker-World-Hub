@@ -284,7 +284,7 @@ function BreathingExercise({ onClose }) {
         border: `1px solid ${phaseColor[phase]}30`,
       }}
     >
-      <div style={{ fontSize: 10, color: 'var(--sp-fg-faint)', marginBottom: 8 }}>Cycle {cycle} Of 4</div>
+      <div style={{ fontSize: 12, color: 'var(--sp-fg-faint)', marginBottom: 8 }}>Cycle {cycle} Of 4</div>
       <motion.div
         animate={{
           scale: phase === 'inhale' ? [1, 1.3] : phase === 'exhale' ? [1.3, 1] : 1.3,
@@ -363,7 +363,7 @@ export default function TiltGuardPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -402,7 +402,7 @@ export default function TiltGuardPage() {
           </button>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>Tilt Guard</div>
-            <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)' }}>Emotional Intelligence Coach</div>
+            <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>Emotional Intelligence Coach</div>
           </div>
         </div>
 
@@ -436,7 +436,7 @@ export default function TiltGuardPage() {
                     borderRadius: 6,
                     background: `${riskColors[tiltData.risk]}15`,
                     border: `1px solid ${riskColors[tiltData.risk]}30`,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 800,
                     color: riskColors[tiltData.risk],
                     letterSpacing: 1,
@@ -461,14 +461,14 @@ export default function TiltGuardPage() {
                       <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg)' }}>
                         {tiltData.recentAvg}%
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>RECENT (3)</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>RECENT (3)</div>
                     </div>
                     <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
                     <div>
                       <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--sp-fg-muted)' }}>
                         {tiltData.previousAvg}%
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>PREVIOUS (3)</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>PREVIOUS (3)</div>
                     </div>
                     <div style={{ width: 1, background: 'rgba(255,255,255,0.06)' }} />
                     <div>
@@ -482,7 +482,7 @@ export default function TiltGuardPage() {
                         {tiltData.delta >= 0 ? '+' : ''}
                         {Math.round(tiltData.delta)}%
                       </div>
-                      <div style={{ fontSize: 9, color: 'var(--sp-fg-dim)' }}>DELTA</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>DELTA</div>
                     </div>
                   </div>
                 )}
@@ -493,7 +493,7 @@ export default function TiltGuardPage() {
                 <div style={{ marginBottom: 20 }}>
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -526,7 +526,7 @@ export default function TiltGuardPage() {
                             top: -14,
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            fontSize: 8,
+                            fontSize: 12,
                             color: 'var(--sp-fg-faint)',
                             fontWeight: 700,
                             whiteSpace: 'nowrap',
@@ -573,7 +573,7 @@ export default function TiltGuardPage() {
               <div style={{ marginBottom: 20 }}>
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--sp-fg-dim)',
                     textTransform: 'uppercase',
@@ -608,7 +608,7 @@ export default function TiltGuardPage() {
                       <div style={{ fontSize: 12, fontWeight: 700, color: tip.color }}>
                         {tip.title}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--sp-fg-muted)', marginTop: 1 }}>{tip.desc}</div>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', marginTop: 1 }}>{tip.desc}</div>
                     </div>
                   </motion.div>
                 ))}
@@ -619,7 +619,7 @@ export default function TiltGuardPage() {
                 <div>
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: 'var(--sp-fg-dim)',
                       textTransform: 'uppercase',
@@ -658,7 +658,7 @@ export default function TiltGuardPage() {
                         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sp-accent-green)' }}>
                           {game.name}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)' }}>{game.desc}</div>
+                        <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>{game.desc}</div>
                       </div>
                     </motion.button>
                   ))}

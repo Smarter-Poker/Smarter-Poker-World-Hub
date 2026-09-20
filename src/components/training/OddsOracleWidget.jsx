@@ -75,7 +75,7 @@ export default function OddsOracleWidget() {
       <div style={{ background: 'rgba(15,23,42,0.6)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Odds Oracle</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Quick-Reference Poker Odds And Probabilities</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Quick-Reference Poker Odds And Probabilities</div>
         </div>
 
         {/* Tab selector */}
@@ -89,7 +89,7 @@ export default function OddsOracleWidget() {
               padding: '6px 14px', borderRadius: 6, cursor: 'pointer', flex: 1,
               background: activeTab === tab.id ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.15)',
               border: activeTab === tab.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-              color: activeTab === tab.id ? '#3b82f6' : '#94a3b8', fontSize: 11, fontWeight: 700,
+              color: activeTab === tab.id ? '#3b82f6' : '#94a3b8', fontSize: 12, fontWeight: 700,
             }}>{tab.label}</button>
           ))}
         </div>
@@ -97,10 +97,10 @@ export default function OddsOracleWidget() {
         {activeTab === 'matchups' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '60px 60px 1fr 50px', gap: 4, padding: '0 8px' }}>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>HERO</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>VILLAIN</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>TYPE</span>
-              <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'right' }}>EQUITY</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>HERO</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>VILLAIN</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>TYPE</span>
+              <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'right' }}>EQUITY</span>
             </div>
             {MATCHUPS.map((m, i) => (
               <div key={i} style={{
@@ -109,7 +109,7 @@ export default function OddsOracleWidget() {
               }}>
                 <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 800 }}>{m.hero}</span>
                 <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 800 }}>{m.villain}</span>
-                <span style={{ color: '#94a3b8', fontSize: 10 }}>{m.type}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12 }}>{m.type}</span>
                 <div style={{ textAlign: 'right' }}>
                   <span style={{
                     color: m.equity >= 60 ? '#22c55e' : m.equity >= 50 ? '#f59e0b' : '#ef4444',
@@ -125,9 +125,9 @@ export default function OddsOracleWidget() {
           <>
             {/* Rule of 2 & 4 calculator */}
             <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ color: '#f59e0b', fontSize: 10, fontWeight: 700, marginBottom: 8 }}>RULE OF 2 & 4 CALCULATOR</div>
+              <div style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, marginBottom: 8 }}>RULE OF 2 & 4 CALCULATOR</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ color: '#64748b', fontSize: 9, fontWeight: 600 }}>Number Of Outs</span>
+                <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Number Of Outs</span>
                 <span style={{ color: '#f59e0b', fontSize: 18, fontWeight: 800 }}>{outsInput}</span>
               </div>
               <input type="range" min={1} max={20} value={outsInput}
@@ -136,14 +136,14 @@ export default function OddsOracleWidget() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                 <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-                  <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600 }}>FLOP → RIVER (×4)</div>
+                  <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>FLOP → RIVER (×4)</div>
                   <div style={{ color: '#3b82f6', fontSize: 20, fontWeight: 800 }}>{rule4}%</div>
-                  <div style={{ color: '#64748b', fontSize: 8 }}>Actual: {typeof actualFlop === 'number' ? actualFlop.toFixed(1) : actualFlop}%</div>
+                  <div style={{ color: '#64748b', fontSize: 12 }}>Actual: {typeof actualFlop === 'number' ? actualFlop.toFixed(1) : actualFlop}%</div>
                 </div>
                 <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-                  <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600 }}>TURN → RIVER (×2)</div>
+                  <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>TURN → RIVER (×2)</div>
                   <div style={{ color: '#22c55e', fontSize: 20, fontWeight: 800 }}>{rule2}%</div>
-                  <div style={{ color: '#64748b', fontSize: 8 }}>Actual: {typeof actualTurn === 'number' ? actualTurn.toFixed(1) : actualTurn}%</div>
+                  <div style={{ color: '#64748b', fontSize: 12 }}>Actual: {typeof actualTurn === 'number' ? actualTurn.toFixed(1) : actualTurn}%</div>
                 </div>
               </div>
             </div>
@@ -151,10 +151,10 @@ export default function OddsOracleWidget() {
             {/* Outs reference table */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '35px 55px 55px 1fr', gap: 4, padding: '0 6px' }}>
-                <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>OUTS</span>
-                <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'center' }}>FLOP→R</span>
-                <span style={{ color: '#475569', fontSize: 8, fontWeight: 700, textAlign: 'center' }}>TURN→R</span>
-                <span style={{ color: '#475569', fontSize: 8, fontWeight: 700 }}>EXAMPLE</span>
+                <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>OUTS</span>
+                <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>FLOP→R</span>
+                <span style={{ color: '#475569', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>TURN→R</span>
+                <span style={{ color: '#475569', fontSize: 12, fontWeight: 700 }}>EXAMPLE</span>
               </div>
               {OUTS_TABLE.map(o => (
                 <div key={o.outs} style={{
@@ -162,10 +162,10 @@ export default function OddsOracleWidget() {
                   padding: '4px 6px', borderRadius: 4,
                   background: outsInput === o.outs ? 'rgba(59,130,246,0.08)' : 'transparent',
                 }}>
-                  <span style={{ color: '#f59e0b', fontSize: 11, fontWeight: 800 }}>{o.outs}</span>
-                  <span style={{ color: '#3b82f6', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{o.flop}%</span>
-                  <span style={{ color: '#22c55e', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>{o.turn}%</span>
-                  <span style={{ color: '#64748b', fontSize: 9 }}>{o.desc}</span>
+                  <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>{o.outs}</span>
+                  <span style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>{o.flop}%</span>
+                  <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700, textAlign: 'center' }}>{o.turn}%</span>
+                  <span style={{ color: '#64748b', fontSize: 12 }}>{o.desc}</span>
                 </div>
               ))}
             </div>
@@ -179,7 +179,7 @@ export default function OddsOracleWidget() {
                 display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
                 borderRadius: 4, background: 'rgba(0,0,0,0.08)',
               }}>
-                <span style={{ color: '#94a3b8', fontSize: 10, flex: 1 }}>{p.event}</span>
+                <span style={{ color: '#94a3b8', fontSize: 12, flex: 1 }}>{p.event}</span>
                 <div style={{ width: 60, height: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
                   <div style={{
                     width: `${Math.min(100, p.prob)}%`, height: '100%', borderRadius: 4,
@@ -189,7 +189,7 @@ export default function OddsOracleWidget() {
                 </div>
                 <span style={{
                   color: p.prob > 30 ? '#22c55e' : p.prob > 10 ? '#f59e0b' : '#ef4444',
-                  fontSize: 11, fontWeight: 800, width: 40, textAlign: 'right', flexShrink: 0,
+                  fontSize: 12, fontWeight: 800, width: 40, textAlign: 'right', flexShrink: 0,
                 }}>{p.prob}%</span>
               </div>
             ))}

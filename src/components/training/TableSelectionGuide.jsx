@@ -43,17 +43,17 @@ export default function TableSelectionGuide() {
           <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{ind.indicator}</span>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 4,
+              <span style={{ fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 4,
                 background: ind.weight === 'HIGH' ? 'rgba(34,197,94,0.15)' : ind.weight === 'MEDIUM' ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
                 color: ind.weight === 'HIGH' ? '#22c55e' : ind.weight === 'MEDIUM' ? '#f59e0b' : '#64748b' }}>
                 {ind.weight}
               </span>
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: '#22c55e'}}>✓ {ind.good}</span>
-              <span style={{ fontSize: 11, color: '#ef4444'}}>✕ {ind.bad}</span>
+              <span style={{ fontSize: 12, color: '#22c55e'}}>✓ {ind.good}</span>
+              <span style={{ fontSize: 12, color: '#ef4444'}}>✕ {ind.bad}</span>
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{ind.desc}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{ind.desc}</div>
           </div>
         ))}
       </div>

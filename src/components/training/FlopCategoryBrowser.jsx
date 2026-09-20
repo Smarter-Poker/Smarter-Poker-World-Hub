@@ -201,7 +201,7 @@ export default function FlopCategoryBrowser() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Flop Category Browser</h3>
-            <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Browse GTO Solutions By Flop Texture - {totalFlops.toFixed(1)}% Of All Flops Covered</div>
+            <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Browse GTO Solutions By Flop Texture - {totalFlops.toFixed(1)}% Of All Flops Covered</div>
           </div>
         </div>
 
@@ -211,7 +211,7 @@ export default function FlopCategoryBrowser() {
             padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
             background: !filterGroup ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
             border: !filterGroup ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-            color: !filterGroup ? '#3b82f6' : '#64748b', fontSize: 10, fontWeight: 600,
+            color: !filterGroup ? '#3b82f6' : '#64748b', fontSize: 12, fontWeight: 600,
           }}>All ({CATEGORIES.length})</button>
           {GROUPS.map(g => {
             const count = CATEGORIES.filter(c => c.group === g).length;
@@ -220,7 +220,7 @@ export default function FlopCategoryBrowser() {
                 padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                 background: filterGroup === g ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
                 border: filterGroup === g ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-                color: filterGroup === g ? '#3b82f6' : '#64748b', fontSize: 10, fontWeight: 600,
+                color: filterGroup === g ? '#3b82f6' : '#64748b', fontSize: 12, fontWeight: 600,
               }}>{g} ({count})</button>
             );
           })}
@@ -231,7 +231,7 @@ export default function FlopCategoryBrowser() {
               padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
               background: sortBy === s ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
               border: sortBy === s ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
-              color: sortBy === s ? '#f59e0b' : '#64748b', fontSize: 10, fontWeight: 600,
+              color: sortBy === s ? '#f59e0b' : '#64748b', fontSize: 12, fontWeight: 600,
             }}>Sort: {s === 'frequency' ? 'Frequency' : s === 'cbet' ? 'C-Bet %' : 'Difficulty'}</button>
           ))}
         </div>
@@ -249,15 +249,15 @@ export default function FlopCategoryBrowser() {
                   transition: 'all 0.15s',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ padding: '2px 5px', borderRadius: 3, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 7, fontWeight: 800 }}>{cat.group}</span>
+                    <span style={{ padding: '2px 5px', borderRadius: 3, background: 'rgba(139,92,246,0.1)', color: '#a78bfa', fontSize: 12, fontWeight: 800 }}>{cat.group}</span>
                     <span style={{ color: '#f1f5f9', fontSize: 12, fontWeight: 700, flex: 1 }}>{cat.name}</span>
-                    <span style={{ color: getDifficultyColor(cat.difficulty), fontSize: 9, fontWeight: 700 }}>{cat.difficulty}</span>
-                    <span style={{ color: '#f59e0b', fontSize: 11, fontWeight: 800 }}>{cat.frequency}%</span>
+                    <span style={{ color: getDifficultyColor(cat.difficulty), fontSize: 12, fontWeight: 700 }}>{cat.difficulty}</span>
+                    <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 800 }}>{cat.frequency}%</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ color: '#64748b', fontSize: 9 }}>{cat.pattern}</span>
-                    <span style={{ color: '#22c55e', fontSize: 9, fontWeight: 600 }}>IP C-Bet: {cat.ipCbet}%</span>
-                    <span style={{ color: getAdvantageColor(cat.rangeAdvantage), fontSize: 9, fontWeight: 600 }}>Advantage: {cat.rangeAdvantage}</span>
+                    <span style={{ color: '#64748b', fontSize: 12 }}>{cat.pattern}</span>
+                    <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 600 }}>IP C-Bet: {cat.ipCbet}%</span>
+                    <span style={{ color: getAdvantageColor(cat.rangeAdvantage), fontSize: 12, fontWeight: 600 }}>Advantage: {cat.rangeAdvantage}</span>
                   </div>
                 </div>
 
@@ -266,7 +266,7 @@ export default function FlopCategoryBrowser() {
                     {/* Examples */}
                     <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                       {cat.examples.map((ex, i) => (
-                        <span key={i} style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.2)', color: '#f1f5f9', fontSize: 11, fontWeight: 600 }}>{ex}</span>
+                        <span key={i} style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(0,0,0,0.2)', color: '#f1f5f9', fontSize: 12, fontWeight: 600 }}>{ex}</span>
                       ))}
                     </div>
 
@@ -279,7 +279,7 @@ export default function FlopCategoryBrowser() {
                         { label: 'Check Freq', value: `${cat.checkFreq}%`, color: '#64748b' },
                       ].map((s, i) => (
                         <div key={i} style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 4, padding: 6, textAlign: 'center' }}>
-                          <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600 }}>{s.label}</div>
+                          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{s.label}</div>
                           <div style={{ color: s.color, fontSize: 14, fontWeight: 800 }}>{s.value}</div>
                         </div>
                       ))}
@@ -287,21 +287,21 @@ export default function FlopCategoryBrowser() {
 
                     {/* Sub-categories */}
                     <div style={{ marginBottom: 10 }}>
-                      <div style={{ color: '#64748b', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Sub-Categories</div>
+                      <div style={{ color: '#64748b', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Sub-Categories</div>
                       {cat.subCategories.map((sub, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-                          <span style={{ color: '#94a3b8', fontSize: 10, flex: 1 }}>{sub.name}</span>
-                          <span style={{ color: '#22c55e', fontSize: 10, fontWeight: 700 }}>C-Bet: {sub.cbet}%</span>
-                          <span style={{ color: '#3b82f6', fontSize: 10 }}>Size: {sub.size}</span>
-                          <span style={{ color: '#64748b', fontSize: 9 }}>{sub.examples.toLocaleString()} Flops</span>
+                          <span style={{ color: '#94a3b8', fontSize: 12, flex: 1 }}>{sub.name}</span>
+                          <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 700 }}>C-Bet: {sub.cbet}%</span>
+                          <span style={{ color: '#3b82f6', fontSize: 12 }}>Size: {sub.size}</span>
+                          <span style={{ color: '#64748b', fontSize: 12 }}>{sub.examples.toLocaleString()} Flops</span>
                         </div>
                       ))}
                     </div>
 
                     {/* Strategy */}
                     <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 6, padding: 8, border: '1px solid rgba(59,130,246,0.15)' }}>
-                      <div style={{ color: '#3b82f6', fontSize: 9, fontWeight: 700, marginBottom: 2 }}>KEY STRATEGY</div>
-                      <div style={{ color: '#cbd5e1', fontSize: 11, lineHeight: 1.5 }}>{cat.keyStrategy}</div>
+                      <div style={{ color: '#3b82f6', fontSize: 12, fontWeight: 700, marginBottom: 2 }}>KEY STRATEGY</div>
+                      <div style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5 }}>{cat.keyStrategy}</div>
                     </div>
                   </div>
                 )}

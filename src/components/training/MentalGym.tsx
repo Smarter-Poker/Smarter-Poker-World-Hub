@@ -342,7 +342,7 @@ const styles: Record<string, React.CSSProperties> = {
         flexDirection: 'column',
         alignItems: 'center',
         padding: 24,
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: 'linear-gradient(180deg, #0a0a15 0%, #0d1628 100%)',
     },
     triggerBadge: {
@@ -454,7 +454,7 @@ const styles: Record<string, React.CSSProperties> = {
     emotionalTag: {
         padding: '4px 8px',
         borderRadius: 6,
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 600,
         textTransform: 'uppercase',
     },

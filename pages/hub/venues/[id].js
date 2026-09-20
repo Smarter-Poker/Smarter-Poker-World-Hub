@@ -35,6 +35,8 @@ import {
   findLiveCashGameEntry,
 } from '../../../src/lib/poker-near-me/liveCashGameData';
 import { normalizeVenueName } from '../../../src/lib/poker-near-me/venueMatching';
+import { isPublishableStreetAddress } from '../../../src/lib/poker-near-me/structuredData';
+import { venueTitle } from '../../../src/lib/seo/venueTitle';
 import {
   createPokerMapSession,
   loadPokerMapRuntime,
@@ -104,11 +106,21 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
   const canonical = SITE_ORIGIN + '/hub/venues/' + encodeURIComponent(canonicalId);
   const location = [venue.city, venue.state].filter(Boolean).join(', ');
 
-  // Avoid 'X Poker Room - Poker Room in ...' when the name already says it.
-  const namesPoker = /poker/i.test(venue.name);
-  const title = location
-    ? venue.name + (namesPoker ? ' - ' : ' - Poker Room in ') + location
-    : venue.name + (namesPoker ? ' - Venue Details' : ' - Poker Venue');
+  // AEO phase 3 (2026-09-18): this was one template clamped at 110
+  // characters. 110 is roughly where a title tag stops being sensible
+  // markup, not where a result cuts, which is nearer 60 once the
+  // " | Smarter.Poker" suffix SEOHead appends is counted. 290 of the 478
+  // venue pages in the sitemap were over that, the longest at 90, and what
+  // got cut was the end of the string, which is where the city and the
+  // state were. A venue page exists to answer "poker in <city>", so the
+  // part naming the city was the part being thrown away.
+  //
+  // venueTitle steps down through candidates until one fits instead.
+  // Across all 478 live venues that leaves none over budget and keeps the
+  // city on 450 and the state on 476.
+  const title = (venue.city || venue.state)
+    ? venueTitle({ name: venue.name, city: venue.city, state: venue.state })
+    : venue.name + (/poker/i.test(venue.name) ? ' - Venue Details' : ' - Poker Venue');
 
   let description = 'Poker at ' + venue.name + (location ? ' in ' + location : '') + '.';
   if (scheduleCount > 0) {
@@ -123,7 +135,7 @@ function buildVenueSeo(venue, routeId, scheduleCount) {
   description += ' Live games, tournament schedule, hours, directions and player reviews.';
 
   return {
-    title: clampText(title, 110),
+    title,
     description: clampText(description, 300),
     canonical,
     image: toAbsoluteImageUrl(venue.profile_photo_url) || toAbsoluteImageUrl(venue.cover_photo_url),
@@ -147,7 +159,7 @@ function buildVenueJsonLd(venue, canonical, image) {
   const locationConflict = venue?.location_quality?.status === 'conflict';
   if (!locationConflict) {
     const address = {};
-    if (venue.address) address.streetAddress = String(venue.address);
+    if (isPublishableStreetAddress(venue.address)) address.streetAddress = String(venue.address);
     if (venue.city) address.addressLocality = String(venue.city);
     if (venue.state) address.addressRegion = String(venue.state);
     if (venue.zip_code) address.postalCode = String(venue.zip_code);
@@ -3106,7 +3118,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           color: '#00D4FF', zIndex: 4 - i, position: 'relative'
                         }}>
                           {p.avatar_url
-                            ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ? <img src={p.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             : (p.full_name || p.user_name || 'A').charAt(0).toUpperCase()
                           }
                         </div>
@@ -3252,7 +3264,7 @@ export default function VenueDetailPage({ venueId = null, initialVenue = null })
                           fontSize: 12, fontWeight: 800, color: idx < 3 ? '#000' : '#fff', flexShrink: 0
                         }}>{idx + 1}</div>
                         {leader.avatar_url ? (
-                          <img src={leader.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                          <img src={leader.avatar_url} alt="" loading="lazy" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                         ) : (
                           <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>
                             {(leader.full_name || leader.user_name || '?').charAt(0).toUpperCase()}

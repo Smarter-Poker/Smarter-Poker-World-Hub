@@ -88,15 +88,15 @@ function BlindBattleGuide() {
             <div key={i} style={{ padding: 12, background: `${s.color}08`, borderRadius: 10, border: `1px solid ${s.color}22` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.title}</div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)' }}>{s.range}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)' }}>{s.range}</span>
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: 6 }}>{s.desc}</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                <div style={{ padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                   Size: {s.sizing}
                 </div>
               </div>
-              <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{s.hands}</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{s.hands}</div>
             </div>
           ))}
         </div>

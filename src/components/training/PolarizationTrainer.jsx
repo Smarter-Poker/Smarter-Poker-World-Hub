@@ -72,13 +72,13 @@ const STRATEGIES = [
 function RangeBar({ value, bluff, check }) {
   return (
     <div style={{ height: 28, borderRadius: 6, overflow: 'hidden', display: 'flex', marginBottom: 4 }}>
-      <div style={{ width: `${value}%`, background: 'linear-gradient(90deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+      <div style={{ width: `${value}%`, background: 'linear-gradient(90deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
         {value > 10 ? `Value ${value}%` : ''}
       </div>
-      <div style={{ width: `${bluff}%`, background: 'linear-gradient(90deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+      <div style={{ width: `${bluff}%`, background: 'linear-gradient(90deg, #ef4444, #dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
         {bluff > 8 ? `Bluff ${bluff}%` : ''}
       </div>
-      <div style={{ width: `${check}%`, background: 'linear-gradient(90deg, #6b7280, #4b5563)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff' }}>
+      <div style={{ width: `${check}%`, background: 'linear-gradient(90deg, #6b7280, #4b5563)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
         {check > 10 ? `Check ${check}%` : ''}
       </div>
     </div>
@@ -101,7 +101,7 @@ function PolarizationTrainer() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {STRATEGIES.map(s => (
             <button key={s.id} onClick={() => setSelectedId(s.id)} style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: selectedId === s.id ? '#6366f1' : 'rgba(255,255,255,0.06)',
               color: selectedId === s.id ? '#fff' : 'rgba(255,255,255,0.7)', border: 'none',
             }}>{s.name}</button>
@@ -150,12 +150,12 @@ function PolarizationTrainer() {
           {strat.mdf > 0 && (
             <div style={{ flex: 1, padding: 10, background: 'rgba(99,102,241,0.06)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#6366f1' }}>{strat.mdf}%</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Villain MDF</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Villain MDF</div>
             </div>
           )}
           <div style={{ flex: 1, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{strat.optimalRatio}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>Optimal V:B Ratio</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Optimal V:B Ratio</div>
           </div>
         </div>
 

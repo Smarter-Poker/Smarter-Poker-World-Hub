@@ -50,7 +50,7 @@ export default function LivePokerTells() {
             style={{ padding: '8px 4px', borderRadius: 8, border: tellIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: tellIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{t.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: tellIdx === i ? t.color : '#64748b' }}>{t.tell.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: tellIdx === i ? t.color : '#64748b' }}>{t.tell.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -63,20 +63,20 @@ export default function LivePokerTells() {
             <span style={{ fontSize: 15, fontWeight: 800, color: tell.color }}>{tell.tell}</span>
           </div>
           <div style={{ background: `${tell.color}20`, borderRadius: 6, padding: '3px 8px' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: tell.color }}>{tell.reliable}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: tell.color }}>{tell.reliable}</span>
           </div>
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Indicates Strength</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Indicates Strength</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.strong}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Indicates Weakness</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Indicates Weakness</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.weak}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Counter / Caveat</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Counter / Caveat</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tell.counter}</div>
           </div>
         </div>

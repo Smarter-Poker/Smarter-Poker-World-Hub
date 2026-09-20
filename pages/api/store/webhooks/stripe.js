@@ -6,7 +6,7 @@
 import { createHash } from 'node:crypto';
 import Stripe from 'stripe';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import {
     STRIPE_VIP_AUTHORITY,
     classifyStripeCheckoutSessionForVip,
@@ -369,7 +369,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-    try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+    try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -616,7 +616,7 @@ async function handleCheckoutCompleted(session) {
             });
         } catch (subErr) {
             // Note: this handler has no `req` — pass null so the report actually sends.
-            try { reportApiError(subErr, null); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+            try { reportApiError(subErr, null); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
             console.warn('Error processing VIP subscription checkout:', subErr);
             // Rethrow so the webhook returns 500 and Stripe retries the event —
             // a paid subscription that failed to activate must not be dropped.

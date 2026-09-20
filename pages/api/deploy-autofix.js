@@ -1,4 +1,4 @@
-import { reportApiError } from '../../src/lib/sentryWrap';
+import { reportApiError } from '../../src/lib/apiErrorHandler';
 import { alertEventKey, recordOperationalAlerts } from '../../src/lib/operationalAlerts.mjs';
 /**
  * /api/deploy-autofix — AI-Powered Auto-Fix for Failed Deployments
@@ -334,7 +334,7 @@ export default async function handler(req, res) {
       return res.status(503).json({ action: 'alert_delivery_failed', sent: false,
         retryable: true, reason: 'Provider failure was not acknowledged by the operational inbox' });
     }
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     // Handle AbortController timeout specifically
     if (err.name === 'AbortError') {
       console.warn('[deploy-autofix] Anthropic API call timed out (45s limit)');

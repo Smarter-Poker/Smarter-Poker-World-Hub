@@ -6,7 +6,7 @@ import { auditOperatorAction } from '../../../src/lib/horses/operatorAudit.js';
 import { requestIdOf } from '../../../src/lib/horses/apiEnvelope.js';
 import { operatorHoldsPermission } from '../../../src/lib/horses/operatorGate.js';
 import { PERMISSIONS } from '../../../src/lib/horses/permissions.js';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { randomInt } from 'crypto';
 
 // promo_codes is a GLOBAL table with no venue_id column, so a code minted here
@@ -388,7 +388,7 @@ export default async function handler(req, res) {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

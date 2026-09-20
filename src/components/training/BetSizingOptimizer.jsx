@@ -77,7 +77,7 @@ function BetSizingOptimizer() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
           {SITUATIONS.map((s, i) => (
             <button key={i} onClick={() => setSelected(i)} style={{
-              padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: selected === i ? s.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{s.name}</button>
@@ -87,10 +87,10 @@ function BetSizingOptimizer() {
         <div style={{ padding: 12, background: `${sit.color}11`, borderRadius: 10, border: `1px solid ${sit.color}33`, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: sit.color }}>{sit.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{sit.hand}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{sit.hand}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Optimal</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Optimal</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{sit.optimal}</div>
           </div>
         </div>
@@ -100,15 +100,15 @@ function BetSizingOptimizer() {
             <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ minWidth: 45, fontSize: 14, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{s.pct}</div>
               <div style={{ minWidth: 50 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `${verdictColors[s.verdict]}22`, color: verdictColors[s.verdict] }}>{s.verdict}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: `${verdictColors[s.verdict]}22`, color: verdictColors[s.verdict] }}>{s.verdict}</span>
               </div>
-              <div style={{ flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{s.reason}</div>
+              <div style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{s.reason}</div>
             </div>
           ))}
         </div>
 
         <div style={{ padding: 10, background: 'rgba(20,184,166,0.06)', borderRadius: 8, border: '1px solid rgba(20,184,166,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#14b8a6', marginBottom: 2 }}>Key Principle</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#14b8a6', marginBottom: 2 }}>Key Principle</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{sit.tip}</div>
         </div>
       </div>

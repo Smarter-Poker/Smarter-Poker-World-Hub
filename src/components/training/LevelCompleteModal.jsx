@@ -162,7 +162,7 @@ export default function LevelCompleteModal({
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 9px;
+                    font-size: 12px;
                     color: #1a2a3a;
                     font-weight: bold;
                 }
@@ -249,7 +249,7 @@ export default function LevelCompleteModal({
 
                 .stat-label {
                     color: #64748b;
-                    font-size: 11px;
+                    font-size: 12px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                     margin-top: 4px;
@@ -265,7 +265,7 @@ export default function LevelCompleteModal({
 
                 .xp-label {
                     color: #64748b;
-                    font-size: 11px;
+                    font-size: 12px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }

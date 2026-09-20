@@ -20,7 +20,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,10 +33,10 @@ const SCRIPT = path.resolve(HERE, '../scripts/vercel-should-build.sh');
  * `git diff HEAD~1 HEAD` resolves exactly as it does on Vercel.
  * @returns 0 when the build is SKIPPED, 1 when it PROCEEDS.
  */
-function runGate({ env = {}, changedFile = 'pages/index.js' } = {}) {
+function runGate({ env = {}, changedFile = 'pages/index.js', earlierAppChange = false, missingGit = false } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), 'should-build-'));
   const git = (...args) =>
-    execFileSync('git', args, { cwd: dir, stdio: 'pipe', env: { ...process.env, HOME: dir } });
+    execFileSync('git', args, { cwd: dir, stdio: 'pipe', env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null' } });
   try {
     git('init', '-q');
     git('config', 'user.email', 't@t.t');
@@ -44,6 +44,12 @@ function runGate({ env = {}, changedFile = 'pages/index.js' } = {}) {
     writeFileSync(path.join(dir, 'seed.txt'), 'seed');
     git('add', '-A');
     git('commit', '-qm', 'seed');
+    const previous = git('rev-parse', 'HEAD').toString().trim();
+    if (earlierAppChange) {
+      writeFileSync(path.join(dir, 'app.js'), 'unpublished app change');
+      git('add', '-A');
+      git('commit', '-qm', 'app before docs');
+    }
 
     const target = path.join(dir, changedFile);
     mkdirSync(path.dirname(target), { recursive: true });
@@ -51,11 +57,12 @@ function runGate({ env = {}, changedFile = 'pages/index.js' } = {}) {
     git('add', '-A');
     git('commit', '-qm', 'change');
 
+    if (missingGit) rmSync(path.join(dir, '.git'), { recursive: true });
     try {
       execFileSync('bash', [SCRIPT], {
         cwd: dir,
         stdio: 'pipe',
-        env: { ...process.env, HOME: dir, ...env },
+        env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', VERCEL_GIT_PREVIOUS_SHA: previous, ...env },
       });
       return 0;
     } catch (err) {
@@ -147,4 +154,52 @@ describe('the 2026-05-18 docs-only saving is unchanged', () => {
   test('an app-code production change still builds', () => {
     assert.equal(runGate({ env: PRODUCTION, changedFile: 'src/lib/thing.js' }), 1);
   });
+});
+
+// Regression: a docs commit must not conceal an unpublished application change.
+test('compares the entire change since the last successful deployment', () => {
+  assert.equal(runGate({ env: PRODUCTION, changedFile: 'docs/note.md', earlierAppChange: true }), 1);
+});
+test('unknown history builds rather than silently skipping production', () => {
+  assert.equal(runGate({ env: PRODUCTION, changedFile: 'docs/note.md', missingGit: true }), 1);
+  assert.equal(runGate({ env: { ...PRODUCTION, VERCEL_GIT_PREVIOUS_SHA: '' }, changedFile: 'docs/note.md' }), 1);
+});
+test('runtime Markdown is an application input', () => {
+  assert.equal(runGate({ env: PRODUCTION, changedFile: 'data/article.md' }), 1);
+});
+test('Git metadata survives provider filtering and previews are opt-in before queueing', () => {
+  const root = path.resolve(HERE, '..');
+  const exclusions = readFileSync(path.join(root, '.vercelignore'), 'utf8').split('\n').map(s => s.trim());
+  assert.ok(!exclusions.includes('.git/') && !exclusions.includes('/.git/'));
+  const config = JSON.parse(readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  assert.deepEqual(config.git.deploymentEnabled, { '**': false, main: true, 'preview/**': true });
+  assert.equal(config.ignoreCommand, 'bash scripts/vercel-should-build.sh');
+});
+
+test('a baseline beyond the provider shallow clone is fetched once and compared', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'build-history-'));
+  const source = path.join(dir, 'source');
+  const clone = path.join(dir, 'clone');
+  mkdirSync(source);
+  const git = (...args) => execFileSync('git', args, { cwd: source, stdio: 'pipe', env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null' } });
+  try {
+    git('init', '-q'); git('config', 'user.email', 'test@example.invalid'); git('config', 'user.name', 'Build gate test');
+    writeFileSync(path.join(source, 'README.md'), 'baseline');
+    git('add', '.'); git('commit', '-qm', 'baseline');
+    const previous = git('rev-parse', 'HEAD').toString().trim();
+    writeFileSync(path.join(source, 'README.md'), 'documentation');
+    git('commit', '-qam', 'docs');
+    git('clone', '--depth=1', `file://${source}`, clone);
+    assert.equal(execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: clone }).toString().trim(), '1');
+    const run = () => {
+      try { execFileSync('bash', [SCRIPT], { cwd: clone, stdio: 'pipe', env: { ...process.env, ...PRODUCTION, VERCEL_GIT_PREVIOUS_SHA: previous } }); return 0; }
+      catch (error) { return error.status; }
+    };
+    assert.equal(run(), 0, 'known documentation changes still skip with shallow history');
+    // A deleted application file is a change even when there is no new content.
+    writeFileSync(path.join(source, 'app.js'), 'application'); git('add', '.'); git('commit', '-qm', 'app');
+    const deployed = git('rev-parse', 'HEAD').toString().trim();
+    rmSync(path.join(source, 'app.js')); git('commit', '-qam', 'delete app');
+    assert.throws(() => execFileSync('bash', [SCRIPT], { cwd: source, stdio: 'pipe', env: { ...process.env, ...PRODUCTION, VERCEL_GIT_PREVIOUS_SHA: deployed } }), error => error.status === 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

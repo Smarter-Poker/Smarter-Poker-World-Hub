@@ -101,7 +101,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                     RUNOUT ANALYSIS
                 </span>
                 <span style={{
-                    fontSize: 10, color: '#64748b', background: 'rgba(255,255,255,0.04)',
+                    fontSize: 12, color: '#64748b', background: 'rgba(255,255,255,0.04)',
                     padding: '2px 8px', borderRadius: 12,
                 }}>
                     {Object.values(runoutData || {}).filter(d => d?.has_data).length} / 49 Cards
@@ -111,7 +111,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
             {/* Legend */}
             <div style={{
                 display: 'flex', gap: 16, marginBottom: 10,
-                fontSize: 10, color: '#94a3b8',
+                fontSize: 12, color: '#94a3b8',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 12, height: 12, borderRadius: 2, background: 'rgb(30, 255, 60)' }} />
@@ -170,7 +170,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                                     }}
                                 >
                                     <span style={{
-                                        fontSize: 9, fontWeight: 700,
+                                        fontSize: 12, fontWeight: 700,
                                         color: isDead ? '#333' : '#fff',
                                         fontFamily: "'Inter', sans-serif",
                                         textShadow: hasData ? '0 1px 2px rgba(0,0,0,0.5)' : 'none',
@@ -181,7 +181,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                                     {hasData && Number.isFinite(evDelta) && (
                                         <div style={{
                                             position: 'absolute', bottom: -1, left: '50%', transform: 'translateX(-50%)',
-                                            fontSize: 6, fontWeight: 600,
+                                            fontSize: 12, fontWeight: 600,
                                             color: evDelta >= 0 ? '#4ade80' : '#f87171',
                                         }}>
                                             {evDelta >= 0 ? '+' : ''}{evDelta.toFixed(1)}

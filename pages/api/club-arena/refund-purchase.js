@@ -26,7 +26,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommerceResponse';
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 const { logAudit, extractIP } = require('../../../src/lib/club-arena/auditLogger');
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
             alreadyRefunded: !!result.already_refunded,
         });
     } catch (err) {
-        try { reportApiError(err, req); } catch (_e) { /* sentry optional */ }
+        try { reportApiError(err, req); } catch (_e) { /* Local error reporting is best-effort. */ }
         console.warn('[refund-purchase]', err);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

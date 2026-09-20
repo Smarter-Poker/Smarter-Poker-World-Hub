@@ -133,6 +133,13 @@ jobs:
           CI: true
           NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
 
+      - name: Verify Diamond Marketplace Page 1 commerce anatomy
+        run: npx playwright test e2e/05-diamond-store.spec.ts --project=chromium --no-deps --grep "diamond (starter and cinematic packs expose complete readable offer details|variable catalog partition stays complete without duplication)" --workers=1
+        env:
+          CI: true
+          NEXT_PUBLIC_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:${{ steps.port.outputs.port }}
+
       - name: Verify premium World menu presentation
         # Training is the heaviest World route. Running its Chromium screenshot
         # while WebKit hydrates the same route can starve screenshot stability on

@@ -28,7 +28,7 @@
 
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../../src/lib/apiErrorHandler';
 import { sendPushNotification } from '../../../../../src/lib/commander/pushNotifications';
 
 let _supabase = null;
@@ -243,7 +243,7 @@ export default async function handler(req, res) {
         // Unreachable — guard above returns 405.
         return res.status(405).end();
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+        try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
         // eslint-disable-next-line no-console
         console.warn('[public/home-games/slug/follow]', err);
         if (!res.headersSent) {

@@ -141,7 +141,7 @@ function OverBetTrainer() {
                 { label: 'Bluff Range', range: spot.bluffRange, color: '#f59e0b' },
               ].map(r => (
                 <div key={r.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `3px solid ${r.color}` }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: r.color, marginBottom: 4 }}>{r.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: r.color, marginBottom: 4 }}>{r.label}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{r.range}</div>
                 </div>
               ))}
@@ -149,7 +149,7 @@ function OverBetTrainer() {
 
             {/* Villain Reaction */}
             <div style={{ padding: 10, background: 'rgba(220,38,38,0.06)', borderRadius: 8, border: '1px solid rgba(220,38,38,0.1)', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>Villain Reaction</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>Villain Reaction</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{spot.vilReaction}</div>
             </div>
 

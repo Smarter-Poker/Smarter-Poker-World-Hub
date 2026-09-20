@@ -53,7 +53,7 @@ export default function FlopDonkDefense() {
             style={{ padding: '8px 4px', borderRadius: 8, border: typeIdx === i ? `2px solid ${d.color}` : '1px solid rgba(255,255,255,0.06)',
               background: typeIdx === i ? `${d.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 18 }}>{d.icon}</div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: typeIdx === i ? d.color : '#64748b' }}>{d.type}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: typeIdx === i ? d.color : '#64748b' }}>{d.type}</div>
           </button>
         ))}
       </div>

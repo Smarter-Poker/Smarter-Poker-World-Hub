@@ -50,7 +50,7 @@ export default function SolverSimplify() {
             style={{ padding: '8px 4px', borderRadius: 8, border: ruleIdx === i ? `2px solid ${r.color}` : '1px solid rgba(255,255,255,0.06)',
               background: ruleIdx === i ? `${r.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{r.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: ruleIdx === i ? r.color : '#64748b' }}>{r.rule.substring(0, 12)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: ruleIdx === i ? r.color : '#64748b' }}>{r.rule.substring(0, 12)}</div>
           </button>
         ))}
       </div>
@@ -60,19 +60,19 @@ export default function SolverSimplify() {
         <div style={{ fontSize: 15, fontWeight: 800, color: rule.color, marginBottom: 8 }}>{rule.rule}</div>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>What Solver Does</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>What Solver Does</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.solver}</div>
           </div>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Simplified Version</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>Simplified Version</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.simplified}</div>
           </div>
           <div style={{ background: `${rule.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${rule.color}` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: rule.color }}>EV Cost</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: rule.color }}>EV Cost</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.evLoss}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>How To Implement</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>How To Implement</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{rule.howTo}</div>
           </div>
         </div>

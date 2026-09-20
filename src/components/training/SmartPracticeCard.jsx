@@ -93,7 +93,7 @@ const styles = {
         marginBottom: 16,
     },
     weaknessLabel: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#64748b',
         marginBottom: 4,
     },
@@ -119,7 +119,7 @@ const styles = {
         fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
     },
     statLabel: {
-        fontSize: 9,
+        fontSize: 12,
         color: '#64748b',
         textTransform: 'uppercase',
         letterSpacing: 0.5,

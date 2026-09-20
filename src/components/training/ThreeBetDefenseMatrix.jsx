@@ -56,7 +56,7 @@ function ThreeBetDefenseMatrix() {
               flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: selected === i ? m.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 10, fontWeight: 700,
+              fontSize: 12, fontWeight: 700,
             }}>
               <div>{m.opener} Vs</div>
               <div>{m.threeBetter} 3-Bet</div>
@@ -66,19 +66,19 @@ function ThreeBetDefenseMatrix() {
 
         {/* Defense frequency bar */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>Defense Breakdown</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>Defense Breakdown</div>
           <div style={{ display: 'flex', height: 36, borderRadius: 8, overflow: 'hidden', marginBottom: 4 }}>
             <div style={{ width: `${matchup.defense.fourBet}%`, background: '#e879f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{matchup.defense.fourBet}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{matchup.defense.fourBet}%</span>
             </div>
             <div style={{ width: `${matchup.defense.call}%`, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{matchup.defense.call}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{matchup.defense.call}%</span>
             </div>
             <div style={{ width: `${matchup.defense.fold}%`, background: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{matchup.defense.fold}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{matchup.defense.fold}%</span>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
             <span style={{ color: '#e879f9' }}>4-Bet</span>
             <span style={{ color: '#3b82f6' }}>Call</span>
             <span style={{ color: '#6b7280' }}>Fold</span>
@@ -95,9 +95,9 @@ function ThreeBetDefenseMatrix() {
             <div key={r.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: `4px solid ${r.color}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{r.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{r.pct}%</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{r.pct}%</span>
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{r.range}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{r.range}</div>
             </div>
           ))}
         </div>

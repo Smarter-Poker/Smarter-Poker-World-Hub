@@ -68,7 +68,7 @@ quickly.
    ```
    If red, jump to runbook 03.
 
-5. **Check Sentry's "Recent Issues" view** scoped to the last 30 minutes.
+5. **Check the existing application error logs** scoped to the last 30 minutes.
    A spike of one fingerprint across many users points to a recent deploy
    regression; a scatter of unrelated errors points to infra.
 

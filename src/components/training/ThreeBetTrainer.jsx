@@ -98,7 +98,7 @@ const SQUEEZE_RANGES = {
 // ●● Range Grid ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
 
 const RangeGrid = memo(({ range, color = '#22c55e' }) => (
-    <div style={{
+    <div data-allow-small="true" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(13, 1fr)',
         gap: 1,
@@ -207,7 +207,7 @@ export default function ThreeBetTrainer() {
                                 else setSelectedSpot('btn_squeeze');
                             }}
                             style={{
-                                padding: '5px 14px', fontSize: 11, fontWeight: 700,
+                                padding: '5px 14px', fontSize: 12, fontWeight: 700,
                                 borderRadius: 5, border: '1px solid', cursor: 'pointer',
                                 background: mode === m.id ? `${m.color}15` : 'transparent',
                                 color: mode === m.id ? m.color : '#64748b',
@@ -226,7 +226,7 @@ export default function ThreeBetTrainer() {
                             key={key}
                             onClick={() => { setSelectedSpot(key); setSelectedPosition(Object.keys(spot.positions || {})[0]); }}
                             style={{
-                                padding: '3px 8px', fontSize: 9, fontWeight: 600,
+                                padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid',
                                 cursor: 'pointer',
                                 background: selectedSpot === key ? 'rgba(59,130,246,0.1)' : 'rgba(0,0,0,0.15)',
@@ -242,7 +242,7 @@ export default function ThreeBetTrainer() {
                             key={key}
                             onClick={() => setSelectedSpot(key)}
                             style={{
-                                padding: '3px 8px', fontSize: 9, fontWeight: 600,
+                                padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid', cursor: 'pointer',
                                 background: selectedSpot === key ? 'rgba(168,85,247,0.1)' : 'rgba(0,0,0,0.15)',
                                 color: selectedSpot === key ? '#a855f7' : '#94a3b8',
@@ -257,7 +257,7 @@ export default function ThreeBetTrainer() {
                             key={key}
                             onClick={() => setSelectedSpot(key)}
                             style={{
-                                padding: '3px 8px', fontSize: 9, fontWeight: 600,
+                                padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 3, border: '1px solid', cursor: 'pointer',
                                 background: selectedSpot === key ? 'rgba(245,158,11,0.1)' : 'rgba(0,0,0,0.15)',
                                 color: selectedSpot === key ? '#f59e0b' : '#94a3b8',
@@ -272,13 +272,13 @@ export default function ThreeBetTrainer() {
                 {/* Position selector for 3-bet */}
                 {mode === '3bet' && availablePositions.length > 0 && (
                     <div style={{ display: 'flex', gap: 3, marginTop: 6 }}>
-                        <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600, lineHeight: '22px' }}>Hero:</span>
+                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600, lineHeight: '22px' }}>Hero:</span>
                         {availablePositions.map(pos => (
                             <button
                                 key={pos}
                                 onClick={() => setSelectedPosition(pos)}
                                 style={{
-                                    padding: '2px 8px', fontSize: 9, fontWeight: 600,
+                                    padding: '2px 8px', fontSize: 12, fontWeight: 600,
                                     borderRadius: 3, border: '1px solid', cursor: 'pointer',
                                     background: selectedPosition === pos ? 'rgba(0,212,255,0.1)' : 'transparent',
                                     color: selectedPosition === pos ? '#00d4ff' : '#475569',
@@ -299,29 +299,29 @@ export default function ThreeBetTrainer() {
                 display: 'flex', gap: 16, alignItems: 'center',
             }}>
                 <div>
-                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>RANGE %</div>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>RANGE %</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#22c55e', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {currentData.pct?.toFixed(1) || '0.0'}%
                     </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>COMBOS</div>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>COMBOS</div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#3b82f6', fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace" }}>
                         {combos}
                     </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>SIZING</div>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>SIZING</div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
                         {currentData.sizing || '-'}
                     </div>
                 </div>
                 <div style={{ flex: 1, textAlign: 'right' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
                         {currentData.label}
                     </div>
                     {mode === '3bet' && (
-                        <div style={{ fontSize: 9, color: '#818cf8' }}>
+                        <div style={{ fontSize: 12, color: '#818cf8' }}>
                             Hero: {selectedPosition}
                         </div>
                     )}
@@ -338,7 +338,7 @@ export default function ThreeBetTrainer() {
                 {/* Position frequency chart for 3-bet mode */}
                 {mode === '3bet' && currentData.positions && (
                     <div style={{ marginTop: 12 }}>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
                             3-Bet Frequency By Position
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 50 }}>
@@ -356,10 +356,10 @@ export default function ThreeBetTrainer() {
                                                     : 'linear-gradient(180deg, #3b82f6, #1d4ed8)',
                                             }}
                                         />
-                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>
                                             {data.pct}%
                                         </div>
-                                        <div style={{ fontSize: 8, color: '#64748b' }}>{pos}</div>
+                                        <div style={{ fontSize: 12, color: '#64748b' }}>{pos}</div>
                                     </div>
                                 );
                             })}

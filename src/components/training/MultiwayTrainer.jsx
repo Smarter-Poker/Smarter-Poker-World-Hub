@@ -53,7 +53,7 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
                 marginBottom: 6, textAlign: 'center',
             }}>
                 {numPlayers}-Way
-                {isBaseline && <span style={{ fontSize: 8, color: '#3b82f6', marginLeft: 4 }}>Baseline</span>}
+                {isBaseline && <span style={{ fontSize: 12, color: '#3b82f6', marginLeft: 4 }}>Baseline</span>}
             </div>
 
             {/* Bet/Check bar */}
@@ -68,7 +68,7 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
                     }}
                 >
                     {strategy.betFrequency >= 0.15 && (
-                        <span style={{ fontSize: 8, fontWeight: 700, color: '#fff' }}>Bet {betPct}%</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Bet {betPct}%</span>
                     )}
                 </motion.div>
                 <div style={{
@@ -76,13 +76,13 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                     {strategy.checkFrequency >= 0.15 && (
-                        <span style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8' }}>Check {checkPct}%</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>Check {checkPct}%</span>
                     )}
                 </div>
             </div>
 
             {/* Details */}
-            <div style={{ fontSize: 9, color: '#64748b', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
                 <div><span style={{ color: '#94a3b8', fontWeight: 600 }}>Action:</span> {strategy.action}{strategy.sizing ? ` (${strategy.sizing})` : ''}</div>
                 <div><span style={{ color: '#94a3b8', fontWeight: 600 }}>Reason:</span> {strategy.motivation}</div>
             </div>
@@ -91,17 +91,17 @@ const StrategyCard = memo(({ numPlayers, strategy, isBaseline = false }) => {
             {strategy.adjustments && (
                 <div style={{ marginTop: 4, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                     {strategy.adjustments.cbetMultiplier < 0.8 && (
-                        <span style={{ fontSize: 7, padding: '1px 4px', borderRadius: 2, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                        <span style={{ fontSize: 12, padding: '1px 4px', borderRadius: 2, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
                             C-Bet ↓{((1 - strategy.adjustments.cbetMultiplier) * 100).toFixed(0)}%
                         </span>
                     )}
                     {strategy.adjustments.bluffMultiplier < 0.6 && (
-                        <span style={{ fontSize: 7, padding: '1px 4px', borderRadius: 2, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                        <span style={{ fontSize: 12, padding: '1px 4px', borderRadius: 2, background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
                             Bluff ↓{((1 - strategy.adjustments.bluffMultiplier) * 100).toFixed(0)}%
                         </span>
                     )}
                     {strategy.adjustments.protectionMultiplier > 1.2 && (
-                        <span style={{ fontSize: 7, padding: '1px 4px', borderRadius: 2, background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
+                        <span style={{ fontSize: 12, padding: '1px 4px', borderRadius: 2, background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>
                             Protection ↑{((strategy.adjustments.protectionMultiplier - 1) * 100).toFixed(0)}%
                         </span>
                     )}
@@ -161,7 +161,7 @@ export default function MultiwayTrainer() {
                             key={i}
                             onClick={() => setSelectedScenario(i)}
                             style={{
-                                padding: '3px 8px', fontSize: 9, fontWeight: 600,
+                                padding: '3px 8px', fontSize: 12, fontWeight: 600,
                                 borderRadius: 4, border: '1px solid',
                                 cursor: 'pointer',
                                 background: selectedScenario === i ? 'rgba(0,212,255,0.1)' : 'rgba(0,0,0,0.15)',
@@ -193,7 +193,7 @@ export default function MultiwayTrainer() {
                             color: SuitColor[c[1]] || '#1e293b',
                         }}>
                             <span>{c[0]}</span>
-                            <span style={{ fontSize: 9 }}>{SuitSymbol[c[1]] || ''}</span>
+                            <span style={{ fontSize: 12 }}>{SuitSymbol[c[1]] || ''}</span>
                         </div>
                     ))}
                 </div>
@@ -209,16 +209,16 @@ export default function MultiwayTrainer() {
                             color: SuitColor[c[1]] || '#1e293b',
                         }}>
                             <span>{c[0]}</span>
-                            <span style={{ fontSize: 9 }}>{SuitSymbol[c[1]] || ''}</span>
+                            <span style={{ fontSize: 12 }}>{SuitSymbol[c[1]] || ''}</span>
                         </div>
                     ))}
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#818cf8', padding: '2px 6px', background: 'rgba(129,140,248,0.1)', borderRadius: 3 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#818cf8', padding: '2px 6px', background: 'rgba(129,140,248,0.1)', borderRadius: 3 }}>
                         {scenario.position}
                     </span>
                     {scenario.isPFR && (
-                        <span style={{ fontSize: 10, fontWeight: 600, color: '#22c55e', padding: '2px 6px', background: 'rgba(34,197,94,0.1)', borderRadius: 3 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#22c55e', padding: '2px 6px', background: 'rgba(34,197,94,0.1)', borderRadius: 3 }}>
                             PFR
                         </span>
                     )}
@@ -227,7 +227,7 @@ export default function MultiwayTrainer() {
 
             {/* Strategy comparison grid */}
             <div style={{ padding: 12 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase' }}>
                     How Strategy Changes By Number Of Players
                 </div>
                 <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
@@ -247,10 +247,10 @@ export default function MultiwayTrainer() {
                     background: 'rgba(99,102,241,0.06)',
                     border: '1px solid rgba(99,102,241,0.12)',
                 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#818cf8', marginBottom: 4, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4, textTransform: 'uppercase' }}>
                         Key Multiway Adjustments
                     </div>
-                    <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.6 }}>
                         {strategies[2]?.betFrequency > 0 && strategies[3]?.betFrequency < strategies[2]?.betFrequency && (
                             <div>
                                 Bet Frequency Drops From <strong>{(strategies[2].betFrequency * 100).toFixed(0)}%</strong> Heads-Up to{' '}
@@ -268,7 +268,7 @@ export default function MultiwayTrainer() {
 
                 {/* Visual bet freq chart across player counts */}
                 <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
                         Bet Frequency By Player Count
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 60 }}>
@@ -285,10 +285,10 @@ export default function MultiwayTrainer() {
                                             background: `linear-gradient(180deg, ${color}, ${color}88)`,
                                         }}
                                     />
-                                    <div style={{ fontSize: 9, color: '#e2e8f0', fontWeight: 700, marginTop: 2 }}>
+                                    <div style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 700, marginTop: 2 }}>
                                         {(freq * 100).toFixed(0)}%
                                     </div>
-                                    <div style={{ fontSize: 8, color: '#64748b' }}>{n}p</div>
+                                    <div style={{ fontSize: 12, color: '#64748b' }}>{n}p</div>
                                 </div>
                             );
                         })}

@@ -22,7 +22,7 @@ import { applyDeterministicEnginePatches } from '../../../src/engines/determinis
 import { SolverPolicyService } from '../../../src/services/SolverPolicyService.js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { enforceTrainingQuestionContract, isTrainingQuestionValid } from '../../../src/lib/training/questionContract.mjs';
 import {
     createTrainingSessionId,
@@ -257,9 +257,9 @@ export default async function handler(req, res) {
   } catch (err) {
       try {
           reportApiError(err, req);
-      } catch (_sentryErr) {
-          console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
-          void _sentryErr;
+      } catch (_reportError) {
+          console.warn('[App] Handled exception:', _reportError?.message || _reportError);
+          void _reportError;
       }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });

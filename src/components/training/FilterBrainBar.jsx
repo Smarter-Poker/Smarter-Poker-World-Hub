@@ -75,7 +75,7 @@ export default function FilterBrainBar({
 
                 {/* Diamonds */}
                 <div style={styles.statBlock}>
-                    <span style={styles.statLabel}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
+                    <span style={styles.statLabel}><img src="/images/diamond.webp" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/></span>
                     <span style={{ ...styles.statValue, color: '#00D4FF' }}>
                         {diamondBalance.toLocaleString()}
                     </span>
@@ -132,7 +132,7 @@ const styles = {
     },
 
     statLabel: {
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 500,
         color: 'rgba(255,255,255,0.4)',
         letterSpacing: 1,
@@ -153,7 +153,7 @@ const styles = {
 
     readyBadge: {
         padding: '6px 14px',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 700,
         color: 'rgba(255,255,255,0.6)',
         background: 'rgba(255,255,255,0.08)',

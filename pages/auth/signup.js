@@ -521,8 +521,7 @@ export default function SignUpPage() {
     } catch (err) {
       console.warn(`${provider} sign in error:`, err);
       // PARITY WITH login.js (2026-08-25). This page had no server-side error
-      // capture at all, and client Sentry is off in production - so a Facebook
-      // button that failed HERE was still completely invisible, which is the
+      // reporting, so a provider failure was invisible. This closes the
       // exact bug the callback fix was written to close.
       reportAuthError('signup_oauth_init', err);
       setError(err.message || `Failed to sign in with ${provider}`);
@@ -878,7 +877,7 @@ export default function SignUpPage() {
     <>
       <SEOHead
         title="Create Account - Smarter.Poker"
-        description="Join Smarter.Poker - The Future Of Poker. Free Account With Training, Trivia, Live Games, And More."
+        description="Create A Free Smarter.Poker Account: GTO Training, Private Poker Clubs In Poker Arena, Live Poker Room Waitlists, Home Games, Trivia And A Bankroll Manager. Free To Play, No Real-Money Gambling."
         canonical="/auth/signup"
       />
 
@@ -903,7 +902,7 @@ export default function SignUpPage() {
               width: '100%',
               maxWidth: 'min(100vw, 71.4vh)',
               aspectRatio: '10 / 14',
-              backgroundImage: `url('/images/dynamic-signup-bg.jpg')`,
+              backgroundImage: `url('/images/dynamic-signup-bg.webp')`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',

@@ -64,7 +64,7 @@ function SqueezPlayGuide() {
               flex: 1, padding: '6px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
               background: selected === i ? s.color : 'rgba(255,255,255,0.06)',
               color: selected === i ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontSize: 9, fontWeight: 700, lineHeight: 1.3,
+              fontSize: 12, fontWeight: 700, lineHeight: 1.3,
             }}>{s.position}</button>
           ))}
         </div>
@@ -74,27 +74,27 @@ function SqueezPlayGuide() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>{spot.squeezeRange}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Squeeze Range</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Squeeze Range</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#10b981' }}>{spot.foldEquity}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Fold Equity</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Fold Equity</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#3b82f6' }}>{spot.sizing}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Sizing</div>
             </div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, borderLeft: '3px solid #10b981' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Value Range</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{spot.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Value Range</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{spot.value}</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Bluff Range</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{spot.bluffs}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Bluff Range</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{spot.bluffs}</div>
           </div>
         </div>
 
@@ -104,7 +104,7 @@ function SqueezPlayGuide() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {spot.tips.map((t, i) => (
-            <div key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: `2px solid ${spot.color}44` }}>{t}</div>
+            <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', paddingLeft: 8, borderLeft: `2px solid ${spot.color}44` }}>{t}</div>
           ))}
         </div>
       </div>

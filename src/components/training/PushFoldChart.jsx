@@ -50,7 +50,7 @@ export default function PushFoldChart() {
             style={{ padding: '8px 4px', borderRadius: 8, border: chartIdx === i ? `2px solid ${r.color}` : '1px solid rgba(255,255,255,0.06)',
               background: chartIdx === i ? `${r.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{r.icon}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: chartIdx === i ? r.color : '#64748b' }}>{r.stack.substring(0, 10)}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: chartIdx === i ? r.color : '#64748b' }}>{r.stack.substring(0, 10)}</div>
           </button>
         ))}
       </div>
@@ -64,12 +64,12 @@ export default function PushFoldChart() {
           </div>
         </div>
         <div style={{ background: `${chart.color}08`, borderRadius: 8, padding: 10, marginBottom: 10, fontFamily: 'monospace' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Shove Range</div>
-          <div style={{ fontSize: 11, color: chart.color, lineHeight: 1.5 }}>{chart.shoveRange}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Shove Range</div>
+          <div style={{ fontSize: 12, color: chart.color, lineHeight: 1.5 }}>{chart.shoveRange}</div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 10 }}>{chart.reasoning}</p>
         <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>Key Hands</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>Key Hands</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{chart.keyHands}</div>
         </div>
       </motion.div>

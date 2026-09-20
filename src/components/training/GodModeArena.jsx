@@ -277,7 +277,7 @@ function AccuracyByPositionChart({ handHistory }) {
             : 0;
         return (
           <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ width: 40, fontSize: 11, fontWeight: 600, color: '#00d4ff' }}>
+            <span style={{ width: 40, fontSize: 12, fontWeight: 600, color: '#00d4ff' }}>
               {pos}
             </span>
             <div
@@ -303,7 +303,7 @@ function AccuracyByPositionChart({ handHistory }) {
             <span
               style={{
                 width: 35,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 'bold',
                 color: pct >= 70 ? '#22c55e' : pct >= 50 ? '#fbbf24' : '#ef4444',
                 textAlign: 'right',
@@ -366,7 +366,7 @@ function WeaknessHeatmap({ handHistory }) {
           display: 'grid',
           gridTemplateColumns: `60px repeat(${streets.length}, 1fr)`,
           gap: 3,
-          fontSize: 10,
+          fontSize: 12,
         }}
       >
         <div style={{ color: '#64748b', fontWeight: 700 }}></div>
@@ -378,7 +378,7 @@ function WeaknessHeatmap({ handHistory }) {
               fontWeight: 700,
               textTransform: 'uppercase',
               textAlign: 'center',
-              fontSize: 9,
+              fontSize: 12,
             }}
           >
             {s.slice(0, 3)}
@@ -432,7 +432,7 @@ function WeaknessHeatmap({ handHistory }) {
           </React.Fragment>
         ))}
       </div>
-      <div style={{ fontSize: 9, color: '#64748b', marginTop: 6, textAlign: 'center' }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginTop: 6, textAlign: 'center' }}>
         Green = 80%+ | Yellow = 60-79% | Orange = 40-59% | Red = Under 40%
       </div>
     </div>
@@ -502,7 +502,7 @@ function AccuracyOverTimeChart({ handHistory }) {
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: 9,
+          fontSize: 12,
           color: '#64748b',
           marginTop: 2,
         }}
@@ -604,7 +604,7 @@ function ClassificationDonut({ handHistory, gtowScore }) {
           y={cy + 10}
           textAnchor="middle"
           fill="#64748b"
-          fontSize="7"
+          fontSize='12px'
           fontWeight="600"
           letterSpacing="1"
         >
@@ -620,10 +620,10 @@ function ClassificationDonut({ handHistory, gtowScore }) {
             <div
               style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }}
             />
-            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600, flex: 1 }}>
+            <div style={{ fontSize: 12, color: '#e2e8f0', fontWeight: 600, flex: 1 }}>
               {CLASSIFICATION_CONFIG[seg.key]?.label || seg.key}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 'bold', color: seg.color }}>
+            <div style={{ fontSize: 12, fontWeight: 'bold', color: seg.color }}>
               {seg.count} ({Math.round(seg.pct * 100)}%)
             </div>
           </div>
@@ -715,7 +715,7 @@ function DrillFilters({
         <div style={{ marginBottom: 12 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: '#94a3b8',
               fontWeight: 'bold',
               marginBottom: 6,
@@ -753,7 +753,7 @@ function DrillFilters({
         <div style={{ marginBottom: 16 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: '#94a3b8',
               fontWeight: 'bold',
               marginBottom: 6,
@@ -792,7 +792,7 @@ function DrillFilters({
         <div style={{ marginBottom: 12 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: '#94a3b8',
               fontWeight: 'bold',
               marginBottom: 6,
@@ -811,7 +811,7 @@ function DrillFilters({
                   flex: 1,
                   padding: '8px 4px',
                   borderRadius: 8,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 'bold',
                   background: difficulty === d ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
                   color: difficulty === d ? '#00d4ff' : '#94a3b8',
@@ -829,7 +829,7 @@ function DrillFilters({
         <div style={{ marginBottom: 16 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: '#94a3b8',
               fontWeight: 'bold',
               marginBottom: 6,
@@ -853,7 +853,7 @@ function DrillFilters({
                   flex: 1,
                   padding: '8px 4px',
                   borderRadius: 8,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 'bold',
                   background: timerMode === t.id ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
                   color: timerMode === t.id ? '#ef4444' : '#94a3b8',
@@ -942,7 +942,7 @@ function SessionScoreTarget({ gtowScore, targetScore = 70 }) {
           >
             {achieved ? 'Session Score Target Met' : 'Session Score Target'}
           </div>
-          <div style={{ fontSize: 10, color: '#94a3b8' }}>Score {formatSignedScore(targetScore)}+ This Session</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>Score {formatSignedScore(targetScore)}+ This Session</div>
         </div>
       </div>
       <div
@@ -1782,7 +1782,7 @@ function GodModeArenaInner({
     return (
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: '#121212',
           display: 'flex',
           alignItems: 'center',
@@ -1970,7 +1970,7 @@ function GodModeArenaInner({
           <div className="sp-arena-review__title" style={styles.reviewTitle}>Session Review</div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               color: '#64748b',
               fontWeight: 600,
               fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
@@ -2019,7 +2019,7 @@ function GodModeArenaInner({
                       >
                         {grade.grade}
                       </span>
-                      <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>
+                      <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
                         {grade.label}
                       </span>
                     </div>
@@ -2057,7 +2057,7 @@ function GodModeArenaInner({
                   <div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'rgba(255,255,255,0.4)',
                         fontWeight: 600,
                         letterSpacing: 1,
@@ -2095,7 +2095,7 @@ function GodModeArenaInner({
                           borderRadius: 8,
                           background: 'rgba(139, 92, 246, 0.15)',
                           border: '1px solid rgba(139, 92, 246, 0.3)',
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: '#a78bfa',
                         }}
@@ -2104,7 +2104,7 @@ function GodModeArenaInner({
                       </div>
                     ) : null;
                   })()}
-                  <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '.08em' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', letterSpacing: '.08em' }}>
                     SERVER SETTLED
                   </div>
                 </div>
@@ -2227,7 +2227,7 @@ function GodModeArenaInner({
                       />
                       <span
                         style={{
-                          fontSize: 9,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: seg.count > 0 ? '#cbd5e1' : '#475569',
                           letterSpacing: 0.5,
@@ -2237,7 +2237,7 @@ function GodModeArenaInner({
                       </span>
                       <span
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 800,
                           color: seg.count > 0 ? seg.color : '#475569',
                           fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
@@ -2335,7 +2335,7 @@ function GodModeArenaInner({
                       <div style={{ textAlign: 'center', marginBottom: 12 }}>
                         <div
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: 700,
                             color: gColor,
                             textTransform: 'uppercase',
@@ -2373,7 +2373,7 @@ function GodModeArenaInner({
                         <div style={{ marginBottom: 10 }}>
                           <div
                             style={{
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: '#4ade80',
                               textTransform: 'uppercase',
@@ -2386,7 +2386,7 @@ function GodModeArenaInner({
                           {eg.highlights.slice(0, 3).map((h, i) => (
                             <div
                               key={i}
-                              style={{ fontSize: 10, color: '#e2e8f0', padding: '2px 0' }}
+                              style={{ fontSize: 12, color: '#e2e8f0', padding: '2px 0' }}
                             >
                               ✓ {h}
                             </div>
@@ -2397,7 +2397,7 @@ function GodModeArenaInner({
                         <div>
                           <div
                             style={{
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: '#fbbf24',
                               textTransform: 'uppercase',
@@ -2410,7 +2410,7 @@ function GodModeArenaInner({
                           {eg.improvementAreas.slice(0, 3).map((a, i) => (
                             <div
                               key={i}
-                              style={{ fontSize: 10, color: '#94a3b8', padding: '2px 0' }}
+                              style={{ fontSize: 12, color: '#94a3b8', padding: '2px 0' }}
                             >
                               → {a}
                             </div>
@@ -2447,7 +2447,7 @@ function GodModeArenaInner({
                       {ssc.summary && (
                         <div
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             color: '#cbd5e1',
                             lineHeight: 1.5,
                             marginBottom: 6,
@@ -2478,7 +2478,7 @@ function GodModeArenaInner({
                               >
                                 {s.value}
                               </div>
-                              <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>
+                              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                                 {s.label}
                               </div>
                             </div>
@@ -2510,7 +2510,7 @@ function GodModeArenaInner({
                     >
                       <div
                         style={{
-                          fontSize: 9,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: '#06b6d4',
                           textTransform: 'uppercase',
@@ -2523,7 +2523,7 @@ function GodModeArenaInner({
                       {plan.focus && (
                         <div
                           style={{
-                            fontSize: 11,
+                            fontSize: 12,
                             color: '#e2e8f0',
                             fontWeight: 600,
                             marginBottom: 4,
@@ -2535,7 +2535,7 @@ function GodModeArenaInner({
                       {plan.drills &&
                         plan.drills.length > 0 &&
                         plan.drills.slice(0, 3).map((d, i) => (
-                          <div key={i} style={{ fontSize: 10, color: '#94a3b8', padding: '1px 0' }}>
+                          <div key={i} style={{ fontSize: 12, color: '#94a3b8', padding: '1px 0' }}>
                             • {d}
                           </div>
                         ))}
@@ -2612,7 +2612,7 @@ function GodModeArenaInner({
                       </div>
                       <div
                         style={{
-                          fontSize: 8,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: '#64748b',
                           textTransform: 'uppercase',
@@ -2630,7 +2630,7 @@ function GodModeArenaInner({
                   <div style={{ marginBottom: 8 }}>
                     <div
                       style={{
-                        fontSize: 9,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#94a3b8',
                         textTransform: 'uppercase',
@@ -2667,7 +2667,7 @@ function GodModeArenaInner({
                             >
                               <div
                                 style={{
-                                  fontSize: 8,
+                                  fontSize: 12,
                                   fontWeight: 700,
                                   color: '#94a3b8',
                                   marginBottom: 2,
@@ -2685,7 +2685,7 @@ function GodModeArenaInner({
                               >
                                 {data.accuracy}%
                               </div>
-                              <div style={{ fontSize: 7, color: '#475569' }}>
+                              <div style={{ fontSize: 12, color: '#475569' }}>
                                 {data.correct}/{data.total}
                               </div>
                             </div>
@@ -2700,7 +2700,7 @@ function GodModeArenaInner({
                   <div>
                     <div
                       style={{
-                        fontSize: 9,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#94a3b8',
                         textTransform: 'uppercase',
@@ -2741,7 +2741,7 @@ function GodModeArenaInner({
                             >
                               <div
                                 style={{
-                                  fontSize: 8,
+                                  fontSize: 12,
                                   fontWeight: 700,
                                   color: streetColors[st],
                                   marginBottom: 2,
@@ -2760,7 +2760,7 @@ function GodModeArenaInner({
                               >
                                 {data.accuracy}%
                               </div>
-                              <div style={{ fontSize: 7, color: '#475569' }}>
+                              <div style={{ fontSize: 12, color: '#475569' }}>
                                 {data.correct}/{data.total}
                               </div>
                             </div>
@@ -2913,7 +2913,7 @@ function GodModeArenaInner({
                     <div style={{ marginTop: 8, marginBottom: 4 }}>
                       <div
                         style={{
-                          fontSize: 9,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: '#a78bfa',
                           textTransform: 'uppercase',
@@ -2927,7 +2927,7 @@ function GodModeArenaInner({
                         <div
                           key={i}
                           style={{
-                            fontSize: 9,
+                            fontSize: 12,
                             color: tip.color,
                             lineHeight: 1.5,
                             padding: '3px 6px',
@@ -2949,7 +2949,7 @@ function GodModeArenaInner({
                   <div style={{ marginTop: 8 }}>
                     <div
                       style={{
-                        fontSize: 9,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#94a3b8',
                         textTransform: 'uppercase',
@@ -2979,11 +2979,11 @@ function GodModeArenaInner({
                           >
                             <div
                               style={{
-                                fontSize: 7,
+                                fontSize: 12,
                                 fontWeight: 600,
                                 color: '#94a3b8',
                                 textTransform: 'capitalize',
-                                whiteSpace: 'nowrap',
+                                whiteSpace: 'normal',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                               }}
@@ -2992,7 +2992,7 @@ function GodModeArenaInner({
                             </div>
                             <div
                               style={{
-                                fontSize: 11,
+                                fontSize: 12,
                                 fontWeight: 800,
                                 color: accColor,
                                 fontFamily: "'Inter', monospace",
@@ -3000,7 +3000,7 @@ function GodModeArenaInner({
                             >
                               {ht.accuracy}%
                             </div>
-                            <div style={{ fontSize: 7, color: '#475569' }}>
+                            <div style={{ fontSize: 12, color: '#475569' }}>
                               {ht.correct}/{ht.total} Graded Decisions
                             </div>
                           </div>
@@ -3056,7 +3056,7 @@ function GodModeArenaInner({
                       transition={{ duration: 1.5, repeat: Infinity }}
                       style={{
                         color: '#64748b',
-                        fontSize: 11,
+                        fontSize: 12,
                         textAlign: 'center',
                         padding: '8px 0',
                       }}
@@ -3077,7 +3077,7 @@ function GodModeArenaInner({
                       {/* Detailed feedback */}
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           color: '#94a3b8',
                           lineHeight: 1.6,
                           marginBottom: 10,
@@ -3092,7 +3092,7 @@ function GodModeArenaInner({
                           <div style={{ flex: 1 }}>
                             <div
                               style={{
-                                fontSize: 9,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 color: '#22c55e',
                                 textTransform: 'uppercase',
@@ -3105,7 +3105,7 @@ function GodModeArenaInner({
                             {aiCoaching.strengths.map((s, i) => (
                               <div
                                 key={i}
-                                style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}
+                                style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}
                               >
                                 • {s}
                               </div>
@@ -3116,7 +3116,7 @@ function GodModeArenaInner({
                           <div style={{ flex: 1 }}>
                             <div
                               style={{
-                                fontSize: 9,
+                                fontSize: 12,
                                 fontWeight: 700,
                                 color: '#f97316',
                                 textTransform: 'uppercase',
@@ -3129,7 +3129,7 @@ function GodModeArenaInner({
                             {aiCoaching.areasToImprove.map((a, i) => (
                               <div
                                 key={i}
-                                style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}
+                                style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}
                               >
                                 • {a}
                               </div>
@@ -3151,7 +3151,7 @@ function GodModeArenaInner({
                         >
                           <div
                             style={{
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: '#00d4ff',
                               marginBottom: 2,
@@ -3159,7 +3159,7 @@ function GodModeArenaInner({
                           >
                             Recommended: {aiCoaching.recommendedDrill.name}
                           </div>
-                          <div style={{ fontSize: 9, color: '#64748b' }}>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>
                             {aiCoaching.recommendedDrill.reason}
                           </div>
                         </div>
@@ -3169,7 +3169,7 @@ function GodModeArenaInner({
                       {aiCoaching.motivationalQuote && (
                         <div
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             color: '#475569',
                             fontStyle: 'italic',
                             textAlign: 'center',
@@ -3198,7 +3198,7 @@ function GodModeArenaInner({
                         {classificationCounts[key] || 0}
                         {movesGraded > 0 && (
                           <span
-                            style={{ fontSize: 9, fontWeight: 600, opacity: 0.6, marginLeft: 2 }}
+                            style={{ fontSize: 12, fontWeight: 600, opacity: 0.6, marginLeft: 2 }}
                           >
                             {/* divide by graded MOVES, not questions — a
                                 multi-street session grades several moves per
@@ -3269,7 +3269,7 @@ function GodModeArenaInner({
                         <span style={{ fontSize: 14 }}>{pattern.icon}</span>
                         <span
                           style={{
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: 700,
                             letterSpacing: 0.5,
                             textTransform: 'uppercase',
@@ -3281,7 +3281,7 @@ function GodModeArenaInner({
                         {pattern.severity === 'high' && (
                           <span
                             style={{
-                              fontSize: 8,
+                              fontSize: 12,
                               padding: '1px 4px',
                               borderRadius: 3,
                               background: 'rgba(239,68,68,0.2)',
@@ -3293,7 +3293,7 @@ function GodModeArenaInner({
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
                         {pattern.tip}
                       </div>
                     </div>
@@ -3349,7 +3349,7 @@ function GodModeArenaInner({
                       >
                         Most Costly Spots
                       </div>
-                      <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                      <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                         {measuredEVReviewHistory.length > 0
                           ? `-${measuredEVTotal.toFixed(1)} BB measured total`
                           : 'Measured EV unavailable'}
@@ -3373,7 +3373,7 @@ function GodModeArenaInner({
                         >
                           <span
                             style={{
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: 800,
                               color: '#475569',
                               fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
@@ -3384,7 +3384,7 @@ function GodModeArenaInner({
                           </span>
                           <span
                             style={{
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               color: '#94a3b8',
                               minWidth: 30,
@@ -3394,7 +3394,7 @@ function GodModeArenaInner({
                           </span>
                           <span
                             style={{
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 700,
                               textTransform: 'capitalize',
                               color: streetColors[(leak.street || '').toLowerCase()] || '#64748b',
@@ -3406,11 +3406,11 @@ function GodModeArenaInner({
                           <span
                             style={{
                               flex: 1,
-                              fontSize: 10,
+                              fontSize: 12,
                               color: '#cbd5e1',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
+                              whiteSpace: 'normal',
                             }}
                           >
                             <span style={{ color: cColor, fontWeight: 700 }}>
@@ -3423,7 +3423,7 @@ function GodModeArenaInner({
                           </span>
                           <span
                             style={{
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: 800,
                               color: '#ef4444',
                               fontFamily: "var(--font-rajdhani), 'Rajdhani', monospace",
@@ -3515,7 +3515,7 @@ function GodModeArenaInner({
                       {mixedStrategyScore}%
                     </span>
                   </div>
-                  <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
                     {mixedStrategyScore >= 60
                       ? 'Broad action mix in this session'
                       : mixedStrategyScore >= 35
@@ -3652,7 +3652,7 @@ function GodModeArenaInner({
                           <span
                             style={{
                               width: 55,
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: 600,
                               color: streetColors[s],
                               textTransform: 'uppercase',
@@ -3688,7 +3688,7 @@ function GodModeArenaInner({
                           <span
                             style={{
                               width: 45,
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: 'bold',
                               color:
                                 streetDecisions[s] === 0
@@ -3752,7 +3752,7 @@ function GodModeArenaInner({
                     >
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: '#ef4444',
                           letterSpacing: 0.5,
@@ -3765,7 +3765,7 @@ function GodModeArenaInner({
                         You Leaked {worst[1].evLoss.toFixed(1)} BB on{' '}
                         <span style={{ color: '#00d4ff' }}>{worst[0]}</span> Decisions
                       </div>
-                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
                         {worst[1].mistakes} mistake{worst[1].mistakes !== 1 ? 's' : ''} Out of{' '}
                         {worst[1].total} hand{worst[1].total !== 1 ? 's' : ''}
                       </div>
@@ -4110,7 +4110,7 @@ function GodModeArenaInner({
             {masteryStatus && (
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   color: masteryStatus.passed ? '#22c55e' : '#f97316',
                   fontWeight: 600,
                   marginTop: 4,
@@ -4186,7 +4186,7 @@ function GodModeArenaInner({
         <div style={{ color: '#ff8b95', fontSize: 13, fontWeight: 900, letterSpacing: '.06em' }}>
           {answerSaveRequiresRefresh ? 'Hand Expired' : 'Answer Save Failed'}
         </div>
-        <div style={{ marginTop: 3, fontSize: 11, lineHeight: 1.45 }}>
+        <div style={{ marginTop: 3, fontSize: 12, lineHeight: 1.45 }}>
           {answerSaveRequiresRefresh
             ? 'No Result Was Recorded. Load A Fresh Signed Hand To Continue.'
             : 'Your Result Is Still Open. Retry The Same Save Before Moving To The Next Question.'}
@@ -4251,7 +4251,7 @@ function GodModeArenaInner({
         <div style={{ color: '#fbbf24', fontSize: 13, fontWeight: 900, letterSpacing: '.06em' }}>
           {transitionTitle}
         </div>
-        <div style={{ marginTop: 3, fontSize: 11, lineHeight: 1.45 }}>
+        <div style={{ marginTop: 3, fontSize: 12, lineHeight: 1.45 }}>
           {transitionError.message || 'The answered hand is still on screen. Retry this transition to continue.'}
         </div>
       </div>
@@ -4306,7 +4306,7 @@ function GodModeArenaInner({
                   maxWidth: 420,
                   padding: '0 16px',
                   overflowY: 'auto',
-                  maxHeight: '100vh',
+                  maxHeight: '100dvh',
                   paddingBottom: 40,
                 }}
               >
@@ -4337,7 +4337,7 @@ function GodModeArenaInner({
                     return levelDef ? (
                       <div
                         style={{
-                          fontSize: 11,
+                          fontSize: 12,
                           color: levelDef.accentColor || '#00d4ff',
                           fontWeight: 700,
                           marginTop: 2,
@@ -4368,7 +4368,7 @@ function GodModeArenaInner({
                 >
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: '#00d4ff',
                       textTransform: 'capitalize',
@@ -4382,7 +4382,7 @@ function GodModeArenaInner({
                     Score ≥{passThreshold || 85}% To Advance To Level{' '}
                     {Math.min(currentLevel + 1, totalLevels || 12)}
                   </div>
-                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                     Answer {requiredCorrect || Math.ceil((totalQuestions || 25) * 0.85)} of{' '}
                     {totalQuestions || 25} Questions Correctly
                   </div>
@@ -4405,7 +4405,7 @@ function GodModeArenaInner({
                   >
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#94a3b8',
                         textTransform: 'capitalize',
@@ -4429,7 +4429,7 @@ function GodModeArenaInner({
                             ? `${crossSessionAnalytics.milestones.overallAccuracy}%`
                             : '-'}
                         </div>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                           Accuracy
                         </div>
                       </div>
@@ -4444,7 +4444,7 @@ function GodModeArenaInner({
                         >
                           {crossSessionAnalytics.milestones.totalSessions ?? 0}
                         </div>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                           Sessions
                         </div>
                       </div>
@@ -4459,13 +4459,13 @@ function GodModeArenaInner({
                         >
                           {crossSessionAnalytics.milestones.totalHands ?? 0}
                         </div>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>Hands</div>
+                        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Hands</div>
                       </div>
                     </div>
                     {crossSessionAnalytics.milestones.trending && (
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           color:
                             crossSessionAnalytics.milestones.trending === 'up'
                               ? '#22c55e'
@@ -4508,7 +4508,7 @@ function GodModeArenaInner({
                   <div style={{ marginBottom: 10 }}>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#94a3b8',
                         textTransform: 'capitalize',
@@ -4536,7 +4536,7 @@ function GodModeArenaInner({
                             border: `1px solid ${difficulty === d.key ? d.color + '60' : 'rgba(255,255,255,0.08)'}`,
                             background: difficulty === d.key ? d.color + '15' : 'transparent',
                             color: difficulty === d.key ? d.color : '#64748b',
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 700,
                             cursor: 'pointer',
                             transition: 'all 0.15s',
@@ -4552,7 +4552,7 @@ function GodModeArenaInner({
                   <div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#94a3b8',
                         textTransform: 'capitalize',
@@ -4581,14 +4581,14 @@ function GodModeArenaInner({
                             border: `1px solid ${timerMode === t.key ? t.color + '60' : 'rgba(255,255,255,0.08)'}`,
                             background: timerMode === t.key ? t.color + '15' : 'transparent',
                             color: timerMode === t.key ? t.color : '#64748b',
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: 700,
                             cursor: 'pointer',
                             transition: 'all 0.15s',
                           }}
                         >
                           {t.label}
-                          <div style={{ fontSize: 8, fontWeight: 600, opacity: 0.7, marginTop: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7, marginTop: 1 }}>
                             {t.desc}
                           </div>
                         </button>
@@ -4619,7 +4619,7 @@ function GodModeArenaInner({
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff' }}>
                         {reviewDueCount} Weak Spot{reviewDueCount > 1 ? 's' : ''} Due For Review
                       </div>
-                      <div style={{ fontSize: 9, color: '#64748b' }}>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>
                         Reviewing Now Maximizes Long-Term Retention
                       </div>
                     </div>
@@ -4911,7 +4911,7 @@ const styles = {
   fullScreenContainer: {
     width: '100%',
     maxWidth: 1180,
-    height: '100vh',
+    height: '100dvh',
     background: 'radial-gradient(circle at 50% 42%, rgba(0, 111, 177, 0.22), transparent 42%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     overflow: 'hidden',
     marginLeft: 'auto',
@@ -4965,7 +4965,7 @@ const styles = {
   container: {
     width: '100%',
     maxWidth: 1180,
-    height: '100vh',
+    height: '100dvh',
     background: 'radial-gradient(circle at 50% 44%, rgba(0, 119, 184, 0.24), transparent 44%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     display: 'flex',
     flexDirection: 'column',
@@ -5046,7 +5046,7 @@ const styles = {
   // ●● POST-SESSION REVIEW STYLES
   reviewContainer: {
     width: '100%',
-    height: '100vh',
+    height: '100dvh',
     background: 'radial-gradient(circle at 50% 26%, rgba(0, 133, 205, 0.2), transparent 38%), linear-gradient(180deg, #06111d 0%, #02070d 100%)',
     display: 'flex',
     flexDirection: 'column',
@@ -5142,7 +5142,7 @@ const styles = {
   },
 
   summaryLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#64748b',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -5188,7 +5188,7 @@ const styles = {
     padding: '3px 8px',
     borderRadius: 10,
     border: '1px solid',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
   },
 

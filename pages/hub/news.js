@@ -1,4 +1,5 @@
 import React from 'react';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import dynamic from 'next/dynamic';
 /**
  * SMARTER.POKER NEWS HUB - REDESIGNED UI
@@ -16,6 +17,19 @@ import dynamic from 'next/dynamic';
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
+
+// AEO phase 3 (2026-09-17). The page already emits an ItemList of the
+// headlines on screen; this is the page itself, which had nothing.
+const NEWS_SCHEMA = hubProductSchema({
+    path: '/hub/news',
+    name: 'Smarter.Poker Poker News',
+    description:
+        'Poker News Gathered Hourly From Top Sources: Tournament Results, Industry Updates And Strategy Articles, Read In One Place. Free To Read.',
+    applicationCategory: 'NewsApplication',
+    trail: [['Hub', '/hub'], ['News', '/hub/news']],
+});
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -23,7 +37,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
 import { getYouTubeVideoId } from '../../src/lib/socialHelpers';
-import useSWR from 'swr';
+import useSWR, { SWRConfig } from 'swr';
+import { originFrom } from '../../src/lib/poker-near-me/seriesSeo.mjs';
+import { swrFallback, catalogueCacheHeaders } from '../../src/lib/seo/swrFallback.mjs';
 import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 // confetti loaded lazily on first use
@@ -51,7 +67,14 @@ import {
     toLocalReadLaterRow
 } from '../../src/services/newsReadLater';
 
-const PageTransition = dynamic(() => import('../../src/components/transitions/PageTransition'), { ssr: false });
+// DISCOVERABILITY PHASE 7 (2026-09-19). This was dynamic(..., { ssr: false }),
+// and the entire page body sits inside it, so the server rendered the head and
+// nothing else: /hub/news served a crawler 124 words and not one headline.
+// Two earlier fixes had already pulled SEOHead and the JSON-LD out of this
+// wrapper for exactly that reason - which treated the symptom twice without
+// naming the cause. PageTransition is a framer-motion div with no window
+// access during render, so it server-renders correctly.
+import PageTransition from '../../src/components/transitions/PageTransition';
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
@@ -166,7 +189,41 @@ async function fetchNewsJson(url) {
     return payload;
 }
 
-export default function NewsHub() {
+// The first page of stories, as both the server and the first client render
+// ask for it. ONE constant: an SWR fallback filed under a key the hook does
+// not use is silently ignored, which looks exactly like the fallback not
+// working. NEWS_PAGE_SIZE used to live inside the component.
+const NEWS_PAGE_SIZE = 24;
+export const FIRST_PAGE_KEY = `/api/news/articles?limit=${NEWS_PAGE_SIZE}&offset=0`;
+
+/**
+ * DISCOVERABILITY PHASE 7 (2026-09-19). /hub/news served Googlebot 124 words
+ * and no headlines: every story arrived by SWR in the browser. The first page
+ * is now fetched on the server and handed to SWR as a fallback, so the HTML
+ * carries real stories and the browser still owns pagination, filters,
+ * search and realtime refresh. The page renders exactly as before when the
+ * API is slow or down - the fallback is simply empty.
+ */
+export async function getServerSideProps({ req, res }) {
+  catalogueCacheHeaders(res);
+  const fallback = await swrFallback(originFrom(req), FIRST_PAGE_KEY);
+  return { props: { fallback } };
+}
+
+export default function NewsHubPage({ fallback }) {
+  return (
+    <SWRConfig value={{ fallback: fallback || {} }}>
+      <NewsHub />
+    </SWRConfig>
+  );
+}
+
+function NewsHub() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19). This is the component that
+    // renders the reels, so the flag belongs here rather than in the wrapper
+    // that only supplies the SWR fallback.
+    const hasMounted = useHasMounted();
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
@@ -399,7 +456,6 @@ export default function NewsHub() {
     // client-side array. category + search stay server-side (the API filters on
     // both). Source filtering is server-side too, with Card Player expanded to
     // both stored spellings so pagination never burns through unrelated pages.
-    const NEWS_PAGE_SIZE = 24;
     // Signature of every server-side filter. Changing it restarts pagination.
     const newsFilterKey = `${activeTab}|${debouncedSearch}|${storySort}|${activeSourceFilters.join(',')}`;
     const [newsPage, setNewsPage] = useState({ key: newsFilterKey, offset: 0 });
@@ -476,7 +532,21 @@ export default function NewsHub() {
         if (newsData || newsError) loadingMoreRef.current = false;
     }, [newsData, newsError]);
 
-    const loadedNews = newsPages.key === newsFilterKey ? newsPages.items : [];
+    // The accumulator above is filled by an effect, and effects do not run on
+    // the server. Without this the server rendered an empty feed while
+    // `newsData` already held page one from the SWR fallback, which is what
+    // made /hub/news serve Googlebot 124 words and no headlines. Falling back
+    // to the fetched page keeps the first paint populated; the effect then
+    // takes over with the same rows, de-duped by id.
+    //
+    // Safe across a filter change: SWR's key changes with the filters, so
+    // `newsData` is undefined while the new page loads rather than holding
+    // the previous filter's stories.
+    const accumulatedNews = newsPages.key === newsFilterKey ? newsPages.items : [];
+    const firstNewsPage = (newsData && newsData.success === true && Array.isArray(newsData.data))
+        ? newsData.data
+        : [];
+    const loadedNews = accumulatedNews.length ? accumulatedNews : firstNewsPage;
     const hasLoadedNews = loadedNews.length > 0;
     const newsHasMore = newsPages.key === newsFilterKey && newsPages.hasMore;
 
@@ -1324,6 +1394,19 @@ export default function NewsHub() {
 
     return (
         <>
+            {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
+                PageTransition is dynamic(..., { ssr: false }), so a head that
+                sits inside it never reaches the server HTML. /hub/news shipped
+                no title, no description and no canonical to any crawler, while
+                sitting in the sitemap at priority 0.9. Same trap the JSON-LD
+                block below already documents. */}
+            <SEOHead
+                title="Poker News: Headlines, Results And Strategy"
+                description="The Latest Poker News On Smarter.Poker: Tournament Results, Industry Updates And Strategy Articles Gathered Hourly From Top Sources And Read In One Place. Free To Read."
+                canonical="/hub/news"
+                jsonLd={NEWS_SCHEMA}
+            />
+
             {/* schema.org ItemList of the headlines actually on screen.
                 Every less-than character is replaced with its unicode escape
                 (u003c) so a headline containing a closing script tag cannot
@@ -1341,14 +1424,13 @@ export default function NewsHub() {
                 </Head>
             )}
 
-            <PageTransition>
+            {/* disableInitialAnimation: the wrapper now server-renders, and its
+                entrance variant starts at opacity 0. Text that arrives invisible
+                and waits for JavaScript to reveal it is the wrong thing to hand
+                a crawler or a reader on a slow connection, and the headlines are
+                the point of this page. The exit animation is unaffected. */}
+            <PageTransition disableInitialAnimation>
                 
-                <SEOHead
-                    title="Poker News - Latest Headlines & Updates"
-                    description="Stay Up To Date With The Latest Poker News, Tournament Results, Industry Updates, And Strategy Articles From Top Sources."
-                    canonical="/hub/news"
-                />
-
                 <div className="news-hub live-wire">
                     <LiveWireStyles />
                     {/* Scroll Progress Bar */}
@@ -1905,7 +1987,7 @@ export default function NewsHub() {
                                                     <ChevronRight size={20} />
                                                 </button>
                                             </div>
-                                        ) : reelsLoading ? (
+                                        ) : hasMounted && reelsLoading ? (
                                             <div className="reels-empty-state">
                                                 <div className="loading-spinner" />
                                                 <span>Loading Reels...</span>
@@ -1934,7 +2016,7 @@ export default function NewsHub() {
                                         Short-Form Poker Content From Top YouTube Channels - Updated Daily
                                     </p>
 
-                                    {reelsLoading ? (
+                                    {hasMounted && reelsLoading ? (
                                         <div className="no-results" role="status">
                                             <div className="loading-spinner" />
                                             <p>Loading Reels...</p>
@@ -4243,6 +4325,14 @@ export default function NewsHub() {
                 `}</style>
                 </div>
     </PageTransition>
+            {/* Outside <PageTransition> for the same reason the head is, and
+                AFTER it so the app still opens at the top of the page: this is the
+                only body copy a crawler that runs no JavaScript ever sees here. */}
+            {/* as="h1" while the page body did not server-render: this block
+                carried the only heading a crawler ever saw. The body renders
+                now, and it has its own h1, so this returns to h2 - one h1 per
+                page, and it is the page's own. */}
+            <HubPageSummary page="news" />
 
 
             {/* Article Reader Modal - Opens full external pages in-app via server-side proxy */}

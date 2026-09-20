@@ -45,12 +45,12 @@ function StackToRatioCalc() {
         {/* Inputs */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (BB)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (BB)</div>
             <input type="range" min={5} max={300} step={5} value={stack} onChange={e => setStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#06b6d4' }} />
             <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{stack} BB</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (BB)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Pot Size (BB)</div>
             <input type="range" min={1} max={100} step={1} value={pot} onChange={e => setPot(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#06b6d4' }} />
             <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', textAlign: 'center' }}>{pot} BB</div>
           </div>
@@ -67,7 +67,7 @@ function StackToRatioCalc() {
         <div style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, marginBottom: 16, borderLeft: `4px solid ${calc.zone.color}` }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: calc.zone.color, marginBottom: 6 }}>Strategy At {calc.zone.label} SPR</div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: 6 }}>{calc.zone.strategy}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Stack-Off Hands: {calc.zone.hands}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Stack-Off Hands: {calc.zone.hands}</div>
         </div>
 
         {/* SPR Zone Visualization */}
@@ -79,11 +79,11 @@ function StackToRatioCalc() {
                 flex: z.max - (i > 0 ? SPR_ZONES[i - 1].max : 0),
                 background: z.color,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 700, color: '#fff',
+                fontSize: 12, fontWeight: 700, color: '#fff',
                 borderRight: '1px solid rgba(0,0,0,0.3)',
               }}>{z.label}</div>
             ))}
-            <div style={{ flex: 4, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff' }}>Deep</div>
+            <div style={{ flex: 4, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>Deep</div>
           </div>
           {calc.spr <= 20 && (
             <div style={{ position: 'relative', height: 12 }}>
@@ -108,7 +108,7 @@ function StackToRatioCalc() {
                 padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6,
                 cursor: 'pointer', borderLeft: `3px solid ${zone?.color || '#666'}`,
               }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{s.name}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{s.name}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: zone?.color || '#fff' }}>SPR {s.spr}</span>
               </div>
             );

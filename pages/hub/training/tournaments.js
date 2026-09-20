@@ -20,6 +20,7 @@ import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 // TRAIN-WIRE-EMPTY-5a — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-TOURNAMENTS-A11Y-1): SVG icon components replacing the
@@ -237,7 +238,7 @@ export default function TournamentsPage() {
     <PageTransition>
       <SEOHead
         title="Training Tournaments - Compete & Learn"
-        description="Enter GTO Training Tournaments. Compete Against Other Students In Scenario-based Challenges."
+        description="GTO Training Tournaments On Smarter.Poker: A Field Plays The Same Hands In The Same Order And Is Ranked On Decision Quality Against The Solver, Not On Chips Won. Free To Enter, And Nothing In It Is A Wager."
         canonical="/hub/training/tournaments"
       />
 
@@ -393,6 +394,9 @@ export default function TournamentsPage() {
       </div>
     </PageTransition>
     <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-tournaments" />
     </>
   );
 }
@@ -403,7 +407,7 @@ export default function TournamentsPage() {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: 'linear-gradient(180deg, #07141f 0%, #020910 44%, #01060b 100%)',
     color: '#FFFFFF',
   },
@@ -499,7 +503,7 @@ const styles = {
   badge: {
     padding: '4px 10px',
     borderRadius: '12px',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 600,
     color: '#fff',
   },

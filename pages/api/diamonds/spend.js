@@ -37,7 +37,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import {
     fixedSpendAmount,
     validateDiamondSpendReceipt,

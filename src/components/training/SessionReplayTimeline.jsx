@@ -68,7 +68,7 @@ function EVTimeline({ hands }) {
             stroke="rgba(0,0,0,0.3)" strokeWidth="1" />
         );
       })}
-      <text x={W - PAD} y={toY(cumEV) - 6} fill={cumEV >= 0 ? '#22c55e' : '#ef4444'} fontSize="9" fontWeight="700" textAnchor="end">
+      <text x={W - PAD} y={toY(cumEV) - 6} fill={cumEV >= 0 ? '#22c55e' : '#ef4444'} fontSize='12px' fontWeight="700" textAnchor="end">
         {cumEV >= 0 ? '+' : ''}{cumEV.toFixed(1)}bb
       </text>
     </svg>
@@ -93,7 +93,7 @@ export default function SessionReplayTimeline() {
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700, margin: 0 }}>Session Replay</h3>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 2 }}>Chronological Timeline Of Your Training Session</div>
+          <div style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>Chronological Timeline Of Your Training Session</div>
         </div>
 
         {/* Stats */}
@@ -106,7 +106,7 @@ export default function SessionReplayTimeline() {
             { label: 'EV Loss', value: `${totalEVLoss.toFixed(1)}bb`, color: '#ef4444' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: 8, textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: 7, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
+              <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</div>
               <div style={{ color: s.color, fontSize: 16, fontWeight: 800 }}>{s.value}</div>
             </div>
           ))}
@@ -114,7 +114,7 @@ export default function SessionReplayTimeline() {
 
         {/* EV Timeline */}
         <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 6, marginBottom: 16 }}>
-          <div style={{ color: '#64748b', fontSize: 9, fontWeight: 600, marginBottom: 2, marginLeft: 4 }}>Cumulative EV</div>
+          <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600, marginBottom: 2, marginLeft: 4 }}>Cumulative EV</div>
           <EVTimeline hands={SESSION_HANDS} />
         </div>
 
@@ -126,7 +126,7 @@ export default function SessionReplayTimeline() {
               <button key={r || 'all'} onClick={() => setFilterResult(r)} style={{
                 padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
                 background: filterResult === r ? `${cfg.color}20` : 'rgba(255,255,255,0.04)',
-                color: filterResult === r ? cfg.color : '#64748b', fontSize: 10, fontWeight: 600,
+                color: filterResult === r ? cfg.color : '#64748b', fontSize: 12, fontWeight: 600,
               }}>
                 {r ? cfg.label : 'All'}
                 {r && ` (${SESSION_HANDS.filter(h => h.result === r).length})`}
@@ -149,21 +149,21 @@ export default function SessionReplayTimeline() {
                   border: isSelected ? `1px solid ${cfg.color}30` : '1px solid transparent',
                   transition: 'all 0.15s',
                 }}>
-                  <span style={{ color: '#475569', fontSize: 10, width: 16, fontWeight: 600 }}>#{h.id}</span>
+                  <span style={{ color: '#475569', fontSize: 12, width: 16, fontWeight: 600 }}>#{h.id}</span>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
                   <span style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 800, width: 40 }}>{h.hand}</span>
-                  <span style={{ color: '#f59e0b', fontSize: 9, fontWeight: 600, width: 28 }}>{h.position}</span>
-                  <span style={{ color: '#64748b', fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ color: '#f59e0b', fontSize: 12, fontWeight: 600, width: 28 }}>{h.position}</span>
+                  <span style={{ color: '#64748b', fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal' }}>
                     {h.board}
                   </span>
-                  <span style={{ color: '#94a3b8', fontSize: 10, width: 60, textAlign: 'right' }}>{h.action}</span>
+                  <span style={{ color: '#94a3b8', fontSize: 12, width: 60, textAlign: 'right' }}>{h.action}</span>
                   {h.evLoss > 0 && (
-                    <span style={{ color: '#ef4444', fontSize: 10, fontWeight: 700, width: 50, textAlign: 'right' }}>
+                    <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 700, width: 50, textAlign: 'right' }}>
                       -{h.evLoss.toFixed(1)}bb
                     </span>
                   )}
                   {h.evLoss === 0 && (
-                    <span style={{ color: '#22c55e', fontSize: 10, width: 50, textAlign: 'right' }}>✓</span>
+                    <span style={{ color: '#22c55e', fontSize: 12, width: 50, textAlign: 'right' }}>✓</span>
                   )}
                 </div>
 
@@ -173,10 +173,10 @@ export default function SessionReplayTimeline() {
                     margin: '4px 0 4px 24px', padding: 10, borderRadius: 6,
                     background: cfg.bg, border: `1px solid ${cfg.color}20`,
                   }}>
-                    <div style={{ color: cfg.color, fontSize: 11, fontWeight: 700, marginBottom: 4 }}>{cfg.label}</div>
-                    <div style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.5 }}>{h.explanation}</div>
+                    <div style={{ color: cfg.color, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{cfg.label}</div>
+                    <div style={{ color: '#94a3b8', fontSize: 12, lineHeight: 1.5 }}>{h.explanation}</div>
                     {h.evLoss > 0 && (
-                      <div style={{ color: '#ef4444', fontSize: 10, fontWeight: 600, marginTop: 6 }}>
+                      <div style={{ color: '#ef4444', fontSize: 12, fontWeight: 600, marginTop: 6 }}>
                         EV Loss: -{h.evLoss.toFixed(1)}bb
                       </div>
                     )}

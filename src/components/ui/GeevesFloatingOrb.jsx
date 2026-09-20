@@ -478,7 +478,7 @@ export default function GeevesFloatingOrb() {
                         }}
                     >
                         <img
-                            src="/images/geeves-avatar.png"
+                            src="/images/geeves-avatar.webp"
                             alt="G"
                             style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
                             onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
@@ -543,7 +543,7 @@ export default function GeevesFloatingOrb() {
                         flexShrink: 0,
                     }}>
                         <img
-                            src="/images/geeves-avatar.png"
+                            src="/images/geeves-avatar.webp"
                             alt="Geeves"
                             style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(0,212,255,0.4)', objectFit: 'cover' }}
                             onError={(e) => { e.target.style.display = 'none'; }}

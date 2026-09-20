@@ -1,13 +1,24 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { hubCollectionSchema } from '../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const RULES_SCHEMA = hubCollectionSchema({
+  path: '/legal/official-rules',
+  name: 'Official Rules | Smarter.Poker',
+  description:
+    'The Official Rules For Smarter.Poker Promotions, Contests And Giveaways: Who May Enter, How Winners Are Chosen, And That Every Prize Is A Promotional Rewards Currency With No Cash Value.',
+  trail: [['Official Rules', '/legal/official-rules']],
+});
 
 export default function OfficialRules() {
     return (
         <>
             <SEOHead
                 title="Official Rules - Promotions & Contests"
-                description="Official Rules For Smarter.Poker Promotions, Contests, And Giveaways."
+                description="The Official Rules For Smarter.Poker Promotions, Contests And Giveaways: Who May Enter, How Winners Are Chosen, What Is Awarded, And The Fact That Every Prize Is A Promotional Rewards Currency With No Cash Value."
                 canonical="/legal/official-rules"
+              jsonLd={RULES_SCHEMA}
             />
 
             <div style={styles.container}>

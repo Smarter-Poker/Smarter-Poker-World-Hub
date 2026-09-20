@@ -46,6 +46,16 @@ import {
   Home,
   ArrowLeft,
 } from 'lucide-react';
+import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
+
+// AEO phase 3 (2026-09-17): this page had copy and no structured data.
+const NEAR_ME_SCHEMA = hubCollectionSchema({
+  path: '/hub/home-games/near-me',
+  name: 'Poker Home Games Near Me | Smarter.Poker',
+  description:
+    'Private Poker Home Games Near You: Cash Games And Tournaments Hosted By Players In Your Area, With The Stakes And Schedule Each Host Publishes.',
+  trail: [['Hub', '/hub'], ['Home Games', '/hub/home-games'], ['Near Me', '/hub/home-games/near-me']],
+});
 
 const RADIUS_OPTIONS = [
   { value: 10,  label: '10 mi' },
@@ -253,8 +263,9 @@ export default function HomeGamesNearMePage() {
           home-games BreadcrumbList nominates as the "Home Games" node. */}
       <SEOHead
         title="Home Games Near Me"
-        description="Find local poker home games near you. Get invited to private games, tournaments, and cash games hosted by players in your area."
-        canonical="https://smarter.poker/hub/home-games/near-me"
+        description="Find Local Poker Home Games Near You On Smarter.Poker: Private Cash Games And Tournaments Hosted By Players In Your Area, With The Stakes And Schedule Each Host Publishes. Free To Find And Free To Host."
+        canonical="/hub/home-games/near-me"
+        jsonLd={NEAR_ME_SCHEMA}
       />
 
       <PokerNearMeFamilyNav className="pnm-family-nav--standalone" />

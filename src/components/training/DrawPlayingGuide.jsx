@@ -40,7 +40,7 @@ export default function DrawPlayingGuide() {
             style={{ padding: '8px 4px', borderRadius: 8, border: drawIdx === i ? `2px solid ${d.color}` : '1px solid rgba(255,255,255,0.06)',
               background: drawIdx === i ? `${d.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 16 }}>{d.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: drawIdx === i ? d.color : '#64748b' }}>{d.name}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: drawIdx === i ? d.color : '#64748b' }}>{d.name}</div>
           </button>
         ))}
       </div>
@@ -57,15 +57,15 @@ export default function DrawPlayingGuide() {
 
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>How To Play</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>How To Play</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{draw.play}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6' }}>Sizing</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>Sizing</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{draw.sizing}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Avoid</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Avoid</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{draw.avoid}</div>
           </div>
         </div>

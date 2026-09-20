@@ -9,7 +9,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { gameShortLabel } from '../../../src/components/poker-near-me/normalize-game';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import {
   PNM_TRUTH_CONTRACT_VERSION,
@@ -333,7 +333,7 @@ export default async function handler(req, res) {
       analyzed_at: new Date().toISOString(),
     });
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('Game predictions error:', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }

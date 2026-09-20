@@ -12,7 +12,7 @@
  *       throws during render, HubErrorBoundary caught it, and the messenger
  *       rendered "Messenger Temporarily Unavailable" for two days -- including
  *       inside the Club Arena iframe. Nobody could find it because the only
- *       reporting path was a Sentry SDK with no DSN.
+ *       reporting path was a retired error provider SDK with no DSN.
  *
  *   src/contexts/ActiveIdentityContext.jsx  'useRouter' is not defined
  *       A missing import. esbuild parsed the file happily -- a parser has no

@@ -12,7 +12,7 @@ import { getServerUserWithFallback } from '../../../../src/lib/serverAuth';
 
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 import { availabilityFailure, persistedResult } from '../../../../src/lib/personal-assistant/persistenceContract';
 import { leakStatusPersistenceFields, leakTypeSlug, normalizeUserLeakRow, toUserLeakPersistenceRow } from '../../../../src/lib/personal-assistant/leakRecord';
 import { readLeakStatsAggregate } from '../../../../src/lib/personal-assistant/leakStats';
@@ -470,7 +470,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

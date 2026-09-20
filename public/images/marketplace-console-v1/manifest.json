@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 2,
+  "name": "Marketplace Console V1",
+  "principle": "Paint what never changes. Print what does.",
+  "compositionPolicy": "Preserve existing Marketplace layouts and upgrade their real cards, buttons, frames, icons, and status surfaces in place. Do not add standalone destination objects or clone one page into another.",
+  "sourceRepository": "Smarter-Poker/Smarter-Poker-Club-Arena",
+  "sourceTreeCommit": "992b5e11d2cbf9aa4f589ef064b3999b93354935",
+  "sourceTreeVerification": "All Club Arena source hashes match origin/main at this commit.",
+  "approvedCrest": "spade",
+  "excludedCrestVariants": ["club", "diamond", "vip", "flat"],
+  "assets": [
+    {
+      "family": "spade-console",
+      "role": "page-head",
+      "sourcePath": "public/assets/club-buttons/console/spade-console-v1/top.png",
+      "sourceSha256": "9593ef2a932c64595dfd920628e27eee70e0f1b88cc2b09788026796a263b564",
+      "packagedPath": "/images/marketplace-console-v1/spade-console/top.png",
+      "packagedSha256": "9593ef2a932c64595dfd920628e27eee70e0f1b88cc2b09788026796a263b564",
+      "width": 1000,
+      "height": 348
+    },
+    {
+      "family": "spade-console",
+      "role": "page-rails",
+      "sourcePath": "public/assets/club-buttons/console/spade-console-v1/mid.png",
+      "sourceSha256": "3643e1688ff20e0383d8c14acf17e848731765b8fd38f69af5afa4d57e4fa6e3",
+      "packagedPath": "/images/marketplace-console-v1/spade-console/mid.png",
+      "packagedSha256": "3643e1688ff20e0383d8c14acf17e848731765b8fd38f69af5afa4d57e4fa6e3",
+      "width": 1000,
+      "height": 8
+    },
+    {
+      "family": "spade-console",
+      "role": "page-foot",
+      "sourcePath": "public/assets/club-buttons/console/spade-console-v1/bottom-foot.png",
+      "sourceSha256": "9e68d4067af5b1caaa69d73de2dd14d28c9301d41ee17f56b83af686e7d4e138",
+      "packagedPath": "/images/marketplace-console-v1/spade-console/bottom-foot.png",
+      "packagedSha256": "9e68d4067af5b1caaa69d73de2dd14d28c9301d41ee17f56b83af686e7d4e138",
+      "width": 1000,
+      "height": 72
+    },
+    {
+      "family": "spade-console",
+      "role": "page-action-foot",
+      "sourcePath": "public/assets/club-buttons/console/spade-console-v1/bottom-plates.png",
+      "sourceSha256": "ef5934068adbb2327351f9cf21c192106af83d9252a8c0a0f3f77fbd4d547fa7",
+      "packagedPath": "/images/marketplace-console-v1/spade-console/bottom-plates.png",
+      "packagedSha256": "ef5934068adbb2327351f9cf21c192106af83d9252a8c0a0f3f77fbd4d547fa7",
+      "width": 1000,
+      "height": 277
+    },
+    {
+      "family": "shark-panel",
+      "role": "section-head",
+      "sourcePath": "public/assets/club-buttons/lobby/shark-panel-v1/top.png",
+      "sourceSha256": "2f8a4c64f5159180536e89f6b09f6ff1469a8ce5f036f9bd37264d17007e3df9",
+      "packagedPath": "/images/marketplace-console-v1/shark-panel/top.png",
+      "packagedSha256": "2f8a4c64f5159180536e89f6b09f6ff1469a8ce5f036f9bd37264d17007e3df9",
+      "width": 900,
+      "height": 143
+    },
+    {
+      "family": "shark-panel",
+      "role": "section-rails",
+      "sourcePath": "public/assets/club-buttons/lobby/shark-panel-v1/mid.png",
+      "sourceSha256": "1aa104a2ee157ac4392ba084ff17e56ca5bb2a933ca0e0c5895d8f143bf07f5e",
+      "packagedPath": "/images/marketplace-console-v1/shark-panel/mid.png",
+      "packagedSha256": "1aa104a2ee157ac4392ba084ff17e56ca5bb2a933ca0e0c5895d8f143bf07f5e",
+      "width": 900,
+      "height": 6
+    },
+    {
+      "family": "shark-panel",
+      "role": "section-foot",
+      "sourcePath": "public/assets/club-buttons/lobby/shark-panel-v1/bottom.png",
+      "sourceSha256": "f8a2acb4fce55aba88d9b4d86bc54d9871e105d29385e4cc90f57474c46864f3",
+      "packagedPath": "/images/marketplace-console-v1/shark-panel/bottom.png",
+      "packagedSha256": "f8a2acb4fce55aba88d9b4d86bc54d9871e105d29385e4cc90f57474c46864f3",
+      "width": 900,
+      "height": 139
+    },
+    {
+      "family": "shark-panel",
+      "role": "media-bay",
+      "sourcePath": "public/assets/club-buttons/lobby/shark-panel-v1/bay.png",
+      "sourceSha256": "2946847ef72527bf56f1f89f1bf5653c17e2047319f815e6ec9db0af2681093b",
+      "packagedPath": "/images/marketplace-console-v1/shark-panel/bay.png",
+      "packagedSha256": "2946847ef72527bf56f1f89f1bf5653c17e2047319f815e6ec9db0af2681093b",
+      "width": 200,
+      "height": 258
+    },
+    {
+      "family": "shark-panel",
+      "role": "primary-action",
+      "sourcePath": "public/assets/club-buttons/lobby/shark-panel-v1/button-primary.png",
+      "sourceSha256": "6b2cdb78bd430ebb5f7b5bade442829ae4f3b7865d9545168c8992ed3e6f1162",
+      "packagedPath": "/images/marketplace-console-v1/shark-panel/button-primary.png",
+      "packagedSha256": "6b2cdb78bd430ebb5f7b5bade442829ae4f3b7865d9545168c8992ed3e6f1162",
+      "width": 348,
+      "height": 114
+    },
+    {
+      "family": "shark-panel",
+      "role": "secondary-action",
+      "sourcePath": "public/assets/club-buttons/lobby/shark-panel-v1/button-secondary.png",
+      "sourceSha256": "67d0f61e1a15288b0eafc32e13ff2b3094881a4307d01af627f3c65fdd2f4677",
+      "packagedPath": "/images/marketplace-console-v1/shark-panel/button-secondary.png",
+      "packagedSha256": "67d0f61e1a15288b0eafc32e13ff2b3094881a4307d01af627f3c65fdd2f4677",
+      "width": 348,
+      "height": 114
+    },
+    {
+      "family": "action-primary",
+      "role": "wide-action",
+      "sourcePath": "public/assets/club-buttons/action-primary-shell.png",
+      "sourceSha256": "cdc593ceb73313fb339cd2ef62e8f7c05f3b1a6af41b72adf9d143953eb0047d",
+      "packagedPath": "/images/marketplace-console-v1/action/action-primary-shell.png",
+      "packagedSha256": "cdc593ceb73313fb339cd2ef62e8f7c05f3b1a6af41b72adf9d143953eb0047d",
+      "width": 1772,
+      "height": 436
+    },
+    {
+      "family": "navigation",
+      "role": "navigation-plate",
+      "sourcePath": "public/assets/club-buttons/club-nav-shell.png",
+      "sourceSha256": "d45f56465badd7ba00f565383424f7a7b22bf142d8201602fc1353e94bafd0a3",
+      "packagedPath": "/images/marketplace-console-v1/navigation/nav-shell.png",
+      "packagedSha256": "d45f56465badd7ba00f565383424f7a7b22bf142d8201602fc1353e94bafd0a3",
+      "width": 1829,
+      "height": 313
+    },
+    {
+      "family": "utility",
+      "role": "utility-card",
+      "sourcePath": "public/assets/club-buttons/club-utility-shell.png",
+      "sourceSha256": "63732e2f26829b570e5a18b3aee15a427ea8c431e8c04a0b5679585f2dba4b8a",
+      "packagedPath": "/images/marketplace-console-v1/utility/utility-shell.png",
+      "packagedSha256": "63732e2f26829b570e5a18b3aee15a427ea8c431e8c04a0b5679585f2dba4b8a",
+      "width": 1105,
+      "height": 1133
+    },
+    {
+      "family": "wallet-row",
+      "role": "status-wallet-row",
+      "sourcePath": "public/assets/club-buttons/wallet-row-shell.png",
+      "sourceSha256": "7c3204cb4db5160c06d9f42ebd48a65493dbbe0489f80d6f9f661e685c840075",
+      "packagedPath": "/images/marketplace-console-v1/status/wallet-row-shell.png",
+      "packagedSha256": "7c3204cb4db5160c06d9f42ebd48a65493dbbe0489f80d6f9f661e685c840075",
+      "width": 1800,
+      "height": 386
+    }
+  ]
+}

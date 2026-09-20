@@ -183,7 +183,7 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
             borderRadius: 6,
             padding: '4px 8px',
             whiteSpace: 'nowrap',
-            fontSize: 9,
+            fontSize: 12,
             color: DIFF_COLORS[diffResult],
             fontWeight: 700,
             zIndex: 100,
@@ -366,7 +366,7 @@ export default function RangeBuilder() {
       <div
         className="sp-training-tool sp-training-tool--range-builder"
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -411,7 +411,7 @@ export default function RangeBuilder() {
             </h1>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-accent-orange)',
                 background: 'rgba(249,115,22,0.1)',
                 padding: '3px 8px',
@@ -437,7 +437,7 @@ export default function RangeBuilder() {
           >
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-fg-dim)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
@@ -488,7 +488,7 @@ export default function RangeBuilder() {
               background: 'rgba(251,191,36,0.07)',
               color: 'var(--sp-fg-muted)',
               textAlign: 'center',
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               lineHeight: 1.5,
               letterSpacing: 0.7,
@@ -514,7 +514,7 @@ export default function RangeBuilder() {
           <div className="sp-range-builder-matrix">
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textAlign: 'center',
@@ -524,7 +524,7 @@ export default function RangeBuilder() {
             >
               {isDiffMode ? 'RESULTS - AUTHORED REFERENCE DIFF' : 'SELECT HANDS TO INCLUDE IN YOUR RANGE'}
             </div>
-            <div
+            <div data-allow-small="true"
               style={{
                 display: 'inline-grid',
                 gridTemplateColumns: `repeat(13, clamp(21px, 6.5vw, 34px))`,
@@ -608,7 +608,7 @@ export default function RangeBuilder() {
                     </div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: 'var(--sp-fg-dim)',
                         marginTop: 2,
                       }}
@@ -625,7 +625,7 @@ export default function RangeBuilder() {
                       borderRadius: 8,
                       background: 'rgba(251,191,36,0.06)',
                       color: 'var(--sp-fg-muted)',
-                      fontSize: 9,
+                      fontSize: 12,
                       lineHeight: 1.5,
                       marginBottom: 12,
                     }}
@@ -644,7 +644,7 @@ export default function RangeBuilder() {
                   {/* Stats */}
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       color: 'var(--sp-fg-dim)',
                       fontWeight: 700,
                       letterSpacing: 1,
@@ -677,7 +677,7 @@ export default function RangeBuilder() {
                   />
                   <div
                     style={{
-                      fontSize: 9,
+                      fontSize: 12,
                       color: 'var(--sp-fg-dim)',
                       fontWeight: 700,
                       letterSpacing: 1,
@@ -725,7 +725,7 @@ export default function RangeBuilder() {
                 >
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 800,
                       color: 'var(--sp-accent-orange)',
                       letterSpacing: 1.5,
@@ -750,7 +750,7 @@ export default function RangeBuilder() {
                     >
                       {selectionStats.pct}%
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--sp-fg-dim)', marginTop: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 4, fontWeight: 600 }}>
                       {selectionStats.totalCombos} / 1326 Combos
                     </div>
                     <div
@@ -799,7 +799,7 @@ export default function RangeBuilder() {
 
                   {/* Instructions */}
                   <p
-                    style={{ fontSize: 11, color: 'var(--sp-fg-faint)', lineHeight: 1.5, margin: '0 0 12px' }}
+                    style={{ fontSize: 12, color: 'var(--sp-fg-faint)', lineHeight: 1.5, margin: '0 0 12px' }}
                   >
                     Click Hands To Toggle On/Off. Build A {position} Open-Raising Range, Then Compare
                     It With The Authored 6-Max Cash 100BB Practice Reference. This Is Not A Verified
@@ -817,7 +817,7 @@ export default function RangeBuilder() {
                         borderRadius: 8,
                         background: 'rgba(239,68,68,0.08)',
                         color: 'var(--sp-accent-red)',
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 700,
                         lineHeight: 1.45,
                       }}
@@ -868,7 +868,7 @@ function StatRow({ label, value, color }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        fontSize: 11,
+        fontSize: 12,
         marginBottom: 4,
         padding: '2px 0',
       }}
@@ -883,7 +883,7 @@ function LegendItem({ color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
       <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 9, color: 'var(--sp-fg-muted)' }}>{label}</span>
+      <span style={{ fontSize: 12, color: 'var(--sp-fg-muted)' }}>{label}</span>
     </div>
   );
 }
@@ -893,7 +893,7 @@ function LegendItem({ color, label }) {
 const quickBtnStyle = {
   padding: '4px 10px',
   borderRadius: 6,
-  fontSize: 10,
+  fontSize: 12,
   fontWeight: 700,
   cursor: 'pointer',
   border: '1px solid rgba(255,255,255,0.1)',

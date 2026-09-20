@@ -69,7 +69,7 @@ export default function StraddleAnteSolver() {
           <button key={i} onClick={() => setStructIdx(i)}
             style={{ padding: '6px 10px', borderRadius: 8, border: structIdx === i ? `2px solid ${s.color}` : '1px solid rgba(255,255,255,0.06)',
               background: structIdx === i ? `${s.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 10, fontWeight: 700, color: structIdx === i ? s.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: structIdx === i ? s.color : '#64748b' }}>
             {s.icon} {s.name}
           </button>
         ))}
@@ -78,7 +78,7 @@ export default function StraddleAnteSolver() {
       <motion.div key={structIdx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         {/* Impact Badge */}
         <div style={{ background: `${struct.color}08`, borderRadius: 10, padding: 12, marginBottom: 14, borderLeft: `3px solid ${struct.color}` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: struct.color }}>IMPACT</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: struct.color }}>IMPACT</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{struct.impact}</div>
         </div>
 
@@ -88,7 +88,7 @@ export default function StraddleAnteSolver() {
           <div style={{ display: 'grid', gap: 8 }}>
             {struct.adjustments.map((a, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 10, borderLeft: `3px solid ${struct.color}` }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: struct.color }}>{a.spot}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: struct.color }}>{a.spot}</div>
                 <div style={{ fontSize: 12, color: '#94a3b8' }}>{a.change}</div>
               </div>
             ))}
@@ -97,22 +97,22 @@ export default function StraddleAnteSolver() {
 
         {/* Math Table */}
         <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
             STRADDLE / ANTE MATH COMPARISON
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.2fr 1fr 1fr', padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             {['Structure', 'Dead $', 'Open Size', 'Pot Pre', 'Adjust'].map(h => (
-              <div key={h} style={{ fontSize: 8, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</div>
+              <div key={h} style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{h}</div>
             ))}
           </div>
           {STRADDLE_MATH.map((row, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.2fr 1fr 1fr', padding: '6px 12px',
               borderBottom: '1px solid rgba(255,255,255,0.03)', background: structIdx === i ? `${STRUCTURES[i].color}08` : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-              <span style={{ fontSize: 10, color: '#e2e8f0' }}>{row.structure}</span>
-              <span style={{ fontSize: 10, color: '#f59e0b', fontFamily: 'monospace' }}>{row.deadMoney}</span>
-              <span style={{ fontSize: 10, color: '#3b82f6', fontFamily: 'monospace' }}>{row.openSize}</span>
-              <span style={{ fontSize: 10, color: '#22c55e', fontFamily: 'monospace' }}>{row.potPreflop}</span>
-              <span style={{ fontSize: 10, color: '#8b5cf6', fontFamily: 'monospace', fontWeight: 700 }}>{row.adjust}</span>
+              <span style={{ fontSize: 12, color: '#e2e8f0' }}>{row.structure}</span>
+              <span style={{ fontSize: 12, color: '#f59e0b', fontFamily: 'monospace' }}>{row.deadMoney}</span>
+              <span style={{ fontSize: 12, color: '#3b82f6', fontFamily: 'monospace' }}>{row.openSize}</span>
+              <span style={{ fontSize: 12, color: '#22c55e', fontFamily: 'monospace' }}>{row.potPreflop}</span>
+              <span style={{ fontSize: 12, color: '#8b5cf6', fontFamily: 'monospace', fontWeight: 700 }}>{row.adjust}</span>
             </div>
           ))}
         </div>

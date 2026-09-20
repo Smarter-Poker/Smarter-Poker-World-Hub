@@ -1,105 +1,43 @@
-import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
-import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
-/**
- * POST /api/club-arena/cancel-my-cashout
- * Player cancels their own pending cashout request.
- * Body: { cashoutId }
- * Auth: Bearer token (must be the cashout requester)
- */
+/** Requester cancellation through the same actor-bound Club Arena authority. */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { refuseWhileFrozen } from '../../../src/lib/club-arena/platformFreeze';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { authenticateCashout, cashoutUserClient, readCashout, requireCashoutSettlementOpen, sendCashoutError } from '../../../src/lib/club-arena/cashoutBridge';
+import { CashoutBridgeError, dispatchCashout, lookupCashoutReceipt, cashoutReplayResponse } from '../../../src/lib/club-arena/cashoutReceipt.mjs';
 const { isUUID, rejectBadPayload } = require('../../../src/lib/club-arena/validate');
-const { checkIdempotency, cacheResponse } = require('../../../src/lib/club-arena/idempotency');
-import { reportApiError } from '../../../src/lib/sentryWrap';
 
-let _supabase = null;
-function getSupabase() {
-    if (!_supabase) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
-        _supabase = createClient(url, key);
-    }
-    return _supabase;
+let admin;
+function getAdmin() {
+  if (!admin) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new CashoutBridgeError('Cashout service is unavailable.');
+    admin = createClient(url, key);
+  }
+  return admin;
 }
 
 export default async function handler(req, res) {
   try {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-      if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
-
-    // RED TEAM: Payload size + field allowlist
-    if (rejectBadPayload(req, res, ['cashoutId', 'clubId'])) return;
-
-    // CONCURRENCY: Idempotency guard — dedup rapid double-taps
-    if (checkIdempotency(req, res)) return;
-
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-
-    const { user: authUser, error: authErr } = await getServerUserWithFallback(req, getSupabase());
-    const authData = { user: authUser };
-    const user = authData?.user;
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const { cashoutId } = req.body;
-    // RED TEAM: Strict UUID validation
-    if (!isUUID(cashoutId)) return res.status(400).json({ success: false, error: 'Invalid cashoutId format' });
-
-    try {
-      // Fetch cashout — must be owned by this user and still pending
-      const { data: cashout } = await getSupabase()
-        .from('cashout_requests')
-        .select('id, player_id, club_id, amount, status')
-        .eq('id', cashoutId)
-        .maybeSingle();
-
-      if (!cashout) return res.status(404).json({ success: false, error: 'Cashout not found' });
-      if (cashout.player_id !== user.id) return res.status(403).json({ success: false, error: 'Not your cashout' });
-      if (cashout.status !== 'pending') {
-        return res.status(400).json({ success: false, error: `Cannot cancel - status is ${cashout.status}` });
-      }
-
-      // Atomic cancellation (updates status + credits player chips + logs transaction)
-      // The service key is EXEMPT from zz_freeze_guard, so this route is the only
-      // thing standing between a player-initiated chip movement and a platform
-      // that everyone has been told is frozen (CLAUDE.md 13). Fails closed.
-      if (await refuseWhileFrozen(getSupabase(), res, { route: 'cancel-my-cashout' })) return;
-
-      const { data: rpcResult, error: rpcErr } = await getSupabase().rpc('fn_cancel_cashout_atomic', {
-        p_cashout_id: cashoutId,
-        p_user_id: user.id,
-        p_is_agent: false,
-        p_note: 'Cancelled by player'
-      });
-
-      if (rpcErr || !rpcResult?.success) {
-        return res.status(409).json({ success: false, error: rpcResult?.error || 'Cancellation failed', details: rpcErr?.message });
-      }
-
-      // Transaction already recorded atomically inside fn_cancel_cashout_atomic
-
-      cacheResponse(req, 200, {
-        success: true,
-        returned: cashout.amount,
-        message: `Cashout cancelled - ${cashout.amount.toLocaleString()} chips returned`,
-      });
-
-      return res.status(200).json({
-        success: true,
-        returned: cashout.amount,
-        message: `Cashout cancelled - ${cashout.amount.toLocaleString()} chips returned`,
-      });
-    } catch (err) {
-      console.warn('[cancel-my-cashout]', err);
-      return res.status(500).json({ success: false, error: 'Cancel failed' });
-    }
-
-  } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
-    console.warn('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+    if (rejectBadPayload(req, res, ['cashoutId','clubId','expectedActorId'])) return;
+    const db = getAdmin(), auth = await authenticateCashout(req, db);
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+    if (!isUUID(req.body.cashoutId)) throw new CashoutBridgeError('Invalid cashoutId format.', 400);
+    if (req.body.clubId !== undefined && !isUUID(req.body.clubId)) throw new CashoutBridgeError('Invalid clubId format.', 400);
+    const cashoutId = req.body.cashoutId.toLowerCase(), clubId = req.body.clubId?.toLowerCase();
+    const cashout = await readCashout(db, cashoutId);
+    if (cashout.player_id !== auth.actorId) throw new CashoutBridgeError('Not your cashout.', 403);
+    if (clubId !== undefined && clubId !== cashout.club_id) throw new CashoutBridgeError('Cashout club changed.', 409);
+    const client = cashoutUserClient(auth.token);
+    const context = { actorId: auth.actorId, operationId: auth.operationId, clubId: cashout.club_id,
+      cashoutId, playerId: cashout.player_id, amount: cashout.amount, kind: 'cancellation', note: 'Cancelled by player' };
+    const previous = await lookupCashoutReceipt(client, context);
+    if (previous) return res.status(200).json(cashoutReplayResponse(previous, 'cancellation'));
+    await requireCashoutSettlementOpen(db, cashout.club_id);
+    if (await refuseWhileFrozen(db, res, { route: 'cancel-my-cashout' })) return;
+    // Let SQL verify matching terminal replay; status alone is not a receipt.
+    const receipt = await dispatchCashout(client, context);
+    return res.status(200).json({ success: true, returned: receipt.request.amount,
+      status: receipt.request.status, receipt, message: 'Cashout cancelled. Chips returned.' });
+  } catch (error) { return sendCashoutError(res, error); }
 }

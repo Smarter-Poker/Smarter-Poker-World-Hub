@@ -62,7 +62,7 @@ function HandCombinatoricsGuide() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {COMBOS.map((c, i) => (
             <button key={i} onClick={() => setActiveTab(i)} style={{
-              flex: 1, padding: '6px 4px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              flex: 1, padding: '6px 4px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: activeTab === i ? c.color : 'rgba(255,255,255,0.06)',
               color: activeTab === i ? '#fff' : 'rgba(255,255,255,0.5)',
             }}>{c.category}</button>
@@ -74,11 +74,11 @@ function HandCombinatoricsGuide() {
             <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ minWidth: 50, textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 900, color: COMBOS[activeTab].color }}>{h.total}</div>
-                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)' }}>Combos</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Combos</div>
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2 }}>{h.hand}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{h.note}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{h.note}</div>
               </div>
             </div>
           ))}
@@ -86,12 +86,12 @@ function HandCombinatoricsGuide() {
 
         {/* Blocker examples */}
         <div style={{ padding: 10, background: 'rgba(167,139,250,0.06)', borderRadius: 8, border: '1px solid rgba(167,139,250,0.12)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 8 }}>Blocker Effects</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', marginBottom: 8 }}>Blocker Effects</div>
           {BLOCKERS_EXAMPLES.map((b, i) => (
             <div key={i} style={{ marginBottom: i < BLOCKERS_EXAMPLES.length - 1 ? 8 : 0, paddingBottom: i < BLOCKERS_EXAMPLES.length - 1 ? 8 : 0, borderBottom: i < BLOCKERS_EXAMPLES.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 2 }}>Hero: {b.hero}</div>
-              <div style={{ fontSize: 10, color: '#f59e0b', marginBottom: 2 }}>Blocks: {b.blocks}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{b.significance}</div>
+              <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 2 }}>Blocks: {b.blocks}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{b.significance}</div>
             </div>
           ))}
         </div>

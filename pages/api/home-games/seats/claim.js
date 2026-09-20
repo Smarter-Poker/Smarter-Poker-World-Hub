@@ -9,7 +9,7 @@
  * Delegates all authz + time-cutoff logic to rpc_hg_claim_seat.
  */
 import { bridgeRequest, mapRpcError, LIMITS } from '../../../../src/lib/home-games/rpcBridge';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 export default async function handler(req, res) {
   try {

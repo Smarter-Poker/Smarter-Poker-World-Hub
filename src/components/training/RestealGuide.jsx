@@ -49,15 +49,15 @@ export default function RestealGuide() {
         style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Your Position</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Your Position</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#8b5cf6' }}>{spot.you}</div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Stack</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Stack</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#f59e0b' }}>{spot.stack}</div>
           </div>
           <div style={{ background: `${spot.color}15`, borderRadius: 8, padding: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#64748b' }}>Action</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Action</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: spot.color }}>{spot.action}</div>
           </div>
         </div>

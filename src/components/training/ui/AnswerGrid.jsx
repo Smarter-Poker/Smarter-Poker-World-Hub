@@ -174,7 +174,7 @@ const styles = {
     },
 
     frequency: {
-        fontSize: 10,
+        fontSize: 12,
         opacity: 0.8,
     },
 

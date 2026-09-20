@@ -37,13 +37,13 @@ test('compiled acceptance waits for the async client export before recording con
     const auth = fixture('auth.mjs', 'export async function getServerUserWithFallback() { return { user: { id: "test-user" }, error: null }; }');
     const rate = fixture('rate.cjs', 'exports.applyRateLimit = () => true;');
     const idem = fixture('idem.cjs', 'exports.checkIdempotency = () => false;');
-    const sentry = fixture('sentry.mjs', 'export function reportApiError() {}');
+    const localReporter = fixture('localReporter.mjs', 'export function reportApiError() {}');
     const root = process.cwd();
     const aliases = {
       [path.join(root, 'src/lib/serverAuth')]: auth,
       [path.join(root, 'src/lib/poker-engine/RateLimiter')]: rate,
       [path.join(root, 'src/lib/club-arena/idempotency')]: idem,
-      [path.join(root, 'src/lib/sentryWrap')]: sentry,
+      [path.join(root, 'src/lib/apiErrorHandler')]: localReporter,
       '@smarter-poker/commander-shared/lib/supabaseServerClient': client,
     };
     await new Promise((resolve, reject) => {

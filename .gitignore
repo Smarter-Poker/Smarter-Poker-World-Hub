@@ -31,7 +31,7 @@
 # Python bytecode
 # Scraper daemon outputs (data goes to Supabase, these are ephemeral local audit trails)
 # Soft-deleted paths (sandboxed delete tombstones)
-# Source maps inside public/ — uploaded to Sentry at build, not shipped to browsers via git
+# Source maps inside public/ must not be shipped to browsers via git
 # Use scripts/build-club-arena.sh to rebuild — it atomically
 # Vercel deploys from git, so these MUST be committed.
 # Virtiofs EPERM workaround: stale rename tombstones (safe to ignore; cleaned up outside git)

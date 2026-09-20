@@ -19,6 +19,7 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 // TRAIN-WIRE-EMPTY-5d — adoption: shared empty-state primitive
 
 // BUG FIX (TRAIN-JARVIS-A11Y-1): SVG icon components replacing the Jarvis
@@ -153,7 +154,7 @@ export default function JarvisDashboard() {
     <PageTransition>
       <SEOHead
         title="Jarvis Training Insights"
-        description="Review Personalized Insights Derived From Your Verified Smarter.Poker Training Sessions."
+        description="Jarvis Reads The Hand In Front Of You, Compares Your Line To The Solver Baseline And Explains The Difference In Words Rather Than A Frequency Table. Free To Use While Training On Smarter.Poker."
         canonical="/hub/training/jarvis"
       />
 
@@ -174,7 +175,7 @@ export default function JarvisDashboard() {
           {loading ? (
             <div style={styles.loading}>
               <Image
-                src="/images/jarvis-avatar.png"
+                src="/images/jarvis-avatar.webp"
                 alt="Jarvis"
                 width={1024}
                 height={682}
@@ -335,7 +336,7 @@ export default function JarvisDashboard() {
                             background: 'rgba(34,197,94,0.1)',
                           }}
                         >
-                          <div style={{ fontSize: 11, color: 'var(--sp-accent-green)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ fontSize: 12, color: 'var(--sp-accent-green)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {/* TRAIN-JARVIS-A11Y-1: SVG trophy replaces ★ */}
                             <TrophyIcon size={12} /> Best Venue
                           </div>
@@ -357,7 +358,7 @@ export default function JarvisDashboard() {
                             background: 'rgba(239,68,68,0.1)',
                           }}
                         >
-                          <div style={{ fontSize: 11, color: 'var(--sp-accent-red)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ fontSize: 12, color: 'var(--sp-accent-red)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {/* TRAIN-JARVIS-A11Y-1: SVG alert replaces ▲ */}
                             <AlertIcon size={12} /> Worst Venue
                           </div>
@@ -410,6 +411,9 @@ export default function JarvisDashboard() {
         </div>
       </div>
       <ConnectionToast />
+      {/* Server rendered: measured on production this page returned
+          only chrome to a crawler (AEO phase 3, 2026-09-17). */}
+      <HubPageSummary page="training-jarvis" />
     </PageTransition>
   );
 }
@@ -429,7 +433,7 @@ function StatCard({ label, value, icon, iconKind }) {
 
 const styles = {
   container: {
-    minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+    minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
     background: '#0a0a0a',
     color: '#FFFFFF',
   },
@@ -572,7 +576,7 @@ const styles = {
     color: 'var(--sp-accent-green)',
   },
   gameLabel: {
-    fontSize: '10px',
+    fontSize: '12px',
     color: '#666',
   },
   weeklyStats: {

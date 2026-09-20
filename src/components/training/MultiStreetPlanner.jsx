@@ -69,12 +69,12 @@ function MultiStreetPlanner() {
         {/* Setup */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Starting Pot (BB)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Starting Pot (BB)</div>
             <input type="range" min={2} max={30} step={0.5} value={startPot} onChange={e => setStartPot(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#a78bfa' }} />
             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{startPot} BB</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (BB)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Effective Stack (BB)</div>
             <input type="range" min={20} max={200} step={5} value={effectiveStack} onChange={e => setEffectiveStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#a78bfa' }} />
             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{effectiveStack} BB</div>
           </div>
@@ -84,7 +84,7 @@ function MultiStreetPlanner() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {PRESETS.map(p => (
             <button key={p.name} onClick={() => applyPreset(p)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: activePreset === p.name ? '#a78bfa' : 'rgba(255,255,255,0.06)',
               color: activePreset === p.name ? '#000' : 'rgba(255,255,255,0.6)', border: 'none',
             }}>{p.name}</button>
@@ -105,7 +105,7 @@ function MultiStreetPlanner() {
             { label: 'River Bet %', value: riverPct, set: setRiverPct, color: '#f59e0b' },
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{s.label}</div>
               <input type="range" min={0} max={200} step={5} value={s.value} onChange={e => { s.set(parseInt(e.target.value)); setActivePreset(null); }} style={{ width: '100%', accentColor: s.color }} />
               <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}%</div>
             </div>
@@ -127,10 +127,10 @@ function MultiStreetPlanner() {
               <span style={{ fontSize: 12, color: '#fff', fontWeight: 600, textAlign: 'right' }}>
                 {s.bet > 0 ? `${s.bet.toFixed(1)} bb` : 'Check'}
               </span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
                 Pot: {s.potAfter.toFixed(1)}
               </span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>
                 SPR: {s.spr}
               </span>
             </div>
@@ -147,7 +147,7 @@ function MultiStreetPlanner() {
           ].map(s => (
             <div key={s.label} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>

@@ -111,7 +111,7 @@ const styles = {
     backgroundImage: {
         position: 'absolute',
         inset: 0,
-        backgroundImage: 'url("/cards/training.png")',
+        backgroundImage: 'url("/cards/training.webp")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         opacity: 0.4,
@@ -149,7 +149,7 @@ const styles = {
     },
 
     challengeLabel: {
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 600,
         letterSpacing: 2,
         color: 'rgba(255,255,255,0.6)',

@@ -37,7 +37,7 @@
  * hatch), hard recipient cap, chunked sends, and structured logging.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { sendPushNotification, getOneSignalStatus } from '../../../src/lib/commander/pushNotifications';
 
 let _supabase = null;

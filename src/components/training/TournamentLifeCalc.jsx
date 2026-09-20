@@ -72,7 +72,7 @@ function TournamentLifeCalc() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
           {STRUCTURES.map((s, i) => (
             <button key={i} onClick={() => setStructIdx(i)} style={{
-              padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               background: structIdx === i ? '#22c55e' : 'rgba(255,255,255,0.06)',
               color: structIdx === i ? '#000' : 'rgba(255,255,255,0.7)', border: 'none',
             }}>{s.name}</button>
@@ -82,12 +82,12 @@ function TournamentLifeCalc() {
         {/* Sliders */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Hero Stack</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Hero Stack</div>
             <input type="range" min={1000} max={200000} step={1000} value={heroStack} onChange={e => setHeroStack(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#22c55e' }} />
             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{heroStack.toLocaleString()} ({stats.bbStack} BB)</div>
           </div>
           <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Players Remaining</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Players Remaining</div>
             <input type="range" min={2} max={structure.entries} step={1} value={playersLeft} onChange={e => setPlayersLeft(parseInt(e.target.value))} style={{ width: '100%', accentColor: '#22c55e' }} />
             <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{playersLeft} / {structure.entries}</div>
           </div>
@@ -116,7 +116,7 @@ function TournamentLifeCalc() {
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 6, textAlign: 'center' }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>

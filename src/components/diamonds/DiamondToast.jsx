@@ -70,7 +70,7 @@ export default function DiamondToast() {
             {toasts.map(toast => (
                 <div key={toast.id} style={styles.toast}>
                     <div style={styles.icon}>
-                        <img src="/images/diamond.png" alt="Diamond" style={{ width: 28, height: 28, display: 'block' }} />
+                        <img src="/images/diamond.webp" alt="Diamond" style={{ width: 28, height: 28, display: 'block' }} />
                     </div>
                     <div style={styles.content}>
                         <div style={styles.amount}>+{toast.diamonds} Diamonds</div>

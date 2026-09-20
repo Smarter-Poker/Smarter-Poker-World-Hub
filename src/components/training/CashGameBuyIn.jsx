@@ -49,7 +49,7 @@ export default function CashGameBuyIn() {
           <button key={i} onClick={() => setIdx(i)}
             style={{ padding: '6px 12px', borderRadius: 8, border: idx === i ? `2px solid ${topic.color}` : '1px solid rgba(255,255,255,0.06)',
               background: idx === i ? `${topic.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer',
-              fontSize: 11, fontWeight: 700, color: idx === i ? topic.color : '#64748b' }}>
+              fontSize: 12, fontWeight: 700, color: idx === i ? topic.color : '#64748b' }}>
             {topic.icon} {topic.title.split(' (')[0]}
           </button>
         ))}
@@ -61,16 +61,16 @@ export default function CashGameBuyIn() {
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{t.detail}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: `${t.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${t.color}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: t.color }}>WHY</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: t.color }}>WHY</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.why}</div>
           </div>
           <div style={{ background: 'rgba(245,158,11,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #f59e0b' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b' }}>WHEN</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>WHEN</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.when}</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #3b82f6', fontFamily: 'monospace' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>MATH</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>{t.math}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>MATH</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.math}</div>
           </div>
         </div>
       </motion.div>

@@ -322,7 +322,7 @@ export default function GtoPreloaderPage() {
       </Head>
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: '#0a0a1a',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', sans-serif",
@@ -359,7 +359,7 @@ export default function GtoPreloaderPage() {
             </button>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700 }}>GTO Preloader</div>
-              <div style={{ fontSize: 11, color: '#b9cbd4' }}>Signed Question Cache Sync</div>
+              <div style={{ fontSize: 12, color: '#b9cbd4' }}>Signed Question Cache Sync</div>
             </div>
           </div>
         </div>
@@ -469,7 +469,7 @@ export default function GtoPreloaderPage() {
                             style={{
                               background: 'rgba(34,197,94,0.1)',
                               color: 'var(--sp-accent-green)',
-                              fontSize: 9,
+                              fontSize: 12,
                               fontWeight: 800,
                               textTransform: 'uppercase',
                               padding: '2px 6px',
@@ -488,7 +488,7 @@ export default function GtoPreloaderPage() {
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--sp-accent-blue)' }}>
                         {state.cachedLevels || 0}/{state.eligibleLevels || '-'} Unlocked Levels
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)', marginTop: 2 }}>
                         {state.questionCount || 0} Questions
                       </div>
                     </div>
@@ -520,7 +520,7 @@ export default function GtoPreloaderPage() {
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: 'var(--sp-fg-muted)',
                           marginBottom: 6,
@@ -586,7 +586,7 @@ export default function GtoPreloaderPage() {
 
                   {state.status === 'error' && (
                     <div role="alert" style={{ marginTop: 10 }}>
-                      <div style={{ color: 'var(--sp-accent-red)', fontSize: 11, marginBottom: 8 }}>
+                      <div style={{ color: 'var(--sp-accent-red)', fontSize: 12, marginBottom: 8 }}>
                         {state.error || 'The pack could not be downloaded.'}
                       </div>
                       <button

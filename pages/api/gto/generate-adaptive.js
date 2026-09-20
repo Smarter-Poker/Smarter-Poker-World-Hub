@@ -23,7 +23,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import {
     RFI, RFI_20BB, RFI_50BB, RFI_200BB,
     BB_DEFENSE, THREE_BET,
@@ -251,8 +251,8 @@ export default async function handler(req, res) {
             });
         }
     } catch (err) {
-        try { reportApiError(err, req); } catch (_sentryErr) {
-            console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr);
+        try { reportApiError(err, req); } catch (_reportError) {
+            console.warn('[App] Handled exception:', _reportError?.message || _reportError);
         }
         console.warn('[API Error]', err);
         if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });

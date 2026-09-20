@@ -35,7 +35,15 @@ import '../styles/avatar-shimmer.css';
 import '../styles/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-machined.css';
 import '../src/styles/worlds/poker-near-me-command-surfaces.css';
-import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
+import {
+  Orbitron,
+  Inter,
+  Plus_Jakarta_Sans,
+  Space_Grotesk,
+  Rajdhani,
+  Roboto_Condensed,
+  IBM_Plex_Mono,
+} from 'next/font/google';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -77,6 +85,22 @@ const rajdhani = Rajdhani({
   preload: false,
 });
 
+const robotoCondensed = Roboto_Condensed({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-roboto-condensed',
+  display: 'swap',
+  preload: false,
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-ibm-plex-mono',
+  display: 'swap',
+  preload: false,
+});
+
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -97,6 +121,7 @@ import { TrainingSettingsProvider } from '../src/contexts/TrainingSettingsContex
 import { ActiveIdentityProvider } from '../src/contexts/ActiveIdentityContext';
 import ToastContainer from '../src/components/ui/ToastContainer';
 import GlobalPageOverlay from '../src/components/ui/GlobalPageOverlay';
+import { isOperatorConsoleRoute } from '../src/components/admin/operatorConsoleRoutes';
 // Static on purpose: __tests__/sw-update.test.mjs requires the update prompt
 // in the shell, and it is the control that tells a reader a new build is
 // waiting - the earlier it can speak, the better.
@@ -183,6 +208,10 @@ const WorldCommandDock = dynamic(() => import('../src/components/ui/WorldCommand
   ssr: false,
   loading: () => null,
 });
+
+// Operator chrome is substantial and belongs only to /horses and admin routes.
+// Keep its custom vector and machined-frame stylesheet out of the public shell.
+const OperatorConsoleShell = dynamic(() => import('../src/components/admin/OperatorConsoleShell'));
 
 const TRAINING_ROUTES_WITH_HEADER = new Set([
   '/hub/training',
@@ -857,6 +886,33 @@ function EasterEggWatcher() {
   return null;
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// MARKETPLACE ROUTES THAT OWN THEIR FOOTER
+// ═════════════════════════════════════════════════════════════════════════════
+// These five addresses are one page component rendered with a different
+// `initialTab`. That page owns a restrained in-flow Marketplace commerce
+// footer, so the fixed illustrated footer must not mount on top of it.
+//
+// Measured on production at 1440x1000 before this set existed: the fixed
+// footer is 132px tall at z-index 900, and neither body nor main reserved any
+// clearance for it. On /hub/vip-membership it covered all three VIP plan
+// purchase buttons and every Marketplace commerce link; on /hub/merch-store,
+// /hub/smarter-rewards and /hub/club-shop it covered the commerce links and
+// the Club Shop heading.
+//
+// Only fixed-footer rendering is suppressed. Each route keeps its Marketplace
+// world copy identity, so Title Case and long-bar normalization stay active.
+// Marketplace subpages (cart, orders, wishlist, fulfillment, compare, manage
+// and the dynamic detail routes) are audited separately and keep their
+// existing footer behavior.
+const MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES = new Set([
+  '/hub/diamond-store',
+  '/hub/vip-membership',
+  '/hub/merch-store',
+  '/hub/smarter-rewards',
+  '/hub/club-shop',
+]);
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
@@ -901,11 +957,22 @@ export default function App({ Component, pageProps }) {
   const pokerNearMeOwnsSocialMetadata =
     resolvedPath === '/hub/poker-near-me' || resolvedPath.startsWith('/hub/poker-near-me/');
   const isClubArenaRoute = isClubArenaOwnedRoute(resolvedPath);
-  const bottomNavRouteConfig = isClubArenaRoute ? null : bottomNavRoutes[router.pathname] || null;
-  const worldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
-  const worldCopyWorldId = worldFooterConfig?.id || null;
-  const bottomNavConfig =
-    worldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
+  const isOperatorConsole = isOperatorConsoleRoute(resolvedPath);
+  const suppressWorldFooterOnMarketplaceStore =
+    MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES.has(resolvedPath);
+  const bottomNavRouteConfig =
+    isClubArenaRoute || suppressWorldFooterOnMarketplaceStore
+      ? null
+      : bottomNavRoutes[router.pathname] || null;
+  // All five Marketplace storefronts own an in-flow commerce footer instead of
+  // the fixed artwork footer, not just Page 1. Keep their Marketplace identity
+  // independent from footer rendering so Title Case and banned-long-bar
+  // normalization remain active on those routes.
+  const routeWorldFooterConfig = isClubArenaRoute ? null : resolveWorldFooter(resolvedPath);
+  const worldCopyWorldId = routeWorldFooterConfig?.id || null;
+  const bottomNavConfig = suppressWorldFooterOnMarketplaceStore
+    ? null
+    : routeWorldFooterConfig || (bottomNavRouteConfig ? getFallbackFooter() : null);
   const [isEmbedded, setIsEmbedded] = useState(false);
 
   // Two legacy settings surfaces intentionally suppress platform chrome when
@@ -969,7 +1036,7 @@ export default function App({ Component, pageProps }) {
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
       <div
-        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
+        className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${robotoCondensed.variable} ${ibmPlexMono.variable} ${shouldCapitalize ? 'capitalize-world' : ''} ${worldCopyWorldId ? WORLD_COPY_SCOPE_CLASS : ''}`}
         style={{ minHeight: '100vh' }}
       >
         <>
@@ -995,16 +1062,23 @@ export default function App({ Component, pageProps }) {
                 <meta key="og-type" property="og:type" content="website" />
                 <meta key="og-locale" property="og:locale" content="en_US" />
                 <meta key="og-url" property="og:url" content="https://smarter.poker" />
-                <meta key="og-title" property="og:title" content="Smarter.Poker | The Future Of The Game" />
-                <meta key="og-description" property="og:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-                <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-default.png" />
+                <meta key="og-title" property="og:title" content="Smarter.Poker: Free Poker Training, Clubs And Live Games" />
+                <meta key="og-description" property="og:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
+                {/* og-card.jpg is the 1200x630 hero crop of og-default.png
+                    (2026-09-17). The full poster is 1200x2151; every social
+                    card crops to about 1.91:1, so it showed a random band of
+                    the poster. The crop shows the title, the tagline and the
+                    table. og-default.png stays for the pages that still name
+                    it. */}
+                <meta key="og-image" property="og:image" content="https://smarter.poker/images/og-card.jpg" />
                 <meta key="og-image-width" property="og:image:width" content="1200" />
-                <meta key="og-image-height" property="og:image:height" content="2151" />
+                <meta key="og-image-height" property="og:image:height" content="630" />
+                <meta key="og-image-type" property="og:image:type" content="image/jpeg" />
                 <meta key="twitter-card" name="twitter:card" content="summary_large_image" />
                 <meta key="twitter-site" name="twitter:site" content="@SmarterPoker" />
-                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker | The Future Of The Game" />
-                <meta key="twitter-description" name="twitter:description" content="Train Smarter. Connect Globally. Manage Everything. The Premier Poker Platform With GTO Training, AI Coaching, Social Networking, Bankroll Tracking, And Club Commander Poker Room Management." />
-                <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-default.png" />
+                <meta key="twitter-title" name="twitter:title" content="Smarter.Poker: Free Poker Training, Clubs And Live Games" />
+                <meta key="twitter-description" name="twitter:description" content="Smarter.Poker Is A Free Online Poker Platform: GTO Training, Private Poker Clubs In Poker Arena, Club Commander Room Management, Live Venue Discovery, Home Games And A Bankroll Manager. Free To Play, No Real-Money Gambling." />
+                <meta key="twitter-image" name="twitter:image" content="https://smarter.poker/images/og-card.jpg" />
               </>
             )}
 
@@ -1111,6 +1185,11 @@ export default function App({ Component, pageProps }) {
                                       <Component {...pageProps} />
                                     </div>
                                   </div>
+                                ) : isOperatorConsole ? (
+                                  <OperatorConsoleShell>
+                                    {hubPageNeedsHeader && <UniversalHeader />}
+                                    <Component {...pageProps} />
+                                  </OperatorConsoleShell>
                                 ) : (
                                   <>
                                     {hubPageNeedsHeader && <UniversalHeader />}
@@ -1227,15 +1306,10 @@ export default function App({ Component, pageProps }) {
   );
 }
 
-// Report Web Vitals to Sentry for performance monitoring
+// Keep local development Web Vitals and route-scoped first-party analytics.
 export function reportWebVitals({ id, name, label, value }) {
   try {
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.metrics?.distribution(name, value, {
-        tags: { id, label },
-        unit: name === 'CLS' ? 'none' : 'millisecond',
-      });
-    }
+
     // Also log to console in development
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);

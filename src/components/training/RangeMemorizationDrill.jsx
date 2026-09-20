@@ -198,7 +198,7 @@ function RangeMemorizationDrill() {
           ].map(s => (
             <div key={s.label} style={{ textAlign: 'center', flex: 1, minWidth: 60 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{s.label}</div>
             </div>
           ))}
         </div>

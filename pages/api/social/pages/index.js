@@ -11,7 +11,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../../src/lib/auth-middleware';
 import { formatSlug, validateSlug } from './check-slug';
-import { reportApiError } from '../../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../../src/lib/apiErrorHandler';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
@@ -490,24 +490,11 @@ export default async function handler(req, res) {
                   }).then(r => {
                       if (!r.ok) {
                           console.warn(`[geocode] Failed for page ${data.id}: HTTP ${r.status}`);
-                          // Report to Sentry so we can track geocoding failures
-                          import('../../../../src/lib/sentry').then(({ captureMessage }) => {
-                              captureMessage(`Geocoding failed for page ${data.id}`, 'warning', {
-                                  tags: { api: 'social-pages', stage: 'geocoding' },
-                                  extra: { page_id: data.id, location: locStr, http_status: r.status },
-                              });
-                          }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                       } else {
                           console.debug(`[geocode] Success for page ${data.id}`);
                       }
                   }).catch(e => {
                       console.warn(`[geocode] Error for page ${data.id}:`, e.message);
-                      import('../../../../src/lib/sentry').then(({ captureError }) => {
-                          captureError(e, {
-                              tags: { api: 'social-pages', stage: 'geocoding' },
-                              extra: { page_id: data.id, location: locStr },
-                          });
-                      }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                   });
               } catch (e) { console.warn('[App] Handled exception:', e?.message || e); }
           }
@@ -712,7 +699,7 @@ export default async function handler(req, res) {
       }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }

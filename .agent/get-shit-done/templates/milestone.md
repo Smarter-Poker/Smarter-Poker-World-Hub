@@ -74,7 +74,7 @@ If MILESTONES.md doesn't exist, create it with header:
 **Key accomplishments:**
 - Migrated API key storage from plaintext to macOS Keychain
 - Implemented comprehensive error handling for network failures
-- Added Sentry crash reporting integration
+- Verified existing application crash logs
 - Fixed memory leak in auto-refresh timer
 
 **Stats:**

@@ -96,26 +96,26 @@ function RiverBluffCatcherTrainer() {
         <div style={{ padding: 14, background: 'rgba(236,72,153,0.06)', borderRadius: 10, border: '1px solid rgba(236,72,153,0.15)', marginBottom: 16, textAlign: 'center' }}>
           <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: 3, marginBottom: 6 }}>{spot.board}</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#ec4899', marginBottom: 4 }}>Hero: {spot.hero}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.heroRange}</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{spot.position} | {spot.heroRange}</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{spot.action}</div>
         </div>
 
         {/* Pot odds info */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Pot</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Pot</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{spot.pot} BB</div>
           </div>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Bet</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Bet</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444' }}>{spot.bet} BB</div>
           </div>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>Pot Odds</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Pot Odds</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#3b82f6' }}>{spot.potOdds}</div>
           </div>
           <div style={{ flex: 1, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>MDF</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>MDF</div>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b' }}>{spot.mdf}</div>
           </div>
         </div>
@@ -137,16 +137,16 @@ function RiverBluffCatcherTrainer() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               <div style={{ flex: 1, padding: 8, borderRadius: 8, textAlign: 'center', background: 'rgba(16,185,129,0.06)' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#10b981' }}>{spot.evCall}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Call</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Call</div>
               </div>
               <div style={{ flex: 1, padding: 8, borderRadius: 8, textAlign: 'center', background: 'rgba(239,68,68,0.06)' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#ef4444' }}>{spot.evFold}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>EV Fold</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>EV Fold</div>
               </div>
             </div>
             <div style={{ padding: 10, background: 'rgba(236,72,153,0.06)', borderRadius: 8, border: '1px solid rgba(236,72,153,0.12)', marginBottom: 8 }}>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, marginBottom: 6 }}>{spot.reasoning}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{spot.blockers}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{spot.blockers}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <button onClick={next} style={{ padding: '10px 28px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', background: '#ec4899', color: '#fff' }}>Next Spot →</button>

@@ -51,7 +51,7 @@ function KellyBetCalculator() {
             { label: 'Avg Loss (units)', value: avgLoss, set: setAvgLoss, min: 0.5, max: 10, step: 0.5, color: '#ef4444', display: `${avgLoss}x` },
           ].map(s => (
             <div key={s.label} style={{ padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{s.label}</div>
               <input type="range" min={s.min} max={s.max} step={s.step} value={s.value} onChange={e => s.set(parseFloat(e.target.value))} style={{ width: '100%', accentColor: s.color }} />
               <div style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.display}</div>
             </div>
@@ -64,7 +64,7 @@ function KellyBetCalculator() {
           <div style={{ fontSize: 28, fontWeight: 900, color: calc.hasEdge ? '#10b981' : '#ef4444' }}>
             {calc.hasEdge ? `+${calc.edge}` : calc.edge}
           </div>
-          {!calc.hasEdge && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>No Edge - Do Not Play! Kelly Says Bet $0.</div>}
+          {!calc.hasEdge && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>No Edge - Do Not Play! Kelly Says Bet $0.</div>}
         </div>
 
         {calc.hasEdge && (
@@ -77,17 +77,17 @@ function KellyBetCalculator() {
                 { label: 'Quarter Kelly', pct: calc.quarterKellyPct, bet: calc.quarterKellyBet, ruin: calc.ruinQuarter, color: '#10b981', rec: 'Conservative' },
               ].map(k => (
                 <div key={k.label} style={{ padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8, textAlign: 'center', borderTop: `3px solid ${k.color}` }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: k.color, marginBottom: 4 }}>{k.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: k.color, marginBottom: 4 }}>{k.label}</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>${k.bet.toLocaleString()}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>{k.pct}% Of Bankroll</div>
-                  <div style={{ fontSize: 9, color: k.ruin > 10 ? '#ef4444' : '#10b981', marginTop: 4 }}>Ruin Risk: ~{k.ruin}%</div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: k.color, marginTop: 2 }}>{k.rec}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{k.pct}% Of Bankroll</div>
+                  <div style={{ fontSize: 12, color: k.ruin > 10 ? '#ef4444' : '#10b981', marginTop: 4 }}>Ruin Risk: ~{k.ruin}%</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: k.color, marginTop: 2 }}>{k.rec}</div>
                 </div>
               ))}
             </div>
 
             <div style={{ padding: 10, background: 'rgba(16,185,129,0.06)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.12)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Best Practice</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Best Practice</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
                 Use Half Kelly For The Best Risk/Reward Balance. Full Kelly Maximizes Long-Term Growth But Has High Variance.
                 Quarter Kelly Is Ultra-Safe But Slower Growth. Never Bet More Than Full Kelly - It Actually Reduces Expected Growth.

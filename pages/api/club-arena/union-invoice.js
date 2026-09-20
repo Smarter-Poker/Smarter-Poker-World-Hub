@@ -39,7 +39,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 const { checkIdempotency } = require('../../../src/lib/club-arena/idempotency');
 const { beginIdempotent } = require('../../../src/lib/club-arena/durableIdempotency');
 import { applyRateLimit } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 const MIDWAY_UNION_ID = 'fade0000-0000-0000-0000-000000000001';
 

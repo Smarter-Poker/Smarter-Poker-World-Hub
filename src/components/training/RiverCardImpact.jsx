@@ -47,7 +47,7 @@ export default function RiverCardImpact() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
         {RIVER_IMPACTS.map((r, i) => (
           <button key={i} onClick={() => setCardIdx(i)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+            style={{ padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               background: cardIdx === i ? `linear-gradient(135deg, ${r.color}, ${r.color}cc)` : 'rgba(255,255,255,0.06)',
               color: cardIdx === i ? '#fff' : '#94a3b8' }}>
             {r.icon}
@@ -67,7 +67,7 @@ export default function RiverCardImpact() {
             { label: 'Trap Alert', text: card.trapAlert, color: '#ef4444' },
           ].map((s, i) => (
             <div key={i} style={{ background: `${s.color}08`, borderRadius: 8, padding: 10, borderLeft: `3px solid ${s.color}` }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.text}</div>
             </div>
           ))}

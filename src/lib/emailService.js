@@ -82,8 +82,15 @@ export async function sendTicketNotification({
                         
                         <div class="footer">
                             <p>
-                                <a href="https://smarter.poker/admin/support-tickets/${ticketId}">View Ticket In Admin Panel</a>
-                                ${conversationId ? ` | <a href="https://smarter.poker/admin/live-help/${conversationId}">View Conversation</a>` : ''}
+                                <!-- AEO phase 3 (2026-09-18): these were links to
+                                     /admin/support-tickets/<id> and /admin/live-help/<id>.
+                                     Neither route exists: pages/admin holds seven health and
+                                     tooling pages and no ticket or conversation surface, so
+                                     both answered 404 on every support email ever sent. The
+                                     identifiers are kept as text, which is what staff can
+                                     actually search on; make them links again in the change
+                                     that builds those pages. -->
+                                Ticket <strong>${ticketId}</strong>${conversationId ? ` &middot; Conversation <strong>${conversationId}</strong>` : ''}
                             </p>
                             <p>This ticket was created via the Live Help system at ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CST</p>
                         </div>

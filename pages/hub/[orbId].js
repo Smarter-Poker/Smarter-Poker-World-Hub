@@ -154,7 +154,20 @@ export default function OrbPage() {
     }
   }, [mounted, orbId, router]);
 
-  if (!router.isReady) return null;
+  // AEO phase 3 (2026-09-18): the head used to sit below this guard. The
+  // guard is true on the server, so the branch a crawler always takes
+  // returned nothing and the page served a 200 with no title and zero
+  // words. The head is hoisted above it and returned from it, so the page
+  // says what it is before it says it is still loading.
+  const pageHead = (
+    <SEOHead
+      title="Smarter.Poker Feature"
+      description="Explore This Smarter.Poker Feature."
+      noindex={true}
+    />
+  );
+
+  if (!router.isReady) return pageHead;
 
   if (!mounted || !orbId) {
     return (
@@ -180,11 +193,7 @@ export default function OrbPage() {
 
   return (
     <PageTransition>
-      <SEOHead
-        title="Smarter.Poker Feature"
-        description="Explore This Smarter.Poker Feature."
-        noindex={true}
-      ></SEOHead>
+      {pageHead}
 
       <div className="dynamic-orb-page" style={styles.container}>
         {/* Background grid */}

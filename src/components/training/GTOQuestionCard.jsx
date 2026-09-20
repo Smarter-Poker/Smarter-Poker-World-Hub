@@ -371,11 +371,11 @@ export default function GTOQuestionCard({
                                 marginBottom: 14,
                             }}>
                                 <div style={{ padding: 12, background: 'rgba(0,0,0,.42)', border: `1px solid ${isCorrect ? 'rgba(83,242,160,.5)' : 'rgba(255,102,112,.55)'}` }}>
-                                    <div style={{ color: '#91a9b7', fontSize: 9, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Your Answer</div>
+                                    <div style={{ color: '#91a9b7', fontSize: 12, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Your Answer</div>
                                     <div style={{ color: resultColor, fontSize: 15, fontWeight: 850, marginTop: 4 }}>{selectedText}</div>
                                 </div>
                                 <div style={{ padding: 12, background: 'rgba(0,0,0,.42)', border: '1px solid rgba(83,242,160,.55)' }}>
-                                    <div style={{ color: '#91a9b7', fontSize: 9, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Correct Answer</div>
+                                    <div style={{ color: '#91a9b7', fontSize: 12, fontWeight: 850, letterSpacing: 1.4, textTransform: 'uppercase' }}>Correct Answer</div>
                                     <div style={{ color: '#53f2a0', fontSize: 15, fontWeight: 850, marginTop: 4 }}>{correctText}</div>
                                 </div>
                             </div>
@@ -388,7 +388,7 @@ export default function GTOQuestionCard({
                                     color: '#d8e6ed',
                                 }}>{explanation}</div>
                             )}
-                            <div style={{ color: '#9db0bb', fontSize: 10, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
+                            <div style={{ color: '#9db0bb', fontSize: 12, fontWeight: 700, marginTop: 13, textAlign: 'center' }}>
                                 This Result Will Stay Open Until You Click Next.
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>

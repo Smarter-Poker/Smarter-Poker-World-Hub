@@ -5,6 +5,7 @@
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
@@ -12,6 +13,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { openPageOverlay } from '../../src/stores/pageOverlayStore';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 
 const CATEGORIES = [
     { key: 'all', label: 'All Pages' },
@@ -57,6 +59,9 @@ const TYPE_COLORS = {
 };
 
 export default function PokerPagesPage() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19).
+    const hasMounted = useHasMounted();
     const router = useRouter();
 
     const [category, setCategory] = useState('all');
@@ -289,7 +294,7 @@ export default function PokerPagesPage() {
 
                 {/* Content */}
                 <div className="pages-content">
-                    {loading ? (
+                    {hasMounted && loading ? (
                         <div className="loading-state">
                             <div className="spinner" />
                             <p>Loading Pages...</p>
@@ -969,6 +974,9 @@ export default function PokerPagesPage() {
                     }
                 }
             `}</style>
+          {/* Server rendered: measured on production this page returned
+              almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
+          <HubPageSummary page="pages" />
         </>
     );
 }

@@ -35,7 +35,7 @@
  */
 
 import crypto from 'crypto';
-import { reportApiError } from '../../src/lib/sentryWrap';
+import { reportApiError } from '../../src/lib/apiErrorHandler';
 import { alertEventKey, recordOperationalAlerts } from '../../src/lib/operationalAlerts.mjs';
 
 // Disable Next.js body parsing so we can HMAC-verify the raw request bytes.
@@ -872,7 +872,7 @@ Manual intervention needed. Check the Vercel build: https://vercel.com/smarter-p
     if (err.operationalInboxDeliveryFailure) {
       return res.status(503).json({ error: 'Operational inbox unavailable; retry delivery', sent: false });
     }
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[deploy-monitor] Error:', err);
     // Pipeline-level errors also deserve an alert
     await createAlertIssue(

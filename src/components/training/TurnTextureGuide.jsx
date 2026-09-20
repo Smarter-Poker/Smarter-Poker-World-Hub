@@ -45,7 +45,7 @@ export default function TurnTextureGuide() {
             style={{ padding: '8px 4px', borderRadius: 8, border: texIdx === i ? `2px solid ${t.color}` : '1px solid rgba(255,255,255,0.06)',
               background: texIdx === i ? `${t.color}15` : 'rgba(0,0,0,0.2)', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ fontSize: 14 }}>{t.icon}</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: texIdx === i ? t.color : '#64748b' }}>{t.type}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: texIdx === i ? t.color : '#64748b' }}>{t.type}</div>
           </button>
         ))}
       </div>
@@ -56,17 +56,17 @@ export default function TurnTextureGuide() {
           <span style={{ fontSize: 24 }}>{tex.icon}</span>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: tex.color }}>{tex.card}</div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>{tex.type} Turn</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{tex.type} Turn</div>
           </div>
         </div>
         <p style={{ fontSize: 13, color: '#cbd5e1', marginBottom: 12 }}>{tex.effect}</p>
         <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #22c55e' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>In Position</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>In Position</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tex.ipAction}</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: 10, borderLeft: '3px solid #ef4444' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444' }}>Out Of Position</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>Out Of Position</div>
             <div style={{ fontSize: 12, color: '#94a3b8' }}>{tex.oopAction}</div>
           </div>
         </div>

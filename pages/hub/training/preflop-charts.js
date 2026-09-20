@@ -204,7 +204,7 @@ export default function PreflopCharts() {
 
       <div
         style={{
-          minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+          minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
           background: 'linear-gradient(180deg, #0a0a12 0%, #0f0f1e 50%, #1a1a2e 100%)',
           color: 'var(--sp-fg)',
           fontFamily: "'Inter', -apple-system, sans-serif",
@@ -269,7 +269,7 @@ export default function PreflopCharts() {
                 background: 'rgba(0,212,255,0.10)',
                 border: '1px solid rgba(0,212,255,0.30)',
                 color: 'var(--sp-accent-cyan)',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 padding: '6px 12px',
                 borderRadius: 12,
@@ -295,7 +295,7 @@ export default function PreflopCharts() {
             </h1>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 color: 'var(--sp-accent-cyan)',
                 background: 'rgba(0,212,255,0.1)',
                 padding: '3px 8px',
@@ -330,7 +330,7 @@ export default function PreflopCharts() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -353,7 +353,7 @@ export default function PreflopCharts() {
                   style={{
                     padding: '4px 10px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     cursor: 'pointer',
                     border: 'none',
@@ -373,7 +373,7 @@ export default function PreflopCharts() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -386,7 +386,7 @@ export default function PreflopCharts() {
                 style={{
                   padding: '4px 10px',
                   borderRadius: 6,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   background: 'rgba(0,212,255,0.2)',
                   color: 'var(--sp-accent-cyan)',
@@ -411,7 +411,7 @@ export default function PreflopCharts() {
               borderRadius: 10,
               color: 'var(--sp-fg-muted)',
               background: 'rgba(120,53,15,0.12)',
-              fontSize: 11,
+              fontSize: 12,
               lineHeight: 1.55,
             }}
           >
@@ -462,7 +462,7 @@ export default function PreflopCharts() {
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: 'var(--sp-fg-dim)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -513,7 +513,7 @@ export default function PreflopCharts() {
               style={{
                 padding: '6px 14px',
                 borderRadius: 8,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 cursor: 'pointer',
                 transition: 'all 0.15s',
@@ -552,7 +552,7 @@ export default function PreflopCharts() {
                 >
                   <span
                     style={{
-                      fontSize: 10,
+                      fontSize: 12,
                       color: 'var(--sp-accent-purple)',
                       fontWeight: 700,
                       textTransform: 'uppercase',
@@ -755,7 +755,7 @@ export default function PreflopCharts() {
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 color: 'var(--sp-fg-dim)',
                 textTransform: 'uppercase',

@@ -3,11 +3,12 @@
  * Supports filtering by id, upcoming, type, tour, search, date range
  * Tries Supabase DB first, falls back to JSON data file
  */
-import { withSentry } from '../../../src/lib/sentry';
+import { reportApiError } from '../../../src/lib/apiErrorHandler';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
 import seriesSourceRegistry from '../../../data/series_source_registry.json';
 import allVenuesData from '../../../data/all-venues.json';
+import { buildVenueIndex, cleanScrapedCity } from '../../../src/lib/poker-near-me/cityFromScrape';
 import wsopEvents from '../../../data/wsop-2026-events.json';
 import wptEvents from '../../../data/wpt-2026-events.json';
 import wsopCEvents from '../../../data/wsopc-2026-events.json';
@@ -15,7 +16,6 @@ import msptEvents from '../../../data/mspt-2026-events.json';
 import rgpsEvents from '../../../data/rgps-2026-events.json';
 import venetianEvents from '../../../data/venetian-2026-events.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { reportApiError } from '../../../src/lib/sentryWrap';
 import { getTodayCST } from '../../../src/lib/trivia/getTodayCST';
 import {
   decodeScrapedTournamentText,
@@ -93,6 +93,23 @@ function decodeSeriesEventPayload(event) {
   };
 }
 
+/**
+ * A CITY IS A CITY (AEO phase 3, 2026-09-19). The scrapers write the venue
+ * and the city into the city field run together whenever the source page did
+ * not separate them, and 64 of the 225 series in the sitemap carry one:
+ * "Wynn Las Vegas Las Vegas", "Thunder Valley Casino Lincoln". Resolved here,
+ * once, against the venue directory, so the page title, the meta
+ * description, the visible location and addressLocality all agree.
+ */
+let _venueIndex = null;
+function venueIndex() {
+  // Built from the same venuesList the cross-link lookup below uses, on
+  // first request rather than at module load, because that list is declared
+  // after this function.
+  if (!_venueIndex) _venueIndex = buildVenueIndex(venuesList);
+  return _venueIndex;
+}
+
 function decodeSeriesPayload(series) {
   if (!series || typeof series !== 'object') return series;
   const name = decodeScrapedTournamentText(series.name);
@@ -100,6 +117,7 @@ function decodeSeriesPayload(series) {
   if (!name && !seriesName) return null;
   return {
     ...series,
+    city: cleanScrapedCity(decodeScrapedTournamentText(series.city), venueIndex()),
     name,
     series_name: seriesName,
     short_name: decodeScrapedTournamentText(series.short_name),
@@ -806,10 +824,22 @@ async function handler(req, res) {
     }
 
   } catch (err) {
-      try { reportApiError(err, req); } catch (_sentryErr) { console.warn('[App] Handled exception:', _sentryErr?.message || _sentryErr); }
+      try { reportApiError(err, req); } catch (_reportError) { console.warn('[App] Handled exception:', _reportError?.message || _reportError); }
     console.warn('[API Error]', err);
     if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
-export default withSentry(handler);
+export default async function routeHandler(req, res) {
+    try {
+        return await handler(req, res);
+    } catch (error) {
+        reportApiError(error, req);
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Internal server error',
+                ...(process.env.NODE_ENV === 'development' ? { message: error.message } : {}),
+            });
+        }
+    }
+}
