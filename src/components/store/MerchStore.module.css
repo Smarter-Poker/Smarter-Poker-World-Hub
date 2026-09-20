@@ -598,6 +598,10 @@
   text-align: center;
 }
 
+/* `!important` for the same reason the store shell uses it: the global reset in
+   src/index.css ends `button:focus` with `outline: none !important`, which
+   silently beats any focus-visible outline declared at normal specificity
+   here. */
 .operatorLink:focus-visible,
 .actionControl:focus-visible,
 .categoryControl:focus-visible,
@@ -606,8 +610,8 @@
 .quantityButton:focus-visible,
 .searchInput:focus-visible,
 .sortSelect:focus-visible {
-  outline: 3px solid #8befff;
-  outline-offset: 3px;
+  outline: 3px solid #8befff !important;
+  outline-offset: 3px !important;
 }
 
 .operatorLink:active,
