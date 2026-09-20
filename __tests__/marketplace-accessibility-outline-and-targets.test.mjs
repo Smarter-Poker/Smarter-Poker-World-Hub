@@ -19,6 +19,8 @@ const legacyStyles = read('src/components/diamond-store/diamondStoreStyles.js');
 const shellCss = read('src/components/diamond-store/DiamondStoreShell.module.css');
 const merchCss = read('src/components/store/MerchStore.module.css');
 const vipCss = read('src/components/store/VipMembershipConsole.module.css');
+const detailCssFocus = read('src/components/store/MarketplaceDetailExperience.module.css');
+const globalCss = read('src/index.css');
 
 test('the merch product card takes its heading level from its surroundings', () => {
   assert.match(
@@ -173,4 +175,36 @@ test('the rewards stats readout wraps instead of running off the side', () => {
     /@media \(max-width: 700px\) \{\s*\.rewardsQuickStats > div \{[^}]*min-width:\s*0/,
     'the tiles must be allowed to shrink on a narrow screen'
   );
+});
+
+test('a keyboard user can see where they are on every Marketplace surface', () => {
+  // src/index.css resets `input, textarea, select, button:focus` with
+  // `outline: none !important`. That beats any focus-visible outline declared
+  // at normal specificity, so a module rule without `!important` never paints:
+  // measured on production, MarketplaceDetailExperience's inspect button
+  // reported `outline-style: none` while `:focus-visible` matched. Every
+  // Marketplace focus ring that uses `outline` has to out-rank that reset.
+  assert.match(
+    globalCss,
+    /button:focus \{[^}]*outline:\s*none\s*!important/,
+    'the global reset moved; re-check whether these !important rings are still needed'
+  );
+
+  for (const [name, css] of [
+    ['MarketplaceDetailExperience', detailCssFocus],
+    ['VipMembershipConsole', vipCss],
+    ['MerchStore', merchCss],
+    ['DiamondStoreShell', shellCss],
+  ]) {
+    const blocks = [...css.matchAll(/:focus-visible[^{]*\{[^}]*\}/g)].map((m) => m[0]);
+    assert.ok(blocks.length > 0, `${name} declares no focus ring at all`);
+    for (const block of blocks) {
+      if (!/outline:/.test(block)) continue; // a box-shadow ring is unaffected by the reset
+      assert.match(
+        block,
+        /outline:[^;]*!important/,
+        `${name} has an outline focus ring the global reset will erase: ${block.slice(0, 90)}`
+      );
+    }
+  }
 });

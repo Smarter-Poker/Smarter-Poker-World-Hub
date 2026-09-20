@@ -310,10 +310,16 @@
   margin-top: 0;
 }
 
+/* `src/index.css` ends `input, textarea, select, button:focus` with
+   `outline: none !important`, so a focus-visible rule here at normal
+   specificity never paints: measured on production, the detail page's inspect
+   button reported `outline-style: none` while `:focus-visible` matched. The
+   store shell already carries `!important` on its own focus ring for this
+   exact reason; these follow it so a keyboard user can see where they are. */
 .console :is(button, a, select):focus-visible,
 .dialog :is(button, select):focus-visible {
-  outline: 2px solid #8befff;
-  outline-offset: 3px;
+  outline: 2px solid #8befff !important;
+  outline-offset: 3px !important;
 }
 
 @media (max-width: 760px) {
