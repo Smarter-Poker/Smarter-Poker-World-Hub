@@ -125,6 +125,44 @@ test.describe('11. News API — Articles Pagination Contract', () => {
     expect(sourced.pagination.total).toBeLessThanOrEqual(all.pagination.total);
   });
 
+  /**
+   * Search is an OR over `title ILIKE` and a websearch full-text match on
+   * `search_vector`. That filter is assembled as one PostgREST `or=(...)`
+   * string, so a syntax slip there does not fail loudly -- it 500s, or worse
+   * returns 0 and reads as "no articles matched". These guard both.
+   *
+   * Thresholds are deliberately shape-based rather than exact counts: the
+   * scraper adds rows continuously, so asserting "804 results" would rot.
+   */
+  test('search returns real results and never 500s on the or() filter', async ({ request }) => {
+    for (const term of ['wsop', 'main event', 'poker']) {
+      const res = await request.get(`${ARTICLES}?limit=5&search=${encodeURIComponent(term)}`);
+      expect(res.status(), `search="${term}" must not error`).toBe(200);
+      const body = (await res.json()) as ArticlesBody;
+      expectArticlesShape(body);
+      expect(body.pagination.total, `search="${term}" returned nothing — the or() filter is probably malformed`).toBeGreaterThan(0);
+    }
+  });
+
+  test('a nonsense term returns an empty page, not an error', async ({ request }) => {
+    const body = await getArticles(request, '?limit=5&search=zzzznotarealterm');
+    expectArticlesShape(body);
+    expect(body.data.length).toBe(0);
+    expect(body.pagination.total).toBe(0);
+    expect(body.pagination.hasMore).toBe(false);
+  });
+
+  test('search input with filter metacharacters is sanitized, not fatal', async ({ request }) => {
+    // Commas, parens and dots are PostgREST or()/filter syntax. The handler
+    // strips them; if that ever regresses these would break the filter apart.
+    for (const nasty of ['a,b', 'x(y)', 'main.event', "o'brien", '%_%']) {
+      const res = await request.get(`${ARTICLES}?limit=1&search=${encodeURIComponent(nasty)}`);
+      expect(res.status(), `search=${JSON.stringify(nasty)} must be handled, not 500`).toBe(200);
+      const body = (await res.json()) as ArticlesBody;
+      expectArticlesShape(body);
+    }
+  });
+
   test('rejects a view-count POST for a non-UUID article id', async ({ request }) => {
     const res = await request.post(ARTICLES, { data: { id: 'empty-box-1' } });
     expect(res.status()).toBe(400);
