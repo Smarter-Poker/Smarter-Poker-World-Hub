@@ -82,6 +82,41 @@ const stripLiteralsAndComments = (sql) =>
     .replace(/'(?:[^']|'')*'/g, "''")
     .replace(/\s+/g, ' ');
 
+/**
+ * THE BODY ENDS AT ITS OWN DOLLAR QUOTE, NOT AT THE NEXT FUNCTION (2026-09-21).
+ *
+ * Slicing from one CREATE FUNCTION to the next one hands the scan everything
+ * that follows the LAST function in a file - the grants, the backfills, the
+ * one-off UPDATEs a migration runs at top level - and then reports whatever it
+ * finds there under that function's name.
+ *
+ * Measured: 20260920150544_poker_news_search_vector_include_excerpt.sql defines
+ * the trigger function `poker_news_search_update`, whose entire body is
+ * `NEW.search_vector := ...; RETURN NEW;` and which contains no UPDATE at all.
+ * The migration then runs one top-level backfill `UPDATE public.poker_news SET
+ * search_vector = ...` with no WHERE, correctly, as `postgres`, which does not
+ * preload safeupdate. The guard attributed that statement to the function and
+ * refused the file.
+ *
+ * This file's own header already names the failure: "It also flagged
+ * fn_ca_money_path_log, which contains no UPDATE at all ... A guard that
+ * miscounts is how the wrong function gets fixed." Same miscount, new cause.
+ *
+ * NOTHING TRUE IS LOST. safeupdate applies to what runs INSIDE the function
+ * when PostgREST calls it, so a statement after the closing dollar quote was
+ * never in scope; a WHERE-less write actually inside a body is still found, and
+ * the test below proves both halves on a fixture rather than on the corpus.
+ * A body with no dollar quote keeps the old slice - the conservative direction.
+ */
+function functionBody(sql, from, to) {
+  const slice = sql.slice(from, to);
+  const open = /\$([a-z_0-9]*)\$/.exec(slice);
+  if (!open) return slice;
+  const tag = open[0];
+  const close = slice.indexOf(tag, open.index + tag.length);
+  return close === -1 ? slice : slice.slice(0, close + tag.length);
+}
+
 function lastDefinitionOfEveryFunction() {
   const last = new Map();
   for (const file of readdirSync(MIGRATIONS).filter((f) => f.endsWith('.sql')).sort()) {
@@ -94,7 +129,7 @@ function lastDefinitionOfEveryFunction() {
     for (let i = 0; i < marks.length; i++) {
       last.set(marks[i].name, {
         file,
-        body: sql.slice(marks[i].at, marks[i + 1]?.at ?? sql.length),
+        body: functionBody(sql, marks[i].at, marks[i + 1]?.at ?? sql.length),
       });
     }
   }
@@ -152,4 +187,32 @@ test('the known offenders are listed, not merely tolerated', () => {
       `${name} no longer writes without a WHERE. Remove it from KNOWN_BEFORE_THIS_GUARD.`,
     );
   }
+});
+
+test('the scan reads the function body, and not what the migration runs after it', () => {
+  // Both halves on a fixture, because the corpus can only ever show one of
+  // them and a guard that stopped catching anything would look identical to a
+  // guard that stopped over-reaching.
+  const withTrailingBackfill = stripLiteralsAndComments(
+    `create or replace function public.t_vector() returns trigger language plpgsql as $function$
+     begin new.v := 1; return new; end;
+     $function$;
+     update public.some_table set v = 2;`.toLowerCase(),
+  );
+  assert.deepEqual(
+    whereLessWrites(functionBody(withTrailingBackfill, 0, withTrailingBackfill.length)),
+    [],
+    'a top-level statement after the closing dollar quote is not inside the function',
+  );
+
+  const reallyInside = stripLiteralsAndComments(
+    `create or replace function public.t_writer() returns void language plpgsql as $function$
+     begin update public.some_table set v = 2; end;
+     $function$;`.toLowerCase(),
+  );
+  assert.equal(
+    whereLessWrites(functionBody(reallyInside, 0, reallyInside.length)).length,
+    1,
+    'a WHERE-less write actually inside a body is still an offender',
+  );
 });
