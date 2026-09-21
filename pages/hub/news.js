@@ -1866,14 +1866,24 @@ function NewsHub() {
                                                                         {TIME_GROUP_LABELS[group]}
                                                                     </div>
                                                                 )}
-                                                                {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
+                                                                {/* The row is NOT the keyboard control. It used to carry
+                                                                    role="button" (which made the Bookmark/Read Later/Share
+                                                                    buttons inside it nested interactive elements) and then
+                                                                    role="article" + tabIndex, which is worse for a screen
+                                                                    reader: focusable, announced as an article, with no hint
+                                                                    that Enter does anything. Both states only passed lint
+                                                                    because the rules were disabled here.
+                                                                    The title below is now a real <button>, so the keyboard
+                                                                    and AT path is a genuine control and the action buttons
+                                                                    are its siblings, not its descendants. The onClick that
+                                                                    remains is a redundant mouse convenience so the whole row
+                                                                    stays clickable -- that, and only that, is what the two
+                                                                    rules below are silenced for. */}
+                                                                {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
                                                                 <motion.div
                                                                     className={`news-list-item ${readArticles.includes(article.id) ? 'read' : ''} ${isKeyFocused ? 'keyboard-focused' : ''}`}
                                                                     whileHover={{ x: 4 }}
-                                                                    role="article"
-                                                                    tabIndex={0}
                                                                     onClick={() => openArticle(article)}
-                                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openArticle(article); } }}
                                                                 >
                                                                     {isNewArticle(article) && (
                                                                         <span className="new-badge">NEW</span>
@@ -1896,7 +1906,15 @@ function NewsHub() {
                                                                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGES.news; }}
                                                                     />
                                                                     <div className="list-content">
-                                                                        <h4>{article.title}</h4>
+                                                                        <h4>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="list-title-btn"
+                                                                                onClick={(e) => { e.stopPropagation(); openArticle(article); }}
+                                                                            >
+                                                                                {article.title}
+                                                                            </button>
+                                                                        </h4>
                                                                         <div className="list-meta">
                                                                             <span style={{ color: SOURCE_COLORS[article.source_name] || '#888' }}>{article.source_name || 'Source'}</span>
                                                                             <span>•</span>
@@ -3413,6 +3431,26 @@ function NewsHub() {
                         font-weight: 600;
                         color: #fff;
                         margin-bottom: 4px;
+                    }
+                    /* The title is a real <button> so the row has a keyboard/AT
+                       control without the action buttons being nested inside one.
+                       Stripped back to plain text so it renders exactly as the
+                       bare <h4> did; only the focus ring is added back. */
+                    .list-title-btn {
+                        display: block;
+                        width: 100%;
+                        padding: 0;
+                        border: 0;
+                        background: none;
+                        font: inherit;
+                        color: inherit;
+                        text-align: left;
+                        cursor: pointer;
+                    }
+                    .list-title-btn:focus-visible {
+                        outline: 2px solid #5ef5f0;
+                        outline-offset: 2px;
+                        border-radius: 4px;
                     }
 
                     .list-meta {
