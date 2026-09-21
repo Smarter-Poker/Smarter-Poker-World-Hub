@@ -147,7 +147,9 @@ test('route heroes are isolated under the image budget and preloaded by route', 
 });
 
 test('starter packs, store analytics, legible legal copy, and pressed metal states are wired', () => {
-  assert.match(SHOWCASE, /packages\.slice\(0, 2\)/);
+  assert.match(SHOWCASE, /packages\.slice\(0, Math\.min\(2, packages\.length\)\)/);
+  assert.match(SHOWCASE, /packages\.slice\(starterPackages\.length\)/);
+  assert.doesNotMatch(SHOWCASE, /packages\.slice\(-6\)/);
   assert.match(SHOWCASE, /Starter Diamond Packs/);
   assert.match(STORE, /captureStoreEvent\('viewed'/);
   assert.match(MERCH, /captureStoreEvent\('catalog_viewed'/);

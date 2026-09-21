@@ -104,6 +104,31 @@ export function aggregateVenueStates(venues) {
     .sort((a, b) => b.venueCount - a.venueCount || a.name.localeCompare(b.name));
 }
 
+/**
+ * A VENUE THAT BELONGS TO NO STATE (AEO phase 3, 2026-09-19).
+ *
+ * aggregateVenueStates skips any venue whose state is not a US state code,
+ * which is correct for a state index and left two real pages reachable from
+ * nowhere: /hub/venues/2834 and /hub/venues/2835, the Charity Series of
+ * Poker and Poker For Good, both carrying "MULTI" because they run in more
+ * than one state. They are in the sitemap, they have content, and no
+ * location page could ever list them.
+ *
+ * They are listed on the national index instead, under their own heading,
+ * so the state index stays a state index and the pages stop being orphans.
+ */
+export function venuesWithoutAState(venues) {
+  return (venues || [])
+    .filter((venue) => venue?.id && venue?.name && !US_STATES_BY_CODE[venue.state])
+    .map((venue) => ({
+      id: venue.id,
+      name: venue.name,
+      where: [venue.city, venue.state].filter(Boolean).join(', ') || null,
+      href: `/hub/venues/${venue.id}`,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function aggregateVenueCities(venues, stateCode) {
   const counts = new Map();
   venues.forEach((venue) => {

@@ -3,7 +3,7 @@
 Generated from the physical Pages Router tree and `src/config/world-footer-navigation.json`.
 Dynamic routes are shown using their source parameter names. Runtime verification uses representative reachable parameters where authentication or data is required.
 
-**Total applicable physical routes: 197.**
+**Total applicable physical routes: 191.**
 
 ## Coverage summary
 
@@ -21,7 +21,7 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | Toke Tracker | 5 | `footer-toke-tracker-v2.png` | PASS | PASS |
 | Preflop Charts | 10 | `footer-preflop-charts-v2.png` | PASS | PASS |
 | Poker Near Me | 21 | `footer-poker-near-me-v2.png` | PASS | PASS |
-| Marketplace | 16 | `footer-marketplace-v2.png` | PASS | PASS |
+| Marketplace | 10 | `footer-marketplace-v2.png` | PASS | PASS |
 
 ## Complete route inventory
 
@@ -208,20 +208,14 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 | `/hub/series/[id]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/tours/[code]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
 | `/hub/venues/[id]` | Poker Near Me | App-shell legacy/generic footer | `footer-poker-near-me-v2.png` | PASS | PASS |
-| `/hub/club-shop` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/club-shop/[itemId]` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
-| `/hub/diamond-store` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/diamond-store/cart` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/diamond-store/orders` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/diamond-store/orders/[orderId]` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/diamond-store/wishlist` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
-| `/hub/marketplace` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
-| `/hub/merch-store` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/merch-store/[productId]` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/merch-store/fulfillment` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
-| `/hub/smarter-rewards` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/smarter-rewards/[rewardId]` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
-| `/hub/vip-membership` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/vip-membership/compare` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 | `/hub/vip-membership/manage` | Marketplace | App-shell legacy/generic footer | `footer-marketplace-v2.png` | PASS | PASS |
 
@@ -230,6 +224,9 @@ Dynamic routes are shown using their source parameter names. Runtime verificatio
 - `/hub` is the World Hub landing page and is intentionally footerless.
 - `/hub/club-arena` is the Poker Arena lobby and is intentionally footerless.
 - `/hub/club-arena/**` is an embedded application boundary; its internal footer remains owned and tested by Club Arena.
+- `/hub/diamond-store` owns one restrained, in-flow Marketplace commerce footer so the fixed illustrated footer cannot cover its product cards. Its Marketplace copy policy remains app-shell owned.
+- `/hub/marketplace` redirects in the same surface to `/hub/diamond-store` and therefore resolves to that same page-owned footer contract.
+- `/hub/vip-membership`, `/hub/merch-store`, `/hub/smarter-rewards` and `/hub/club-shop` render the same Marketplace store page with a different initial tab, so they own the same in-flow commerce footer. The fixed illustrated footer previously covered the VIP plan purchase buttons and the Marketplace commerce links on these routes because no clearance was reserved for it.
 - `/hub/my-clubs` is a server-side redirect to Social Pages Managed and does not render a footer document of its own.
 - Routes outside the 13 product-family prefixes are not part of this exact-artwork migration. Existing platform fallback behavior is retained where the route policy enables it.
 

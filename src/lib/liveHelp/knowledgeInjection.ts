@@ -43,12 +43,15 @@ export function categorizeQuestion(message: string): string[] {
     }
 
     // Club Arena
-    if (lowerMessage.match(/club|arena|agent|union|rake|chip|table|poker room/i)) {
+    if (lowerMessage.match(/club|arena|agent|union|rake|chip|table|poker room|tournament|competitive|multiplayer/i)) {
         categories.push('club_arena');
     }
 
-    // Diamond Arena
-    if (lowerMessage.match(/diamond arena|tournament|competitive|multiplayer/i)) {
+    // Diamond Arena. Keyed on the arena itself, never on 'tournament',
+    // 'competitive' or 'multiplayer': those are ordinary Poker Arena words, and
+    // keying on them sent every tournament question to this category, which had
+    // no knowledge case at all, so the asker received nothing.
+    if (lowerMessage.match(/diamond arena|diamond club|diamond table|diamond seat|diamond buy-?in/i)) {
         categories.push('diamond_arena');
     }
 
@@ -91,10 +94,14 @@ export function categorizeQuestion(message: string): string[] {
 export function getRelevantKnowledge(categories: string[]): string {
     const knowledgeSections: string[] = [];
 
-    for (const category of categories) {
-        switch (category) {
-            case 'navigation':
-                knowledgeSections.push(`
+    // `categorizeQuestion` can emit gamification, ghost_fleet, poker_near_me and
+    // general, and the switch below has no section for any of them. An
+    // unmatched category used to fall through to nothing, so a question about
+    // XP, achievements, a leaderboard, the Ghost Fleet or a venue reached the
+    // assistant with no product knowledge attached at all. The default case
+    // gives every such question the navigation reference, which is generated
+    // from the orb table above and states nothing that is not already true.
+    const navigationReference = `
 ## NAVIGATION REFERENCE
 ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
                     `- **${orb.name}** (Orb #${orb.orbNumber}): ${orb.route} - ${orb.status}`
@@ -102,7 +109,12 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
 
 **Header Components**: Diamond wallet (+), XP/Level display, Profile orb (32px), Notifications bell, Hamburger menu
 **Navigation Pattern**: Click orb → feature, brain icon → back to hub
-`);
+`;
+
+    for (const category of categories) {
+        switch (category) {
+            case 'navigation':
+                knowledgeSections.push(navigationReference);
                 break;
 
             case 'training':
@@ -124,6 +136,17 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
 - **Chip Economy**: 38💎 = 100 chips (75% cheaper than competitors)
 - **Rake**: 10% flat, 2.5x BB cap, 0.5x BBJ drop, "No Flop No Drop"
 - **Access**: Orb #2 from Hub OR https://club.smarter.poker
+`);
+                break;
+
+            case 'diamond_arena':
+                knowledgeSections.push(`
+## DIAMOND ARENA
+- **What It Is**: The diamonds-only club inside Poker Arena, beside Shark Club and any chip clubs the player has joined
+- **Access**: Orb #2 from Hub, then select Diamond Arena at /hub/club-arena. It has no route of its own
+- **Membership**: Every platform user is automatically a member. Chip clubs require joining
+- **Currency**: Played with Diamonds instead of chips. No unions, no agents, no chip conversion
+- **Status**: Closed to the public while both arena switches are off
 `);
                 break;
 
@@ -160,10 +183,16 @@ ${JARVIS_KNOWLEDGE.worldHub.orbs.map(orb =>
 - **Support**: support@smarter.poker, live chat, support tickets
 `);
                 break;
+
+            default:
+                knowledgeSections.push(navigationReference);
+                break;
         }
     }
 
-    return knowledgeSections.join('\n\n');
+    // A question can match several categories, and more than one of them can
+    // now resolve to the navigation reference. Send each section once.
+    return [...new Set(knowledgeSections)].join('\n\n');
 }
 
 /**

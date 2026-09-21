@@ -7,11 +7,13 @@
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue, memo } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
@@ -97,6 +99,24 @@ function formatDateShort(dateStr) {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
     return '';
+}
+
+/**
+ * The index spans finished series and ones months away, so unlike the cards
+ * it carries the year. A date with no year in a list that crosses one is a
+ * date a reader has to guess at.
+ */
+function formatIndexDates(entry) {
+    const stamp = (value) => {
+        const parts = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!parts) return '';
+        const date = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+    const start = stamp(entry?.start_date);
+    const end = stamp(entry?.end_date);
+    if (start && end && start !== end) return `${start} To ${end}`;
+    return start || end || 'Dates Not Announced';
 }
 
 function cleanHtml(s) {
@@ -195,7 +215,7 @@ function isSeriesUpcoming(start, daysAhead = 60) {
 // ═══════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════
-export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta = null }) {
+export default function PokerSeriesPage({ initialSeries = [], seriesIndex = [], initialSeriesMeta = null }) {
     const router = useRouter();
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
@@ -1106,7 +1126,20 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                                             <div className="tour-card-footer">
                                                 <span className="tour-card-established"></span>
                                                 <div className="tour-card-actions">
-                                                    {detailUrl && <span className="tour-action-btn primary">View Schedule</span>}
+                                                    {/* A REAL LINK, NOT A CLICK (AEO phase 3, 2026-09-19).
+                                                        The card navigated only through the wrapper's
+                                                        onClick, so the server HTML carried no href and
+                                                        none of the 225 series pages could be reached by
+                                                        following links. */}
+                                                    {detailUrl && (
+                                                        <Link
+                                                            href={detailUrl}
+                                                            className="tour-action-btn primary"
+                                                            onClick={e => e.stopPropagation()}
+                                                        >
+                                                            View Schedule
+                                                        </Link>
+                                                    )}
                                                     {series.source_url && (
                                                         <a
                                                             href={safeHref(series.source_url)}
@@ -1126,6 +1159,36 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                             </div>
                         )}
     
+                        {/* EVERY SERIES, AS A LINK (AEO phase 3, 2026-09-19).
+                            The cards above are capped and ordered by what is
+                            running soonest, which is right for a reader and
+                            left 67 of the 225 series pages reachable from
+                            nowhere. This is the rest of them. */}
+                        {seriesIndex.length > 0 && (
+                            <section className="series-index" aria-labelledby="series-index-heading">
+                                <h2 id="series-index-heading" className="series-index-title">
+                                    Every Series In The Directory
+                                </h2>
+                                <p className="series-index-note">
+                                    All {seriesIndex.length} Series Tracked Here, A To Z, Including
+                                    The Ones That Have Finished And The Ones Still Months Away.
+                                </p>
+                                <ul className="series-index-list">
+                                    {seriesIndex.map(entry => (
+                                        <li key={entry.id}>
+                                            <Link href={'/hub/series/' + entry.id} className="series-index-link">
+                                                <span className="series-index-name">{entry.name}</span>
+                                                <span className="series-index-meta">
+                                                    {[entry.where, formatIndexDates(entry)].filter(Boolean).join(' · ')}
+                                                </span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </section>
+                        )}
+
+                        <HubPageSummary page="poker-series" />
                 </main>
 
                 <FullScreenPageOverlay
@@ -1139,6 +1202,57 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
                 {/* STYLES — Matching Poker Tours layout   */}
                 {/* ═══════════════════════════════════════ */}
                 <style suppressHydrationWarning>{`
+                    /* ═══ A TO Z SERIES INDEX ═══ */
+                    .series-index {
+                        width: min(calc(100% - 32px), 1200px);
+                        margin: 30px auto 10px;
+                        padding: 18px 20px 22px;
+                        border: 1px solid rgba(148,163,184,0.18);
+                        border-radius: 14px;
+                        background: rgba(15,23,42,0.45);
+                    }
+                    .series-index-title {
+                        margin: 0 0 6px;
+                        font-size: clamp(15px, 1.8vw, 19px);
+                        font-weight: 800;
+                        letter-spacing: 0.6px;
+                        color: #e2e8f0;
+                    }
+                    .series-index-note {
+                        margin: 0 0 14px;
+                        font-size: 13px;
+                        line-height: 1.55;
+                        color: rgba(148,163,184,0.85);
+                        max-width: 70ch;
+                    }
+                    .series-index-list {
+                        list-style: none;
+                        margin: 0;
+                        padding: 0;
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                        gap: 8px;
+                    }
+                    .series-index-link {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 2px;
+                        padding: 9px 11px;
+                        border-radius: 9px;
+                        border: 1px solid rgba(148,163,184,0.16);
+                        background: rgba(30,41,59,0.45);
+                        color: #f1f5f9;
+                        text-decoration: none;
+                        transition: border-color 0.15s ease, background 0.15s ease;
+                    }
+                    .series-index-link:hover,
+                    .series-index-link:focus-visible {
+                        border-color: rgba(56,189,248,0.6);
+                        background: rgba(30,41,59,0.8);
+                    }
+                    .series-index-name { font-size: 13.5px; font-weight: 700; line-height: 1.35; }
+                    .series-index-meta { font-size: 12px; color: rgba(148,163,184,0.85); }
+
                     .pnm-page {
                         min-height: 100vh;
                         padding-bottom: 70px;
@@ -2100,6 +2214,22 @@ export default function PokerSeriesPage({ initialSeries = [], initialSeriesMeta 
 // ON-DEMAND STATIC DATA (ISR)
 // ═══════════════════════════════════════════════
 import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
+import allVenuesData from '../../data/all-venues.json';
+import { buildVenueIndex, cleanScrapedCity } from '../../src/lib/poker-near-me/cityFromScrape';
+
+/**
+ * A CITY IS A CITY (AEO phase 3, 2026-09-19). The cards and the A to Z index
+ * read city straight out of the two series tables, where 64 of the 225 rows
+ * hold the venue and the city run together. The detail API resolves this for
+ * the series pages; these two queries do not go through it, so they resolve
+ * it the same way against the same directory.
+ */
+const seriesVenueIndex = buildVenueIndex(
+  Array.isArray(allVenuesData) ? allVenuesData : allVenuesData.venues || [],
+);
+const withCleanCity = (row) => (row && row.city
+  ? { ...row, city: cleanScrapedCity(row.city, seriesVenueIndex) }
+  : row);
 import {
     isServableSeriesParentEvidence,
     reconcileTournamentSeriesEvidence,
@@ -2159,6 +2289,40 @@ function buildSeriesPreview(rows, generatedAt) {
         .map(compact);
 }
 
+/**
+ * EVERY SERIES, AS A LINK (AEO phase 3, 2026-09-19).
+ *
+ * The cards above are capped at SSR_SERIES_PREVIEW_LIMIT so the page does
+ * not ship a thousand of them, and they are ordered by what is running or
+ * starting soon, which is the right order for a reader. Measured after the
+ * directory started rendering links at all, that left 67 of the 225 series
+ * pages in the sitemap reachable from nowhere: listed, indexed, and linked
+ * by nothing.
+ *
+ * This is the rest of them, as a plain list of names and dates. A link is
+ * about eighty bytes; the whole index is under twenty kilobytes, which is
+ * cheaper than the alternative of the sitemap inviting a crawler to pages
+ * no road leads to.
+ */
+function buildSeriesIndex(rows) {
+    const seen = new Set();
+    const out = [];
+    for (const series of rows) {
+        const id = series?.id;
+        const name = String(series?.name || series?.series_name || '').trim();
+        if (!id || !name || seen.has(String(id))) continue;
+        seen.add(String(id));
+        out.push({
+            id,
+            name,
+            start_date: series.start_date || null,
+            end_date: series.end_date || null,
+            where: [series.city, series.state].filter(Boolean).join(', ') || null,
+        });
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function getStaticProps() {
     const generatedAt = new Date().toISOString();
     try {
@@ -2177,6 +2341,7 @@ export async function getStaticProps() {
         if (!raced) return {
             props: {
                 initialSeries: [],
+                seriesIndex: [],
                 initialSeriesMeta: { generatedAt, previewCount: 0, totalCount: 0, degraded: true, source: 'isr-timeout' },
             },
             revalidate: 3600,
@@ -2221,10 +2386,13 @@ export async function getStaticProps() {
             if (uid && !seriesByUid.has(uid)) seriesByUid.set(uid, ps);
         }
 
-        const initialSeries = buildSeriesPreview(allData, generatedAt);
+        const cleaned = allData.map(withCleanCity);
+        const initialSeries = buildSeriesPreview(cleaned, generatedAt);
+        const seriesIndex = buildSeriesIndex(cleaned);
         return {
             props: {
                 initialSeries,
+                seriesIndex,
                 initialSeriesMeta: {
                     generatedAt,
                     previewCount: initialSeries.length,
@@ -2240,6 +2408,7 @@ export async function getStaticProps() {
         return {
             props: {
                 initialSeries: [],
+                seriesIndex: [],
                 initialSeriesMeta: { generatedAt, previewCount: 0, totalCount: 0, degraded: true, source: 'isr-error' },
             },
             revalidate: 3600,

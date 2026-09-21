@@ -170,8 +170,8 @@
 }
 
 .artHitbox:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 .artHitbox:active {
@@ -268,8 +268,8 @@
 }
 
 .searchClear:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 /* ── The filter rail and its badges ─────────────────────────────────────── */
@@ -315,8 +315,8 @@
 .rangeSelect:focus-visible,
 .filterChip:focus-visible,
 .statsToggle:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 .filterChip {
@@ -397,8 +397,8 @@
 }
 
 .closeBtn:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 /* ── The Send panel ─────────────────────────────────────────────────────── */
@@ -548,8 +548,8 @@
 .sendMatch:focus-visible,
 .sendConfirmCancel:focus-visible,
 .sendConfirmGo:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 .sendRecent {
@@ -761,8 +761,8 @@
 }
 
 .sendGo:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 /* Feedback strips under the form. */
@@ -1066,8 +1066,8 @@
 }
 
 .emptyReset:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 /* ── A ledger row ───────────────────────────────────────────────────────── */
@@ -1423,8 +1423,8 @@
 }
 
 .litKey:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 .litKeyLarge {
@@ -1520,8 +1520,8 @@
 }
 
 .copyKey:focus-visible {
-  outline: 2px solid var(--vault-cyan);
-  outline-offset: 2px;
+  outline: 2px solid var(--vault-cyan) !important;
+  outline-offset: 2px !important;
 }
 
 .copyKeyDone {

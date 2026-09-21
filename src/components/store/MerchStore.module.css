@@ -31,15 +31,22 @@
   line-height: 1.65;
 }
 
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .balanceReadout {
+  --balance-plate-width: min(360px, 100%);
+
   display: inline-flex;
-  width: min(360px, 100%);
+  width: var(--balance-plate-width);
   aspect-ratio: 1800 / 386;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin-top: 16px;
-  padding: 4.2% 7% 4.2% 25%;
+  padding: calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.07)
+    calc(var(--balance-plate-width) * 0.042) calc(var(--balance-plate-width) * 0.25);
   background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #c3d2da;
@@ -187,10 +194,18 @@
 
 .categoryControlSelected,
 .optionControlSelected,
+/* One primary action per card.
+
+   actionPrimary and actionDiamond both used button-primary.png, and
+   actionControl gave all four actions the same 48px height, weight 800 and
+   13px size. Measured on production, View Details, Add To Cart, Buy With Card
+   and Pay With Diamonds rendered with identical background-color, font-weight
+   and font-size: four equally dominant calls to action with nothing to say
+   which one was the main path. Each action now sits at its own weight, and
+   every path stays wired and visible. */
 .actionPrimary,
-.actionDiamond,
 .wishlistControlSelected {
-  color: #dff9ff;
+  color: #eafcff;
   background-image: url('/images/marketplace-console-v1/shark-panel/button-primary.png');
 }
 
@@ -224,8 +239,18 @@
     0 16px 34px #000;
 }
 
+/* Unavailability used to fade the whole card. At 0.68 the card's own text
+   composited against #000305 to 3.78:1 on the price note, 4.17:1 on the
+   control label and 3.76:1 on the reason line, all below the 4.5:1 that 9px
+   bold text needs. The reason a product cannot be bought is the one thing a
+   shopper has to be able to read, so the state is carried by the imagery and
+   the border now, and the text keeps its contrast. */
 .productCardUnavailable {
-  opacity: 0.68;
+  border-color: #3a4a55;
+}
+
+.productCardUnavailable .mediaBay {
+  opacity: 0.6;
 }
 
 .mediaBay {
@@ -295,11 +320,10 @@
   color: #ff6b6b;
 }
 
+/* Sits beside the product name, not over the photograph. */
 .wishlistControl {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
   display: inline-flex;
+  flex: none;
   min-width: 76px;
   min-height: 44px;
   align-items: center;
@@ -307,6 +331,13 @@
   padding: 5px 18px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .cardBody {
@@ -462,16 +493,37 @@
   cursor: pointer;
 }
 
-.actionSecondary {
-  color: #c9eaf3;
+/* Primary: the default settlement path. */
+.actionPrimary {
+  min-height: 54px;
+  font-size: 14px;
+  letter-spacing: 0.032em;
 }
 
-.actionGold {
-  color: #f6d76d;
-}
-
+/* Secondary: the alternate settlement path, still a painted commerce control
+   so the Diamond route reads as a real option, one step below primary. */
 .actionDiamond {
-  color: #dffaff;
+  min-height: 48px;
+  color: #8fe8ff;
+  font-size: 13px;
+}
+
+/* Tertiary: deferred purchase. */
+.actionGold {
+  min-height: 44px;
+  color: #f6d76d;
+  font-size: 12px;
+}
+
+/* Quaternary: navigation, not commerce, so it carries no painted plate. */
+.actionSecondary {
+  min-height: 44px;
+  border: 1px solid #23394a;
+  color: #a9c2ce;
+  background-color: #060d13;
+  background-image: none;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .actionControl:disabled {
@@ -492,15 +544,22 @@
   color: #f1d46b;
 }
 
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .catalogAlert {
+  --alert-plate-width: min(900px, 100%);
+
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(130px, 20%);
-  width: min(900px, 100%);
+  width: var(--alert-plate-width);
   aspect-ratio: 1800 / 386;
   align-items: center;
   gap: 12px;
   margin: 0 auto 24px;
-  padding: 4.2% 6% 4.2% 25%;
+  padding: calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.06)
+    calc(var(--alert-plate-width) * 0.042) calc(var(--alert-plate-width) * 0.25);
   background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
     100% 100% no-repeat;
   color: #f2d978;
@@ -517,15 +576,18 @@
   text-align: center;
 }
 
+/* This was a 1105x1133 console housing with a percentage padding measured
+   against the page column rather than the plate, which left almost no room
+   for the text inside it. Sized by its content now, in the same readable card
+   the rewards and VIP consoles already use. */
 .emptyState {
   display: grid;
-  width: min(440px, 100%);
-  aspect-ratio: 1105 / 1133;
+  width: min(560px, 100%);
   place-content: center;
   margin-inline: auto;
-  padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 28px 24px;
+  border: 1px solid #23394a;
+  background: #070e15;
   color: #a7b6bd;
   font-size: 13px;
   text-align: center;
@@ -553,6 +615,10 @@
   text-align: center;
 }
 
+/* `!important` for the same reason the store shell uses it: the global reset in
+   src/index.css ends `button:focus` with `outline: none !important`, which
+   silently beats any focus-visible outline declared at normal specificity
+   here. */
 .operatorLink:focus-visible,
 .actionControl:focus-visible,
 .categoryControl:focus-visible,
@@ -561,8 +627,8 @@
 .quantityButton:focus-visible,
 .searchInput:focus-visible,
 .sortSelect:focus-visible {
-  outline: 3px solid #8befff;
-  outline-offset: 3px;
+  outline: 3px solid #8befff !important;
+  outline-offset: 3px !important;
 }
 
 .operatorLink:active,
@@ -580,10 +646,11 @@
   }
 
   .catalogAlert {
+    --alert-plate-width: min(440px, 100%);
+
     grid-template-columns: minmax(0, 1fr);
-    width: min(440px, 100%);
     aspect-ratio: 1105 / 1133;
-    padding: 18%;
+    padding: calc(var(--alert-plate-width) * 0.18);
     background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
     text-align: center;
   }

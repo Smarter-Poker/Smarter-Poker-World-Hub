@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import useHasMounted from '../../../src/hooks/useHasMounted';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -41,6 +42,9 @@ const FETCH_WINDOW = 500;
 const DISPLAY_LIMIT = 20;
 
 export default function TriviaLeaderboard() {
+    // A spinner is a promise to someone who is waiting, and nothing waits
+    // on the server (AEO phase 3, 2026-09-19).
+    const hasMounted = useHasMounted();
     useTrainingBus('trivia-leaderboard');
     const router = useRouter();
     const [period, setPeriod] = usePersistedState('sp-filters-trivia-leaderboard', 'all');
@@ -259,7 +263,7 @@ export default function TriviaLeaderboard() {
                             ))}
                         </div>
 
-                        {isLoading ? (
+                        {hasMounted && isLoading ? (
                             <div style={{ color: '#65676b', textAlign: 'center', padding: '40px' }}>
                                 Loading Leaderboard...
                             </div>

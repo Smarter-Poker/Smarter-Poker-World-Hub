@@ -21,6 +21,15 @@ const TAB_ROUTES = {
   'club-shop': '/hub/club-shop',
 };
 
+const PACKAGE_ART_CLASS_BY_ID = Object.freeze({
+  medium: 'package0',
+  standard: 'package1',
+  large: 'package2',
+  value: 'package3',
+  premium: 'package4',
+  whale: 'package5',
+});
+
 const SECTION_COPY = {
   diamonds: {
     eyebrow: 'Diamond Exchange',
@@ -61,6 +70,8 @@ export default function SmarterStoreShowcase({
   const isDiamonds = activeTab === 'diamonds';
   const activeTabRef = useRef(null);
   const diamondImpressionRef = useRef(false);
+  const starterPackages = packages.slice(0, Math.min(2, packages.length));
+  const primaryPackages = packages.slice(starterPackages.length);
 
   const handlePackageRailKeyDown = (event) => {
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
@@ -121,42 +132,80 @@ export default function SmarterStoreShowcase({
       {isDiamonds && (
         <>
           <div className={styles.sectionBar}>
-            <h2>Choose Your Stack</h2>
-            <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
-            <span role="status" aria-live="polite">
-              {catalogState === 'database'
-                ? 'Current Pricing Verified'
-                : catalogState === 'loading'
-                  ? 'Verifying Current Pricing'
-                  : 'Current Pricing Unavailable'}
-            </span>
+            <div className={styles.sectionHeading}>
+              <span className={styles.sectionKicker}>Secure Card Checkout</span>
+              <h2>Choose Your Stack</h2>
+            </div>
+            <div className={styles.sectionMeta}>
+              <span className={styles.exchangeRate}>1 Diamond = $0.01</span>
+              <span role="status" aria-live="polite">
+                {catalogState === 'database'
+                  ? 'Current Pricing Verified'
+                  : catalogState === 'loading'
+                    ? 'Verifying Current Pricing'
+                    : 'Current Pricing Unavailable'}
+              </span>
+            </div>
             <span id="diamond-package-scroll-hint" className={styles.mobileHint}>
               Swipe To Compare Packages Or Use Arrow Keys
             </span>
           </div>
-          <div className={styles.starterRail} aria-label="Starter Diamond Packs">
+          {/* A name on a role-less div is dropped by assistive technology. This
+              rail is one labelled set of packs, so it is grouped as one. */}
+          <div className={styles.starterRail} role="group" aria-label="Starter Diamond Packs">
             <span className={styles.starterLabel}>Starter Access</span>
-            {packages.slice(0, 2).map((pkg) => (
-              <article key={pkg.id} className={styles.starterPack}>
-                <div>
+            {starterPackages.map((pkg) => (
+              <article
+                key={pkg.id}
+                className={styles.starterPack}
+                data-diamond-package={pkg.id}
+                data-package-layout="quick-buy"
+              >
+                <div
+                  className={styles.starterArt}
+                  role="img"
+                  aria-label={`${marketplaceCopy(pkg.name)} Diamond Package Artwork`}
+                  data-package-media
+                />
+                <div className={styles.starterDetails} data-package-details>
                   <span>{marketplaceCopy(pkg.name)}</span>
-                  <strong>{Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds</strong>
+                  <strong data-package-quantity>
+                    {Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds
+                  </strong>
+                  <small data-package-bonus>
+                    Bonus:{' '}
+                    {pkg.bonus > 0
+                      ? `+${Number(pkg.bonus).toLocaleString('en-US')} Diamonds`
+                      : 'No Bonus'}
+                  </small>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onBuy(pkg)}
-                  disabled={isProcessing || catalogState !== 'database'}
-                  aria-busy={busyPackageId === pkg.id}
-                  aria-label={`Buy ${marketplaceCopy(pkg.name)}, ${Number(pkg.diamonds || 0).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`}
-                >
-                  {busyPackageId === pkg.id
-                    ? 'Opening...'
-                    : catalogState === 'database'
-                      ? `$${Number(pkg.price || 0).toFixed(2)}`
-                      : catalogState === 'loading'
-                        ? 'Verifying...'
-                        : 'Pricing Unavailable'}
-                </button>
+                <div className={styles.starterPurchase} data-package-purchase>
+                  <span data-package-price>${Number(pkg.price || 0).toFixed(2)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onBuy(pkg)}
+                    disabled={isProcessing || catalogState !== 'database'}
+                    aria-busy={busyPackageId === pkg.id}
+                    aria-label={
+                      busyPackageId === pkg.id
+                        ? `Opening Checkout For ${marketplaceCopy(pkg.name)}`
+                        : catalogState === 'database'
+                          ? `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
+                          : catalogState === 'loading'
+                            ? `Verifying Current Pricing For ${marketplaceCopy(pkg.name)}`
+                            : `Pricing Unavailable For ${marketplaceCopy(pkg.name)}`
+                    }
+                    data-package-primary-action
+                  >
+                    {busyPackageId === pkg.id
+                      ? 'Opening...'
+                      : catalogState === 'database'
+                        ? 'Buy Package'
+                        : catalogState === 'loading'
+                          ? 'Verifying...'
+                          : 'Pricing Unavailable'}
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -168,42 +217,76 @@ export default function SmarterStoreShowcase({
             tabIndex={0}
             onKeyDown={handlePackageRailKeyDown}
           >
-            {packages.slice(-6).map((pkg, index) => (
+            {primaryPackages.map((pkg) => (
               <article
                 key={pkg.id}
-                className={`${styles.packageCard} ${styles[`package${index}`]}`}
+                className={`${styles.packageCard} ${styles[PACKAGE_ART_CLASS_BY_ID[pkg.id] || 'packageFallback']}`}
+                data-diamond-package={pkg.id}
+                data-package-layout="commerce-card"
               >
-                <div className={styles.packageTopline}>
-                  <span>{marketplaceCopy(pkg.name)}</span>
-                  <span>Digital Currency</span>
+                <div
+                  className={styles.packageArt}
+                  role="img"
+                  aria-label={`${marketplaceCopy(pkg.name)} Diamond Package Artwork`}
+                  data-package-media
+                />
+                <div className={styles.packageBody}>
+                  <div className={styles.packageTopline}>
+                    <span>{marketplaceCopy(pkg.name)}</span>
+                    <span>Card Purchase</span>
+                  </div>
+                  <div className={styles.packageValue}>
+                    <span className={styles.valueLabel}>Package Total</span>
+                    <h3 data-package-quantity>
+                      {Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')}
+                    </h3>
+                    <span className={styles.packageUnit}>Diamonds</span>
+                  </div>
+                  <dl className={styles.packageBreakdown} data-package-bonus>
+                    <div>
+                      <dt>Base Amount</dt>
+                      <dd>{Number(pkg.diamonds || 0).toLocaleString('en-US')}</dd>
+                    </div>
+                    <div>
+                      <dt>Bonus</dt>
+                      <dd>
+                        {pkg.bonus > 0
+                          ? `+${Number(pkg.bonus).toLocaleString('en-US')}`
+                          : 'No Bonus'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <footer>
+                    <div className={styles.packagePrice} data-package-price>
+                      <span>Price</span>
+                      <strong>${Number(pkg.price || 0).toFixed(2)}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onBuy(pkg)}
+                      disabled={isProcessing || catalogState !== 'database'}
+                      aria-busy={busyPackageId === pkg.id}
+                      aria-label={
+                        busyPackageId === pkg.id
+                          ? `Opening Checkout For ${marketplaceCopy(pkg.name)}`
+                          : catalogState === 'database'
+                            ? `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
+                            : catalogState === 'loading'
+                              ? `Verifying Current Pricing For ${marketplaceCopy(pkg.name)}`
+                              : `Pricing Unavailable For ${marketplaceCopy(pkg.name)}`
+                      }
+                      data-package-primary-action
+                    >
+                      {busyPackageId === pkg.id
+                        ? 'Opening Checkout...'
+                        : catalogState === 'database'
+                          ? 'Buy Package'
+                          : catalogState === 'loading'
+                            ? 'Verifying...'
+                            : 'Pricing Unavailable'}
+                    </button>
+                  </footer>
                 </div>
-                <div className={styles.packageValue}>
-                  <h3>{Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')}</h3>
-                  <span className={styles.packageUnit}>Diamonds</span>
-                  {pkg.bonus > 0 && (
-                    <p>Includes {Number(pkg.bonus).toLocaleString('en-US')} Bonus Diamonds</p>
-                  )}
-                </div>
-                <footer>
-                  <strong>${Number(pkg.price || 0).toFixed(2)}</strong>
-                  <button
-                    type="button"
-                    onClick={() => onBuy(pkg)}
-                    disabled={isProcessing || catalogState !== 'database'}
-                    aria-busy={busyPackageId === pkg.id}
-                    aria-label={
-                      busyPackageId === pkg.id
-                        ? `Opening Checkout For ${marketplaceCopy(pkg.name)}`
-                        : `Buy ${marketplaceCopy(pkg.name)}, ${Number((pkg.diamonds || 0) + (pkg.bonus || 0)).toLocaleString('en-US')} Diamonds For $${Number(pkg.price || 0).toFixed(2)}`
-                    }
-                  >
-                    {busyPackageId === pkg.id
-                      ? 'Opening Checkout...'
-                      : catalogState === 'database'
-                        ? 'Buy Now'
-                        : 'Pricing Unavailable'}
-                  </button>
-                </footer>
               </article>
             ))}
           </div>

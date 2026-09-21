@@ -15,9 +15,19 @@
  *      description and a parseable JSON-LD document; the home page's
  *      JSON-LD must be a @graph (the numeric-keys bug of #1822);
  *   4. the default share image must answer 200 as an image;
- *   5. a sample of the remaining sitemap URLs must answer 200 (the full
- *      list is hundreds of pages; a sample catches a broken section
- *      without turning a deploy check into a crawl).
+ *   5. a sample of the remaining sitemap URLs must answer 200, be
+ *      indexable, and carry a real description and a heading (the full list
+ *      is hundreds of pages; a sample catches a broken section without
+ *      turning a deploy check into a crawl).
+ *
+ * WHY THE SAMPLE CHECKS INDEXABILITY (2026-09-18). Until now the sample
+ * only asserted HTTP 200, so a sitemap entry that loaded fine and then told
+ * crawlers not to index it passed this gate: exactly the defect #1885 had
+ * to fix in production, found by a source test rather than here. A sitemap
+ * is a list of pages worth indexing; offering a crawler a page that refuses
+ * indexing spends crawl budget to say nothing, and only the live response
+ * can prove which it is. The rule is the one already applied to the home
+ * page and every /hub/commander URL, applied to the sample too.
  *
  * Plain Node 20+, no dependencies, no hand-typed route list beyond '/'.
  *
@@ -51,6 +61,25 @@ const attr = (html, re) => {
   return m ? m[1] : null;
 };
 
+/**
+ * The document with scripts, styles and comments removed. A heading inside
+ * a script string is not a heading: this file's own last-resort boot error
+ * UI is assigned as `root.innerHTML = '<h1>Loading Failed</h1>...'`, so a
+ * raw regex over the response counts three <h1> on every arena page when
+ * there is one. Same defect the arena prerender verifier fixed in #4790.
+ */
+export function markupOnly(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ');
+}
+
+/** Real <h1> elements, not headings quoted inside scripts. */
+export function headingCount(html) {
+  return (markupOnly(html).match(/<h1[\s>]/gi) || []).length;
+}
+
 export function inspectHead(html) {
   const title = attr(html, /<title[^>]*>([^<]*)<\/title>/i);
   const robots = attr(html, /<meta\s+name="robots"\s+content="([^"]*)"/i);
@@ -82,6 +111,42 @@ export function hasNumericKeys(ld) {
 
 export function parseSitemapLocs(xml) {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim());
+}
+
+/**
+ * What every indexable page owes a crawler beyond loading: a description
+ * long enough to be a snippet, and a heading. Checked on the sampled URLs
+ * as well as the fully checked ones, because that is where the defects
+ * hide: /hub/home-games/saturday-night-poker-club shipped a sixteen
+ * character description ("Weekly home game") and nothing caught it live.
+ * Returns the reasons, so a failure says which part is missing.
+ */
+export const SAMPLE_DESCRIPTION_MIN = 60;
+
+export function pageEssentials(html) {
+  const head = inspectHead(html || '');
+  const reasons = [];
+  const description = head.description || '';
+  if (!description) reasons.push('no meta description');
+  else if (description.length < SAMPLE_DESCRIPTION_MIN)
+    reasons.push(`description is ${description.length} characters, under ${SAMPLE_DESCRIPTION_MIN}`);
+  if (headingCount(html) === 0) reasons.push('no <h1>');
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * Is this live response one a crawler may index? Reads the response the way
+ * Googlebot resolves it: the X-Robots-Tag header first (it applies even when
+ * the body never parses), then the robots meta in the document.
+ * Returns { indexable, reason } so a failure names what said no.
+ */
+export function indexability({ status, headerRobots, html }) {
+  if (status !== 200) return { indexable: false, reason: `HTTP ${status}` };
+  if (/noindex/i.test(headerRobots || ''))
+    return { indexable: false, reason: `X-Robots-Tag: ${String(headerRobots).trim()}` };
+  const meta = inspectHead(html || '').robots;
+  if (meta && /noindex/i.test(meta)) return { indexable: false, reason: `robots meta: ${meta}` };
+  return { indexable: true, reason: null };
 }
 
 export function parseRobots(text) {
@@ -185,14 +250,37 @@ async function main() {
   const step = Math.max(1, Math.floor(rest.length / SAMPLE));
   const sample = rest.filter((_, i) => i % step === 0).slice(0, SAMPLE);
   let bad = 0;
+  let unindexable = 0;
+  let incomplete = 0;
   for (const url of sample) {
     const r = await get(url);
-    if (r.status !== 200) {
-      bad += 1;
-      fail(`sitemap sample ${url}: HTTP ${r.status}`);
+    const verdict = indexability({
+      status: r.status,
+      headerRobots: r.headers.get('x-robots-tag'),
+      html: r.text,
+    });
+    if (!verdict.indexable) {
+      if (r.status !== 200) {
+        bad += 1;
+        fail(`sitemap sample ${url}: HTTP ${r.status}`);
+      } else {
+        unindexable += 1;
+        // A sitemap is a list of pages worth indexing. A page that loads and
+        // then refuses indexing must leave the sitemap, not sit in it.
+        fail(`sitemap sample ${url}: listed in the sitemap but not indexable (${verdict.reason})`);
+      }
+      continue;
+    }
+    const essentials = pageEssentials(r.text);
+    if (!essentials.ok) {
+      incomplete += 1;
+      fail(`sitemap sample ${url}: ${essentials.reasons.join('; ')}`);
     }
   }
-  notes.push(`sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200`);
+  notes.push(
+    `sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200, ` +
+      `${unindexable} not indexable, ${incomplete} missing a description or heading`
+  );
 }
 
 const invokedDirectly = process.argv[1] && new URL(`file://${process.argv[1]}`).pathname === new URL(import.meta.url).pathname;

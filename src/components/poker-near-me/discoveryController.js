@@ -54,18 +54,34 @@ export const MORE_SUB_TABS = [
   'tripcost',
 ];
 
+/*
+ * AEO phase 3 (2026-09-18): six of these titles rendered past 60 characters
+ * once SEOHead appends " | Smarter.Poker", so a result cut them. Each "&"
+ * cost four more than it showed, because it is serialised as &amp;, and the
+ * dashed subtitles spent the rest. They are rewritten to fit, keeping the
+ * search intent and losing only the padding.
+ *
+ * every-title-fits-a-result-and-every-page-says-what-it-is did not catch
+ * them: it read title="..." out of a <SEOHead> in pages/, and these are a
+ * metadata table in src/ that [pnmTab].js passes through. That law now
+ * follows a page's metadata table.
+ */
 export const ROUTE_META = {
   venues: {
     heading: 'POKER NEAR ME',
     breadcrumb: 'Venues',
-    title: 'Poker Near Me - Find Live Poker Rooms & Casinos',
+    // Distinct from /hub/poker-near-me/lobby, which owns the phrase "Poker
+    // Near Me: Live Poker Rooms And Casinos". #1894 shortened this one to
+    // exactly that string and the two pages then competed for the same
+    // result with the same words (AEO phase 3, 2026-09-18).
+    title: 'Poker Venue Directory: Rooms Near You',
     description:
       'Discover live poker rooms, casinos, and card rooms near you with current schedules, map discovery, and venue details across the United States.',
   },
   map: {
     heading: 'POKER ROOM MAP',
     breadcrumb: 'Map',
-    title: 'Poker Room Map - Casinos & Card Rooms Near You',
+    title: 'Poker Room Map: Casinos And Card Rooms',
     description:
       'Explore poker rooms, casinos, card rooms, and live-game locations on an interactive map with location-aware discovery.',
   },
@@ -79,14 +95,14 @@ export const ROUTE_META = {
   'live-games': {
     heading: 'CASH GAMES NEAR ME',
     breadcrumb: 'Live Games',
-    title: 'Live Cash Games - Find Poker Rooms & Casinos Near You',
+    title: 'Live Cash Games In Poker Rooms Near You',
     description:
       'Discover live cash games, poker rooms, casinos, and card rooms near you with observed and modeled table availability clearly identified.',
   },
   tours: {
     heading: 'POKER TOURS',
     breadcrumb: 'Tours',
-    title: 'Poker Tours - Circuits & Tour Stops Near You',
+    title: 'Poker Tours: Circuits And Stops Near You',
     description:
       'Explore poker tours, traveling circuits, upcoming stops, schedules, and host venues across the live poker network.',
   },
@@ -114,14 +130,14 @@ export const ROUTE_META = {
   more: {
     heading: 'DISCOVERY TOOLS',
     breadcrumb: 'Tools',
-    title: 'Poker Discovery Tools - Trends, Alerts & Trip Planning',
+    title: 'Poker Discovery Tools: Trends And Alerts',
     description:
       'Plan poker trips, compare venues, review game trends, configure alerts, and use community discovery tools.',
   },
   roadtrip: {
     heading: 'POKER ROAD TRIP',
     breadcrumb: 'Road Trip Planner',
-    title: 'Poker Road Trip Planner - Rooms Along Your Route',
+    title: 'Poker Road Trip Planner: Rooms On Route',
     description:
       'Plan a poker road trip and find casinos, card rooms, tournaments, and poker stops along your route.',
   },

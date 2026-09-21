@@ -107,15 +107,31 @@ export default function VenueIntelPage() {
         setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
     });
 
-    if (!mounted) return null;
+    // AEO phase 3 (2026-09-18): the head used to sit below this guard.
+    // The guard is true on the server, so the branch a crawler always
+    // takes returned nothing and the page served a 200 with no title and
+    // zero words. The head is hoisted above it and returned from it, so
+    // the page says what it is before it says it is still loading.
+    // Toke Tracker is a dealer's own income record, kept behind an account.
+    // There is no public half of it: with the head hoisted it still serves
+    // eight words to a crawler. A named page that asks not to be indexed is
+    // the honest description of that; an indexable eight word page is not.
+    // A public Toke Tracker page, if there is ever a reason for one, is a
+    // page with content on it, not this one.
+    const pageHead = (
+      <SEOHead
+          title="Venue Intelligence - Performance Analytics"
+          description="Analyze your performance across different venues with earning comparisons and shift calendar."
+          canonical="/hub/toke-tracker/venues"
+          noindex
+      />
+    );
+
+    if (!mounted) return pageHead;
 
     return (
         <PageTransition>
-            <SEOHead
-                title="Venue Intelligence - Performance Analytics"
-                description="Analyze your performance across different venues with earning comparisons and shift calendar."
-                canonical="/hub/toke-tracker/venues"
-            />
+            {pageHead}
             <div style={s.page}>
                 <div style={s.bgGrid} />
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />

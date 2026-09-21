@@ -51,8 +51,34 @@ const WORLD_ROUTES = [
     route: '/hub/poker-near-me/lobby',
     childRoute: '/hub/poker-near-me/events',
   },
-  { id: 'marketplace', route: '/hub/marketplace', childRoute: '/hub/merch-store' },
+  // The Marketplace storefronts own their own footer, so this world's global
+  // footer contract lives on its sub-routes. Both of these render server side
+  // and client side without a session, so the matrix never races an auth
+  // redirect.
+  {
+    id: 'marketplace',
+    route: '/hub/vip-membership/compare',
+    childRoute: '/hub/merch-store/fulfillment',
+  },
 ];
+
+// Physical routes that deliberately carry no global World Hub footer. The five
+// Marketplace stores render their own in-flow commerce footer (see
+// MARKETPLACE_PAGE_OWNED_FOOTER_ROUTES in pages/_app.js), and /hub/marketplace is a
+// server-side redirect stub that renders nothing at all. This set must stay
+// identical to pageOwnedFooterRoutes in
+// scripts/generate-world-footer-route-matrix.mjs, which is what produces the
+// documented total this file asserts against;
+// __tests__/the-footer-gate-tests-a-world-that-exists.law.test.mjs pins them
+// together, in the file `prebuild` runs.
+const PAGE_OWNED_FOOTER_ROUTES = new Set([
+  '/hub/diamond-store',
+  '/hub/marketplace',
+  '/hub/vip-membership',
+  '/hub/merch-store',
+  '/hub/smarter-rewards',
+  '/hub/club-shop',
+]);
 
 const walkPages = (directory: string): string[] =>
   fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -110,6 +136,7 @@ const routeMatrix = walkPages(path.join(process.cwd(), 'pages'))
     // bottom. Browse, setup, progress, and review remain in this footer matrix;
     // only the dynamic arena table is deliberately immersive.
     if (sourceRoute.startsWith('/hub/training/arena/')) return [];
+    if (PAGE_OWNED_FOOTER_ROUTES.has(sourceRoute)) return [];
     const world = footerRegistry.worlds.find((candidate) =>
       candidate.routePrefixes.some(
         (prefix) => sourceRoute === prefix || sourceRoute.startsWith(`${prefix}/`)
@@ -233,6 +260,22 @@ const arenaRoutesExcluded = (matrixDoc.match(/^\|\s*`?\/hub\/training\/arena\//g
 const EXPECTED_ROUTES = documentedTotal - arenaRoutesExcluded;
 
 test.describe('dynamic World Hub footer route and visual contract', () => {
+  test('Diamond Marketplace owns one in-flow footer without losing its copy policy', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await visit(page, '/hub/diamond-store');
+
+    await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
+    const pageFooter = page.locator('[data-marketplace-page-footer="true"]');
+    await expect(pageFooter).toHaveCount(1);
+    await expect(pageFooter).toBeVisible();
+    await expect(pageFooter).toHaveAttribute('data-footer-layout', 'in-flow');
+    await expect(pageFooter).toHaveCSS('position', 'static');
+    await expect(page.locator('body')).toHaveAttribute('data-world-copy-policy', 'marketplace');
+    await expect(page.locator('.world-copy-scope')).toHaveCount(1);
+  });
+
   test('every applicable route server-renders exactly one correct artwork footer', async ({
     request,
   }) => {
@@ -688,11 +731,19 @@ test.describe('dynamic World Hub footer route and visual contract', () => {
   test('Poker Arena lobby stays footerless and its probe route stays complete', async ({ page }) => {
     await visit(page, '/hub/club-arena');
     await expect(page.locator('[data-global-bottom-nav="true"]')).toHaveCount(0);
-    await expect(page.getByRole('navigation', { name: 'Poker Arena' })).toHaveCount(0);
+    // `name` matches a substring unless it is told not to, so the unqualified
+    // form also caught the lobby's in-content "Poker Arena Resources" links
+    // list and reported a footer that was never rendered. What this route must
+    // not have is the arena's own dock, so both the exact name and the dock's
+    // own controls are asserted absent.
+    await expect(
+      page.getByRole('navigation', { name: 'Poker Arena', exact: true })
+    ).toHaveCount(0);
+    await expect(page.locator('[data-footer-control]')).toHaveCount(0);
 
     const probePage = await page.context().newPage();
     await probePage.goto('/hub/club-arena/dev/footer', { waitUntil: 'domcontentloaded' });
-    const clubNav = probePage.getByRole('navigation', { name: 'Poker Arena' });
+    const clubNav = probePage.getByRole('navigation', { name: 'Poker Arena', exact: true });
     await expect(clubNav).toHaveCount(1);
     await expect(clubNav).toHaveCSS('position', 'fixed');
     await expect(clubNav.locator('[data-footer-control]')).toHaveCount(6);

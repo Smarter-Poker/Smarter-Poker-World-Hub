@@ -34,7 +34,9 @@ export const SCHEMA_ROUTES = {
 
   trivia: { path: '/hub/trivia', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia']], collection: true },
   'trivia-endless': { path: '/hub/trivia/endless', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Endless', '/hub/trivia/endless']] },
-  'trivia-survival': { path: '/hub/trivia/survival', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Survival', '/hub/trivia/survival']] },
+  // The indexed Survival page is the live game; /hub/trivia/survival is a
+  // noindex redirect shim kept for old bookmarks (AEO phase 3, 2026-09-18).
+  'trivia-survival': { path: '/hub/trivia/survival-game', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Survival', '/hub/trivia/survival-game']] },
   'trivia-time-attack': { path: '/hub/trivia/time-attack', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Time Attack', '/hub/trivia/time-attack']] },
   'trivia-mixed': { path: '/hub/trivia/mixed', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Mixed', '/hub/trivia/mixed']] },
   'trivia-pvp': { path: '/hub/trivia/pvp', category: G, trail: [['Hub', '/hub'], ['Trivia', '/hub/trivia'], ['Head To Head', '/hub/trivia/pvp']] },
@@ -45,6 +47,7 @@ export const SCHEMA_ROUTES = {
   'training-leaderboard': { path: '/hub/training/leaderboard', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Leaderboard', '/hub/training/leaderboard']], collection: true },
   'training-tournaments': { path: '/hub/training/tournaments', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Tournaments', '/hub/training/tournaments']] },
   'training-jarvis': { path: '/hub/training/jarvis', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Jarvis', '/hub/training/jarvis']] },
+  'training-hand-history-upload': { path: '/hub/training/hand-history-upload', category: G, trail: [['Hub', '/hub'], ['Training', '/hub/training'], ['Hand History Upload', '/hub/training/hand-history-upload']] },
   // 'training-solutions' is NOT here: the page builds its own graph now,
   // with the same @id. Two of the same node is the one thing this map
   // must never cause (AEO phase 3, 2026-09-17).

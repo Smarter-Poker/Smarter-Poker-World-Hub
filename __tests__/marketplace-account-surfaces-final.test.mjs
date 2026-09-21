@@ -45,10 +45,25 @@ test('account states and cart framing use native painted assets at their native 
     assert.match(source, /MarketplaceConsole(?:Panel|StatusRow)/);
   }
 
-  assert.match(CART_CSS, /\.cartItemFrameTop,[\s\S]*?shark-panel\/top\.png/);
-  assert.match(CART_CSS, /\.cartItemFrameBody,[\s\S]*?shark-panel\/mid\.png/);
-  assert.match(CART_CSS, /background:[\s\S]*?repeat-y/);
-  assert.match(CART_CSS, /\.cartItemFrameBottom,[\s\S]*?shark-panel\/bottom\.png/);
+  // Phase 7 (2026-09-19) replaces the three-slice shark-panel housing with the
+  // restrained chrome this programme already accepted for .vipFaq. The old
+  // assertions pinned the ornament this commit removes: a 688px cart line
+  // carried 215.56px of empty painted slice (61.6% of the line) and the
+  // wishlist card 172.32px (28.2%). The PNGs stay in public/ and stay
+  // referenced by the manifest and the console kit, so nothing 404s.
+  const CART_CSS_RULES = CART_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(
+    CART_CSS_RULES,
+    /\.cartItemFrame,\s*\.summaryFrame \{[\s\S]*?border: 1px solid #23394a;[\s\S]*?background: #070e15;[\s\S]*?box-shadow: inset 0 1px 0 rgb\(238 250 255 \/ 8%\);/
+  );
+  assert.match(
+    CART_CSS_RULES,
+    /\.cartItemFrameBody,\s*\.summaryFrameBody \{[\s\S]*?padding: 16px 20px;/
+  );
+  assert.doesNotMatch(CART_CSS_RULES, /cartItemFrameTop|cartItemFrameBottom/);
+  assert.doesNotMatch(CART_CSS_RULES, /summaryFrameTop|summaryFrameBottom/);
+  assert.doesNotMatch(CART_CSS_RULES, /shark-panel\/(?:top|mid|bottom)\.png|repeat-y|aspect-ratio|cqw/);
+  assert.doesNotMatch(CART, /FrameTop|FrameBottom/);
   assert.doesNotMatch(CART, /shark-panel\/bay\.png|spade-console\/mid\.png/);
   assert.match(CONSOLE_CSS, /\.statusRow\s*\{[\s\S]*?status\/wallet-row-shell\.webp/);
   assert.match(CONSOLE_CSS, /\.sharkPanelTop\s*\{[\s\S]*?shark-panel\/top\.png/);

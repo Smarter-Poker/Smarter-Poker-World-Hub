@@ -308,6 +308,10 @@ export default function MerchandiseFulfillmentConsole() {
 
   const visibleOrders = loadedOwnerId === authOwnerId ? orders : [];
   const visibleNextCursor = loadedOwnerId === authOwnerId ? nextCursor : null;
+  // Resolved auth with no owner is the anonymous gate. It is never inferred
+  // before auth resolves, and it never redirects: this console stays readable
+  // and simply refuses the queue read.
+  const signedOut = authResolved && !authOwnerId;
 
   return (
     <>
@@ -331,7 +335,7 @@ export default function MerchandiseFulfillmentConsole() {
             <button
               type="button"
               onClick={() => void loadOrders()}
-              disabled={state.kind === 'loading'}
+              disabled={state.kind === 'loading' || signedOut}
             >
               Refresh Queue
             </button>
@@ -342,6 +346,19 @@ export default function MerchandiseFulfillmentConsole() {
         <div className={styles.status} role="status" aria-live="polite">
           {marketplaceCopy(state.message)}
         </div>
+        {signedOut && (
+          <div className={styles.authGate}>
+            <p>
+              This Protected Queue Is Restricted To Verified Store Operators. Nothing Loads Until
+              You Sign In.
+            </p>
+            <div className={styles.actions}>
+              <Link href="/auth/login?redirect=/hub/merch-store/fulfillment">
+                Sign In To Continue
+              </Link>
+            </div>
+          </div>
+        )}
         <section className={styles.grid} aria-label="Merchandise Fulfillment Orders">
           {visibleOrders.map((order) => {
             const address = order.shipping_address || {};

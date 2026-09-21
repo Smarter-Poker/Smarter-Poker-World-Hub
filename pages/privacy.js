@@ -9,15 +9,28 @@
  */
 import Link from 'next/link';
 import SEOHead from '../src/components/seo/SEOHead';
+import { hubCollectionSchema } from '../src/lib/seo/hubPageSchema';
 import { PrivacySection, styles } from './terms';
+
+// AEO phase 3 (2026-09-18): /terms carried a graph and this page carried
+// none, though it is the URL the app stores read and the one every hub
+// summary links to in its compliance line.
+const PRIVACY_SCHEMA = hubCollectionSchema({
+  path: '/privacy',
+  name: 'Privacy Policy | Smarter.Poker',
+  description:
+    'What Smarter Software Inc. Collects, How It Is Used, What Is Never Sold, And What A Player Can Ask To See Or Have Deleted.',
+  trail: [['Privacy Policy', '/privacy']],
+});
 
 export default function PrivacyPolicy() {
     return (
         <>
             <SEOHead
                 title="Privacy Policy"
-                description="Smarter.Poker Privacy Policy. What We Collect, How We Use It, And Your Rights."
+                description="The Smarter.Poker Privacy Policy: What Is Collected, How It Is Used, What Is Never Sold, And What You Can Ask To See, Correct Or Have Deleted. Covers The Website And The Poker Arena App."
                 canonical="/privacy"
+                jsonLd={PRIVACY_SCHEMA}
             />
 
             <div style={styles.container}>

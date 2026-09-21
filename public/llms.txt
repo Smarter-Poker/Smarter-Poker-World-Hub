@@ -32,15 +32,31 @@ Interactive poker training with 100+ scenario-based games covering MTT, Cash, Sp
 - Poker glossary, 49 terms defined: https://smarter.poker/hub/training/glossary
 
 ### Poker Near Me
-Live poker room and venue finder with real-time game information, tournament schedules, and interactive maps covering venues across the United States.
+Live poker room and venue finder with real-time game information, tournament
+schedules, and interactive maps covering venues across the United States. This
+is the largest body of content on the site: several hundred venue profiles,
+tournament series and tour pages, each rendered on the server with its own
+schedule, location and structured data.
 - Lobby: https://smarter.poker/hub/poker-near-me/lobby
+- Rooms by state and city: https://smarter.poker/hub/poker-near-me/in
+- Venue directory: https://smarter.poker/hub/poker-near-me/venues
+- Poker tours and circuits: https://smarter.poker/hub/poker-tours
+- Tournament series: https://smarter.poker/hub/poker-near-me/series
+- Home games by state and city: https://smarter.poker/hub/home-games
+- Example venue profile: https://smarter.poker/hub/venues/1832
+- Example tour: https://smarter.poker/hub/tours/WSOP
 
 ### Bankroll Manager
 Bankroll tracking for poker players. Log sessions, analyse leaks, monitor ROI, and visualise trends with detailed analytics and variance analysis. Free to use, and it tracks play credits, not real money.
 - Bankroll manager: https://smarter.poker/hub/bankroll-manager
 
 ### Poker Trivia
-Test and expand poker knowledge with multiple game modes: Endless, Survival, Time Attack, Mixed, PvP, and Tournaments. Features leaderboards, achievements, and streak tracking.
+Test and expand poker knowledge across several game modes: Endless, Survival,
+Time Attack and Mixed, each on the same question bank, with leaderboards,
+achievements and streak tracking.
+- Trivia hub: https://smarter.poker/hub/trivia
+- Survival, one life: https://smarter.poker/hub/trivia/survival-game
+- Leaderboard: https://smarter.poker/hub/trivia/leaderboard
 
 ### Diamond Store
 Premium poker merchandise and gear marketplace with cart, wishlist, and order management.

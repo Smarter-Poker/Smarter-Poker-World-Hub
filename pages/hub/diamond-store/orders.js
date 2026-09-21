@@ -712,7 +712,7 @@ const styles = {
     color: '#9db6c2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 700,
     letterSpacing: '0.08em',
     textTransform: 'capitalize',
@@ -722,7 +722,7 @@ const styles = {
     color: '#9db6c2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-    fontSize: 11,
+    fontSize: 12,
   },
   orderItems: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' },
   orderItem: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
@@ -759,7 +759,7 @@ const styles = {
     color: '#7f9aa9',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-    fontSize: '9px',
+    fontSize: '12px',
     fontWeight: 700,
     letterSpacing: '0.14em',
     textTransform: 'capitalize',
@@ -793,11 +793,11 @@ const styles = {
     background: 'currentColor',
     boxShadow: '0 0 10px currentColor',
   },
-  fulfillmentStepLabel: { fontSize: '11px', fontWeight: 700, textTransform: 'capitalize' },
+  fulfillmentStepLabel: { fontSize: '12px', fontWeight: 700, textTransform: 'capitalize' },
   fulfillmentDate: {
     gridColumn: '2',
     color: '#7f939e',
-    fontSize: '10px',
+    fontSize: '12px',
     lineHeight: 1.4,
   },
   trackingMeta: {
@@ -808,7 +808,7 @@ const styles = {
     color: '#93a7b2',
     fontFamily:
       "var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif",
-    fontSize: '10px',
+    fontSize: '12px',
     overflowWrap: 'anywhere',
   },
 };

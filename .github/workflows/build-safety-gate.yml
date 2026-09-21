@@ -42,6 +42,49 @@ permissions:
   packages: read
 
 jobs:
+  # PR merge-ref caches cannot be restored by a different PR. Seed the same
+  # lockfile/runtime keys on protected main, where all PRs can restore them.
+  # This installs only on a miss; it neither builds nor publishes the app.
+  dependency-cache:
+    name: Shared dependencies (Node ${{ matrix.node }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: '24.12.0'
+            node-major: '24'
+            cache-prefix: nm-wh-noscripts
+          - node: '20.x'
+            node-major: '20'
+            cache-prefix: nm-wh-typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@smarter-poker'
+          always-auth: true
+      - name: Restore shared dependencies
+        id: nm-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ matrix.cache-prefix }}-${{ runner.os }}-node${{ matrix.node-major }}-${{ hashFiles('package-lock.json') }}
+      - name: Install dependencies only on a miss
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        run: npm ci --ignore-scripts
+
   safety-checks:
     name: Pre-Deploy Safety Checks
     # PULL REQUEST ONLY (2026-09-04). This ran again on every push to main -
@@ -93,7 +136,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: nm-wh-training-authority-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+          key: nm-wh-noscripts-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
 
       - name: Install Dependencies For Training Authority
         if: steps.training-authority-nm-cache.outputs.cache-hit != 'true'
@@ -1023,6 +1066,7 @@ jobs:
             __tests__/push-title-case.test.mjs \
             __tests__/rotation-keeps-device-identity.test.mjs \
             __tests__/vercel-build-queue.test.mjs \
+            __tests__/shared-dependency-cache.test.mjs \
             __tests__/openclaw-workers-secret.test.mjs \
             __tests__/openclaw-critical-jobs.test.mjs \
             __tests__/horse-solver-v31-ingress.test.mjs \
@@ -1050,6 +1094,8 @@ jobs:
             __tests__/robots-crawler-policy.law.test.mjs \
             __tests__/sitemap-lastmod-is-evidence.law.test.mjs \
             __tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs \
+            __tests__/the-series-pages-are-indexable.law.test.mjs \
+            __tests__/a-home-game-page-describes-itself.law.test.mjs \
             __tests__/the-help-page-works-without-an-account.law.test.mjs \
             __tests__/indexnow-submit.test.mjs \
             __tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs \
@@ -1062,6 +1108,23 @@ jobs:
             __tests__/llms-txt-states-the-entity.law.test.mjs \
             __tests__/the-summary-carries-the-schema.law.test.mjs \
             __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \
+            __tests__/a-page-never-returns-nothing-before-its-head.law.test.mjs \
+            __tests__/a-summary-only-links-to-a-page-that-exists.law.test.mjs \
+            __tests__/no-public-page-is-nameless.law.test.mjs \
+            __tests__/a-venue-title-survives-a-result.law.test.mjs \
+            __tests__/one-place-decides-if-a-title-fits.law.test.mjs \
+            __tests__/a-series-page-carries-its-schema.law.test.mjs \
+            __tests__/one-page-per-real-thing.law.test.mjs \
+            __tests__/two-pages-never-share-a-title.law.test.mjs \
+            __tests__/a-link-in-the-copy-goes-somewhere.law.test.mjs \
+            __tests__/a-directory-lists-what-it-contains.law.test.mjs \
+            __tests__/a-tour-page-serves-its-schedule.law.test.mjs \
+            __tests__/a-series-page-lists-its-events.law.test.mjs \
+            __tests__/a-page-that-exists-is-never-cached-as-missing.law.test.mjs \
+            __tests__/a-city-is-a-city.law.test.mjs \
+            __tests__/a-page-with-its-content-is-not-loading.law.test.mjs \
+            __tests__/the-charts-are-on-the-chart-page.law.test.mjs \
+            __tests__/poker-near-me-phase-3.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
@@ -1069,6 +1132,8 @@ jobs:
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
+            __tests__/the-faq-answers-its-own-questions.law.test.mjs \
+            __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════

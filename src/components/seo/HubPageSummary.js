@@ -51,6 +51,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms And Card Rooms By State And City.' },
       { name: 'Home Games', href: '/hub/home-games', text: 'Find And Host Home Poker Games Near You.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Sessions, Results And Bankroll With Exports.' },
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Free Poker Quiz Games With Leaderboards And Daily Runs.' },
     ],
   },
   'home-games': {
@@ -61,6 +62,41 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms, Card Rooms And Casinos By State And City.' },
       { name: 'Poker Arena', href: '/hub/club-arena', text: 'Take The Game Online In A Private Club With Chips And Hand Histories.' },
       { name: 'Club Commander', href: '/hub/commander', text: 'Run A Venue Or A Recurring Game With Waitlists And Tournament Clocks.' },
+      { name: 'Home Games By State', href: '/hub/home-games/in', text: 'Every State And City With A Published Home Game, One Page Each.' },
+    ],
+  },
+  'poker-tours': {
+    heading: 'About The Poker Tours Directory',
+    lead:
+      'Poker Tours Is The Smarter Poker Directory Of Travelling Tournament Circuits. Each Tour Has Its Own Page With The Stops It Is Playing, The Events At Each Stop, Buy Ins, Start Times And Results As They Land. House Series That Run At A Single Property Are Listed Separately Further Up This Page. Everything Here Is Free To Read And Nothing On Smarter Poker Is Real-Money Gambling.',
+    links: [
+      { name: 'Poker Series', href: '/hub/poker-series', text: 'Every Individual Tournament Series Running Now Or Coming Up, With Schedules.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments And Dailies Across Every Venue In The Directory.' },
+      { name: 'Poker Venues', href: '/hub/poker-near-me/venues', text: 'The Rooms And Casinos These Tours Stop At, By State And City.' },
+    ],
+  },
+  'poker-series': {
+    heading: 'About The Poker Series Directory',
+    lead:
+      'Poker Series Is The Smarter Poker Directory Of Individual Tournament Series. Each Series Has Its Own Page Carrying The Venue, The Dates It Runs, The Events On Its Schedule And The Buy Ins, Whether It Belongs To A Travelling Tour Or Is Run By One Room. Series Pages Are Free To Read And Nothing On Smarter Poker Is Real-Money Gambling.',
+    links: [
+      { name: 'Poker Tours', href: '/hub/poker-tours', text: 'The Travelling Circuits These Series Belong To, Stop By Stop.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments And Dailies Across Every Venue In The Directory.' },
+      { name: 'Poker Venues', href: '/hub/poker-near-me/venues', text: 'The Rooms And Casinos Running These Series, By State And City.' },
+    ],
+  },
+  training: {
+    heading: 'About GTO Training On Smarter Poker',
+    lead:
+      'GTO Training Is The Smarter Poker Practice Room. Play Scenario Games Against Solver-Grade Ranges, Read Back Where A Decision Left Value Behind, Work Through Daily Challenges And Tournaments Against Other Players, And Upload Real Hand Histories For Review. Training Is Free And Uses Play Credits Only: There Is No Real-Money Gambling Anywhere On Smarter Poker.',
+    links: [
+      { name: 'Jarvis Hand Review', href: '/hub/training/jarvis', text: 'Walk A Hand Back Street By Street With A Solver-Grade Second Opinion.' },
+      { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Bring Real Sessions In And Have Them Read For Leaks.' },
+      { name: 'Solutions Library', href: '/hub/training/solutions', text: 'Worked Spots And The Reasoning Behind Each Line.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
+      { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Training Events With Standings And Prizes.' },
+      { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Opening And Defending Ranges By Position And Stack Depth.' },
+      { name: 'Poker Trivia', href: '/hub/trivia', text: 'Quiz Games On Rules, Odds And History, With Leaderboards.' },
     ],
   },
   'bankroll-manager': {
@@ -115,6 +151,140 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Home Games', href: '/hub/home-games', text: 'Private Home Poker Games By State And City.' },
       { name: 'Club Commander', href: '/hub/commander', text: 'Join A Venue Waitlist Remotely And Register For Tournaments.' },
       { name: 'Poker Arena', href: '/hub/club-arena', text: 'Play Online In A Private Club Between Live Sessions.' },
+    ],
+  },
+
+  /*
+   * THE POKER NEAR ME TABS (AEO phase 3, 2026-09-19).
+   *
+   * Measured on production as OAI-SearchBot with scripts stripped, all
+   * eleven tabs of /hub/poker-near-me/[pnmTab] served the same document.
+   * /hub/poker-near-me/tours and /hub/poker-near-me/series came to 351 words
+   * each and differed in three of them: the title, the h1, and one label in
+   * the nav. Every other tab measured 350 to 355 words of the same venue
+   * lobby chrome.
+   *
+   * ROUTE_META already gave each tab its own title and description. What no
+   * tab had was a body, so to a crawler they were one page under eleven
+   * URLs, and the tab that the family nav points at outranked the standalone
+   * directory that actually holds the content.
+   *
+   * Each tab now says what it is and links where it leads. The copy is the
+   * differentiator and the links are the road: this is also what puts
+   * /hub/poker-tours, /hub/poker-series, /hub/daily-tournaments and
+   * /hub/events-calendar within one hop of every discovery page.
+   */
+  'pnm-venues': {
+    heading: 'About The Poker Venue Directory',
+    lead:
+      'This Is The Live Poker Venue Directory: Casinos, Card Rooms And Poker Rooms Across The United States, With The Games They Spread, The Stakes They Run, Their Hours And Their Location. Each Venue Has Its Own Page Carrying Its Schedule And What The Room Was Last Verified To Offer, With The Date It Was Checked. Filter By State And City, By Game, Or By Distance From Where You Are.',
+    links: [
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room, One Page Each.' },
+      { name: 'Live Cash Games', href: '/hub/poker-near-me/live-games', text: 'What Is Running Right Now, Room By Room.' },
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'The Same Directory As A Map You Can Pan.' },
+      { name: 'Events Calendar Near You', href: '/hub/poker-near-me/events-calendar', text: 'What Is Scheduled At These Rooms, By Date.' },
+    ],
+  },
+  'pnm-map': {
+    heading: 'About The Poker Room Map',
+    lead:
+      'The Poker Room Map Plots Every Casino, Card Room And Poker Room In The Directory So You Can See What Is Near You Rather Than Reading A List. Pan Anywhere And The Map Searches That View. Each Pin Opens The Venue With Its Games, Stakes, Hours And Schedule. Tour Stops And Running Series Appear On The Same Map, So A Trip Can Be Planned Around Both.',
+    links: [
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Same Rooms As A Filterable List.' },
+      { name: 'Road Trip Planner', href: '/hub/poker-near-me/roadtrip', text: 'Poker Rooms Along A Route You Are Driving.' },
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room.' },
+      { name: 'Discovery Tools', href: '/hub/poker-near-me/more', text: 'Compare Rooms, Read Game Trends And Set Alerts.' },
+    ],
+  },
+  'pnm-live-games': {
+    heading: 'About Live Cash Games Near You',
+    lead:
+      'Live Cash Games Shows What Is Actually Running: Which Rooms Have Tables Open, At What Stakes And In What Games. Observed Table Counts Come From The Room Or Its Feed And Are Labelled As Observed. Where No Feed Exists, A Modelled Estimate Is Shown And Labelled As Modelled, Because A Guess Presented As A Fact Is Worse Than No Number At All.',
+    links: [
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Every Room In The Directory With Its Full Detail.' },
+      { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Tournaments Running Today And Tomorrow.' },
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See Which Of These Rooms Is Closest.' },
+      { name: 'Daily Tournaments Near You', href: '/hub/poker-near-me/daily-tournaments', text: 'The Recurring Events These Rooms Run, Filtered By Distance.' },
+    ],
+  },
+  'pnm-tours': {
+    heading: 'About Poker Tours Near You',
+    lead:
+      'This Tab Shows Travelling Poker Tours Through The Lens Of Where You Are: Which Circuits Are Stopping Nearby, When, And At Which Room. A Tour Is A Series Of Stops Rather Than A Single Event, So The Stop Matters As Much As The Tour. The Full Tour Directory, With A Page Per Circuit And Every Stop It Is Playing, Is Linked Below.',
+    links: [
+      { name: 'Poker Tours Directory', href: '/hub/poker-tours', text: 'Every Travelling Circuit, With A Page Per Tour.' },
+      { name: 'Poker Series Directory', href: '/hub/poker-series', text: 'The Individual Series These Tours Are Built From.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments Across Every Venue.' },
+    ],
+  },
+  'pnm-series': {
+    heading: 'About Poker Series Near You',
+    lead:
+      'This Tab Shows Tournament Series Through The Lens Of Where You Are: What Is Running Now Or Starting Soon Within Reach, At Which Venue, And Over Which Dates. A Series Is A Run Of Events At One Property Rather Than A Single Tournament. The Full Series Directory, With A Page Per Series Carrying Its Schedule And Buy Ins, Is Linked Below.',
+    links: [
+      { name: 'Poker Series Directory', href: '/hub/poker-series', text: 'Every Series, With A Page Per Series And Its Schedule.' },
+      { name: 'Poker Tours Directory', href: '/hub/poker-tours', text: 'The Travelling Circuits Many Of These Series Belong To.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Single Tournaments Across Every Venue.' },
+    ],
+  },
+  'pnm-daily-tournaments': {
+    heading: 'About Daily Poker Tournaments Near You',
+    lead:
+      'Daily Tournaments Are The Recurring Events A Room Runs On A Schedule Rather Than As Part Of A Series: The Nightly Bounty, The Weekend Deepstack, The Morning Turbo. This Tab Filters Them By Day, Game, Buy In, Guarantee And Distance, So A Tournament You Can Actually Get To Is The One You See First.',
+    links: [
+      { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Full Daily Tournament Listing Across Every Room.' },
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Everything Scheduled, Laid Out By Date.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Rooms Running These Tournaments.' },
+    ],
+  },
+  'pnm-events-calendar': {
+    heading: 'About The Poker Events Calendar Near You',
+    lead:
+      'The Events Calendar Lays Out Poker Tournaments And Live Events By Date Rather Than By Venue, So A Week Or A Month Can Be Read At A Glance. Series Events, Tour Stops And A Room Own Dailies All Appear On The Same Calendar, With The Venue, Buy In And Start Time On Each Entry.',
+    links: [
+      { name: 'Events Calendar', href: '/hub/events-calendar', text: 'The Full Calendar Across Every Venue In The Directory.' },
+      { name: 'Poker Series Directory', href: '/hub/poker-series', text: 'The Series These Events Belong To.' },
+      { name: 'Daily Tournaments', href: '/hub/daily-tournaments', text: 'The Recurring Events A Room Runs On A Schedule.' },
+    ],
+  },
+  'pnm-more': {
+    heading: 'About The Poker Discovery Tools',
+    lead:
+      'Discovery Tools Are The Parts Of Poker Near Me That Answer A Question Rather Than List A Place: Compare Two Venues Side By Side, Read Game Trends And Peak Hours For A Room, Estimate What A Trip Will Cost, And Set Alerts For Games And Tournaments You Want To Hear About. Every Tool Reads The Same Verified Venue Directory.',
+    links: [
+      { name: 'Road Trip Planner', href: '/hub/poker-near-me/roadtrip', text: 'Poker Rooms Along A Route You Are Driving.' },
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See The Whole Directory Geographically.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'The Rooms Behind Every Tool On This Page.' },
+    ],
+  },
+  'pnm-roadtrip': {
+    heading: 'About The Poker Road Trip Planner',
+    lead:
+      'The Road Trip Planner Takes A Start And An End Point And Finds The Poker Rooms Along The Way Rather Than The Ones Nearest Your Home. Stops Are Shown With Their Games, Stakes And Hours, And With Whatever Tournaments Or Series Are Running While You Would Be Passing Through, So A Drive Can Be Built Around The Poker Instead Of The Other Way Round.',
+    links: [
+      { name: 'Poker Room Map', href: '/hub/poker-near-me/map', text: 'See The Route And The Rooms On One Map.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Full Detail On Any Room On The Route.' },
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City The Route Passes Through.' },
+    ],
+  },
+  'pnm-saved': {
+    heading: 'About Saved Poker Places',
+    lead:
+      'Saved Places Is Your Own Shortlist Of Poker Rooms, Home Games, Tours And Series, Kept In One Workspace So You Do Not Have To Search For The Same Venue Twice. Save A Room You Plan To Visit, A Series You Are Watching The Schedule Of, Or A Home Game You Have Asked To Join, And They Stay Together With Their Current Details Rather Than A Snapshot. Saved Places Is Private To Your Account, So This Page Is Not Published Or Indexed.',
+    links: [
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Find More Rooms To Save.' },
+      { name: 'Browse By Location', href: '/hub/poker-near-me/in', text: 'Every State And City With A Poker Room.' },
+      { name: 'Poker Near Me Lobby', href: '/hub/poker-near-me/lobby', text: 'The Command Deck For Live Poker Discovery.' },
+    ],
+  },
+  'pnm-alerts': {
+    heading: 'About Poker Tournament Alerts',
+    lead:
+      'Alerts Tell You When Something You Care About Is Happening Nearby: A Tournament At A Buy In You Play, A Cash Game Running At Your Stakes, Or A Series Starting Within A Distance You Set. Set The Radius, The Days And The Games Once, And The Alert Watches The Same Verified Directory The Rest Of Poker Near Me Reads. Alerts Are Configured Per Account And Are Private, So This Page Is Not Published Or Indexed.',
+    links: [
+      { name: 'Live Cash Games', href: '/hub/poker-near-me/live-games', text: 'What Is Running Right Now Without Waiting For An Alert.' },
+      { name: 'Poker Venue Directory', href: '/hub/poker-near-me/venues', text: 'Pick The Rooms Worth Hearing About.' },
+      { name: 'Poker Near Me Lobby', href: '/hub/poker-near-me/lobby', text: 'The Command Deck For Live Poker Discovery.' },
     ],
   },
 
@@ -280,14 +450,20 @@ export const HUB_PAGE_SUMMARIES = {
   trivia: {
     heading: 'About Poker Trivia',
     lead:
-      'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Six Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A Head To Head Match Against Another Player, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
+      'Poker Trivia Is The Smarter Poker Quiz Game: Questions On Hand Rankings, Pot Odds, Tournament History, Rules Disputes And The People Who Made The Game. Several Modes Run On The Same Question Bank, From An Endless Run To A Timed Sprint To A One Life Survival Game, With Streaks, Achievements And A Public Leaderboard On Top. It Is Free To Play, Needs No Account To Start, And Nothing In It Is A Wager.',
     links: [
+      // Head To Head and Trivia Tournaments ARE NOT LINKED from these
+      // summaries while their release gates are closed
+      // (TRIVIA_PVP_ENABLED, TRIVIA_TOURNAMENTS_ENABLED). Both pages
+      // redirect to /hub/trivia until those are set, so the links sent a
+      // reader, and a crawler, straight into a 307. Restore them in the
+      // same change that opens the gate: the sitemap reads the gate
+      // itself, and a-summary-only-links-to-a-page-that-exists fails
+      // until the two agree (AEO phase 3, 2026-09-18).
       { name: 'Endless', href: '/hub/trivia/endless', text: 'Keep Answering Until You Decide To Stop.' },
-      { name: 'Survival', href: '/hub/trivia/survival', text: 'One Run, And A Wrong Answer Ends It.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'One Run, And A Wrong Answer Ends It.' },
       { name: 'Time Attack', href: '/hub/trivia/time-attack', text: 'As Many As You Can Before The Clock Runs Out.' },
       { name: 'Mixed', href: '/hub/trivia/mixed', text: 'Every Category At Once, In Random Order.' },
-      { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Questions, Against Another Player, Live.' },
-      { name: 'Trivia Tournaments', href: '/hub/trivia/tournaments', text: 'Scheduled Events With A Field And A Final Standing.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Ahead Today, This Week And All Time.' },
     ],
   },
@@ -297,7 +473,7 @@ export const HUB_PAGE_SUMMARIES = {
       'Endless Is Poker Trivia With No Stop Condition: Questions Keep Coming Until You Decide To Leave, And Your Run Is Scored On How Far You Got And How Often You Were Right. It Is The Mode For Learning Rather Than Competing, Because A Wrong Answer Costs You Nothing But The Explanation That Follows It. Free To Play, And No Account Is Needed To Start A Run.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Survival', href: '/hub/trivia/survival', text: 'The Same Questions, With One Life.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Same Questions, With One Life.' },
       { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Look Up Anything A Question Used And You Did Not Know.' },
     ],
   },
@@ -337,7 +513,6 @@ export const HUB_PAGE_SUMMARIES = {
       'Head To Head Puts Two Players On The Same Questions At The Same Time, And The Faster Correct Answer Takes The Point. Matches Are Short, Results Are Immediate, And Both Players See Every Answer Afterwards, So A Match Doubles As A Way To Find Out What The Other Person Knew That You Did Not. Free To Play, And Nothing In It Is A Wager.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Trivia Tournaments', href: '/hub/trivia/tournaments', text: 'The Same Format With A Full Field And A Final Standing.' },
       { name: 'Leaderboard', href: '/hub/trivia/leaderboard', text: 'Who Is Winning Matches Today, This Week And All Time.' },
     ],
   },
@@ -347,17 +522,16 @@ export const HUB_PAGE_SUMMARIES = {
       'Trivia Tournaments Are Scheduled Events: Everyone Answers The Same Questions In The Same Order At The Same Time, And The Field Is Ranked On Correct Answers And Speed. Registration Opens Before The Start, The Standings Move Live While It Runs, And The Final Table Of Results Stays Readable Afterwards. Free To Enter, And Nothing In It Is A Wager.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Head To Head', href: '/hub/trivia/pvp', text: 'The Same Idea With One Opponent Instead Of A Field.' },
       { name: 'Events Calendar', href: '/hub/events-calendar', text: 'Live Poker Series And Festivals By Date.' },
     ],
   },
   'trivia-leaderboard': {
     heading: 'About The Trivia Leaderboard',
     lead:
-      'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Most Head To Head Wins. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
+      'The Trivia Leaderboard Ranks Players On Daily, Weekly And All Time Windows, Across Every Mode: Deepest Survival Run, Highest Time Attack Count, Longest Streak And Best Mixed Category Score. Rankings Update As Runs Finish, So The Board Is What Happened Today Rather Than A Weekly Snapshot. Free To Appear On, And Nothing On It Is A Wager Or A Payout.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Survival', href: '/hub/trivia/survival', text: 'The Mode Most Of The Top Runs Come From.' },
+      { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Mode Most Of The Top Runs Come From.' },
       { name: 'Smarter Rewards', href: '/hub/smarter-rewards', text: 'What Playing Regularly Earns You.' },
     ],
   },
@@ -402,6 +576,16 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'GTO Training', href: '/hub/training', text: 'The Drills Jarvis Coaches You Through.' },
       { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Upload A Hand From Anywhere And Have It Graded.' },
       { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term Jarvis Uses, Defined.' },
+    ],
+  },
+  'training-hand-history-upload': {
+    heading: 'About Hand History Upload',
+    lead:
+      'Hand History Upload Takes A Hand You Already Played Somewhere Else And Scores It Here. Paste Or Drop A History From PokerStars, GGPoker, ACR Or 888, Replay It Street By Street With The Ranges Shown, And See Where Your Line Left Value. A Grade And An EV Figure Appear Only When The Server Can Match The Exact Node, So A Hand It Cannot Match Is Shown Without A Score Rather Than With A Guess. Free To Use.',
+    links: [
+      { name: 'GTO Training', href: '/hub/training', text: 'Drill The Spots Your Uploads Keep Exposing.' },
+      { name: 'Jarvis', href: '/hub/training/jarvis', text: 'Ask Why A Line Was Wrong, In Words.' },
+      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Hand Review Uses, Defined.' },
     ],
   },
   'training-solutions': {

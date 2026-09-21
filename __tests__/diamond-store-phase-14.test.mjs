@@ -263,25 +263,35 @@ test('account records and informational details use native painted frame slices'
   );
   assert.match(CONSOLE_CSS, /\.pageFoot,[\s\S]*?spade-console\/bottom-foot\.png/);
 
+  // Phase 7 (2026-09-19): the saved-gear card was a three-slice shark-panel
+  // housing whose top and bottom slices were empty aria-hidden divs. Measured
+  // at 1440, a 550px card spent 172.32px (28.2%) on that ornament, and a 370px
+  // card 115.92px (21.0%), around a body that also reserved 14.4% of its own
+  // width horizontally. It is now the restrained chrome the cart and .vipFaq
+  // already use. The shark-panel PNGs remain in public/ (asserted below) and
+  // remain referenced by the console kit.
   assert.match(
     WISHLIST,
-    /<article key=\{item\.id \?\? item\.product_id\} style=\{styles\.wishlistItem\}>[\s\S]*?styles\.wishlistFrameTop[\s\S]*?styles\.wishlistFrameBody[\s\S]*?styles\.productMedia[\s\S]*?styles\.productBody[\s\S]*?styles\.wishlistFrameBottom/
+    /<article key=\{item\.id \?\? item\.product_id\} style=\{styles\.wishlistItem\}>[\s\S]*?styles\.wishlistFrameBody[\s\S]*?styles\.productMedia[\s\S]*?styles\.productBody/
   );
+  assert.doesNotMatch(WISHLIST, /wishlistFrameTop|wishlistFrameBottom/);
   const wishlistFrameStyles = WISHLIST.slice(
     WISHLIST.indexOf('wishlistItem:'),
     WISHLIST.indexOf('productImage:')
   );
-  assert.match(wishlistFrameStyles, /containerType:\s*'inline-size'/);
   assert.match(wishlistFrameStyles, /maxWidth:\s*900/);
-  assert.match(wishlistFrameStyles, /aspectRatio:\s*'900 \/ 143'/);
-  assert.match(wishlistFrameStyles, /shark-panel\/top\.png/);
-  assert.match(wishlistFrameStyles, /shark-panel\/mid\.png/);
-  assert.match(wishlistFrameStyles, /backgroundRepeat:\s*'repeat-y'/);
-  assert.match(wishlistFrameStyles, /aspectRatio:\s*'900 \/ 139'/);
-  assert.match(wishlistFrameStyles, /shark-panel\/bottom\.png/);
+  assert.match(wishlistFrameStyles, /overflow:\s*'visible'/);
+  assert.match(wishlistFrameStyles, /border:\s*'1px solid #23394a'/);
+  assert.match(wishlistFrameStyles, /backgroundColor:\s*'#070e15'/);
+  assert.match(wishlistFrameStyles, /boxShadow:\s*'inset 0 1px 0 rgb\(238 250 255 \/ 8%\)'/);
+  assert.match(wishlistFrameStyles, /padding:\s*'16px 20px'/);
   assert.doesNotMatch(
     wishlistFrameStyles,
-    /(?:linear|radial|repeating-linear)-gradient|boxShadow|border:\s*['"]/
+    /aspectRatio|containerType|cqw|shark-panel\/(?:top|mid|bottom)\.png|repeat-y/
+  );
+  assert.doesNotMatch(
+    wishlistFrameStyles,
+    /(?:linear|radial|repeating-linear)-gradient|borderLeft|border-left/
   );
 
   const detailHeroStyles = DETAIL_CSS.slice(

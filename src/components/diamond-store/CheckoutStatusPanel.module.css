@@ -1,13 +1,20 @@
+/* A percentage padding resolves against the CONTAINING BLOCK's inline size,
+   not this element's. The plate is narrower than its container, so the
+   percentages the artwork wants have to be measured against the plate. Same
+   remedy as .status in pages/hub/merch-store/fulfillment.module.css. */
 .panel {
   --seal: #8defff;
+  --panel-plate-width: min(1188px, calc(100% - 52px));
+
   position: relative;
   display: grid;
   grid-template-columns: 22% minmax(0, 1fr) minmax(86px, 10%);
   align-items: center;
-  width: min(1188px, calc(100% - 52px));
+  width: var(--panel-plate-width);
   aspect-ratio: 1800 / 386;
   margin: 18px auto 8px;
-  padding: 4.5% 4.7% 4.5% 2.5%;
+  padding: calc(var(--panel-plate-width) * 0.045) calc(var(--panel-plate-width) * 0.047)
+    calc(var(--panel-plate-width) * 0.045) calc(var(--panel-plate-width) * 0.025);
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -17,8 +24,8 @@
 }
 
 .panel:focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 4px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 4px !important;
 }
 
 .complete {
@@ -180,8 +187,8 @@
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
 .dismiss:focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 3px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 3px !important;
 }
 
 .dismiss {
@@ -192,11 +199,13 @@
 
 @media (max-width: 760px) {
   .panel {
+    --panel-plate-width: min(440px, calc(100% - 24px));
+
     grid-template-columns: minmax(0, 1fr);
-    width: min(440px, calc(100% - 24px));
     aspect-ratio: 1105 / 1133;
     margin-top: 12px;
-    padding: 15% 14% 13%;
+    padding: calc(var(--panel-plate-width) * 0.15) calc(var(--panel-plate-width) * 0.14)
+      calc(var(--panel-plate-width) * 0.13);
     background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
   }
 

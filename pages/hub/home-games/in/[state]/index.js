@@ -24,6 +24,7 @@ import {
 } from '../../../../../src/lib/home-games/locationUtils';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import PokerNearMeFamilyNav from '../../../../../src/components/poker-near-me/PokerNearMeFamilyNav';
+import { firstThatFits } from '../../../../../src/lib/seo/titleFit';
 import {
   fetchAllHomeGameDirectoryRows,
   fetchHomeGameGroupsInChunks,
@@ -407,7 +408,16 @@ export default function HomeGamesByState({
   neighborStates = [],
   directoryUnavailable = false,
 }) {
-  const pageTitle = `Poker Home Games in ${stateName} - Cash Games & Tournaments`;
+  // AEO phase 3 (2026-09-18): this hung " - Cash Games & Tournaments" off
+  // the end, which pushed Illinois to 75 rendered characters and Nevada to
+  // 73 once SEOHead adds " | Smarter.Poker". The "&" alone costs four more
+  // than it shows. The subtitle is kept where it fits and dropped where it
+  // does not, rather than every state losing its name to a cut.
+  const pageTitle = firstThatFits([
+    `Poker Home Games In ${stateName} - Cash Games And Tournaments`,
+    `Poker Home Games In ${stateName}: Cash And Tournaments`,
+    `Poker Home Games In ${stateName}`,
+  ]);
   const pageDescription = directoryUnavailable
     ? `The Poker Home Games directory for ${stateName} is temporarily unavailable. Please try again shortly.`
     : games.length > 0

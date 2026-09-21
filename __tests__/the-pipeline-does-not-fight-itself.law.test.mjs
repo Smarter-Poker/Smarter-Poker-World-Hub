@@ -89,49 +89,19 @@ test('the real resolveBuildCpus gives 4 on an 8-core builder and 1 on a 2-core b
 // -- 2. A preview deployment is opt-in ---------------------------------------
 
 test('preview builds are an allow-list, not a deny-list', () => {
-  const gate = read('scripts/vercel-should-build.sh');
-
-  assert.match(
-    gate,
-    /preview\/\*\)/,
-    'the preview allow-list arm must exist. Naming prefixes to EXCLUDE cannot ' +
-      'win: it has to guess every prefix anyone will ever invent.'
-  );
-
-  const start = gate.indexOf('INVERTED 2026-09-08');
-  assert.ok(start > -1, 'the inverted preview gate must be present');
-  const block = gate.slice(start, gate.indexOf('CHANGED=', start));
-  assert.ok(block.length > 0, 'could not delimit the preview gate block');
-
-  assert.match(
-    block,
-    /^\s*\*\)\s*$[\s\S]*?exit 0/m,
-    'the catch-all arm of the preview case must SKIP (exit 0), not fall through'
-  );
-  assert.doesNotMatch(
-    block,
-    /^\s*agent\/\*\)\s*$/m,
-    'agent/* no longer needs its own arm - the allow-list covers it, and a ' +
-      'leftover deny-list arm invites someone to extend the wrong list'
-  );
+  assert.match(read('scripts/vercel-should-build.sh'), /vercel-should-build\.mjs/);
+  const gate = read('scripts/vercel-should-build.mjs');
+  assert.match(gate, /VERCEL_ENV === 'preview'/);
+  assert.match(gate, /!process\.env\.VERCEL_GIT_COMMIT_REF\?\.startsWith\('preview\/'\)/);
+  assert.ok(gate.indexOf('finish(false,') < gate.indexOf('const previous'), 'unrequested previews skip before Git work');
 });
 
 test('branches that are never browsed are refused before a container is created', () => {
-  const enabled = JSON.parse(read('vercel.json')).git?.deploymentEnabled ?? {};
-
-  // deploymentEnabled stops the deployment being CREATED. ignoreCommand does
-  // not: it provisions a build container and clones the repo before the script
-  // gets to say no. For refs that can never want a preview the map is strictly
-  // cheaper, so both are used.
-  for (const ref of ['agent/**', 'ci-marker/**', 'backup/**', 'build/**', 'patch/**']) {
-    assert.equal(
-      enabled[ref],
-      false,
-      `vercel.json git.deploymentEnabled must disable "${ref}". patch/** was ` +
-        `missing until 2026-09-08, which is how the audit of this very problem ` +
-        `triggered a preview build on its own branch.`
-    );
-  }
+  // Vercel enables a branch when ANY matching pattern is true. The default
+  // is now false, so new branch prefixes cannot accidentally queue a build.
+  assert.deepEqual(JSON.parse(read('vercel.json')).git.deploymentEnabled, {
+    '**': false, main: true, 'preview/**': true,
+  });
 });
 
 // -- 3. main is allowed to finish what it started ----------------------------
@@ -338,10 +308,10 @@ test('a preview/* branch builds a preview and is not auto-merged into main', () 
   //
   // Nothing enforces a commit message. The branch prefix is the only thing
   // both halves can read, so both halves read it.
-  const gate = read('scripts/vercel-should-build.sh');
+  const gate = read('scripts/vercel-should-build.mjs');
   assert.match(
     gate,
-    /preview\/\*\)/,
+    /startsWith\('preview\/'\)/,
     'preview/* must still be the opt-in that gets a Vercel preview build'
   );
 

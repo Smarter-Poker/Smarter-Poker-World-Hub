@@ -9,6 +9,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import dynamic from 'next/dynamic';
+import useHasMounted from '../../src/hooks/useHasMounted';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -100,7 +101,7 @@ import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommer
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
   loading: () => (
     <div className={shellStyles.loadingPanel} role="status" aria-live="polite">
-      Loading Merch Store...
+      <MerchStoreLoadingText />
     </div>
   ),
 });
@@ -280,10 +281,7 @@ function storeStructuredData(activeTab) {
 
 function RewardDetailLink({ reward, children }) {
   return (
-    <Link
-      href={`/hub/smarter-rewards/${reward.id}`}
-      style={{ color: 'inherit', textDecorationColor: 'rgba(112, 223, 255, 0.55)' }}
-    >
+    <Link href={`/hub/smarter-rewards/${reward.id}`} className={shellStyles.rewardDetailLink}>
       {children}
     </Link>
   );
@@ -433,6 +431,23 @@ export async function getServerSideProps({ res }) {
     console.warn('[Diamond Store] Server Catalog Read Failed:', error?.message || error);
     return { props: fallbackProps };
   }
+}
+
+/**
+ * The words, once a browser is actually waiting for them (AEO phase 3,
+ * 2026-09-19). These loading branches render on the server, so the store
+ * told every crawler it was still loading. The branch and the box stay
+ * exactly as they were, so nothing about the layout or the auth flow
+ * changes; only the sentence waits for someone who can read it.
+ */
+function ClubShopLoadingText() {
+  const hasMounted = useHasMounted();
+  return hasMounted ? <>Loading Club Shop...</> : null;
+}
+
+function MerchStoreLoadingText() {
+  const hasMounted = useHasMounted();
+  return hasMounted ? <>Loading Merch Store...</> : null;
 }
 
 export default function DiamondStorePage({
@@ -3017,6 +3032,15 @@ export default function DiamondStorePage({
     (vipTier === 'lifetime' && (vipCardReady || !selectedVipHasExactRecovery));
   const clubShopBuyArt = clubShopBuyTarget ? resolveClubShopProductArt(clubShopBuyTarget) : null;
 
+  // One Marketplace commerce footer per route, declared once and placed once.
+  // Page 1 keeps its accepted position directly under the Diamond showcase.
+  // The four sibling tab routes render the same element after their content so
+  // it lands at the foot of the page instead of between the hero and the first
+  // product card, which is where the default rail used to sit.
+  const marketplaceCommerceFooter = (
+    <MarketplaceCommerceNav active="store" variant="pageFooter" />
+  );
+
   return (
     <>
       <Head>
@@ -3137,7 +3161,7 @@ export default function DiamondStorePage({
               onBuy={handleDirectCheckout}
             />
 
-            <MarketplaceCommerceNav active="store" />
+            {activeTab === 'diamonds' && marketplaceCommerceFooter}
 
             {/* Main Content (non-diamonds tabs) */}
             <div
@@ -3620,11 +3644,6 @@ export default function DiamondStorePage({
                             className={shellStyles.premiumDataCard}
                             style={styles.benefitCard}
                           >
-                            <span className={shellStyles.premiumDataFrame} aria-hidden="true">
-                              <span className={shellStyles.premiumDataFrameTop} />
-                              <span className={shellStyles.premiumDataFrameMid} />
-                              <span className={shellStyles.premiumDataFrameBottom} />
-                            </span>
                             <div style={styles.benefitInfo}>
                               <div style={styles.benefitTitle}>
                                 {marketplaceCopy(benefit.title)}
@@ -3652,11 +3671,6 @@ export default function DiamondStorePage({
                             className={shellStyles.premiumDataCard}
                             style={styles.benefitCard}
                           >
-                            <span className={shellStyles.premiumDataFrame} aria-hidden="true">
-                              <span className={shellStyles.premiumDataFrameTop} />
-                              <span className={shellStyles.premiumDataFrameMid} />
-                              <span className={shellStyles.premiumDataFrameBottom} />
-                            </span>
                             <div style={styles.benefitInfo}>
                               <div style={styles.benefitTitle}>
                                 {marketplaceCopy(benefit.title)}
@@ -3920,7 +3934,7 @@ export default function DiamondStorePage({
                               </div>
                               <div
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: 'rgba(255,255,255,0.6)',
                                   marginTop: 2,
                                 }}
@@ -3942,7 +3956,7 @@ export default function DiamondStorePage({
                               </div>
                               <div
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: 'rgba(255,255,255,0.6)',
                                   marginTop: 2,
                                 }}
@@ -4413,7 +4427,7 @@ export default function DiamondStorePage({
                           >
                             <div
                               style={{
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: 600,
                                 color: 'rgba(255,255,255,0.4)',
                                 textTransform: 'capitalize',
@@ -4443,7 +4457,7 @@ export default function DiamondStorePage({
                           >
                             <div
                               style={{
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: 600,
                                 color: 'rgba(255,255,255,0.4)',
                                 textTransform: 'capitalize',
@@ -4569,7 +4583,7 @@ export default function DiamondStorePage({
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading Club Shop...
+                      <ClubShopLoadingText />
                     </div>
                   ) : !committedStoreAccountId ? (
                     <div style={{ textAlign: 'center', padding: 40 }}>
@@ -4618,7 +4632,7 @@ export default function DiamondStorePage({
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading Club Shop...
+                      <ClubShopLoadingText />
                     </div>
                   ) : !clubShopClubId ? (
                     clubShopLoaded ? (
@@ -4638,7 +4652,7 @@ export default function DiamondStorePage({
                         aria-live="polite"
                         style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                       >
-                        Loading Club Shop...
+                        <ClubShopLoadingText />
                       </div>
                     )
                   ) : !clubShopSnapshotOwned ? (
@@ -4647,7 +4661,7 @@ export default function DiamondStorePage({
                       aria-live="polite"
                       style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.5)' }}
                     >
-                      Loading Club Shop...
+                      <ClubShopLoadingText />
                     </div>
                   ) : (
                     <div className={shellStyles.clubShopSurface}>
@@ -4960,11 +4974,10 @@ export default function DiamondStorePage({
                                         style={{ padding: 14 }}
                                       >
                                         <div
-                                          className={shellStyles.clubPriceActions}
                                           style={{
-                                            fontSize: 14,
+                                            fontSize: 15,
                                             fontWeight: 700,
-                                            color: '#E4E6EB',
+                                            color: '#EEF6FB',
                                             marginBottom: 4,
                                           }}
                                         >
@@ -4972,11 +4985,10 @@ export default function DiamondStorePage({
                                         </div>
                                         <div
                                           style={{
-                                            fontSize: 11,
-                                            color: '#AABAC2',
+                                            fontSize: 13,
+                                            color: 'rgba(233, 243, 250, 0.78)',
                                             marginBottom: 10,
-                                            lineHeight: 1.4,
-                                            minHeight: 30,
+                                            lineHeight: 1.45,
                                           }}
                                         >
                                           {marketplaceCopy(item.description || 'No Description.')}
@@ -4996,6 +5008,7 @@ export default function DiamondStorePage({
                                           View Item Details
                                         </Link>
                                         <div
+                                          className={shellStyles.clubPriceActions}
                                           style={{
                                             display: 'flex',
                                             justifyContent: 'space-between',
@@ -5020,7 +5033,7 @@ export default function DiamondStorePage({
                                                 style={{
                                                   display: 'block',
                                                   color: '#AABAC2',
-                                                  fontSize: 10,
+                                                  fontSize: 12,
                                                   textDecoration: 'line-through',
                                                 }}
                                               >
@@ -5041,12 +5054,31 @@ export default function DiamondStorePage({
                                             {(item.purchase_count || 0) > 0 && (
                                               <div
                                                 style={{
-                                                  fontSize: 10,
-                                                  color: 'rgba(255,255,255,0.35)',
+                                                  fontSize: 12,
+                                                  color: 'rgba(233, 243, 250, 0.6)',
                                                   marginTop: 2,
                                                 }}
                                               >
                                                 {item.purchase_count} Sold
+                                              </div>
+                                            )}
+                                            {/* marketplace-items already
+                                                returns my_purchase_count and
+                                                clubCardCheckout already
+                                                validates it. The card was the
+                                                only place that dropped it, so
+                                                a shopper could not see what
+                                                they already own. */}
+                                            {(item.my_purchase_count || 0) > 0 && (
+                                              <div
+                                                style={{
+                                                  fontSize: 12,
+                                                  fontWeight: 700,
+                                                  color: '#58BFE9',
+                                                  marginTop: 2,
+                                                }}
+                                              >
+                                                You Own {item.my_purchase_count}
                                               </div>
                                             )}
                                           </div>
@@ -5098,7 +5130,7 @@ export default function DiamondStorePage({
                                               color: hasExactDiamondRecovery
                                                 ? '#8CDFFF'
                                                 : '#FFD18C',
-                                              fontSize: 11,
+                                              fontSize: 12,
                                               lineHeight: 1.45,
                                             }}
                                           >
@@ -5250,7 +5282,7 @@ export default function DiamondStorePage({
                                                 display: 'block',
                                                 marginTop: 2,
                                                 color: '#FF5B6E',
-                                                fontSize: 10,
+                                                fontSize: 12,
                                                 fontWeight: 700,
                                               }}
                                             >
@@ -5408,7 +5440,7 @@ export default function DiamondStorePage({
                                         </div>
                                         <div
                                           style={{
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             color: 'rgba(255,255,255,0.4)',
                                             fontWeight: 600,
                                             marginTop: 4,
@@ -5426,7 +5458,7 @@ export default function DiamondStorePage({
                                       padding: '10px 12px',
                                       background: 'rgba(0,118,168,0.09)',
                                       color: 'rgba(255,255,255,0.68)',
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       lineHeight: 1.6,
                                     }}
                                   >
@@ -5792,7 +5824,7 @@ export default function DiamondStorePage({
                                           style={{
                                             padding: '2px 6px',
                                             borderRadius: 4,
-                                            fontSize: 10,
+                                            fontSize: 12,
                                             background: 'rgba(255,255,255,0.06)',
                                             color: 'rgba(255,255,255,0.4)',
                                           }}
@@ -5949,6 +5981,8 @@ export default function DiamondStorePage({
                 For Details.
               </p>
             </div>
+
+            {activeTab !== 'diamonds' && marketplaceCommerceFooter}
           </main>
         </div>
       </PageTransition>

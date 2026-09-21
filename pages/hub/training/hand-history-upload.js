@@ -11,7 +11,8 @@
 // TRAIN-CSS-GRADIENT-ADOPT-18 — gradient hex routed to rgba(var(--sp-*-rgb), 1)
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Head from 'next/head';
+import SEOHead from '../../../src/components/seo/SEOHead';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
@@ -1199,13 +1200,16 @@ export default function HandHistoryUploadPage() {
 
   return (
     <>
-      <Head>
-        <title>Provenance-Audited Hand Review | Smarter.Poker</title>
-        <meta
-          name="description"
-          content="Replay imported hands and show grades only for provenance-complete exact-node server audits."
-        />
-      </Head>
+      {/* AEO phase 3 (2026-09-18): this page had a bare <Head> with a title
+          and a description and nothing else, so it served no canonical, no
+          robots directive and no structured data, while the Jarvis summary
+          linked to it. The title also led with "Provenance-Audited", which
+          names the mechanism rather than the job a player came to do. */}
+      <SEOHead
+        title="Upload A Hand History And Get It Graded"
+        description="Import A Hand From PokerStars, GGPoker, ACR Or 888, Replay It Street By Street, And See Where Your Line Left Value. Grades And EV Come Only From An Exact Node Server Audit, So A Hand That Cannot Be Matched Is Shown Without A Score Rather Than With A Guess."
+        canonical="/hub/training/hand-history-upload"
+      />
       <div
         style={{
           minHeight: '100dvh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'clip', boxSizing: 'border-box',
@@ -1525,6 +1529,7 @@ export default function HandHistoryUploadPage() {
             </> /* end activeView === 'upload' */
           )}
         </div>
+        <HubPageSummary page="training-hand-history-upload" as="h1" />
       </div>
     </>
   );

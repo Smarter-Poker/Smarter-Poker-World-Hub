@@ -1,5 +1,5 @@
 import PokerNearMeLocationPage from '../../../../src/components/poker-near-me/PokerNearMeLocationPage';
-import { aggregateVenueStates, fetchPokerVenueLocation, venueLocationCanonical } from '../../../../src/lib/poker-near-me/locationPages';
+import { aggregateVenueStates, fetchPokerVenueLocation, venueLocationCanonical, venuesWithoutAState } from '../../../../src/lib/poker-near-me/locationPages';
 
 export async function getServerSideProps({ req, res }) {
   try {
@@ -9,6 +9,7 @@ export async function getServerSideProps({ req, res }) {
       venues: [],
       resultCount: result.venues.length,
       states: aggregateVenueStates(result.venues),
+      unplacedVenues: venuesWithoutAState(result.venues),
       degraded: result.degraded,
       dataSource: result.dataSource,
       dataRevision: result.dataRevision,
@@ -18,7 +19,7 @@ export async function getServerSideProps({ req, res }) {
   } catch (_) {
     res.statusCode = 503;
     res.setHeader('Retry-After', '60');
-    return { props: { venues: [], resultCount: 0, states: [], degraded: true, dataSource: 'unavailable', dataRevision: null, snapshot: null, fetchedAt: null } };
+    return { props: { venues: [], resultCount: 0, states: [], unplacedVenues: [], degraded: true, dataSource: 'unavailable', dataRevision: null, snapshot: null, fetchedAt: null } };
   }
 }
 

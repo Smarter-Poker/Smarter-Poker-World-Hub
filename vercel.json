@@ -5,11 +5,9 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "ci-marker/**": false,
-      "backup/**": false,
-      "build/**": false,
-      "agent/**": false,
-      "patch/**": false
+      "**": false,
+      "main": true,
+      "preview/**": true
     }
   },
   "ignoreCommand": "bash scripts/vercel-should-build.sh",

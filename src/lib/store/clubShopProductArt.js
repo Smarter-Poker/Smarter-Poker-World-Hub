@@ -11,7 +11,16 @@ const ATLAS_POSITIONS = Object.freeze({
   'Classic Emote Pack': '0% 100%',
   'Premium Emote Pack': '33.333% 100%',
   'Shark Avatar': '66.667% 100%',
+  // The catalog renamed this product to 'Royal Monarch Avatar'. The art map
+  // was not renamed with it, so a 15,000 Diamond product resolved to
+  // kind:'unavailable' and rendered an empty "Reviewed Product Art
+  // Unavailable" panel, while the crown tile it should have used sat
+  // orphaned in the atlas. Both names map to the same tile so a rename in
+  // either direction keeps its artwork.
   'Crown Avatar': '100% 100%',
+  'Royal Monarch Avatar': '100% 100%',
+  // Same failure: the catalog calls this '30s Time Bank'.
+  '30s Time Bank': '33.333% 0%',
 });
 
 const DIRECT_IMAGES = Object.freeze({
@@ -21,6 +30,15 @@ const DIRECT_IMAGES = Object.freeze({
 const CATEGORY_ATLAS_POSITIONS = Object.freeze({
   'Time Banks': ATLAS_POSITIONS['Time Bank +60s'],
 });
+
+// The Time Bank fallback used to require item_type === 'time_bank'. The live
+// '30s Time Bank' row is item_type 'general' with grant_spec.type
+// 'time_bank', so the fallback could not catch what the name map had already
+// missed and the product rendered with no artwork. What makes a Time Bank a
+// Time Bank is the grant it issues.
+function isTimeBankGrant(item) {
+  return item?.grant_spec?.type === 'time_bank';
+}
 
 const CATALOG_ART_IDENTITIES = Object.freeze({
   'VIP Rail Seat (7 Days)': ['Exclusive', 'exclusive', 'none'],
@@ -34,6 +52,9 @@ const CATALOG_ART_IDENTITIES = Object.freeze({
   'Premium Emote Pack': ['Emotes', 'emote', 'emote_pack'],
   'Shark Avatar': ['Avatars', 'avatar', 'avatar'],
   'Crown Avatar': ['Avatars', 'avatar', 'avatar'],
+  'Royal Monarch Avatar': ['Avatars', 'avatar', 'avatar'],
+  // item_type is 'general' on this row in the live catalog.
+  '30s Time Bank': ['Time Banks', 'general', 'time_bank'],
 });
 
 function matchesIdentity(item, identity) {
@@ -76,10 +97,9 @@ export function resolveClubShopProductArt(item) {
       position: atlasEntry[1],
     };
   }
-  const categoryPosition =
-    item?.item_type === 'time_bank' && item?.grant_spec?.type === 'time_bank'
-      ? CATEGORY_ATLAS_POSITIONS[String(item?.category || '')]
-      : null;
+  const categoryPosition = isTimeBankGrant(item)
+    ? CATEGORY_ATLAS_POSITIONS[String(item?.category || '')]
+    : null;
   if (categoryPosition) {
     return {
       kind: 'atlas',

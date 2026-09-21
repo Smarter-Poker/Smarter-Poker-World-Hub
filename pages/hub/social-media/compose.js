@@ -13,7 +13,17 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-export default function ComposeRedirect() {
+import SEOHead from '../../../src/components/seo/SEOHead';
+/**
+ * AEO phase 3 (2026-09-18): this redirect runs in the browser, so a crawler
+ * that does not execute JavaScript is served a 200 with an empty body, no
+ * title and no robots directive. Measured as OAI-SearchBot it returned zero
+ * words. The redirect itself is staying as it is, for the reason given
+ * above; what changes is that the page now names itself and asks not to be
+ * indexed, so the empty response is not mistaken for the site's idea of a
+ * page.
+ */
+function ComposeRedirectBody() {
     const router = useRouter();
     useEffect(() => {
         router.replace('/hub/social-media');
@@ -25,3 +35,17 @@ export default function ComposeRedirect() {
 // be here. pages/_app.js has no getLayout support at all, so it did nothing -
 // the stub still rendered the header and footer for the instant it existed.
 // Left as a plain page; the footer's Create control no longer routes here.
+
+export default function ComposeRedirect() {
+    return (
+        <>
+            <SEOHead
+                title="Compose Has Moved"
+                description="This Route Now Sends You To The Social Media Feed, Where The Composer Lives."
+                canonical="/hub/social-media/compose"
+                noindex
+            />
+            <ComposeRedirectBody />
+        </>
+    );
+}

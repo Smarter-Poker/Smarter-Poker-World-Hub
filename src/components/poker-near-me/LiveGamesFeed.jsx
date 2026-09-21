@@ -884,6 +884,9 @@ function LiveGamesFeed({
         const isCatalog = v.data_mode === 'catalog';
         const detailId = resolveVenueDetailId(v.id);
         const canNavigateToDetail = Boolean(detailId && (openVenueModal || router));
+        // The venue name is a real link as well as a click target, so the venue
+        // page is reachable by following links rather than only by clicking.
+        const detailHref = detailId ? `/hub/venues/${detailId}` : null;
         const openVenueDetail = () => {
             if (!canNavigateToDetail) return;
             if (openVenueModal) openVenueModal(`/hub/venues/${detailId}`);
@@ -987,7 +990,20 @@ function LiveGamesFeed({
                             )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
-                                    {v.name}
+                                    {detailHref ? (
+                                        <a
+                                            href={detailHref}
+                                            style={{ color: 'inherit', textDecoration: 'none' }}
+                                            onClick={(event) => {
+                                                if (!openVenueModal) return;
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                openVenueDetail();
+                                            }}
+                                        >
+                                            {v.name}
+                                        </a>
+                                    ) : v.name}
                                 </h3>
                                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
                                     {(v.city || v.state) && (

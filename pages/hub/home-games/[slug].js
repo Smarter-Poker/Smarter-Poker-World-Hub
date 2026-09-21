@@ -20,6 +20,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { homeGameDescription } from '../../../src/lib/home-games/homeGameSeo.mjs';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PokerNearMeFamilyNav from '../../../src/components/poker-near-me/PokerNearMeFamilyNav';
 import DeepRouteSignalDeck from '../../../src/components/poker-near-me/DeepRouteSignalDeck';
@@ -34,6 +35,7 @@ import { safeCopyToClipboard } from '../../../src/lib/clipboard';
 import { toast } from '../../../src/stores/toastStore';
 import { rememberPokerPlace, capturePokerNearMeEvent } from '../../../src/lib/poker-near-me/activity';
 
+import { firstThatFits } from '../../../src/lib/seo/titleFit';
 const GAME_TYPE_LABELS = {
   nlh: "No-Limit Hold'em",
   nlhe: "No-Limit Hold'em",
@@ -817,9 +819,27 @@ export default function PublicHomeGamePage({ data, serverError }) {
   const canonical = `/hub/home-games/${page.slug}`;
   const shareUrl = `${SITE_URL}${canonical}`;
 
-  const metaTitle = `${page.name} - Home Game${page.city ? ` in ${page.city}, ${page.state}` : ''}`;
-  const metaDesc =
-    (group.description || page.description || `Join ${page.name}, a poker home game${page.city ? ` in ${page.city}, ${page.state}` : ''}. ${formatStakesLine(group)}.`).slice(0, 160);
+  // AEO phase 3 (2026-09-18): one template, so a long group name plus a
+  // long city ran past what a result shows and the city was what got cut.
+  // Saturday Night Poker Club in Las Vegas rendered at 70.
+  const metaTitle = firstThatFits([
+    `${page.name} - Home Game${page.city ? ` In ${page.city}, ${page.state}` : ''}`,
+    `${page.name}, Home Game${page.city ? ` In ${page.city}, ${page.state}` : ''}`,
+    `${page.name}${page.city ? `, ${page.city}, ${page.state}` : ''}`,
+    `${page.name}${page.state ? `, ${page.state}` : ''}`,
+    `${page.name}`,
+  ]);
+  // A short operator note is an incomplete description, not a bad one: keep
+  // their words and complete them from the record (homeGameSeo.mjs). This
+  // page shipped "Weekly home game", sixteen characters, to Google.
+  const metaDesc = homeGameDescription({
+    name: page.name,
+    city: page.city,
+    state: page.state,
+    description: group.description || page.description,
+    stakesLine: formatStakesLine(group),
+    schedule: formatSchedule(group),
+  });
 
   const jsonLd = buildJsonLd(data);
 

@@ -126,15 +126,31 @@ export default function DealerVaultPage() {
         setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
     });
 
-    if (!mounted) return null;
+    // AEO phase 3 (2026-09-18): the head used to sit below this guard.
+    // The guard is true on the server, so the branch a crawler always
+    // takes returned nothing and the page served a 200 with no title and
+    // zero words. The head is hoisted above it and returned from it, so
+    // the page says what it is before it says it is still loading.
+    // Toke Tracker is a dealer's own income record, kept behind an account.
+    // There is no public half of it: with the head hoisted it still serves
+    // eight words to a crawler. A named page that asks not to be indexed is
+    // the honest description of that; an indexable eight word page is not.
+    // A public Toke Tracker page, if there is ever a reason for one, is a
+    // page with content on it, not this one.
+    const pageHead = (
+      <SEOHead
+          title="Dealer Vault - Secure Document Storage"
+          description="Store and manage your tax documents, gaming licenses, W-2s, and employment paperwork securely."
+          canonical="/hub/toke-tracker/vault"
+          noindex
+      />
+    );
+
+    if (!mounted) return pageHead;
 
     return (
         <PageTransition>
-            <SEOHead
-                title="Dealer Vault - Secure Document Storage"
-                description="Store and manage your tax documents, gaming licenses, W-2s, and employment paperwork securely."
-                canonical="/hub/toke-tracker/vault"
-            />
+            {pageHead}
             <div style={s.page}>
                 <div style={s.bgGrid} />
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />

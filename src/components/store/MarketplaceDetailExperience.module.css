@@ -31,9 +31,15 @@
   gap: 8px;
 }
 
+/* The separators are text, not targets, so only the links are widened. A short
+   last crumb such as "Manage" measured 37.2px across at desktop widths: tall
+   enough to press, too narrow. The rule is inert on every crumb whose own text
+   already runs past 44px, which is all of the rest of them. */
 .breadcrumbs a {
   color: inherit;
   text-decoration: none;
+  min-width: 44px;
+  justify-content: center;
 }
 
 .breadcrumbs a[aria-current='page'] {
@@ -427,12 +433,18 @@
   line-height: 1.5;
 }
 
+/* `src/index.css` ends `input, textarea, select, button:focus` with
+   `outline: none !important`, so a focus-visible rule here at normal
+   specificity never paints: measured on production, the detail page's inspect
+   button reported `outline-style: none` while `:focus-visible` matched. The
+   store shell already carries `!important` on its own focus ring for this
+   exact reason; these follow it so a keyboard user can see where they are. */
 .detailDeck :is(a, button, input, select):focus-visible,
 .actions :is(a, button):focus-visible,
 .breadcrumbs a:focus-visible,
 .mediaFrame button:focus-visible {
-  outline: 3px solid #45adff;
-  outline-offset: 3px;
+  outline: 3px solid #45adff !important;
+  outline-offset: 3px !important;
 }
 
 @media (max-width: 820px) {

@@ -370,7 +370,11 @@ function MerchProductCard({
   onBuyCard,
   onBuyDiamonds,
   mediaPriority = false,
+  headingLevel = 4,
 }) {
+  // A product detail page drops the category heading, so the card title has to
+  // step up a level or the outline skips from the console's h2 straight to h4.
+  const ProductHeading = `h${headingLevel}`;
   const reactCardId = useId();
   const productDomToken =
     String(product.catalogId || product.key || reactCardId)
@@ -494,27 +498,31 @@ function MerchProductCard({
           </div>
         )}
         {product.madeToOrder && <div className={merchStyles.mediaBadge}>Made To Order</div>}
-        <button
-          type="button"
-          aria-label={
-            isWishlisted
-              ? `Remove ${product.name} From Wishlist`
-              : `Save ${product.name} To Wishlist`
-          }
-          aria-pressed={isWishlisted}
-          disabled={wishlistBusyKey === product.key}
-          onClick={() => onToggleWishlist(product)}
-          className={`${merchStyles.wishlistControl} ${isWishlisted ? merchStyles.wishlistControlSelected : ''}`}
-        >
-          {isWishlisted ? 'Saved' : 'Save'}
-        </button>
       </div>
 
       <div className={merchStyles.cardBody}>
         <div>
-          <h4 id={titleId} className={merchStyles.productTitle}>
-            {product.name}
-          </h4>
+          {/* The favorite control used to sit on top of the product
+              photograph. It belongs beside the name it saves. */}
+          <div className={merchStyles.titleRow}>
+            <ProductHeading id={titleId} className={merchStyles.productTitle}>
+              {product.name}
+            </ProductHeading>
+            <button
+              type="button"
+              aria-label={
+                isWishlisted
+                  ? `Remove ${product.name} From Wishlist`
+                  : `Save ${product.name} To Wishlist`
+              }
+              aria-pressed={isWishlisted}
+              disabled={wishlistBusyKey === product.key}
+              onClick={() => onToggleWishlist(product)}
+              className={`${merchStyles.wishlistControl} ${isWishlisted ? merchStyles.wishlistControlSelected : ''}`}
+            >
+              {isWishlisted ? 'Saved' : 'Save'}
+            </button>
+          </div>
           {product.description && (
             <div className={merchStyles.productDescription}>{product.description}</div>
           )}
@@ -1501,13 +1509,11 @@ export default function MerchStore({
               : `Order Placed! ${fmt(spent)} Diamonds Deducted.`
             : 'Order Was Placed And Your Balance Was Updated, But Secure Purchase Recovery Could Not Be Cleared. Do Not Submit This Purchase Again.'
         );
-        try {
-          new Audio('/sounds/purchase-success.mp3')
-            .play()
-            .catch((e) => console.warn('[MerchStore] Sound blocked:', e?.message || e));
-        } catch (e) {
-          console.warn('[MerchStore] Sound unavailable:', e?.message || e);
-        }
+        // There used to be a `new Audio('/sounds/purchase-success.mp3')` here.
+        // That file has never existed in this repository: production answers
+        // 404 and git has no record of it at any revision. The only thing it
+        // did was log a warning on every successful purchase. The success
+        // toast above is the confirmation.
 
         if (!replayed) busEmit.diamondsSpent(spent, 'Merch Store Purchase');
         setBalance(verifiedPurchase.newBalance);
@@ -1561,8 +1567,12 @@ export default function MerchStore({
           }
         }
       `}</style>
+      {/* A div with no role is generic, and assistive technology drops a name
+          on it. In detail mode this console is a named area the page links to,
+          so it is announced as the region it already reads as. */}
       <div
         id={detailMode ? 'purchase-console' : undefined}
+        role={detailMode ? 'region' : undefined}
         aria-label={detailMode ? 'Live Product Purchase Console' : undefined}
         className={merchStyles.storefront}
         style={detailMode ? { scrollMarginTop: 96 } : undefined}
@@ -1713,6 +1723,7 @@ export default function MerchStore({
                   onBuyCard={handleBuyCard}
                   onBuyDiamonds={handleBuyDiamonds}
                   mediaPriority={section.key === sections[0]?.key && productIndex < 2}
+                  headingLevel={detailMode ? 3 : 4}
                 />
               ))}
             </div>

@@ -218,54 +218,24 @@
   min-height: 92px;
 }
 
+/* A VIP benefit is a row of text and a value, so it is sized by its text.
+   It used to be a painted three-slice console housing with percentage
+   padding: 57.9px top and bottom and 52.1px left and right at 1440px, a
+   forced 220px floor, and overflow: hidden. The longest benefit measured
+   115px of content inside a 115.2px box, so it was one line away from being
+   cut off, and the other 23 cards carried that height as dead space. This is
+   the same restrained chrome the accepted Marketplace footer uses. */
 .premiumDataCard {
   position: relative;
-  min-height: 220px;
-  padding: 10% 9% !important;
-  overflow: hidden;
-  border: 0 !important;
-  background: transparent !important;
-}
-
-.premiumDataFrame {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.premiumDataFrameTop,
-.premiumDataFrameBottom {
-  display: block;
-  width: 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% auto;
-}
-
-.premiumDataFrameTop {
-  aspect-ratio: 900 / 143;
-  background-image: url('/images/marketplace-console-v1/shark-panel/top.png');
-}
-
-.premiumDataFrameMid {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
   min-height: 0;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/mid.png') center top /
-    100% auto repeat-y;
-}
-
-.premiumDataFrameBottom {
-  aspect-ratio: 900 / 139;
-  background-image: url('/images/marketplace-console-v1/shark-panel/bottom.png');
-}
-
-.premiumDataCard > :not(.premiumDataFrame) {
-  position: relative;
-  z-index: 1;
+  padding: 16px 18px !important;
+  overflow: visible;
+  border: 1px solid #23394a !important;
+  background: #070e15 !important;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
 }
 
 .premiumDataCard :is(h3, h4, strong) {
@@ -299,29 +269,33 @@
   text-align: center;
 }
 
+/* A question and its answer, not a painted console.
+
+   Each row used to be a wallet-row-shell plate locked to aspect-ratio
+   1800/386 with 24% left padding reserved for an empty octagonal slot that
+   held nothing, and overflow: hidden, so a long answer was cut off by a fixed
+   ratio rather than given room. Eleven of them stacked into a wall of
+   ornament for eleven short questions. The row is now sized by its content in
+   the same restrained chrome as the benefit cards. */
 .vipFaq details {
-  display: grid;
-  width: 100%;
-  aspect-ratio: 1800 / 386;
-  align-content: center;
   margin-bottom: 8px;
-  padding: 3.2% 7% 3.2% 24%;
-  overflow: hidden;
-  border: 0 !important;
-  background: transparent url('/images/marketplace-console-v1/status/wallet-row-shell.webp') center /
-    100% 100% no-repeat;
+  border: 1px solid #23394a;
+  background: #070e15;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
 }
 
 .vipFaq summary {
   display: flex;
-  min-height: 44px;
+  min-height: 48px;
   align-items: center;
-  padding: 0 !important;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px !important;
   border: 0 !important;
   background: transparent !important;
-  color: #e8f3f8 !important;
+  color: #eef6fb !important;
   font:
-    800 clamp(13px, 1.45vw, 16px) / 1.15 var(--font-roboto-condensed),
+    700 15px/1.35 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -330,12 +304,41 @@
   cursor: pointer;
 }
 
+/* The disclosure affordance is drawn from the row's own border colour, so it
+   is a control rather than an icon pasted over the surface. */
+.vipFaq summary::after {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-right: 2px solid #58bfe9;
+  border-bottom: 2px solid #58bfe9;
+  margin-right: 2px;
+  content: '';
+  transform: rotate(45deg) translate(-2px, -2px);
+}
+
+.vipFaq details[open] summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+/* `summary` is not in the global reset's element list today, so this ring
+   paints without `!important`. It carries it anyway, so that widening that
+   reset later cannot silently take this one away too. */
+.vipFaq summary:focus-visible {
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: -2px !important;
+}
+
+.vipFaq details[open] summary {
+  border-bottom: 1px solid #1b2c3a !important;
+}
+
 .vipFaq details > p {
-  margin: 2px 0 0;
-  padding: 0 !important;
-  color: #9db6c2;
+  margin: 0;
+  padding: 12px 16px 14px !important;
+  color: rgba(233, 243, 250, 0.78);
   font:
-    700 clamp(11px, 1.15vw, 14px) / 1.45 var(--font-inter),
+    400 14px/1.55 var(--font-inter),
     Inter,
     Arial,
     sans-serif;
@@ -357,7 +360,7 @@
   margin: -4px 0 28px;
   color: #8fa9b9;
   font:
-    700 10px var(--font-roboto-condensed),
+    700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -442,32 +445,17 @@
   border-radius: 0 !important;
 }
 
+/* Three concentric painted rings and a drop shadow around ~140px of text.
+   `overflow: hidden` was a latent clip on a card whose height was already
+   pinned by a floor it did not need. One restrained frame instead. */
 .casinoDataCard,
 .casinoProductCard {
   position: relative;
-  overflow: hidden;
-  border: 1px solid #587486 !important;
+  overflow: visible;
+  border: 1px solid #23394a !important;
   border-radius: 0 !important;
-  background: #050a0f !important;
-  box-shadow:
-    inset 0 1px 0 rgba(235, 251, 255, 0.38),
-    inset 0 0 0 5px #03080c,
-    inset 0 0 0 6px rgba(65, 96, 115, 0.72),
-    0 16px 34px rgba(0, 0, 0, 0.52) !important;
-}
-
-.casinoDataCard::before,
-.casinoProductCard::before {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  right: 18%;
-  left: 18%;
-  height: 1px;
-  background: transparent;
-  box-shadow: none;
-  content: '';
-  pointer-events: none;
+  background: #070e15 !important;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%) !important;
 }
 
 .casinoDataCard img {
@@ -498,7 +486,7 @@
     center / 100% 100% no-repeat;
   color: #8feaff;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -516,7 +504,13 @@
   box-shadow: none !important;
 }
 
+/* Four stat tiles at a 148px floor plus gaps measure 646px across. The row is
+   a flex line with no wrap and no scroll, so inside a 313px column on a 393px
+   phone the last tiles were clipped where nobody could reach them, and
+   main.scrollWidth read 687 against a 393px viewport. A stats readout is not a
+   browsing rail, so it wraps instead of running off the side. */
 .rewardsQuickStats {
+  flex-wrap: wrap;
   gap: 10px !important;
 }
 
@@ -528,6 +522,13 @@
   border: 0 !important;
   background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
     center / 100% 100% no-repeat !important;
+}
+
+@media (max-width: 700px) {
+  .rewardsQuickStats > div {
+    min-width: 0;
+    flex: 1 1 calc(50% - 5px);
+  }
 }
 
 .rewardsCapBanner {
@@ -548,13 +549,28 @@
   box-shadow: none !important;
 }
 
+/* These anchors are the only route into the 100 reward detail pages and
+   rendered 16px tall at 1440 and 19px at 390. The global mobile floor does
+   not reach them: `min-height` has no effect on a non-replaced inline box,
+   so the rule computed as 44px while the anchor stayed 19px. Padding gives a
+   real 44px target and the matching negative margin keeps every row and card
+   exactly where it was. */
+.rewardDetailLink {
+  display: inline-block;
+  padding-block: 14px;
+  margin-block: -14px;
+  color: inherit;
+  text-decoration-color: rgba(112, 223, 255, 0.55);
+}
+
 .rewardRow :is(a, span) {
   font-family: var(--font-roboto-condensed), 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;
 }
 
-.casinoProductCard {
-  min-height: 210px;
-}
+/* The 210px floor held 67 Easter Egg cards open around 123-159px of content,
+   which measured 2,088px of dead vertical space at 1440 and about 2,393px at
+   390. Grid rows still equalise their own height, so the cards in a row stay
+   level without a pixel floor. */
 
 .clubShopSurface {
   padding-top: 8px;
@@ -718,7 +734,7 @@
   background: #02070b;
   color: #b9cbd4;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -729,17 +745,18 @@
   text-transform: capitalize;
 }
 
+/* A category label is a span, not a control. It wore the secondary button
+   plate, which is the same surface the real purchase buttons use. */
 .clubItemCategory {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 7px 16px !important;
-  border: 0 !important;
-  background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-    center / 100% 100% no-repeat !important;
-  color: #e7f9ff !important;
+  padding: 6px 12px !important;
+  border: 1px solid #23394a !important;
+  background: #070e15 !important;
+  color: #cfe6f0 !important;
   font:
-    800 10px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -759,7 +776,7 @@
     center / 100% 100% no-repeat;
   color: #b8eefa;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -767,16 +784,21 @@
   letter-spacing: 0.05em;
 }
 
+/* The 190px floor never applied: measured content is 237-241px. */
 .clubItemBody {
   display: flex;
-  min-height: 190px;
   flex-direction: column;
   padding: 18px !important;
 }
 
+/* `margin-top: auto` inside the flex column of .clubItemBody is what pins the
+   price row to the foot of a Club Shop card. The class was taken off the title
+   and never put on the row it names, so it sat orphaned and the row floated
+   wherever the content left it. The former `align-items: flex-end !important`
+   is gone: it existed to out-rank an inline style on the title, and on the row
+   it would fight the inline centring that is already correct there. */
 .clubPriceActions {
   gap: 14px;
-  align-items: flex-end !important;
   margin-top: auto;
 }
 
@@ -784,7 +806,7 @@
   margin-top: 5px;
   color: #8da3b0;
   font:
-    700 9px var(--font-roboto-condensed),
+    700 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -801,7 +823,9 @@
 
 .clubItemActions button {
   display: inline-flex;
-  min-height: 42px;
+  /* Was 42px and beaten to 44px by a later, more specific rule. Stating 44
+     here so the source says what production does. */
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -812,7 +836,7 @@
   box-shadow: none;
   color: #edfaff;
   font:
-    800 11px var(--font-roboto-condensed),
+    800 12px var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -1190,45 +1214,30 @@
   .premiumDataCard {
     flex-direction: column !important;
     align-items: flex-start !important;
-    justify-content: center;
-    min-height: 250px;
-    padding: 14% 12% !important;
-  }
-
-  .vipFaq details {
-    display: block;
-    aspect-ratio: auto;
-    margin-bottom: 8px;
-    padding: 0;
-    overflow: visible;
-    background: transparent;
-  }
-
-  .vipFaq summary {
-    width: 100%;
+    gap: 8px;
     min-height: 0;
-    aspect-ratio: 348 / 114;
-    justify-content: center;
-    padding: 9% 15% !important;
-    background: transparent url('/images/marketplace-console-v1/shark-panel/button-secondary.png')
-      center / 100% 100% no-repeat !important;
-    text-align: center;
+    padding: 14px 14px !important;
+  }
+
+  .vipBenefits .responsiveGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* An answer is a paragraph, so it is not forced into a near-square painted
+     panel (aspect-ratio 1105/1133 with 18% padding) to be read on a phone. */
+  .vipFaq summary {
+    padding: 12px 14px !important;
+    font-size: 14px;
   }
 
   .vipFaq details > p {
-    display: grid;
-    aspect-ratio: 1105 / 1133;
-    place-items: center;
-    margin: 8px 0 0;
-    padding: 18% !important;
-    background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
-      100% 100% no-repeat;
-    text-align: center;
+    padding: 10px 14px 12px !important;
+    font-size: 13px;
   }
 
   .merchSurface::before,
   .rewardsSurface::before {
-    font-size: 8px;
+    font-size: 12px;
     line-height: 1.7;
   }
 

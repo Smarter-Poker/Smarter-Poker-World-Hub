@@ -58,8 +58,8 @@
 
 .action:focus-visible,
 .field:focus-visible {
-  outline: 3px solid #8eefff;
-  outline-offset: 3px;
+  outline: 3px solid #8eefff !important;
+  outline-offset: 3px !important;
 }
 
 .action:disabled {

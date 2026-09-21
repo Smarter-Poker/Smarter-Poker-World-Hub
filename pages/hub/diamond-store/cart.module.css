@@ -3,6 +3,12 @@
   padding: 24px;
 }
 
+/* The three-slice shark-panel housing is gone. A 688px cart line carried a
+   109.31px empty top slice and a 106.25px empty bottom slice: 215.56px of
+   painted ornament with no content in it, plus a 14.4cqw horizontal reserve
+   and a 12cqw body floor. This is the restrained chrome the rest of the
+   programme already accepted (see .vipFaq in DiamondStoreShell). The PNGs
+   stay in the repo and stay referenced by the manifest and other surfaces. */
 .cartItemFrame,
 .summaryFrame {
   display: flex;
@@ -10,57 +16,30 @@
   min-width: 0;
   flex-direction: column;
   overflow: visible;
-  container-type: inline-size;
-  background: #000;
-}
-
-.cartItemFrameTop,
-.summaryFrameTop {
-  width: 100%;
-  aspect-ratio: 900 / 143;
-  flex: 0 0 auto;
-  background: #000 url('/images/marketplace-console-v1/shark-panel/top.png') top center / 100% auto
-    no-repeat;
+  border: 1px solid #23394a;
+  background: #070e15;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
 }
 
 .cartItemFrameBody,
 .summaryFrameBody {
-  min-height: 12cqw;
-  background: #000 url('/images/marketplace-console-v1/shark-panel/mid.png') top center / 100% auto
-    repeat-y;
-}
-
-.cartItemFrameBottom,
-.summaryFrameBottom {
-  width: 100%;
-  aspect-ratio: 900 / 139;
-  flex: 0 0 auto;
-  background: #000 url('/images/marketplace-console-v1/shark-panel/bottom.png') bottom center / 100%
-    auto no-repeat;
+  padding: 16px 20px;
 }
 
 .cartItemFrameBody {
   display: flex;
   gap: 16px;
-  padding: 0 7.2cqw 3.4cqw;
 }
 
 .cartItemMobile {
   flex-wrap: wrap;
   gap: 12px;
-  padding-right: 7.2cqw;
-  padding-bottom: 3.4cqw;
-  padding-left: 7.2cqw;
 }
 
 .summaryFrame {
   position: sticky;
   top: 80px;
   height: fit-content;
-}
-
-.summaryFrameBody {
-  padding: 0 7.2cqw 3.4cqw;
 }
 
 .paymentGroup {
@@ -120,8 +99,8 @@
 }
 
 .paymentChoice:focus-visible {
-  outline: 2px solid #a7f2ff;
-  outline-offset: 3px;
+  outline: 2px solid #a7f2ff !important;
+  outline-offset: 3px !important;
 }
 
 .paymentCopy {
@@ -285,8 +264,8 @@
 .removeButton:focus-visible,
 .clearCartButton:focus-visible,
 .checkoutButton:focus-visible {
-  outline: 2px solid #a7f2ff;
-  outline-offset: 3px;
+  outline: 2px solid #a7f2ff !important;
+  outline-offset: 3px !important;
 }
 
 .quantityControl {

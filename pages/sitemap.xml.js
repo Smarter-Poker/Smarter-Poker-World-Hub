@@ -7,9 +7,12 @@
  */
 
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes';
+import { isTriviaPvpReleased } from '../src/lib/trivia/pvpReleaseControl.mjs';
+import { areTriviaTournamentsReleased } from '../src/lib/trivia/tournamentReleaseControl.mjs';
 import {
   isServableSeriesParentEvidence,
   toPokerSeriesRouteId,
+  tournamentSeriesIdFromPointerUid,
 } from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import bundledSeriesData from '../data/poker-tour-series-2026.json';
 import tourSourceRegistry from '../data/tour-source-registry.json';
@@ -19,6 +22,12 @@ const SITEMAP_DB_PAGE_SIZE = 1000;
 const SERVABLE_SERIES_QUALITIES = ['scraped_verified', 'scraped_inferred', 'manual_research'];
 const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'id',
+  // AEO phase 3 (2026-09-18): the same scraped series lives in both
+  // tournament_series and poker_series, carrying the same series_uid, and
+  // the sitemap offered a URL for each. 23 pairs of byte-identical pages,
+  // each declaring itself canonical. The uid is selected so one of them can
+  // be dropped.
+  'series_uid',
   'is_suppressed',
   'data_quality',
   'source_url',
@@ -60,6 +69,11 @@ const staticPages = [
   // and "who makes Club Commander" (AEO phase 2, 2026-09-17).
   { path: '/about', priority: '0.8', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
+  // /privacy was missing (AEO phase 3, 2026-09-18). It is a 524 word page
+  // that every hub summary links to in its compliance line, and the URL the
+  // app stores read, and it was the one legal document the sitemap did not
+  // offer.
+  { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/legal/official-rules', priority: '0.3', changefreq: 'yearly' },
 
   // Hub — Core
@@ -121,10 +135,15 @@ const staticPages = [
   // redirects there on mount. A sitemap entry says "index this" while the
   // page says "do not", and the crawler believes the page. Survival is
   // described and linked from /hub/trivia, which is indexed.
+  { path: '/hub/trivia/survival-game', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/time-attack', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/trivia/mixed', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' },
-  { path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' },
+  // /hub/trivia/pvp and /hub/trivia/tournaments ARE NOT HERE. Both sit
+  // behind a server side release gate and redirect to /hub/trivia while it
+  // is closed, so the sitemap was inviting a crawler to two 307s. They are
+  // added below, by asking the same gate the pages ask, so that enabling
+  // either feature puts it back in the sitemap with no second edit here
+  // and no chance of the two disagreeing (AEO phase 3, 2026-09-18).
   { path: '/hub/trivia/leaderboard', priority: '0.6', changefreq: 'daily' },
 
   // A ROUTE THAT ONLY REDIRECTS IS NOT A PAGE (AEO phase 3, 2026-09-17).
@@ -142,6 +161,7 @@ const staticPages = [
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
+  { path: '/hub/training/hand-history-upload', priority: '0.7', changefreq: 'weekly' },
   { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
   { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
 
@@ -344,9 +364,11 @@ async function fetchAllSitemapRows({ supabase, table, select, orderBy, applyFilt
 // 1,000-row limit.
 async function buildPokerEventDetailUrls() {
   const urls = new Map();
+  const offeredSeriesIds = new Set();
   const addSeries = (rawId) => {
     const id = Number(rawId);
     if (!Number.isSafeInteger(id) || id <= 0) return;
+    offeredSeriesIds.add(String(id));
     const path = `/hub/series/${id}`;
     urls.set(path, { path, priority: '0.7', changefreq: 'daily' });
   };
@@ -367,8 +389,15 @@ async function buildPokerEventDetailUrls() {
     if (!series?.is_suppressed) addSeries(index + 1);
   });
 
+  // ONE URL PER TOUR. The bundled registry is added first and claims the
+  // name, so a database row holding the same tour under a second code is
+  // not offered again.
+  const claimedTourNames = new Set();
+  const tourNameKey = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
   for (const [registryCode, tour] of Object.entries(tourSourceRegistry?.tours || {})) {
     if (tour?.is_active === false) continue;
+    const key = tourNameKey(tour?.tour_name);
+    if (key) claimedTourNames.add(key);
     addTour(tour?.tour_code || registryCode);
   }
 
@@ -401,28 +430,67 @@ async function buildPokerEventDetailUrls() {
       fetchAllSitemapRows({
         supabase,
         table: 'tour_source_registry',
-        select: 'tour_code',
+        // tour_name comes along so one tour held under two codes is offered
+        // once: ROUGHRIDER and RRPT are both "Roughrider Poker Tour", down to
+        // the same official website (AEO phase 3, 2026-09-18).
+        select: 'tour_code, tour_name',
         orderBy: 'tour_code',
         applyFilters: (query) => query.eq('is_active', true),
       }),
     ]);
 
+    // ONE URL PER SERIES (AEO phase 3, 2026-09-18).
+    //
+    // The same scraped series is held in both tables under the same
+    // series_uid, and both were listed: /hub/series/470 and
+    // /hub/series/5000692 are the same event, word for word, each with a
+    // self canonical. Measured live, 23 pairs. Two URLs for one page split
+    // whatever authority the page has and spend the crawl budget twice.
+    //
+    // tournament_series wins, because its ids are the ones the sitemap has
+    // been offering longest and dropping them would discard whatever
+    // indexing they already have. A row with no uid cannot be matched to
+    // anything, so it is kept as itself.
+    const claimedUids = new Set();
     if (results[0].status === 'fulfilled') {
       results[0].value
         .filter(row => isServableSeriesParentEvidence(row))
-        .forEach((row) => addSeries(row.id));
+        .forEach((row) => {
+          const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
+          if (uid) claimedUids.add(uid);
+          addSeries(row.id);
+        });
     } else {
       console.warn('[sitemap] tournament_series detail URLs unavailable:', results[0].reason?.message);
     }
     if (results[1].status === 'fulfilled') {
       results[1].value
         .filter(row => isServableSeriesParentEvidence(row))
-        .forEach((row) => addSeries(toPokerSeriesRouteId(row.id)));
+        .forEach((row) => {
+          const uid = typeof row.series_uid === 'string' ? row.series_uid.trim() : '';
+          // A uid that is a bare integer is not a uid at all: it is the
+          // tournament_series id this row mirrors. /hub/series/5001068
+          // carried "593". Comparing uid to uid can never catch that,
+          // because the two are not equal, one points at the other
+          // (AEO phase 3, 2026-09-18).
+          const pointsAt = tournamentSeriesIdFromPointerUid(uid);
+          if (pointsAt !== null && offeredSeriesIds.has(String(pointsAt))) return;
+          // Two rows in THIS table can share a real uid as well. claimedUids
+          // is added to as this pass runs, so the first row wins here too.
+          if (uid && claimedUids.has(uid)) return;
+          if (uid) claimedUids.add(uid);
+          addSeries(toPokerSeriesRouteId(row.id));
+        });
     } else {
       console.warn('[sitemap] poker_series detail URLs unavailable:', results[1].reason?.message);
     }
     if (results[2].status === 'fulfilled') {
-      results[2].value.forEach((row) => addTour(row.tour_code));
+      results[2].value.forEach((row) => {
+        const key = tourNameKey(row.tour_name);
+        if (key && claimedTourNames.has(key)) return; // already offered under its other code
+        if (key) claimedTourNames.add(key);
+        addTour(row.tour_code);
+      });
     } else {
       console.warn('[sitemap] tour detail URLs unavailable:', results[2].reason?.message);
     }
@@ -473,8 +541,21 @@ export async function getServerSideProps({ res }) {
     buildPokerVenueUrls(),
     buildPokerEventDetailUrls(),
   ]);
+  // A page the release gate is currently redirecting is not a page. The
+  // gate is read here, from the same functions the pages read, so the
+  // sitemap can never advertise a feature that is switched off.
+  const releaseGatedPages = [
+    ...(isTriviaPvpReleased(process.env)
+      ? [{ path: '/hub/trivia/pvp', priority: '0.7', changefreq: 'weekly' }]
+      : []),
+    ...(areTriviaTournamentsReleased(process.env)
+      ? [{ path: '/hub/trivia/tournaments', priority: '0.7', changefreq: 'daily' }]
+      : []),
+  ];
+
   const sitemap = generateSitemapXml([
     ...staticPages,
+    ...releaseGatedPages,
     ...homeGameUrls,
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,

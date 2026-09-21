@@ -24,8 +24,8 @@
 }
 
 .panel:focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 4px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 4px !important;
 }
 
 .header {
@@ -198,8 +198,8 @@
 }
 
 .shipping :is(input, select):focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 2px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 2px !important;
 }
 
 .notice {
@@ -250,8 +250,8 @@
 
 .actions button:focus-visible,
 .close:focus-visible {
-  outline: 2px solid #9bf4ff;
-  outline-offset: 3px;
+  outline: 2px solid #9bf4ff !important;
+  outline-offset: 3px !important;
 }
 
 .actions button:disabled,

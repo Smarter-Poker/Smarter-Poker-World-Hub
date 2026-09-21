@@ -43,6 +43,7 @@ import useTriviaQuestion from '../../../src/hooks/useTriviaQuestion';
 import useTriviaTimer from '../../../src/hooks/useTriviaTimer';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import { Settings as SettingsIcon, Timer as TimerIcon, Zap as ZapIcon } from 'lucide-react';
+import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 
 const GAME_ENTRY_COST = 10; // restored with server-graded adoption - rewards pay via award_trivia_run now
 // Daily cap comes from triviaEngine so the lobby and the payout agree.
@@ -774,11 +775,19 @@ export default function SurvivalGamePage() {
 
     return (
         <TriviaErrorBoundary pageName="Survival Mode">
+            {/* INDEXED LIKE EVERY OTHER TRIVIA MODE (AEO phase 3,
+                2026-09-18). This carried noindex while endless, mixed, time
+                attack, head to head, tournaments and the leaderboard were all
+                indexed, so "poker trivia survival mode" had nothing to land
+                on. The noindex was honest when the page was a bare game
+                screen with nineteen words; it now carries the same
+                server-rendered description as its six siblings. The
+                deprecated shim at /hub/trivia/survival keeps its noindex and
+                stays out of the sitemap, which is correct for a redirect. */}
             <SEOHead
-                title="Survival Trivia Game"
-                description="Play The Survival Trivia Challenge. Answer Correctly Or Lose Your Streak."
+                title="Survival Poker Trivia: One Life"
+                description="Survival Poker Trivia On Smarter.Poker: One Run, One Life, And A Wrong Answer Ends It. Knowing You Do Not Know Is Worth As Much As Knowing. Free To Play, And Nothing In It Is A Wager."
                 canonical="/hub/trivia/survival-game"
-                noindex={true}
             />
 
             <UniversalHeader pageDepth={2} />
@@ -1681,6 +1690,9 @@ export default function SurvivalGamePage() {
                     </div>
                 </div>
     </PageTransition>
+            {/* The only body copy a crawler gets here: the game itself
+                arrives after a data load. */}
+            <HubPageSummary page="trivia-survival" as="h1" />
         </TriviaErrorBoundary>
     );
 }

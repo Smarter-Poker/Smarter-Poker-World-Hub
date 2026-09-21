@@ -42,7 +42,7 @@
     center / 100% 100% no-repeat;
   color: #dffaff;
   font:
-    800 11px/1 var(--font-roboto-condensed),
+    800 12px/1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -98,7 +98,7 @@
   display: block;
   color: #9db6c2;
   font:
-    800 10px/1.1 var(--font-roboto-condensed),
+    800 12px/1.1 var(--font-roboto-condensed),
     'Roboto Condensed',
     'Arial Narrow',
     Arial,
@@ -141,7 +141,7 @@
   margin-top: 7px;
   color: #8ca4af;
   font:
-    700 10px/1.25 var(--font-inter),
+    700 12px/1.25 var(--font-inter),
     Inter,
     Arial,
     sans-serif;
@@ -247,15 +247,30 @@
   background-image: url('/images/marketplace-console-v1/shark-panel/button-secondary.png');
 }
 
+/* Percentage padding resolves against the CONTAINING BLOCK's inline size, not
+   this element. `.console` is 1180px at a 1440 viewport, so `padding: 18%`
+   became 212.39px on every side of a box capped at `min(440px, 100%)`,
+   leaving a content box measured at 15.2 x 390.2px. The heading wrapped onto
+   four lines, the 20-word body onto seven, and the call to action rendered
+   95.6px wide with its label on three. `aspect-ratio: 1105/1133` then held
+   the whole thing at 814px tall for 390px of content.
+
+   This is the sign-in prompt shown to every signed-out visitor on all 100
+   reward detail pages, so it is the most-seen surface in the family. It is
+   now sized by its content in the same restrained chrome as the rest of the
+   Marketplace restoration. The utility-shell artwork it used to sit on also
+   baked in a wordmark and two diamond ornaments, which is decoration inside
+   what is only a request to sign in. */
 .statePanel {
   display: grid;
   place-items: center;
-  width: min(440px, 100%);
-  aspect-ratio: 1105 / 1133;
+  gap: 14px;
+  width: min(560px, 100%);
   margin: 22px auto 0;
-  padding: 18%;
-  background: transparent url('/images/marketplace-console-v1/utility/utility-shell.webp') center /
-    100% 100% no-repeat;
+  padding: 28px 24px;
+  border: 1px solid #23394a;
+  background: #070e15;
+  box-shadow: inset 0 1px 0 rgb(238 250 255 / 8%);
   color: #b8d0da;
   text-align: center;
 }
@@ -276,8 +291,8 @@
 }
 
 .console :is(button, a):focus-visible {
-  outline: 2px solid #8befff;
-  outline-offset: 3px;
+  outline: 2px solid #8befff !important;
+  outline-offset: 3px !important;
 }
 
 @media (max-width: 780px) {
@@ -299,11 +314,13 @@
   }
 
   .rewardSignal {
+    --signal-plate-width: min(440px, 100%);
+
     grid-template-columns: minmax(0, 1fr);
-    width: min(440px, 100%);
+    width: var(--signal-plate-width);
     aspect-ratio: 1105 / 1133;
     margin-inline: auto;
-    padding: 17%;
+    padding: calc(var(--signal-plate-width) * 0.17);
     background-image: url('/images/marketplace-console-v1/utility/utility-shell.webp');
     text-align: center;
   }

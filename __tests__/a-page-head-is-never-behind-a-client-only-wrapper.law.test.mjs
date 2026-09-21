@@ -51,10 +51,25 @@ function pageFiles(dir = 'pages', out = []) {
  * warning as the bug is a scanner nobody keeps.
  */
 function withoutComments(src) {
+  // 2026-09-18: this used a non-greedy /\*[\s\S]*?\*\/ sweep, and on
+  // pages/hub/help.js that sweep deleted the page's <SEOHead> outright - a
+  // template literal elsewhere in the file opened a block comment the sweep
+  // closed much later, taking the real code in between. The law then
+  // scanned a file with no SEOHead in it and passed, not because the page
+  // was safe but because the evidence was gone. /hub/help happens to have
+  // no client-only wrapper, so nothing was actually hidden, but the law was
+  // not watching it and would not have noticed if one appeared.
+  //
+  // Dropping whole comment lines cannot swallow code. The worst it can do
+  // is keep a trailing comment on a line that also has code, and no one
+  // explains a wrapper in a trailing comment.
   return src
-    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, ' ')
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    .split('\n')
+    .filter((line) => {
+      const t = line.trim();
+      return !(t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || t.startsWith('{/*'));
+    })
+    .join('\n');
 }
 
 /** Components this file loads with `dynamic(..., { ssr: false })`. */
@@ -82,24 +97,55 @@ test('no page puts its head inside a component that never renders on the server'
 });
 
 test('the three pages that shipped an empty body now say what they are', () => {
-  const PAGES = {
+  // The summary block still belongs on all three. Its HEADING LEVEL does not:
+  //
+  // This law was written when all three rendered nothing but a head, so the
+  // summary carried `as="h1"` because it was the only heading a crawler would
+  // ever see. Phase 7 (2026-09-19) removed the cause on two of them - their
+  // bodies were inside dynamic(..., { ssr: false }) - and those bodies bring
+  // their own h1. Keeping `as="h1"` there would put two h1s on the page, so
+  // the rule is now the thing it was always standing in for: exactly one h1,
+  // from whichever source actually renders.
+  //
+  // memory-games (/hub/preflop-charts) keeps `as="h1"`. Its body server-renders
+  // and still measures 112 words, because it is an interactive drill with no
+  // catalogue behind it, so the summary remains its only heading.
+  const SUMMARY_IS_THE_H1 = { 'pages/hub/memory-games.js': 'preflop-charts' };
+  const BODY_BRINGS_ITS_OWN_H1 = {
     'pages/hub/news.js': 'news',
     'pages/hub/video-library.js': 'video-library',
-    // /hub/preflop-charts re-exports this module.
-    'pages/hub/memory-games.js': 'preflop-charts',
   };
   const summaries = read('src/components/seo/HubPageSummary.js');
-  for (const [file, key] of Object.entries(PAGES)) {
+  const check = (file, key, summaryIsH1) => {
     const src = read(file);
     assert.match(src, /import HubPageSummary from '[^']+HubPageSummary'/, `${file} imports the summary`);
-    assert.ok(
-      src.includes(`<HubPageSummary page="${key}" as="h1" />`),
-      `${file} renders the ${key} summary as its h1`,
-    );
+    if (summaryIsH1) {
+      assert.ok(
+        src.includes(`<HubPageSummary page="${key}" as="h1" />`),
+        `${file} renders the ${key} summary as its h1`,
+      );
+    } else {
+      assert.ok(
+        src.includes(`<HubPageSummary page="${key}" />`),
+        `${file} renders the ${key} summary`,
+      );
+      assert.ok(
+        !src.includes(`<HubPageSummary page="${key}" as="h1"`),
+        `${file} renders its own h1, so the summary must not be a second one`,
+      );
+      // The reason it renders its own: the body is no longer client-only.
+      assert.match(
+        src,
+        /^import PageTransition from '\.\.\/\.\.\/src\/components\/transitions\/PageTransition';$/m,
+        `${file} must server-render its body for that h1 to exist`,
+      );
+    }
     assert.ok(summaries.includes(`${key.includes('-') ? `'${key}'` : key}: {`), `HUB_PAGE_SUMMARIES has ${key}`);
     assert.match(src, /import \{ hubProductSchema \}/, `${file} ships structured data`);
     assert.match(src, /jsonLd=\{[A-Z_]+_SCHEMA\}/, `${file} passes that schema to SEOHead`);
-  }
+  };
+  for (const [file, key] of Object.entries(SUMMARY_IS_THE_H1)) check(file, key, true);
+  for (const [file, key] of Object.entries(BODY_BRINGS_ITS_OWN_H1)) check(file, key, false);
 });
 
 test('the preflop page stopped fetching a font sheet it does not use', () => {
