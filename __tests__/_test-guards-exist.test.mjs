@@ -225,6 +225,11 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// 2026-09-21, fleet recertification D1: /api/cron/video-library-reels reaches
+// only the gated workers route, and the reels bridge script refuses to write
+// while the fleet switch is off or as anything but a pinned non-horse
+// profile. Same CHECK 8 reasoning as the block above.
+import './video-library-reels-fails-closed.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -

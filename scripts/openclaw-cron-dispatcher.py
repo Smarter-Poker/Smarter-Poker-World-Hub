@@ -980,11 +980,19 @@ SCRAPER_PY = _resolve_script('video_library_scraper.py')
 # library videos never reached social_reels. The flag belongs to
 # video_library_to_reels.py, which no scheduler referenced at all.
 # SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
-REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
-
-SCRIPT_JOB_SCRIPTS = {
-    '/api/cron/video-library-reels': REELS_BRIDGE_PY,
-}
+#
+# 2026-09-21 (fleet recertification D1): video-library-reels is no longer a
+# SCRIPT_JOB, and nothing here resolves video_library_to_reels.py. On a host
+# without WORKERS_BASE_URL the old fallback ran that script, which never read
+# content_settings.engine_enabled and, with VIDEO_LIBRARY_BOT_PROFILE_ID
+# unset, wrote reels as the first content_authors profile: always a horse.
+# So a primary dispatcher could post as a horse while the fleet was off. The
+# job now goes only to its WORKERS_PREFERRED route, which checks the fleet
+# switch first. A host with no workers route sends it to smarter.poker, which
+# has no such handler: the run fails (CRITICAL_JOBS pages after two) and
+# writes nothing. __tests__/video-library-reels-fails-closed.test.mjs fails
+# if the fallback comes back.
+SCRIPT_JOB_SCRIPTS = {}
 
 # 2026-09-04: '--sync-captions' IS a flag of video_library_to_reels.py, but it
 # is the caption-only mode: it rewrites captions of reels that already exist
@@ -996,9 +1004,10 @@ SCRIPT_JOB_SCRIPTS = {
 # after a gap would drop the whole backlog onto the feed in one burst; the
 # backlog is a deliberate manual run: `video_library_to_reels.py` with no
 # --limit). Caption sync is folded into the end of every bridge run.
+# Superseded 2026-09-21: the reels job left SCRIPT_JOBS (see the D1 note
+# above SCRIPT_JOB_SCRIPTS); only its workers route runs the bridge now.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
-    '/api/cron/video-library-reels':    ['--limit', '100'],   # bridge newest 100 → social_reels, then caption sync
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
