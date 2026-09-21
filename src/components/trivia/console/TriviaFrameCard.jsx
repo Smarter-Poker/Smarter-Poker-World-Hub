@@ -56,7 +56,9 @@ export default function TriviaFrameCard({
                 />
                 {frameLabel ? (
                     <span className={styles.caption}>
-                        <span ref={labelRef}>{frameLabel}</span>
+                        <span className={styles.captionFace}>
+                            <span ref={labelRef} className={styles.captionText}>{frameLabel}</span>
+                        </span>
                     </span>
                 ) : null}
             </span>

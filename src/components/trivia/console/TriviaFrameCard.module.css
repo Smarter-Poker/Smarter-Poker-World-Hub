@@ -1,3 +1,11 @@
+/*
+ * One painted frame family around one live artwork. Geometry is measured from
+ * each frame's own alpha channel (the transparent window and caption slot), so
+ * the art sits exactly in the window and tucks a hair under the inner bevel.
+ * The artwork for a family is exported at that family's window ratio, so
+ * `cover` fills the window without stretching and without cropping subject.
+ */
+
 .card {
     appearance: none;
     display: flex;
@@ -8,9 +16,11 @@
     margin: 0;
     padding: 0;
     border: 0;
+    border-radius: 0;
     overflow: visible;
-    color: #e6e9ee;
+    color: #e4e7ec;
     background: transparent;
+    box-shadow: none;
     font: inherit;
     text-align: left;
     cursor: pointer;
@@ -29,21 +39,21 @@
 .artWell {
     position: absolute;
     z-index: 0;
-    left: var(--frame-art-x, 14%);
-    top: var(--frame-art-y, 17%);
-    width: var(--frame-art-w, 72%);
-    height: var(--frame-art-h, 58%);
-    display: grid;
-    place-items: center;
+    left: var(--frame-art-x);
+    top: var(--frame-art-y);
+    width: var(--frame-art-w);
+    height: var(--frame-art-h);
+    display: block;
     overflow: hidden;
-    background: #010407;
+    background: #000;
 }
 
 .art {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: 50% 50%;
 }
 
 .frame {
@@ -57,33 +67,43 @@
     pointer-events: none;
 }
 
+/* The caption slot is a window in the frame: its face is the black glass the
+   page shows through. The label is fitted to 84% of the face, centred. */
 .caption {
     position: absolute;
     z-index: 2;
-    left: 16%;
-    top: 81%;
+    left: var(--frame-cap-x);
+    top: var(--frame-cap-y);
+    width: var(--frame-cap-w);
+    height: var(--frame-cap-h);
     display: grid;
     place-items: center;
-    width: 68%;
-    height: 11.5%;
     min-width: 0;
     overflow: hidden;
+    pointer-events: none;
+}
+
+.captionFace {
+    display: grid;
+    place-items: center;
+    width: 84%;
+    height: 78%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.captionText {
+    display: inline-block;
+    max-width: 100%;
     color: #e4e7ec;
-    font-size: max(12px, 4.4cqw);
+    font-size: max(12px, calc(4.4cqw * var(--fit, 1)));
     font-weight: 800;
     letter-spacing: 0.08em;
     line-height: 1;
     text-align: center;
-    text-shadow: 0 -1px 0 rgb(255 255 255 / 55%), 0 2px 0 #5f6872, 0 3px 0 #050607, 0 0 10px rgb(44 164 255 / 75%);
     text-transform: uppercase;
     white-space: nowrap;
-    pointer-events: none;
-}
-
-.caption > span {
-    display: inline-block;
-    max-width: 100%;
-    font-size: max(12px, calc(1em * var(--fit, 1)));
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0 1.4cqw rgb(69 173 255 / 55%);
 }
 
 .copy {
@@ -93,46 +113,60 @@
     padding: 4px 8% 14px;
 }
 
+/* Measured windows (percent of the 1254 x 1254 frame). */
 .knowledge {
-    --frame-art-x: 13%;
-    --frame-art-y: 17%;
-    --frame-art-w: 74%;
-    --frame-art-h: 57%;
+    --frame-art-x: 11.8%;
+    --frame-art-y: 13.4%;
+    --frame-art-w: 76.5%;
+    --frame-art-h: 61.1%;
+    --frame-cap-x: 15.39%;
+    --frame-cap-y: 79.74%;
+    --frame-cap-w: 69.22%;
+    --frame-cap-h: 8.77%;
 }
 
 .strategy {
-    --frame-art-x: 17%;
-    --frame-art-y: 20%;
-    --frame-art-w: 70%;
-    --frame-art-h: 51%;
+    --frame-art-x: 19.7%;
+    --frame-art-y: 19%;
+    --frame-art-w: 66.7%;
+    --frame-art-h: 52.1%;
+    --frame-cap-x: 13.8%;
+    --frame-cap-y: 76.24%;
+    --frame-cap-w: 72.57%;
+    --frame-cap-h: 14.04%;
 }
 
 .challenge {
-    --frame-art-x: 15%;
-    --frame-art-y: 19%;
-    --frame-art-w: 70%;
-    --frame-art-h: 55%;
+    --frame-art-x: 15.5%;
+    --frame-art-y: 15.9%;
+    --frame-art-w: 69.1%;
+    --frame-art-h: 62%;
+    --frame-cap-x: 18.74%;
+    --frame-cap-y: 82.85%;
+    --frame-cap-w: 62.52%;
+    --frame-cap-h: 7.1%;
 }
 
 .competitive {
-    --frame-art-x: 14%;
-    --frame-art-y: 17%;
-    --frame-art-w: 72%;
-    --frame-art-h: 57%;
+    --frame-art-x: 13.5%;
+    --frame-art-y: 13.6%;
+    --frame-art-w: 73.1%;
+    --frame-art-h: 60.2%;
+    --frame-cap-x: 17.07%;
+    --frame-cap-y: 76.87%;
+    --frame-cap-w: 65.95%;
+    --frame-cap-h: 12.76%;
 }
 
 .progress {
-    --frame-art-x: 14%;
-    --frame-art-y: 18%;
-    --frame-art-w: 72%;
-    --frame-art-h: 57%;
-}
-
-.progress .caption {
-    left: 25%;
-    top: 6%;
-    width: 50%;
-    height: 8%;
+    --frame-art-x: 10.8%;
+    --frame-art-y: 16.2%;
+    --frame-art-w: 78.6%;
+    --frame-art-h: 60.2%;
+    --frame-cap-x: 30.14%;
+    --frame-cap-y: 5.5%;
+    --frame-cap-w: 39.63%;
+    --frame-cap-h: 8.45%;
 }
 
 .card:active .visual {
@@ -140,7 +174,7 @@
 }
 
 .card:focus-visible {
-    outline: 3px solid #8fd4ff;
+    outline: 3px solid #45adff;
     outline-offset: -3px;
 }
 

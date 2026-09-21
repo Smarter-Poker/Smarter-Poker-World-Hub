@@ -1,3 +1,10 @@
+/*
+ * Trivia console chassis - Club Arena spade master (spade-console-v1).
+ * Each slice paints its own box at its own native ratio (#ClubArenaConsole
+ * 3.3a): top.png on the head, mid.png repeating on the body only, and the
+ * closing art on the foot. Colours are the master's inks and nothing else.
+ */
+
 .console {
     --tc-max: 1000px;
     position: relative;
@@ -9,7 +16,7 @@
     margin-inline: auto;
     padding: 0;
     overflow: visible;
-    color: #e6e9ee;
+    color: #e4e7ec;
     background: none;
     font-family: 'Roboto Condensed', Inter, system-ui, sans-serif;
     font-variant-numeric: tabular-nums lining-nums;
@@ -68,7 +75,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    text-shadow: 0 0 0.9cqw rgb(49 168 255 / 70%), 0 0 2cqw rgb(49 168 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
 }
 
 .title {
@@ -84,6 +91,7 @@
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
     white-space: normal;
 }
 
@@ -99,15 +107,14 @@
 
 .pill {
     justify-items: center;
-    color: #45adff;
     font-size: max(12px, 3.4cqw);
     font-weight: 800;
     letter-spacing: 0.08em;
     text-align: center;
     text-transform: uppercase;
-    text-shadow: 0 0 0.9cqw rgb(49 168 255 / 70%), 0 0 2cqw rgb(49 168 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
 }
 
+/* The two painted plates. The button paints nothing. */
 .plate {
     appearance: none;
     position: absolute;
@@ -118,14 +125,17 @@
     margin: 0;
     padding: 0 4%;
     border: 0;
+    border-radius: 0;
     overflow: hidden;
     color: inherit;
     background: transparent;
+    box-shadow: none;
     font: inherit;
     cursor: pointer;
     touch-action: manipulation;
 }
 
+/* The face inside the rim: labels fit this, never the rim. */
 .plateWell {
     display: grid;
     justify-items: center;
@@ -137,17 +147,19 @@
 .plateText {
     display: inline-block;
     max-width: 100%;
-    color: #e4e7ec;
     font-size: max(12px, calc(4.2cqw * var(--fit, 1)));
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     white-space: nowrap;
-    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
 }
 
 .plate:active .plateText {
     filter: brightness(1.25);
+}
+
+.plate:disabled {
+    cursor: not-allowed;
 }
 
 .plate:disabled .plateText {
@@ -155,10 +167,95 @@
 }
 
 .plate:focus-visible {
-    outline: 3px solid #8fd4ff;
+    outline: 3px solid #45adff;
     outline-offset: -6px;
 }
 
+/* The single action: a lit word on the glass above the flat foot. */
+.glassActions {
+    display: flex;
+    justify-content: center;
+    padding-top: 2.6cqw;
+    border-top: 1px solid #000;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.word {
+    appearance: none;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 1.4cqw 3cqw;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font: 800 max(14px, 3.3cqw) / 1 'Roboto Condensed', Inter, system-ui, sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.word:active {
+    filter: brightness(1.25);
+}
+
+.word:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.word:focus-visible {
+    outline: 3px solid #45adff;
+    outline-offset: 2px;
+}
+
+/* Inks: the master's own colours (#ClubArenaConsole 3.4). */
+.ink_silver {
+    color: #e4e7ec;
+    -webkit-text-fill-color: #e4e7ec;
+    text-shadow: 0 -0.18cqw 0 rgb(255 255 255 / 55%), 0 0.25cqw 0 #6d747c, 0 0.45cqw 0 #050607, 0 0.7cqw 0.9cqw rgb(0 0 0 / 90%);
+}
+
+.ink_white {
+    color: #f4f7fb;
+    -webkit-text-fill-color: #f4f7fb;
+    text-shadow: 0 0 1cqw rgb(69 173 255 / 90%), 0 0.25cqw 0 rgb(0 0 0 / 70%), 0 0.5cqw 1cqw rgb(0 0 0 / 60%);
+}
+
+.ink_blue {
+    color: #45adff;
+    -webkit-text-fill-color: #45adff;
+    text-shadow: 0 0 0.9cqw rgb(69 173 255 / 70%), 0 0 2cqw rgb(69 173 255 / 30%), 0 0.2cqw 0.3cqw rgb(0 0 0 / 85%);
+}
+
+.ink_green {
+    color: #c8ffd2;
+    -webkit-text-fill-color: #c8ffd2;
+    text-shadow: 0 0 1cqw rgb(53 217 90 / 80%), 0 0 2cqw rgb(53 217 90 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.ink_red {
+    color: #ff5b6e;
+    -webkit-text-fill-color: #ff5b6e;
+    text-shadow: 0 0 1cqw rgb(240 40 73 / 80%), 0 0 2cqw rgb(240 40 73 / 35%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.ink_gold {
+    color: #ffd700;
+    -webkit-text-fill-color: #ffd700;
+    text-shadow: 0 0 1cqw rgb(255 215 0 / 70%), 0 0 2cqw rgb(255 215 0 / 30%), 0 0.25cqw 0 rgb(0 0 0 / 70%);
+}
+
+.ink_muted {
+    color: #9aa5b3;
+    -webkit-text-fill-color: #9aa5b3;
+    text-shadow: 0 0.2cqw 0.3cqw rgb(0 0 0 / 80%);
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .plate:active .plateText { filter: none; }
+    .plate:active .plateText,
+    .word:active { filter: none; }
 }

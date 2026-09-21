@@ -15,6 +15,6 @@
 }
 
 .dialog:focus-visible {
-    outline: 3px solid #8fd4ff;
+    outline: 3px solid #45adff;
     outline-offset: -8px;
 }
