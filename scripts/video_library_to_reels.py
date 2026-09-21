@@ -8,12 +8,16 @@ and inserts any new videos so they appear in the Reels doom-scroll feed.
 Uses Scrapling + camoufox to verify YouTube videos are still live before inserting.
 
 Architecture:
-  - Runs locally via Open Claw (NOT on Vercel serverless).
-  - Open Claw triggers this script daily via shell call.
-  - Follows the exact same pattern as video_library_scraper.py.
-
-Open Claw cron (daily 7am UTC — 1hr after video_library_scraper.py):
-    python3 <repo>/scripts/video_library_to_reels.py --sync-captions
+  - A manual tool. Open Claw no longer runs it (2026-09-21, fleet
+    recertification D1): the dispatcher sends /api/cron/video-library-reels
+    only to its workers route, which checks the fleet switch first.
+  - It fails closed on its own, before any other request (see main()):
+      1. content_settings.engine_enabled must be exactly true, read from the
+         row the fleet engine reads. False, null, no row or a read error
+         means exit without writing.
+      2. VIDEO_LIBRARY_BOT_PROFILE_ID must name a profile whose is_horse is
+         false and which is not in the fleet roster (content_authors). There
+         is no fallback author.
 
 Usage:
     python3 scripts/video_library_to_reels.py               # Full daily run
@@ -25,6 +29,7 @@ Usage:
 """
 
 import os
+import re
 import sys
 import json
 import time
@@ -125,10 +130,13 @@ _load_env()
 
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
-# Pinned bot profile_id for all video library reels — prevents accidental human profile selection
-# Set VIDEO_LIBRARY_BOT_PROFILE_ID in .env.local to override.
-# Falls back to the legacy alphabetical-first lookup if not set.
-VIDEO_LIBRARY_BOT_PROFILE_ID = os.environ.get('VIDEO_LIBRARY_BOT_PROFILE_ID', '')
+# The one profile every reel from this bridge is written as. REQUIRED
+# (2026-09-21, fleet recertification D1). It used to be optional, with a
+# fallback to the first content_authors row that has a profile_id, and every
+# such row is a horse (1,000 of 1,000 on 2026-09-21), so an unset variable
+# meant reels posted as a horse. An unset, malformed or unverified value now
+# stops the run before any write; get_system_bot_id() lists the checks.
+VIDEO_LIBRARY_BOT_PROFILE_ID = os.environ.get('VIDEO_LIBRARY_BOT_PROFILE_ID', '').strip()
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     log.error('Missing SUPABASE credentials — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment or an env file listed above')
@@ -234,39 +242,78 @@ def verify_youtube_video_scrapling(video_id):
         log.warning(f"Scrapling verify failed for {video_id}: {ex}")
         return True  # optimistic on scraping failure
 
-# ── System bot lookup ────────────────────────────────────────────────────────
+# ── Fleet switch ─────────────────────────────────────────────────────────────
+def read_engine_switch():
+    """
+    content_settings.engine_enabled, read the way the fleet engine reads it
+    (smarter-poker-workers Fleet.ts engineEnabled): the first row by created_at.
+
+    Returns True only when that row holds exactly true, False when it holds
+    anything else or there is no row, and None when the table cannot be read.
+    main() stops on both False and None. A switch that turns itself on when
+    it cannot be read is not a switch.
+    """
+    rows = _request('GET', 'content_settings', params={
+        'select': 'engine_enabled',
+        'order': 'created_at.asc',
+        'limit': 1,
+    })
+    if not isinstance(rows, list):
+        return None
+    if not rows:
+        return False
+    first = rows[0]
+    return isinstance(first, dict) and first.get('engine_enabled') is True
+
+# ── Author ───────────────────────────────────────────────────────────────────
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+
+
 def get_system_bot_id():
     """
-    Return the stable bot profile_id for automated video library reels.
-    Priority:
-      1. VIDEO_LIBRARY_BOT_PROFILE_ID env var (pinned, safest)
-      2. Legacy fallback: first content_author with a valid profile_id (alphabetical by id)
+    Return the verified author profile_id for video library reels, or None.
+
+    There is no fallback and no guessing (2026-09-21). The pinned
+    VIDEO_LIBRARY_BOT_PROFILE_ID is accepted only when every check passes,
+    each read fresh from the database; a failed check or a read error
+    returns None and nothing is written:
+      1. it is set and is a UUID;
+      2. profiles has that id and its is_horse is false (not true, not null);
+      3. no content_authors row points at it, because the fleet engine treats
+         every content_authors profile as one of its horses whatever
+         profiles.is_horse says.
     """
-    # 1. Use pinned env var if set
-    if VIDEO_LIBRARY_BOT_PROFILE_ID:
-        log.info(f"Using pinned bot profile_id from env: {VIDEO_LIBRARY_BOT_PROFILE_ID}")
-        return VIDEO_LIBRARY_BOT_PROFILE_ID
+    pid = VIDEO_LIBRARY_BOT_PROFILE_ID
+    if not pid:
+        log.error('VIDEO_LIBRARY_BOT_PROFILE_ID is not set. Refusing to run: reels are written only '
+                  'as a pinned profile that is verified not to be a horse, and this bridge never picks one.')
+        return None
+    if not _UUID_RE.match(pid):
+        log.error(f'VIDEO_LIBRARY_BOT_PROFILE_ID is not a UUID ({pid!r}). Refusing to run.')
+        return None
 
-    # 2. Legacy lookup — alphabetical first content_author with a profile_id
-    #    NOTE: This is fragile — set VIDEO_LIBRARY_BOT_PROFILE_ID to eliminate this risk.
-    log.warning("VIDEO_LIBRARY_BOT_PROFILE_ID not set — falling back to alphabetical lookup")
-    rows = _select(
-        'content_authors',
-        select='id,profile_id,name',
-        filters={
-            'profile_id': 'not.is.null',
-            'name': 'not.ilike.*human*',   # exclude human-named authors as a safety guard
-        },
-        limit=1,
-        order='id.asc',
-    )
-    if rows and rows[0].get('profile_id'):
-        bot = rows[0]
-        log.info(f"Using bot author (fallback): {bot.get('name')} / profile_id={bot['profile_id']}")
-        return bot['profile_id']
+    rows = _request('GET', 'profiles', params={'select': 'id,is_horse', 'id': f'eq.{pid}', 'limit': 1})
+    if not isinstance(rows, list):
+        log.error(f'Could not read profiles for the pinned author {pid}. Refusing to run.')
+        return None
+    if not rows or not isinstance(rows[0], dict):
+        log.error(f'The pinned author {pid} has no profile. Refusing to run.')
+        return None
+    if rows[0].get('is_horse') is not False:
+        log.error(f'The pinned author {pid} has is_horse={rows[0].get("is_horse")!r}, not false. '
+                  'Refusing to run: reels are never written as a horse.')
+        return None
 
-    log.error("No valid content_author with profile_id found — cannot insert reels")
-    return None
+    roster = _request('GET', 'content_authors', params={'select': 'id', 'profile_id': f'eq.{pid}', 'limit': 1})
+    if not isinstance(roster, list):
+        log.error(f'Could not check the fleet roster for the pinned author {pid}. Refusing to run.')
+        return None
+    if roster:
+        log.error(f'The pinned author {pid} is in the fleet roster (content_authors). Refusing to run.')
+        return None
+
+    log.info(f'Author verified: pinned profile {pid} is not a horse and is not in the fleet roster')
+    return pid
 
 # ── Already-in-reels set ─────────────────────────────────────────────────────
 def get_existing_reel_video_ids():
@@ -309,7 +356,7 @@ def get_existing_reel_video_ids():
     return ids
 
 # ── Main bridge logic ────────────────────────────────────────────────────────
-def run_bridge(args):
+def run_bridge(args, author_id):
     stats = {
         'fetched': 0,
         'already_exists': 0,
@@ -319,8 +366,8 @@ def run_bridge(args):
         'errors': 0,
     }
 
-    # 1. Get the system bot author_id
-    author_id = get_system_bot_id()
+    # 1. The author is the pinned profile main() already verified as not a
+    #    horse (get_system_bot_id). Never look one up here.
     if not author_id:
         return stats
 
@@ -513,6 +560,21 @@ def main():
     log.info(f"  dry_run={args.dry_run} | limit={args.limit} | source={args.source} | verify={args.verify} | sync_captions={args.sync_captions}")
     log.info("=" * 65)
 
+    # 2026-09-21 (fleet recertification D1): fail closed before any other
+    # request and before any write, in every mode, dry runs included. This
+    # bridge used to run from the Open Claw dispatcher with neither check and
+    # could post as a horse while the fleet was switched off.
+    switch = read_engine_switch()
+    if switch is None:
+        log.error('content_settings.engine_enabled could not be read. Exiting without writing (fail closed).')
+        sys.exit(1)
+    if switch is not True:
+        log.info('content_settings.engine_enabled is not true: the fleet is switched off. Exiting without writing.')
+        return
+    author_id = get_system_bot_id()
+    if not author_id:
+        sys.exit(1)
+
     start = time.time()
 
     if args.sync_captions:
@@ -520,7 +582,7 @@ def main():
         log.info(f"Caption sync complete: {result}")
         return
 
-    stats = run_bridge(args)
+    stats = run_bridge(args, author_id)
 
     # 2026-09-04: the scheduler used to invoke caption sync INSTEAD of the
     # bridge (see openclaw-cron-dispatcher.py SCRIPT_JOBS). It is cheap and
