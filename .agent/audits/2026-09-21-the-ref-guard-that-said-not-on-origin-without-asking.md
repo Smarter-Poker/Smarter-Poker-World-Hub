@@ -88,3 +88,39 @@ The test deletes `CI` and `GITHUB_ACTIONS` from the child environment on
 purpose. The hook returns 0 immediately when either is set, so leaving them in
 place would make every assertion pass for the wrong reason, which is the same
 shape of false green the whole file is about.
+
+---
+
+## A second miscount, found by CI on the same branch
+
+`__tests__/horses-an-rpc-write-has-a-where.test.mjs` refused
+`20260920150544_poker_news_search_vector_include_excerpt.sql`, reporting that
+`poker_news_search_update` "holds an UPDATE or DELETE with no WHERE clause".
+
+That function is a trigger function. Its entire body is
+`NEW.search_vector := ...; RETURN NEW;` and it contains no UPDATE at all. The
+WHERE-less UPDATE is the migration's one-off backfill, running at top level as
+`postgres`, which does not preload `safeupdate` - which is why it ran correctly
+in production, and why 0 rows differ from the expression today.
+
+The cause: `lastDefinitionOfEveryFunction()` sliced each body from one
+`CREATE FUNCTION` to the NEXT one, so everything after the last function in a
+file - grants, backfills, one-off statements - was read as part of that
+function and reported under its name.
+
+The guard's own header already names this failure mode, about a different
+victim: "It also flagged `fn_ca_money_path_log`, which contains no UPDATE at
+all ... A guard that miscounts is how the wrong function gets fixed." The
+mechanism had simply not been closed, only the literal-stripping half of it.
+
+Fixed by ending the body at its own closing dollar quote. Nothing true is lost:
+`safeupdate` governs what runs inside the function when PostgREST calls it, so a
+statement after the closing quote was never in scope. A fixture test proves both
+halves - a top-level backfill after the quote is not attributed to the function,
+and a WHERE-less write actually inside a body is still an offender - because the
+corpus can only ever demonstrate one of them, and a guard that had stopped
+catching anything would look identical to one that had stopped over-reaching.
+
+`KNOWN_BEFORE_THIS_GUARD` was not touched. Its one entry still fails the
+"listed, not merely tolerated" test after the change, so the narrower slice cost
+that guard nothing.
