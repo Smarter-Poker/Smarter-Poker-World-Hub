@@ -131,6 +131,16 @@ jobs:
           node docs/agent-policy/agent-policy.mjs check
           node --test docs/agent-policy/agent-policy.test.mjs
 
+      # The ref guard is the only thing that fires before `git reset --hard`
+      # lands, and until 2026-09-21 it printed "They are NOT on origin" about
+      # commits it had never compared against a single origin ref. A guard
+      # nobody runs is a guard that can quietly go back to lying, so it is
+      # named here: this step is its reader (CLAUDE.md 10.86, rule 3). Pure
+      # git and bash in a throwaway repo under $TMPDIR; no network, no
+      # node_modules, so it sits above the install steps on purpose.
+      - name: The ref guard tells the truth about origin
+        run: node --test __tests__/ref-guard-tells-the-truth-about-origin.test.mjs
+
       - name: Restore node_modules For Training Authority
         id: training-authority-nm-cache
         uses: actions/cache@v4
