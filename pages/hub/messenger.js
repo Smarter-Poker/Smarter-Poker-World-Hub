@@ -3363,12 +3363,12 @@ function MessengerPage() {
                         <div>Loading Messenger...</div>
                     </div>
                 </div>
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     @keyframes shimmer {
                         0% { background-position: 200% 0; }
                         100% { background-position: -200% 0; }
                     }
-                `}</style>
+                ` }} />
             </div>
         );
     }
@@ -3432,7 +3432,7 @@ function MessengerPage() {
             <Head>
                 <title>Messenger | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     /* MOBILE-FIRST MESSENGER */
                     .messenger-page { 
                         width: 100%; 
@@ -3490,7 +3490,7 @@ function MessengerPage() {
                         0%, 100% { opacity: 1; }
                         50% { opacity: 0.3; }
                     }
-                `}</style>
+                ` }} />
             </Head>
 
             {/* UNIVERSAL HEADER - Mobile responsive with diamond/XP */}
@@ -3801,7 +3801,7 @@ function MessengerPage() {
                     </div>
 
                     {/* Ring Animation Keyframes */}
-                    <style>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                         @keyframes ring {
                             0%, 100% { box-shadow: 0 0 0 4px rgba(0,132,255,0.3), 0 0 30px rgba(0,132,255,0.4); }
                             50% { box-shadow: 0 0 0 8px rgba(0,132,255,0.2), 0 0 50px rgba(0,132,255,0.6); }
@@ -3810,7 +3810,7 @@ function MessengerPage() {
                             0%, 100% { transform: scale(1); }
                             50% { transform: scale(1.1); }
                         }
-                    `}</style>
+                    ` }} />
                 </div>
             )}
 

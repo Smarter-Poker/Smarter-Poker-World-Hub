@@ -44,7 +44,7 @@ export default function HexButton({
 
             <span className="hex-button__text">{children ?? label}</span>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .hex-button {
                     position: relative;
                     display: inline-flex;
@@ -151,7 +151,7 @@ export default function HexButton({
                     position: relative;
                     z-index: 1;
                 }
-            `}</style>
+            ` }} />
         </button>
     );
 }

@@ -22,25 +22,43 @@
  *     has not rolled, the page's RPC computes live, so the gap since this route
  *     last succeeded is directly a term in that page's response time.
  *
- *  1. DRAIN THE REBUILD BACKLOG. club_member_daily_stats is maintained live by
- *     the hand_history trigger, so NEW hands are always exact. History is not:
- *     7,281 tables across the two largest clubs were never rebuilt, and the
- *     biggest holds 75,211 hands — far more than one statement can process
- *     inside any workable timeout. ca_drain_club_rebuild walks those tables
- *     newest-activity-first via the resumable chunk walker, time-boxed so it
- *     never outlives the request. Stopping mid-table is safe: the cursor lives
- *     in club_stats_rebuild_log and the next run resumes from it.
+ *  WHAT THIS ROUTE NO LONGER DOES (2026-09-22). Three steps repaired work a
+ *  writer owns. They are removed at source rather than left running:
  *
- *  2. ROLL club_hand_daily FORWARD. The trigger owns the current day from its
- *     first hand, so the rollup only needs help for a day that saw hands
- *     BEFORE the rollup existed. Yesterday is immutable once past, so it is
- *     safe to recompute exactly once; today is deliberately never touched
- *     (ca_backfill_club_hand_daily refuses it without p_force, because it
- *     writes an absolute snapshot and would discard concurrent increments).
+ *  - The profit reconcile, fn_reconcile_club_member_daily_profit(yesterday).
+ *    pg_cron job reconcile-club-member-daily-profit runs the same function
+ *    for the same date at 00:35 UTC with a 300s statement timeout; this route
+ *    ran it 96 times a day under the 8s service_role timeout. Since the
+ *    2026-09-19 no-rewrite fix only the first successful call of a day
+ *    corrected a row (2,541 rows for 2026-09-21, at 00:00 and 00:15) and
+ *    every later call updated none, while 147 calls in 7 days were cancelled
+ *    by the timeout (all 87 on 2026-09-18) and spent this route's budget.
+ *    From 2026-09-23 the function only measures and logs
+ *    (a_members_profit_is_each_hands_own_net); one pg_cron call a day
+ *    records that.
  *
- * Cadence: every 15 minutes. The drain is the long pole and is capped well
- * under maxDuration; once the backlog is gone each run is a no-op costing one
- * cheap query per club.
+ *  - The rebuild drain, ca_clubs_with_rebuild_backlog + ca_drain_club_rebuild.
+ *    Its backlog was history: tables whose hands predate the live
+ *    projection. None is left (0 pending tables created before 2026-08-20),
+ *    so every run re-derived tables the live projection already keeps:
+ *    36,195 tables and 851,555 hands in the 7 days to 2026-09-22. A table
+ *    rebuilt while it was still being dealt came out with more hands_played
+ *    than hand_history holds: in the six hours to 16:10 UTC on 2026-09-22,
+ *    219 of 2,154 member-table-days on 93 of the 731 tables rebuilt while
+ *    active, against 0 of 976 tables rebuilt while idle and 0 of the 1,544
+ *    tables only the live projection had written.
+ *
+ *  - The club_hand_daily roll-forward, ca_clubs_missing_hand_daily +
+ *    ca_backfill_club_hand_daily. The shard trigger owns every day since the
+ *    rollup existed: in 3,097 runs from 2026-08-20 the probe found nothing to
+ *    roll, and the statement timeout cancelled it 854 times.
+ *
+ *  The database functions stay, for a person who needs one table rebuilt or
+ *  one day re-derived by hand. This law keeps them out of this schedule:
+ *  __tests__/club-stats-maintenance-does-no-repair-work.law.test.mjs
+ *
+ * Cadence: every 15 minutes, for the index, stat rollup and distribution
+ * steps above, whose readers compute live whatever has not been rolled yet.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -60,16 +78,10 @@ function getAdmin() {
 
 export const config = { maxDuration: 300 };
 
-// Total wall-clock seconds of drain work per run. Open Claw is the caller and
-// stops waiting after 120 seconds, so the handler must finish comfortably
-// inside that deadline as well as Vercel's 300-second maxDuration. The rebuild
-// is resumable and runs every 15 minutes; a smaller successful slice advances
-// the backlog more reliably than a larger slice whose response is discarded.
-const DRAIN_BUDGET_SECONDS = 60;
-// Open Claw's timeout covers the whole request, not only rebuild draining.
-// Heavy production pre-drain work has taken about 55 seconds, so target a
-// 90-second whole-handler finish and stop scheduling optional work at 75
-// seconds, leaving 15 seconds for the heartbeat and response.
+// Open Claw is the caller and stops waiting after 120 seconds. Heavy
+// production work ahead of the old rebuild drain took about 55 seconds, so
+// target a 90-second whole-handler finish and stop scheduling optional work
+// at 75 seconds, leaving 15 seconds for the heartbeat and response.
 const HANDLER_BUDGET_SECONDS = 90;
 const RESPONSE_RESERVE_SECONDS = 15;
 
@@ -88,8 +100,6 @@ async function handler(req, res) {
   const handlerDeadline = started + HANDLER_BUDGET_SECONDS * 1000;
   const optionalWorkDeadline = handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000;
   const result = {
-    drained: [],
-    rollup: [],
     hand_index: null,
     stat_rollup: null,
     stat_distribution: null,
@@ -167,32 +177,6 @@ async function handler(req, res) {
       }
     } catch (e) {
       result.errors.push(`snapshot heal: ${e?.message || e}`);
-    }
-
-    // ── 0b. RECONCILE YESTERDAY'S PLAYER PROFIT ───────────────────────────
-    // club_member_daily_stats.profit is a stack delta counted only when an
-    // "attributable" heuristic passes; failures are DROPPED, and because a rebuy
-    // looks like a gain the failures skew toward dropped LOSSES. Measured on
-    // 2026-08-18 the aggregate was +83,345 adrift of this club's own rake
-    // rollup, where player profit + house cut must equal zero; the leaderboard
-    // ledger was 13.34 out.
-    //
-    // This re-derives COMPLETED days from that ledger. It is idempotent and
-    // recomputes from source, so if the owning feature rebuilds a day this
-    // simply re-corrects it on the next pass rather than fighting it. Today is
-    // never touched - the live trigger owns today.
-    try {
-      const yday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const { data: recon, error: reconErr } = await rpc('fn_reconcile_club_member_daily_profit', {
-        p_date: yday,
-      });
-      if (reconErr) {
-        result.errors.push(`profit reconcile: ${reconErr.message}`);
-      } else {
-        result.profit_reconcile = recon;
-      }
-    } catch (e) {
-      result.errors.push(`profit reconcile: ${e?.message || e}`);
     }
 
     // ── 0. ADVANCE THE PLAYER -> HAND INDEX ──────────────────────────────
@@ -275,69 +259,6 @@ async function handler(req, res) {
       }
     } catch (e) {
       result.errors.push(`stat distribution: ${e?.message || e}`);
-    }
-
-    // ── 1. Which clubs still have un-rebuilt tables with recent hands? ──
-    const { data: pending, error: pendingErr } = await rpc('ca_clubs_with_rebuild_backlog');
-    if (pendingErr) {
-      result.errors.push(`backlog probe: ${pendingErr.message}`);
-    }
-
-    const clubs = (pending || []).map((r) => r.club_id).filter(Boolean);
-    if (clubs.length > 0) {
-      const drainDeadline = Math.min(
-        Date.now() + DRAIN_BUDGET_SECONDS * 1000,
-        handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000
-      );
-      for (const [index, clubId] of clubs.entries()) {
-        const remainingSeconds = Math.floor((drainDeadline - Date.now()) / 1000);
-        if (remainingSeconds < 1) {
-          result.budget_exhausted = true;
-          break;
-        }
-        const clubsRemaining = clubs.length - index;
-        const perClub = Math.max(1, Math.floor(remainingSeconds / clubsRemaining));
-        const { data, error } = await rpc('ca_drain_club_rebuild', {
-          p_club_id: clubId,
-          p_max_seconds: perClub,
-          p_chunk: 3000,
-        });
-        if (error) {
-          result.errors.push(`drain ${clubId}: ${error.message}`);
-          continue;
-        }
-        const row = Array.isArray(data) ? data[0] : data;
-        result.drained.push({ club_id: clubId, ...(row || {}) });
-      }
-    }
-
-    // ── 2. Roll club_hand_daily forward for yesterday (immutable) ────────
-    if (Date.now() < handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const { data: clubsNeedingRollup, error: rollupProbeErr } = await rpc(
-        'ca_clubs_missing_hand_daily',
-        { p_date: yesterday }
-      );
-      if (rollupProbeErr) {
-        result.errors.push(`rollup probe: ${rollupProbeErr.message}`);
-      }
-      for (const row of clubsNeedingRollup || []) {
-        if (Date.now() >= handlerDeadline - RESPONSE_RESERVE_SECONDS * 1000) {
-          result.budget_exhausted = true;
-          break;
-        }
-        const { data, error } = await rpc('ca_backfill_club_hand_daily', {
-          p_club_id: row.club_id,
-          p_date: yesterday,
-        });
-        if (error) {
-          result.errors.push(`rollup ${row.club_id}: ${error.message}`);
-          continue;
-        }
-        result.rollup.push({ club_id: row.club_id, date: yesterday, hands: data });
-      }
-    } else {
-      result.budget_exhausted = true;
     }
 
     clearTimeout(workAbortTimer);

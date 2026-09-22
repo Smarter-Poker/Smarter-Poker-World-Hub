@@ -909,7 +909,7 @@ export default function SignUpPage() {
               boxShadow: '0 0 50px rgba(0, 212, 255, 0.2)',
             }}
           >
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
               .dynamic-auth-form input, .dynamic-auth-form select {
                  background: transparent;
                  border: none;
@@ -940,7 +940,7 @@ export default function SignUpPage() {
                  background: #0b0e14;
                  color: #fff;
               }
-            `}</style>
+            ` }} />
             <form onSubmit={handleSignUp} style={{ width: '100%', height: '100%' }}>
               {/* Back Button */}
               <button
@@ -1051,7 +1051,7 @@ export default function SignUpPage() {
                   boxSizing: "border-box",
                 }}
               >
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                   /* Scrollbar styling for the form area */
                   .dynamic-auth-form div::-webkit-scrollbar {
                     width: 6px;
@@ -1115,7 +1115,7 @@ export default function SignUpPage() {
                     background: #0b0e14;
                     color: #fff;
                   }
-                `}</style>
+                ` }} />
 
                 {/* First Name & Last Name */}
                 <div className="auth-field-row">

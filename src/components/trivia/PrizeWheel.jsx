@@ -340,7 +340,7 @@ export default function PrizeWheel({
                 </div>
             </MetalFrame>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .prize-wheel-overlay {
                     position: fixed;
                     top: 0;
@@ -552,7 +552,7 @@ export default function PrizeWheel({
                     }
                     .skip-btn { transition: none; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

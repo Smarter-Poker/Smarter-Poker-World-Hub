@@ -3104,7 +3104,7 @@ export default function DiamondStorePage({
           fetchPriority="high"
         />
 
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
                     /* <details> in the VIP FAQ: Safari/WebKit paints its OWN
                        disclosure triangle in addition to our chevron unless the
                        marker is removed, so the question rendered with two
@@ -3129,7 +3129,7 @@ export default function DiamondStorePage({
                         from { opacity: 0; transform: translate(-50%, -6px); }
                         to { opacity: 1; transform: translate(-50%, 0); }
                     }
-                `}</style>
+                ` }} />
       </Head>
 
       <StoreToast />

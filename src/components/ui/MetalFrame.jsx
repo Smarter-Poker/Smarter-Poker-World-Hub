@@ -39,7 +39,7 @@ export default function MetalFrame({
                 {children}
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .metal-frame {
                     position: relative;
                     background: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
@@ -134,7 +134,7 @@ export default function MetalFrame({
                         box-shadow: 0 0 15px #00D4FF, 0 0 30px rgba(0, 212, 255, 0.8);
                     }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

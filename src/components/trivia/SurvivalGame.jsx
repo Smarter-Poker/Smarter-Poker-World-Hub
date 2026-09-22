@@ -320,7 +320,7 @@ export default function SurvivalGame({
                 </motion.div>
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .survival-game {
                     padding: 20px;
                     max-width: 600px;
@@ -558,7 +558,7 @@ export default function SurvivalGame({
                     .spinner { animation-duration: 2s; }
                     .answer-btn, .milestone-fill { transition: none; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
