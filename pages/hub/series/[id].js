@@ -435,7 +435,7 @@ function SeriesSummary({ series }) {
             The Schedule For {series.name} Is Below, With Buy Ins And Start Times As The Venue
             Published Them. Browse Every Tournament Series On{' '}
             <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
-            <a href="/hub/poker-near-me">Poker Near Me</a>.
+            <a href="/hub/poker-near-me/lobby">Poker Near Me</a>.
           </p>
           <h2 className="series-summary-schedule-heading">
             {events.length === 1 ? 'The Event' : `All ${events.length} Events`} At {series.name}
@@ -473,7 +473,7 @@ function SeriesSummary({ series }) {
           The Schedule For {series.name} Has Not Been Published Yet. Buy Ins, Start Times And
           Results Are Added Here As The Venue Releases Them. Browse Every Tournament Series On{' '}
           <a href="/hub/poker-series">Poker Series</a>, Or Find A Room Near You With{' '}
-          <a href="/hub/poker-near-me">Poker Near Me</a>.
+          <a href="/hub/poker-near-me/lobby">Poker Near Me</a>.
         </p>
       )}
     </section>
@@ -758,7 +758,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           )}
         </main>
-        <style suppressHydrationWarning>{styles}</style>
+        <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
       </>
     );
   }
@@ -800,7 +800,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           </div>
         </main>
-        <style suppressHydrationWarning>{styles}</style>
+        <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
       </>
     );
   }
@@ -1067,7 +1067,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
               )}
               {(venueName || location.city) && (
                 <Link
-                  href={'/hub/poker-near-me?q=' + encodeURIComponent(venueName || location.city)}
+                  href={'/hub/poker-near-me/lobby?q=' + encodeURIComponent(venueName || location.city)}
                   legacyBehavior
                 >
                   <a className="venue-link">
@@ -1390,7 +1390,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         </div>
       </main>
 
-      <style suppressHydrationWarning>{styles}</style>
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
     </>
   );
 }

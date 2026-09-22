@@ -1048,7 +1048,7 @@ export default function TourDetailPage({ seo, stops = [], events = [], facts = n
 
       {seoSummary}
 
-      <style suppressHydrationWarning>{styles}</style>
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
     </>
   );
 }

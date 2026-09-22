@@ -701,7 +701,7 @@ export default function LivesPage({ livesListing = null }) {
                 {/* Loading State — Shimmer Skeleton */}
                 {loading && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
-                        <style>{`
+                        <style dangerouslySetInnerHTML={{ __html: `
                                 @keyframes lives-shimmer {
                                     0%   { background-position: -600px 0; }
                                     100% { background-position: 600px 0; }
@@ -712,7 +712,7 @@ export default function LivesPage({ livesListing = null }) {
                                     animation: lives-shimmer 1.4s ease-in-out infinite;
                                     border-radius: 8px;
                                 }
-                            `}</style>
+                            ` }} />
                         {[0, 1, 2].map(i => (
                             <div key={i} style={{ marginBottom: 24, opacity: 1 - i * 0.25 }}>
                                 <div className="lives-skel" style={{ width: '60%', height: 16, marginBottom: 8 }} />
@@ -1104,7 +1104,7 @@ export default function LivesPage({ livesListing = null }) {
         </div >
 
             {/* Pulse animation */ }
-            < style > {`
+            <style dangerouslySetInnerHTML={{ __html: `
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
@@ -1121,7 +1121,7 @@ export default function LivesPage({ livesListing = null }) {
            [aria-label="Live now"] { animation: none !important; }
            .lives-skel { animation-duration: 2s !important; }
          }
-       `}</style >
+       ` }} />
 
     {/* My Drafts drawer */ }
 {

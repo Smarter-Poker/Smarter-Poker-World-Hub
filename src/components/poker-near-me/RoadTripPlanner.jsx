@@ -767,7 +767,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 </div>
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
         .road-trip-planner { padding: 0 0 20px; }
         .rtp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .rtp-header h2 { font-size: 22px; font-weight: 700; color: #e2e8f0; margin: 0; letter-spacing: -0.3px; }
@@ -866,7 +866,7 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
           .road-trip-planner *, .road-trip-planner *::before, .road-trip-planner *::after { animation: none !important; transition: none !important; }
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      ` }} />
         </div>
     );
 }
