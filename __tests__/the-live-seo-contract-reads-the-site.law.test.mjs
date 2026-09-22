@@ -106,3 +106,58 @@ test('the sitemap sample applies indexability, not just HTTP 200', () => {
   // Intent, not punctuation: the summary counts the unindexable URLs.
   assert.match(sample, /\$\{unindexable\} not indexable/, 'the summary line must report how many were not indexable');
 });
+
+// ── INTERNAL LINKS (2026-09-22) ──────────────────────────────────────────
+// Search Console mailed "Page with redirect" and "Not found (404)" as new
+// reasons. The sitemap was clean; 225 series pages linked /hub/poker-near-me,
+// which answers 307 to the lobby. The contract now reads the links too.
+import {
+  internalLinks as __internalLinks,
+  linkVerdict as __linkVerdict,
+  disallowedFor as __disallowedFor,
+  DELIBERATE_REDIRECTS as __DELIBERATE,
+} from '../scripts/ci/check-live-seo-contract.mjs';
+
+test('a link to a redirect fails the contract and names the destination', () => {
+  const v = __linkVerdict({ path: '/hub/poker-near-me', status: 307, location: '/hub/poker-near-me/lobby' });
+  assert.match(v, /redirects \(307\) to \/hub\/poker-near-me\/lobby/);
+  assert.equal(__linkVerdict({ path: '/x', status: 404 }).includes('404'), true);
+  assert.equal(__linkVerdict({ path: '/x', status: 503 }), 'answers HTTP 503');
+  assert.equal(__linkVerdict({ path: '/x', status: 200 }), 'ok');
+});
+
+test('every deliberate redirect carries its reason, and there are few', () => {
+  assert.ok(__DELIBERATE.size <= 3, 'an exemption list that grows is a gate that stopped gating');
+  for (const [path, reason] of __DELIBERATE) {
+    assert.match(path, /^\//);
+    assert.ok(reason.length > 20, `${path} needs a real reason`);
+  }
+  assert.equal(__linkVerdict({ path: '/hub/trivia/pvp', status: 307 }), 'deliberate');
+});
+
+test('links are read from markup, not from scripts, and stay on this site', () => {
+  const html =
+    '<a href="/a#frag">a</a><a href="https://smarter.poker/b?x=1&amp;y=2">b</a>' +
+    '<a href="https://elsewhere.example/">e</a><a href="mailto:x@y.z">m</a>' +
+    '<script>var t = "<a href=\\"/inside-a-script\\">";</script>';
+  assert.deepEqual(__internalLinks(html, 'https://smarter.poker/'), [
+    'https://smarter.poker/a',
+    'https://smarter.poker/b?x=1&y=2',
+  ]);
+});
+
+test('robots matching follows Google: prefix, * and a trailing $', () => {
+  const rules = new Set(['/hub/messenger', '/*?compose=', '/exact$']);
+  assert.equal(__disallowedFor('/hub/messenger/abc', rules), true);
+  assert.equal(__disallowedFor('/hub/social-media?compose=1', rules), true);
+  assert.equal(__disallowedFor('/exact', rules), true);
+  assert.equal(__disallowedFor('/exactly', rules), false);
+  assert.equal(__disallowedFor('/hub/news', rules), false);
+});
+
+test('the series page links Poker Near Me where it lives, not where it redirects from', () => {
+  const src = read('pages/hub/series/[id].js');
+  assert.doesNotMatch(src, /href="\/hub\/poker-near-me"/);
+  assert.doesNotMatch(src, /'\/hub\/poker-near-me\?q='/);
+  assert.match(src, /href="\/hub\/poker-near-me\/lobby"/);
+});

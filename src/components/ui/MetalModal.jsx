@@ -73,7 +73,7 @@ export default function MetalModal({
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .metal-modal-overlay {
                     position: fixed;
                     inset: 0;
@@ -232,7 +232,7 @@ export default function MetalModal({
                     max-height: calc(90vh - 100px);
                     color: #e2e8f0;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

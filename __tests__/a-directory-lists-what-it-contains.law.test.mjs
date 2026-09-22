@@ -314,3 +314,26 @@ test('the series index is not capped the way the cards are', () => {
   );
   assert.notEqual(indexArg[1], 'initialSeries', 'and never from the capped preview itself');
 });
+
+/**
+ * A CONTENT INDEX IS ONE HOP FROM THE FRONT DOOR (AEO phase 3, 2026-09-22).
+ *
+ * /learn, /glossary and /compare shipped with 128 pages between them. Crawled
+ * from / the day they went live, the 41 lessons and 12 comparisons were
+ * reachable from nowhere: in the sitemap, linked by no page. The same defect
+ * this law was written for, arriving again with the next thing built.
+ *
+ * Every content index the sitemap generates from a module must be linked from
+ * the landing page, which a crawler always starts from, and must be a real page.
+ */
+test('every content index is linked from the front page', () => {
+  const landing = fs.readFileSync(path.join(ROOT, 'src/components/landing/LandingProductSummary.js'), 'utf8');
+  const indexes = ['/learn', '/glossary', '/compare'];
+  for (const index of indexes) {
+    assert.match(landing, new RegExp(`href: '${index}'`), `the landing page links ${index}`);
+    assert.ok(fs.existsSync(path.join(ROOT, 'pages', index.slice(1), 'index.js')), `${index} is a real page`);
+  }
+  assert.match(landing, /LANDING_GUIDES\.map\(/, 'and the guides are rendered, not only listed');
+  const home = fs.readFileSync(path.join(ROOT, 'pages/index.js'), 'utf8');
+  assert.match(home, /<LandingProductSummary \/>/, 'on the page a crawler starts from');
+});

@@ -250,7 +250,7 @@ export default function TournamentLobby({
                 </div>
             </MetalFrame>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .tournament-lobby {
                     max-width: 540px;
                     margin: 0 auto;
@@ -475,7 +475,7 @@ export default function TournamentLobby({
                     color: #22c55e;
                     font-weight: 600;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

@@ -1579,7 +1579,7 @@ function LiveGamesFeed({
             )}
 
             {/* ─── SCOPED CSS ─── */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes lgf-pulse {
                     0% { opacity: 1; }
                     50% { opacity: 0.5; }
@@ -1606,7 +1606,7 @@ function LiveGamesFeed({
                     .lgf-layout { flex-direction: column !important; }
                     .lgf-venue-grid { grid-template-columns: minmax(0, 1fr); }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

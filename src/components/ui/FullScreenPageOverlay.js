@@ -144,7 +144,7 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
 
     return (
         <>
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .fsp-overlay {
                     position: fixed;
                     inset: 0;
@@ -285,7 +285,7 @@ export default function FullScreenPageOverlay({ isOpen, onClose, url, title, onN
                 @keyframes fsp-spin {
                     to { transform: rotate(360deg); }
                 }
-            `}</style>
+            ` }} />
 
             <div
                 ref={panelRef}

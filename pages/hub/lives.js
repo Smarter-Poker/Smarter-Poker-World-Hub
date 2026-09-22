@@ -12,6 +12,11 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import { LivesListing } from '../../src/components/seo/PublicFeedListing';
+import {
+    fetchPublicLivesListing,
+    feedListingCacheHeaders,
+} from '../../src/lib/seo/publicFeedData';
 
 // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: live_streams.guest_invite_code is no longer
 // readable by anon/authenticated after the v2 column-grant migration. Every
@@ -28,7 +33,20 @@ const C = {
     blue: '#1877F2',
 };
 
-export default function LivesPage() {
+/**
+ * Live, upcoming and recent public streams, read on the server so the HTML
+ * carries them (AEO, 2026-09-22: a non-JavaScript crawler saw 113 words and
+ * no streams). Anonymous client, row limit and deadline live in
+ * publicFeedData.js; on any failure livesListing is null and the page renders
+ * as it did before.
+ */
+export async function getServerSideProps({ res }) {
+    feedListingCacheHeaders(res);
+    const livesListing = await fetchPublicLivesListing();
+    return { props: { livesListing } };
+}
+
+export default function LivesPage({ livesListing = null }) {
     const router = useRouter();
     const [streams, setStreams] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -683,7 +701,7 @@ export default function LivesPage() {
                 {/* Loading State — Shimmer Skeleton */}
                 {loading && (
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '80px 20px 20px' }}>
-                        <style>{`
+                        <style dangerouslySetInnerHTML={{ __html: `
                                 @keyframes lives-shimmer {
                                     0%   { background-position: -600px 0; }
                                     100% { background-position: 600px 0; }
@@ -694,7 +712,7 @@ export default function LivesPage() {
                                     animation: lives-shimmer 1.4s ease-in-out infinite;
                                     border-radius: 8px;
                                 }
-                            `}</style>
+                            ` }} />
                         {[0, 1, 2].map(i => (
                             <div key={i} style={{ marginBottom: 24, opacity: 1 - i * 0.25 }}>
                                 <div className="lives-skel" style={{ width: '60%', height: 16, marginBottom: 8 }} />
@@ -1086,7 +1104,7 @@ export default function LivesPage() {
         </div >
 
             {/* Pulse animation */ }
-            < style > {`
+            <style dangerouslySetInnerHTML={{ __html: `
          @keyframes pulse {
            0%, 100% { opacity: 1; }
            50% { opacity: 0.7; }
@@ -1103,7 +1121,7 @@ export default function LivesPage() {
            [aria-label="Live now"] { animation: none !important; }
            .lives-skel { animation-duration: 2s !important; }
          }
-       `}</style >
+       ` }} />
 
     {/* My Drafts drawer */ }
 {
@@ -1242,6 +1260,7 @@ export default function LivesPage() {
           {/* Server rendered: measured on production this page returned
               almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="lives" />
+          <LivesListing listing={livesListing} />
         </>
     );
 }
