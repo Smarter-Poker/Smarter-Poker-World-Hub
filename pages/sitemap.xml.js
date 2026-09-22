@@ -15,6 +15,7 @@ import {
   tournamentSeriesIdFromPointerUid,
 } from '../src/lib/poker-near-me/seriesRouteIdentity.mjs';
 import bundledSeriesData from '../data/poker-tour-series-2026.json';
+import { AS_OF as COMPARE_AS_OF, compareRoutes } from '../src/content/compare/pages';
 import tourSourceRegistry from '../data/tour-source-registry.json';
 
 const SITE_URL = 'https://smarter.poker';
@@ -191,6 +192,19 @@ const staticPages = [
   // session gate. A public sitemap is the wrong place to advertise an admin
   // login, and there was never anything on it to index.
 ];
+
+// ─── Comparison And Best-Of Pages (AEO programme section 3.3) ───────────────
+// GENERATED FROM src/content/compare/pages.js, never typed here: /compare and
+// every /compare/<slug> the module defines. lastmod is the day every source
+// on those pages was fetched and read (AS_OF), which is real change evidence,
+// not the generation time. __tests__/a-comparison-cites-what-it-claims.law
+// fails if this block stops listing the module's routes.
+const comparePages = compareRoutes().map((path) => ({
+  path,
+  priority: '0.7',
+  changefreq: 'monthly',
+  lastmod: COMPARE_AS_OF,
+}));
 
 // ─── Dynamic Home-Game URLs ──────────────────────────────────────────────────
 // Pulled from social_pages at request time. The complete sitemap shares the
@@ -555,6 +569,7 @@ export async function getServerSideProps({ res }) {
 
   const sitemap = generateSitemapXml([
     ...staticPages,
+    ...comparePages,
     ...releaseGatedPages,
     ...homeGameUrls,
     ...pokerVenueUrls,
