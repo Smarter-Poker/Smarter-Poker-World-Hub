@@ -27,6 +27,11 @@ import {
   findBestGames,
 } from '../../src/utils/videoToTrainingMapper';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import { ReelsListing } from '../../src/components/seo/PublicFeedListing';
+import {
+  fetchPublicReelsListing,
+  feedListingCacheHeaders,
+} from '../../src/lib/seo/publicFeedData';
 
 const C = {
   bg: '#000000',
@@ -43,7 +48,19 @@ function timeAgo(d) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export default function ReelsPage() {
+/**
+ * The latest public reels, read on the server so the HTML carries them
+ * (AEO, 2026-09-22: a non-JavaScript crawler saw 105 words and no reels).
+ * Anonymous client, row limit and deadline live in publicFeedData.js; on any
+ * failure reelsListing is null and the page renders as it did before.
+ */
+export async function getServerSideProps({ res }) {
+  feedListingCacheHeaders(res);
+  const reelsListing = await fetchPublicReelsListing();
+  return { props: { reelsListing } };
+}
+
+export default function ReelsPage({ reelsListing = null }) {
   const [reels, setReels] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -2533,6 +2550,7 @@ export default function ReelsPage() {
           <style>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
         </div>
         <HubPageSummary page="reels" as="h1" />
+        <ReelsListing items={reelsListing} />
       </>
     );
   }
@@ -2602,6 +2620,7 @@ export default function ReelsPage() {
           </button>
         </div>
         <HubPageSummary page="reels" as="h1" />
+        <ReelsListing items={reelsListing} />
       </>
     );
   }
@@ -2663,6 +2682,7 @@ export default function ReelsPage() {
           </Link>
         </div>
         <HubPageSummary page="reels" as="h1" />
+        <ReelsListing items={reelsListing} />
       </>
     );
   }
@@ -5898,6 +5918,7 @@ export default function ReelsPage() {
       {/* Server rendered: measured on production this page returned
           almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
       <HubPageSummary page="reels" as="h1" />
+      <ReelsListing items={reelsListing} />
     </>
   );
 }

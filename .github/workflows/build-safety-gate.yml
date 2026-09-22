@@ -1146,6 +1146,7 @@ jobs:
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
             __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
+            __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
