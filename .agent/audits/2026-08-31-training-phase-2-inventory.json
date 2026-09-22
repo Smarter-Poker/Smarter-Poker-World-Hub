@@ -42231,7 +42231,7 @@
       "functions": [
         {
           "name": "getHandFromGrid",
-          "line": 43,
+          "line": 53,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42239,7 +42239,7 @@
         },
         {
           "name": "getCombos",
-          "line": 52,
+          "line": 62,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -42247,7 +42247,7 @@
         },
         {
           "name": "getRFIByDepth",
-          "line": 899,
+          "line": 910,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42255,7 +42255,7 @@
         },
         {
           "name": "getHandFrequencies",
-          "line": 1138,
+          "line": 1149,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -42263,7 +42263,7 @@
         },
         {
           "name": "getPrimaryAction",
-          "line": 1151,
+          "line": 1162,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42271,7 +42271,7 @@
         },
         {
           "name": "isInRange",
-          "line": 1161,
+          "line": 1172,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42279,7 +42279,7 @@
         },
         {
           "name": "getRangePercentage",
-          "line": 1169,
+          "line": 1180,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42287,7 +42287,7 @@
         },
         {
           "name": "getAvailableSpots",
-          "line": 1187,
+          "line": 1198,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -42295,7 +42295,7 @@
         },
         {
           "name": "resolveSpot",
-          "line": 1219,
+          "line": 1230,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -90498,7 +90498,7 @@
       {
         "file": "src/config/solverRanges.js",
         "name": "getHandFromGrid",
-        "line": 43,
+        "line": 53,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90507,6 +90507,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx",
           "src/engines/RangeGradingEngine.js"
         ]
@@ -90514,7 +90515,7 @@
       {
         "file": "src/config/solverRanges.js",
         "name": "getRFIByDepth",
-        "line": 899,
+        "line": 910,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90523,6 +90524,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/engines/DeterministicGTOEngine.js",
           "src/games/ScenarioDatabase.js",
           "src/games/SolverScenarioGenerator.js"
@@ -90531,7 +90533,7 @@
       {
         "file": "src/config/solverRanges.js",
         "name": "getPrimaryAction",
-        "line": 1151,
+        "line": 1162,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90540,13 +90542,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "isInRange",
-        "line": 1161,
+        "line": 1172,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90555,13 +90558,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "getRangePercentage",
-        "line": 1169,
+        "line": 1180,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90570,13 +90574,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "getAvailableSpots",
-        "line": 1187,
+        "line": 1198,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90585,13 +90590,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "resolveSpot",
-        "line": 1219,
+        "line": 1230,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -90600,6 +90606,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
@@ -99417,7 +99424,7 @@
       {
         "file": "src/config/solverRanges.js",
         "name": "getHandFromGrid",
-        "line": 43,
+        "line": 53,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99426,6 +99433,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx",
           "src/engines/RangeGradingEngine.js"
         ]
@@ -99433,7 +99441,7 @@
       {
         "file": "src/config/solverRanges.js",
         "name": "getRFIByDepth",
-        "line": 899,
+        "line": 910,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99442,6 +99450,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/engines/DeterministicGTOEngine.js",
           "src/games/ScenarioDatabase.js",
           "src/games/SolverScenarioGenerator.js"
@@ -99450,7 +99459,7 @@
       {
         "file": "src/config/solverRanges.js",
         "name": "getPrimaryAction",
-        "line": 1151,
+        "line": 1162,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99459,13 +99468,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "isInRange",
-        "line": 1161,
+        "line": 1172,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99474,13 +99484,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "getRangePercentage",
-        "line": 1169,
+        "line": 1180,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99489,13 +99500,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "getAvailableSpots",
-        "line": 1187,
+        "line": 1198,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99504,13 +99516,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
       {
         "file": "src/config/solverRanges.js",
         "name": "resolveSpot",
-        "line": 1219,
+        "line": 1230,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -99519,6 +99532,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/a-range-comment-states-its-data.law.test.mjs",
           "src/components/training/PreflopRangeTrainer.jsx"
         ]
       },
