@@ -35958,7 +35958,7 @@
         {
           "element": "link",
           "name": "<dynamic>",
-          "line": 630,
+          "line": 632,
           "handler": null,
           "destination": "link.href",
           "type": null,
@@ -35968,7 +35968,7 @@
         {
           "element": "link",
           "name": "Terms",
-          "line": 639,
+          "line": 641,
           "handler": null,
           "destination": "/terms",
           "type": null,
@@ -35978,7 +35978,7 @@
         {
           "element": "link",
           "name": "Privacy",
-          "line": 642,
+          "line": 644,
           "handler": null,
           "destination": "/privacy",
           "type": null,
@@ -36018,7 +36018,7 @@
       "functions": [
         {
           "name": "HubPageSummary",
-          "line": 603,
+          "line": 605,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -65892,11 +65892,11 @@
       "effectRef": "src/components/poker/QuizAnswer.jsx"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:630:1",
+      "id": "src/components/seo/HubPageSummary.js:632:1",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "<dynamic>",
-      "line": 630,
+      "line": 632,
       "handler": null,
       "destination": "link.href",
       "type": null,
@@ -65905,11 +65905,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:639:2",
+      "id": "src/components/seo/HubPageSummary.js:641:2",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Terms",
-      "line": 639,
+      "line": 641,
       "handler": null,
       "destination": "/terms",
       "type": null,
@@ -65918,11 +65918,11 @@
       "effectRef": "src/components/seo/HubPageSummary.js"
     },
     {
-      "id": "src/components/seo/HubPageSummary.js:642:3",
+      "id": "src/components/seo/HubPageSummary.js:644:3",
       "file": "src/components/seo/HubPageSummary.js",
       "element": "link",
       "name": "Privacy",
-      "line": 642,
+      "line": 644,
       "handler": null,
       "destination": "/privacy",
       "type": null,
@@ -89755,7 +89755,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 603,
+        "line": 605,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -98681,7 +98681,7 @@
       {
         "file": "src/components/seo/HubPageSummary.js",
         "name": "HubPageSummary",
-        "line": 603,
+        "line": 605,
         "references": 1,
         "exported": true,
         "defaultExport": true,

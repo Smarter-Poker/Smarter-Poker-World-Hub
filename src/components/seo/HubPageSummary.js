@@ -51,6 +51,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms And Card Rooms By State And City.' },
       { name: 'Home Games', href: '/hub/home-games', text: 'Find And Host Home Poker Games Near You.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Sessions, Results And Bankroll With Exports.' },
+      { name: 'Poker App Comparisons', href: '/compare', text: 'How These Products Compare With The Alternatives, With Sources.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Free Poker Quiz Games With Leaderboards And Daily Runs.' },
     ],
   },
@@ -97,6 +98,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Training Events With Standings And Prizes.' },
       { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Opening And Defending Ranges By Position And Stack Depth.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Quiz Games On Rules, Odds And History, With Leaderboards.' },
+      { name: 'Poker Strategy Lessons', href: '/learn', text: 'Forty Free Lessons That Answer The Question Before The Drill.' },
     ],
   },
   'bankroll-manager': {

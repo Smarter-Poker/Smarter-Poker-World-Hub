@@ -46,6 +46,8 @@ const flag = (name, fallback) => {
 const ORIGIN = flag('origin', 'https://smarter.poker').replace(/\/+$/, '');
 const DEPTH = Number(flag('depth', '4'));
 const MAX_PAGES = Number(flag('max', '600'));
+// --all prints every unreachable route instead of the first eight.
+const SHOW_ALL = args.includes('--all');
 
 // The crawlers that decide what ChatGPT, Claude and Perplexity may cite do
 // not run JavaScript. This is one of them, so what it sees is the measurement.
@@ -58,6 +60,9 @@ const FAMILIES = [
   ['/hub/tours/', 'tour pages'],
   ['/hub/poker-near-me/in/', 'location pages'],
   ['/hub/home-games/in/', 'home game locations'],
+  ['/glossary', 'glossary pages'],
+  ['/learn', 'lessons'],
+  ['/compare', 'comparisons'],
 ];
 
 const familyOf = (route) => (FAMILIES.find(([prefix]) => route.startsWith(prefix)) || [null, 'curated routes'])[1];
@@ -159,7 +164,7 @@ async function main() {
   for (const [family, row] of byFamily) {
     if (!row.missing.length) continue;
     console.log(`${family}: ${row.missing.length} unreachable, first few:`);
-    for (const route of row.missing.slice(0, 8)) console.log(`   ${route}`);
+    for (const route of (SHOW_ALL ? row.missing : row.missing.slice(0, 8))) console.log(`   ${route}`);
   }
 
   // A crawl that cannot reach most of the site is a finding, not a pass.
