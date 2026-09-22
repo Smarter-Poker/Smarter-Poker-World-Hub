@@ -510,7 +510,7 @@ export default function TriviaLobby({
                 </button>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .trivia-lobby {
                     padding: 0 20px 20px;
                     max-width: 1000px;
@@ -1776,7 +1776,7 @@ export default function TriviaLobby({
                         transform: none;
                     }
                 }
-            `}</style>
+            ` }} />
 
             {/* ═══════ DIAMOND CHARGE POPUP (first-time only) ═══════ */}
             {

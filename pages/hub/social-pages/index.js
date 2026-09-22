@@ -16,6 +16,8 @@ import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { SOCIAL_COLORS, timeAgo } from '../../../src/lib/socialHelpers';
 import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
+import { swrFallback, catalogueCacheHeaders } from '../../../src/lib/seo/swrFallback.mjs';
+import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 
 const C = SOCIAL_COLORS;
 
@@ -117,7 +119,15 @@ function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
             {/* Info */}
             <div style={{ padding: '8px 14px 14px' }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.3 }}>
-                    {page.name}
+                    {/* A real link, so the page is crawlable; the card's own
+                        click still navigates for everywhere else on it. */}
+                    <Link
+                        href={`/hub/social-pages/${page.slug || page.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ color: 'inherit', textDecoration: 'none' }}
+                    >
+                        {page.name}
+                    </Link>
                 </h3>
                 {page.description && (
                     <p style={{
@@ -177,7 +187,44 @@ function PageCard({ page, isFollowing, onFollow, onView, followBusy }) {
     );
 }
 
-export default function SocialPagesHub() {
+// The first Discover batch a signed-out visitor sees, with the default
+// filters. Same query the browser's first fetchBatch(0) sends.
+const FIRST_BATCH_PATH = '/api/social/pages?limit=20&offset=0';
+
+// Only what a PageCard shows. The API row also carries the owner's user id,
+// contact email and phone; none of that is serialised into the HTML.
+function toPublicCard(p) {
+    return {
+        id: p.id,
+        name: p.name || '',
+        slug: p.slug || null,
+        page_type: p.page_type || null,
+        category: p.category || null,
+        description: p.description || null,
+        avatar_url: p.avatar_url || null,
+        cover_url: p.cover_url || null,
+        follower_count: Number(p.follower_count || 0),
+        post_count: Number(p.post_count || 0),
+        location_city: p.location_city || null,
+        location_state: p.location_state || null,
+        is_verified: p.is_verified === true,
+        metadata: p.metadata?.featured ? { featured: true } : null,
+    };
+}
+
+// A FEED PAGE SHOWS ITS FEED (2026-09-22). A Googlebot crawl measured this
+// directory at about 140 words: every page card was fetched in the browser.
+// The first batch of public pages now arrives in the HTML; the browser still
+// owns tabs, filters, search, following state and infinite scroll.
+export async function getServerSideProps({ req, res }) {
+    catalogueCacheHeaders(res);
+    const fallback = await swrFallback(originFrom(req), FIRST_BATCH_PATH);
+    const rows = Array.isArray(fallback[FIRST_BATCH_PATH]?.data) ? fallback[FIRST_BATCH_PATH].data : [];
+    const initialPages = rows.filter((p) => p && p.is_public !== false && p.name).map(toPublicCard);
+    return { props: { initialPages } };
+}
+
+export default function SocialPagesHub({ initialPages = [] }) {
     const router = useRouter();
     const { user } = useAuthUser();
     useTrainingBus('social-pages');
@@ -210,11 +257,14 @@ export default function SocialPagesHub() {
 
     // #2: Infinite scroll state
     const PAGE_SIZE = 20;
-    const [pages, setPages] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [pages, setPages] = useState(initialPages);
+    const [loading, setLoading] = useState(initialPages.length === 0);
+    // True until the first browser fetch lands: that fetch refreshes the
+    // server-rendered cards in place instead of blanking them to a skeleton.
+    const seededRef = useRef(initialPages.length > 0);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-    const [offset, setOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(initialPages.length === 0 || initialPages.length >= PAGE_SIZE);
+    const [offset, setOffset] = useState(initialPages.length);
     const sentinelRef = useRef(null);
     const fetchIdRef = useRef(0); // Prevent stale fetches
 
@@ -233,8 +283,10 @@ export default function SocialPagesHub() {
     const fetchBatch = useCallback(async (off, append = false) => {
         if (user === undefined) return; // auth not resolved yet
         const id = ++fetchIdRef.current;
-        if (!append) setLoading(true);
-        else setLoadingMore(true);
+        const quiet = !append && seededRef.current;
+        seededRef.current = false;
+        if (!append && !quiet) setLoading(true);
+        else if (append) setLoadingMore(true);
         try {
             const params = buildParams(off);
             const res = await fetch(`/api/social/pages?${params}`);
@@ -261,9 +313,11 @@ export default function SocialPagesHub() {
 
     // Initial fetch + refetch when filters/tab/search change
     useEffect(() => {
-        setOffset(0);
-        setHasMore(true);
-        setPages([]);
+        if (!seededRef.current) {
+            setOffset(0);
+            setHasMore(true);
+            setPages([]);
+        }
         fetchBatch(0, false);
     }, [fetchBatch]);
 
@@ -615,7 +669,9 @@ export default function SocialPagesHub() {
                             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                             gap: 12,
                         }}>
-                            <AnimatePresence>
+                            {/* initial={false}: cards present on first render (the
+                                server-rendered batch) are not served at opacity 0. */}
+                            <AnimatePresence initial={false}>
                                 {pages
                                     .filter(pg => categoryFilter === 'all' || (pg.category || '').toLowerCase() === categoryFilter)
                                     .map(page => (

@@ -988,7 +988,7 @@ export default function ProfilePage() {
             {/* Lives Gallery Modal */}
             <LivesGalleryModal isOpen={livesGalleryOpen} onClose={() => setLivesGalleryOpen(false)} userLives={userLives} user={user} setUserLives={setUserLives} setMessage={setMessage} />
             {/* Global CSS keyframes for toast and avatar spinner */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes toastSlideIn {
                     from { opacity: 0; transform: translateX(60px); }
                     to { opacity: 1; transform: translateX(0); }
@@ -1020,7 +1020,7 @@ export default function ProfilePage() {
                         grid-template-columns: repeat(2, 1fr) !important;
                     }
                 }
-            `}</style>
+            ` }} />
         </>
     );
 }
