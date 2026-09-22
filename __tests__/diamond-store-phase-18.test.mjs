@@ -34,7 +34,11 @@ test('Club Shop card completion is explicit and canceled retries settle cleanly'
   assert.match(source, /Do Not Pay By Card Again/i);
 });
 
-test('card checkout stays in the same browser surface on Club Shop and merchandise', async () => {
+// Club Arena shows these pages in a sanctioned same-origin frame. Stripe
+// Checkout sends X-Frame-Options: DENY and vercel.json sends
+// Permissions-Policy: payment=(), so the redirect breaks out to the top window
+// through leaveForCheckout. A popup or a _blank target is still not the answer.
+test('card checkout breaks out of a frame on Club Shop and merchandise', async () => {
   const [club, merch] = await Promise.all([
     read('pages/hub/club-shop/[itemId].js'),
     read('src/components/store/MerchStore.jsx'),
@@ -47,8 +51,12 @@ test('card checkout stays in the same browser surface on Club Shop and merchandi
     merch,
     /normalizeVerifiedCheckoutSession\([\s\S]{0,100}data,[\s\S]{0,100}checkoutRequestId,[\s\S]{0,100}offerConfirmation/
   );
-  assert.match(club, /window\.location\.assign\(checkoutSession\.url\)/);
-  assert.match(merch, /window\.location\.assign\(checkoutSession\.url\)/);
+  assert.match(club, /leaveForCheckout\(checkoutSession\.url\)/);
+  assert.match(merch, /leaveForCheckout\(checkoutSession\.url\)/);
+  assert.doesNotMatch(
+    `${club}\n${merch}`,
+    /window\.location\.assign\(checkoutSession\.url\)/
+  );
   assert.doesNotMatch(`${club}\n${merch}`, /window\.open\s*\(/);
   assert.doesNotMatch(`${club}\n${merch}`, /target=["']_blank["']/);
 });

@@ -38,6 +38,7 @@ import {
   normalizeVerifiedCheckoutSession,
 } from '../../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../../src/lib/store/checkoutAuthorization';
+import { leaveForCheckout } from '../../../src/lib/store/leaveForCheckout.mjs';
 import { broadcastSync } from '../../../src/lib/broadcastSync';
 import { marketplaceCopy } from '../../../src/lib/store/marketplaceCopy';
 import { boundedCommerceFetch } from '../../../src/lib/store/boundedCommerceFetch';
@@ -768,7 +769,7 @@ export default function ShoppingCart() {
         throw new Error('Your Account Or Cart Changed. The Checkout Link Was Not Opened.');
       }
       if (!attemptIsCurrent()) return;
-      window.location.assign(checkoutSession.url);
+      leaveForCheckout(checkoutSession.url);
       return;
     } catch (err) {
       if (err?.name === 'AbortError' || !attemptIsCurrent()) return;
