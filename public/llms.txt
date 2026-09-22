@@ -47,7 +47,7 @@ schedule, location and structured data.
 - Example tour: https://smarter.poker/hub/tours/WSOP
 
 ### Bankroll Manager
-Bankroll tracking for poker players. Log sessions, analyse leaks, monitor ROI, and visualise trends with detailed analytics and variance analysis. Free to use, and it tracks play credits, not real money.
+Bankroll tracking for poker players. Log sessions, analyse leaks, monitor ROI, and visualise trends with detailed analytics and variance analysis. Free to use. It is a record of the sessions you enter yourself, wherever you played them; Smarter.Poker handles no money and nothing in it is a wager.
 - Bankroll manager: https://smarter.poker/hub/bankroll-manager
 
 ### Poker Trivia

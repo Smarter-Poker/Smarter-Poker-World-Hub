@@ -22,7 +22,17 @@
  * Frequency values: 0.0 = never, 1.0 = always
  * Actions: raise/call/fold (sum to ~1.0)
  *
- * Source: Aggregated from PioSOLVER/GTO+ solutions for standard spots.
+ * Source: hand-authored teaching reference. This header used to credit the
+ * ranges to commercial solver output; nothing in the repo backs that (no
+ * solve, tree, artifact or checksum), and it contradicted the authority
+ * boundary above, so it was removed (AEO phase 3, 2026-09-22).
+ *
+ * Range sizes: the "measured:" comments below are computed from the data in
+ * this file, not intended targets. They used to state intended sizes that were
+ * roughly double the data (UTG "~15.5%" against 8.4% by frequency; BB versus
+ * UTG "~32% total defense" against 9.5%). Pages quote these ranges, so a
+ * comment that disagrees with its data eventually teaches the comment.
+ * __tests__/a-range-comment-states-its-data.law.test.mjs recomputes every one.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -65,7 +75,7 @@ export function getCombos(hand) {
 
 export const RFI = {
     UTG: {
-        // ~15.5% RFI range
+        // measured: raise 8.4% by frequency, reaches 13.6% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 1.0 }, 'TT': { raise: 1.0 },
         '99': { raise: 0.82 }, '88': { raise: 0.53 }, '77': { raise: 0.31 },
@@ -82,7 +92,8 @@ export const RFI = {
         'KQo': { raise: 0.35 },
     },
     MP: {
-        // ~19% RFI range (combines UTG+1/LJ in 6-max context — HJ in 9-max)
+        // measured: raise 10.9% by frequency, reaches 17.3% of combos
+        // (MP is the UTG+1/LJ seat; a strict six handed table has no MP)
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 1.0 }, 'TT': { raise: 1.0 },
         '99': { raise: 1.0 }, '88': { raise: 0.72 }, '77': { raise: 0.48 },
@@ -103,7 +114,7 @@ export const RFI = {
         'KQo': { raise: 0.55 }, 'KJo': { raise: 0.22 },
     },
     HJ: {
-        // ~22% RFI
+        // measured: raise 13.2% by frequency, reaches 20.5% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 1.0 }, 'TT': { raise: 1.0 },
         '99': { raise: 1.0 }, '88': { raise: 0.88 }, '77': { raise: 0.65 },
@@ -126,7 +137,7 @@ export const RFI = {
         'QJo': { raise: 0.25 },
     },
     CO: {
-        // ~27% RFI
+        // measured: raise 16.8% by frequency, reaches 24.9% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 1.0 }, 'TT': { raise: 1.0 },
         '99': { raise: 1.0 }, '88': { raise: 1.0 }, '77': { raise: 0.82 },
@@ -152,7 +163,7 @@ export const RFI = {
         'JTo': { raise: 0.28 },
     },
     BTN: {
-        // ~48% RFI
+        // measured: raise 25.2% by frequency, reaches 40% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 1.0 }, 'TT': { raise: 1.0 },
         '99': { raise: 1.0 }, '88': { raise: 1.0 }, '77': { raise: 1.0 },
@@ -189,7 +200,7 @@ export const RFI = {
     },
     SB: {
         // SB open (raise or fold — no limp in GTO)
-        // ~42% open-raise range
+        // measured: raise 20.7% by frequency, reaches 33% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 1.0 }, 'TT': { raise: 1.0 },
         '99': { raise: 1.0 }, '88': { raise: 1.0 }, '77': { raise: 1.0 },
@@ -413,7 +424,7 @@ export const THREE_BET = {
 
 export const BB_DEFENSE = {
     vs_UTG: {
-        // ~32% total defense (call ~25%, 3bet ~7%)
+        // measured: defends 9.5% by frequency (call 6.4%, 3-bet 3.1%), reaches 16% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 0.72, call: 0.28 },
         'JJ': { raise: 0.35, call: 0.65 }, 'TT': { call: 0.92 },
         '99': { call: 0.82 }, '88': { call: 0.65 }, '77': { call: 0.48 },
@@ -434,7 +445,7 @@ export const BB_DEFENSE = {
         '76s': { call: 0.22 }, '65s': { call: 0.12 },
     },
     vs_CO: {
-        // ~42% total defense
+        // measured: defends 13.9% by frequency (call 9.2%, 3-bet 4.7%), reaches 24.9% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 0.88, call: 0.12 },
         'JJ': { raise: 0.55, call: 0.45 }, 'TT': { raise: 0.22, call: 0.72 },
         '99': { raise: 0.05, call: 0.82 }, '88': { call: 0.78 }, '77': { call: 0.62 },
@@ -465,7 +476,7 @@ export const BB_DEFENSE = {
         'JTo': { call: 0.22 },
     },
     vs_BTN: {
-        // ~55% total defense (wide — BTN opens very wide)
+        // measured: defends 18.3% by frequency (call 11.2%, 3-bet 7.2%), reaches 33.3% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 0.88, call: 0.12 }, 'TT': { raise: 0.58, call: 0.42 },
         '99': { raise: 0.28, call: 0.65 }, '88': { raise: 0.08, call: 0.72 },
@@ -503,7 +514,7 @@ export const BB_DEFENSE = {
         '87o': { call: 0.08 },
     },
     vs_SB: {
-        // ~62% total defense (very wide — getting great price)
+        // measured: defends 22.6% by frequency (call 12.2%, 3-bet 10.3%), reaches 38.5% of combos
         'AA': { raise: 1.0 }, 'KK': { raise: 1.0 }, 'QQ': { raise: 1.0 },
         'JJ': { raise: 0.95, call: 0.05 }, 'TT': { raise: 0.78, call: 0.22 },
         '99': { raise: 0.55, call: 0.42 }, '88': { raise: 0.32, call: 0.58 },
@@ -908,7 +919,7 @@ export function getRFIByDepth(stackDepth, position) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SB limping strategy: complete (limp) or raise (open). Mixed frequencies.
 // Modern solvers use a mixed open/limp strategy from the SB.
-// ~30-35% complete, ~22-28% raise, rest fold.
+// measured: complete 26.8% by frequency, raise 11.1% by frequency, rest fold.
 
 export const SB_COMPLETE = {
     'AA': { raise: 0.82, complete: 0.18 }, 'KK': { raise: 0.80, complete: 0.20 },
