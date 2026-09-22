@@ -12,6 +12,11 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch, getAccessToken } from '../../src/lib/authUtils';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import { LivesListing } from '../../src/components/seo/PublicFeedListing';
+import {
+    fetchPublicLivesListing,
+    feedListingCacheHeaders,
+} from '../../src/lib/seo/publicFeedData';
 
 // BUG-FIX-DEEP-AUDIT-R2 GUEST-1: live_streams.guest_invite_code is no longer
 // readable by anon/authenticated after the v2 column-grant migration. Every
@@ -28,7 +33,20 @@ const C = {
     blue: '#1877F2',
 };
 
-export default function LivesPage() {
+/**
+ * Live, upcoming and recent public streams, read on the server so the HTML
+ * carries them (AEO, 2026-09-22: a non-JavaScript crawler saw 113 words and
+ * no streams). Anonymous client, row limit and deadline live in
+ * publicFeedData.js; on any failure livesListing is null and the page renders
+ * as it did before.
+ */
+export async function getServerSideProps({ res }) {
+    feedListingCacheHeaders(res);
+    const livesListing = await fetchPublicLivesListing();
+    return { props: { livesListing } };
+}
+
+export default function LivesPage({ livesListing = null }) {
     const router = useRouter();
     const [streams, setStreams] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -1242,6 +1260,7 @@ export default function LivesPage() {
           {/* Server rendered: measured on production this page returned
               almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="lives" />
+          <LivesListing listing={livesListing} />
         </>
     );
 }
