@@ -138,6 +138,17 @@ $body$;
 REVOKE ALL ON FUNCTION public.fn_retry_owner_notification_destination(uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.fn_retry_owner_notification_destination(uuid) TO service_role;
 
+-- 2026-09-22 fix: this used to end with an unconditional `RETURN NEW`, which
+-- captured every operational row into operational_notification_destinations
+-- but then let the original insert land in public.notifications anyway.
+-- Every downstream mask (the mirror trigger's WHEN guard, the RLS restrictive
+-- policy, the personal_notifications view) hid the row from every
+-- application surface, but the row itself was never removed: 880 of them
+-- accumulated, and 727 matching push_outbox rows -- 431 already sent to the
+-- owner's phone before the mirror guard existed. Returning NULL instead
+-- aborts the INSERT for that statement, so suppression is structural: no
+-- personal row is ever written for an operational alert, independent of
+-- whether every reader keeps re-applying the classifier correctly.
 CREATE FUNCTION public.fn_capture_owner_notification_destination()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, public AS $body$
@@ -146,10 +157,11 @@ BEGIN
     INSERT INTO public.operational_notification_destinations(notification_id,recipient_user_id,original_notification)
       VALUES(NEW.id,NEW.user_id,to_jsonb(NEW));
     PERFORM public.fn_try_record_owner_notification(NEW.id);
-    -- Preserve the original row byte-for-byte, including _push. The DB mirror
-    -- predicate below and gateway destination branch suppress personal sends.
-    -- This also lets the existing administrative reader recover the same exact
-    -- original if the first recorder attempt failed.
+    -- Preserve the original row byte-for-byte in the destination table. The
+    -- INSERT above is the row of record; aborting this INSERT (RETURN NULL)
+    -- is what makes suppression structural rather than dependent on every
+    -- downstream reader re-applying fn_is_owner_operational_notification.
+    RETURN NULL;
   END IF;
   RETURN NEW;
 END;

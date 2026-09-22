@@ -2,6 +2,12 @@
 -- Compare full definition hashes from those actual databases; do not substitute
 -- body MD5 for pg_get_functiondef MD5. Source body pins below are independent.
 -- This query installs nothing and generates no notification.
+--
+-- 2026-09-22: fn_capture_owner_notification_destination()'s pin moved from
+-- '64b403e0568e933dba4918a09b9b0ace' (unconditional RETURN NEW -- the
+-- personal-inbox-duplicate bug) to 'de15ed882ad5073fccf138bfaf35bc72'
+-- (RETURN NULL once captured). See the fix migration and
+-- docs/changelog/2026-09-22-operational-notifications-never-reach-the-personal-inbox.md.
 BEGIN READ ONLY;
 SET LOCAL statement_timeout = '8s';
 SET LOCAL search_path = pg_catalog, public, extensions;
@@ -12,7 +18,7 @@ WITH expected(signature,body_md5) AS (VALUES
   ('public.fn_is_owner_operational_notification(uuid,text,text,jsonb)','e0743616164c810fac5c9a0af137acfe'),
   ('public.fn_try_record_owner_notification(uuid)','06985316c9e63080120842b32a6555d2'),
   ('public.fn_retry_owner_notification_destination(uuid)','01ac26f15e325b24a4d9eaa9200a77fd'),
-  ('public.fn_capture_owner_notification_destination()','64b403e0568e933dba4918a09b9b0ace'),
+  ('public.fn_capture_owner_notification_destination()','de15ed882ad5073fccf138bfaf35bc72'),
   ('public.fn_notification_has_personal_destination(uuid,uuid)','7d45f278fa357e52c9ab1bc0d6c4a5c7'),
   ('public.fn_capture_owner_notification_history(integer)','4e97b8f90a622255ab809e1cb9409364')
 )

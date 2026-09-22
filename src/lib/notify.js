@@ -22,6 +22,7 @@
  *     insert or the header badge serves stale data for up to its TTL.
  */
 
+import { randomUUID } from 'node:crypto';
 import { enqueuePush } from './push/push-enqueue';
 import { isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON } from './push/operational-push-routing.mjs';
 import { ALERT_TASK_ID } from './operationalAlerts.mjs';
@@ -95,34 +96,49 @@ export async function notify(supabase, args = {}) {
     //   'none'   -> caller passed withPush:false and means it (bell only)
     const notifData = { ...(args.data || {}), _push: wantsPush ? 'inline' : 'none' };
 
+    // Operational rows for the owner are suppressed at the DB layer:
+    // fn_capture_owner_notification_destination's BEFORE INSERT trigger
+    // captures the row into operational_notification_destinations and then
+    // returns NULL, so the INSERT below legitimately affects zero rows for
+    // these -- there is no personal row to read an id back from. Generate the
+    // id up front so this gateway still knows which row the destination
+    // trigger captured, instead of depending on a RETURNING value that will
+    // never arrive.
+    const generatedId = operational ? randomUUID() : undefined;
+
     // -- Branch A: in-app bell ------------------------------------------------
     try {
+        const insertRow = {
+            user_id: args.userId,
+            type: args.type,
+            title,
+            message: body,
+            // Both columns: `action_url` is what this gateway has always
+            // written, `link` is what older readers in the repo expect.
+            // The feed coalesces them, but anything reading `.link`
+            // directly would otherwise get null.
+            action_url: url,
+            link: url,
+            data: notifData,
+            actor_id: args.actorId || null,
+            read: false,
+            is_read: false,
+        };
+        if (generatedId) insertRow.id = generatedId;
         const { data, error } = await supabase
             .from('notifications')
-            .insert({
-                user_id: args.userId,
-                type: args.type,
-                title,
-                message: body,
-                // Both columns: `action_url` is what this gateway has always
-                // written, `link` is what older readers in the repo expect.
-                // The feed coalesces them, but anything reading `.link`
-                // directly would otherwise get null.
-                action_url: url,
-                link: url,
-                data: notifData,
-                actor_id: args.actorId || null,
-                read: false,
-                is_read: false,
-            })
+            .insert(insertRow)
             .select('id')
             .maybeSingle();
         if (error) {
             console.warn('[notify] notifications insert failed:', error.message);
         } else {
-            out.notificationId = data?.id || null;
+            out.notificationId = data?.id || generatedId || null;
             out.ok = true;
-            invalidateCaches(args.userId);
+            // Only a row that actually landed in the personal inbox needs its
+            // caches invalidated. An operational row's insert is suppressed by
+            // design (see generatedId above) and never reaches the feed/badge.
+            if (data?.id) invalidateCaches(args.userId);
         }
     } catch (e) {
         console.warn('[notify] notifications insert threw:', e?.message || e);

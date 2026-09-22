@@ -26,9 +26,21 @@ function gateway(options = {}) {
       eq(key, value) { (call.filters ||= []).push([key, value]); return chain; },
       abortSignal(signal) { assert.equal(signal.aborted, false); call.bounded = true; return chain; },
       async maybeSingle() {
-        if (table === 'notifications') return options.insertError
-          ? { data: null, error: { message: 'original persistence refused' } }
-          : { data: options.missingInsert ? null : { id: options.invalidInsertId ? 'invalid' : id }, error: null };
+        if (table === 'notifications') {
+          if (options.insertError) return { data: null, error: { message: 'original persistence refused' } };
+          // The real DB BEFORE INSERT trigger (fn_capture_owner_notification_
+          // destination) captures an operational row into
+          // operational_notification_destinations and then RETURNs NULL, so
+          // the INSERT legitimately affects zero rows for those -- that is
+          // the default here, matching production, not a fault. A row the
+          // classifier does not treat as operational is inserted normally.
+          const isOperationalInsert = isOwnerOperationalNotification(call.insert.user_id,
+            { type: call.insert.type, title: call.insert.title, data: call.insert.data });
+          if (isOperationalInsert) {
+            return { data: options.invalidInsertId ? { id: 'invalid' } : null, error: null };
+          }
+          return { data: { id: call.insert.id || id }, error: null };
+        }
         assert.equal(table, 'operational_notification_destinations');
         assert.equal(call.bounded, true);
         assert.deepEqual(call.filters, [['notification_id', id], ['target_task_id', ALERT_TASK_ID]]);
@@ -43,6 +55,11 @@ function gateway(options = {}) {
   const dependencies = {
     enqueuePush: async (...args) => { sent.push(args); return { sent: true }; },
     isOwnerOperationalNotification, retryOwnerNotificationDestination, ROUTED_REASON, ALERT_TASK_ID,
+    // The gateway generates an operational row's id up front (it can never
+    // read one back from the suppressed INSERT). Fix it to the same id the
+    // destination-table mock above expects, so the two agree the way the
+    // real client-supplied `id` column value and the trigger's NEW.id agree.
+    randomUUID: () => id,
     console: { warn() {} },
   };
   const source = readFileSync(new URL('../src/lib/notify.js', import.meta.url), 'utf8')
@@ -61,6 +78,10 @@ for (const withPush of [true, false]) {
     { type: 'system', title: 'Horse Fleet Recovered: heartbeat' },
     { type: 'system', title: 'Engine fault', data: { component: 'club-arena-engine', alertname: 'EngineFault' } },
   ]) {
+    // Regression coverage for the 2026-09-22 fix: before it, this exact case
+    // (a suppressed personal-inbox insert with no returned id) reported
+    // out.ok === false, because the gateway had no way to know which row the
+    // capture trigger had just captured. It now generates that id itself.
     test(`gateway retains ${item.title}, withPush=${withPush}, and acknowledges exact destination`, async () => {
       const g = gateway();
       const out = await g.notify({ userId: ALERT_OWNER_ID, withPush, body: 'original body', ...item });
@@ -77,7 +98,7 @@ for (const withPush of [true, false]) {
   }
 }
 
-for (const fault of ['insertError', 'missingInsert', 'invalidInsertId', 'lookupError', 'missing', 'wrongId', 'wrongTask', 'invalidReceipt']) {
+for (const fault of ['insertError', 'invalidInsertId', 'lookupError', 'missing', 'wrongId', 'wrongTask', 'invalidReceipt']) {
   test(`gateway cannot claim queue acceptance or fall back to a phone when ${fault}`, async () => {
     const g = gateway({ [fault]: true });
     const out = await g.notify({ userId: ALERT_OWNER_ID, type: 'system', title: 'Push Health Alert' });
