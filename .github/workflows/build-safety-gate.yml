@@ -1128,6 +1128,7 @@ jobs:
             __tests__/one-page-per-real-thing.law.test.mjs \
             __tests__/two-pages-never-share-a-title.law.test.mjs \
             __tests__/a-link-in-the-copy-goes-somewhere.law.test.mjs \
+            __tests__/a-leaderboard-shows-its-leaders.law.test.mjs \
             __tests__/a-directory-lists-what-it-contains.law.test.mjs \
             __tests__/a-tour-page-serves-its-schedule.law.test.mjs \
             __tests__/a-series-page-lists-its-events.law.test.mjs \
@@ -1146,6 +1147,7 @@ jobs:
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
             __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
+            __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════
