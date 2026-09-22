@@ -15,7 +15,7 @@ export const BANKROLL_ASSUMPTIONS = { winRate: 5, sd: 100, buyIn: 100 };
 
 /** The platform note every bankroll lesson carries. */
 export const PLAY_CREDIT_NOTE =
-  'Smarter.Poker itself is free to play with play credit only and no real money gambling, so nothing here is about money on this platform. These are the rules players use for poker bankrolls elsewhere. The Bankroll Manager here tracks play credits, not real money, so you can practise the record keeping these rules depend on.';
+  'Smarter.Poker itself is free to play with play credit only and no real money gambling, so nothing here is about money on this platform. These are the rules players use for poker bankrolls elsewhere. The Bankroll Manager here is a record of the sessions you enter yourself, wherever you played them, so you can practise the record keeping these rules depend on; it handles no money.';
 
 const { winRate, sd, buyIn } = BANKROLL_ASSUMPTIONS;
 const ruinAt = (buyIns) => riskOfRuin(winRate, sd, buyIns * buyIn);
