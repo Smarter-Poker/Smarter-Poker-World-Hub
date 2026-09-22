@@ -164,6 +164,75 @@ export function parseRobots(text) {
   return { sitemaps, disallow };
 }
 
+/**
+ * INTERNAL LINK HYGIENE (2026-09-22).
+ *
+ * Search Console mailed "Page with redirect" and "Not found (404)" as new
+ * reasons pages were not indexed. A crawl of every sitemap URL found the
+ * sitemap itself clean, and 225 series pages linking to /hub/poker-near-me,
+ * which answers 307 to /hub/poker-near-me/lobby. Every one of those links is
+ * a crawl spent on a redirect, and Google files the redirecting URL under
+ * "Page with redirect". Nothing checked the links, only the sitemap.
+ *
+ * A link on a public page must reach a page: not a 404, not a 5xx, and not a
+ * redirect - except where the redirect IS the page's deliberate behaviour,
+ * each listed below with the reason. Paths robots.txt disallows are skipped:
+ * Google does not fetch them, and they are deliberate by construction.
+ */
+export const DELIBERATE_REDIRECTS = new Map([
+  // PvP moves real diamonds and is contained behind TRIVIA_PVP_ENABLED
+  // (src/lib/trivia/pvpReleaseControl.mjs). Its getServerSideProps redirects
+  // to the lobby so a direct URL cannot boot the legacy client; the footer
+  // artwork keeps the slot. Intentional until the release flips.
+  ['/hub/trivia/pvp', 'contained release: redirects to the trivia lobby by design'],
+]);
+
+/** Same-site <a href> targets of a document, normalized, without fragments. */
+export function internalLinks(html, base) {
+  const origin = new URL(base).origin;
+  const out = new Set();
+  for (const m of markupOnly(html || '').matchAll(/<a\b[^>]*?\bhref\s*=\s*"([^"]+)"/gi)) {
+    const href = m[1].replace(/&amp;/g, '&');
+    if (/^(mailto:|tel:|javascript:|data:|#)/i.test(href)) continue;
+    let u;
+    try { u = new URL(href, base); } catch { continue; }
+    if (u.origin !== origin) continue;
+    u.hash = '';
+    out.add(u.toString());
+  }
+  return [...out];
+}
+
+/**
+ * Whether robots.txt keeps Googlebot off this path. Google's matching: a rule
+ * is a prefix, `*` matches any run of characters and a trailing `$` anchors
+ * the end. A plain startsWith would read `/*?compose=` literally and never
+ * match anything.
+ */
+export function disallowedFor(path, disallow) {
+  for (const rule of disallow) {
+    if (!rule) continue;
+    const anchored = rule.endsWith('$');
+    const body = (anchored ? rule.slice(0, -1) : rule)
+      .split('*')
+      .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.*');
+    if (new RegExp(`^${body}${anchored ? '$' : ''}`).test(path)) return true;
+  }
+  return false;
+}
+
+/** 'ok' | 'deliberate' | a failure reason, for one link target's response. */
+export function linkVerdict({ path, status, location }) {
+  if (status === 200) return 'ok';
+  if (status >= 300 && status < 400) {
+    if (DELIBERATE_REDIRECTS.has(path)) return 'deliberate';
+    return `redirects (${status}) to ${location || '?'}; link to the destination instead`;
+  }
+  if (status === 404 || status === 410) return `is ${status}: a link to a page that does not exist`;
+  return `answers HTTP ${status}`;
+}
+
 async function waitForDeploy(sha) {
   for (let i = 1; i <= 18; i += 1) {
     try {
@@ -280,6 +349,37 @@ async function main() {
   notes.push(
     `sitemap sample: ${sample.length} of ${rest.length} other URLs fetched, ${bad} not 200, ` +
       `${unindexable} not indexable, ${incomplete} missing a description or heading`
+  );
+
+  // Internal links, from the home page, every Commander page and the sample.
+  // Collected from pages already fetched above would mean threading bodies
+  // through checkPage; a second read of these pages is cheap and keeps the
+  // two checks independent.
+  const linkSources = [`${BASE}/`, ...commander, ...sample];
+  const targets = new Map();
+  for (const src of linkSources) {
+    const r = await get(src);
+    if (r.status !== 200) continue;
+    for (const t of internalLinks(r.text, `${BASE}/`)) {
+      if (!targets.has(t)) targets.set(t, src);
+    }
+  }
+  let linkProblems = 0;
+  let skipped = 0;
+  let deliberate = 0;
+  for (const [target, from] of targets) {
+    const u = new URL(target);
+    if (disallowedFor(u.pathname, robots.disallow)) { skipped += 1; continue; }
+    const r = await get(target);
+    const verdict = linkVerdict({ path: u.pathname, status: r.status, location: r.headers.get('location') });
+    if (verdict === 'ok') continue;
+    if (verdict === 'deliberate') { deliberate += 1; continue; }
+    linkProblems += 1;
+    fail(`internal link ${target.replace(BASE, '')} (on ${from.replace(BASE, '') || '/'}) ${verdict}`);
+  }
+  notes.push(
+    `internal links: ${targets.size} distinct targets from ${linkSources.length} pages, ` +
+      `${skipped} robots-disallowed and skipped, ${deliberate} deliberate redirects, ${linkProblems} broken`
   );
 }
 
