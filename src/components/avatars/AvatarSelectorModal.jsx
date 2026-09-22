@@ -23,7 +23,7 @@ export default function AvatarSelectorModal({ isOpen, onClose, isVip = false }) 
   return (
     <div className="avatar-modal-overlay" onClick={onClose}>
       <div className="avatar-modal" onClick={(e) => e.stopPropagation()}>
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           .avatar-modal-overlay {
             position: fixed;
             top: 0;
@@ -159,7 +159,7 @@ export default function AvatarSelectorModal({ isOpen, onClose, isVip = false }) 
           .avatar-modal::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #0099ff, #00f5ff);
           }
-        `}</style>
+        ` }} />
 
         <div className="modal-header">
           <button className="close-btn" onClick={onClose} aria-label="Close">

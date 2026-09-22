@@ -481,7 +481,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                 </div>
             ), document.body)}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes rbw-fadeIn  { from { opacity: 0 } to { opacity: 1 } }
                 @keyframes rbw-slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97) } to { opacity: 1; transform: translateY(0) scale(1) } }
                 @keyframes rbw-spin    { to { transform: rotate(360deg) } }
@@ -493,7 +493,7 @@ export default function ReportBugWidget({ contextPath, theme = 'dark', instanceI
                         transition: none !important;
                     }
                 }
-            `}</style>
+            ` }} />
         </>
     );
 }

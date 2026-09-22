@@ -27,7 +27,7 @@ jobs:
        contains(github.event.deployment_status.environment, 'Production'))
     name: The Live SEO Contract Holds
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:

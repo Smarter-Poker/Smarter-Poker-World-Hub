@@ -573,7 +573,7 @@ export default function TriviaResult({
                 </div>
             </motion.div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .trivia-result {
                     display: flex;
                     flex-direction: column;
@@ -1061,7 +1061,7 @@ export default function TriviaResult({
                     line-height: 1.5;
                     border-left: 2px solid rgba(35, 116, 225, 0.3);
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
