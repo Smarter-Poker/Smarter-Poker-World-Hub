@@ -537,7 +537,7 @@ export default function TimeAttackPage() {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .time-attack-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
@@ -748,7 +748,7 @@ export default function TimeAttackPage() {
                     gap: 12px;
                     justify-content: center;
                 }
-            `}</style>
+            ` }} />
           {/* Server rendered: measured on production this page returned
               only chrome to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="trivia-time-attack" />

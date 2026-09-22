@@ -470,7 +470,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
         {/* Timestamp (on hover) */}
         <span className="message-time">{message.time}</span>
 
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
             .message-row {
                 display: flex;
                 align-items: flex-end;
@@ -567,7 +567,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user, onAction }) => (
             .message-row:hover .message-time {
                 opacity: 1;
             }
-        `}</style>
+        ` }} />
     </div>
 );
 
@@ -1533,7 +1533,7 @@ export const ChatWindow = ({
                 {conversation?.unreadCount > 0 && (
                     <span className="unread-badge">{conversation.unreadCount}</span>
                 )}
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     .chat-minimized {
                         position: relative;
                         cursor: pointer;
@@ -1553,7 +1553,7 @@ export const ChatWindow = ({
                         align-items: center;
                         justify-content: center;
                     }
-                `}</style>
+                ` }} />
             </div>
         );
     }
@@ -2721,7 +2721,7 @@ export const ChatWindow = ({
                 />
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .chat-window {
                     width: 328px;
                     height: 455px;
@@ -3299,7 +3299,7 @@ export const ChatWindow = ({
                 .send-btn:disabled {
                     opacity: 0.5;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 };
@@ -3386,7 +3386,7 @@ export const ConversationList = ({
                 <Link href="/hub/messenger" className="see-all-link">See All In Messenger</Link>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .conversation-list {
                     width: 360px;
                     max-height: 500px;
@@ -3528,7 +3528,7 @@ export const ConversationList = ({
                 .see-all-link:hover {
                     text-decoration: underline;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 };

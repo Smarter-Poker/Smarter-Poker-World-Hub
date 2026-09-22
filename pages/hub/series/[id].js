@@ -758,7 +758,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           )}
         </main>
-        <style suppressHydrationWarning>{styles}</style>
+        <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
       </>
     );
   }
@@ -800,7 +800,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
             </div>
           </div>
         </main>
-        <style suppressHydrationWarning>{styles}</style>
+        <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
       </>
     );
   }
@@ -1390,7 +1390,7 @@ export default function SeriesDetailPage({ seoSeries = null }) {
         </div>
       </main>
 
-      <style suppressHydrationWarning>{styles}</style>
+      <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: styles }} />
     </>
   );
 }

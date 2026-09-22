@@ -1123,6 +1123,7 @@ jobs:
             __tests__/no-public-page-is-nameless.law.test.mjs \
             __tests__/a-venue-title-survives-a-result.law.test.mjs \
             __tests__/one-place-decides-if-a-title-fits.law.test.mjs \
+            __tests__/inline-css-is-never-escaped.law.test.mjs \
             __tests__/a-series-page-carries-its-schema.law.test.mjs \
             __tests__/one-page-per-real-thing.law.test.mjs \
             __tests__/two-pages-never-share-a-title.law.test.mjs \

@@ -1192,7 +1192,7 @@ export default function TournamentsPage() {
                 </div>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .tournaments-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
@@ -2023,7 +2023,7 @@ export default function TournamentsPage() {
                         object-fit: contain;
                     }
                 }
-            `}</style>
+            ` }} />
               <VIPGateModal 
                 visible={upgradeModalVisible}
                 onClose={hideUpgradeModal}

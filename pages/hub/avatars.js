@@ -42,7 +42,7 @@ export default function AvatarsPage() {
 
             <div className="avatars-page-wrapper">
                 <div className="avatars-page">
-                    <style>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                     .avatars-page {
                         min-height: 100vh;
                         padding: 0;
@@ -75,7 +75,7 @@ export default function AvatarsPage() {
                     
 
                     
-                `}</style>
+                ` }} />
 
                     {/* Header */}
                     <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
