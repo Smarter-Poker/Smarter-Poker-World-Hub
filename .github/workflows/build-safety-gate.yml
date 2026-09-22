@@ -1138,6 +1138,7 @@ jobs:
             __tests__/poker-near-me-phase-3.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
+            __tests__/a-feed-page-shows-its-feed.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
             __tests__/the-glossary-is-readable-by-an-engine.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
