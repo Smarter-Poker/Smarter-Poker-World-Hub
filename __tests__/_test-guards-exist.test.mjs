@@ -83,6 +83,9 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
+// 2026-09-22: the same route schedules only its periodic steps. Runs the real
+// handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).
+import './club-stats-maintenance-does-no-repair-work.law.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
