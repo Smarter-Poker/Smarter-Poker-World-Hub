@@ -8656,6 +8656,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8669,6 +8670,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8678,6 +8680,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8690,6 +8693,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8702,6 +8706,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8713,6 +8718,7 @@
             "pages/hub/training/glossary.js"
           ],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8722,6 +8728,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8732,6 +8739,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8740,6 +8748,7 @@
         }
       },
       "existingTests": [
+        "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
@@ -61950,6 +61959,7 @@
     "src/hooks/useVIPGate.js"
   ],
   "tests": [
+    "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
     "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
@@ -72985,6 +72995,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ]
@@ -79665,6 +79676,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
@@ -84439,6 +84451,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/a-comparison-cites-what-it-claims.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
