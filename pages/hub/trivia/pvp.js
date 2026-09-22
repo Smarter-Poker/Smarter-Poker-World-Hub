@@ -1288,7 +1288,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
 
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .pvp-page {
                     min-height: 100vh; padding-bottom: 70px;
                     background: #0a0e1a;
@@ -2051,7 +2051,7 @@ export default function PvPPage({ pvpHorsesEnabled = false }) {
                         object-fit: contain;
                     }
                 }
-            `}</style>
+            ` }} />
           {/* Server rendered: measured on production this page returned
               only chrome to a crawler (AEO phase 3, 2026-09-17). */}
           <HubPageSummary page="trivia-pvp" />
