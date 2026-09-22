@@ -47,6 +47,17 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { hubCollectionSchema } from '../../../src/lib/seo/hubPageSchema';
+import { createClient } from '@supabase/supabase-js';
+import {
+  US_STATES_BY_CODE,
+  stateCodeToName,
+  buildGeoUrl,
+  isGroupPubliclyVisible,
+} from '../../../src/lib/home-games/locationUtils';
+import {
+  fetchAllHomeGameDirectoryRows,
+  fetchHomeGameGroupsInChunks,
+} from '../../../src/lib/home-games/geoDirectoryServer.mjs';
 
 // AEO phase 3 (2026-09-17): this page had copy and no structured data.
 const NEAR_ME_SCHEMA = hubCollectionSchema({
@@ -116,7 +127,62 @@ function groupHref(g) {
   return '/hub/home-games/near-me';
 }
 
-export default function HomeGamesNearMePage() {
+// A FEED PAGE SHOWS ITS FEED (2026-09-22). This page is driven by the
+// visitor's location, so the server cannot know which games are near them,
+// and a crawler measured 93 words here: a heading and a search form. What the
+// server can know is where public home games exist at all. It lists those
+// cities, each linking to its /hub/home-games/in/[state]/[city] page, using
+// the same visibility rule as that directory (public page, active non-private
+// group, not auto-hidden). Only a city, a state and a count leave the server:
+// no group names, hosts, ids, addresses or coordinates.
+export async function getServerSideProps({ res }) {
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+  const empty = { props: { publicCities: [] } };
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return empty;
+  try {
+    const supabase = createClient(url, key);
+    const pageResult = await fetchAllHomeGameDirectoryRows((from, to) => supabase
+      .from('social_pages')
+      .select('id, location_state, location_city, linked_entity_id')
+      .eq('page_type', 'home_game')
+      .eq('is_public', true)
+      .not('location_state', 'is', null)
+      .not('location_city', 'is', null)
+      .order('id', { ascending: true })
+      .range(from, to));
+    if (pageResult.error || !pageResult.complete) return empty;
+    const groupIds = pageResult.rows.map((p) => p.linked_entity_id).filter(Boolean);
+    const groupResult = await fetchHomeGameGroupsInChunks(groupIds, (ids) => supabase
+      .from('commander_home_groups')
+      .select('id, is_active, is_private, last_activity_at, created_at, visibility_override_until')
+      .in('id', ids));
+    if (groupResult.error || !groupResult.complete) return empty;
+    const groupMap = Object.fromEntries(groupResult.rows.map((g) => [String(g.id), g]));
+
+    const byCity = new Map();
+    for (const p of pageResult.rows) {
+      const code = String(p.location_state || '').toUpperCase();
+      const city = String(p.location_city || '').trim();
+      if (!US_STATES_BY_CODE[code] || !city) continue;
+      if (!isGroupPubliclyVisible(groupMap[String(p.linked_entity_id)])) continue;
+      const href = buildGeoUrl(code, city);
+      if (!href || href.split('/').length < 6) continue;
+      const rec = byCity.get(href) || { href, city, stateName: stateCodeToName(code), count: 0 };
+      rec.count += 1;
+      byCity.set(href, rec);
+    }
+    const publicCities = Array.from(byCity.values())
+      .sort((a, b) => a.stateName.localeCompare(b.stateName) || a.city.localeCompare(b.city));
+    return { props: { publicCities } };
+  } catch (e) {
+    console.warn('[home-games/near-me] city directory unavailable:', e?.message || e);
+    return empty;
+  }
+}
+
+export default function HomeGamesNearMePage({ publicCities = [] }) {
   const [status, setStatus]   = useState('idle');   // idle | locating | searching | ready | error | denied
   const [error, setError]     = useState(null);
   const [coords, setCoords]   = useState(null);     // { lat, lng }
@@ -521,6 +587,27 @@ export default function HomeGamesNearMePage() {
               ))}
             </div>
           </div>
+        )}
+        {/* Where public home games exist today. Server rendered (see
+            getServerSideProps): each link is a real city directory page. */}
+        {publicCities.length > 0 && (
+          <section className="cmd-panel p-5" aria-labelledby="home-games-by-city">
+            <h2 id="home-games-by-city" className="text-base font-bold text-white mb-3">Browse Home Games By City</h2>
+            <ul className="grid sm:grid-cols-2 gap-2">
+              {publicCities.map((c) => (
+                <li key={c.href}>
+                  <Link href={c.href} className="flex items-center gap-2 text-sm text-[#CBD5E1] hover:text-white">
+                    <MapPin className="w-4 h-4 text-[#22D3EE] flex-shrink-0" />
+                    <span>Poker Home Games In {c.city}, {c.stateName}</span>
+                    <span className="text-xs text-[#64748B]">({c.count} {c.count === 1 ? 'Game' : 'Games'})</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link href="/hub/home-games/in" className="inline-block mt-3 text-xs font-semibold text-[#22D3EE] hover:text-white">
+              All States
+            </Link>
+          </section>
         )}
       </main>
     </div>

@@ -1116,6 +1116,7 @@ jobs:
             __tests__/the-commander-pages-say-what-they-are.law.test.mjs \
             __tests__/the-entity-graph-is-connected.law.test.mjs \
             __tests__/llms-txt-states-the-entity.law.test.mjs \
+            __tests__/every-glossary-term-has-a-page.law.test.mjs \
             __tests__/the-summary-carries-the-schema.law.test.mjs \
             __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \
             __tests__/a-page-never-returns-nothing-before-its-head.law.test.mjs \
@@ -1123,10 +1124,13 @@ jobs:
             __tests__/no-public-page-is-nameless.law.test.mjs \
             __tests__/a-venue-title-survives-a-result.law.test.mjs \
             __tests__/one-place-decides-if-a-title-fits.law.test.mjs \
+            __tests__/every-lesson-answers-first.law.test.mjs \
+            __tests__/inline-css-is-never-escaped.law.test.mjs \
             __tests__/a-series-page-carries-its-schema.law.test.mjs \
             __tests__/one-page-per-real-thing.law.test.mjs \
             __tests__/two-pages-never-share-a-title.law.test.mjs \
             __tests__/a-link-in-the-copy-goes-somewhere.law.test.mjs \
+            __tests__/a-leaderboard-shows-its-leaders.law.test.mjs \
             __tests__/a-directory-lists-what-it-contains.law.test.mjs \
             __tests__/a-tour-page-serves-its-schedule.law.test.mjs \
             __tests__/a-series-page-lists-its-events.law.test.mjs \
@@ -1134,16 +1138,20 @@ jobs:
             __tests__/a-city-is-a-city.law.test.mjs \
             __tests__/a-page-with-its-content-is-not-loading.law.test.mjs \
             __tests__/the-charts-are-on-the-chart-page.law.test.mjs \
+            __tests__/a-range-comment-states-its-data.law.test.mjs \
             __tests__/poker-near-me-phase-3.test.mjs \
             __tests__/the-site-has-one-page-that-says-what-it-is.law.test.mjs \
             __tests__/schema-never-publishes-a-placeholder-address.law.test.mjs \
+            __tests__/a-feed-page-shows-its-feed.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
             __tests__/the-glossary-is-readable-by-an-engine.law.test.mjs \
+            __tests__/a-comparison-cites-what-it-claims.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
             __tests__/the-faq-answers-its-own-questions.law.test.mjs \
             __tests__/a-hub-page-renders-on-the-server.law.test.mjs \
+            __tests__/the-feeds-say-what-they-hold.law.test.mjs \
             tests/club-arena-public-routes-are-prerendered.test.mjs
 
       # ═══════════════════════════════════════════════════════════════

@@ -70,6 +70,10 @@ function resolves(link, patterns) {
  */
 const SERVED_ELSEWHERE = new Set([
   '/hub/club-arena',     // the Poker Arena app, proxied by a rewrite
+  // Poker Arena pages the comparison sources cite (src/content/compare/
+  // facts.js), served by the same rewrite; both fetched live 2026-09-22.
+  '/hub/club-arena/help',
+  '/hub/club-arena/legal/fair-gaming',
   '/legal/privacy',      // 308 to /privacy
   '/legal/terms',        // 308 to /terms
   '/profile',            // 308 to /hub/profile

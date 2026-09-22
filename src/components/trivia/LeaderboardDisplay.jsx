@@ -208,7 +208,7 @@ export default function LeaderboardDisplay({
                 </div>
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .leaderboard {
                     background: #18191a;
                     border: 1px solid #4e4f50;
@@ -399,7 +399,7 @@ export default function LeaderboardDisplay({
                     font-size: 12px;
                     color: #2374e1;
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }

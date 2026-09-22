@@ -83,6 +83,9 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
+// 2026-09-22: the same route schedules only its periodic steps. Runs the real
+// handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).
+import './club-stats-maintenance-does-no-repair-work.law.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
@@ -280,6 +283,13 @@ import './a-scraper-run-is-judged-on-what-it-produced.test.mjs';
 // the inline restore script in _document, and the urgent `tournament_resumed`
 // push that tells a player their seat is being dealt again after the break.
 import './the-app-reopens-where-you-left-it.test.mjs';
+// 2026-09-22: a club's table count has one writer, the database's
+// trg_tables_sync_club_counts_* triggers. manage-table decremented it again
+// through decrement_club_table_count, dropped on 2026-09-20, and a
+// read-and-write-back of count - 1 when that call failed. Runs the real
+// handler through vm.SourceTextModule, which CHECK 8's
+// --experimental-vm-modules provides for this file.
+import './a-club-table-count-has-one-writer.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 

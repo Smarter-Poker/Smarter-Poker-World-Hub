@@ -110,7 +110,7 @@ export default function PreflopReference() {
         A Hand Written With A Percentage Is Played That Share Of The Time And Folded The
         Rest, Which Is What Separates A Range From A List. Work Through Them Hand By Hand
         In The Lab Above, Or Read The Terms In The{' '}
-        <Link href="/hub/training/glossary" style={styles.link}>Poker Glossary</Link>.
+        <Link href="/glossary" style={styles.link}>Poker Glossary</Link>.
       </p>
     </section>
   );

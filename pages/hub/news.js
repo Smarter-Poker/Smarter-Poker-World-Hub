@@ -2415,7 +2415,7 @@ function NewsHub() {
                         )}
                     </AnimatePresence>
 
-                    <style>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                     .news-hub {
                         min-height: 100vh; padding-bottom: 70px;
                         background: #18191A;
@@ -4189,14 +4189,14 @@ function NewsHub() {
                             font-size: 12px;
                         }
                     }
-                `}</style>
+                ` }} />
 
                     {/* ================================================================
                     GLOBAL MOBILE OVERRIDE — Bypasses styled-jsx component scoping
                     This is required because NewsBox, VideoCard etc. are separate 
                     components with their own <style> blocks.
                     ================================================================ */}
-                    <style>{`
+                    <style dangerouslySetInnerHTML={{ __html: `
                     @media (max-width: 768px) {
                         /* NOTE: the old body/html "SCROLL UNLOCK" override was removed — its
                            !important beat every modal's inline body scroll lock. A stale
@@ -4360,7 +4360,7 @@ function NewsHub() {
                             font-size: 12px !important;
                         }
                     }
-                `}</style>
+                ` }} />
                 </div>
     </PageTransition>
             {/* Outside <PageTransition> for the same reason the head is, and

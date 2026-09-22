@@ -209,7 +209,7 @@ export default function GhostOpponent({
                 </AnimatePresence>
             </div>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .ghost-opponent {
                     margin-bottom: 16px;
                 }
@@ -391,7 +391,7 @@ export default function GhostOpponent({
                     .score-num,
                     .score-avatar.opp { transition: none; }
                 }
-            `}</style>
+            ` }} />
         </div>
     );
 }
