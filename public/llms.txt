@@ -21,6 +21,7 @@ https://smarter.poker/about is the page that states it.
 - Poker glossary, 49 terms defined: https://smarter.poker/hub/training/glossary
 - Terms of service: https://smarter.poker/terms
 - Privacy policy: https://smarter.poker/privacy
+- Poker strategy lessons, every answer with its chart: https://smarter.poker/learn
 - Sitemap: https://smarter.poker/sitemap.xml
 - Poker Arena sitemap: https://smarter.poker/hub/club-arena/sitemap.xml
 

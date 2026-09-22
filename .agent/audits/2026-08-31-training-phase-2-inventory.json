@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 142,
+    "tests": 143,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 371,
     "routeStateCells": 752,
@@ -5214,6 +5214,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5257,6 +5258,7 @@
             "src/utils/pokerHandEvaluator.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5299,6 +5301,7 @@
             "src/utils/trainingSounds.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5322,6 +5325,7 @@
             "src/lib/training/boundedTrainingFetch.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5346,6 +5350,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5374,6 +5379,7 @@
             "src/utils/shareCard.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5391,6 +5397,7 @@
             "src/hooks/useGTOTrainer.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5413,6 +5420,7 @@
             "src/lib/supabaseKeys.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -5425,6 +5433,7 @@
         }
       },
       "existingTests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
@@ -11938,6 +11947,7 @@
             "src/lib/authUtils.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -11963,6 +11973,7 @@
             "src/stores/pageOverlayStore.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -11997,6 +12008,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -12021,6 +12033,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -12050,6 +12063,7 @@
             "src/stores/toastStore.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -12083,6 +12097,7 @@
             "src/tutorials/personal-assistant.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -12098,6 +12113,7 @@
             "src/contexts/AvatarContext.jsx"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -12118,6 +12134,7 @@
             "src/services/avatar-service.js"
           ],
           "tests": [
+            "__tests__/every-lesson-answers-first.law.test.mjs",
             "__tests__/training-casino-realism-catalog.test.mjs",
             "__tests__/training-client-endpoint-wiring.test.mjs",
             "__tests__/training-focused-launch-wiring.test.mjs",
@@ -12128,6 +12145,7 @@
         }
       },
       "existingTests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
@@ -61935,6 +61953,7 @@
     "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
     "__tests__/daily-challenges-casino-realism.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
+    "__tests__/every-lesson-answers-first.law.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
     "__tests__/indexnow-submit.test.mjs",
@@ -70588,6 +70607,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
@@ -75358,6 +75378,7 @@
         }
       ],
       "tests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
@@ -79645,6 +79666,7 @@
       "realtime": [],
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs"
@@ -81554,6 +81576,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-preflop-chart-authority.test.mjs"
       ]
     },
@@ -81841,6 +81864,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-auxiliary-launch-wiring.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
@@ -84416,6 +84440,7 @@
       "realtime": [],
       "tests": [
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
+        "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
@@ -84588,7 +84613,9 @@
       "apiReferences": [],
       "persistence": [],
       "realtime": [],
-      "tests": []
+      "tests": [
+        "__tests__/every-lesson-answers-first.law.test.mjs"
+      ]
     }
   ],
   "classifications": {
@@ -90744,7 +90771,8 @@
           "pages/hub/training/tournament/[id].js",
           "pages/hub/training/tournaments.js",
           "pages/hub/video-library.js",
-          "src/components/training/LevelSelector.tsx"
+          "src/components/training/LevelSelector.tsx",
+          "src/content/learn/lessons.js"
         ]
       },
       {
@@ -99596,7 +99624,8 @@
           "pages/hub/training/tournament/[id].js",
           "pages/hub/training/tournaments.js",
           "pages/hub/video-library.js",
-          "src/components/training/LevelSelector.tsx"
+          "src/components/training/LevelSelector.tsx",
+          "src/content/learn/lessons.js"
         ]
       },
       {
