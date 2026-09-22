@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 339,
+    "dependencyFiles": 340,
     "componentFiles": 51,
     "hookFiles": 14,
-    "ctas": 346,
+    "ctas": 347,
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 141,
+    "tests": 142,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 368,
+    "possibleUnwiredFunctions": 372,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -1974,7 +1974,7 @@
         "success": false,
         "authExpiry": false
       },
-      "ctaCount": 1,
+      "ctaCount": 2,
       "dialogCount": 0,
       "apiReferences": [],
       "persistenceWrites": {
@@ -8638,6 +8638,7 @@
         "pages/hub/training/glossary.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/TrainerEmptyState.jsx",
+        "src/content/glossary/terms.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/seo/productOgImage.js"
@@ -8647,6 +8648,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8660,6 +8662,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8669,6 +8672,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8681,6 +8685,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8693,6 +8698,7 @@
             "src/components/training/TrainerEmptyState.jsx"
           ],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8704,6 +8710,7 @@
             "pages/hub/training/glossary.js"
           ],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8713,6 +8720,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8723,6 +8731,7 @@
           "status": "coverage-gap",
           "evidence": [],
           "tests": [
+            "__tests__/every-glossary-term-has-a-page.law.test.mjs",
             "__tests__/llms-txt-states-the-entity.law.test.mjs",
             "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
             "__tests__/training-phase-3-adversarial.test.mjs"
@@ -8731,6 +8740,7 @@
         }
       },
       "existingTests": [
+        "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/llms-txt-states-the-entity.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
@@ -26100,12 +26110,12 @@
       "imports": [
         "src/components/seo/SEOHead.js",
         "src/components/training/TrainerEmptyState.jsx",
+        "src/content/glossary/terms.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js"
       ],
       "links": [
-        "/hub/training",
-        "/hub/training/glossary"
+        "/hub/training"
       ],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -26113,12 +26123,22 @@
         {
           "element": "button",
           "name": "Back to training",
-          "line": 420,
+          "line": 142,
           "handler": "() => router.push('/hub/training')",
           "destination": null,
           "type": "button",
           "disabled": null,
           "wiring": "handler"
+        },
+        {
+          "element": "a",
+          "name": "Full Entry:",
+          "line": 307,
+          "handler": "(e) => e.stopPropagation()",
+          "destination": "glossaryTermPath(t.slug)",
+          "type": null,
+          "disabled": null,
+          "wiring": "destination"
         }
       ],
       "dialogs": {
@@ -26153,7 +26173,7 @@
       "functions": [
         {
           "name": "BackArrowIcon",
-          "line": 33,
+          "line": 36,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26161,7 +26181,7 @@
         },
         {
           "name": "StarToggleIcon",
-          "line": 41,
+          "line": 44,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26169,23 +26189,15 @@
         },
         {
           "name": "GlossaryPage",
-          "line": 351,
+          "line": 74,
           "references": 1,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
-          "name": "termSlug",
-          "line": 321,
-          "references": 4,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
           "name": "toggleFavorite",
-          "line": 375,
+          "line": 98,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -26198,7 +26210,7 @@
       "markers": [
         {
           "kind": "PLACEHOLDER",
-          "line": 454,
+          "line": 176,
           "excerpt": "placeholder=\"Search terms...\"",
           "disposition": "ui-input-copy",
           "review": "accepted",
@@ -42469,6 +42481,86 @@
           "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
         }
       ]
+    },
+    {
+      "file": "src/content/glossary/terms.js",
+      "imports": [],
+      "links": [
+        "/hub/training"
+      ],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "getGlossaryTerm",
+          "line": 675,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "relatedGlossaryTerms",
+          "line": 680,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "glossaryByCategory",
+          "line": 685,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "glossaryTermPath",
+          "line": 693,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "getGlossaryTerm",
+        "relatedGlossaryTerms",
+        "glossaryByCategory",
+        "glossaryTermPath"
+      ],
+      "markers": []
     },
     {
       "file": "src/contexts/ActiveIdentityContext.jsx",
@@ -59506,6 +59598,10 @@
     },
     {
       "from": "pages/hub/training/glossary.js",
+      "to": "src/content/glossary/terms.js"
+    },
+    {
+      "from": "pages/hub/training/glossary.js",
       "to": "src/engine/EventBus.js"
     },
     {
@@ -61836,6 +61932,7 @@
   ],
   "tests": [
     "__tests__/daily-challenges-casino-realism.test.mjs",
+    "__tests__/every-glossary-term-has-a-page.law.test.mjs",
     "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
     "__tests__/global-header-approved.test.mjs",
     "__tests__/horse-phase3-training-cache-truth.test.mjs",
@@ -63456,16 +63553,29 @@
       "effectRef": "pages/hub/training/focus-timer.js"
     },
     {
-      "id": "pages/hub/training/glossary.js:420:1",
+      "id": "pages/hub/training/glossary.js:142:1",
       "file": "pages/hub/training/glossary.js",
       "element": "button",
       "name": "Back to training",
-      "line": 420,
+      "line": 142,
       "handler": "() => router.push('/hub/training')",
       "destination": null,
       "type": "button",
       "disabled": null,
       "wiring": "handler",
+      "effectRef": "pages/hub/training/glossary.js"
+    },
+    {
+      "id": "pages/hub/training/glossary.js:307:2",
+      "file": "pages/hub/training/glossary.js",
+      "element": "a",
+      "name": "Full Entry:",
+      "line": 307,
+      "handler": "(e) => e.stopPropagation()",
+      "destination": "glossaryTermPath(t.slug)",
+      "type": null,
+      "disabled": null,
+      "wiring": "destination",
       "effectRef": "pages/hub/training/glossary.js"
     },
     {
@@ -72846,6 +72956,7 @@
         "pages/hub/training/glossary.js",
         "src/components/seo/SEOHead.js",
         "src/components/training/TrainerEmptyState.jsx",
+        "src/content/glossary/terms.js",
         "src/engine/EventBus.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/seo/productOgImage.js"
@@ -72866,6 +72977,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/training-phase-3-adversarial.test.mjs"
       ]
@@ -81492,6 +81604,20 @@
       ]
     },
     {
+      "file": "src/content/glossary/terms.js",
+      "reachableFiles": [
+        "src/content/glossary/terms.js"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+        "__tests__/indexnow-submit.test.mjs",
+        "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs"
+      ]
+    },
+    {
       "file": "src/contexts/ActiveIdentityContext.jsx",
       "reachableFiles": [
         "src/contexts/ActiveIdentityContext.jsx",
@@ -84300,9 +84426,11 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/every-glossary-term-has-a-page.law.test.mjs",
         "__tests__/every-hub-product-page-carries-its-schema.law.test.mjs",
         "__tests__/indexnow-submit.test.mjs",
         "__tests__/page-tutorials.test.mjs",
+        "__tests__/the-glossary-is-readable-by-an-engine.law.test.mjs",
         "__tests__/the-home-page-title-and-share-image-are-honest.law.test.mjs",
         "__tests__/the-sitemap-lists-only-pages-worth-indexing.law.test.mjs",
         "__tests__/the-trivia-and-training-pages-say-what-they-are.law.test.mjs",
@@ -84767,7 +84895,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "kind": "PLACEHOLDER",
-        "line": 454,
+        "line": 176,
         "excerpt": "placeholder=\"Search terms...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -88589,7 +88717,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "name": "GlossaryPage",
-        "line": 351,
+        "line": 74,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -90411,6 +90539,71 @@
         "review": "accepted",
         "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
         "externalReferenceFiles": []
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "getGlossaryTerm",
+        "line": 675,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/glossary/[term].js"
+        ]
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "relatedGlossaryTerms",
+        "line": 680,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/glossary/[term].js"
+        ]
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "glossaryByCategory",
+        "line": 685,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/glossary/index.js"
+        ]
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "glossaryTermPath",
+        "line": 693,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/glossary/[term].js",
+          "pages/glossary/index.js",
+          "pages/hub/training/glossary.js",
+          "pages/sitemap.xml.js"
+        ]
       },
       {
         "file": "src/contexts/ActiveIdentityContext.jsx",
@@ -93573,7 +93766,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "kind": "PLACEHOLDER",
-        "line": 454,
+        "line": 176,
         "excerpt": "placeholder=\"Search terms...\"",
         "disposition": "ui-input-copy",
         "review": "accepted",
@@ -97395,7 +97588,7 @@
       {
         "file": "pages/hub/training/glossary.js",
         "name": "GlossaryPage",
-        "line": 351,
+        "line": 74,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -99217,6 +99410,71 @@
         "review": "accepted",
         "rationale": "Public navigation export is preserved because the approved global header contract is frozen.",
         "externalReferenceFiles": []
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "getGlossaryTerm",
+        "line": 675,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/glossary/[term].js"
+        ]
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "relatedGlossaryTerms",
+        "line": 680,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/glossary/[term].js"
+        ]
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "glossaryByCategory",
+        "line": 685,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "pages/glossary/index.js"
+        ]
+      },
+      {
+        "file": "src/content/glossary/terms.js",
+        "name": "glossaryTermPath",
+        "line": 693,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/every-glossary-term-has-a-page.law.test.mjs",
+          "pages/glossary/[term].js",
+          "pages/glossary/index.js",
+          "pages/hub/training/glossary.js",
+          "pages/sitemap.xml.js"
+        ]
       },
       {
         "file": "src/contexts/ActiveIdentityContext.jsx",

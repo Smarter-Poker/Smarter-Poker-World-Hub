@@ -18,7 +18,7 @@ https://smarter.poker/about is the page that states it.
 
 - About, the company and the products: https://smarter.poker/about
 - The hub, every product in one place: https://smarter.poker/hub
-- Poker glossary, 49 terms defined: https://smarter.poker/hub/training/glossary
+- Poker glossary, every term on its own page: https://smarter.poker/glossary
 - Terms of service: https://smarter.poker/terms
 - Privacy policy: https://smarter.poker/privacy
 - Sitemap: https://smarter.poker/sitemap.xml
@@ -29,7 +29,7 @@ https://smarter.poker/about is the page that states it.
 ### GTO Training Engine
 Interactive poker training with 100+ scenario-based games covering MTT, Cash, Spins & SNGs, Mental Game, and Advanced Theory. Powered by AI coaching from Jarvis, the tactical intelligence layer. Free to play.
 - Training hub: https://smarter.poker/hub/training
-- Poker glossary, 49 terms defined: https://smarter.poker/hub/training/glossary
+- Poker glossary, club poker, live room and GTO terms: https://smarter.poker/glossary
 
 ### Poker Near Me
 Live poker room and venue finder with real-time game information, tournament
