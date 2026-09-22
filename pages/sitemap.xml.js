@@ -17,6 +17,8 @@ import {
 import bundledSeriesData from '../data/poker-tour-series-2026.json';
 import { AS_OF as COMPARE_AS_OF, compareRoutes } from '../src/content/compare/pages';
 import tourSourceRegistry from '../data/tour-source-registry.json';
+import { LESSONS } from '../src/content/learn/lessons';
+import { LEARN_PATH, lessonPath } from '../src/lib/learn/learnSite';
 
 const SITE_URL = 'https://smarter.poker';
 const SITEMAP_DB_PAGE_SIZE = 1000;
@@ -37,6 +39,17 @@ const SITEMAP_SERIES_EVIDENCE_COLUMNS = [
   'scrape_timestamp',
   'scrape_batch_id',
 ].join(', ');
+
+// ─── POKER STRATEGY LESSONS (AEO section 3.7, 2026-09-22) ────────────────────
+// The /learn index and one page per lesson, read from the same module the
+// pages are generated from (src/content/learn/lessons.js), so a lesson added
+// to the module gets its URL here with no second edit, and the sitemap can
+// never offer a lesson that has no page. Pinned by
+// __tests__/every-lesson-answers-first.law.test.mjs.
+const learnPages = [
+  { path: LEARN_PATH, priority: '0.8', changefreq: 'monthly' },
+  ...LESSONS.map((l) => ({ path: lessonPath(l.slug), priority: '0.7', changefreq: 'monthly' })),
+];
 
 // ─── Static Pages ────────────────────────────────────────────────────────────
 // PAGES ABOUT THE VIEWER ARE NOT IN THE SITEMAP EITHER (AEO phase 3,
@@ -571,6 +584,7 @@ export async function getServerSideProps({ res }) {
     ...staticPages,
     ...comparePages,
     ...releaseGatedPages,
+    ...learnPages,
     ...homeGameUrls,
     ...pokerVenueUrls,
     ...pokerEventDetailUrls,
