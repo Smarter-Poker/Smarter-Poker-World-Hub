@@ -11,7 +11,7 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 341,
+    "dependencyFiles": 340,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 346,
@@ -19,14 +19,14 @@
     "persistenceFiles": 77,
     "realtimeFiles": 6,
     "tests": 142,
-    "markerCandidates": 335,
-    "possibleUnwiredFunctions": 373,
+    "markerCandidates": 329,
+    "possibleUnwiredFunctions": 371,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 108,
+    "markerDocumentedFollowUp": 105,
     "functionPhaseReview": 0
   },
   "games": [
@@ -2479,7 +2479,7 @@
         "error": true,
         "retry": false,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": true,
         "authExpiry": false
       },
@@ -10257,7 +10257,6 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/summarySchema.js",
-        "src/lib/seo/swrFallback.mjs",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -10291,7 +10290,8 @@
             "src/components/ui/UniversalHeader.js",
             "src/contexts/AvatarContext.jsx",
             "src/hooks/useCurrentUser.js",
-            "src/lib/authUtils.js"
+            "src/lib/authUtils.js",
+            "src/lib/training/publicLeaderboardSeed.mjs"
           ],
           "tests": [
             "__tests__/a-leaderboard-shows-its-leaders.law.test.mjs",
@@ -10321,7 +10321,6 @@
             "src/contexts/ActiveIdentityContext.jsx",
             "src/contexts/AvatarContext.jsx",
             "src/lib/mediaStreamSingleton.js",
-            "src/lib/seo/swrFallback.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/stores/pageOverlayStore.js"
           ],
@@ -10355,7 +10354,6 @@
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/mediaStreamSingleton.js",
-            "src/lib/seo/swrFallback.mjs",
             "src/lib/store/boundedCommerceFetch.js",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/store/marketplaceCopy.js",
@@ -10421,7 +10419,6 @@
             "src/hooks/useUnreadCount.jsx",
             "src/lib/authUtils.js",
             "src/lib/headerStats.js",
-            "src/lib/seo/swrFallback.mjs",
             "src/lib/training/publicLeaderboardSeed.mjs",
             "src/services/avatar-service.js",
             "src/stores/toastStore.js"
@@ -10441,6 +10438,7 @@
         "stale": {
           "status": "implemented-or-detected",
           "evidence": [
+            "pages/hub/training/leaderboard.js",
             "src/components/store/DiamondWalletModal.jsx",
             "src/components/ui/GeevesMenuWidget.jsx",
             "src/components/ui/HamburgerMenu.jsx",
@@ -10455,7 +10453,6 @@
             "src/lib/diamonds/ledgerFilters.js",
             "src/lib/headerStats.js",
             "src/lib/mediaStreamSingleton.js",
-            "src/lib/seo/swrFallback.mjs",
             "src/lib/store/checkoutIntentStore.js",
             "src/lib/supabaseKeys.js",
             "src/services/avatar-service.js",
@@ -27944,7 +27941,6 @@
         "src/hooks/usePersistedFilters.js",
         "src/hooks/useTrainingBus.js",
         "src/lib/authUtils.js",
-        "src/lib/seo/swrFallback.mjs",
         "src/lib/training/publicLeaderboardSeed.mjs"
       ],
       "links": [
@@ -27959,7 +27955,7 @@
         {
           "element": "button",
           "name": "Show daily rankings",
-          "line": 158,
+          "line": 156,
           "handler": "() => setTimeframe('daily')",
           "destination": null,
           "type": null,
@@ -27969,7 +27965,7 @@
         {
           "element": "button",
           "name": "Show weekly rankings",
-          "line": 166,
+          "line": 164,
           "handler": "() => setTimeframe('weekly')",
           "destination": null,
           "type": null,
@@ -27979,7 +27975,7 @@
         {
           "element": "button",
           "name": "Show all-time rankings",
-          "line": 174,
+          "line": 172,
           "handler": "() => setTimeframe('all-time')",
           "destination": null,
           "type": null,
@@ -27989,7 +27985,7 @@
         {
           "element": "button",
           "name": "`Show ${cat.label} category`",
-          "line": 194,
+          "line": 192,
           "handler": "() => setView(cat.id)",
           "destination": null,
           "type": null,
@@ -28008,7 +28004,7 @@
         "error": true,
         "retry": false,
         "offline": false,
-        "stale": false,
+        "stale": true,
         "success": true,
         "authExpiry": false
       },
@@ -28029,7 +28025,7 @@
       "functions": [
         {
           "name": "getServerSideProps",
-          "line": 39,
+          "line": 38,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -28037,7 +28033,7 @@
         },
         {
           "name": "TrophyIcon",
-          "line": 54,
+          "line": 52,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28045,7 +28041,7 @@
         },
         {
           "name": "MedalIcon",
-          "line": 68,
+          "line": 66,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -28053,7 +28049,7 @@
         },
         {
           "name": "TrainingLeaderboard",
-          "line": 84,
+          "line": 82,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -28061,7 +28057,7 @@
         },
         {
           "name": "LeaderboardEntry",
-          "line": 262,
+          "line": 260,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28069,7 +28065,7 @@
         },
         {
           "name": "setTimeframe",
-          "line": 93,
+          "line": 91,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28077,7 +28073,7 @@
         },
         {
           "name": "setView",
-          "line": 94,
+          "line": 92,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -28085,7 +28081,7 @@
         },
         {
           "name": "getRankColor",
-          "line": 271,
+          "line": 269,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -28093,7 +28089,7 @@
         },
         {
           "name": "getRankIcon",
-          "line": 281,
+          "line": 279,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -28104,24 +28100,7 @@
         "getServerSideProps",
         "TrainingLeaderboard"
       ],
-      "markers": [
-        {
-          "kind": "FALLBACK",
-          "line": 41,
-          "excerpt": "const fallback = await swrFallback(requestOrigin(req), TRAINING_LEADERBOARD_DEFAULT_KEY);",
-          "disposition": "input-normalization-default",
-          "review": "accepted",
-          "rationale": "Explicit function default used to normalize missing display/input values."
-        },
-        {
-          "kind": "FALLBACK",
-          "line": 42,
-          "excerpt": "const seed = publicTrainingLeaderboardSeed(fallback[TRAINING_LEADERBOARD_DEFAULT_KEY]);",
-          "disposition": "input-normalization-default",
-          "review": "accepted",
-          "rationale": "Explicit function default used to normalize missing display/input values."
-        }
-      ]
+      "markers": []
     },
     {
       "file": "pages/hub/training/live-hud-sync.js",
@@ -48681,102 +48660,6 @@
       "markers": []
     },
     {
-      "file": "src/lib/seo/swrFallback.mjs",
-      "imports": [],
-      "links": [],
-      "apiReferences": [],
-      "apiReferencePrefixes": [],
-      "ctas": [],
-      "dialogs": {
-        "native": 0,
-        "aria": 0,
-        "modalComponents": []
-      },
-      "states": {
-        "loading": false,
-        "empty": true,
-        "error": true,
-        "retry": false,
-        "offline": false,
-        "stale": true,
-        "success": true,
-        "authExpiry": false
-      },
-      "persistenceWrites": {
-        "localStorage": 0,
-        "sessionStorage": 0,
-        "inserts": 0,
-        "updates": 0,
-        "deletes": 0,
-        "rpc": 0
-      },
-      "realtime": {
-        "channels": 0,
-        "postgresChanges": 0,
-        "webSockets": 0,
-        "eventSources": 0
-      },
-      "functions": [
-        {
-          "name": "swrFallback",
-          "line": 32,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "catalogueCacheHeaders",
-          "line": 60,
-          "references": 1,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        }
-      ],
-      "possibleUnwiredFunctions": [
-        "swrFallback",
-        "catalogueCacheHeaders"
-      ],
-      "markers": [
-        {
-          "kind": "FALLBACK",
-          "line": 2,
-          "excerpt": "* Server-side SWR fallback for the hub's catalogue pages.",
-          "disposition": "runtime-resilience-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 15,
-          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-        },
-        {
-          "kind": "FALLBACK",
-          "line": 14,
-          "excerpt": "* fallback, so the HTML carries the catalogue and the browser still owns",
-          "disposition": "runtime-resilience-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 15,
-          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-        },
-        {
-          "kind": "FALLBACK",
-          "line": 17,
-          "excerpt": "* Keyed by the exact request URL SWR will use. A fallback under the wrong key",
-          "disposition": "runtime-resilience-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 15,
-          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-        },
-        {
-          "kind": "FALLBACK",
-          "line": 25,
-          "excerpt": "* Fetch one API path on this origin and return an SWR `fallback` map.",
-          "disposition": "input-normalization-default",
-          "review": "accepted",
-          "rationale": "Explicit function default used to normalize missing display/input values."
-        }
-      ]
-    },
-    {
       "file": "src/lib/serverAuth.js",
       "imports": [],
       "links": [],
@@ -52902,7 +52785,7 @@
         "modalComponents": []
       },
       "states": {
-        "loading": false,
+        "loading": true,
         "empty": false,
         "error": false,
         "retry": false,
@@ -52929,7 +52812,7 @@
         {
           "name": "publicTrainingLeaderboardSeed",
           "line": 26,
-          "references": 1,
+          "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
@@ -52941,11 +52824,19 @@
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
+        },
+        {
+          "name": "fetchPublicTrainingLeaderboardSeed",
+          "line": 65,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [
-        "publicTrainingLeaderboardSeed",
-        "requestOrigin"
+        "requestOrigin",
+        "fetchPublicTrainingLeaderboardSeed"
       ],
       "markers": []
     },
@@ -59940,10 +59831,6 @@
     },
     {
       "from": "pages/hub/training/leaderboard.js",
-      "to": "src/lib/seo/swrFallback.mjs"
-    },
-    {
-      "from": "pages/hub/training/leaderboard.js",
       "to": "src/lib/training/publicLeaderboardSeed.mjs"
     },
     {
@@ -64135,11 +64022,11 @@
       "effectRef": "pages/hub/training/icm-simulator.js"
     },
     {
-      "id": "pages/hub/training/leaderboard.js:158:1",
+      "id": "pages/hub/training/leaderboard.js:156:1",
       "file": "pages/hub/training/leaderboard.js",
       "element": "button",
       "name": "Show daily rankings",
-      "line": 158,
+      "line": 156,
       "handler": "() => setTimeframe('daily')",
       "destination": null,
       "type": null,
@@ -64148,11 +64035,11 @@
       "effectRef": "pages/hub/training/leaderboard.js"
     },
     {
-      "id": "pages/hub/training/leaderboard.js:166:2",
+      "id": "pages/hub/training/leaderboard.js:164:2",
       "file": "pages/hub/training/leaderboard.js",
       "element": "button",
       "name": "Show weekly rankings",
-      "line": 166,
+      "line": 164,
       "handler": "() => setTimeframe('weekly')",
       "destination": null,
       "type": null,
@@ -64161,11 +64048,11 @@
       "effectRef": "pages/hub/training/leaderboard.js"
     },
     {
-      "id": "pages/hub/training/leaderboard.js:174:3",
+      "id": "pages/hub/training/leaderboard.js:172:3",
       "file": "pages/hub/training/leaderboard.js",
       "element": "button",
       "name": "Show all-time rankings",
-      "line": 174,
+      "line": 172,
       "handler": "() => setTimeframe('all-time')",
       "destination": null,
       "type": null,
@@ -64174,11 +64061,11 @@
       "effectRef": "pages/hub/training/leaderboard.js"
     },
     {
-      "id": "pages/hub/training/leaderboard.js:194:4",
+      "id": "pages/hub/training/leaderboard.js:192:4",
       "file": "pages/hub/training/leaderboard.js",
       "element": "button",
       "name": "`Show ${cat.label} category`",
-      "line": 194,
+      "line": 192,
       "handler": "() => setView(cat.id)",
       "destination": null,
       "type": null,
@@ -74086,7 +73973,6 @@
         "src/lib/seo/hubPageSchema.js",
         "src/lib/seo/productOgImage.js",
         "src/lib/seo/summarySchema.js",
-        "src/lib/seo/swrFallback.mjs",
         "src/lib/store/boundedCommerceFetch.js",
         "src/lib/store/checkoutIntentStore.js",
         "src/lib/store/marketplaceCopy.js",
@@ -83283,16 +83169,6 @@
       "tests": []
     },
     {
-      "file": "src/lib/seo/swrFallback.mjs",
-      "reachableFiles": [
-        "src/lib/seo/swrFallback.mjs"
-      ],
-      "apiReferences": [],
-      "persistence": [],
-      "realtime": [],
-      "tests": []
-    },
-    {
       "file": "src/lib/serverAuth.js",
       "reachableFiles": [
         "src/lib/serverAuth.js"
@@ -85096,24 +84972,6 @@
         "rationale": "Visible empty/loading UI presentation, not fabricated product data."
       },
       {
-        "file": "pages/hub/training/leaderboard.js",
-        "kind": "FALLBACK",
-        "line": 41,
-        "excerpt": "const fallback = await swrFallback(requestOrigin(req), TRAINING_LEADERBOARD_DEFAULT_KEY);",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
-        "file": "pages/hub/training/leaderboard.js",
-        "kind": "FALLBACK",
-        "line": 42,
-        "excerpt": "const seed = publicTrainingLeaderboardSeed(fallback[TRAINING_LEADERBOARD_DEFAULT_KEY]);",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
         "file": "pages/hub/training/live-hud-sync.js",
         "kind": "SIMULATE",
         "line": 34,
@@ -86933,45 +86791,6 @@
         "review": "documented-follow-up",
         "followUpPhase": 15,
         "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 2,
-        "excerpt": "* Server-side SWR fallback for the hub's catalogue pages.",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 14,
-        "excerpt": "* fallback, so the HTML carries the catalogue and the browser still owns",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 17,
-        "excerpt": "* Keyed by the exact request URL SWR will use. A fallback under the wrong key",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 25,
-        "excerpt": "* Fetch one API path on this origin and return an SWR `fallback` map.",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/serverAuth.js",
@@ -89041,7 +88860,7 @@
       {
         "file": "pages/hub/training/leaderboard.js",
         "name": "getServerSideProps",
-        "line": 39,
+        "line": 38,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -89054,7 +88873,7 @@
       {
         "file": "pages/hub/training/leaderboard.js",
         "name": "TrainingLeaderboard",
-        "line": 84,
+        "line": 82,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -91510,38 +91329,6 @@
         ]
       },
       {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "name": "swrFallback",
-        "line": 32,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/news.js",
-          "pages/hub/training/leaderboard.js"
-        ]
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "name": "catalogueCacheHeaders",
-        "line": 60,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/news.js",
-          "pages/hub/training/leaderboard.js"
-        ]
-      },
-      {
         "file": "src/lib/sessionAnalytics.js",
         "name": "deriveClassificationCounts",
         "line": 34,
@@ -92521,8 +92308,8 @@
       },
       {
         "file": "src/lib/training/publicLeaderboardSeed.mjs",
-        "name": "publicTrainingLeaderboardSeed",
-        "line": 26,
+        "name": "requestOrigin",
+        "line": 45,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92537,8 +92324,8 @@
       },
       {
         "file": "src/lib/training/publicLeaderboardSeed.mjs",
-        "name": "requestOrigin",
-        "line": 45,
+        "name": "fetchPublicTrainingLeaderboardSeed",
+        "line": 65,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -94037,24 +93824,6 @@
         "rationale": "Visible empty/loading UI presentation, not fabricated product data."
       },
       {
-        "file": "pages/hub/training/leaderboard.js",
-        "kind": "FALLBACK",
-        "line": 41,
-        "excerpt": "const fallback = await swrFallback(requestOrigin(req), TRAINING_LEADERBOARD_DEFAULT_KEY);",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
-        "file": "pages/hub/training/leaderboard.js",
-        "kind": "FALLBACK",
-        "line": 42,
-        "excerpt": "const seed = publicTrainingLeaderboardSeed(fallback[TRAINING_LEADERBOARD_DEFAULT_KEY]);",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
-      },
-      {
         "file": "pages/hub/training/live-hud-sync.js",
         "kind": "SIMULATE",
         "line": 34,
@@ -95874,45 +95643,6 @@
         "review": "documented-follow-up",
         "followUpPhase": 15,
         "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 2,
-        "excerpt": "* Server-side SWR fallback for the hub's catalogue pages.",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 14,
-        "excerpt": "* fallback, so the HTML carries the catalogue and the browser still owns",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 17,
-        "excerpt": "* Keyed by the exact request URL SWR will use. A fallback under the wrong key",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "kind": "FALLBACK",
-        "line": 25,
-        "excerpt": "* Fetch one API path on this origin and return an SWR `fallback` map.",
-        "disposition": "input-normalization-default",
-        "review": "accepted",
-        "rationale": "Explicit function default used to normalize missing display/input values."
       },
       {
         "file": "src/lib/serverAuth.js",
@@ -97982,7 +97712,7 @@
       {
         "file": "pages/hub/training/leaderboard.js",
         "name": "getServerSideProps",
-        "line": 39,
+        "line": 38,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -97995,7 +97725,7 @@
       {
         "file": "pages/hub/training/leaderboard.js",
         "name": "TrainingLeaderboard",
-        "line": 84,
+        "line": 82,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -100451,38 +100181,6 @@
         ]
       },
       {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "name": "swrFallback",
-        "line": 32,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/news.js",
-          "pages/hub/training/leaderboard.js"
-        ]
-      },
-      {
-        "file": "src/lib/seo/swrFallback.mjs",
-        "name": "catalogueCacheHeaders",
-        "line": 60,
-        "references": 1,
-        "exported": true,
-        "defaultExport": false,
-        "namedFunctionExpression": false,
-        "disposition": "imported-entrypoint",
-        "review": "accepted",
-        "rationale": "Named export is imported by another repository source file.",
-        "externalReferenceFiles": [
-          "pages/hub/news.js",
-          "pages/hub/training/leaderboard.js"
-        ]
-      },
-      {
         "file": "src/lib/sessionAnalytics.js",
         "name": "deriveClassificationCounts",
         "line": 34,
@@ -101462,8 +101160,8 @@
       },
       {
         "file": "src/lib/training/publicLeaderboardSeed.mjs",
-        "name": "publicTrainingLeaderboardSeed",
-        "line": 26,
+        "name": "requestOrigin",
+        "line": 45,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101478,8 +101176,8 @@
       },
       {
         "file": "src/lib/training/publicLeaderboardSeed.mjs",
-        "name": "requestOrigin",
-        "line": 45,
+        "name": "fetchPublicTrainingLeaderboardSeed",
+        "line": 65,
         "references": 1,
         "exported": true,
         "defaultExport": false,

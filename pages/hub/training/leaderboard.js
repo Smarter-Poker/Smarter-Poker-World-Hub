@@ -24,10 +24,9 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 // TRAIN-WIRE-EMPTY-4a — adoption: shared empty-state primitive
 import { useSWRConfig } from 'swr';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
-import { swrFallback, catalogueCacheHeaders } from '../../../src/lib/seo/swrFallback.mjs';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
-  publicTrainingLeaderboardSeed,
+  fetchPublicTrainingLeaderboardSeed,
   requestOrigin,
 } from '../../../src/lib/training/publicLeaderboardSeed.mjs';
 
@@ -37,9 +36,8 @@ import {
 // page renders the default board from it. The browser still owns refresh,
 // timeframes and categories.
 export async function getServerSideProps({ req, res }) {
-  catalogueCacheHeaders(res);
-  const fallback = await swrFallback(requestOrigin(req), TRAINING_LEADERBOARD_DEFAULT_KEY);
-  const seed = publicTrainingLeaderboardSeed(fallback[TRAINING_LEADERBOARD_DEFAULT_KEY]);
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  const seed = await fetchPublicTrainingLeaderboardSeed(requestOrigin(req));
   return { props: { seed } };
 }
 

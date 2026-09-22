@@ -19,6 +19,7 @@ import test from 'node:test';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
   publicTrainingLeaderboardSeed,
+  fetchPublicTrainingLeaderboardSeed,
   requestOrigin,
 } from '../src/lib/training/publicLeaderboardSeed.mjs';
 
@@ -26,8 +27,8 @@ const page = readFileSync(new URL('../pages/hub/training/leaderboard.js', import
 
 test('the training leaderboard fetches its default board on the server', () => {
   assert.match(page, /export async function getServerSideProps/);
-  assert.match(page, /swrFallback\(requestOrigin\(req\), TRAINING_LEADERBOARD_DEFAULT_KEY\)/);
-  assert.match(page, /publicTrainingLeaderboardSeed\(/);
+  assert.match(page, /await fetchPublicTrainingLeaderboardSeed\(requestOrigin\(req\)\)/);
+  assert.match(page, /return \{ props: \{ seed \} \}/);
 });
 
 test('the seed key is the exact key the page builds for its default filters', () => {
@@ -83,6 +84,27 @@ test('the server reads the API on the origin it was served from', () => {
   }
 });
 
-test('the Training page does not pull an unrelated SEO module into its surface', () => {
+test('the Training page does not pull shared SEO modules into its surface', () => {
+  // Both would add files to the Training surface inventory that other pages
+  // keep changing, and seriesSeo carries markers the inventory rejects.
   assert.doesNotMatch(page, /poker-near-me\/seriesSeo/);
+  assert.doesNotMatch(page, /seo\/swrFallback/);
+});
+
+test('the server read is anonymous, public only, and never throws', async () => {
+  const calls = [];
+  const ok = async (url, init) => {
+    calls.push({ url, init });
+    return { ok: true, json: async () => ({ success: true, leaderboard: [{ rank: 1, userId: 'secret-id', username: 'Ace' }], myRank: 2 }) };
+  };
+  const seed = await fetchPublicTrainingLeaderboardSeed('https://smarter.poker', { fetchImpl: ok });
+  assert.equal(calls[0].url, 'https://smarter.poker/api/training/leaderboard?period=alltime&limit=100');
+  assert.equal(calls[0].init.headers.authorization, undefined);
+  assert.deepEqual(seed, { leaderboard: [{ rank: 1, username: 'Ace' }], myRank: null, myEntry: null });
+
+  const boom = async () => { throw new Error('down'); };
+  assert.equal(await fetchPublicTrainingLeaderboardSeed('https://smarter.poker', { fetchImpl: boom }), null);
+  const notOk = async () => ({ ok: false, json: async () => ({}) });
+  assert.equal(await fetchPublicTrainingLeaderboardSeed('https://smarter.poker', { fetchImpl: notOk }), null);
+  assert.equal(await fetchPublicTrainingLeaderboardSeed(''), null);
 });

@@ -49,3 +49,33 @@ export function requestOrigin(req) {
   const proto = req?.headers?.['x-forwarded-proto'] || (host.startsWith('localhost') ? 'http' : 'https');
   return `${proto}://${host}`;
 }
+
+const SEED_TIMEOUT_MS = 4000;
+
+/**
+ * Read the default board from the anonymous API (no Authorization header, so
+ * never a viewer's private rank) and return the public seed, or null.
+ *
+ * Never throws and never holds the page for more than four seconds: a slow or
+ * failing API leaves the page exactly as it was, loading in the browser.
+ * Kept inside the Training surface instead of reusing the SEO catalogue
+ * helper, so the Training inventory does not change whenever another page
+ * starts using that helper.
+ */
+export async function fetchPublicTrainingLeaderboardSeed(origin, { timeoutMs = SEED_TIMEOUT_MS, fetchImpl = fetch } = {}) {
+  if (!origin) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(`${origin}${TRAINING_LEADERBOARD_DEFAULT_KEY}`, {
+      signal: ctrl.signal,
+      headers: { accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    return publicTrainingLeaderboardSeed(await res.json());
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
