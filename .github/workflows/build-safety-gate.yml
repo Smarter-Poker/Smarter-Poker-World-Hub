@@ -1129,6 +1129,7 @@ jobs:
             __tests__/one-page-per-real-thing.law.test.mjs \
             __tests__/two-pages-never-share-a-title.law.test.mjs \
             __tests__/a-link-in-the-copy-goes-somewhere.law.test.mjs \
+            __tests__/a-leaderboard-shows-its-leaders.law.test.mjs \
             __tests__/a-directory-lists-what-it-contains.law.test.mjs \
             __tests__/a-tour-page-serves-its-schedule.law.test.mjs \
             __tests__/a-series-page-lists-its-events.law.test.mjs \
@@ -1142,6 +1143,7 @@ jobs:
             __tests__/a-feed-page-shows-its-feed.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
             __tests__/the-glossary-is-readable-by-an-engine.law.test.mjs \
+            __tests__/a-comparison-cites-what-it-claims.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \

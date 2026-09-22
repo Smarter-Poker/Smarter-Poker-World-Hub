@@ -1166,7 +1166,8 @@ const nextConfig = {
         /* THE PUBLIC ARENA IS READABLE WITHOUT JAVASCRIPT (AEO phase 1,
            2026-09-17). The arena build prerenders its indexable routes to
            static files (arena scripts/prerender-public-routes.mjs writes
-           dist/help/index.html, dist/legal/<doc>/index.html and the landing
+           dist/help/index.html, dist/legal/index.html,
+           dist/legal/<doc>/index.html and the landing
            into dist/index.html). The origin's Caddy sends every extension-less
            path to /index.html, so those files are reached only by naming
            them here, before the catch-all. A route the arena does not
@@ -1175,6 +1176,11 @@ const nextConfig = {
            /hub/club-arena/prerender-manifest.json is the live proof.
            Pinned by tests/club-arena-public-routes-are-prerendered.test.mjs. */
         { source: '/hub/club-arena/help', destination: 'https://ca-static.smarter.poker/help/index.html' },
+        /* The Legal Center index joined the arena prerender on 2026-09-22.
+           Without this rewrite /hub/club-arena/legal fell through to the
+           catch-all, got the landing page's HTML and canonical, and Google
+           filed it as an alternate of the arena root. */
+        { source: '/hub/club-arena/legal', destination: 'https://ca-static.smarter.poker/legal/index.html' },
         {
           source: '/hub/club-arena/legal/:doc(tos|privacy|fair-gaming|promotions)',
           destination: 'https://ca-static.smarter.poker/legal/:doc/index.html',
