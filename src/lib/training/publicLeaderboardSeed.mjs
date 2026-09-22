@@ -36,3 +36,16 @@ export function publicTrainingLeaderboardSeed(json) {
     });
   return { leaderboard, myRank: null, myEntry: null };
 }
+
+/**
+ * The origin this request was served from, so the server reads the API on
+ * the same deployment. Same rule as originFrom in the poker-near-me SEO
+ * helpers, kept here so the Training surface does not import that module.
+ */
+export function requestOrigin(req) {
+  if (process.env.SITE_ORIGIN) return process.env.SITE_ORIGIN;
+  const host = req?.headers?.['x-forwarded-host'] || req?.headers?.host;
+  if (!host) return 'https://smarter.poker';
+  const proto = req?.headers?.['x-forwarded-proto'] || (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}

@@ -19,13 +19,14 @@ import test from 'node:test';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
   publicTrainingLeaderboardSeed,
+  requestOrigin,
 } from '../src/lib/training/publicLeaderboardSeed.mjs';
 
 const page = readFileSync(new URL('../pages/hub/training/leaderboard.js', import.meta.url), 'utf8');
 
 test('the training leaderboard fetches its default board on the server', () => {
   assert.match(page, /export async function getServerSideProps/);
-  assert.match(page, /swrFallback\(originFrom\(req\), TRAINING_LEADERBOARD_DEFAULT_KEY\)/);
+  assert.match(page, /swrFallback\(requestOrigin\(req\), TRAINING_LEADERBOARD_DEFAULT_KEY\)/);
   assert.match(page, /publicTrainingLeaderboardSeed\(/);
 });
 
@@ -68,4 +69,20 @@ test('an unusable answer seeds nothing', () => {
   assert.equal(publicTrainingLeaderboardSeed(undefined), null);
   assert.equal(publicTrainingLeaderboardSeed({ success: false }), null);
   assert.equal(publicTrainingLeaderboardSeed({ success: true, leaderboard: 'x' }), null);
+});
+
+test('the server reads the API on the origin it was served from', () => {
+  const saved = process.env.SITE_ORIGIN;
+  delete process.env.SITE_ORIGIN;
+  try {
+    assert.equal(requestOrigin({ headers: { host: 'smarter.poker', 'x-forwarded-proto': 'https' } }), 'https://smarter.poker');
+    assert.equal(requestOrigin({ headers: { host: 'localhost:3000' } }), 'http://localhost:3000');
+    assert.equal(requestOrigin(undefined), 'https://smarter.poker');
+  } finally {
+    if (saved !== undefined) process.env.SITE_ORIGIN = saved;
+  }
+});
+
+test('the Training page does not pull an unrelated SEO module into its surface', () => {
+  assert.doesNotMatch(page, /poker-near-me\/seriesSeo/);
 });

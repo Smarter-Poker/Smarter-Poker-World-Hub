@@ -25,10 +25,10 @@ import TrainerEmptyState from '../../../src/components/training/TrainerEmptyStat
 import { useSWRConfig } from 'swr';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { swrFallback, catalogueCacheHeaders } from '../../../src/lib/seo/swrFallback.mjs';
-import { originFrom } from '../../../src/lib/poker-near-me/seriesSeo.mjs';
 import {
   TRAINING_LEADERBOARD_DEFAULT_KEY,
   publicTrainingLeaderboardSeed,
+  requestOrigin,
 } from '../../../src/lib/training/publicLeaderboardSeed.mjs';
 
 // A Googlebot crawl measured this page at 130 words because the rankings
@@ -38,7 +38,7 @@ import {
 // timeframes and categories.
 export async function getServerSideProps({ req, res }) {
   catalogueCacheHeaders(res);
-  const fallback = await swrFallback(originFrom(req), TRAINING_LEADERBOARD_DEFAULT_KEY);
+  const fallback = await swrFallback(requestOrigin(req), TRAINING_LEADERBOARD_DEFAULT_KEY);
   const seed = publicTrainingLeaderboardSeed(fallback[TRAINING_LEADERBOARD_DEFAULT_KEY]);
   return { props: { seed } };
 }
