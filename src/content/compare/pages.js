@@ -25,24 +25,33 @@
  * the facts module, so a law test can run it under node.
  */
 
+import { GLOSSARY_TERMS, GLOSSARY_PATH as GLOSSARY_INDEX_PATH, glossaryTermPath } from '../glossary/terms.js';
 import { AS_OF, CHECKED_LABEL, NOT_PUBLISHED, PLAY_CREDIT_DISCLOSURE, PRODUCTS, SOURCES, SOURCES_NOTE } from './facts.js';
 
 export { AS_OF, CHECKED_LABEL, NOT_PUBLISHED, PLAY_CREDIT_DISCLOSURE, PRODUCTS, SOURCES, SOURCES_NOTE };
 
 export const COMPARE_BASE = '/compare';
 export const SITE_URL = 'https://smarter.poker';
-export const GLOSSARY_PATH = '/hub/training/glossary';
+// The glossary reference moved to /glossary/<slug> (AEO section 3.4), one page
+// per term from src/content/glossary/terms.js. A comparison names a term the way
+// it reads in the copy ("ICM"), and this resolves it to the term page. A name the
+// glossary does not define resolves to null, and the law fails on it rather than
+// the page linking to a term that does not exist.
+export const GLOSSARY_PATH = GLOSSARY_INDEX_PATH;
 
-/** The same slug function the glossary uses for its term anchors. */
-export function glossaryTermSlug(term) {
-  return String(term)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+const plain = (value) => String(value || '').trim().toLowerCase();
+
+export function glossaryTermFor(name) {
+  const wanted = plain(name);
+  return GLOSSARY_TERMS.find((t) => plain(t.term) === wanted
+    || plain(t.slug) === wanted.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    || plain(t.term).split(' (')[0] === wanted
+    || (plain(t.term).match(/\(([^)]+)\)/) || [])[1] === wanted) || null;
 }
 
-export function glossaryHref(term) {
-  return `${GLOSSARY_PATH}#term-${glossaryTermSlug(term)}`;
+export function glossaryHref(name) {
+  const term = glossaryTermFor(name);
+  return term ? glossaryTermPath(term.slug) : null;
 }
 
 // ─── Table column sets ─────────────────────────────────────────────────────

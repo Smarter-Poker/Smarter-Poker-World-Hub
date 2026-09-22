@@ -65,7 +65,9 @@ test('each summary carries enough words to be worth reading, and links onward', 
   }
   const hrefs = [...src.matchAll(/href: '(\/[^']+)'/g)].map((m) => m[1]);
   assert.ok(hrefs.length >= 15, `${hrefs.length} onward links is too few`);
-  for (const href of hrefs) assert.match(href, /^\/(hub|terms|privacy|legal)/, `${href} is an in-site route`);
+  // /glossary is the poker glossary reference (AEO section 3.4); it is as
+  // in-site as /terms, and every-glossary-term-has-a-page pins that it exists.
+  for (const href of hrefs) assert.match(href, /^\/(hub|terms|privacy|legal|glossary)/, `${href} is an in-site route`);
 });
 
 test('the copy obeys the house rules and does not contradict the landing page', () => {

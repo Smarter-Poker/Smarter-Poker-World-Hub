@@ -47,6 +47,7 @@ import {
   compareIndexJsonLd,
   compareJsonLd,
   compareRoutes,
+  glossaryHref,
   getComparePage,
   pageBlocks,
   pageSources,
@@ -245,8 +246,7 @@ test('schema is an Article by the site organization, never a review, a rating or
 });
 
 test('related pages, glossary terms and product links resolve', () => {
-  const glossary = read('pages/hub/training/glossary.js');
-  const terms = new Set([...glossary.matchAll(/term: '([^']+)'/g)].map((m) => m[1]));
+  // Terms resolve against the glossary module, which owns /glossary/<slug>.
   const nextConfig = read('next.config.js');
   const pageFileFor = (route) => [`pages${route}.js`, `pages${route}/index.js`].some((file) => fs.existsSync(path.join(ROOT, file)));
 
@@ -256,7 +256,7 @@ test('related pages, glossary terms and product links resolve', () => {
       assert.ok(getComparePage(slug), `${page.slug} links to ${slug}, which exists`);
       assert.notEqual(slug, page.slug, `${page.slug} does not link to itself`);
     }
-    for (const term of page.glossary) assert.ok(terms.has(term), `${page.slug} links the glossary term "${term}", which the glossary defines`);
+    for (const term of page.glossary) assert.ok(glossaryHref(term), `${page.slug} links the glossary term "${term}", which the glossary defines`);
     assert.ok(page.productLinks.length >= 1, `${page.slug} links to a Smarter.Poker product`);
   }
   for (const [productId, product] of Object.entries(PRODUCTS)) {

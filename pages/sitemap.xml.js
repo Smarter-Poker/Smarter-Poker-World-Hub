@@ -7,6 +7,7 @@
  */
 
 import { POKER_DISCOVERY_SITEMAP_ROUTES } from '../src/lib/poker-near-me/sitemapRoutes';
+import { GLOSSARY_TERMS, glossaryTermPath } from '../src/content/glossary/terms';
 import { isTriviaPvpReleased } from '../src/lib/trivia/pvpReleaseControl.mjs';
 import { areTriviaTournamentsReleased } from '../src/lib/trivia/tournamentReleaseControl.mjs';
 import {
@@ -167,11 +168,11 @@ const staticPages = [
   // that follows a sitemap entry to a redirect learns the destination it
   // could have reached anyway, and spends a fetch to do it.
   // Hub — Training sub-pages
-  // 866 server-rendered words defining 49 terms, and the sitemap never
-  // mentioned it. A definitional question is the question an AI engine
-  // answers most often, so this is the most quotable page the site owns
-  // (AEO phase 3, 2026-09-17).
-  { path: '/hub/training/glossary', priority: '0.8', changefreq: 'monthly' },
+  // /hub/training/glossary IS NOT HERE ANY MORE (AEO section 3.4,
+  // 2026-09-22). It is the interactive study tool for the same definitions
+  // /glossary publishes, so it canonicals to /glossary and the sitemap
+  // offers the reference instead: one page per real thing. The glossary
+  // entries are added in the POKER GLOSSARY block below.
   { path: '/hub/training/challenges', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/leaderboard', priority: '0.6', changefreq: 'daily' },
   { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
@@ -204,6 +205,17 @@ const staticPages = [
   // returned 11 words and no <title> at all, because its head sits below the
   // session gate. A public sitemap is the wrong place to advertise an admin
   // login, and there was never anything on it to index.
+];
+
+// ─── POKER GLOSSARY (AEO section 3.4, 2026-09-22) ────────────────────────────
+// The index and one page per term, read from the same module the pages are
+// generated from (src/content/glossary/terms.js), so adding a term to the
+// module adds its URL here with no second edit, and a term can never be in
+// the sitemap without a page or have a page the sitemap does not offer.
+// Pinned by __tests__/every-glossary-term-has-a-page.law.test.mjs.
+const glossaryPages = [
+  { path: '/glossary', priority: '0.8', changefreq: 'monthly' },
+  ...GLOSSARY_TERMS.map((t) => ({ path: glossaryTermPath(t.slug), priority: '0.6', changefreq: 'monthly' })),
 ];
 
 // ─── Comparison And Best-Of Pages (AEO programme section 3.3) ───────────────
@@ -582,6 +594,8 @@ export async function getServerSideProps({ res }) {
 
   const sitemap = generateSitemapXml([
     ...staticPages,
+    ...glossaryPages,
+
     ...comparePages,
     ...releaseGatedPages,
     ...learnPages,

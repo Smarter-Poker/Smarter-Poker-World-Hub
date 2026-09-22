@@ -1116,6 +1116,7 @@ jobs:
             __tests__/the-commander-pages-say-what-they-are.law.test.mjs \
             __tests__/the-entity-graph-is-connected.law.test.mjs \
             __tests__/llms-txt-states-the-entity.law.test.mjs \
+            __tests__/every-glossary-term-has-a-page.law.test.mjs \
             __tests__/the-summary-carries-the-schema.law.test.mjs \
             __tests__/a-page-head-is-never-behind-a-client-only-wrapper.law.test.mjs \
             __tests__/a-page-never-returns-nothing-before-its-head.law.test.mjs \
