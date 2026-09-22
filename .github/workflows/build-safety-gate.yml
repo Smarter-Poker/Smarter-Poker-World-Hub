@@ -1142,6 +1142,7 @@ jobs:
             __tests__/a-feed-page-shows-its-feed.law.test.mjs \
             __tests__/every-hub-product-page-carries-its-schema.law.test.mjs \
             __tests__/the-glossary-is-readable-by-an-engine.law.test.mjs \
+            __tests__/a-comparison-cites-what-it-claims.law.test.mjs \
             __tests__/search-engines-can-verify-ownership.law.test.mjs \
             __tests__/every-public-asset-path-resolves.test.mjs \
             __tests__/an-oversized-raster-is-served-as-webp.law.test.mjs \
