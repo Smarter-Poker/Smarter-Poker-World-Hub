@@ -162,6 +162,7 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
     '../../../src/lib/training/trainingAttemptDelivery.mjs': {
       isTrainingAttemptContractError: () => false,
       isTrainingQuestionCampaignEligible: () => true,
+      trainingQuestionCampaignEligibility: () => ({ eligible: true, reason: 'stubbed_eligible' }),
       recordTrainingQuestionsServedForAttempt: async () => ({ questionCount: 1 }),
       recoverTrainingAttemptHand: async (input) => {
         captured.recoveryInputs.push(input);

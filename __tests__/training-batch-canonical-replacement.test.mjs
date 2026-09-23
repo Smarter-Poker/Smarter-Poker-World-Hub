@@ -77,6 +77,7 @@ function createHarness({
   generatedQuestions = [],
   attestationEligibleQuestionId = null,
   authenticatedUserId = '11111111-1111-4111-8111-111111111111',
+  campaignIneligibleQuestionIds = [],
 }) {
   const captured = {
     buildAttempts: [],
@@ -89,6 +90,7 @@ function createHarness({
     generateBatchCalls: [],
     continuationParentCalls: [],
     cohortDiagnostics: [],
+    serverWarnings: [],
   };
 
   const db = {
@@ -225,7 +227,14 @@ function createHarness({
     },
     '../../../src/lib/training/trainingAttemptDelivery.mjs': {
       isTrainingAttemptContractError: () => false,
-      isTrainingQuestionCampaignEligible: () => true,
+      isTrainingQuestionCampaignEligible: (question) => (
+        !campaignIneligibleQuestionIds.includes(question?.id)
+      ),
+      trainingQuestionCampaignEligibility: (question) => (
+        campaignIneligibleQuestionIds.includes(question?.id)
+          ? { eligible: false, reason: 'stubbed_ineligible' }
+          : { eligible: true, reason: 'stubbed_eligible' }
+      ),
       recoverTrainingAttemptHand: async (args) => {
         captured.recoveryCalls.push(args);
         return recoveredDelivery;
@@ -331,6 +340,8 @@ function createHarness({
 async function invoke(harness, { count = '20', query = {}, auditUserId = null } = {}) {
   const response = createApiResponse();
   const originalRandom = Math.random;
+  const originalWarn = console.warn;
+  console.warn = (...args) => { harness.captured.serverWarnings.push(args.map(String).join(' ')); };
   const previousAuditUserId = process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID;
   Math.random = () => 0.999999;
   if (auditUserId === null) {
@@ -352,6 +363,7 @@ async function invoke(harness, { count = '20', query = {}, auditUserId = null } 
     }, response);
   } finally {
     Math.random = originalRandom;
+    console.warn = originalWarn;
     if (previousAuditUserId === undefined) {
       delete process.env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID;
     } else {
@@ -547,6 +559,34 @@ test('public continuation rule selects only visible three-quarter-pot aggression
   assert.equal(selectPublicAttestationContinuationAnswer({
     options: [{ id: 'check', text: 'Check' }, { id: 'bet_71pct', text: 'Bet 71% Pot' }],
   }), null);
+});
+
+test('engine candidates refused by the campaign contract are tallied by reason in the server log', async () => {
+  const generated = [200, 201, 202].map((index) => ({
+    ...structuredClone(cacheRow(index).question_data),
+    id: `engine-candidate-${index}`,
+    source: 'local_solver_ranges',
+    dataQuality: 'LEGACY_UNVERIFIED',
+  }));
+  const harness = createHarness({
+    cacheRows: Array.from({ length: 10 }, (_, index) => cacheRow(index)),
+    generatedQuestions: generated,
+    campaignIneligibleQuestionIds: ['engine-candidate-200', 'engine-candidate-201'],
+  });
+  const response = await invoke(harness);
+  assert.equal(response.statusCode, 422);
+  assert.equal(response.body.code, 'TRAINING_ATTEMPT_QUESTION_SHORTFALL');
+  assert.equal(harness.captured.generateBatchCalls.length, 1);
+  assert.equal(
+    typeof harness.captured.generateBatchCalls[0].admissibleForCaller,
+    'function',
+    'the route must hand the engine its campaign admissibility contract',
+  );
+  const tally = harness.captured.serverWarnings.find((line) => /engine candidates for cash-001 L1 were refused/.test(line));
+  assert.ok(tally, JSON.stringify(harness.captured.serverWarnings));
+  assert.match(tally, /^\[BatchPreload\] 2 of 3 engine candidates/);
+  assert.match(tally, /"campaign_ineligible: stubbed_ineligible \(source=local_solver_ranges, classification=LEGACY_UNVERIFIED\)":2/);
+  assert.doesNotMatch(tally, /engine-candidate-/, 'the tally carries reasons and counts, never question ids');
 });
 
 test('non-designated accounts receive 403 before the audit cohort reads or writes data', async () => {

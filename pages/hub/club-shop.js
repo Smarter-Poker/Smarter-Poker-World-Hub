@@ -6,6 +6,12 @@
 
 import DiamondStorePage from './diamond-store';
 
-export default function ClubShopPage() {
-  return <DiamondStorePage initialTab="club-shop" />;
+export default function ClubShopPage(props) {
+  return <DiamondStorePage {...props} initialTab="club-shop" />;
 }
+
+/* The wrapper must re-export the store's own getServerSideProps. Without it
+   this route is statically optimized: it first-paints the hardcoded fallback
+   price table instead of the live database catalog, and it loses the store's
+   deliberate `private, no-store` header. */
+export { getServerSideProps } from './diamond-store';

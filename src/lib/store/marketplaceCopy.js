@@ -88,12 +88,38 @@ const TECHNICAL_ERROR_DETAIL = new RegExp(
 const GENERIC_MARKETPLACE_ERROR =
   'The Marketplace Request Could Not Be Completed. Please Try Again.';
 
+/**
+ * A member's display name is not prose. `marketplaceCopy` Title Cases every
+ * word and turns `_` into a space, which is right for item names and server
+ * enums and wrong for a name somebody typed: `ALLIN_ACE` reads as "Allin Ace",
+ * and two different members can be rendered identically in a ledger that
+ * refunds are issued from. The rendered surfaces print names raw, but a toast
+ * has only one string, and every toast goes through `marketplaceToastCopy`.
+ * Wrapping a name in this marker carries it through byte for byte.
+ *
+ * The markers are private-use characters, and any already in the value are
+ * stripped first, so a name cannot smuggle one in and free the rest of a
+ * message from formatting. They are consumed by `protectMachineTokens` below,
+ * so nothing that goes through `marketplaceCopy` can ever print them.
+ */
+const PRESERVED_OPEN = '\uE002';
+const PRESERVED_CLOSE = '\uE003';
+const PRESERVED_SPAN = /\uE002([\s\S]*?)\uE003/gu;
+
+export function marketplacePreservedName(value) {
+  const raw = String(value ?? '')
+    .replace(/[\uE000-\uE003]/gu, '')
+    .trim();
+  if (!raw) return '';
+  return `${PRESERVED_OPEN}${raw}${PRESERVED_CLOSE}`;
+}
+
 function protectMachineTokens(value) {
   const tokens = [];
-  const text = value.replace(PROTECTED_MACHINE_TOKEN, (token) => {
-    const index = tokens.push(token) - 1;
-    return `\uE000${index}\uE001`;
-  });
+  const capture = (token) => `\uE000${tokens.push(token) - 1}\uE001`;
+  const text = value
+    .replace(PRESERVED_SPAN, (_match, preserved) => capture(preserved))
+    .replace(PROTECTED_MACHINE_TOKEN, (token) => capture(token));
   return {
     text,
     restore: (formatted) =>
