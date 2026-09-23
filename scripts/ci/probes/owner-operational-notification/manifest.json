@@ -63,8 +63,8 @@
   "checkoutInputs": {
     "component": {
       "path": "supabase/components/owner-operational-notification-destination.sql",
-      "sha256": "6bec28d663a8c191f864bce6d0051828db6137bdcbff419c6ad34a844b360a70",
-      "bytes": 13734,
+      "sha256": "cefd3043b4011ede70a51e6c8d47a22ca498cc6d327fb08f03dae5c656a74842",
+      "bytes": 14576,
       "donorCommit": "01a6556bb5750132b89dbc2bebf1c543c5c21b38"
     },
     "qualifier": {
