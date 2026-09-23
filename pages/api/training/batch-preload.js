@@ -52,6 +52,10 @@ import {
     validateTrainingAttestationContinuationPrecommit,
 } from '../../../src/lib/training/trainingAttestationContinuationContract.mjs';
 import {
+    createTrainingAttestationCohortCollector,
+    logTrainingAttestationCohortStage,
+} from '../../../src/lib/training/trainingAttestationCohortDiagnostics.mjs';
+import {
     buildTrainingCacheRow,
     cacheQuestionFromRow,
     cacheRowIsServingEligible,
@@ -214,14 +218,37 @@ export default async function handler(req, res) {
                   targetHands: attemptTargetHands,
               })
               : null;
-          const refuseUnavailableAttestationContinuationCohort = () => res.status(422).json({
-              success: false,
-              error: 'No exact 20-hand continuation cohort is available for this public precommit.',
-              code: 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE',
-          });
+          // Every cohort refusal is the same public 422 by design: the body
+          // must not reveal which stage failed, which parent qualified, or
+          // anything about the hidden continuation branch. The server log
+          // receives a structured stage + counts line instead (never ids,
+          // answers, options, receipts, or secrets) so an operator can tell an
+          // empty catalog from a lost provenance seal from a missing child.
+          const refuseUnavailableAttestationContinuationCohort = (stage, counts = {}, detail = null) => {
+              logTrainingAttestationCohortStage({
+                  stage,
+                  counts: {
+                      gameId,
+                      level: gameLevel,
+                      difficulty,
+                      targetStreet: targetStreet || 'any',
+                      questionCount,
+                      ...counts,
+                  },
+                  detail,
+              });
+              return res.status(422).json({
+                  success: false,
+                  error: 'No exact 20-hand continuation cohort is available for this public precommit.',
+                  code: 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE',
+              });
+          };
           if (attestationContinuationRequested
               && (!attestationContinuationPrecommit || isSingleHandRecovery)) {
-              return refuseUnavailableAttestationContinuationCohort();
+              return refuseUnavailableAttestationContinuationCohort('precommit_rejected', {
+                  precommitValid: attestationContinuationPrecommit ? 1 : 0,
+                  singleHandRecovery: isSingleHandRecovery ? 1 : 0,
+              });
           }
           const attemptSelection = {
               gameMode,
@@ -378,6 +405,11 @@ export default async function handler(req, res) {
           // a false shortfall without ever reaching generation.
           const cachedQuestions = usable.slice(0, candidateQuestionCount);
           let solverQuestions = [];
+          // Server-only count of engine-built parents before the four-choice
+          // and campaign-eligibility contracts filtered them. It lets the
+          // cohort log separate "the catalog returned nothing" from "the
+          // catalog returned parents that the delivery contract rejected".
+          let generatedParentCandidates = 0;
 
           if (cachedQuestions.length < candidateQuestionCount
               || attestationContinuationPrecommit) {
@@ -433,6 +465,7 @@ export default async function handler(req, res) {
                               stackDepths: scenarioConfig?.stackDepths || undefined,
                               seenIds: generationSeenIds,
                           });
+                      generatedParentCandidates = Array.isArray(batch) ? batch.length : 0;
                       if (batch && batch.length > 0) {
                           solverQuestions = batch
                               .map(question => ({
@@ -443,6 +476,13 @@ export default async function handler(req, res) {
                       }
                   } catch (solverErr) {
                       console.warn('[BatchPreload] ▲ Solver engine failed:', solverErr.message);
+                      if (attestationContinuationPrecommit) {
+                          logTrainingAttestationCohortStage({
+                              stage: 'solver_engine_failed',
+                              counts: { gameId, level: gameLevel, difficulty },
+                              detail: solverErr?.message,
+                          });
+                      }
                   }
               } else if (gameCfg?.engine === 'SCENARIO' || pioConfig?.sourceOfTruth === 'SCENARIO') {
                   // SCENARIO/PSYCHOLOGY: Use DeterministicEngine for scenario questions too
@@ -480,7 +520,11 @@ export default async function handler(req, res) {
               // ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●
               console.warn(`[BatchPreload] No questions for ${gameId} level ${gameLevel} - engines returned empty.`);
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('no_candidate_questions', {
+                      cachedQuestions: cachedQuestions.length,
+                      generatedParentCandidates,
+                      solverQuestions: solverQuestions.length,
+                  });
               }
               return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
@@ -568,7 +612,14 @@ export default async function handler(req, res) {
 
           if (configuredCandidates.length < questionCount) {
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('configured_candidate_shortfall', {
+                      cachedQuestions: cachedQuestions.length,
+                      generatedParentCandidates,
+                      solverQuestions: solverQuestions.length,
+                      batchCandidates: batch.length,
+                      enrichedCandidates: enrichedCandidates.length,
+                      configuredCandidates: configuredCandidates.length,
+                  });
               }
               return res.status(422).json({
                   success: false,
@@ -649,7 +700,11 @@ export default async function handler(req, res) {
           }
           if (canonicalPairs.length < questionCount) {
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('canonical_pair_shortfall', {
+                      configuredCandidates: configuredCandidates.length,
+                      canonicalPairs: canonicalPairs.length,
+                      canonicalizeFailures: canonicalizeFailures.length,
+                  });
               }
               return res.status(422).json({
                   success: false,
@@ -662,6 +717,7 @@ export default async function handler(req, res) {
           let attestationContinuationCohort = null;
           if (attestationContinuationPrecommit) {
               deterministicEngine.setSupabaseClient(getSupabase());
+              const cohortCollector = createTrainingAttestationCohortCollector();
               const cohort = await selectTrainingAttestationContinuationCohort({
                   questionPairs: canonicalPairs,
                   targetHands: questionCount,
@@ -669,16 +725,22 @@ export default async function handler(req, res) {
                   gameConfig: declaredCfg,
                   precommit: attestationContinuationPrecommit,
                   queryNextStreet: (request) => deterministicEngine.queryNextStreet(request),
+                  collector: cohortCollector,
               });
               if (!cohort) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('cohort_unavailable', {
+                      canonicalPairs: canonicalPairs.length,
+                      ...cohortCollector.summary(),
+                  });
               }
               selectedCanonicalPairs = [...cohort.questionPairs];
               attestationContinuationCohort = cohort.publicContract;
           }
           if (selectedCanonicalPairs.length !== questionCount) {
               if (attestationContinuationPrecommit) {
-                  return refuseUnavailableAttestationContinuationCohort();
+                  return refuseUnavailableAttestationContinuationCohort('selected_pair_shortfall', {
+                      selectedCanonicalPairs: selectedCanonicalPairs.length,
+                  });
               }
               return res.status(422).json({
                   success: false,

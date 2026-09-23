@@ -138,6 +138,8 @@ import './horses-phase5-server.test.mjs';
 import './horses-phase5-integrity-is-honest.law.test.mjs';
 import './horses-phase5-reverify.test.mjs';
 import './horses-phase5-release-audit.test.mjs';
+import './operator-console-visual-system.test.mjs';
+import './horses-admin-states-are-honest.law.test.mjs';
 import './horses-reverify-client.test.mjs';
 import './horses-reverify-panels.test.mjs';
 import './horses-reverify-routes.test.mjs';

@@ -193,6 +193,14 @@ function loadTrainingDeliveryHandler(relativePath, { recoveredDelivery = null } 
         throw new Error('ordinary delivery must not validate an attestation continuation precommit');
       },
     },
+    '../../../src/lib/training/trainingAttestationCohortDiagnostics.mjs': {
+      createTrainingAttestationCohortCollector: () => {
+        throw new Error('ordinary delivery must not collect attestation cohort diagnostics');
+      },
+      logTrainingAttestationCohortStage: () => {
+        throw new Error('ordinary delivery must not log an attestation cohort stage');
+      },
+    },
     '../../../src/lib/training/trainingPersistence.mjs': {
       isTrainingPersistenceUnavailable,
       runTrainingPersistenceQuery: (queryFactory, options = {}) => runTrainingPersistenceQuery(
