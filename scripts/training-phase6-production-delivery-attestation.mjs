@@ -38,8 +38,11 @@ import {
 } from '../src/lib/training/trainingContinuationEligibility.mjs';
 import {
   AUDIT_SESSION_OUTCOMES,
+  AUDIT_SESSION_PERSIST_OUTCOMES,
+  AUDIT_SESSION_PERSIST_REASONS,
   auditSessionMaterialLeaks,
   ensureFreshAuditSession,
+  persistBrowserSessionIfRotated,
   readAuditSessionAuthStatePath,
 } from '../src/lib/training/trainingAuditSessionRefresh.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -4498,7 +4501,68 @@ export async function runProductionDeliveryAttestation(
   const publicClientErrors = [];
   let browser;
   let context;
+  let designatedAuth;
   let outputOwned = false;
+  // End-of-run custody, on success and failure alike, whenever a browser
+  // context exists: the page's own auth client rotates the refresh token
+  // inside the browser, and a pair left on disk after that rotation is revoked
+  // by GoTrue's reuse detection. The helper never throws and never upgrades
+  // the run's result; its record carries no token material.
+  const persistBrowserCustody = async () => {
+    if (!context) return;
+    let record;
+    try {
+      let baselineAccessToken = null;
+      try {
+        baselineAccessToken =
+          JSON.parse(designatedAuth?.storageState?.origins?.[0]?.localStorage?.[0]?.value || 'null')
+            ?.access_token ?? null;
+      } catch {
+        baselineAccessToken = null;
+      }
+      record = await persistBrowserSessionIfRotated({
+        browserContext: context,
+        browserOrigin: config.baseUrl,
+        credentialEnvPath: config.auditCredentialEnv || null,
+        authStatePath: config.authState,
+        expectedAuditUserId: config.expectedAuditUserId,
+        baselineAccessToken,
+        nowMs: runtime.nowMs,
+        sleep,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
+        supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null,
+      });
+    } catch (error) {
+      record = {
+        schemaVersion: 1,
+        persistedRotatedSession: false,
+        outcome: AUDIT_SESSION_PERSIST_OUTCOMES.failed,
+        reason: AUDIT_SESSION_PERSIST_REASONS.persistFailed,
+        code: null,
+        message: redactProtectionBypassSecret(
+          redactReceiptMaterial(error?.message || String(error)),
+          config.protectionBypassSecret
+        ),
+      };
+    }
+    if (auditSessionMaterialLeaks(record).length > 0) {
+      record = {
+        schemaVersion: 1,
+        persistedRotatedSession: false,
+        outcome: AUDIT_SESSION_PERSIST_OUTCOMES.failed,
+        reason: AUDIT_SESSION_PERSIST_REASONS.persistFailed,
+        code: null,
+        message: 'browser custody record was withheld because it carried token material',
+      };
+    }
+    evidence.auditSession = {
+      ...(evidence.auditSession && typeof evidence.auditSession === 'object'
+        ? evidence.auditSession
+        : { outcome: AUDIT_SESSION_OUTCOMES.refused }),
+      persistedRotatedSession: record.persistedRotatedSession === true,
+      browserCustody: record,
+    };
+  };
   try {
     writeOutputAtomic(config.output, evidence, { overwrite: false });
     outputOwned = true;
@@ -4526,7 +4590,7 @@ export async function runProductionDeliveryAttestation(
       'audit session record must not carry token material'
     );
     writeOutputAtomic(config.output, evidence);
-    const designatedAuth = authStorageState(
+    designatedAuth = authStorageState(
       config.authState,
       config.baseUrl,
       config.expectedAuditUserId
@@ -5026,6 +5090,7 @@ export async function runProductionDeliveryAttestation(
       [],
       'public client emitted errors during the attestation window'
     );
+    await persistBrowserCustody();
     validateCompletePublicAttestation(evidence);
     writeOutputAtomic(config.output, evidence);
     await closeAttestationBrowserContext(context);
@@ -5059,6 +5124,9 @@ export async function runProductionDeliveryAttestation(
         outcome: error?.outcome || AUDIT_SESSION_OUTCOMES.refused,
       };
     }
+    // A failed run still hands the browser's rotated session back to the
+    // custody files; the failure itself is what is thrown below, unchanged.
+    await persistBrowserCustody().catch(() => undefined);
     evidence.receiptFormatCensus = receiptFormatCensus(observations);
     if (outputOwned) writeOutputAtomic(config.output, evidence);
     throw error;
