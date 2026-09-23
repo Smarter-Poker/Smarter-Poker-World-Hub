@@ -85,6 +85,7 @@ _legacy_sql/
 !/tests/helpers/
 /tests/helpers/*
 !/tests/helpers/canonicalTrainingPolicyFixture.mjs
+!/tests/helpers/trainingBatchPreloadHarness.mjs
 /e2e/*
 !/e2e/03-training-gto.spec.ts
 !/e2e/05-diamond-store.spec.ts
