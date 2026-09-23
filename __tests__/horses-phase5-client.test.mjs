@@ -45,10 +45,35 @@ import {
 import { TABS, findTab, visibleTabs } from '../src/components/horses/tabRegistry.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const panel = await readFile(
-  path.join(HERE, '..', 'src/components/horses/IntegrityPanel.jsx'),
-  'utf8',
+const component = (name) => path.join(HERE, '..', 'src/components/horses', name);
+const panel = await readFile(component('IntegrityPanel.jsx'), 'utf8');
+const integritySource = await readFile(component('integrityAdmin.js'), 'utf8');
+const operatorFetchSource = await readFile(component('useOperatorFetch.js'), 'utf8');
+const pagedListSource = await readFile(component('usePagedList.js'), 'utf8');
+
+/**
+ * useOperatorFetch.js imports React and ../../lib/authUtils, and authUtils is
+ * written for the bundler's extensionless resolution, so plain node cannot
+ * import the module as it stands. Everything the deadline needs is globals, so
+ * the module is evaluated with its import statements removed. This is what lets
+ * the deadline itself be executed rather than only pattern matched, and a regex
+ * cannot prove that a stalled body is bounded.
+ */
+const bounded = await import(
+  `data:text/javascript;base64,${
+    Buffer.from(operatorFetchSource.replace(/^import[^;]*;$/gm, '')).toString('base64')
+  }`
 );
+
+/** A request that resolves only when its signal is aborted. */
+const hangUntilAborted = (signal) => new Promise((_resolve, reject) => {
+  signal.addEventListener('abort', () => {
+    const err = new Error('aborted');
+    err.name = 'AbortError';
+    reject(err);
+  });
+});
+const settle = (promise) => promise.then(() => null, (err) => err);
 
 test('the Integrity tab is visible, code split, and read-gated', () => {
   const tab = findTab('integrity');
@@ -291,12 +316,19 @@ test('hand search coverage separates an exhausted search from an unfinished one'
 });
 
 test('hand search coverage never invents completeness from a missing payload', () => {
-  for (const empty of [null, undefined, {}, { state: null }]) {
+  for (const empty of [null, undefined, {}, { state: null }, 'garbage', 42, [], { data: null }]) {
     const coverage = handSearchCoverage(empty);
+    assert.ok(coverage && typeof coverage === 'object', 'the shape is always safe to read');
     assert.equal(coverage.incomplete, false, 'absent state must not claim an unfinished search');
     assert.equal(coverage.hasMore, false, 'absent cursor must not claim another page');
     assert.equal(coverage.scannedCount, null, 'a scanned count that was never reported stays null');
+    assert.equal(coverage.truncated, false, 'an absent truncated flag is not a truncated search');
+    assert.equal(coverage.coverageNote, null, 'a note that was never sent is not invented');
   }
+  // A non-boolean truncated flag must not be read as a boolean by accident.
+  assert.equal(handSearchCoverage({ truncated: 0 }).incomplete, false);
+  assert.equal(handSearchCoverage({ truncated: 'yes' }).incomplete, false);
+  assert.equal(handSearchCoverage({ coverage_note: '   ' }).coverageNote, null);
 });
 
 test('the integrity panel reads the continuation the database reports', async () => {
@@ -320,4 +352,248 @@ test('the integrity panel reads the continuation the database reports', async ()
     /\{handRows\.length > 0 && \(\s*\n\s*<CursorPager/,
     'the old row-count-only pager gate must not come back'
   );
+});
+
+// ---------------------------------------------------------------------------
+// Audit repair 1: an incomplete hand search reported itself as complete.
+//
+// fn_ca_integrity_hands sets state to 'search_incomplete' ONLY when the window
+// filled and nothing matched. The moment one row matches it says
+// 'hands_available' instead, even with truncated true and a cursor in hand. The
+// panel read state alone, so the measured live case - a player with 28,395
+// hands answering matched_in_sample 27, scanned_count 500, truncated true -
+// rendered 25 cards and no disclosure at all. An investigator could record
+// "reviewed this player's hands" after seeing 0.09% of them.
+// ---------------------------------------------------------------------------
+
+test('a truncated hand search that DID match rows is still an incomplete search', () => {
+  // The exact live payload from the production audit.
+  const measured = handSearchCoverage({
+    ok: true,
+    state: 'hands_available',
+    matched_in_sample: 27,
+    candidate_cap: 500,
+    scanned_count: 500,
+    truncated: true,
+    next_cursor: { created_at: '2026-09-01T00:00:00Z', id: 'hand-500' },
+    coverage_note: 'Search examines the newest 500 candidate hands per page before player filters.',
+  });
+  assert.equal(measured.incomplete, true,
+    'matched rows plus a full candidate window is an unfinished search, not a finished one');
+  assert.equal(measured.truncated, true);
+  assert.equal(measured.state, 'hands_available', 'the database state is reported as it was sent');
+  assert.equal(measured.hasMore, true);
+  assert.equal(measured.scannedCount, 500);
+  assert.deepEqual(measured.nextCursor, { created_at: '2026-09-01T00:00:00Z', id: 'hand-500' });
+  assert.equal(
+    measured.coverageNote,
+    'Search examines the newest 500 candidate hands per page before player filters.',
+    'the disclosure must be able to quote what the database says it examined'
+  );
+
+  // The same answer arriving inside a data envelope is read the same way.
+  assert.equal(handSearchCoverage({ data: { state: 'hands_available', truncated: true } }).incomplete, true);
+});
+
+test('the older empty-window signal still reports an incomplete search', () => {
+  const unfinished = handSearchCoverage({
+    state: 'search_incomplete',
+    scanned_count: 500,
+    truncated: true,
+    next_cursor: { created_at: '2026-08-01T00:00:00Z', id: 'hand-1' },
+  });
+  assert.equal(unfinished.incomplete, true);
+  assert.equal(unfinished.hasMore, true);
+
+  // And the state alone is enough, even if the flag were ever dropped.
+  assert.equal(handSearchCoverage({ state: 'search_incomplete' }).incomplete, true);
+});
+
+test('a genuinely exhausted hand search is not warned about', () => {
+  for (const exhausted of [
+    { state: 'hands_available', matched_in_sample: 3, scanned_count: 120, truncated: false, next_cursor: null },
+    { state: 'nothing_to_review', scanned_count: 120, truncated: false, next_cursor: null },
+  ]) {
+    const coverage = handSearchCoverage(exhausted);
+    assert.equal(coverage.incomplete, false, 'a window that did not fill reached the end of history');
+    assert.equal(coverage.truncated, false);
+    assert.equal(coverage.hasMore, false);
+    assert.equal(coverage.scannedCount, 120);
+  }
+});
+
+test('the panel gates its hand coverage disclosure on more than the state string', () => {
+  assert.match(
+    integritySource,
+    /incomplete: state === 'search_incomplete' \|\| truncated,/,
+    'either the state or the truncated flag must make a search incomplete'
+  );
+  assert.doesNotMatch(
+    panel,
+    /'search_incomplete'/,
+    'the panel must not re-derive coverage from the state string; that is the defect'
+  );
+  assert.match(
+    panel,
+    /handFilters && handCoverage\.incomplete && handRows\.length > 0/,
+    'the disclosure must be reachable with matched rows on screen, which is the dangerous case'
+  );
+  assert.match(
+    panel,
+    /handCoverage\.coverageNote\s*\n?\s*\|\| 'The Hand-History Source Is Read In Windows\.'/,
+    "the database's own coverage_note is preferred, with the original copy as the fallback"
+  );
+  // The rows-present disclosure must say the rows are a sample, not just that
+  // more pages exist, and the exhausted empty state must stay distinct from the
+  // truncated one.
+  assert.match(panel, /'The Match Below Came' : /,
+    'one matched hand still reads as a sample of a window');
+  assert.match(panel, /Matches Below Came/);
+  assert.match(panel, /From One Window Of Candidate Hands\$\{handScannedClause\}/,
+    'the disclosure must say how much was actually examined');
+  assert.match(panel, /Not From The Whole Of This Player's History/);
+  assert.match(panel, /The Hand-History Source Was Read To The End Of History And Returned No Matching Records\./);
+  assert.match(panel, /Use Next To Continue The Search Before Treating This As No Evidence\./);
+});
+
+// ---------------------------------------------------------------------------
+// Audit repair 2: the operator console had no request timeout anywhere.
+//
+// Every AbortController in this console fired on unmount, and in usePagedList on
+// the next load. Neither is a deadline, so a hung read left a panel spinning for
+// ever with no error and no retry. The near miss these tests exist to prevent is
+// a deadline with the right shape and the wrong extent: arm a timer, call fetch,
+// clear the timer around the fetch alone, then read the body. That bounds the
+// response headers and nothing else, so a server that sends 200 and then stalls
+// the body hangs exactly as it did before.
+// ---------------------------------------------------------------------------
+
+test('the deadline stays armed until the body is read, not just until the headers arrive', async () => {
+  const { withRequestTimeout, OPERATOR_TIMEOUT_MS, isTimeoutError } = bounded;
+  assert.equal(OPERATOR_TIMEOUT_MS, 30000,
+    'the integrity queue legitimately takes about three seconds, so the bound sits well above it');
+
+  // Headers arrive, then the body stalls. This is precisely the case a timer
+  // cleared around the fetch alone fails to bound.
+  let headersArrived = false;
+  const failed = await settle(withRequestTimeout(
+    async (signal) => { headersArrived = true; return hangUntilAborted(signal); },
+    { timeoutMs: 40 },
+  ));
+  assert.equal(headersArrived, true, 'the stall must be after the headers, or this proves nothing');
+  assert.equal(isTimeoutError(failed), true, 'a stalled body must trip the same deadline a stalled header does');
+  assert.equal(failed.name, 'TimeoutError');
+  assert.equal(failed.code, 'CLIENT_TIMEOUT');
+  assert.match(failed.message, /No Answer Within/,
+    'an operator must be able to tell a timeout apart from a server error');
+  assert.doesNotMatch(failed.message, /500|Request Failed/,
+    'a timeout is not a server refusal and must not read like one');
+
+  // Work that finishes inside the bound is untouched, and a real server error
+  // keeps its own identity rather than being dressed up as a timeout.
+  assert.equal(await withRequestTimeout(async () => 'body', { timeoutMs: 5000 }), 'body');
+  const server = await settle(withRequestTimeout(
+    async () => { throw new Error('Request Failed (500)'); },
+    { timeoutMs: 5000 },
+  ));
+  assert.equal(isTimeoutError(server), false);
+  assert.equal(server.message, 'Request Failed (500)');
+});
+
+test('unmount still cancels, and a cancellation is never reported as a timeout', async () => {
+  const { withRequestTimeout, isTimeoutError } = bounded;
+
+  const unmount = new AbortController();
+  setTimeout(() => unmount.abort(), 10);
+  const cancelled = await settle(withRequestTimeout(hangUntilAborted, {
+    timeoutMs: 5000, signals: [unmount.signal],
+  }));
+  assert.equal(cancelled.name, 'AbortError', 'a component unmounting must still cancel its request');
+  assert.equal(isTimeoutError(cancelled), false, 'an operator navigating away is not a server timeout');
+
+  const already = new AbortController();
+  already.abort();
+  const refused = await settle(withRequestTimeout(hangUntilAborted, {
+    timeoutMs: 5000, signals: [already.signal],
+  }));
+  assert.equal(refused.name, 'AbortError', 'a view that is already gone opens no request at all');
+});
+
+test('useOperatorFetch bounds the whole round trip and keeps its unmount abort', () => {
+  const src = operatorFetchSource;
+  assert.match(src, /export const OPERATOR_TIMEOUT_MS = 30000;/,
+    'the bound is a named constant, justified in a comment, and a caller may override it');
+  assert.match(src, /A caller with a heavier read passes `timeoutMs`/,
+    'the chosen bound must be justified where it is defined');
+  assert.match(src, /const timer = setTimeout\(\(\) => \{ timedOut = true; abort\(\); \}, ms\);/,
+    'the abort must be on a real timer, not only on unmount');
+  assert.match(src, /clearTimeout\(timer\);/, 'the timer must be cleared');
+
+  // The timer is armed, then the work is awaited, and only then is it cleared.
+  const armed = src.indexOf('const timer = setTimeout(');
+  const awaited = src.indexOf('return await run(controller.signal);');
+  const cleared = src.indexOf('clearTimeout(timer);');
+  assert.ok(armed > 0 && awaited > armed && cleared > awaited,
+    'the timer may only be cleared after the awaited work has fully settled');
+
+  // The fetch AND the body read both sit inside the bounded callback, and the
+  // timer is not touched between them. That is the header-only bound, ruled out
+  // structurally rather than by hoping nobody reintroduces it.
+  const window = src.slice(
+    src.indexOf('withRequestTimeout(async (signal) => {'),
+    src.indexOf('signals: ['),
+  );
+  assert.ok(window.length > 0, 'the operator fetch must run inside withRequestTimeout');
+  assert.match(window, /await fetch\(url, \{/, 'the request is inside the armed window');
+  assert.match(window, /const body = await readJsonBody\(res\);/,
+    'the body read is inside the armed window, not after the timer is cleared');
+  assert.doesNotMatch(window, /clearTimeout/,
+    'clearing the timer before the body is read is the bug this repair exists to avoid');
+
+  assert.match(src, /err\.name = 'TimeoutError';/, 'a timeout is its own outcome, not a 500');
+  assert.match(src, /controllersRef\.current\.add\(controller\)/,
+    'the unmount abort set must survive the repair');
+  assert.match(src, /signals: \[controller \? controller\.signal : null, options\.signal\]/,
+    'the unmount controller and the caller signal both still cancel');
+});
+
+test('usePagedList runs every page read under the same bound', () => {
+  const src = pagedListSource;
+  assert.match(src, /import \{ OPERATOR_TIMEOUT_MS, withRequestTimeout \} from '\.\/useOperatorFetch';/,
+    'the bound is shared, so the console cannot end up with two divergent deadlines');
+  assert.match(src, /timeoutMs = OPERATOR_TIMEOUT_MS,/, 'a caller may override the bound');
+  assert.match(
+    src,
+    /const result = await withRequestTimeout\(\s*\(signal\) => fetchRef\.current\(\{[\s\S]*?signal,[\s\S]*?\}\),[\s\S]*?timeoutMs[\s\S]*?signals: \[controller \? controller\.signal : null\]/,
+    'the page read runs inside the armed window'
+  );
+
+  // fetchPage is the call that reads the response body, so there must be exactly
+  // one path to it and it must be the bounded one.
+  assert.equal(src.split('fetchRef.current(').length - 1, 1,
+    'no second, unbounded path to fetchPage may exist');
+  assert.ok(
+    src.indexOf('fetchRef.current(') > src.indexOf('await withRequestTimeout('),
+    'the body read sits inside the armed window'
+  );
+  // The timer itself lives in the shared helper, asserted above; usePagedList
+  // must not hand-roll a second one that could drift from it.
+  assert.ok(!/setTimeout\(/.test(src), 'the deadline comes from the shared helper, not a local copy');
+
+  // The pre-existing cancellation behaviour is untouched.
+  assert.match(src, /useEffect\(\(\) => \(\) => \{\s*\n\s*if \(abortRef\.current\)/,
+    'unmount must still abort the in-flight page');
+  assert.match(src, /if \(err && err\.name === 'AbortError'\) return;/,
+    'a cancellation stays silent, while a timeout carries its own message to the operator');
+});
+
+test('the integrity panel hands its reads an explicit deadline', () => {
+  assert.match(panel, /import \{ OPERATOR_TIMEOUT_MS \} from '\.\/useOperatorFetch';/);
+  assert.match(
+    panel,
+    /authFetch\(url, \{\s*\n\s*signal: controller \? controller\.signal : undefined,\s*\n\s*timeoutMs: OPERATOR_TIMEOUT_MS,\s*\n\s*\}\)/,
+    'the panel read carries a bound as well as its unmount controller'
+  );
+  assert.match(panel, /an unmount cancel and nothing more/,
+    'the controller must be documented as a cancel, not mistaken for a deadline');
 });
