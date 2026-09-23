@@ -90,6 +90,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-arena-auxiliary-mode-authority',
     'training-arena-client-answer-authority',
     'training-arena-review-gateway-authority',
+    'training-attestation-continuation-real-geometry',
     'training-audit-session-browser-custody',
     'training-audit-session-refresh',
     'training-authored-model-honesty',
