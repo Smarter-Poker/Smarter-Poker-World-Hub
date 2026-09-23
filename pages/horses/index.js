@@ -441,7 +441,12 @@ export default function HorsesAdmin() {
   });
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // DEFECT 2: a failed READ and a failed SAVE are different events and must never
+  // share one message. "Settings Not Saved" told an operator whose read failed that
+  // their edits were lost when nothing had ever been written. settingsError is the
+  // SAVE channel only; settingsReadError is the READ channel.
   const [settingsError, setSettingsError] = useState(null);
+  const [settingsReadError, setSettingsReadError] = useState(null);
   const [settingsSavedAt, setSettingsSavedAt] = useState(null);
 
   // ── Pipeline ──
@@ -936,13 +941,16 @@ export default function HorsesAdmin() {
       // to surface. Unknown stays unknown until the row is actually read.
       if (settingsRes.error) {
         setSettingsLoaded(false);
-        setSettingsError(settingsRes.error.message);
+        setSettingsReadError(settingsRes.error.message);
       } else if (settingsRes.data) {
         setSettings((prev) => ({ ...prev, ...settingsRes.data }));
         setSettingsLoaded(true);
-        setSettingsError(null);
+        setSettingsReadError(null);
       } else {
+        // No error and no row: the read succeeded and found nothing, so the values in
+        // component state are still defaults nobody has confirmed. Unread either way.
         setSettingsLoaded(false);
+        setSettingsReadError(null);
       }
       setPipelineRuns(runsRes.data || []);
     } finally {
@@ -2276,6 +2284,19 @@ export default function HorsesAdmin() {
   }, [authFetch, broadcastUpdate, showNotification]);
 
   const updateSetting = useCallback((key, value) => {
+    // DEFECT 1: fail closed when the row was never read. `settings` still holds the
+    // hardcoded component defaults until a real read lands, and flushSettings POSTs
+    // the WHOLE object, so queueing a write from an unread state would overwrite the
+    // live production row with every one of those defaults just because an operator
+    // flipped one switch. Refuse the write, and say why: a control that silently
+    // drops the change is the same lie as a control that silently corrupts the row.
+    if (!settingsLoaded) {
+      showNotification(
+        'Settings Were Never Read, So Nothing Can Be Saved. Reload The Page And Try Again.',
+        'error',
+      );
+      return;
+    }
     // Reject NaN before it reaches state, let alone the database.
     if (typeof value === 'number' && !Number.isFinite(value)) return;
     setSettings((prev) => {
@@ -2285,7 +2306,7 @@ export default function HorsesAdmin() {
     });
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
     settingsTimer.current = setTimeout(flushSettings, 700);
-  }, [flushSettings]);
+  }, [flushSettings, settingsLoaded, showNotification]);
 
   useEffect(() => () => {
     if (settingsTimer.current) clearTimeout(settingsTimer.current);
@@ -3838,6 +3859,27 @@ export default function HorsesAdmin() {
                   content_settings is service_role-write only, and the browser
                   upsert that used to run here matched nothing and reported no
                   error. The save state is now visible either way. */}
+              {/* DEFECT 2: the read failure gets its own sentence. It is not a lost save. */}
+              {settingsReadError && (
+                <div className={styles.errorState} role="alert" style={{ marginBottom: 16 }}>
+                  Settings Not Read: {settingsReadError}
+                </div>
+              )}
+              {/* DEFECT 1: with no successful read, every value below is a component
+                  default rather than the live row, and one save would write all of
+                  them over it. The card says so and the controls stay closed. */}
+              {!settingsLoaded && (personasLoading ? (
+                <div style={{ color: T.dim, fontSize: 12, marginBottom: 16 }} role="status">
+                  Reading The Saved Settings. The Controls Below Stay Closed Until The Row
+                  Has Actually Been Read.
+                </div>
+              ) : (
+                <div className={styles.warnBanner} role="status" style={{ marginBottom: 16 }}>
+                  These Controls Are Locked. The Saved Settings Were Never Read, So The
+                  Values Shown Are Defaults, Not The Live Row, And Saving One Would
+                  Overwrite Every Other Setting With A Default. Reload To Read Them Again.
+                </div>
+              ))}
               {settingsError ? (
                 <div className={styles.errorState} role="alert" style={{ marginBottom: 16 }}>
                   Settings Not Saved: {settingsError}
@@ -3860,6 +3902,7 @@ export default function HorsesAdmin() {
                       <input
                         id={`set-${key}`} type="number" min={min} max={max}
                         value={settings[key] ?? ''}
+                        disabled={!settingsLoaded}
                         onChange={(e) => {
                           const v = parseInt(e.target.value, 10);
                           // Clearing the field used to write NaN to the row.
@@ -3880,6 +3923,7 @@ export default function HorsesAdmin() {
                   <div className={styles.settingItem}>
                     <label htmlFor="set-model">Model</label>
                     <select id="set-model" value={settings.ai_model || 'gpt-4o'}
+                      disabled={!settingsLoaded}
                       onChange={(e) => updateSetting('ai_model', e.target.value)}>
                       <option value="gpt-4o">GPT-4o (Best)</option>
                       <option value="gpt-4o-mini">GPT-4o Mini</option>
@@ -3891,6 +3935,7 @@ export default function HorsesAdmin() {
                     <input
                       id="set-temp" type="range" min="0" max="100" step="5"
                       value={Math.round(Number(settings.temperature ?? 0.8) * 100)}
+                      disabled={!settingsLoaded}
                       onChange={(e) => updateSetting('temperature', Number(e.target.value) / 100)}
                     />
                   </div>
@@ -3945,27 +3990,37 @@ export default function HorsesAdmin() {
 
                 <div className={`${styles.settingCard} ${styles.fullWidth}`}>
                   <h3>System Controls</h3>
+                  {/* DEFECT 1: these two read straight off `settings` with no
+                      settingsLoaded guard, so an unread row rendered the component
+                      default as a confident green "Running" while the header three
+                      hundred lines up already said "Content Engine Unknown". The two
+                      disagreed on the same screen, and the toggle beneath the lie was
+                      live. Unknown stays unknown here too, and stays closed. */}
                   <div className={styles.systemControls}>
                     <div className={styles.controlItem}>
                       <label htmlFor="set-engine">Content Engine</label>
                       <label className={styles.toggleSwitch}>
-                        <input id="set-engine" type="checkbox" checked={!!settings.engine_enabled}
+                        <input id="set-engine" type="checkbox"
+                          checked={settingsLoaded && !!settings.engine_enabled}
+                          disabled={!settingsLoaded}
                           onChange={(e) => updateSetting('engine_enabled', e.target.checked)} />
                         <span className={styles.slider} />
                       </label>
-                      <span style={{ color: settings.engine_enabled ? T.accent : T.danger }}>
-                        {settings.engine_enabled ? 'Running' : 'Stopped'}
+                      <span style={{ color: !settingsLoaded ? T.dim : settings.engine_enabled ? T.accent : T.danger }}>
+                        {!settingsLoaded ? 'Unknown' : settings.engine_enabled ? 'Running' : 'Stopped'}
                       </span>
                     </div>
                     <div className={styles.controlItem}>
                       <label htmlFor="set-publish">Auto-Publish</label>
                       <label className={styles.toggleSwitch}>
-                        <input id="set-publish" type="checkbox" checked={!!settings.auto_publish}
+                        <input id="set-publish" type="checkbox"
+                          checked={settingsLoaded && !!settings.auto_publish}
+                          disabled={!settingsLoaded}
                           onChange={(e) => updateSetting('auto_publish', e.target.checked)} />
                         <span className={styles.slider} />
                       </label>
-                      <span style={{ color: settings.auto_publish ? T.accent : T.warn }}>
-                        {settings.auto_publish ? 'Active' : 'Manual'}
+                      <span style={{ color: !settingsLoaded ? T.dim : settings.auto_publish ? T.accent : T.warn }}>
+                        {!settingsLoaded ? 'Unknown' : settings.auto_publish ? 'Active' : 'Manual'}
                       </span>
                     </div>
                   </div>

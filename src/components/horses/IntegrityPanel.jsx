@@ -16,6 +16,7 @@ import StatusPill from './StatusPill';
 import styles from './shared.module.css';
 import { num, when } from '../../lib/horsesAdminTokens';
 import { hasPermission } from './operatorPermissions';
+import { OPERATOR_TIMEOUT_MS } from './useOperatorFetch';
 import {
   CASE_DECISIONS,
   CASE_ITEM_TYPES,
@@ -173,8 +174,16 @@ function EmptyNotice({ model }) {
 }
 
 /**
- * One abortable, sequence-guarded read. Extra response metadata stays attached
- * to `data`, so the explicit empty state cannot be lost beside the rows.
+ * One abortable, sequence-guarded, deadline-bounded read. Extra response
+ * metadata stays attached to `data`, so the explicit empty state cannot be lost
+ * beside the rows.
+ *
+ * The controller below is an unmount cancel and nothing more: on its own it
+ * never fires while the operator is still watching, so a read that hangs used to
+ * leave this panel spinning with no error and no retry. The bound comes from
+ * OPERATOR_TIMEOUT_MS, handed to the authorized fetch, which keeps it armed
+ * until the response body has been read and then reports a timeout as its own
+ * outcome rather than as a server error.
  */
 function useIntegrityRead({ active, authFetch, url, retainData = false }) {
   const [data, setData] = useState(null);
@@ -195,7 +204,10 @@ function useIntegrityRead({ active, authFetch, url, retainData = false }) {
       setLoaded(false);
     }
 
-    authFetch(url, { signal: controller ? controller.signal : undefined })
+    authFetch(url, {
+      signal: controller ? controller.signal : undefined,
+      timeoutMs: OPERATOR_TIMEOUT_MS,
+    })
       .then((body) => {
         if (seq !== seqRef.current) return;
         setData(body);
@@ -661,6 +673,14 @@ export default function IntegrityPanel({
   const timingCoverage = first(payloadOf(timing.data), 'coverage') || {};
   const handRows = rowsOf(hands.data, 'hands');
   const handCoverage = handSearchCoverage(hands.data);
+  // The database describes its own window in coverage_note. Prefer it, so the
+  // disclosure cannot drift from what the function actually did, and fall back
+  // to the panel's original wording when the function sent no note.
+  const handCoverageNote = handCoverage.coverageNote
+    || 'The Hand-History Source Is Read In Windows.';
+  const handScannedClause = handCoverage.scannedCount == null
+    ? ''
+    : `, After ${handCoverage.scannedCount} Hands Scanned`;
   const liveHealth = healthOf(health.data);
 
   return (
@@ -1171,15 +1191,15 @@ export default function IntegrityPanel({
             </div>
           )}
           {handFilters && handCoverage.incomplete && handRows.length > 0 && (
-            <div className={styles.infoNote} role="status">
+            <div className={styles.warnNote} role="status">
               <strong>This Search Did Not Reach The End Of History. </strong>
-              Older Hands Remain Unscanned. Use Next To Continue The Search.
+              {`${handRows.length === 1 ? 'The Match Below Came' : `The ${handRows.length} Matches Below Came`} From One Window Of Candidate Hands${handScannedClause}, Not From The Whole Of This Player's History. Older Hands Remain Unscanned. Use Next To Continue The Search Before Recording That This History Was Reviewed. ${handCoverageNote}`}
             </div>
           )}
           {handFilters && renderListState(hands, handRows, handCoverage.incomplete
             ? {
                 title: 'This Search Did Not Reach The End Of History',
-                detail: `The Hand-History Source Is Read In Windows. This Window Returned No Matching Records${handCoverage.scannedCount == null ? '' : `, After ${handCoverage.scannedCount} Hands Scanned`}, And Older Hands Remain Unscanned. Use Next To Continue The Search Before Treating This As No Evidence.`,
+                detail: `${handCoverageNote} This Window Returned No Matching Records${handScannedClause}, And Older Hands Remain Unscanned. Use Next To Continue The Search Before Treating This As No Evidence.`,
               }
             : { title: 'No Hands Match That Search', detail: 'The Hand-History Source Was Read To The End Of History And Returned No Matching Records.' })}
           {handRows.map((row, index) => <SimpleRecordCard key={String(first(row, 'id', 'hand_id', 'handId') || index)} row={row} kind="hands" />)}
