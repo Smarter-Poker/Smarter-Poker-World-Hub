@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -87,16 +87,14 @@ async function makePrivateDir(t) {
   return directory;
 }
 
-async function seedStore(t, { accessToken = diskAccessToken(), withEnv = true, authStateSubdir = null } = {}) {
+async function seedStore(t, {
+  accessToken = diskAccessToken(),
+  withEnv = true,
+  authStateBasename = 'audit-auth.json',
+} = {}) {
   const dir = await makePrivateDir(t);
   const envPath = join(dir, '.env');
-  let authStateDir = dir;
-  if (authStateSubdir) {
-    authStateDir = join(dir, authStateSubdir);
-    await mkdir(authStateDir, { mode: 0o700 });
-    t.after(() => chmod(authStateDir, 0o700).catch(() => undefined));
-  }
-  const authStatePath = join(authStateDir, 'audit-auth.json');
+  const authStatePath = join(dir, authStateBasename);
   const session = sessionFor(accessToken, DISK_REFRESH);
   const values = new Map([
     [AUDIT_SESSION_ENV_KEYS.accessToken, accessToken],
@@ -111,7 +109,6 @@ async function seedStore(t, { accessToken = diskAccessToken(), withEnv = true, a
   await writeFile(authStatePath, `${JSON.stringify(storageState(session), null, 2)}\n`, { mode: 0o600 });
   return {
     dir,
-    authStateDir,
     envPath: withEnv ? envPath : null,
     authStatePath,
     accessToken,
@@ -491,8 +488,16 @@ test('an unchanged browser session leaves the custody files byte-identical and i
   assertEvidenceSafeFieldNames(evidence.auditSession);
 });
 
+// Failure injection must not depend on permission bits: the production build
+// runs its tests as root, and root ignores directory modes. An auth-state
+// basename that is itself creatable (below NAME_MAX, 255 bytes) but whose
+// atomic temp name (`<path>.<pid>.<uuid>.tmp`, 47+ more bytes) is not fails
+// the temp-file open with ENAMETOOLONG under every uid.
+const LONG_AUTH_STATE_BASENAME = `audit-auth-${'x'.repeat(225)}.json`;
+
 test('a persistence failure is recorded with a redacted message and never upgrades the run result', async (t) => {
-  const store = await seedStore(t, { authStateSubdir: 'state' });
+  assert.equal(LONG_AUTH_STATE_BASENAME.length, 241);
+  const store = await seedStore(t, { authStateBasename: LONG_AUTH_STATE_BASENAME });
   const evidenceDir = await makePrivateDir(t);
   const [envBefore, stateBefore] = await snapshot([store.envPath, store.authStatePath]);
   const rotated = rotatedAccessToken();
@@ -500,17 +505,10 @@ test('a persistence failure is recorded with a redacted message and never upgrad
   const chromium = fakeBrowser(recorder, {
     rotate: (state) => storageState(sessionFor(rotated, ROTATED_REFRESH), state.origins[0].origin),
   });
-  // A read-only (still private) auth-state directory makes the second of the
-  // two atomic writes fail after every check passed and the env was written:
-  // the interrupted-between-writes case the startup custody check refuses.
-  await chmod(store.authStateDir, 0o500);
-  let result;
-  try {
-    result = await runFailingAttestation(store, evidenceDir, chromium);
-  } finally {
-    await chmod(store.authStateDir, 0o700);
-  }
-  const { config, error, evidence } = result;
+  // The second of the two atomic writes fails after every check passed and
+  // the env was written: the interrupted-between-writes case the startup
+  // custody check refuses.
+  const { config, error, evidence } = await runFailingAttestation(store, evidenceDir, chromium);
   assert.match(error.message, /fresh full attempt returned HTTP 599/, 'the original failure is what is thrown');
   assert.equal(evidence.status, 'failed_closed');
   assert.equal(evidence.success, false);
@@ -521,6 +519,7 @@ test('a persistence failure is recorded with a redacted message and never upgrad
   assert.equal(evidence.auditSession.browserCustody.reason, AUDIT_SESSION_PERSIST_REASONS.persistFailed);
   assert.equal(evidence.auditSession.browserCustody.code, AUDIT_SESSION_ERROR_CODES.persistFailed);
   assert.match(evidence.auditSession.browserCustody.message, /persisting the rotated browser session failed/);
+  assert.match(evidence.auditSession.browserCustody.message, /ENAMETOOLONG/, 'the injected, uid-independent failure is what fired');
   const secrets = [...store.secrets, rotated, ROTATED_REFRESH];
   assert.deepEqual(auditSessionMaterialLeaks(await readFile(config.output, 'utf8'), secrets), []);
   assertEvidenceSafeFieldNames(evidence.auditSession);
@@ -528,7 +527,6 @@ test('a persistence failure is recorded with a redacted message and never upgrad
   assert.notEqual(envAfter, envBefore, 'the env (first write) was rotated');
   assert.equal(stateAfter, stateBefore, 'the auth state (second write) is untouched');
   await noTemporaryOrLockFiles(store.dir);
-  await noTemporaryOrLockFiles(store.authStateDir);
   // The divergent store is refused, with the reconcile action, before the next run's first request.
   const next = await ensureFreshAuditSession({
     credentialEnvPath: store.envPath,
@@ -544,21 +542,23 @@ test('a persistence failure is recorded with a redacted message and never upgrad
   assert.deepEqual(auditSessionMaterialLeaks(next.message, secrets), []);
 });
 
-test('a persist failure before the lock (read-only custody directory) is a refusal that leaves both files intact', async (t) => {
+test('a persist failure before the lock (custody path running through a regular file) is a refusal that leaves both files intact', async (t) => {
   const store = await seedStore(t);
   const before = await snapshot([store.envPath, store.authStatePath]);
-  await chmod(store.dir, 0o500);
-  let record;
-  try {
-    record = await persistBrowserSessionIfRotated(
-      persistOptions(store, { storageState: storageState(sessionFor(rotatedAccessToken(), ROTATED_REFRESH), DEPLOYMENT_URL) }),
-    );
-  } finally {
-    await chmod(store.dir, 0o700);
-  }
+  // The credential env path descends through the existing env file, so the
+  // lock create at `<env>.refresh.lock` fails with ENOTDIR for every uid,
+  // before any custody read or write.
+  const record = await persistBrowserSessionIfRotated(
+    persistOptions(store, {
+      credentialEnvPath: join(store.envPath, '.env'),
+      storageState: storageState(sessionFor(rotatedAccessToken(), ROTATED_REFRESH), DEPLOYMENT_URL),
+    }),
+  );
   assert.equal(record.persistedRotatedSession, false);
   assert.equal(record.outcome, AUDIT_SESSION_PERSIST_OUTCOMES.refused);
   assert.equal(record.reason, AUDIT_SESSION_PERSIST_REASONS.lockHeld);
+  assert.match(record.message, /custody lock could not be taken/);
+  assert.match(record.message, /ENOTDIR/, 'the injected, uid-independent failure is what fired');
   assertRecordClean(record, [...store.secrets, ROTATED_REFRESH]);
   assert.deepEqual(await snapshot([store.envPath, store.authStatePath]), before);
   await noTemporaryOrLockFiles(store.dir);
