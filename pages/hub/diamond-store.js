@@ -102,6 +102,13 @@ import { VIPCard } from '../../src/components/store/StoreCards';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
+import ClubShopItemEditor from '../../src/components/store/ClubShopItemEditor';
+import ClubShopPurchaseLedger from '../../src/components/store/ClubShopPurchaseLedger';
+import ClubShopSalesAnalytics from '../../src/components/store/ClubShopSalesAnalytics';
+import {
+  clubShopItemDeleteGuard,
+  clubShopOperatorRequestId,
+} from '../../src/lib/store/clubShopItemDraft.mjs';
 
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
   loading: () => (
@@ -663,6 +670,9 @@ export default function DiamondStorePage({
   const [clubShopLastCreate, setClubShopLastCreate] = useState(0);
   const [clubShopDeleteTarget, setClubShopDeleteTarget] = useState(null);
   const [clubShopAdminActionId, setClubShopAdminActionId] = useState(null);
+  // Which operator row has its in-place editor open. One at a time, and never
+  // carried across a club or account change.
+  const [clubShopEditingItemId, setClubShopEditingItemId] = useState(null);
   const clubShopLoadingRef = useRef(false);
   // The storefront loader can be invalidated by its timeout or a later retry.
   // A superseded request must never clear or overwrite the newer request's
@@ -735,6 +745,7 @@ export default function DiamondStorePage({
     setClubShopAdminReport(null);
     setClubShopMaximumCardFundedPrice(null);
     setClubShopAdminAction(null);
+    setClubShopEditingItemId(null);
     setClubShopDeleteTarget(null);
     setClubShopSubTab('store');
     setClubShopClubId(nextRouteClubId);
@@ -798,6 +809,7 @@ export default function DiamondStorePage({
     setClubShopAdminReport(null);
     setClubShopMaximumCardFundedPrice(null);
     setClubShopAdminAction(null);
+    setClubShopEditingItemId(null);
     setClubShopDeleteTarget(null);
     setClubShopSubTab('store');
     setClubShopClubId(routeClubId || null);
@@ -2717,6 +2729,7 @@ export default function DiamondStorePage({
     setClubShopAdminReport(null);
     setClubShopMaximumCardFundedPrice(null);
     setClubShopAdminError(null);
+    setClubShopEditingItemId(null);
   }, [clubShopClubId]);
 
   useEffect(
@@ -2726,8 +2739,12 @@ export default function DiamondStorePage({
     []
   );
 
+  // `fields` carries the operator's edited values for `action: 'update'`, which
+  // is the only action with a body beyond the ids. It is shaped by
+  // buildClubShopItemUpdatePayload and contains no computed price and no
+  // authority claim: the server re-reads the row and decides.
   const handleClubShopAdminAction = useCallback(
-    async (action, item) => {
+    async (action, item, fields = null) => {
       if (!item?.id || !item?.club_id || clubShopAdminActionRef.current) return;
       const expectedAccountId = committedStoreAccountId;
       const expectedClubId = clubShopClubId;
@@ -2746,10 +2763,37 @@ export default function DiamondStorePage({
         return;
       }
       if (isThrowableAdminItem(item)) {
-        showStoreToast(
-          'warning',
-          'Throwable Offers Are Platform Managed And Cannot Be Hidden Or Deleted.'
-        );
+        // Creating, splitting, hiding and deleting a throwable offer stay
+        // refused for every throwable row. Only the one canonical pack keeps
+        // editable commercial terms, the way the retired Manage tab had it;
+        // historical Tomato/Snowball/Egg rows are receipts and never rewritten.
+        if (action !== 'update') {
+          showStoreToast(
+            'warning',
+            'Throwable Offers Are Platform Managed And Cannot Be Hidden Or Deleted.'
+          );
+          return;
+        }
+        if (!isCanonicalAllThrowablesAdminItem(item)) {
+          showStoreToast(
+            'warning',
+            'Historical Throwable Rows Are Preserved For Receipts And Cannot Be Edited.'
+          );
+          return;
+        }
+      }
+      if (action === 'delete') {
+        // club_shop_purchases.item_id is ON DELETE CASCADE, so a hard delete of
+        // a sold item erases the club's purchase history. The server refuses it
+        // too; this refuses it before a confirmation is spent on it.
+        const deleteGuard = clubShopItemDeleteGuard(item);
+        if (!deleteGuard.canDelete) {
+          showStoreToast('warning', deleteGuard.reason);
+          return;
+        }
+      }
+      if (action === 'update' && (!fields || fields.itemId !== item.id)) {
+        showStoreToast('error', 'The Club Shop Changed. Reload The Current Club Before Managing.');
         return;
       }
       const actionAttemptId = ++clubShopAdminActionAttemptRef.current;
@@ -2760,16 +2804,41 @@ export default function DiamondStorePage({
         getAuthUser()?.id === expectedAccountId;
       setClubShopAdminAction(item.id);
       try {
-        const token = getAccessToken();
+        // The in-place editor is the only action with fields beyond the ids, and
+        // manage-shop is the only route that accepts them (sale price, per-member
+        // limit, availability window and sort order). It is also the route the
+        // retired Club Arena Manage tab wrote through, and it requires a durable
+        // request key: a fresh one per save, because a later save of the SAME row
+        // carries different values and must not replay the earlier response.
+        const isUpdate = action === 'update';
+        let token;
+        if (isUpdate) {
+          const authorization = await getVerifiedCheckoutAuthorization(expectedAccountId);
+          if (!actionIsCurrent()) return;
+          if (!authorization) {
+            throw new Error('Your Signed-In Account Changed. Review These Changes Again.');
+          }
+          token = authorization.accessToken;
+        } else {
+          token = getAccessToken();
+        }
         if (!token) throw new Error('Not authenticated');
-        const response = await fetch('/api/club-arena/shop-items', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ action, clubId: item.club_id, itemId: item.id }),
-        });
+        const response = await fetch(
+          isUpdate ? '/api/club-arena/manage-shop' : '/api/club-arena/shop-items',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+              ...(isUpdate ? { 'X-Idempotency-Key': clubShopOperatorRequestId() } : {}),
+            },
+            body: JSON.stringify(
+              isUpdate
+                ? { ...fields, action: 'update', clubId: item.club_id, itemId: item.id }
+                : { action, clubId: item.club_id, itemId: item.id }
+            ),
+          }
+        );
         const data = await response.json().catch(() => ({}));
         if (!actionIsCurrent()) {
           return;
@@ -2786,6 +2855,10 @@ export default function DiamondStorePage({
             'success',
             `${marketplaceCopy(item.name)} Was Removed From The Club Shop.`
           );
+        }
+        if (isUpdate) {
+          setClubShopEditingItemId(null);
+          showStoreToast('success', `${marketplaceCopy(item.name)} Was Updated.`);
         }
         await Promise.all([loadClubShopAdmin(), loadClubShop(true)]);
       } catch (error) {
@@ -5519,6 +5592,26 @@ export default function DiamondStorePage({
                               );
                             })()}
 
+                          {/* Windowed sales report: lifetime totals above, the
+                              last 7, 30 or 90 days here. Read only. */}
+                          <ClubShopSalesAnalytics
+                            accountId={committedStoreAccountId}
+                            clubId={clubShopClubId}
+                            snapshotOwned={clubShopSnapshotOwned}
+                          />
+
+                          {/* Purchase Ledger (who bought what, and refunds) */}
+                          <ClubShopPurchaseLedger
+                            accountId={committedStoreAccountId}
+                            clubId={clubShopClubId}
+                            snapshotOwned={clubShopSnapshotOwned}
+                            onLedgerChanged={() => {
+                              clubShopLoadingRef.current = false;
+                              loadClubShopAdmin();
+                              loadClubShop(true);
+                            }}
+                          />
+
                           {/* Create Item Form */}
                           <div
                             className={shellStyles.clubAdminCreatePanel}
@@ -5838,8 +5931,8 @@ export default function DiamondStorePage({
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {clubShopAdminItems.map((item) => (
+                                  <div key={item.id}>
                                   <div
-                                    key={item.id}
                                     className={shellStyles.clubAdminRow}
                                     style={{
                                       display: 'flex',
@@ -5883,35 +5976,83 @@ export default function DiamondStorePage({
                                         )}
                                       </div>
                                     </div>
-                                    {isThrowableAdminItem(item) ? (
-                                      <span className={shellStyles.clubAdminManagedStatus}>
-                                        {isCanonicalAllThrowablesAdminItem(item)
-                                          ? 'Platform Managed'
-                                          : 'Historical Receipt Row'}
-                                      </span>
-                                    ) : (
-                                      <div className={shellStyles.clubAdminActions}>
+                                    <div className={shellStyles.clubAdminActions}>
+                                      {/* A historical throwable receipt row is
+                                          read only; everything else, including
+                                          the one canonical pack, keeps an in
+                                          place editor for its commercial terms. */}
+                                      {(!isThrowableAdminItem(item) ||
+                                        isCanonicalAllThrowablesAdminItem(item)) && (
                                         <button
                                           type="button"
-                                          onClick={() => handleClubShopAdminAction('toggle', item)}
+                                          onClick={() =>
+                                            setClubShopEditingItemId((current) =>
+                                              current === item.id ? null : item.id
+                                            )
+                                          }
                                           disabled={!!clubShopAdminActionId}
-                                          aria-busy={clubShopAdminActionId === item.id}
-                                          aria-label={`${item.is_active ? 'Hide' : 'Activate'} ${marketplaceCopy(item.name)}`}
+                                          aria-expanded={clubShopEditingItemId === item.id}
+                                          aria-label={`${clubShopEditingItemId === item.id ? 'Close The Editor For' : 'Edit'} ${marketplaceCopy(item.name)}`}
                                         >
-                                          {item.is_active ? 'Active' : 'Hidden'}
+                                          {clubShopEditingItemId === item.id ? 'Close' : 'Edit'}
                                         </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setClubShopDeleteTarget(item)}
-                                          disabled={!!clubShopAdminActionId}
-                                          aria-haspopup="dialog"
-                                          aria-expanded={clubShopDeleteTarget?.id === item.id}
-                                          aria-label={`Delete ${marketplaceCopy(item.name)}`}
-                                        >
-                                          Delete
-                                        </button>
-                                      </div>
-                                    )}
+                                      )}
+                                      {isThrowableAdminItem(item) ? (
+                                        <span className={shellStyles.clubAdminManagedStatus}>
+                                          {isCanonicalAllThrowablesAdminItem(item)
+                                            ? 'Platform Managed'
+                                            : 'Historical Receipt Row'}
+                                        </span>
+                                      ) : (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleClubShopAdminAction('toggle', item)
+                                            }
+                                            disabled={!!clubShopAdminActionId}
+                                            aria-busy={clubShopAdminActionId === item.id}
+                                            aria-label={`${item.is_active ? 'Hide' : 'Activate'} ${marketplaceCopy(item.name)}`}
+                                          >
+                                            {item.is_active ? 'Active' : 'Hidden'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setClubShopDeleteTarget(item)}
+                                            disabled={
+                                              !!clubShopAdminActionId ||
+                                              !clubShopItemDeleteGuard(item).canDelete
+                                            }
+                                            title={
+                                              clubShopItemDeleteGuard(item).reason ||
+                                              'Delete This Item'
+                                            }
+                                            aria-haspopup="dialog"
+                                            aria-expanded={clubShopDeleteTarget?.id === item.id}
+                                            aria-label={`Delete ${marketplaceCopy(item.name)}`}
+                                          >
+                                            Delete
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {clubShopEditingItemId === item.id && (
+                                    <ClubShopItemEditor
+                                      item={item}
+                                      clubId={clubShopClubId}
+                                      maximumCardFundedPrice={clubShopMaximumCardFundedPrice}
+                                      busy={clubShopAdminActionId === item.id}
+                                      disabled={
+                                        !!clubShopAdminActionId &&
+                                        clubShopAdminActionId !== item.id
+                                      }
+                                      onSave={(payload) =>
+                                        handleClubShopAdminAction('update', item, payload)
+                                      }
+                                      onCancel={() => setClubShopEditingItemId(null)}
+                                    />
+                                  )}
                                   </div>
                                 ))}
                               </div>

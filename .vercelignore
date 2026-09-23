@@ -111,6 +111,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-6.test.mjs
 !/__tests__/diamond-store-v3.test.mjs
 !/__tests__/club-shop-atomic-commerce.test.mjs
+!/__tests__/club-shop-manage-tools.test.mjs
 !/__tests__/diamond-store-phase-10.test.mjs
 !/__tests__/diamond-store-phase-11.test.mjs
 !/__tests__/diamond-store-phase-12.test.mjs
