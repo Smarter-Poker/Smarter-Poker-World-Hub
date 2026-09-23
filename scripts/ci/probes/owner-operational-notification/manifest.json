@@ -48,8 +48,8 @@
       "bytes": 1833
     },
     "scripts/ci/probes/owner-operational-notification/inputs/owner-notification-catalog-postimage.sql": {
-      "sha256": "f9f350377e5778e9ff50fe0d5b55278ba9178bc2bea3dd06eb33929293bda1d8",
-      "bytes": 4355
+      "sha256": "91c8cc065907e54376b878e12b92fa6dbc9aea3d4ebbf276a661d0118818a6bc",
+      "bytes": 4724
     },
     "scripts/ci/probes/owner-operational-notification/inputs/linked-invoice-positive.sql": {
       "sha256": "c5a91baed4f83550c4db4b982f41c619054ae80d793332191c4d033065a2fa22",
