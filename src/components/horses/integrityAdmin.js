@@ -322,3 +322,22 @@ export function pendingSanctionsOf(payload) {
     return status === 'pending' || status === 'approved' || row.pending === true;
   });
 }
+
+// The hand-history source is read in windows, not across all of history at once.
+// fn_ca_integrity_hands reports 'search_incomplete' when a window filled up without
+// matching the searched player, and hands a cursor for the next window. An empty
+// window is therefore not proof that no hand evidence exists, and the panel must
+// never render it as if it were. See the integrity hand search continuation migration.
+export function handSearchCoverage(payload) {
+  const body = payloadOf(payload);
+  const state = body && typeof body.state === 'string' ? body.state : null;
+  const scanned = Number(body ? body.scanned_count : NaN);
+  const cursor = body && body.next_cursor != null ? body.next_cursor : null;
+  return {
+    state,
+    incomplete: state === 'search_incomplete',
+    scannedCount: Number.isFinite(scanned) ? scanned : null,
+    nextCursor: cursor,
+    hasMore: cursor != null,
+  };
+}

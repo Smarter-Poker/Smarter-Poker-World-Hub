@@ -440,6 +440,7 @@ export default function HorsesAdmin() {
     peak_hours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
   });
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [settingsError, setSettingsError] = useState(null);
   const [settingsSavedAt, setSettingsSavedAt] = useState(null);
 
@@ -929,7 +930,20 @@ export default function HorsesAdmin() {
         setPersonasError(null);
         setPersonas(authorsRes.data || []);
       }
-      if (settingsRes.data) setSettings((prev) => ({ ...prev, ...settingsRes.data }));
+      // A failed or missing content_settings read must not leave the header asserting
+      // a state it never read. engine_enabled defaults to true in component state, so
+      // reporting that default as fact would hide exactly the outage a status light exists
+      // to surface. Unknown stays unknown until the row is actually read.
+      if (settingsRes.error) {
+        setSettingsLoaded(false);
+        setSettingsError(settingsRes.error.message);
+      } else if (settingsRes.data) {
+        setSettings((prev) => ({ ...prev, ...settingsRes.data }));
+        setSettingsLoaded(true);
+        setSettingsError(null);
+      } else {
+        setSettingsLoaded(false);
+      }
       setPipelineRuns(runsRes.data || []);
     } finally {
       setPersonasLoading(false);
@@ -3349,8 +3363,10 @@ export default function HorsesAdmin() {
           </div>
           <div className={styles.headerRight}>
             <div className={styles.engineStatus}>
-              <span className={`${styles.statusDot} ${settings.engine_enabled ? styles.active : ''}`} />
-              <span>{settings.engine_enabled ? 'Engine Running' : 'Engine Stopped'}</span>
+              <span className={`${styles.statusDot} ${settingsLoaded && settings.engine_enabled ? styles.active : ''}`} />
+              <span>{!settingsLoaded
+                ? 'Content Engine Unknown'
+                : settings.engine_enabled ? 'Content Engine Running' : 'Content Engine Stopped'}</span>
             </div>
             {settingsSaving && <span style={{ color: T.accent, fontSize: 12 }}>Saving</span>}
             <span className={styles.userInfo}>
