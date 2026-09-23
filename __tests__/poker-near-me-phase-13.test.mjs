@@ -208,8 +208,11 @@ test('deployment workflow targets only Open Claw, preserves env, and verifies li
   assert.match(workflow, /test -n "\$HOST"/);
   assert.match(workflow, /HETZNER_SSH_USER \|\| 'root'/);
   assert.match(workflow, /TWILIO_ACCOUNT_SID/);
-  assert.match(workflow, /\/opt\/openclaw\/\.env/);
+  assert.match(workflow, /\/etc\/openclaw\.env/);
+  assert.doesNotMatch(workflow, /(?:cp|mv|install|tee)[^\n]*\/etc\/openclaw\.env/);
   assert.match(workflow, /systemctl show openclaw\.service -p User/);
-  assert.match(workflow, /remote_dispatcher/);
-  assert.match(workflow, /remote_unit/);
+  assert.match(workflow, /dispatcher_hash/);
+  assert.match(workflow, /unit_hash/);
+  assert.match(workflow, /release-manifest\.sha256/);
+  assert.match(workflow, /sudo mv -Tf "\$next_link" "\$current"/);
 });

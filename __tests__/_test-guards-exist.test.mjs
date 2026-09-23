@@ -225,6 +225,12 @@ import './world-copy-policy.test.mjs';
 // executes is the same kind of decoration as a healthcheck that pings an
 // unauthenticated endpoint, which is the very failure it exists to prevent.
 import './openclaw-workers-secret.test.mjs';
+// Required CHECK 8 also enforces the recovered Video worker publication boundary.
+import './openclaw-video-library-routing.test.mjs';
+// The same boundary's shared 7-day availability-freshness contract: SQL,
+// JavaScript readers, Python renewal target and daily verifier capacity.
+import './video-library-freshness-contract.test.mjs';
+import './yt-worker-release-safety.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -

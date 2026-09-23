@@ -2,15 +2,16 @@
 """
 VIDEO LIBRARY DAILY SCRAPER v3.0
 =================================
-Uses yt-dlp --flat-playlist to discover new videos from all 23 active creators.
-Runs locally on this machine. yt-dlp cannot run serverless on Vercel.
+Uses yt-dlp --flat-playlist to discover new videos from the active source list.
+Runs as an immutable release on the canonical Open Claw VM. yt-dlp cannot run
+serverless on Vercel.
 
 Architecture:
   - This is the ONLY real ingestion engine.
-  - The API cron /api/cron/video-library-scraper is a status/reporting webhook only.
+  - The workers /cron/video-library-scraper receives the completed run receipt.
   - Open Claw triggers this script daily via shell call at 6am UTC.
 
-CREATORS COVERED (23 active — BOSKI/RYAN have no accessible channel):
+CREATORS COVERED (poker long-form, poker Shorts, and separately typed slots):
   Live:     HCL, LODGE, LATB, TCH, POKERGO, TRITON
   Tours:    WSOP, WPT, EPT
   Vloggers: BRAD_OWEN, NEEME, RAMPAGE, MARIANO, WOLFGANG, JOHNNIE
@@ -29,6 +30,7 @@ Open Claw cron (daily 6am UTC):
 """
 
 import os
+import re
 import sys
 import json
 import time
@@ -37,6 +39,8 @@ import threading
 import logging
 import subprocess
 import argparse
+import tempfile
+import importlib.util
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone
@@ -87,15 +91,16 @@ SUPABASE_URL      = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
 SUPABASE_KEY      = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 CRON_SECRET       = os.environ.get('CRON_SECRET', '')
 PRODUCTION_URL    = os.environ.get('NEXT_PUBLIC_SITE_URL', 'https://smarter.poker')  # used by AI tagging
-SLACK_WEBHOOK     = os.environ.get('SLACK_WEBHOOK_URL', '')  # optional — alert on scraper failures
 
-# --verify-sources reads YouTube and writes nothing, so it must not require
-# database credentials: a check that only runs where production secrets are
-# present cannot gate a deploy or run in CI, which is most of the value of
-# having it. Every other mode still exits here.
+# --verify-sources reads YouTube and writes nothing, while --help must remain a
+# side-effect-free release preflight. Neither mode may require production
+# database credentials: a CLI that cannot describe itself before secret
+# injection makes candidate validation fail for the wrong reason. Every mode
+# capable of reading or writing production state still exits here.
 if not SUPABASE_URL or not SUPABASE_KEY:
-    if '--verify-sources' in sys.argv:
-        log.warning('No SUPABASE credentials; continuing because --verify-sources writes nothing.')
+    if '--verify-sources' in sys.argv or '--help' in sys.argv or '-h' in sys.argv:
+        if '--verify-sources' in sys.argv:
+            log.warning('No SUPABASE credentials; continuing because --verify-sources writes nothing.')
     else:
         log.error('Missing SUPABASE credentials — check .env.local')
         sys.exit(1)
@@ -104,6 +109,55 @@ from supabase import create_client
 # None in verify-only mode. Every write path is unreachable in that mode, and a
 # client built from empty credentials would fail later and more confusingly.
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if (SUPABASE_URL and SUPABASE_KEY) else None
+
+
+def pipeline_control_enabled(control_key: str) -> bool:
+    """Read a service-only pipeline switch and fail closed on any ambiguity."""
+    if supabase is None:
+        return False
+    try:
+        response = (supabase.table('video_reels_pipeline_controls')
+                    .select('enabled')
+                    .eq('control_key', control_key)
+                    .limit(1)
+                    .execute())
+        rows = response.data or []
+        return len(rows) == 1 and rows[0].get('enabled') is True
+    except Exception as exc:
+        log.error(f'Pipeline control lookup failed for {control_key}: {exc}')
+        return False
+
+
+def run_schema_preflight() -> None:
+    """Read every required relation/control without changing production data."""
+    if supabase is None:
+        raise RuntimeError('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
+    relation_contracts = {
+        'video_library_videos': (
+            'id,youtube_video_id,source_id,source_name,type,title,views_count,'
+            'views_text,duration,thumbnail_url,video_url,published_at,scraped_at,'
+            'updated_at,availability_status,embeddable,availability_checked_at,'
+            'availability_failure_reason,availability_source'
+        ),
+        'data_audit_log': 'record_id,table_name,action,scrape_proof',
+    }
+    try:
+        for relation, columns in relation_contracts.items():
+            supabase.table(relation).select(columns).limit(1).execute()
+        for control_key in ('video_library_discovery', 'video_library_enrichment'):
+            response = (supabase.table('video_reels_pipeline_controls')
+                        .select('control_key,enabled,updated_at')
+                        .eq('control_key', control_key)
+                        .limit(1)
+                        .execute())
+            rows = response.data or []
+            if len(rows) != 1 or rows[0].get('control_key') != control_key:
+                raise RuntimeError(f'Required pipeline control is missing: {control_key}')
+    except RuntimeError:
+        raise
+    except Exception as error:
+        raise RuntimeError(f'Open Claw scraper schema preflight failed: {error}') from error
+    log.info('Open Claw scraper preflight: schema contract verified')
 
 # ── Creator Registry ────────────────────────────────────────────────────────────
 # All @handles verified 2026-04-22 via yt-dlp against real video metadata.
@@ -198,6 +252,113 @@ CREATORS = [
 
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
+class YtDlpUnavailableError(RuntimeError):
+    """The release-pinned yt_dlp runtime is missing or cannot execute.
+
+    This is a release defect, never a statement about a source or a video. It
+    aborts the run before any write instead of failing every creator in turn.
+    """
+
+
+YTDLP_RUNTIME_EXIT_CODE = 3
+YTDLP_SELF_CHECK_TIMEOUT_SECONDS = 30
+_YTDLP_VERSION_RE = re.compile(r'^\d{4}\.\d{1,2}\.\d{1,2}(?:\.\d+)?$')
+
+
+def _vendored_ytdlp_root() -> str:
+    """Return the one import root that holds this interpreter's yt_dlp.
+
+    The immutable Open Claw release exposes yt_dlp only through
+    ``PYTHONPATH=<release>/vendor``. The isolated child does not inherit the
+    ambient environment, so the root is derived from the package this
+    interpreter already resolves and only that directory is forwarded.
+    """
+    try:
+        spec = importlib.util.find_spec('yt_dlp')
+    except (ImportError, ValueError) as error:
+        raise YtDlpUnavailableError(f'yt_dlp import lookup failed: {error}') from error
+    locations = list(getattr(spec, 'submodule_search_locations', None) or [])
+    if spec is None or len(locations) != 1:
+        raise YtDlpUnavailableError(
+            'yt_dlp is not importable by this interpreter; the release vendor '
+            'directory is missing from PYTHONPATH or incomplete'
+        )
+    package_dir = Path(os.path.abspath(locations[0]))
+    root = package_dir.parent
+    if (
+        package_dir.name != 'yt_dlp'
+        or not root.is_absolute()
+        or os.pathsep in str(root)
+        or not root.is_dir()
+        or not (package_dir / '__main__.py').is_file()
+    ):
+        raise YtDlpUnavailableError(
+            f'yt_dlp resolved to an unusable location: {package_dir}'
+        )
+    return str(root)
+
+
+def _run_isolated_ytdlp(arguments: list[str], timeout: int):
+    """Run the release-pinned yt-dlp without host config, plugins, or cache."""
+    vendored_root = _vendored_ytdlp_root()
+    with tempfile.TemporaryDirectory(prefix='sp-openclaw-ytdlp-') as isolated_home:
+        environment = {
+            'HOME': isolated_home,
+            'TMPDIR': isolated_home,
+            'PATH': '/usr/bin:/bin',
+            'LANG': 'C.UTF-8',
+            'LC_ALL': 'C.UTF-8',
+            'PYTHONNOUSERSITE': '1',
+            'PYTHONDONTWRITEBYTECODE': '1',
+            # Exactly one derived import root; the ambient PYTHONPATH is never
+            # forwarded. The empty working directory keeps ``-m`` from adding
+            # the caller's directory as a second import root.
+            'PYTHONPATH': vendored_root,
+        }
+        return subprocess.run(
+            [
+                sys.executable,
+                '-m',
+                'yt_dlp',
+                '--ignore-config',
+                '--no-plugin-dirs',
+                '--no-cache-dir',
+                *arguments,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env=environment,
+            cwd=isolated_home,
+        )
+
+
+def ensure_ytdlp_runtime() -> str:
+    """Execute the isolated child once, offline, and return its version.
+
+    Release preflight and every yt-dlp mode call this before any production
+    row is touched, so a release whose child cannot import yt_dlp stops here.
+    """
+    try:
+        completed = _run_isolated_ytdlp(
+            ['--version'],
+            timeout=YTDLP_SELF_CHECK_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise YtDlpUnavailableError(
+            f'yt-dlp self-check could not execute: {error}'
+        ) from error
+    version = (completed.stdout or '').strip()
+    if completed.returncode != 0 or not _YTDLP_VERSION_RE.fullmatch(version):
+        detail = (completed.stderr or completed.stdout or '').strip()[-300:]
+        raise YtDlpUnavailableError(
+            f'yt-dlp self-check failed (exit {completed.returncode}): {detail}'
+        )
+    log.info(f'Isolated yt-dlp runtime verified: version {version}')
+    return version
+
+
 def fmt_views(n: int) -> str:
     if not n: return ''
     if n >= 1_000_000: return f'{n/1_000_000:.1f}M'
@@ -229,69 +390,59 @@ def check_playable(vid_id: str) -> bool:
             return True
     except urllib.error.HTTPError:
         return False
-    except Exception:
+    except (urllib.error.URLError, TimeoutError, OSError):
         return True  # Network error — don't delete on uncertainty
 
 
-def report_to_api(summary: dict) -> None:
-    """POST scrape results back to the status API so audit log is kept up to date."""
-    if not CRON_SECRET:
-        return
-    try:
-        data = json.dumps(summary).encode('utf-8')
-        url  = 'https://smarter.poker/api/cron/video-library-scraper?report=1'
-        req  = urllib.request.Request(
-            url, data=data, method='POST',
-            headers={
-                'Content-Type':  'application/json',
-                'Authorization': f'Bearer {CRON_SECRET}',
-            }
-        )
-        with urllib.request.urlopen(req, timeout=10):
-            pass
-    except Exception as e:
-        log.warning(f'Report-back to API failed (non-fatal): {e}')
+def scrape_succeeded(summary: dict) -> bool:
+    return not any(summary.get(k, 0) for k in ('failed', 'insert_failed', 'metadata_failed')) and not summary.get('errors')
 
 
-def send_failure_alert(summary: dict) -> None:
-    """
-    POST a Slack webhook alert when >= 3 creators fail in one run.
-    Requires SLACK_WEBHOOK_URL in .env.local (optional — silently skipped if absent).
-    """
-    if not SLACK_WEBHOOK:
-        return
+def report_to_api(summary: dict) -> dict:
+    """Require the workers' committed receipt, including for a failed run."""
+    base = os.environ.get('WORKERS_BASE_URL', '').strip().rstrip('/')
+    # The workers hop has its own credential. CRON_SECRET authenticates only the
+    # Vercel hop and is never presented to the workers endpoint.
+    secret = os.environ.get('WORKERS_CRON_SECRET', '').strip()
+    if not base:
+        raise RuntimeError('Workers report endpoint unavailable: WORKERS_BASE_URL is not set')
+    if not secret:
+        raise RuntimeError('Workers report credential unavailable: WORKERS_CRON_SECRET is not set')
+    headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {secret}'}
+    private_ip = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
+    if private_ip:
+        headers['X-Forwarded-For'] = private_ip
+    req = urllib.request.Request(base + '/cron/video-library-scraper?report=1',
+        data=json.dumps(summary).encode('utf-8'), method='POST', headers=headers)
     try:
-        failed_sources = [
-            cr['source_id'] for cr in summary.get('creator_results', [])
-            if cr.get('error')
-        ]
-        msg = {
-            'text': (
-                f':warning: *Video Library Scraper — {summary["failed"]} creator(s) failed*\n'
-                f'Failed: `{",".join(failed_sources)}`\n'
-                f'New: {summary["total_new"]}  Found: {summary["total_found"]}  '
-                f'Elapsed: {summary.get("elapsed_s", 0):.0f}s\n'
-                f'Time: {summary["ran_at"]}'
-            )
-        }
-        data = json.dumps(msg).encode('utf-8')
-        req  = urllib.request.Request(
-            SLACK_WEBHOOK, data=data, method='POST',
-            headers={'Content-Type': 'application/json'}
-        )
-        with urllib.request.urlopen(req, timeout=10):
-            pass
-        log.info('Slack failure alert sent.')
-    except Exception as e:
-        log.warning(f'Slack alert failed (non-fatal): {e}')
+        response = urllib.request.urlopen(req, timeout=15)
+    except urllib.error.HTTPError as error:
+        response = error  # A committed failed run is deliberately HTTP 503.
+    with response:
+        raw = response.read(32_001)
+        status = response.status
+    if len(raw) > 32_000:
+        raise RuntimeError('Workers report acknowledgement exceeds limit')
+    try:
+        receipt = json.loads(raw)
+    except (ValueError, UnicodeError):
+        raise RuntimeError(f'Workers report returned invalid JSON (HTTP {status})') from None
+    success = scrape_succeeded(summary)
+    if (not isinstance(receipt, dict) or receipt.get('accepted') is not True
+        or receipt.get('run_id') != summary['run_id'] or receipt.get('audit_id') != summary['run_id']
+        or receipt.get('success') is not success or status != (200 if success else 503)):
+        raise RuntimeError(f'Workers report commit unconfirmed (HTTP {status})')
+    return receipt
 
 
 # ── Dead-video purge ─────────────────────────────────────────────────────────────
 
 def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
     """
-    Check all DB videos via YouTube oEmbed API. Delete any that return 4xx.
-    Safe: skips on network errors (only deletes on confirmed HTTP 4xx).
+    Check all DB videos via YouTube oEmbed API. Mark confirmed 4xx rows
+    unavailable instead of deleting them, preserving published lineage and
+    allowing the database trigger to hide linked posts/Reels atomically.
+    Network errors remain non-destructive.
     """
     log.info('Starting dead-video purge...')
     # 2026-08-15: same 1000-row PostgREST cap — the purge silently stopped
@@ -326,20 +477,26 @@ def purge_dead_videos(batch_size: int = 20, dry_run: bool = False) -> dict:
         log.warning(f'  DEAD [{d[0]}] {d[1]} — {d[2]}')
 
     if dead_ids and not dry_run:
-        # Get the youtube_video_ids of dead videos for orphan cleanup
-        dead_youtube_ids = [v['youtube_video_id'] for v in all_vids if v['id'] in dead_ids]
+        checked_at = datetime.now(timezone.utc).isoformat()
         for db_id in dead_ids:
-            supabase.table('video_library_videos').delete().eq('id', db_id).execute()
-        log.info(f'Deleted {len(dead_ids)} unplayable videos.')
-        # Purge orphaned video_analysis rows for the deleted videos
-        if dead_youtube_ids:
-            try:
-                supabase.table('video_analysis').delete().in_('video_id', dead_youtube_ids).execute()
-                log.info(f'Purged {len(dead_youtube_ids)} orphaned video_analysis rows.')
-            except Exception as e:
-                log.warning(f'video_analysis orphan cleanup failed (non-fatal): {e}')
+            (supabase.table('video_library_videos')
+             .update({
+                 'availability_status': 'unavailable',
+                 'embeddable': False,
+                 'availability_checked_at': checked_at,
+                 'availability_failure_reason': 'youtube_oembed_http_4xx',
+                 'availability_source': 'youtube_oembed',
+             })
+             .eq('id', db_id)
+             .execute())
+        log.info(f'Marked {len(dead_ids)} unplayable videos unavailable; lineage retained.')
 
-    return {'checked': checked, 'dead': len(dead_ids), 'purged': 0 if dry_run else len(dead_ids)}
+    return {
+        'checked': checked,
+        'dead': len(dead_ids),
+        'marked_unavailable': 0 if dry_run else len(dead_ids),
+        'purged': 0,
+    }
 
 
 # ── Published-date + views backfill ─────────────────────────────────────────────
@@ -349,6 +506,10 @@ def backfill_metadata(limit: int = 300) -> dict:
     For static-seeded videos with fake today-date or zero views, fetch real
     upload_date and view_count via yt-dlp --dump-json.
     """
+    if not pipeline_control_enabled('video_library_enrichment'):
+        log.warning('Metadata backfill disabled by video_library_enrichment control.')
+        return {'updated': 0, 'failed': 0, 'disabled': True}
+
     TODAY = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     needs_fix = (supabase.table('video_library_videos')
         .select('id,youtube_video_id,published_at,views_count,views_text')
@@ -358,21 +519,26 @@ def backfill_metadata(limit: int = 300) -> dict:
 
     log.info(f'Backfill: {len(needs_fix)} rows need date/views fix')
     updated = failed = 0
+    errors = []
     BATCH = 5
 
     for i in range(0, len(needs_fix), BATCH):
         batch = needs_fix[i:i+BATCH]
         urls = [f'https://www.youtube.com/watch?v={v["youtube_video_id"]}' for v in batch]
-        cmd  = ['yt-dlp', '--dump-json', '--no-warnings', '--quiet', '--no-playlist'] + urls
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+            r = _run_isolated_ytdlp(
+                ['--dump-json', '--no-warnings', '--quiet', '--no-playlist', *urls],
+                timeout=45,
+            )
+            if r.returncode and len(errors) < 10:
+                errors.append(f'yt-dlp exited {r.returncode}')
             meta = {}
             for line in r.stdout.strip().splitlines():
                 try:
                     d = json.loads(line)
                     if d.get('id'): meta[d['id']] = d
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    continue
 
             for row in batch:
                 vid = row['youtube_video_id']
@@ -393,15 +559,22 @@ def backfill_metadata(limit: int = 300) -> dict:
 
                 if upd:
                     upd['updated_at'] = datetime.now(timezone.utc).isoformat()
-                    supabase.table('video_library_videos').update(upd).eq('id', row['id']).execute()
-                    updated += 1
+                    try:
+                        supabase.table('video_library_videos').update(upd).eq('id', row['id']).execute()
+                        updated += 1
+                    except Exception as error:
+                        failed += 1
+                        if len(errors) < 10:
+                            errors.append(f'metadata write {vid}: {str(error)[:500]}')
 
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, OSError) as error:
             failed += len(batch)
+            if len(errors) < 10:
+                errors.append(f'metadata process: {type(error).__name__}')
         time.sleep(0.3)
 
     log.info(f'Backfill done — updated={updated} failed={failed}')
-    return {'updated': updated, 'failed': failed}
+    return {'updated': updated, 'failed': failed, 'errors': errors}
 
 
 # ── Channel scraper ─────────────────────────────────────────────────────────────
@@ -413,8 +586,7 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
     """
     tab = creator.get('tab', 'videos')
     url = f'https://www.youtube.com/@{creator["handle"]}/{tab}'
-    cmd = [
-        'yt-dlp',
+    command = [
         '--flat-playlist',
         '--dump-json',
         '--no-warnings',
@@ -423,7 +595,7 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
         url,
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = _run_isolated_ytdlp(command, timeout=60)
         if result.returncode != 0 and not result.stdout.strip():
             log.warning(f'  [{creator["source_id"]}] yt-dlp rc={result.returncode}: {result.stderr[:180]}')
             return []
@@ -468,7 +640,7 @@ def fetch_channel_videos(creator: dict) -> list[dict]:
     except subprocess.TimeoutExpired:
         log.warning(f'  [{creator["source_id"]}] yt-dlp timed out after 60s')
         return []
-    except Exception as e:
+    except OSError as e:
         log.error(f'  [{creator["source_id"]}] Error: {e}')
         return []
 
@@ -481,10 +653,14 @@ def _trigger_ai_analysis(youtube_video_id: str, title: str) -> None:
         url = f'{PRODUCTION_URL}/api/video/analyze?videoId={youtube_video_id}&title={title}'
         import urllib.request
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=60):
-            pass
-    except Exception:
-        pass  # best-effort — failures are silent
+        with urllib.request.urlopen(req, timeout=60) as response:
+            response.read()
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
+        log.warning(
+            'AI analysis pre-warm failed for %s (%s)',
+            youtube_video_id,
+            type(error).__name__,
+        )
 
 
 def _trigger_ai_tag(youtube_video_id: str, title: str, source_id: str, v_type: str, duration: str) -> None:
@@ -509,23 +685,42 @@ def _trigger_ai_tag(youtube_video_id: str, title: str, source_id: str, v_type: s
                 'x-cron-secret': CRON_SECRET,
             }
         )
-        with _req.urlopen(r, timeout=60):
-            pass
-    except Exception:
-        pass  # best-effort — failures are silent
+        with _req.urlopen(r, timeout=60) as response:
+            response.read()
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
+        log.warning(
+            'AI tagging trigger failed for %s (%s)',
+            youtube_video_id,
+            type(error).__name__,
+        )
 
 
 # ── Main scraper ─────────────────────────────────────────────────────────────────
 
 def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                 skip_purge: bool = True) -> dict:
-    """Main scraper loop — processes all 23 active creators."""
+    """Main scraper loop — processes the current verified source registry."""
     log.info('=' * 60)
     log.info(f'Video Library Scraper v3.0 — {"DRY RUN" if dry_run else "LIVE"}')
     log.info(f'Time: {datetime.now(timezone.utc).isoformat()}')
     log.info('=' * 60)
 
     start = datetime.now(timezone.utc)
+
+    if not pipeline_control_enabled('video_library_discovery'):
+        log.warning('Discovery disabled by video_library_discovery control; no sources fetched or rows written.')
+        return {
+            'processed': 0,
+            'failed': 0,
+            'total_found': 0,
+            'total_new': 0,
+            'total_skipped': 0,
+            'creator_results': [],
+            'ran_at': start.isoformat(),
+            'disabled': True,
+        }
+
+    enrichment_enabled = pipeline_control_enabled('video_library_enrichment')
 
     # One round-trip to load all existing IDs for fast dedup
     # 2026-08-15: PostgREST caps a select at 1000 rows. Without paging, every
@@ -546,7 +741,11 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
     log.info(f'Existing videos in DB: {len(existing_ids)}')
 
     summary = {
+        'run_id': str(uuid.uuid4()),
+        'scope': 'source' if filter_source else 'full',
+        'source_id': filter_source.upper() if filter_source else None,
         'processed': 0, 'failed': 0,
+        'insert_failed': 0, 'metadata_failed': 0, 'errors': [],
         'total_found': 0, 'total_new': 0, 'total_skipped': 0,
         'creator_results': [],
         'ran_at': start.isoformat(),
@@ -557,11 +756,11 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
         creators = [c for c in CREATORS if c['source_id'] == filter_source.upper()]
         if not creators:
             log.error(f'Unknown source_id: {filter_source}')
-            return summary
+            raise ValueError(f'Unknown source_id: {filter_source}')
 
     for creator in creators:
         log.info(f'Processing {creator["name"]} (@{creator["handle"]})...')
-        cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'error': None}
+        cr = {'source_id': creator['source_id'], 'found': 0, 'new': 0, 'skipped': 0, 'insert_failed': 0, 'error': None}
 
         try:
             videos = fetch_channel_videos(creator)
@@ -596,22 +795,35 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                         inserted += 1
 
                         # Phase 18: Pre-computed AI Tagging — fires async, never blocks ingest
-                        threading.Thread(
-                            target=_trigger_ai_tag,
-                            args=(v['youtube_video_id'], v['title'], v['source_id'], v['type'], v.get('duration', '')),
-                            daemon=True
-                        ).start()
-                        # Also pre-warm AI chapter analysis cache
-                        threading.Thread(
-                            target=_trigger_ai_analysis,
-                            args=(v['youtube_video_id'], v['title']),
-                            daemon=True
-                        ).start()
+                        if enrichment_enabled:
+                            threading.Thread(
+                                target=_trigger_ai_tag,
+                                args=(v['youtube_video_id'], v['title'], v['source_id'], v['type'], v.get('duration', '')),
+                                daemon=True
+                            ).start()
+                            # Also pre-warm AI chapter analysis cache
+                            threading.Thread(
+                                target=_trigger_ai_analysis,
+                                args=(v['youtube_video_id'], v['title']),
+                                daemon=True
+                            ).start()
                     except Exception as e:
-                        if '23505' in str(e) or 'duplicate' in str(e).lower() or 'unique' in str(e).lower():
-                            existing_ids.add(v['youtube_video_id'])  # already there
-                        else:
-                            log.warning(f'    Insert failed for {v["youtube_video_id"]}: {e}')
+                        # Only the exact stored video proves an idempotent no-op.
+                        duplicate = False
+                        if getattr(e, 'code', None) == '23505':
+                            try:
+                                duplicate = bool(supabase.table('video_library_videos')
+                                    .select('youtube_video_id').eq('youtube_video_id', v['youtube_video_id'])
+                                    .limit(1).execute().data)
+                            except Exception:
+                                duplicate = False
+                        if duplicate:
+                            existing_ids.add(v['youtube_video_id'])
+                            continue
+                        cr['insert_failed'] += 1
+                        summary['insert_failed'] += 1
+                        cr['error'] = f'Insert failed: {str(e)[:500]}'
+                        log.warning(f'    Insert failed for {v["youtube_video_id"]}: {e}')
                 cr['new'] = inserted
                 summary['total_new'] += inserted
                 log.info(f'  [{creator["source_id"]}] Inserted {inserted}')
@@ -622,6 +834,8 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                     log.info(f'    • {v["youtube_video_id"]} | {v["title"][:60]}')
 
             summary['processed'] += 1
+            if cr['insert_failed']:
+                summary['failed'] += 1
 
         except Exception as e:
             log.error(f'  [{creator["source_id"]}] Fatal: {e}')
@@ -631,18 +845,20 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
         summary['creator_results'].append(cr)
         time.sleep(0.8)  # Polite pacing between channels
 
-    elapsed = (datetime.now(timezone.utc) - start).total_seconds()
-    summary['elapsed_s'] = elapsed
-
-    # Send Slack alert if >= 3 creators failed
-    if summary['failed'] >= 3 and not dry_run:
-        log.warning(f'{summary["failed"]} creator failures — sending alert')
-        send_failure_alert(summary)
-
     # Backfill dates/views for any static rows that still have fake today-dates
-    if not dry_run and not filter_source:
+    if not dry_run and not filter_source and enrichment_enabled:
         log.info('Running post-scrape metadata backfill...')
-        backfill_metadata(limit=100)  # Fix up to 100 rows per run
+        try:
+            summary['metadata'] = backfill_metadata(limit=100)
+            summary['metadata_failed'] = summary['metadata']['failed']
+            summary['errors'].extend(summary['metadata'].get('errors', []))
+        except Exception as error:
+            summary['metadata_failed'] = 1
+            summary['errors'].append(f'Metadata backfill failed: {str(error)[:500]}')
+
+    summary['completed_at'] = datetime.now(timezone.utc).isoformat()
+    elapsed = (datetime.fromisoformat(summary['completed_at']) - start).total_seconds()
+    summary['elapsed_s'] = elapsed
 
     # Save evidence file
     ts       = start.strftime('%Y%m%d_%H%M%S')
@@ -652,28 +868,16 @@ def run_scraper(dry_run: bool = False, filter_source: str | None = None,
                                    'summary': summary}, indent=2))
     log.info(f'Evidence saved: {ev_file.name}')
 
-    # Audit log
+    # The worker commits one audit row and sends each failed run to this
+    # task's durable inbox. A missing acknowledgement is a failed run too.
     if not dry_run:
         try:
-            supabase.table('data_audit_log').insert({
-                'record_id':   str(uuid.uuid4()),
-                'table_name':  'video_library_videos',
-                'action':      'scrape',
-                'scrape_proof': json.dumps({
-                    'scraper':            'video_library_scraper_v3',
-                    'creators_processed': summary['processed'],
-                    'creators_failed':    summary['failed'],
-                    'total_found':        summary['total_found'],
-                    'total_new':          summary['total_new'],
-                    'elapsed_s':          elapsed,
-                    'ran_at':             start.isoformat(),
-                }),
-            }).execute()
+            summary['report_receipt'] = report_to_api(summary)
         except Exception as e:
-            log.warning(f'Audit log insert failed: {e}')
-
-        # Report to API endpoint
-        report_to_api(summary)
+            summary['errors'].append(f'Report commit unconfirmed: {str(e)[:500]}')
+            log.error(summary['errors'][-1])
+        ev_file.write_text(json.dumps({'scraper': 'v3', 'ran_at': start.isoformat(),
+            'dry_run': False, 'elapsed_s': elapsed, 'summary': summary}, indent=2))
 
     log.info('=' * 60)
     log.info(f'DONE: processed={summary["processed"]} failed={summary["failed"]} '
@@ -692,6 +896,10 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
     Keeps popular video stats accurate without re-scraping everything.
     Run weekly via: python3 scripts/video_library_scraper.py --refresh-views
     """
+    if not pipeline_control_enabled('video_library_enrichment'):
+        log.warning('View refresh disabled by video_library_enrichment control.')
+        return {'updated': 0, 'failed': 0, 'disabled': True}
+
     log.info(f'View-count refresh: fetching top {limit} videos by views...')
     rows = (supabase.table('video_library_videos')
         .select('id,youtube_video_id,source_id,views_count')
@@ -706,16 +914,18 @@ def refresh_views(limit: int = 50, dry_run: bool = False) -> dict:
     for i in range(0, len(rows), BATCH):
         batch = rows[i:i+BATCH]
         urls  = [f'https://www.youtube.com/watch?v={v["youtube_video_id"]}' for v in batch]
-        cmd   = ['yt-dlp', '--dump-json', '--no-warnings', '--quiet', '--no-playlist'] + urls
         try:
-            r    = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+            r = _run_isolated_ytdlp(
+                ['--dump-json', '--no-warnings', '--quiet', '--no-playlist', *urls],
+                timeout=45,
+            )
             meta = {}
             for line in r.stdout.strip().splitlines():
                 try:
                     d = json.loads(line)
                     if d.get('id'): meta[d['id']] = d
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    continue
 
             for row in batch:
                 vid = row['youtube_video_id']
@@ -765,12 +975,16 @@ def verify_sources() -> list[str]:
     for c in CREATORS:
         tab = c.get('tab', 'videos')
         url = f'https://www.youtube.com/@{c["handle"]}/{tab}'
-        cmd = ['yt-dlp', '--flat-playlist', '--dump-json', '--no-warnings',
-               '--quiet', '--playlist-end', '1', url]
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=45)
+            r = _run_isolated_ytdlp(
+                [
+                    '--flat-playlist', '--dump-json', '--no-warnings',
+                    '--quiet', '--playlist-end', '1', url,
+                ],
+                timeout=45,
+            )
             found = bool(r.stdout.strip())
-        except Exception:
+        except (OSError, subprocess.TimeoutExpired):
             found = False
         if found:
             ok += 1
@@ -788,15 +1002,37 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Video Library Daily Scraper v3')
     parser.add_argument('--dry-run',       action='store_true', help='Fetch without DB writes')
     parser.add_argument('--source',        type=str,            help='Only scrape one source (e.g. HCL)')
-    parser.add_argument('--purge',         action='store_true', help='Check all videos for playability and delete dead ones')
+    parser.add_argument('--purge',         action='store_true', help='Check all videos and mark confirmed dead entries unavailable')
     parser.add_argument('--backfill',      action='store_true', help='Backfill missing published_at dates and views only')
     parser.add_argument('--refresh-views', action='store_true', help='Re-fetch view counts for top 50 most-viewed videos', dest='refresh_views')
     parser.add_argument('--tag-backfill',  action='store_true', help='AI-tag all untagged videos via /api/video/tag', dest='tag_backfill')
     parser.add_argument('--verify-sources', action='store_true', dest='verify_sources',
                         help='Resolve every creator handle/tab and report which return nothing. Writes nothing.')
+    parser.add_argument('--preflight-only', action='store_true', dest='preflight_only',
+                        help='Validate the production schema without writing data.')
     args = parser.parse_args()
 
-    if args.verify_sources:
+    # Same precedence as the mode chain below. Purge uses oEmbed only and the
+    # tag backfill calls the tagging API; every other mode executes yt-dlp and
+    # must stop here, before any write, when the release runtime is broken.
+    needs_ytdlp = args.preflight_only or args.verify_sources or (
+        not args.purge
+        and (args.backfill or args.refresh_views or not args.tag_backfill)
+    )
+    if needs_ytdlp:
+        try:
+            ensure_ytdlp_runtime()
+        except YtDlpUnavailableError as error:
+            log.error(f'Open Claw scraper aborted before any write: yt-dlp runtime unavailable: {error}')
+            sys.exit(YTDLP_RUNTIME_EXIT_CODE)
+
+    if args.preflight_only:
+        try:
+            run_schema_preflight()
+        except RuntimeError as error:
+            log.error(f'Open Claw scraper preflight failed: {error}')
+            sys.exit(2)
+    elif args.verify_sources:
         dead = verify_sources()
         sys.exit(1 if dead else 0)
     elif args.purge:
@@ -809,6 +1045,9 @@ if __name__ == '__main__':
         result = refresh_views(limit=50, dry_run=args.dry_run)
         log.info(f'View refresh complete: {result}')
     elif args.tag_backfill:
+        if not pipeline_control_enabled('video_library_enrichment'):
+            log.error('Tag backfill disabled by video_library_enrichment control.')
+            sys.exit(2)
         log.info('Starting AI tag backfill for all untagged videos...')
         # Call the /api/video/tag GET endpoint which handles batching internally
         import urllib.request as _req
@@ -822,4 +1061,5 @@ if __name__ == '__main__':
         except Exception as e:
             log.error(f'Tag backfill failed: {e}')
     else:
-        run_scraper(dry_run=args.dry_run, filter_source=args.source)
+        result = run_scraper(dry_run=args.dry_run, filter_source=args.source)
+        sys.exit(0 if scrape_succeeded(result) else 1)

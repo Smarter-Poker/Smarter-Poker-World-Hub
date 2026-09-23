@@ -1,0 +1,77 @@
+.rail {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding-block-end: 12px;
+    border-block-end: 1px solid rgb(228 231 236 / 16%);
+    font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+}
+
+.label {
+    color: #45adff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.track {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    padding-block: 4px 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+}
+
+.track::-webkit-scrollbar {
+    display: none;
+}
+
+.command {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 13px 10px 9px;
+    border-block-end: 3px solid transparent;
+    color: #9aa5b3;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-decoration: none;
+    text-transform: uppercase;
+    scroll-snap-align: start;
+    touch-action: manipulation;
+}
+
+.command[aria-current='page'] {
+    border-block-end-color: #45adff;
+    color: #f4f7fb;
+    text-shadow: 0 0 9px rgb(69 173 255 / 70%);
+}
+
+.command:active {
+    color: #45adff;
+}
+
+.command:focus-visible {
+    outline: 2px solid #8fd4ff;
+    outline-offset: 2px;
+}
+
+@media (min-width: 760px) {
+    .track {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        overflow: visible;
+    }
+
+    .command {
+        display: grid;
+        place-items: center;
+        text-align: center;
+    }
+}
+

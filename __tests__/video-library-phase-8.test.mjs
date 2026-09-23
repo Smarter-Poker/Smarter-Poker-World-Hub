@@ -11,14 +11,15 @@ const WATCH_PROGRESS = read('../pages/api/video-library/watch-progress.js');
 const CLIENT_ERROR = read('../pages/api/video-library/client-error.js');
 const HISTORY = read('../src/services/videoWatchHistory.js');
 
-test('catalog reads are paginated, cached, rate-limited, and latest-request-wins', () => {
+test('catalog reads are paginated, revocation-fresh, rate-limited, and latest-request-wins', () => {
   assert.match(CATALOG, /applyRateLimit\(req, res, LIMITS\.read\)/);
   assert.match(CATALOG, /\.range\(offset, offset \+ limit - 1\)/);
   assert.match(CATALOG, /count: 'exact'/);
-  assert.match(CATALOG, /s-maxage=120, stale-while-revalidate=600/);
+  assert.match(CATALOG, /res\.setHeader\('Cache-Control', 'no-store'\)/);
+  assert.doesNotMatch(CATALOG, /stale-while-revalidate/);
   assert.match(PAGE, /catalogAbortRef\.current\?\.abort\(\)/);
   assert.match(PAGE, /requestId !== catalogRequestRef\.current/);
-  assert.match(PAGE, /fetchCatalogPage\(\{ append: true, offset: videos\.length \}\)/);
+  assert.match(PAGE, /fetchCatalogPage\(\{ append: true, offset: catalogNextOffset \}\)/);
   assert.doesNotMatch(PAGE, /\.from\('video_library_videos'\)/);
 });
 
@@ -59,7 +60,11 @@ test('loading, broken-media, featured, and mobile rail treatments are explicit',
   assert.match(CSS, /\.vl-video-card\.is-featured/);
   assert.match(CSS, /\.vl-video-skeleton/);
   assert.match(CSS, /Preview unavailable/);
-  assert.match(CSS, /mask-image: linear-gradient/);
+  // PIN MOVED (mobile phase 9, 2026-09-14): the edge fade mask was the
+  // rail's (it faded the last chip to hint at more off screen). Every
+  // control wraps on screen now, so there is nothing to hint at.
+  assert.doesNotMatch(CSS, /mask-image: linear-gradient/);
+  assert.match(CSS, /\.vl-type-toggle-row \{\s*display: grid !important;/);
   assert.match(CSS, /\.vl-empty-state button,[\s\S]*min-height: 44px/);
 });
 

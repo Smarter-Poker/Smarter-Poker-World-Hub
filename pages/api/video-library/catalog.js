@@ -10,14 +10,15 @@ import {
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 60;
 const MAX_PERSONAL_IDS = 500;
-const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags';
+const VIDEO_FIELDS = 'youtube_video_id, source_id, source_name, type, title, thumbnail_url, views_text, views_count, duration, published_at, scraped_at, tags, availability_status, embeddable, availability_checked_at';
 
 let supabaseClient = null;
 
 function getSupabase() {
     if (!supabaseClient) {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Video catalog service-role configuration is unavailable');
         supabaseClient = createClient(url, key);
     }
     return supabaseClient;
@@ -45,7 +46,7 @@ function parseIds(value) {
     return [...new Set(String(firstQueryValue(value) || '')
         .split(',')
         .map(id => id.trim())
-        .filter(id => /^[A-Za-z0-9_-]{3,32}$/.test(id)))]
+        .filter(id => /^[A-Za-z0-9_-]{11}$/.test(id)))]
         .slice(0, MAX_PERSONAL_IDS);
 }
 
@@ -64,11 +65,16 @@ function normaliseVideo(row) {
         publishedAt: row.published_at,
         scrapedAt: row.scraped_at,
         tags: Array.isArray(row.tags) ? row.tags : [],
+        availabilityStatus: row.availability_status,
+        embeddable: row.embeddable === true,
+        availabilityCheckedAt: row.availability_checked_at,
         _sortKey: row.published_at,
     };
 }
 
 export default async function handler(req, res) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Vary', 'Accept-Encoding');
     if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -81,11 +87,16 @@ export default async function handler(req, res) {
     const type = String(firstQueryValue(req.query.type) || '').trim().toLowerCase();
     const sort = String(firstQueryValue(req.query.sort) || 'latest').trim().toLowerCase();
     const search = cleanSearch(req.query.q);
+    const idsRequested = firstQueryValue(req.query.ids) !== undefined;
     const ids = parseIds(req.query.ids);
+    if (idsRequested && ids.length === 0) {
+        return res.status(400).json({ success: false, error: 'Invalid video ids filter' });
+    }
 
     try {
-        let query = getSupabase()
-            .from('video_library_videos')
+        const client = getSupabase();
+        let query = client
+            .from('video_library_public_catalog')
             .select(VIDEO_FIELDS, { count: 'exact' });
 
         query = query.not('youtube_video_id', 'in', `(${BLOCKED_VIDEO_LIBRARY_IDS.join(',')})`);
@@ -93,7 +104,7 @@ export default async function handler(req, res) {
 
         if (source && source !== 'ALL') query = query.eq('source_id', source);
         if (type === 'cash' || type === 'tournament') query = query.eq('type', type);
-        if (ids.length > 0) query = query.in('youtube_video_id', ids);
+        if (idsRequested) query = query.in('youtube_video_id', ids);
         if (search) {
             const pattern = `%${search.replace(/[%_]/g, '')}%`;
             query = query.or(`title.ilike.${pattern},source_name.ilike.${pattern},source_id.ilike.${pattern}`);
@@ -115,9 +126,10 @@ export default async function handler(req, res) {
         const { data, error, count } = await query.range(offset, offset + limit - 1);
         if (error) throw error;
 
+        const rawRowCount = Array.isArray(data) ? data.length : 0;
         const videos = (data || []).map(normaliseVideo).filter(isVideoLibraryVideoAllowed);
         const total = Number.isFinite(count) ? count : offset + videos.length;
-        res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+        const nextOffset = offset + rawRowCount;
         return res.status(200).json({
             success: true,
             data: videos,
@@ -125,13 +137,13 @@ export default async function handler(req, res) {
                 limit,
                 offset,
                 total,
-                hasMore: offset + videos.length < total,
+                nextOffset,
+                hasMore: nextOffset < total,
             },
         });
     } catch (error) {
         console.warn('[video-library/catalog] catalog fetch failed:', error?.message || error);
         try { reportApiError(error, req); } catch (_reportError) { /* telemetry must never mask the response */ }
-        res.setHeader('Cache-Control', 'no-store');
         return res.status(503).json({ success: false, error: 'Video catalog is temporarily unavailable' });
     }
 }

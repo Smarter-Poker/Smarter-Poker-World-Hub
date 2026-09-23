@@ -54,6 +54,11 @@ import { getAuthUser, ensureAuthReady } from '../../../src/lib/authUtils';
 import { useUnreadCount } from '../../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../../src/components/social/ReelsFeedCarousel';
+import ReelPublicationRecoveryBanner from '../../../src/components/reels/ReelPublicationRecoveryBanner';
+import VideoLibraryConsole, {
+  ConsoleCopy,
+} from '../../../src/components/video-library/console/VideoLibraryConsole';
+import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
 // 2026-09-10: these two were STATIC imports and they cost every reader 825 KB.
 // GoLiveModal pulls lottie-react and LiveStreamViewer reaches livekit-client, so
 // a feed scroll downloaded a 298 KB Lottie chunk and a 527 KB WebRTC chunk -
@@ -110,7 +115,19 @@ const PublicGameBoard = dynamic(() => import("../../../src/components/social/Pub
 const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubPagesView"));
 
 // Shared utilities — single source of truth (extracted from this file)
-import { SOCIAL_COLORS as C, timeAgo } from '../../../src/lib/socialHelpers';
+import {
+  SOCIAL_COLORS,
+  SOCIAL_COLORS as C,
+  timeAgo,
+  decodeHtmlEntities,
+  isYouTubeUrl,
+  getYouTubeVideoId,
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnail,
+  validateYouTubeVideo,
+  buildUserVideoProvenance,
+  sniffMimeType,
+} from '../../../src/lib/socialHelpers';
 import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
 import {
@@ -118,7 +135,9 @@ import {
   FeedVideoPoster,
 } from '../../../src/components/social/SharedVideoComponents';
 
-import { feedCache } from '../../../src/lib/feedCache';
+import { feedCache, isManagedVideoLibraryPost } from '../../../src/lib/feedCache';
+import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRecovery.mjs';
+import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';
 import { hubProductSchema } from '../../../src/lib/seo/hubPageSchema';
 
@@ -237,6 +256,15 @@ const PostCard = React.memo(
     const lastTapRef = useRef(0);
     const commentEndRef = useRef(null);
     const lightboxTouchRef = useRef({ startX: 0, startY: 0 });
+
+    // A cached card intentionally carries no personalized interaction truth.
+    // When the live, JWT-scoped response arrives, synchronize the local
+    // controls so a prior account or stale tab cannot invert an action.
+    useEffect(() => {
+      setLiked(Boolean(post.isLiked));
+      setBookmarked(Boolean(post.isBookmarked));
+      setReactions(Array.isArray(post.reactions) ? post.reactions : []);
+    }, [post.id, post.isLiked, post.isBookmarked, post.reactions]);
 
     // Haptic feedback utility (mobile vibration)
     const haptic = (ms = 10) => {
@@ -3509,6 +3537,7 @@ function SocialMediaPage() {
   const globalSearchTimeout = useRef(null);
   // Stable ref to always-fresh loadFeed — prevents stale closure in BroadcastChannel/Realtime listeners
   const loadFeedRef = useRef(null);
+  const feedRequestGuardRef = useRef(createLatestRequestGuard());
 
   // Unmount cleanup: cancel deferred timers to prevent zombie state writes
   // after component unmount (e.g., page navigation mid-undo-window or mid-search-debounce)
@@ -3517,6 +3546,7 @@ function SocialMediaPage() {
       if (undoDeleteRef.current) clearTimeout(undoDeleteRef.current);
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
       if (globalSearchTimeout.current) clearTimeout(globalSearchTimeout.current);
+      feedRequestGuardRef.current.abort();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -3663,7 +3693,7 @@ function SocialMediaPage() {
   // block feed render on this. Auth required server-side so this can't
   // be hammered anonymously.
   useEffect(() => {
-    const token = typeof localStorage !== 'undefined' && (JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token || (() => { const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token')); return k ? JSON.parse(localStorage.getItem(k) || '{}')?.access_token : null; })());
+    const token = getAccessToken();
     fetch('/api/live/cleanup-stale', {
       method: 'POST',
       headers: {
@@ -3742,6 +3772,7 @@ function SocialMediaPage() {
   // ═══════════════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!user?.id) return;
+    let eligibilityReloadTimer = null;
 
     // Subscribe to new posts (INSERT events)
     const feedChannel = supabase
@@ -3782,6 +3813,24 @@ function SocialMediaPage() {
         (payload) => {
           const updatedPost = payload.new;
           if (!updatedPost?.id) return;
+          const effectiveAudience = updatedPost.audience_mode
+            || (updatedPost.visibility !== 'public' ? updatedPost.visibility : null)
+            || 'public';
+          if (updatedPost.is_deleted === true || effectiveAudience !== 'public') {
+            setPosts((prev) => prev.filter((post) => post.id !== updatedPost.id));
+            return;
+          }
+          if (updatedPost.content_type === 'video') {
+            // Every video type is server-gated. Reload through the canonical
+            // service boundary so a rights, object-state, audience, or source
+            // change cannot be merged from an unverified Realtime payload.
+            clearTimeout(eligibilityReloadTimer);
+            eligibilityReloadTimer = setTimeout(
+              () => loadFeedRef.current?.(0, false),
+              250
+            );
+            return;
+          }
           setPosts((prev) =>
             prev.map((p) =>
               p.id === updatedPost.id
@@ -3924,6 +3973,7 @@ function SocialMediaPage() {
     }
 
     return () => {
+      clearTimeout(eligibilityReloadTimer);
       supabase.removeChannel(feedChannel);
       supabase.removeChannel(typingChannel);
       unsubMasterBus.forEach((unsub) => unsub());
@@ -4168,14 +4218,11 @@ function SocialMediaPage() {
           console.warn('[Social] ❌ No valid auth session found');
         }
 
-        // ⚡ INSTANT RENDER: Hydrate from IndexedDB cache BEFORE any network calls
-        // feedCache checks IndexedDB first (50MB+), falls back to localStorage (5MB)
+        // Feed rows are authorization-bearing data. Retire any persisted
+        // snapshot before the live read: a post may have changed from public
+        // to friends/specific/only-me while this browser was closed.
         try {
-          const cached = await feedCache.getPosts();
-          if (cached?.posts?.length) {
-            setPosts(cached.posts);
-            setLoading(false); // Show cached posts IMMEDIATELY — network fetch happens in background
-          }
+          await feedCache.invalidatePosts(authUser?.id || null);
           // Warm in-memory profile cache from IndexedDB (avatars, names — instant re-use)
           feedCache.warmProfileCache().catch(() => {});
         } catch {
@@ -4406,6 +4453,25 @@ function SocialMediaPage() {
 
   // Commander Detection & My Club Page Fetching
   useEffect(() => {
+    // Compatibility for Reel links emitted by older carousel builds. Validate
+    // the identifier before moving to the canonical Reel route so malformed
+    // query values can never be reflected into navigation.
+    if (router.query.reel) {
+      const legacyReelId = Array.isArray(router.query.reel)
+        ? router.query.reel[0]
+        : router.query.reel;
+      const isValidReelId =
+        typeof legacyReelId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(legacyReelId);
+      if (isValidReelId) {
+        router.replace(`/hub/reels?id=${encodeURIComponent(legacyReelId)}`);
+      } else {
+        toast.info('That Reel link is invalid');
+        router.replace('/hub/social-media', undefined, { shallow: true });
+      }
+      return;
+    }
+
     try {
       const stored = localStorage.getItem('commander_staff');
       if (stored) {
@@ -4606,7 +4672,7 @@ function SocialMediaPage() {
         })();
       }
     }
-  }, [user?.id, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post]);
+  }, [user?.id, router.query.createPage, router.query.ref, router.query.viewPage, router.query.stream, router.query.post, router.query.reel]);
 
   //  REFRESH NOTIFICATIONS when modal opens — always show latest data
   useEffect(() => {
@@ -4724,6 +4790,11 @@ function SocialMediaPage() {
   const loadFeed = async (offset = 0, append = false) => {
     // Always keep ref up-to-date so BroadcastChannel listeners get the fresh closure
     loadFeedRef.current = loadFeed;
+    const request = feedRequestGuardRef.current.begin({ append });
+    // A full refresh owns the snapshot. Ignore a stale-cursor append until it
+    // finishes instead of letting the append race and resurrect removed rows.
+    if (!request) return;
+    let authUserId = null;
     try {
       // BUG-03 FIX: on a full refresh (not append), reset offset state + clear seen-post cache
       // Without this: loadMorePosts() uses stale feedOffsetRef, and old posts get -30 penalty score on re-render
@@ -4734,7 +4805,6 @@ function SocialMediaPage() {
       if (append) setLoadingMore(true);
 
       // Read user ID from localStorage (avoids getSession AbortError)
-      let authUserId = null;
       try {
         const explicitAuth = localStorage.getItem('smarter-poker-auth');
         if (explicitAuth) {
@@ -4794,17 +4864,42 @@ function SocialMediaPage() {
       // the JWT (pages/_app.js injects the bearer token globally). All it did was
       // put a user UUID into every CDN and access log line.
       const apiUrl = `/api/social/feed?offset=${offset}&limit=${POSTS_PER_PAGE}`;
-      const response = await fetch(apiUrl);
+      const feedToken = getAccessToken();
+      const response = await fetch(apiUrl, {
+        cache: 'no-store',
+        signal: request.signal,
+        headers: {
+          Accept: 'application/json',
+          ...(feedToken ? { Authorization: `Bearer ${feedToken}` } : {}),
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Feed API error: ${response.status}`);
       }
 
-      const { posts: rawPosts, hasMore } = await response.json();
+      const { posts: rawPosts, hasMore, nextOffset, partial } = await response.json();
+      // Browsers and service workers are allowed to resolve a fetch after an
+      // abort. Sequence identity is the final guard against stale state.
+      if (!request.isCurrent()) return;
+      const rawContinuation = Number(nextOffset);
+      if (Number.isFinite(rawContinuation) && rawContinuation >= 0) {
+        setFeedOffset(rawContinuation);
+      }
 
       // Pagination state
       if (!rawPosts || rawPosts.length === 0) {
-        if (feedCycleRef.current < MAX_FEED_CYCLES) {
+        if (partial === true && hasMore === true && rawContinuation > offset) {
+          // The server consumed its bounded unsafe-row scan without finding a
+          // displayable post. Continue from the exact raw offset; resetting to
+          // zero here creates a permanent rescan loop on hostile datasets.
+          setHasMorePosts(true);
+          setTimeout(() => {
+            if (request.isCurrent()) {
+              loadFeedRef.current?.(rawContinuation, append);
+            }
+          }, 0);
+        } else if (feedCycleRef.current < MAX_FEED_CYCLES) {
           setFeedCycle((prev) => prev + 1);
           setFeedOffset(0);
         } else {
@@ -4838,6 +4933,7 @@ function SocialMediaPage() {
       // Enrich + rank (API already returns profiles & likes embedded)
       const formattedPosts = rawPosts.map((p) => ({
         ...p,
+        _interactionStateVerified: true,
         timeAgo: timeAgo(p.createdAt),
         isPriority: prioritySet.has(p.authorId),
         isSuggested: feedCycleRef.current > 0,
@@ -4867,8 +4963,6 @@ function SocialMediaPage() {
             ? [pinned, ...formattedPosts.filter((x) => x.id !== pinned.id)]
             : formattedPosts
         );
-        // Persist to IndexedDB (50MB+) and localStorage fallback
-        feedCache.setPosts(formattedPosts);
       }
 
       // Batch-prefill the ArticleCard link-preview cache for every post that
@@ -4883,11 +4977,37 @@ function SocialMediaPage() {
         });
       }
     } catch (e) {
+      if (e?.name === 'AbortError' || !request.isCurrent()) return;
       console.warn('[Social] Feed error:', e);
+      // A network drop invalidates the whole authorization-bearing snapshot.
+      // Realtime delivery can stop after a post becomes private, so retaining
+      // even cached text/image rows here could disclose revoked content.
+      setPosts([]);
+      feedCache.invalidatePosts(authUserId);
     } finally {
-      setLoadingMore(false);
+      const wasCurrent = request.isCurrent();
+      request.finish();
+      if (wasCurrent) setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    let refreshTimer = null;
+    const revalidateVisibleFeed = () => {
+      if (document.visibilityState !== 'visible') return;
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => loadFeedRef.current?.(0, false), 200);
+    };
+    const interval = window.setInterval(revalidateVisibleFeed, 60_000);
+    window.addEventListener('focus', revalidateVisibleFeed);
+    document.addEventListener('visibilitychange', revalidateVisibleFeed);
+    return () => {
+      clearTimeout(refreshTimer);
+      window.clearInterval(interval);
+      window.removeEventListener('focus', revalidateVisibleFeed);
+      document.removeEventListener('visibilitychange', revalidateVisibleFeed);
+    };
+  }, []);
 
   // ♾️ INFINITE SCROLL: Refs to avoid stale closures in IntersectionObserver
   const feedOffsetRef = useRef(feedOffset);
@@ -4924,7 +5044,7 @@ function SocialMediaPage() {
         hasMorePostsRef.current
       );
     if (loadingMoreRef.current || !hasMorePostsRef.current) return;
-    const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
+    const newOffset = feedOffsetRef.current;
     if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
       console.log('[Social] Loading more from offset:', newOffset);
     setFeedOffset(newOffset);
@@ -4974,7 +5094,9 @@ function SocialMediaPage() {
     mentions = [],
     linkPreview = null,
     visibility = 'public',
-    thumbnailUrl = null
+    thumbnailUrl = null,
+    pokerContentConfirmed = false,
+    reelPublicationIntentId = null
   ) => {
     if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
       console.log('[Social]  handlePost called with:', {
@@ -4991,6 +5113,21 @@ function SocialMediaPage() {
 
     if (!user?.id) {
       console.warn('[Social] ❌ Cannot post: user.id is missing!', user);
+      return false;
+    }
+
+    // Reels are an explicitly public, single-video publication. Defend this
+    // boundary here as well as in the composer because callers can invoke
+    // handlePost without going through the current checkbox UI.
+    if (pokerContentConfirmed && visibility !== 'public') {
+      toast.error('Poker Reels are public. Change this post to Public before publishing.', 6000);
+      return false;
+    }
+    if (
+      pokerContentConfirmed &&
+      (type !== 'video' || !Array.isArray(urls) || urls.length !== 1)
+    ) {
+      toast.error('Poker Reels can publish exactly one video at a time.', 6000);
       return false;
     }
 
@@ -5143,8 +5280,8 @@ function SocialMediaPage() {
       // backgrounded (iOS aggressively suspends background timers).
       // Result: by the time we call fn_create_social_post, the
       // session is expired → role='anon' → RPC returns 'forbidden:
-      // anonymous callers cannot create posts' → fallback INSERT
-      // also fails RLS → user sees generic 'Unable to post' banner.
+      // anonymous callers cannot create posts' and the user sees a
+      // generic 'Unable to post' banner.
       //
       // Fix: ensure the session is fresh BEFORE the post-create call.
       // getSession() auto-refreshes if the token is within 60s of
@@ -5227,69 +5364,104 @@ function SocialMediaPage() {
         throw new Error(sessionErr?.message || 'Your session has expired. Please log in again.');
       }
 
-      // Try RPC first (supports thumbnail_url + avoids RLS ambiguity triggers)
-      let data = null;
-      let error = null;
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('fn_create_social_post', {
-        p_author_id: user.id,
-        p_content: content || '',
-        p_content_type: type,
-        p_media_urls: urls,
-        p_visibility: visibility || 'public',
-        p_achievement_data: achievementData,
-        p_thumbnail_url: thumbnailUrl || null,
-      });
+      const submittedVideoUrl =
+        type === 'video' && urls.length > 0
+          ? urls.find(
+              (url) =>
+                url.includes('.mp4') ||
+                url.includes('.webm') ||
+                url.includes('.mov') ||
+                url.includes('video') ||
+                !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+            ) || urls[0]
+          : null;
+      const submittedVideoProvenance = submittedVideoUrl
+        ? buildUserVideoProvenance(
+            submittedVideoUrl,
+            'social_post',
+            pokerContentConfirmed ? 'poker' : 'unknown',
+            user.id
+          )
+        : null;
 
-      if (!rpcError && rpcResult?.success) {
-        data = rpcResult; // { success: true, id: uuid }
+      // Poker-confirmed videos use the atomic post+Reel boundary. Generic
+      // videos remain ordinary posts with topic=unknown until classified.
+      let data = null;
+      let rpcResult = null;
+      let atomicReelId = null;
+      if (submittedVideoUrl && pokerContentConfirmed) {
+        let publication;
+        if (reelPublicationIntentId) {
+          const publicationResult = await retryUserReelPublication({
+            supabase,
+            storage: window.localStorage,
+            userId: user.id,
+            intentId: reelPublicationIntentId,
+            attemptKind: 'initial',
+            eventTarget: window,
+          });
+          if (publicationResult.status !== 'published') {
+            throw new Error(
+              publicationResult.error
+              || 'Your video is uploaded safely and is waiting to finish publishing.',
+            );
+          }
+          publication = {
+            social_post_id: publicationResult.publication.socialPostId,
+            social_reel_id: publicationResult.publication.socialReelId,
+          };
+        } else {
+          const { data: publicationRows, error: publicationError } = await supabase.rpc(
+            'publish_user_video_reel',
+            {
+              p_video_url: submittedVideoUrl,
+              p_topic: 'poker',
+              p_topic_confirmed: true,
+              p_caption: content || null,
+              p_thumbnail_url: thumbnailUrl || null,
+              p_visibility: 'public',
+            }
+          );
+          publication = Array.isArray(publicationRows)
+            ? publicationRows[0]
+            : publicationRows;
+          if (
+            publicationError
+            || !publication?.social_post_id
+            || !publication?.social_reel_id
+          ) {
+            throw publicationError || new Error('Atomic Reel publication returned incomplete lineage');
+          }
+        }
+        data = { id: publication.social_post_id };
+        atomicReelId = publication.social_reel_id;
       } else {
-        // AUDIT-15: previously only logged rpcError.message, ignoring
-        // the structured error in rpcResult.error (e.g., 'forbidden:
-        // authenticated users may only post as themselves'). Now we
-        // capture both so the eventual throw carries the real reason.
-        const rpcReason = rpcError?.message || rpcResult?.error || 'unknown RPC failure';
-        console.warn('[Social] ⚠️ RPC failed, falling back to direct insert:', rpcReason);
-        // Fallback: direct insert (legacy path — no thumbnail_url support)
-        const insertPayload = {
-          author_id: user.id,
-          content,
-          content_type: type,
-          media_urls: urls,
-          visibility: visibility || 'public',
-          thumbnail_url: thumbnailUrl || null,
-        };
-        // Carry link metadata in dedicated columns when RPC is unavailable
-        if (linkPreview) {
-          insertPayload.link_url = linkPreview.url || urls[0];
-          insertPayload.link_title = linkPreview.title || null;
-          insertPayload.link_description = linkPreview.description || null;
-          insertPayload.link_image = linkPreview.image || null;
-          insertPayload.link_site_name = linkPreview.domain || null;
+        const { data: genericRpcResult, error: rpcError } = await supabase.rpc(
+          'fn_create_social_post',
+          {
+            p_author_id: user.id,
+            p_content: content || '',
+            p_content_type: type,
+            p_media_urls: urls,
+            p_visibility: visibility || 'public',
+            p_achievement_data: achievementData,
+            p_thumbnail_url: thumbnailUrl || null,
+          }
+        );
+        rpcResult = genericRpcResult;
+
+        if (rpcError || !rpcResult?.success || !rpcResult?.id) {
+          const rpcReason = rpcError?.message || rpcResult?.error || 'unknown RPC failure';
+          console.warn('[Social] Post RPC acknowledgement was not confirmed:', rpcReason);
+          throw new Error(
+            `Post creation could not be confirmed (${rpcReason}). Refresh your feed before retrying.`
+          );
         }
-        const { data: directData, error: directError } = await supabase
-          .from('social_posts')
-          .insert(insertPayload)
-          .select('id')
-          .maybeSingle();
-        data = directData;
-        // If direct insert ALSO failed, the surfaced error mentions
-        // both reasons so Dan can see what really blocked the write.
-        if (directError) {
-          error = new Error(`Post failed (RPC: ${rpcReason}; direct: ${directError.message})`);
-        } else if (!directData?.id) {
-          error = new Error(`Post failed: ${rpcReason}`);
-        }
+        data = rpcResult; // { success: true, id: uuid }
       }
 
-      if (error || !data?.id) {
-        console.warn(
-          '[Social] ❌ Post creation error:',
-          error?.message,
-          error?.details,
-          error?.hint,
-          error?.code
-        );
-        throw error || new Error('Post creation returned no data');
+      if (!data?.id) {
+        throw new Error('Post creation returned no confirmed ID');
       }
 
       if (typeof window !== 'undefined' && window.localStorage?.getItem('social_debug') === '1')
@@ -5303,10 +5475,9 @@ function SocialMediaPage() {
       // (id, author_id, content, content_type, created_at, media_urls,
       // thumbnail_url, like_count, comment_count). Use it directly when
       // available so the optimistic card matches what the realtime sub
-      // will deliver moments later — eliminates the brief flicker where
+      // will deliver moments later — eliminating the brief flicker where
       // the card's timestamp jumps from "Just now" to the real time and
-      // counts re-zero. When falling through to direct INSERT (which
-      // returns only `id`), we still construct from local state.
+      // counts re-zero.
       const hydrated = rpcResult && rpcResult.success ? rpcResult : null;
       setPosts((prev) => [
         {
@@ -5341,11 +5512,12 @@ function SocialMediaPage() {
           isBookmarked: false,
           justPosted: true, // Mark as just posted for highlight
           // Link metadata for ArticleCard rendering (parity with club page posts + loadFeed)
-          link_url: linkPreview?.url || null,
           link_title: linkPreview?.title || null,
           link_description: linkPreview?.description || null,
           link_image: linkPreview?.image || null,
           link_site_name: linkPreview?.domain || null,
+          ...(submittedVideoProvenance || {}),
+          link_url: atomicReelId ? `/hub/reels?id=${atomicReelId}` : linkPreview?.url || null,
           author: { name: user.name, username: user.username, avatar: user.avatar },
         },
         ...prev,
@@ -5409,32 +5581,9 @@ function SocialMediaPage() {
           }
         }
 
-        // AUTO-SAVE VIDEOS TO REELS
-        // When a video is posted, automatically create a Reel entry
-        if (type === 'video' && urls.length > 0) {
-          const videoUrl =
-            urls.find(
-              (url) =>
-                url.includes('.mp4') ||
-                url.includes('.webm') ||
-                url.includes('.mov') ||
-                url.includes('video') ||
-                !url.match(/\.(jpg|jpeg|png|gif|webp)$/i)
-            ) || urls[0];
-
-          const { error: err_social_reels_g3lht } = await supabase.from('social_reels').insert({
-            author_id: user.id,
-            video_url: videoUrl,
-            thumbnail_url: thumbnailUrl || null,
-            caption: content || null,
-            source_post_id: data.id,
-            is_public: true,
-            view_count: 0,
-            like_count: 0,
-          });
-
-          if (err_social_reels_g3lht) console.warn('[Supabase] Silent mutation failed in social_reels:', err_social_reels_g3lht.message);
-        }
+        // Video-to-Reel creation is part of the post transaction. Never add a
+        // second best-effort Reel write here: it can orphan public media when
+        // post privacy or deletion changes.
       } catch (secondaryErr) {
         console.warn('[App] Handled exception:', secondaryErr?.message || secondaryErr);
       }
@@ -5449,7 +5598,6 @@ function SocialMediaPage() {
       // via toast.error AND console.error so Dan can read what failed
       // on the next attempt. Most common causes:
       //   • RLS denied on fn_create_social_post (auth.uid() check fails)
-      //   • Direct insert RLS denied
       //   • Token expired between upload and post
       //   • Network failure mid-RPC
       const msg = e?.message || e?.error_description || String(e) || 'unknown';
@@ -5587,7 +5735,7 @@ function SocialMediaPage() {
         try {
           // invalidatePosts clears BOTH IndexedDB and localStorage — the old
           // localStorage-only clear let deleted posts reappear from IDB cache.
-          await feedCache.invalidatePosts();
+          await feedCache.invalidatePosts(user.id);
         } catch (e) {
           console.warn('[App] Handled exception:', e);
         }
@@ -6304,27 +6452,28 @@ function SocialMediaPage() {
             />
             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
           </Link>
-          {/* Reels - Custom AI icon */}
+          {/* Reels Console Entry */}
           <Link prefetch={false}
             href="/hub/reels"
             onClick={() => setSidebarOpen(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              padding: '14px 12px',
-              background: '#fff',
-              borderRadius: 8,
-              textDecoration: 'none',
-              border: '1px solid #dadde1',
-            }}
+            className={auxiliaryReelsStyles.entryLink}
+            aria-label="Open Poker Reels"
           >
-            <img
-              src="/icons/reels.png"
-              alt=""
-              style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }}
-            />
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
+            <VideoLibraryConsole
+              as="div"
+              eyebrow="Social Hub"
+              title="Poker Reels"
+              titleAs="span"
+              subtitle="Short Form Poker Video"
+              pill="Open"
+              pillInk="blue"
+              foot="foot"
+              className={auxiliaryReelsStyles.entryConsole}
+            >
+              <ConsoleCopy as="span" align="center" className={auxiliaryReelsStyles.entryCopy}>
+                Watch And Share Poker Reels
+              </ConsoleCopy>
+            </VideoLibraryConsole>
           </Link>
         </div>
 
@@ -7439,6 +7588,12 @@ function SocialMediaPage() {
               >
                 <div className="social-feed-column" style={{ flex: 1, minWidth: 0 }}>
                   {/* Stories Bar */}
+                  {user && (
+                    <ReelPublicationRecoveryBanner
+                      user={user}
+                      onRecovered={() => loadFeedRef.current?.(0, false)}
+                    />
+                  )}
                   {user && (
                     <StoriesBar
                       userId={user.id}

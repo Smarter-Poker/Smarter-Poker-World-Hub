@@ -5,7 +5,7 @@
 
 import { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
-import { useYouTubeErrorManager, YouTubeErrorOverlay } from '../../src/hooks/useYouTubeErrorManager';
+import { useYouTubeErrorManager } from '../../src/hooks/useYouTubeErrorManager';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { hubProductSchema } from '../../src/lib/seo/hubPageSchema';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
@@ -25,7 +25,18 @@ import { getAccessToken } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import VideoLibraryCommandRail from '../../src/components/video-library/VideoLibraryCommandRail';
+import HubPageShell from '../../src/components/ui/HubPageShell';
+import PullToRefresh from '../../src/components/ui/PullToRefresh';
+import toast from '../../src/stores/toastStore';
+import { useLoadFailsafe } from '../../src/hooks/useLoadFailsafe';
+import { useHaptics } from '../../src/hooks/useHaptics';
+import { useOnlineStatus, OFFLINE_TOAST } from '../../src/hooks/useOnlineStatus';
+import { useModalHistory } from '../../src/hooks/useModalHistory';
+import VideoLibraryConsole, {
+    ConsoleCopy,
+} from '../../src/components/video-library/console/VideoLibraryConsole';
 import { isVideoLibraryVideoAllowed } from '../../src/lib/videoLibraryAvailability';
+import { createVideoLibraryOwnerScope } from '../../src/lib/videoLibraryOwnerScope.mjs';
 
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
 const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
@@ -50,7 +61,8 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 const ReelsViewer = dynamic(() => import('../../src/components/social/Reels').then(mod => mod.ReelsViewer), { ssr: false });
 import { findBestGames } from '../../src/utils/videoToTrainingMapper';
 
-// Static fallback catalog — used until DB fetch resolves
+// Static records retain legacy-ID aliases only. Playback fails closed until a
+// live catalog response supplies fresh persisted availability evidence.
 import {
     FULL_VIDEOS as STATIC_VIDEOS,
     SOURCES
@@ -59,7 +71,7 @@ import {
 // Persistence uses YouTube's video ID as the canonical key. The legacy static
 // catalog used display-only aliases (hcl1, lodge1, ...), which orphaned saved
 // state whenever the database hydrated. Invalid FAKE placeholders are excluded
-// from the playable fallback catalog instead of producing guaranteed dead embeds.
+// from any live catalog response instead of producing guaranteed dead embeds.
 const STATIC_VIDEO_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.id, video.videoId]));
 const STATIC_VIDEO_CANONICAL_ALIASES = new Map(STATIC_VIDEOS.map(video => [video.videoId, video.id]));
 const canonicalStoredVideoId = videoId => STATIC_VIDEO_ALIASES.get(videoId) || videoId;
@@ -67,49 +79,42 @@ const STATIC_CATALOG = STATIC_VIDEOS
     .filter(isVideoLibraryVideoAllowed)
     .map(video => ({ ...video, legacyId: video.id, id: video.videoId, videoId: video.videoId }));
 
-const C = {
-    bg: '#0a0a0a',
-    card: '#1a1a1a',
-    cardHover: '#252525',
-    text: '#FFFFFF',
-    textSec: 'rgba(255,255,255,0.6)',
-    border: '#333',
-    accent: '#00D4FF',
-    blue: '#0A84FF',
-};
+const EMPTY_VIDEO_SET = new Set();
+const EMPTY_VIDEO_MAP = new Map();
+const DEFAULT_VIDEO_LIBRARY_PREFERENCES = Object.freeze({ autoplay: true, captions: false });
 
 const LIBRARY_VIEW_OPTIONS = [
-    { id: 'favorites', label: 'Favorites', shortLabel: 'Favorites', symbol: '♥' },
-    { id: 'watchlater', label: 'Watch Later', shortLabel: 'Watch Later', symbol: '▣' },
-    { id: 'history', label: 'Watch History', shortLabel: 'History', symbol: '↺' },
-    { id: 'playlists', label: 'Playlists', shortLabel: 'Playlists', symbol: '▦' },
+    { id: 'favorites', label: 'Favorites', shortLabel: 'Favorites' },
+    { id: 'watchlater', label: 'Watch Later', shortLabel: 'Watch Later' },
+    { id: 'history', label: 'Watch History', shortLabel: 'History' },
+    { id: 'playlists', label: 'Playlists', shortLabel: 'Playlists' },
 ];
 
 const LIBRARY_VIEW_META = {
     ALL: {
-        kicker: 'Live poker broadcast archive',
+        kicker: 'Live Poker Broadcast Archive',
         title: 'Poker Video Library',
-        description: 'Study complete sessions, tournament coverage, and creator breakdowns from one command deck.',
+        description: 'Study Complete Sessions, Tournament Coverage, And Creator Breakdowns From One Command Deck.',
     },
     favorites: {
-        kicker: 'Personal library · Favorites',
+        kicker: 'Personal Library / Favorites',
         title: 'Favorite Videos',
-        description: 'Your strongest hands, breakdowns, and broadcasts-saved for a fast return.',
+        description: 'Your Strongest Hands, Breakdowns, And Broadcasts Saved For A Fast Return.',
     },
     watchlater: {
-        kicker: 'Personal library · Study queue',
+        kicker: 'Personal Library / Study Queue',
         title: 'Watch Later',
-        description: 'A focused queue for the videos you want in your next study session.',
+        description: 'A Focused Queue For The Videos You Want In Your Next Study Session.',
     },
     history: {
-        kicker: 'Personal library · Session log',
+        kicker: 'Personal Library / Session Log',
         title: 'Watch History',
-        description: 'Resume recent sessions or revisit videos you have already studied.',
+        description: 'Resume Recent Sessions Or Revisit Videos You Have Already Studied.',
     },
     playlists: {
-        kicker: 'Personal library · Playlists',
+        kicker: 'Personal Library / Playlists',
         title: 'Playlist Videos',
-        description: 'Browse every video organized inside your named study playlists.',
+        description: 'Browse Every Video Organized Inside Your Named Study Playlists.',
     },
 };
 
@@ -132,13 +137,22 @@ class VideoLibraryReelsBoundary extends Component {
         if (!this.state.hasError) return this.props.children;
         return (
             <div className="vl-reels-fallback" role="alert">
-                <span>Reels Signal Interrupted</span>
-                <h2>Reopen The Feed</h2>
-                <p>The Full Library Is Still Available. Retry Reels Or Return Without Losing Your Place.</p>
-                <div>
-                    <button type="button" onClick={() => this.setState({ hasError: false })}>Try Again</button>
-                    <button type="button" onClick={this.props.onClose}>Back To Library</button>
-                </div>
+                <VideoLibraryConsole
+                    eyebrow="Reels Signal Interrupted"
+                    title="Reopen The Feed"
+                    subtitle="Your Library Place Is Safe"
+                    pill="Offline"
+                    pillInk="red"
+                    foot="plates"
+                    plates={{
+                        secondary: { label: 'Back To Library', onClick: this.props.onClose },
+                        primary: { label: 'Try Again', ink: 'white', onClick: () => this.setState({ hasError: false }) },
+                    }}
+                >
+                    <ConsoleCopy align="center">
+                        The Full Library Is Still Available. Retry Reels Or Return Without Losing Your Place.
+                    </ConsoleCopy>
+                </VideoLibraryConsole>
             </div>
         );
     }
@@ -153,24 +167,11 @@ function parseDuration(durationStr) {
     return parts[0] || 0;
 }
 
-/** Keep a newly selected horizontal-rail control visible without moving the page. */
-function keepRailButtonInView(button) {
-    const rail = button?.parentElement;
-    if (!rail) return;
-
-    window.requestAnimationFrame(() => {
-        // A second frame lets responsive CSS settle after hydration/deep-link
-        // state changes before measuring the rail.
-        window.requestAnimationFrame(() => {
-            if (rail.scrollWidth <= rail.clientWidth) return;
-            const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-            rail.scrollTo({
-                left: button.offsetLeft - ((rail.clientWidth - button.clientWidth) / 2),
-                behavior: reducedMotion ? 'auto' : 'smooth',
-            });
-        });
-    });
-}
+/* MOBILE PHASE 9 (docs/mobile-standard): the rail scroller is gone. It
+   scrolled a sideways strip so the chosen control came into view; every
+   control row wraps now, so the chosen control is on screen by construction.
+   Four cards at first on Continue Watching and New This Week, then Show More. */
+const INITIAL_RAIL_CARDS = 4;
 
 /** Copy text with a legacy fallback for browsers where Clipboard API is unavailable. */
 async function copyTextToClipboard(text) {
@@ -237,13 +238,41 @@ function reportVideoLibraryIssue(event, error) {
         keepalive: true,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event, message }),
-    }).catch(() => { /* reporting must never interrupt the user flow */ });
+    }).catch(reportingError => {
+        console.warn('[video-library] client error report was not delivered:', reportingError);
+    });
 }
 
 export default function VideoLibraryPage() {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
+    const ownerScopeRef = useRef(null);
+    const pendingVideoActionsRef = useRef(new Set());
+    const watchProgressRef = useRef(new Map());
+    const watchStartTimeRef = useRef(null);
+    const currentWatchingVideoRef = useRef(null);
+    const watchSessionUserIdRef = useRef(null);
+    const pendingFlushRef = useRef(false);
+    const shareToastTimer = useRef(null);
+
+    if (!ownerScopeRef.current) {
+        ownerScopeRef.current = createVideoLibraryOwnerScope(userId);
+    }
+    const ownerChangedThisRender = ownerScopeRef.current.activate(userId);
+    if (ownerChangedThisRender) {
+        // Reset ref-backed personal state during render. Account B can interact
+        // before effects run without inheriting account A's action locks or
+        // progress cache.
+        pendingVideoActionsRef.current.clear();
+        watchProgressRef.current = new Map();
+        watchStartTimeRef.current = null;
+        currentWatchingVideoRef.current = null;
+        watchSessionUserIdRef.current = null;
+        pendingFlushRef.current = false;
+        if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
+        shareToastTimer.current = null;
+    }
 
     // Connect to global telemetry bus
     useTrainingBus('video-library');
@@ -258,22 +287,37 @@ export default function VideoLibraryPage() {
         selectedType: 'ALL'
     });
 
-    const selectedSource = filters.selectedSource;
-    const selectedType = filters.selectedType;
+    const selectedSource = SOURCES.some(source => source?.id === filters.selectedSource)
+        ? filters.selectedSource
+        : 'ALL';
+    const selectedType = ['ALL', 'cash', 'tournament'].includes(filters.selectedType)
+        ? filters.selectedType
+        : 'ALL';
     const setSelectedSource = (val) => setFilter('selectedSource', val);
     const setSelectedType = (val) => setFilter('selectedType', val);
 
-    // Local state — initialise with static data instantly, then hydrate from DB
+    // Old localStorage values from retired filters fail closed to the current
+    // command vocabulary instead of marooning the user in an empty view.
+    useEffect(() => {
+        if (filters.selectedSource !== selectedSource) setSelectedSource(selectedSource);
+        if (filters.selectedType !== selectedType) setSelectedType(selectedType);
+    }, [filters.selectedSource, filters.selectedType, selectedSource, selectedType]);
+
+    // Local state starts fail-closed; the live verified catalog hydrates it.
     const [videos, setVideos] = useState(STATIC_CATALOG);
     const [displayedCount, setDisplayedCount] = useState(STATIC_CATALOG.length);
     const [allVideos, setAllVideos] = useState(STATIC_CATALOG); // unfiltered master list
     const [catalogRefreshFailed, setCatalogRefreshFailed] = useState(false);
     const [catalogLoading, setCatalogLoading] = useState(true);
+    useLoadFailsafe(catalogLoading, setCatalogLoading);
     const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
     const [catalogTotal, setCatalogTotal] = useState(STATIC_CATALOG.length);
     const [catalogHasMore, setCatalogHasMore] = useState(false);
+    const [catalogNextOffset, setCatalogNextOffset] = useState(0);
     const catalogAbortRef = useRef(null);
     const catalogRequestRef = useRef(0);
+    const [deepLinkStatus, setDeepLinkStatus] = useState(null);
+    const [deepLinkRetryNonce, setDeepLinkRetryNonce] = useState(0);
 
 
     // Handle query parameters for deep linking
@@ -358,9 +402,18 @@ export default function VideoLibraryPage() {
         }
         // ?v=VIDEO_ID — auto-open a specific video
         if (router.query.v && allVideos.length > 0) {
-            const requestedVideoId = String(router.query.v);
+            const rawVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
+            const requestedVideoId = canonicalStoredVideoId(rawVideoId);
+            if (requestedVideoId !== rawVideoId) {
+                void router.replace(
+                    { pathname: router.pathname, query: { ...router.query, v: requestedVideoId } },
+                    undefined,
+                    { shallow: true, scroll: false },
+                );
+            }
             const target = allVideos.find(v => v.videoId === requestedVideoId);
             if (target && openedQueryVideoRef.current !== requestedVideoId && handleOpenVideoRef.current) {
+                setDeepLinkStatus(null);
                 openedQueryVideoRef.current = requestedVideoId;
                 handleOpenVideoRef.current(target);
             }
@@ -372,10 +425,23 @@ export default function VideoLibraryPage() {
     const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
     const [showReelsModal, setShowReelsModal] = useState(false);
     const searchInputRef = useRef(null);
-    const filterRailRef = useRef(null);
-    const sourceRailRef = useRef(null);
+    // Phase 0a foundation (mobile phase 9). The catalog skeleton is capped at
+    // eight seconds; a pull at the top re-reads the catalog; card taps buzz;
+    // an offline refresh says so instead of spinning.
+    const haptic = useHaptics();
+    const online = useOnlineStatus();
+    const requireOnline = useCallback(() => {
+        if (online) return true;
+        toast.error(OFFLINE_TOAST);
+        return false;
+    }, [online]);
+    const [cwVisible, setCwVisible] = useState(INITIAL_RAIL_CARDS);
+    const [newWeekVisible, setNewWeekVisible] = useState(INITIAL_RAIL_CARDS);
+    const [sourcesExpanded, setSourcesExpanded] = useState(false);
+    const mobileFilterRailRef = useRef(null);
     const reelsDialogRef = useRef(null);
     const reelsTriggerRef = useRef(null);
+    const mobileReelsTriggerRef = useRef(null);
     const modalOverlayRef = useRef(null); // ref for native fullscreen
     const playerIframeRef = useRef(null);
     const playerPositionRef = useRef(0);
@@ -400,8 +466,8 @@ export default function VideoLibraryPage() {
     const swipeTouchStartY = useRef(null);
 
     // Content tracking state
-    const [favorites, setFavorites] = useState(new Set());
-    const [playlists, setPlaylists] = useState([]);
+    const [storedFavorites, setFavorites] = useState(new Set());
+    const [storedPlaylists, setPlaylists] = useState([]);
     const [showPlaylistModal, setShowPlaylistModal] = useState(null); // video object
     const [newPlaylistName, setNewPlaylistName] = useState('');
     const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false); // loading state for playlist creation
@@ -410,7 +476,7 @@ export default function VideoLibraryPage() {
     const playlistDialogRef = useRef(null);
     const playlistNameInputRef = useRef(null);
     const playlistTriggerRef = useRef(null);
-    const [watchLater, setWatchLater] = useState(new Set());
+    const [storedWatchLater, setWatchLater] = useState(new Set());
     // 2026-08-15: the three "My Library" hamburger entries
     // (?filter=favorites|history|watchlater) previously fell into a handler
     // that just ran setSearchQuery('favorites'), so users got
@@ -418,16 +484,31 @@ export default function VideoLibraryPage() {
     // was already in state (favorites / watchLater / watchedVideos are Sets
     // of video ids) — it just was never wired to a filter.
     const [libraryFilter, setLibraryFilter] = useState('ALL');
-    const [watchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
-    const [watchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
-    const watchProgressRef = useRef(new Map());
-    const [recentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
+    const [storedWatchedVideos, setWatchedVideos] = useState(new Set()); // Videos watched 60+ seconds
+    const [storedWatchProgress, setWatchProgress] = useState(new Map()); // video_id → { watchedSeconds, watchedAt }
+    const [storedRecentlyWatched, setRecentlyWatched] = useState([]); // Recently watched videos
+    const [libraryStateOwnerId, setLibraryStateOwnerId] = useState(userId || null);
     const [librarySyncState, setLibrarySyncState] = useState('idle'); // idle | loading | ready | partial | error
     const [librarySyncErrors, setLibrarySyncErrors] = useState([]);
     const refreshUserLibraryRef = useRef(null);
 
     // ── P3: Sort mode — 'default' | 'trending' | 'top_rated' ─────────────────
     const [sortMode, setSortMode] = useState('default');
+
+    // Account A's backing state is synchronously masked on account B's first
+    // render, then cleared by the ownership effect below. This closes the
+    // one-frame personal-data leak that an ordinary useEffect-only reset leaves.
+    const personalStateIsCurrent = libraryStateOwnerId === (userId || null);
+    const favorites = personalStateIsCurrent ? storedFavorites : EMPTY_VIDEO_SET;
+    const playlists = personalStateIsCurrent ? storedPlaylists : [];
+    const watchLater = personalStateIsCurrent ? storedWatchLater : EMPTY_VIDEO_SET;
+    const watchedVideos = personalStateIsCurrent ? storedWatchedVideos : EMPTY_VIDEO_SET;
+    const watchProgress = personalStateIsCurrent ? storedWatchProgress : EMPTY_VIDEO_MAP;
+    const recentlyWatched = personalStateIsCurrent ? storedRecentlyWatched : [];
+    const visibleLibrarySyncState = personalStateIsCurrent
+        ? librarySyncState
+        : (userId ? 'loading' : 'idle');
+    const visibleLibrarySyncErrors = personalStateIsCurrent ? librarySyncErrors : [];
 
     const playlistVideoIds = useMemo(() => new Set(
         playlists.flatMap(playlist => (playlist.items || []).map(item => canonicalStoredVideoId(item.video_id)))
@@ -468,7 +549,7 @@ export default function VideoLibraryPage() {
         setSearchQuery('');
         setCatalogSearchQuery('');
         replaceNavigationQuery({ type: type === 'ALL' ? null : type, filter: null });
-        keepRailButtonInView(button);
+        button?.focus?.();
     };
 
     const selectPersonalView = (filter, button) => {
@@ -477,7 +558,7 @@ export default function VideoLibraryPage() {
         setSearchQuery('');
         setCatalogSearchQuery('');
         replaceNavigationQuery({ type: null, filter });
-        keepRailButtonInView(button);
+        button?.focus?.();
     };
 
     const selectSourceView = (source, button) => {
@@ -487,35 +568,29 @@ export default function VideoLibraryPage() {
             type: selectedType === 'ALL' ? null : selectedType,
             filter: libraryFilter === 'ALL' ? null : libraryFilter,
         });
-        keepRailButtonInView(button);
+        button?.focus?.();
     };
 
-    useEffect(() => {
-        const group = libraryFilter === 'ALL' ? 'type' : 'library';
-        const activeButton = filterRailRef.current?.querySelector(
-            `[data-filter-group="${group}"][aria-pressed="true"]`
-        );
-        if (activeButton) keepRailButtonInView(activeButton);
-    }, [selectedType, libraryFilter]);
-
-    useEffect(() => {
-        const activeSource = sourceRailRef.current?.querySelector('[aria-pressed="true"]');
-        if (activeSource) keepRailButtonInView(activeSource);
-    }, [selectedSource]);
+    const selectSortView = (nextSortMode, button) => {
+        setSortMode(nextSortMode);
+        replaceNavigationQuery({ sort: nextSortMode === 'default' ? null : nextSortMode });
+        button?.focus?.();
+    };
 
     // Command-status notice for copy, save, favorite, and history feedback.
-    const [shareToast, setShareToast] = useState(null); // { message, videoId, tone, kind }
+    const [shareToast, setShareToast] = useState(null); // { message, videoId, tone, kind, ownerToken }
     const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
     const ttsDialogRef = useRef(null);
     const ttsCloseButtonRef = useRef(null);
     const ttsTriggerRef = useRef(null);
-    const shareToastTimer = useRef(null);
-    const pendingVideoActionsRef = useRef(new Set());
     const showActionNotice = useCallback((message, { videoId = null, tone = 'success', kind = 'action' } = {}) => {
         if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
-        setShareToast({ message, videoId, tone, kind });
+        setShareToast({ message, videoId, tone, kind, ownerToken: ownerScopeRef.current.capture(userId) });
         shareToastTimer.current = setTimeout(() => setShareToast(null), 2800);
-    }, []);
+    }, [userId]);
+    const visibleShareToast = shareToast && ownerScopeRef.current.isCurrent(shareToast.ownerToken)
+        ? shareToast
+        : null;
 
     useEffect(() => {
         watchProgressRef.current = watchProgress;
@@ -566,7 +641,11 @@ export default function VideoLibraryPage() {
     }, []);
 
     // Centralized YouTube error management for video library player
-    const { ytError: vlYtManaged, thumbnailUrl: vlThumbnailUrl } = useYouTubeErrorManager({
+    const {
+        ytError: vlYtManaged,
+        errorInfo: vlYtErrorInfo,
+        thumbnailUrl: vlThumbnailUrl,
+    } = useYouTubeErrorManager({
         active: !!selectedVideo,
         videoId: selectedVideo?.videoId || null,
         surface: 'VideoLibrary',
@@ -582,18 +661,11 @@ export default function VideoLibraryPage() {
     
     const loadMoreRef = useRef(null);
 
-    // Watch time tracking
-    const watchStartTimeRef = useRef(null);
-    const currentWatchingVideoRef = useRef(null);
-    const watchSessionUserIdRef = useRef(null);
-    const activeUserIdRef = useRef(userId);
-    activeUserIdRef.current = userId;
-
     // Hamburger menu preferences
-    const [preferences, setPreferences] = useState({
-        autoplay: true,
-        captions: false
-    });
+    const [storedPreferences, setPreferences] = useState(DEFAULT_VIDEO_LIBRARY_PREFERENCES);
+    const preferences = personalStateIsCurrent
+        ? storedPreferences
+        : DEFAULT_VIDEO_LIBRARY_PREFERENCES;
 
     // Intro video removed by request
         
@@ -608,6 +680,7 @@ export default function VideoLibraryPage() {
         let cancelled = false;
         let refreshInFlight = false;
         let lastRefreshAt = 0;
+        const ownerToken = ownerScopeRef.current.capture(userId);
 
         const clearUserLibrary = () => {
             setFavorites(new Set());
@@ -617,21 +690,31 @@ export default function VideoLibraryPage() {
             watchProgressRef.current = new Map();
             setRecentlyWatched([]);
             setPlaylists([]);
+            setShowPlaylistModal(null);
+            setNewPlaylistName('');
+            setIsCreatingPlaylist(false);
+            setPlaylistActionError(null);
+            setShareToast(null);
+            if (shareToastTimer.current) clearTimeout(shareToastTimer.current);
         };
 
         if (!userId) {
-            setPreferences({ autoplay: true, captions: false });
+            setPreferences(DEFAULT_VIDEO_LIBRARY_PREFERENCES);
             clearUserLibrary();
+            setLibraryStateOwnerId(null);
             setLibrarySyncState('idle');
             setLibrarySyncErrors([]);
             return undefined;
         }
 
         clearUserLibrary();
+        setPreferences(DEFAULT_VIDEO_LIBRARY_PREFERENCES);
+        setLibraryStateOwnerId(userId);
         setLibrarySyncState('loading');
         setLibrarySyncErrors([]);
 
         const refreshUserLibrary = async ({ force = false } = {}) => {
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
             const now = Date.now();
             if (refreshInFlight || (!force && now - lastRefreshAt < 500)) return;
             refreshInFlight = true;
@@ -650,42 +733,44 @@ export default function VideoLibraryPage() {
                 getVideoPlaylists(userId),
             ]);
             refreshInFlight = false;
-            if (cancelled) return;
+            if (cancelled || !ownerScopeRef.current.isCurrent(ownerToken)) return;
 
-            const [preferenceResult, favoriteResult, laterResult, watchedResult, progressResult, recentResult, playlistResult] = results;
-            if (preferenceResult.status === 'fulfilled') setPreferences(preferenceResult.value);
-            if (favoriteResult.status === 'fulfilled') setFavorites(new Set(favoriteResult.value.map(item => canonicalStoredVideoId(item.video_id))));
-            if (laterResult.status === 'fulfilled') setWatchLater(new Set(laterResult.value.map(item => canonicalStoredVideoId(item.video_id))));
-            if (watchedResult.status === 'fulfilled') setWatchedVideos(new Set([...watchedResult.value].map(canonicalStoredVideoId)));
-            if (progressResult.status === 'fulfilled') {
-                const canonicalProgress = new Map();
-                progressResult.value.forEach((progress, videoId) => {
-                    const canonicalId = canonicalStoredVideoId(videoId);
-                    const existing = canonicalProgress.get(canonicalId);
-                    if (!existing || progress.watchedSeconds > existing.watchedSeconds) canonicalProgress.set(canonicalId, progress);
-                });
-                setWatchProgress(canonicalProgress);
-                watchProgressRef.current = canonicalProgress;
-            }
-            if (recentResult.status === 'fulfilled') {
-                const seenRecent = new Set();
-                setRecentlyWatched(recentResult.value.map(item => ({ ...item, video_id: canonicalStoredVideoId(item.video_id) })).filter(item => {
-                    if (seenRecent.has(item.video_id)) return false;
-                    seenRecent.add(item.video_id);
-                    return true;
-                }));
-            }
-            if (playlistResult.status === 'fulfilled') setPlaylists(playlistResult.value);
-            const resourceNames = ['settings', 'favorites', 'Watch Later', 'history', 'progress', 'recent sessions', 'playlists'];
-            const failedResources = results
-                .map((result, index) => result.status === 'rejected' ? resourceNames[index] : null)
-                .filter(Boolean);
-            setLibrarySyncErrors(failedResources);
-            setLibrarySyncState(failedResources.length === 0 ? 'ready' : failedResources.length === results.length ? 'error' : 'partial');
-            if (failedResources.length > 0) {
-                reportVideoLibraryIssue('library_sync', new Error(`Failed resources: ${failedResources.join(', ')}`));
-                showActionNotice('Some saved library data could not be refreshed. Try again.', { tone: 'error' });
-            }
+            ownerScopeRef.current.commit(ownerToken, () => {
+                const [preferenceResult, favoriteResult, laterResult, watchedResult, progressResult, recentResult, playlistResult] = results;
+                if (preferenceResult.status === 'fulfilled') setPreferences(preferenceResult.value);
+                if (favoriteResult.status === 'fulfilled') setFavorites(new Set(favoriteResult.value.map(item => canonicalStoredVideoId(item.video_id))));
+                if (laterResult.status === 'fulfilled') setWatchLater(new Set(laterResult.value.map(item => canonicalStoredVideoId(item.video_id))));
+                if (watchedResult.status === 'fulfilled') setWatchedVideos(new Set([...watchedResult.value].map(canonicalStoredVideoId)));
+                if (progressResult.status === 'fulfilled') {
+                    const canonicalProgress = new Map();
+                    progressResult.value.forEach((progress, videoId) => {
+                        const canonicalId = canonicalStoredVideoId(videoId);
+                        const existing = canonicalProgress.get(canonicalId);
+                        if (!existing || progress.watchedSeconds > existing.watchedSeconds) canonicalProgress.set(canonicalId, progress);
+                    });
+                    setWatchProgress(canonicalProgress);
+                    watchProgressRef.current = canonicalProgress;
+                }
+                if (recentResult.status === 'fulfilled') {
+                    const seenRecent = new Set();
+                    setRecentlyWatched(recentResult.value.map(item => ({ ...item, video_id: canonicalStoredVideoId(item.video_id) })).filter(item => {
+                        if (seenRecent.has(item.video_id)) return false;
+                        seenRecent.add(item.video_id);
+                        return true;
+                    }));
+                }
+                if (playlistResult.status === 'fulfilled') setPlaylists(playlistResult.value);
+                const resourceNames = ['settings', 'favorites', 'Watch Later', 'history', 'progress', 'recent sessions', 'playlists'];
+                const failedResources = results
+                    .map((result, index) => result.status === 'rejected' ? resourceNames[index] : null)
+                    .filter(Boolean);
+                setLibrarySyncErrors(failedResources);
+                setLibrarySyncState(failedResources.length === 0 ? 'ready' : failedResources.length === results.length ? 'error' : 'partial');
+                if (failedResources.length > 0) {
+                    reportVideoLibraryIssue('library_sync', new Error(`Failed resources: ${failedResources.join(', ')}`));
+                    showActionNotice('Some saved library data could not be refreshed. Try again.', { tone: 'error' });
+                }
+            });
         };
 
         refreshUserLibraryRef.current = refreshUserLibrary;
@@ -717,20 +802,29 @@ export default function VideoLibraryPage() {
 
     // Hamburger menu handlers - save to Supabase
     const updatePreference = useCallback(async (key, value) => {
+        const ownerToken = ownerScopeRef.current.capture(userId);
         const previousValue = preferences[key];
         // BUG-C FIX: use functional setState so rapid toggles never read stale preferences
-        setPreferences(prev => ({ ...prev, [key]: value }));
+        setPreferences(prev => ({
+            ...(personalStateIsCurrent ? prev : DEFAULT_VIDEO_LIBRARY_PREFERENCES),
+            [key]: value,
+        }));
 
         if (userId) {
             try {
                 await updateVideoLibraryPreferences(userId, { [key]: value });
             } catch (error) {
+                if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
                 console.warn('Failed to save preference:', error);
-                setPreferences(prev => ({ ...prev, [key]: previousValue }));
-                showActionNotice('Player setting was not saved. Try again.', { tone: 'error' });
+                ownerScopeRef.current.commit(ownerToken, () => {
+                    setPreferences(prev => ({ ...prev, [key]: previousValue }));
+                    showActionNotice('Player setting was not saved. Try again.', { tone: 'error' });
+                });
+                return false;
             }
         }
-    }, [userId, preferences, showActionNotice]);
+        return ownerScopeRef.current.isCurrent(ownerToken);
+    }, [userId, preferences, personalStateIsCurrent, showActionNotice]);
 
     const menuConfig = getMenuConfig('video-library', user, preferences, {
         setAutoplay: (val) => updatePreference('autoplay', val),
@@ -744,14 +838,15 @@ export default function VideoLibraryPage() {
             return false;
         }
 
+        const ownerToken = ownerScopeRef.current.capture(userId);
         const videoId = video.id;
-        const actionKey = `favorite:${videoId}`;
+        const actionKey = `${ownerToken.ownerId}:${ownerToken.generation}:favorite:${videoId}`;
         if (pendingVideoActionsRef.current.has(actionKey)) return false;
         pendingVideoActionsRef.current.add(actionKey);
         const wasFavorite = favorites.has(videoId);
 
         setFavorites(prev => {
-            const next = new Set(prev);
+            const next = new Set(personalStateIsCurrent ? prev : EMPTY_VIDEO_SET);
             if (wasFavorite) next.delete(videoId); else next.add(videoId);
             return next;
         });
@@ -766,20 +861,24 @@ export default function VideoLibraryPage() {
                     video_url: `https://youtube.com/watch?v=${video.videoId}`
                 });
             }
-            showActionNotice(wasFavorite ? 'Removed from favorites.' : 'Added to favorites.', { videoId: video.videoId });
-            return true;
-        } catch (error) {
-            setFavorites(prev => {
-                const next = new Set(prev);
-                if (wasFavorite) next.add(videoId); else next.delete(videoId);
-                return next;
+            return ownerScopeRef.current.commit(ownerToken, () => {
+                showActionNotice(wasFavorite ? 'Removed from favorites.' : 'Added to favorites.', { videoId: video.videoId });
             });
-            showActionNotice('Favorite was not saved. Try again.', { videoId: video.videoId, tone: 'error' });
+        } catch (error) {
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
+            ownerScopeRef.current.commit(ownerToken, () => {
+                setFavorites(prev => {
+                    const next = new Set(prev);
+                    if (wasFavorite) next.add(videoId); else next.delete(videoId);
+                    return next;
+                });
+                showActionNotice('Favorite was not saved. Try again.', { videoId: video.videoId, tone: 'error' });
+            });
             return false;
         } finally {
-            pendingVideoActionsRef.current.delete(actionKey);
+            if (ownerScopeRef.current.isCurrent(ownerToken)) pendingVideoActionsRef.current.delete(actionKey);
         }
-    }, [userId, favorites, showActionNotice]);
+    }, [userId, favorites, personalStateIsCurrent, showActionNotice]);
 
     const toggleWatchLater = useCallback(async (video) => {
         if (!userId) {
@@ -787,14 +886,15 @@ export default function VideoLibraryPage() {
             return false;
         }
 
+        const ownerToken = ownerScopeRef.current.capture(userId);
         const videoId = video.id;
-        const actionKey = `watch-later:${videoId}`;
+        const actionKey = `${ownerToken.ownerId}:${ownerToken.generation}:watch-later:${videoId}`;
         if (pendingVideoActionsRef.current.has(actionKey)) return false;
         pendingVideoActionsRef.current.add(actionKey);
         const wasSaved = watchLater.has(videoId);
 
         setWatchLater(prev => {
-            const next = new Set(prev);
+            const next = new Set(personalStateIsCurrent ? prev : EMPTY_VIDEO_SET);
             if (wasSaved) next.delete(videoId); else next.add(videoId);
             return next;
         });
@@ -809,24 +909,30 @@ export default function VideoLibraryPage() {
                     video_url: `https://youtube.com/watch?v=${video.videoId}`
                 });
             }
-            showActionNotice(wasSaved ? 'Removed from Watch Later.' : 'Saved to Watch Later.', { videoId: video.videoId });
-            return true;
-        } catch (error) {
-            setWatchLater(prev => {
-                const next = new Set(prev);
-                if (wasSaved) next.add(videoId); else next.delete(videoId);
-                return next;
+            return ownerScopeRef.current.commit(ownerToken, () => {
+                showActionNotice(wasSaved ? 'Removed from Watch Later.' : 'Saved to Watch Later.', { videoId: video.videoId });
             });
-            showActionNotice('Watch Later was not updated. Try again.', { videoId: video.videoId, tone: 'error' });
+        } catch (error) {
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
+            ownerScopeRef.current.commit(ownerToken, () => {
+                setWatchLater(prev => {
+                    const next = new Set(prev);
+                    if (wasSaved) next.add(videoId); else next.delete(videoId);
+                    return next;
+                });
+                showActionNotice('Watch Later was not updated. Try again.', { videoId: video.videoId, tone: 'error' });
+            });
             return false;
         } finally {
-            pendingVideoActionsRef.current.delete(actionKey);
+            if (ownerScopeRef.current.isCurrent(ownerToken)) pendingVideoActionsRef.current.delete(actionKey);
         }
-    }, [userId, watchLater, showActionNotice]);
+    }, [userId, watchLater, personalStateIsCurrent, showActionNotice]);
 
     const saveWatchSession = useCallback(async (startTime, video, { quiet = false, sessionUserId = watchSessionUserIdRef.current } = {}) => {
         const effectiveUserId = sessionUserId || userId;
         if (!startTime || !video || !effectiveUserId) return false;
+        const ownerToken = ownerScopeRef.current.capture(effectiveUserId);
+        if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
         const watchedSeconds = Math.floor((Date.now() - startTime) / 1000);
         if (watchedSeconds <= 0) return false;
 
@@ -841,43 +947,53 @@ export default function VideoLibraryPage() {
                 durationSeconds: parseDuration(video.duration),
                 progressSeconds: playerPositionRef.current
             });
-            if (activeUserIdRef.current !== effectiveUserId) return true;
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
             const persistedProgress = Number(savedSession?.progress_seconds);
             const persistedTotal = Number(savedSession?.watch_duration_seconds);
             const nextProgress = Number.isFinite(persistedProgress)
                 ? persistedProgress
                 : totalWatched;
 
-            setWatchProgress(prev => {
-                const next = new Map(prev);
-                const current = next.get(video.id) || {};
-                next.set(video.id, {
-                    ...current,
-                    watchedSeconds: Math.max(current.watchedSeconds || 0, nextProgress),
-                    totalWatchedSeconds: Math.max(current.totalWatchedSeconds || 0, Number.isFinite(persistedTotal) ? persistedTotal : totalWatched),
-                    durationSeconds: parseDuration(video.duration) || current.durationSeconds || 0,
-                    watchedAt: new Date().toISOString()
+            ownerScopeRef.current.commit(ownerToken, () => {
+                setWatchProgress(prev => {
+                    const next = new Map(prev);
+                    const current = next.get(video.id) || {};
+                    next.set(video.id, {
+                        ...current,
+                        watchedSeconds: Math.max(current.watchedSeconds || 0, nextProgress),
+                        totalWatchedSeconds: Math.max(current.totalWatchedSeconds || 0, Number.isFinite(persistedTotal) ? persistedTotal : totalWatched),
+                        durationSeconds: parseDuration(video.duration) || current.durationSeconds || 0,
+                        watchedAt: new Date().toISOString()
+                    });
+                    watchProgressRef.current = next;
+                    return next;
                 });
-                watchProgressRef.current = next;
-                return next;
+                const confirmedTotal = Math.max(totalWatched, Number.isFinite(persistedTotal) ? persistedTotal : 0);
+                if (confirmedTotal >= 30) setWatchedVideos(prev => new Set(prev).add(video.id));
             });
             const confirmedTotal = Math.max(totalWatched, Number.isFinite(persistedTotal) ? persistedTotal : 0);
-            if (confirmedTotal >= 30) setWatchedVideos(prev => new Set(prev).add(video.id));
             getRecentlyWatched(effectiveUserId, 10)
-                .then(recent => setRecentlyWatched(recent))
+                .then(recent => {
+                    ownerScopeRef.current.commit(ownerToken, () => setRecentlyWatched(recent));
+                })
                 .catch(() => {
-                    setRecentlyWatched(prev => [{
-                        video_id: video.id,
-                        video_title: video.title,
-                        watch_duration_seconds: confirmedTotal,
-                        watched_at: new Date().toISOString()
-                    }, ...prev.filter(item => item.video_id !== video.id)].slice(0, 10));
+                    ownerScopeRef.current.commit(ownerToken, () => {
+                        setRecentlyWatched(prev => [{
+                            video_id: video.id,
+                            video_title: video.title,
+                            watch_duration_seconds: confirmedTotal,
+                            watched_at: new Date().toISOString()
+                        }, ...prev.filter(item => item.video_id !== video.id)].slice(0, 10));
+                    });
                 });
 
             return true;
         } catch (error) {
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return false;
             console.warn('Error saving watch duration:', error);
-            if (!quiet) showActionNotice('Watch progress was not saved. Try again.', { videoId: video.videoId, tone: 'error' });
+            ownerScopeRef.current.commit(ownerToken, () => {
+                if (!quiet) showActionNotice('Watch progress was not saved. Try again.', { videoId: video.videoId, tone: 'error' });
+            });
             return false;
         }
     }, [userId, showActionNotice]);
@@ -1009,6 +1125,13 @@ export default function VideoLibraryPage() {
         void saveWatchSession(startTime, video);
     }, [saveWatchSession, restoreVideoTriggerFocus, router]);
     useEffect(() => { handleCloseVideoRef.current = handleCloseVideo; }, [handleCloseVideo]);
+    // Back closes the viewer, the Reels viewer and the playlist sheet before
+    // it leaves the page (mobile phase 0a).
+    useModalHistory(Boolean(selectedVideo), handleCloseVideo);
+    const closeReels = useCallback(() => setShowReelsModal(false), []);
+    useModalHistory(showReelsModal, closeReels);
+    const closePlaylistSheet = useCallback(() => { setShowPlaylistModal(null); setPlaylistActionError(null); }, []);
+    useModalHistory(Boolean(showPlaylistModal), closePlaylistSheet);
 
     // Share a video — copy deep-link to clipboard and show toast
     const handleShareVideo = useCallback(async (video) => {
@@ -1025,26 +1148,33 @@ export default function VideoLibraryPage() {
     // Mark a video as unwatched and remove its persisted history/progress record.
     const handleMarkUnwatched = useCallback(async (video) => {
         if (!userId) return;
+        const ownerToken = ownerScopeRef.current.capture(userId);
         const videoId = video.id;
-        const actionKey = `history:${videoId}`;
+        const actionKey = `${ownerToken.ownerId}:${ownerToken.generation}:history:${videoId}`;
         if (pendingVideoActionsRef.current.has(actionKey)) return;
         pendingVideoActionsRef.current.add(actionKey);
 
         try {
             await removeFromWatchHistory(userId, videoId, video.legacyId ? [video.legacyId] : []);
-            setWatchedVideos(prev => { const next = new Set(prev); next.delete(videoId); return next; });
-            setWatchProgress(prev => {
-                const next = new Map(prev);
-                next.delete(videoId);
-                watchProgressRef.current = next;
-                return next;
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+            ownerScopeRef.current.commit(ownerToken, () => {
+                setWatchedVideos(prev => { const next = new Set(prev); next.delete(videoId); return next; });
+                setWatchProgress(prev => {
+                    const next = new Map(prev);
+                    next.delete(videoId);
+                    watchProgressRef.current = next;
+                    return next;
+                });
+                setRecentlyWatched(prev => prev.filter(item => item.video_id !== videoId));
+                showActionNotice('Removed from watch history.', { videoId: video.videoId });
             });
-            setRecentlyWatched(prev => prev.filter(item => item.video_id !== videoId));
-            showActionNotice('Removed from watch history.', { videoId: video.videoId });
         } catch (error) {
-            showActionNotice('Watch history was not updated. Try again.', { videoId: video.videoId, tone: 'error' });
+            if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+            ownerScopeRef.current.commit(ownerToken, () => {
+                showActionNotice('Watch history was not updated. Try again.', { videoId: video.videoId, tone: 'error' });
+            });
         } finally {
-            pendingVideoActionsRef.current.delete(actionKey);
+            if (ownerScopeRef.current.isCurrent(ownerToken)) pendingVideoActionsRef.current.delete(actionKey);
         }
     }, [userId, showActionNotice]);
 
@@ -1077,16 +1207,18 @@ export default function VideoLibraryPage() {
                 setVideos([]);
                 setCatalogTotal(0);
                 setCatalogHasMore(false);
+                setCatalogNextOffset(0);
                 setDisplayedCount(0);
                 setCatalogLoading(false);
                 return;
             }
-            if (librarySyncState === 'loading') return;
+            if (visibleLibrarySyncState === 'loading') return;
             if (personalIdsForFilter.length === 0) {
                 setAllVideos([]);
                 setVideos([]);
                 setCatalogTotal(0);
                 setCatalogHasMore(false);
+                setCatalogNextOffset(0);
                 setDisplayedCount(0);
                 setCatalogLoading(false);
                 return;
@@ -1116,6 +1248,7 @@ export default function VideoLibraryPage() {
         try {
             const response = await fetch(`/api/video-library/catalog?${params.toString()}`, {
                 signal: controller.signal,
+                cache: 'no-store',
                 headers: { Accept: 'application/json' },
             });
             if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
@@ -1146,9 +1279,10 @@ export default function VideoLibraryPage() {
             });
             setCatalogTotal(Number(payload.pagination?.total || pageVideos.length));
             setCatalogHasMore(Boolean(payload.pagination?.hasMore));
+            setCatalogNextOffset(Number(payload.pagination?.nextOffset || 0));
         } catch (error) {
             if (error?.name === 'AbortError' || requestId !== catalogRequestRef.current) return;
-            console.warn('Video catalog refresh failed; using static fallback:', error);
+            console.warn('Video catalog refresh failed; showing the fail-closed empty state:', error);
             reportVideoLibraryIssue('catalog_load', error);
             setCatalogRefreshFailed(true);
             if (!append) {
@@ -1168,6 +1302,7 @@ export default function VideoLibraryPage() {
                 setDisplayedCount(fallback.length);
                 setCatalogTotal(fallback.length);
                 setCatalogHasMore(false);
+                setCatalogNextOffset(0);
             }
         } finally {
             if (requestId === catalogRequestRef.current) {
@@ -1175,32 +1310,62 @@ export default function VideoLibraryPage() {
                 setCatalogLoadingMore(false);
             }
         }
-    }, [libraryFilter, userId, librarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode]);
+    }, [libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, selectedSource, selectedType, catalogSearchQuery, sortMode]);
 
     useEffect(() => {
         void fetchCatalogPage({ append: false });
         return () => catalogAbortRef.current?.abort();
-    }, [selectedSource, selectedType, catalogSearchQuery, sortMode, libraryFilter, userId, librarySyncState, personalIdsForFilter, fetchCatalogPage]);
+    }, [selectedSource, selectedType, catalogSearchQuery, sortMode, libraryFilter, userId, visibleLibrarySyncState, personalIdsForFilter, fetchCatalogPage]);
 
     // A shared video deep link may point beyond the currently paginated page.
     // Resolve that one catalog row directly rather than downloading the whole
     // archive or silently leaving the requested video closed.
     useEffect(() => {
-        if (!router.isReady || !router.query.v || !handleOpenVideoRef.current) return undefined;
-        const requestedVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
+        if (!router.isReady || !handleOpenVideoRef.current) return undefined;
+        if (!router.query.v) {
+            queryVideoFetchRef.current = null;
+            setDeepLinkStatus(null);
+            return undefined;
+        }
+        const rawVideoId = String(Array.isArray(router.query.v) ? router.query.v[0] : router.query.v);
+        const requestedVideoId = canonicalStoredVideoId(rawVideoId);
+        if (requestedVideoId !== rawVideoId) {
+            void router.replace(
+                { pathname: router.pathname, query: { ...router.query, v: requestedVideoId } },
+                undefined,
+                { shallow: true, scroll: false },
+            );
+        }
         if (!isVideoLibraryVideoAllowed(requestedVideoId)) {
             queryVideoFetchRef.current = requestedVideoId;
+            setDeepLinkStatus({
+                type: 'unavailable',
+                message: 'This saved video is no longer available for verified embedded playback.',
+            });
             return undefined;
         }
         if (openedQueryVideoRef.current === requestedVideoId || allVideos.some(video => video.videoId === requestedVideoId)) return undefined;
         if (queryVideoFetchRef.current === requestedVideoId) return undefined;
         queryVideoFetchRef.current = requestedVideoId;
+        setDeepLinkStatus(null);
         const controller = new AbortController();
-        fetch(`/api/video-library/catalog?limit=1&ids=${encodeURIComponent(requestedVideoId)}`, { signal: controller.signal })
+        fetch(`/api/video-library/catalog?limit=1&ids=${encodeURIComponent(requestedVideoId)}`, {
+            signal: controller.signal,
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+        })
             .then(response => response.ok ? response.json() : Promise.reject(new Error(`Deep-link catalog request failed (${response.status})`)))
             .then(payload => {
                 const video = payload?.data?.[0];
-                if (!isVideoLibraryVideoAllowed(video) || openedQueryVideoRef.current === requestedVideoId || !handleOpenVideoRef.current) return;
+                if (video?.videoId !== requestedVideoId || !isVideoLibraryVideoAllowed(video)) {
+                    setDeepLinkStatus({
+                        type: 'unavailable',
+                        message: 'This saved video is private, restricted, removed, or no longer allows verified embedded playback.',
+                    });
+                    return;
+                }
+                if (openedQueryVideoRef.current === requestedVideoId || !handleOpenVideoRef.current) return;
+                setDeepLinkStatus(null);
                 openedQueryVideoRef.current = requestedVideoId;
                 handleOpenVideoRef.current({
                     ...video,
@@ -1208,10 +1373,17 @@ export default function VideoLibraryPage() {
                 });
             })
             .catch(error => {
-                if (error?.name !== 'AbortError') reportVideoLibraryIssue('catalog_load', error);
+                if (error?.name !== 'AbortError') {
+                    queryVideoFetchRef.current = null;
+                    setDeepLinkStatus({
+                        type: 'error',
+                        message: 'The saved video could not be verified right now. Retry without clearing your bookmark.',
+                    });
+                    reportVideoLibraryIssue('catalog_load', error);
+                }
             });
         return () => controller.abort();
-    }, [router.isReady, router.query.v, allVideos]);
+    }, [router.isReady, router.query.v, allVideos, deepLinkRetryNonce]);
 
     // Server-backed infinite pagination. The current response is appended only
     // if it still belongs to the latest filter/search request.
@@ -1219,11 +1391,13 @@ export default function VideoLibraryPage() {
         if (!catalogHasMore || catalogLoading || catalogLoadingMore || !loadMoreRef.current) return undefined;
         const sentinel = loadMoreRef.current;
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) void fetchCatalogPage({ append: true, offset: videos.length });
+            if (entries[0].isIntersecting) {
+                void fetchCatalogPage({ append: true, offset: catalogNextOffset });
+            }
         }, { rootMargin: '400px' });
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, [displayedCount, videos.length, catalogHasMore, catalogLoading, catalogLoadingMore, fetchCatalogPage]);
+    }, [displayedCount, catalogNextOffset, catalogHasMore, catalogLoading, catalogLoadingMore, fetchCatalogPage]);
 
 
     // Keyboard navigation in modal
@@ -1353,7 +1527,11 @@ export default function VideoLibraryPage() {
             cancelAnimationFrame(focusFrame);
             document.removeEventListener('keydown', containFocus);
             document.body.style.overflow = previousOverflow;
-            requestAnimationFrame(() => reelsTriggerRef.current?.focus({ preventScroll: true }));
+            requestAnimationFrame(() => {
+                const trigger = [reelsTriggerRef.current, mobileReelsTriggerRef.current]
+                    .find(button => button?.getClientRects().length > 0);
+                trigger?.focus({ preventScroll: true });
+            });
         };
     }, [showReelsModal]);
 
@@ -1461,11 +1639,13 @@ export default function VideoLibraryPage() {
     // ── BUG-I FIX: Flush pending watch time on tab hide / browser close ──────────
     // Without this, a user closing the tab mid-video loses all watch time because
     // handleCloseVideo never runs. visibilitychange fires reliably on mobile too.
-    const pendingFlushRef = useRef(false);
     useEffect(() => {
         const flushWatchTime = () => {
             if (pendingFlushRef.current) return; // debounce double-fire
             if (!watchStartTimeRef.current || !currentWatchingVideoRef.current || !userId) return;
+            const sessionOwnerId = watchSessionUserIdRef.current;
+            if (!sessionOwnerId || sessionOwnerId !== userId) return;
+            const ownerToken = ownerScopeRef.current.capture(sessionOwnerId);
             pendingFlushRef.current = true;
             const startTime = watchStartTimeRef.current;
             const video = currentWatchingVideoRef.current;
@@ -1479,6 +1659,7 @@ export default function VideoLibraryPage() {
                     durationSeconds: parseDuration(video.duration),
                     progressSeconds: playerPositionRef.current,
                 }).catch(error => {
+                    if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
                     console.warn('[video-library] lifecycle progress flush failed:', error);
                     reportVideoLibraryIssue('watch_progress_flush', error);
                 });
@@ -1513,7 +1694,14 @@ export default function VideoLibraryPage() {
     ].filter(Boolean);
     const hasActiveFilters = activeFilterLabels.length > 0;
 
-    const emptyState = searchQuery
+    const emptyState = catalogRefreshFailed && !hasActiveFilters
+        ? {
+            eyebrow: 'Catalog Signal Offline',
+            title: 'Verified Videos Are Temporarily Unavailable',
+            copy: 'The Library Is Failing Closed Until Fresh Availability Evidence Can Be Loaded.',
+            action: 'Retry Catalog',
+        }
+        : searchQuery
         ? {
             eyebrow: 'Search complete',
             title: 'No Match In The Library',
@@ -1578,6 +1766,10 @@ export default function VideoLibraryPage() {
     };
 
     const handleEmptyStateAction = () => {
+        if (catalogRefreshFailed && !hasActiveFilters) {
+            void fetchCatalogPage({ append: false });
+            return;
+        }
         if (!userId && libraryFilter !== 'ALL' && !searchQuery) {
             void router.push(`/auth/login?redirect=${encodeURIComponent(router.asPath)}`);
             return;
@@ -1600,6 +1792,13 @@ export default function VideoLibraryPage() {
         ? Math.floor(watchProgress.get(selectedVideo.id)?.watchedSeconds || 0)
         : 0;
 
+    const refreshLibrary = useCallback(async () => {
+        if (!requireOnline()) return;
+        haptic('light');
+        setCatalogRefreshFailed(false);
+        await fetchCatalogPage({ append: false });
+    }, [requireOnline, haptic, fetchCatalogPage]);
+
     return (
         <>
             {/* AEO phase 3 (2026-09-17): this MUST stay outside <PageTransition>.
@@ -1619,36 +1818,39 @@ export default function VideoLibraryPage() {
             wrong thing to serve a crawler or a slow connection. */}
         <PageTransition disableInitialAnimation>
 
-            <div className="video-library-page" style={{
-                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
-                background: C.bg,
-                padding: '20px',
-            }}>
-                {/* Header */}
-                <div className="vl-header-area" style={{
-                    maxWidth: 1400,
-                    margin: '0 auto',
-                    marginBottom: 24,
-                }}>
-                    {/* Global Header - Full Width */}
-                    <div className="vl-global-header" style={{ marginBottom: 20 }}>
-                        <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
-                        <HamburgerMenu
-                            isOpen={menuOpen}
-                            onClose={() => setMenuOpen(false)}
-                            direction="left"
-                            theme="dark"
-                            user={null}
-                            showProfile={false}
-                            menuItems={menuConfig.menuItems}
-                            bottomLinks={menuConfig.bottomLinks}
-                        />
-                    </div>
-                </div>
-
+            {/* MOBILE PHASE 9 (docs/mobile-standard): HubPageShell owns the shell
+                (100dvh, overflow-x clip, no page-owned bottom pad: BottomNavSpacer
+                in _app.js clears the bottom bar). The world background and the
+                page padding stay on .video-library-page. */}
+            <div className="video-library-page">
+                <HubPageShell
+                    className="video-library"
+                    maxWidth={1600}
+                    header={(
+                        <div className="vl-header-area">
+                            <div className="vl-global-header">
+                                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+                                <HamburgerMenu
+                                    isOpen={menuOpen}
+                                    onClose={() => setMenuOpen(false)}
+                                    direction="left"
+                                    theme="dark"
+                                    user={null}
+                                    showProfile={false}
+                                    menuItems={menuConfig.menuItems}
+                                    bottomLinks={menuConfig.bottomLinks}
+                                />
+                            </div>
+                        </div>
+                    )}
+                >
+                <PullToRefresh
+                    onRefresh={refreshLibrary}
+                    disabled={menuOpen || Boolean(selectedVideo) || showReelsModal || Boolean(showPlaylistModal)}
+                >
                 <div className="vl-command-layout">
                     <VideoLibraryCommandRail
-                        ref={filterRailRef}
+                        mode="desktop"
                         selectedType={selectedType}
                         libraryFilter={libraryFilter}
                         sortMode={sortMode}
@@ -1657,16 +1859,38 @@ export default function VideoLibraryPage() {
                         visibleCount={videos.length}
                         onBrowse={selectBrowseView}
                         onLibrary={selectPersonalView}
-                        onSort={(nextSortMode, button) => {
-                            setSortMode(nextSortMode);
-                            replaceNavigationQuery({ sort: nextSortMode === 'default' ? null : nextSortMode });
-                            keepRailButtonInView(button);
-                        }}
+                        onSort={selectSortView}
                         onOpenReels={() => setShowReelsModal(true)}
                         reelsTriggerRef={reelsTriggerRef}
                     />
 
-                <main className="vl-command-main">
+                <section className="vl-command-main" data-tutorial="main">
+                    <VideoLibraryConsole
+                        eyebrow={currentViewMeta.kicker}
+                        title={currentViewMeta.title}
+                        titleAs="h1"
+                        subtitle={activeFilterLabels.length ? activeFilterLabels.join(' / ') : 'Verified Poker Broadcasts'}
+                        pill={catalogLoading ? 'Loading' : `${videos.length} Videos`}
+                        pillInk={catalogRefreshFailed ? 'red' : 'blue'}
+                        foot="foot"
+                        className="vl-library-console"
+                    >
+                    <VideoLibraryCommandRail
+                        mode="mobile"
+                        ref={mobileFilterRailRef}
+                        selectedType={selectedType}
+                        libraryFilter={libraryFilter}
+                        sortMode={sortMode}
+                        libraryViews={LIBRARY_VIEW_OPTIONS}
+                        personalViewCounts={personalViewCounts}
+                        visibleCount={videos.length}
+                        onBrowse={selectBrowseView}
+                        onLibrary={selectPersonalView}
+                        onSort={selectSortView}
+                        onOpenReels={() => setShowReelsModal(true)}
+                        reelsTriggerRef={mobileReelsTriggerRef}
+                    />
+                    <div className="vl-console-content">
                     <div className="vl-command-bar">
                         <div className="vl-command-heading">
                             <span>{currentViewMeta.kicker}</span>
@@ -1675,13 +1899,7 @@ export default function VideoLibraryPage() {
                         </div>
 
                         {/* Search Input */}
-                        <div className="vl-search-wrap" style={{
-                            position: 'relative',
-                            width: 220,
-                            marginLeft: 12,
-                            flexShrink: 0,
-                            flexBasis: 220,
-                        }}>
+                        <div className="vl-search-wrap" data-tutorial="search">
                             <input
                                 ref={searchInputRef}
                                 type="text"
@@ -1697,30 +1915,7 @@ export default function VideoLibraryPage() {
                                         setSearchQuery('');
                                     }
                                 }}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 14px 10px 38px',
-                                    background: '#0a0a0a',
-                                    border: 'none',
-                                    borderRadius: 10,
-                                    color: C.text,
-                                    fontSize: 14,
-                                    outline: 'none',
-                                    boxShadow: '0 0 0 2px rgba(160, 170, 180, 0.7), 0 0 0 3px rgba(80, 90, 100, 0.5)',
-                                }}
                             />
-                            <span aria-hidden="true" className="vl-search-icon" style={{
-                                position: 'absolute',
-                                left: 12,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                opacity: 0.5,
-                            }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" />
-                                    <path d="m21 21-4.35-4.35" />
-                                </svg>
-                            </span>
                             {searchQuery ? (
                                 <button
                                     type="button"
@@ -1730,7 +1925,7 @@ export default function VideoLibraryPage() {
                                         setSearchQuery('');
                                         searchInputRef.current?.focus();
                                     }}
-                                >×</button>
+                                >Clear</button>
                             ) : (
                                 <kbd className="vl-search-shortcut" aria-hidden="true">/</kbd>
                             )}
@@ -1739,18 +1934,13 @@ export default function VideoLibraryPage() {
 
                     {/* Search results count — shown when query is active */}
                     {searchQuery && (
-                        <div className="vl-search-results" style={{
-                            fontSize: 13,
-                            color: 'rgba(255,255,255,0.45)',
-                            marginBottom: 8,
-                            paddingLeft: 2,
-                        }}>
-                            {videos.length} result{videos.length !== 1 ? 's' : ''} For <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>&ldquo;{searchQuery}&rdquo;</span>
+                        <div className="vl-search-results">
+                            {videos.length} result{videos.length !== 1 ? 's' : ''} For <strong>&ldquo;{searchQuery}&rdquo;</strong>
                             {videos.length === 0 && (
                                 <button
                                     type="button"
                                     onClick={clearAllFilters}
-                                    style={{ marginLeft: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}
+                                    className="vl-glass-action"
                                 >
                                     Clear Filters
                                 </button>
@@ -1760,13 +1950,7 @@ export default function VideoLibraryPage() {
 
 
                     {/* Premium Creator Cards */}
-                    <div ref={sourceRailRef} className="vl-source-pills" style={{
-                        display: 'flex',
-                        gap: 12,
-                        overflowX: 'auto',
-                        padding: '8px 4px 12px',
-                        scrollbarWidth: 'none',
-                    }}>
+                    <div className={`vl-source-pills${sourcesExpanded ? ' is-expanded' : ''}`} data-tutorial="sources">
                         {[{ id: 'ALL', name: 'All Sources', logo: null }, ...SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL')].map(source => {
                             const isActive = selectedSource === source.id;
                             const initials = (source.name || source.id || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -1781,111 +1965,37 @@ export default function VideoLibraryPage() {
                                     onClick={(event) => {
                                         selectSourceView(source.id, event.currentTarget);
                                     }}
-                                    style={{
-                                        flexShrink: 0,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        gap: 7,
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '4px 2px',
-                                        outline: 'none',
-                                        transition: 'transform 0.2s ease',
-                                        transform: isActive ? 'translateY(-5px)' : 'none',
-                                    }}
                                     title={source.name}
                                 >
-                                    {/* Logo ring — glows cyan when active */}
-                                    <div className="vl-source-logo-frame" style={{
-                                        width: 70,
-                                        height: 70,
-                                        borderRadius: 18,
-                                        padding: 2.5,
-                                        background: isActive
-                                            ? 'linear-gradient(135deg, #00B4D8 0%, #00D4FF 50%, #00B4D8 100%)'
-                                            : 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(100,115,135,0.3) 100%)',
-                                        boxShadow: isActive
-                                            ? '0 0 24px rgba(0,212,255,0.6), 0 0 10px rgba(0,212,255,0.3), 0 8px 24px rgba(0,0,0,0.7)'
-                                            : '0 4px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)',
-                                        transition: 'all 0.25s ease',
-                                    }}>
-                                        <div className="vl-source-logo-inner" style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            borderRadius: 15,
-                                            background: isActive
-                                                ? 'linear-gradient(160deg, #081c1c 0%, #0a2e2e 100%)'
-                                                : 'linear-gradient(160deg, #0c1018 0%, #141c28 100%)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            overflow: 'hidden',
-                                            border: isActive
-                                                ? '1px solid rgba(255,80,80,0.35)'
-                                                : '1px solid rgba(255,255,255,0.07)',
-                                        }}>
-                                            {source.logo ? (
-                                                <img
-                                                    src={source.logo}
-                                                    alt=""
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        objectFit: 'cover',
-                                                        borderRadius: 15,
-                                                        filter: isActive
-                                                            ? 'brightness(1.1) drop-shadow(0 0 8px rgba(0,212,255,0.7))'
-                                                            : 'brightness(1) saturate(1)',
-                                                        transition: 'filter 0.25s',
-                                                    }}
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                />
-                                            ) : (
-                                                <span className={source.id === 'ALL' ? 'vl-source-all-mark' : undefined} style={{
-                                                    fontSize: 17,
-                                                    fontWeight: 800,
-                                                    color: isActive ? '#00D4FF' : 'rgba(190,205,225,0.7)',
-                                                    letterSpacing: '-0.5px',
-                                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                                    textShadow: isActive ? '0 0 14px rgba(0,212,255,0.9)' : 'none',
-                                                    transition: 'all 0.25s',
-                                                }}>{initials}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {/* Name plate */}
-                                    <div className="vl-source-name" style={{
-                                        width: 72,
-                                        textAlign: 'center',
-                                        fontSize: 12,
-                                        fontWeight: isActive ? 700 : 500,
-                                        color: isActive ? '#00D4FF' : 'rgba(185,200,220,0.6)',
-                                        letterSpacing: '0.15px',
-                                        lineHeight: 1.3,
-                                        textShadow: isActive ? '0 0 10px rgba(0,212,255,0.6)' : 'none',
-                                        transition: 'all 0.25s',
-                                        wordBreak: 'break-word',
-                                    }}>
+                                    <span className="vl-source-logo-media" aria-hidden="true">
+                                        {source.logo ? (
+                                            <img
+                                                src={source.logo}
+                                                alt=""
+                                                loading="lazy"
+                                                decoding="async"
+                                            />
+                                        ) : (
+                                            <span className={source.id === 'ALL' ? 'vl-source-all-mark' : undefined}>{initials}</span>
+                                        )}
+                                    </span>
+                                    <span className="vl-source-name">
                                         {source.name}
-                                    </div>
-                                    {/* Active dot */}
-                                    {isActive && (
-                                        <div className="vl-source-active-dot" style={{
-                                            width: 5,
-                                            height: 5,
-                                            borderRadius: '50%',
-                                            background: '#00D4FF',
-                                            boxShadow: '0 0 8px rgba(0,212,255,0.9)',
-                                            marginTop: -4,
-                                        }} />
-                                    )}
+                                    </span>
+                                    {isActive && <span className="vl-source-active-dot" aria-hidden="true" />}
                                 </button>
                             );
                         })}
                     </div>
+                    {!sourcesExpanded && SOURCES.length > 10 && (
+                        <button
+                            type="button"
+                            className="vl-show-all-sources vl-show-more"
+                            onClick={() => { haptic('light'); setSourcesExpanded(true); }}
+                        >
+                            Show All {SOURCES.filter(source => source && typeof source === 'object' && source.id && source.id !== 'ALL').length + 1} Sources
+                        </button>
+                    )}
 
                     {libraryFilter !== 'ALL' && (
                         <section className="vl-subview-banner" aria-labelledby="vl-subview-title">
@@ -1905,18 +2015,18 @@ export default function VideoLibraryPage() {
                         </section>
                     )}
 
-                    {userId && libraryFilter !== 'ALL' && librarySyncState === 'loading' && (
+                    {userId && libraryFilter !== 'ALL' && visibleLibrarySyncState === 'loading' && (
                         <div className="vl-sync-panel is-loading" role="status" aria-live="polite">
                             <span className="vl-sync-pulse" aria-hidden="true" />
                             <div><strong>Syncing Your Library</strong><span>Loading Saved Videos And Cross-Device Progress.</span></div>
                         </div>
                     )}
 
-                    {userId && (librarySyncState === 'partial' || librarySyncState === 'error') && (
+                    {userId && (visibleLibrarySyncState === 'partial' || visibleLibrarySyncState === 'error') && (
                         <div className="vl-sync-panel is-error" role="alert">
                             <div>
-                                <strong>{librarySyncState === 'error' ? 'Your library did not load' : 'Part of your library is offline'}</strong>
-                                <span>{librarySyncErrors.length ? `Retry ${librarySyncErrors.join(', ')}.` : 'Retry the saved-library connection.'}</span>
+                                <strong>{visibleLibrarySyncState === 'error' ? 'Your Library Did Not Load' : 'Part Of Your Library Is Offline'}</strong>
+                                <span>{visibleLibrarySyncErrors.length ? `Retry ${visibleLibrarySyncErrors.join(', ')}.` : 'Retry the saved-library connection.'}</span>
                             </div>
                             <button type="button" onClick={() => void refreshUserLibraryRef.current?.({ force: true })}>Retry Sync</button>
                         </div>
@@ -1938,14 +2048,11 @@ export default function VideoLibraryPage() {
 
                 {/* Continue Watching / Recently Watched Section */}
                 {continueWatchingVideos.length > 0 && (
-                    <div className="vl-continue-watching" style={{
-                        maxWidth: 1400,
-                        margin: '0 auto 30px',
-                    }}>
+                    <section className="vl-continue-watching" data-tutorial="continue" aria-labelledby="vl-continue-title">
                         <div className="vl-continuity-header">
                             <div>
                                 <span className="vl-continuity-kicker">Session Continuity</span>
-                                <h2><span aria-hidden="true">▶</span> Continue Watching</h2>
+                                <h2 id="vl-continue-title">Continue Watching</h2>
                             </div>
                             <div className="vl-continuity-actions">
                                 <span>{continueWatchingVideos.length} {continueWatchingVideos.length === 1 ? 'session' : 'sessions'} Ready</span>
@@ -1954,18 +2061,12 @@ export default function VideoLibraryPage() {
                                     onClick={() => handleOpenVideo(continueWatchingVideos[0].video)}
                                     aria-label={`Resume latest video: ${continueWatchingVideos[0].video.title}`}
                                 >
-                                    Resume Latest <span aria-hidden="true">→</span>
+                                    Resume Latest
                                 </button>
                             </div>
                         </div>
-                        <div className="vl-cw-scroll" style={{
-                            display: 'flex',
-                            gap: 16,
-                            overflowX: 'auto',
-                            paddingBottom: 8,
-                            scrollbarWidth: 'thin',
-                        }}>
-                            {continueWatchingVideos.map(({ item, video, progress }) => {
+                        <div className="vl-cw-scroll vl-cw-grid">
+                            {continueWatchingVideos.slice(0, cwVisible).map(({ item, video, progress }) => {
                                 const roundedProgress = Math.round(progress);
                                 return (
                                     <div
@@ -1975,38 +2076,20 @@ export default function VideoLibraryPage() {
                                         role="button"
                                         tabIndex={0}
                                         aria-label={`Resume ${video.title}, ${roundedProgress}% complete`}
-                                        className="metal-frame video-card-metal vl-continuity-card"
-                                        style={{
-                                            minWidth: 240,
-                                            cursor: 'pointer',
-                                            flexShrink: 0,
-                                        }}
+                                        className="vl-continuity-card"
                                     >
-                                        <div style={{ position: 'relative', aspectRatio: '16/9' }}>
+                                        <div className="vl-continuity-media">
                                             <img
                                                 src={getThumbnail(video.videoId)}
                                                 alt=""
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 loading="lazy"
                                                 decoding="async"
                                                 onLoad={event => recoverYouTubeThumbnail(event, video.videoId)}
                                                 onError={event => recoverYouTubeThumbnail(event, video.videoId)}
                                             />
                                             {/* Resume play button */}
-                                            <div className="vl-continuity-play" style={{
-                                                position: 'absolute',
-                                                top: '50%',
-                                                left: '50%',
-                                                transform: 'translate(-50%, -50%)',
-                                                width: 48,
-                                                height: 48,
-                                                background: 'rgba(0,212,255,0.95)',
-                                                borderRadius: '50%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}>
-                                                <span style={{ fontSize: 20, marginLeft: 2 }}>▶</span>
+                                            <div className="vl-continuity-play">
+                                                <span>Resume</span>
                                             </div>
                                             {/* Progress bar */}
                                             <div
@@ -2016,59 +2099,42 @@ export default function VideoLibraryPage() {
                                                 aria-valuemin="0"
                                                 aria-valuemax="100"
                                                 aria-valuenow={roundedProgress}
-                                                style={{
-                                                position: 'absolute',
-                                                bottom: 0,
-                                                left: 0,
-                                                right: 0,
-                                                height: 4,
-                                                background: 'rgba(255,255,255,0.3)',
-                                            }}>
-                                                <div style={{
-                                                    width: `${progress}%`,
-                                                    height: '100%',
-                                                    background: '#00D4FF',
-                                                }} />
+                                            >
+                                                <span style={{ '--vl-progress': `${progress}%` }} />
                                             </div>
                                         </div>
-                                        <div style={{ padding: 12 }}>
-                                            <div style={{
-                                                color: C.text,
-                                                fontSize: 13,
-                                                fontWeight: 500,
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            }}>
+                                        <div className="vl-continuity-copy">
+                                            <strong>
                                                 {video.title}
-                                            </div>
-                                            <div style={{
-                                                color: C.textSec,
-                                                fontSize: 11,
-                                                marginTop: 4,
-                                            }}>
+                                            </strong>
+                                            <span>
                                                 {roundedProgress}% Complete · {formatTime(item.watch_duration_seconds || 0)} Watched
-                                            </div>
+                                            </span>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
-                    </div>
+                        {continueWatchingVideos.length > cwVisible && (
+                            <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setCwVisible(continueWatchingVideos.length); }}>
+                                Show All {continueWatchingVideos.length} Sessions
+                            </button>
+                        )}
+                    </section>
                 )}
 
-                {/* New This Week rail — videos scraped in last 7 days */}
+                {/* New This Week: videos scraped in the last 7 days, a grid of four then Show More */}
                 {newThisWeek.length > 0 && !newThisWeekDismissed && (
-                    <div className="vl-new-this-week" style={{ maxWidth: 1400, margin: '0 auto 28px' }}>
-                        <div className="vl-new-week-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                            <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ color: '#00D4FF', fontSize: 14, background: 'rgba(0,212,255,0.2)', border: '1px solid rgba(0,212,255,0.4)', borderRadius: 6, padding: '2px 8px', fontWeight: 700, letterSpacing: '0.5px' }}>NEW</span>
+                    <section className="vl-new-this-week" aria-labelledby="vl-new-week-title">
+                        <div className="vl-new-week-header">
+                            <h2 id="vl-new-week-title">
+                                <span>New</span>
                                 New This Week
                             </h2>
-                            <button onClick={() => setNewThisWeekDismissed(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', padding: 4 }}>Dismiss</button>
+                            <button type="button" onClick={() => setNewThisWeekDismissed(true)}>Dismiss</button>
                         </div>
-                        <div className="vl-new-week-scroll" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
-                            {newThisWeek.map(video => (
+                        <div className="vl-new-week-scroll vl-new-week-grid">
+                            {newThisWeek.slice(0, newWeekVisible).map(video => (
                                 <div
                                     key={video.videoId}
                                     className="vl-new-week-card"
@@ -2077,30 +2143,53 @@ export default function VideoLibraryPage() {
                                     role="button"
                                     tabIndex={0}
                                     aria-label={`Play ${video.title}`}
-                                    style={{ minWidth: 220, flexShrink: 0, cursor: 'pointer', borderRadius: 10, overflow: 'hidden', background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', transition: 'transform 0.18s, box-shadow 0.18s' }}
                                 >
-                                    <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
-                                        <img src={getThumbnail(video.videoId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
-                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#00D4FF', color: '#021017', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, letterSpacing: '0.5px' }}>NEW</div>
+                                    <div className="vl-new-week-media">
+                                        <img src={getThumbnail(video.videoId)} alt="" loading="lazy" decoding="async" onLoad={event => recoverYouTubeThumbnail(event, video.videoId)} onError={event => recoverYouTubeThumbnail(event, video.videoId)} />
+                                        <span className="vl-new-week-stamp">New</span>
                                         {video.duration && (
-                                            <div style={{ position: 'absolute', bottom: 6, right: 6, background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4 }}>{video.duration}</div>
+                                            <span className="vl-new-week-duration">{video.duration}</span>
                                         )}
                                     </div>
-                                    <div style={{ padding: 10 }}>
-                                        <div style={{ color: '#fff', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>{video.title}</div>
-                                        <div style={{ color: '#b7c4cb', fontSize: 10 }}>{video.source.replace('_', ' ')}</div>
+                                    <div className="vl-new-week-copy">
+                                        <strong>{video.title}</strong>
+                                        <span>{video.source.replace('_', ' ')}</span>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                        {newThisWeek.length > newWeekVisible && (
+                            <button type="button" className="vl-show-more" onClick={() => { haptic('light'); setNewWeekVisible(newThisWeek.length); }}>
+                                Show All {newThisWeek.length} New Videos
+                            </button>
+                        )}
+                    </section>
                 )}
 
                 {/* Video Grid */}
                 {catalogRefreshFailed && (
                     <div className="vl-catalog-notice" role="alert">
-                        <span>Live Catalog Refresh Is Temporarily Unavailable. Showing The Verified Fallback Library.</span>
+                        <span>Live Catalog Refresh Is Temporarily Unavailable. Unverified Cached Videos Stay Hidden.</span>
                         <button type="button" onClick={() => void fetchCatalogPage({ append: false })}>Retry Catalog</button>
+                    </div>
+                )}
+                {deepLinkStatus && (
+                    <div className="vl-catalog-notice" role="alert" data-video-deep-link-status={deepLinkStatus.type}>
+                        <span>{deepLinkStatus.message}</span>
+                        {deepLinkStatus.type === 'error' ? (
+                            <button type="button" onClick={() => setDeepLinkRetryNonce(value => value + 1)}>Retry Video</button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => void router.replace(
+                                    { pathname: router.pathname, query: { ...router.query, v: undefined } },
+                                    undefined,
+                                    { shallow: true, scroll: false },
+                                )}
+                            >
+                                Browse Verified Library
+                            </button>
+                        )}
                     </div>
                 )}
                 <span className="vl-sr-only" role="status" aria-live="polite">
@@ -2109,18 +2198,13 @@ export default function VideoLibraryPage() {
                 <div
                     id="video-library-grid"
                     className="vl-video-grid"
+                    data-tutorial="grid"
                     /* aria-label is prohibited on a role-less div (axe
                        aria-prohibited-attr, serious). A labelled region is
                        what the command rail's aria-controls points at. */
                     role="region"
                     aria-label="Poker videos"
-                    style={{
-                    maxWidth: 1400,
-                    margin: '0 auto',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                    gap: 20,
-                }}>
+                >
                     {catalogLoading && videos.length === 0 && Array.from({ length: 6 }, (_, index) => (
                         <div key={`catalog-skeleton-${index}`} className="vl-video-skeleton" aria-hidden="true">
                             <span className="vl-skeleton-media" />
@@ -2145,10 +2229,7 @@ export default function VideoLibraryPage() {
                         return (
                         <div
                             key={video.id}
-                            className={`metal-frame video-card-metal vl-video-card${isFeatured ? ' is-featured' : ''}`}
-                            style={{
-                                cursor: 'pointer',
-                            }}
+                            className={`vl-video-card${isFeatured ? ' is-featured' : ''}`}
                         >
                             <button
                                 type="button"
@@ -2157,37 +2238,18 @@ export default function VideoLibraryPage() {
                                 onClick={() => handleOpenVideo(video)}
                             />
                             {/* Thumbnail */}
-                            <div className="vl-video-thumb" style={{
-                                position: 'relative',
-                                aspectRatio: '16/9',
-                                background: '#222',
-                            }}>
+                            <div className="vl-video-thumb">
                                 <img
                                     src={getThumbnail(video.videoId)}
                                         alt=""
                                     loading={index === 0 ? 'eager' : 'lazy'}
                                     fetchpriority={index === 0 ? 'high' : 'auto'}
                                     decoding="async"
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                    }}
                                     onLoad={(event) => recoverYouTubeThumbnail(event, video.videoId)}
                                     onError={(event) => recoverYouTubeThumbnail(event, video.videoId)}
                                 />
                                 {/* Duration badge */}
-                                <div className="vl-duration" style={{
-                                    position: 'absolute',
-                                    bottom: 8,
-                                    right: 8,
-                                    background: 'rgba(0,0,0,0.8)',
-                                    padding: '4px 8px',
-                                    borderRadius: 4,
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    color: 'white',
-                                }}>
+                                <div className="vl-duration">
                                     {video.duration}
                                 </div>
                                 {/* Watched badge — tappable to mark-unwatched */}
@@ -2198,24 +2260,8 @@ export default function VideoLibraryPage() {
                                         aria-label={`Mark ${video.title} as unwatched`}
                                         title="Mark as unwatched"
                                         onClick={e => { e.stopPropagation(); void handleMarkUnwatched(video); }}
-                                        style={{
-                                            position: 'absolute',
-                                            top: 8,
-                                            left: 8,
-                                            background: 'rgba(0,200,83,0.9)',
-                                            padding: '4px 10px',
-                                            borderRadius: 12,
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 4,
-                                            cursor: 'pointer',
-                                            border: 'none',
-                                        }}
                                     >
-                                        <span>✓</span> Watched
+                                        Watched
                                     </button>
                                 )}
                                 {/* AI badge removed per user request */}
@@ -2228,58 +2274,19 @@ export default function VideoLibraryPage() {
                                         aria-valuemin="0"
                                         aria-valuemax="100"
                                         aria-valuenow={roundedProgress}
-                                        style={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        left: 0,
-                                        right: 0,
-                                        height: 4,
-                                        background: 'rgba(255,255,255,0.3)',
-                                    }}>
-                                        <div className="vl-progress-fill" style={{
-                                            width: `${progress}%`,
-                                            height: '100%',
-                                            background: '#00D4FF',
-                                            transition: 'width 0.3s ease',
-                                        }} />
+                                    >
+                                        <span className="vl-progress-fill" style={{ '--vl-progress': `${progress}%` }} />
                                     </div>
                                 )}
                                 {/* Play button overlay */}
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    width: 64,
-                                    height: 64,
-                                    background: 'rgba(0,212,255,0.9)',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: 0,
-                                    transition: 'opacity 0.2s',
-                                }}
-                                    className="play-btn vl-play-button"
-                                >
-                                    <span style={{ fontSize: 28, marginLeft: 4 }}>▶</span>
+                                <div className="vl-play-button" aria-hidden="true">
+                                    <span>{openLabel}</span>
                                 </div>
                             </div>
 
                             {/* Info */}
-                            <div className="vl-card-info" style={{ padding: 16 }}>
-                                <h3 className="vl-card-title" style={{
-                                    color: C.text,
-                                    fontSize: 15,
-                                    fontWeight: 600,
-                                    margin: 0,
-                                    marginBottom: 8,
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                    lineHeight: 1.4,
-                                }}>
+                            <div className="vl-card-info">
+                                <h3 className="vl-card-title">
                                     {video.title}
                                 </h3>
 
@@ -2290,46 +2297,19 @@ export default function VideoLibraryPage() {
                                     </div>
                                 )}
 
-                                <div className="vl-card-meta" style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                }}>
-                                    <span className="vl-source-chip" style={{
-                                        color: C.accent,
-                                        fontSize: 12,
-                                        fontWeight: 600,
-                                        background: 'rgba(0,212,255,0.15)',
-                                        padding: '6px 12px',
-                                        borderRadius: 12,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                    }}>
+                                <div className="vl-card-meta">
+                                    <span className="vl-source-chip">
                                         {SOURCES.find(s => s.id === video.source)?.logo && (
-                                            <div className="vl-source-chip-logo" style={{
-                                                width: 26,
-                                                height: 26,
-                                                borderRadius: 8,
-                                                background: 'rgba(255, 255, 255, 0.1)',
-                                                backdropFilter: 'blur(8px)',
-                                                border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                padding: 4,
-                                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                                            }}>
+                                            <span className="vl-source-chip-logo" aria-hidden="true">
                                                 <img
                                                     src={SOURCES.find(s => s.id === video.source)?.logo}
                                                     alt=""
-                                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                                 />
-                                            </div>
+                                            </span>
                                         )}
                                         {video.source.replace('_', ' ')}
                                     </span>
-                                    <span className="vl-card-views" style={{ color: C.textSec, fontSize: 13 }}>
+                                    <span className="vl-card-views">
                                         {video.views} Views
                                     </span>
                                     {/* Share button */}
@@ -2339,22 +2319,9 @@ export default function VideoLibraryPage() {
                                         className="vl-share-button"
                                         title="Copy link"
                                         onClick={e => { e.stopPropagation(); handleShareVideo(video); }}
-                                        style={{
-                                            background: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? 'rgba(52,199,89,0.2)' : 'rgba(255,255,255,0.06)',
-                                            border: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '1px solid rgba(52,199,89,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                                            borderRadius: 8,
-                                            color: shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '#34C759' : 'rgba(255,255,255,0.5)',
-                                            padding: '5px 10px',
-                                            fontSize: 11,
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 4,
-                                        }}
+                                        data-copied={visibleShareToast?.kind === 'share' && visibleShareToast?.tone === 'success' && visibleShareToast?.videoId === video.videoId ? 'true' : 'false'}
                                     >
-                                        {shareToast?.kind === 'share' && shareToast?.tone === 'success' && shareToast?.videoId === video.videoId ? '✓ Copied' : '⎘ Share'}
+                                        {visibleShareToast?.kind === 'share' && visibleShareToast?.tone === 'success' && visibleShareToast?.videoId === video.videoId ? 'Copied' : 'Share'}
                                     </button>
                                 </div>
                             </div>
@@ -2381,45 +2348,33 @@ export default function VideoLibraryPage() {
                             type="button"
                             onClick={handleEmptyStateAction}
                         >
-                            {emptyState.action} <span aria-hidden="true">→</span>
+                            {emptyState.action}
                         </button>
                     </div>
                 )}
 
                 {/* Video count */}
-                <div className="vl-video-count" style={{
-                    maxWidth: 1400,
-                    margin: '30px auto 0',
-                    textAlign: 'center',
-                    color: C.textSec,
-                    fontSize: 14,
-                }}>
+                <div className="vl-video-count">
                     Showing {videos.length} Of {catalogTotal} Matching
                     {libraryFilter !== 'ALL' ? ` · ${personalSavedVideoCounts[libraryFilter]} saved` : ''}
                 </div>
-                </main>
+                    </div>
+                    </VideoLibraryConsole>
+                </section>
                 </div>
+                </PullToRefresh>
+                </HubPageShell>
             </div>
 
             {/* Video Modal */}
             {selectedVideo && (
                 <div
                     ref={modalOverlayRef}
+                    className="vl-viewer"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="vl-viewer-title"
                     aria-describedby="vl-viewer-help"
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: '#000',
-                        zIndex: 1000,
-                        display: 'flex',
-                        flexDirection: 'column',
-                    }}
                 >
                     <p id="vl-viewer-help" className="vl-sr-only">
                         Use The Arrow Keys For The Previous Or Next Video, F For Fullscreen, And Escape To Close.
@@ -2429,31 +2384,9 @@ export default function VideoLibraryPage() {
                         ref={modalCloseButtonRef}
                         type="button"
                         onClick={handleCloseVideo}
-                        className="vl-modal-close sp-icon-btn sp-overlay-close"
+                        className="vl-modal-close"
                         aria-label="Close"
-                        style={{ '--sp-btn-size': '44px',
-                            position: 'absolute',
-                            top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                            right: 12,
-                            width: 44,
-                            height: 44,
-                            minWidth: 44,
-                            minHeight: 44,
-                            touchAction: 'manipulation',
-                            WebkitTapHighlightColor: 'transparent',
-                            background: 'rgba(0,0,0,0.65)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            borderRadius: '50%',
-                            color: 'white',
-                            fontSize: 20,
-                            cursor: 'pointer',
-                            zIndex: 1001,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'background 0.2s',
-                        }}
-                    >×</button>
+                    >Close</button>
 
                     {/* Fullscreen & sound are handled by YouTube's native controls at bottom of iframe */}
 
@@ -2463,71 +2396,28 @@ export default function VideoLibraryPage() {
                         <button
                             type="button"
                             className="vl-player-nav"
+                            data-side="previous"
                             onClick={handlePrevVideo}
                             aria-label="Play previous video"
-                            title="Previous video (←)"
-                            style={{
-                                position: 'absolute',
-                                left: 16,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: 52,
-                                height: 52,
-                                background: 'rgba(255,255,255,0.15)',
-                                border: 'none',
-                                borderRadius: '50%',
-                                color: 'white',
-                                fontSize: 26,
-                                cursor: 'pointer',
-                                zIndex: 1001,
-                                backdropFilter: 'blur(10px)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'background 0.2s',
-                            }}
-                        >‹</button>
+                            title="Previous Video"
+                        >Previous</button>
                         <button
                             type="button"
                             className="vl-player-nav"
+                            data-side="next"
                             onClick={handleNextVideo}
                             aria-label="Play next video"
-                            title="Next video (→)"
-                            style={{
-                                position: 'absolute',
-                                right: 16,
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: 52,
-                                height: 52,
-                                background: 'rgba(255,255,255,0.15)',
-                                border: 'none',
-                                borderRadius: '50%',
-                                color: 'white',
-                                fontSize: 26,
-                                cursor: 'pointer',
-                                zIndex: 1001,
-                                backdropFilter: 'blur(10px)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'background 0.2s',
-                            }}
-                        >›</button>
+                            title="Next Video"
+                        >Next</button>
                       </>
                     )}
 
                     {/* YouTube embed — takes FULL viewport on mobile */}
                     <div
+                        className="vl-player-stage"
                         onMouseMove={!isTouchDevice ? vlRevealHud : undefined}
                         onFocusCapture={!isTouchDevice ? vlRevealHud : undefined}
-                        style={{
-                        flex: 1,
-                        width: '100%',
-                        minHeight: 0,
-                        position: 'relative',
-                        overflow: 'hidden',
-                    }}>
+                    >
                         {/* Edge swipe strips — thin vertical zones on left/right edges.
                             Center 70% remains fully interactive for YouTube controls/playback. */}
                         {isTouchDevice && (
@@ -2546,15 +2436,7 @@ export default function VideoLibraryPage() {
                                         if (dy < 0) handleNextVideo(); else handlePrevVideo();
                                     }
                                 }}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0, bottom: 64, left: 0,
-                                    width: '15%',
-                                    height: 'auto',
-                                    zIndex: 5,
-                                    background: 'transparent',
-                                    WebkitTapHighlightColor: 'transparent',
-                                }}
+                                className="vl-swipe-zone vl-swipe-zone--previous"
                             />
                             {/* Right edge swipe zone (15% width) */}
                             <div
@@ -2570,15 +2452,7 @@ export default function VideoLibraryPage() {
                                         if (dy < 0) handleNextVideo(); else handlePrevVideo();
                                     }
                                 }}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0, bottom: 64, right: 0,
-                                    width: '15%',
-                                    height: 'auto',
-                                    zIndex: 5,
-                                    background: 'transparent',
-                                    WebkitTapHighlightColor: 'transparent',
-                                }}
+                                className="vl-swipe-zone vl-swipe-zone--next"
                             />
                           </>
                         )}
@@ -2586,23 +2460,9 @@ export default function VideoLibraryPage() {
                         {/* Right-side HUD — Heart / Share / Save */}
                         <div
                             className={`vl-hud ${vlHudVisible ? 'vl-hud--visible' : ''}`}
+                            data-always-visible={isTouchDevice ? 'true' : 'false'}
                             aria-hidden={!isTouchDevice && !vlHudVisible}
                             onFocusCapture={vlRevealHud}
-                            style={{
-                                position: 'absolute',
-                                right: 12,
-                                bottom: 80,
-                                zIndex: 1002,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 20,
-                                alignItems: 'center',
-                                // On touch devices: always visible. On desktop: toggle on hover/click.
-                                opacity: isTouchDevice ? 1 : (vlHudVisible ? 1 : 0),
-                                transform: isTouchDevice ? 'translateX(0)' : (vlHudVisible ? 'translateX(0)' : 'translateX(60px)'),
-                                transition: 'opacity 0.3s ease, transform 0.3s ease',
-                                pointerEvents: isTouchDevice ? 'auto' : (vlHudVisible ? 'auto' : 'none'),
-                            }}
                         >
                             {/* Heart / Like */}
                             <button
@@ -2615,26 +2475,8 @@ export default function VideoLibraryPage() {
                                     vlRevealHud(); // reset auto-hide timer
                                 }}
                                 title="Like"
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                    padding: 0,
-                                }}
                             >
-                                <div style={{
-                                    width: 52, height: 52, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: favorites.has(selectedVideo?.id || selectedVideo?.videoId)
-                                        ? '1.5px solid #00D4FF' : '1.5px solid rgba(255,255,255,0.25)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'all 0.2s',
-                                }}>
-                                    <svg width="26" height="26" viewBox="0 0 24 24" fill={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#00D4FF' : 'none'} stroke={favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? '#00D4FF' : 'white'} strokeWidth="2">
-                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                    </svg>
-                                </div>
-                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                <span className="vl-hud-command">
                                     {favorites.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Liked' : 'Like'}
                                 </span>
                             </button>
@@ -2650,26 +2492,8 @@ export default function VideoLibraryPage() {
                                     vlRevealHud();
                                 }}
                                 title="Share"
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                    padding: 0,
-                                }}
                             >
-                                <div style={{
-                                    width: 52, height: 52, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1.5px solid rgba(255,255,255,0.25)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                                        <polyline points="16 6 12 2 8 6"/>
-                                        <line x1="12" y1="2" x2="12" y2="15"/>
-                                    </svg>
-                                </div>
-                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Share</span>
+                                <span className="vl-hud-command">Share</span>
                             </button>
 
                             {/* Save / Watch Later */}
@@ -2683,26 +2507,8 @@ export default function VideoLibraryPage() {
                                     vlRevealHud();
                                 }}
                                 title="Save"
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                    padding: 0,
-                                }}
                             >
-                                <div style={{
-                                    width: 52, height: 52, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: watchLater.has(selectedVideo?.id || selectedVideo?.videoId)
-                                        ? '1.5px solid #FFD700' : '1.5px solid rgba(255,255,255,0.25)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'all 0.2s',
-                                }}>
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill={watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FFD700' : 'none'} stroke={watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? '#FFD700' : 'white'} strokeWidth="2">
-                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                </div>
-                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                                <span className="vl-hud-command">
                                     {watchLater.has(selectedVideo?.id || selectedVideo?.videoId) ? 'Saved' : 'Save'}
                                 </span>
                             </button>
@@ -2723,27 +2529,8 @@ export default function VideoLibraryPage() {
                                     vlRevealHud();
                                 }}
                                 title="Playlist"
-                                style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                    padding: 0,
-                                }}
                             >
-                                <div style={{
-                                    width: 52, height: 52, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.6)',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1.5px solid rgba(255,255,255,0.25)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}>
-                                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" aria-hidden="true">
-                                        <rect x="4" y="4" width="11" height="11" rx="2" />
-                                        <path d="m8 7 4 2.5L8 12V7Z" fill="white" stroke="none" />
-                                        <circle cx="17.5" cy="17.5" r="3.5" />
-                                        <path d="M17.5 15.5v4M15.5 17.5h4" />
-                                    </svg>
-                                </div>
-                                <span style={{ color: 'white', fontSize: 11, fontWeight: 600, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>Playlist</span>
+                                <span className="vl-hud-command">Playlist</span>
                             </button>
                         </div>
 
@@ -2772,68 +2559,64 @@ export default function VideoLibraryPage() {
                                             try {
                                                 win.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
                                                 win.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-                                            } catch { /* best-effort */ }
+                                            } catch (error) {
+                                                reportVideoLibraryIssue('youtube_unmute_command', error);
+                                            }
                                         }, d));
                                     }
-                                } catch { /* best-effort */ }
-                            }}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                border: 'none',
-                                display: 'block',
+                                } catch (error) {
+                                    reportVideoLibraryIssue('youtube_player_handshake', error);
+                                }
                             }}
                         />
                         {/* YouTube Error Overlay */}
                         {vlYtManaged && (
-                            <YouTubeErrorOverlay
-                                errorCode={vlYtManaged}
-                                videoId={selectedVideo.videoId}
-                                thumbnailUrl={vlThumbnailUrl}
-                                actionLabel="Closing in 3 seconds..."
-                            />
+                            <div className="vl-youtube-error" role="alert">
+                                {vlThumbnailUrl && <img src={vlThumbnailUrl} alt="" aria-hidden="true" />}
+                                <VideoLibraryConsole
+                                    eyebrow={`Playback Signal ${vlYtManaged}`}
+                                    title={vlYtErrorInfo?.title || 'Video Unavailable'}
+                                    subtitle="Closing In 3 Seconds"
+                                    pill="Offline"
+                                    pillInk="red"
+                                    foot="plates"
+                                    plates={{
+                                        secondary: { label: 'Close Viewer', onClick: handleCloseVideo },
+                                        primary: {
+                                            label: 'Open On YouTube',
+                                            ink: 'white',
+                                            onClick: () => window.open(`https://www.youtube.com/watch?v=${selectedVideo.videoId}`, '_blank', 'noopener,noreferrer'),
+                                        },
+                                    }}
+                                >
+                                    <ConsoleCopy align="center">
+                                        {vlYtErrorInfo?.description || 'This Video Cannot Be Played In The Embedded Viewer Right Now.'}
+                                    </ConsoleCopy>
+                                </VideoLibraryConsole>
+                            </div>
                         )}
                     </div>
 
 
                     {/* Video info bar + Related Videos Rail — ABSOLUTE on mobile, flex child on desktop */}
-                    <div className="vl-info-bar" style={{
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.95) 30%)',
-                        flexShrink: 0,
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
-                        scrollbarWidth: 'thin',
-                    }}>
+                    <div className="vl-info-bar">
                         {/* Info Row */}
-                        <div style={{ padding: '10px 20px 8px' }}>
-                            <h2 id="vl-viewer-title" style={{
-                                color: 'white',
-                                fontSize: 15,
-                                fontWeight: 700,
-                                margin: 0,
-                                marginBottom: 6,
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                            }}>
+                        <div className="vl-info-copy">
+                            <h2 id="vl-viewer-title">
                                 {selectedVideo.title}
                             </h2>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                <span style={{
-                                    color: C.accent, fontSize: 12, fontWeight: 600,
-                                    background: 'rgba(0,212,255,0.2)', padding: '4px 10px',
-                                    borderRadius: 10, display: 'flex', alignItems: 'center', gap: 6,
-                                }}>
+                            <div className="vl-info-meta">
+                                <span className="vl-info-source">
                                     {SOURCES.find(s => s.id === selectedVideo.source)?.logo && (
                                         <img src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
-                                            alt="" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }} decoding="async" />
+                                            alt="" decoding="async" />
                                     )}
                                     {selectedVideo.source.replace('_', ' ')}
                                 </span>
-                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                                <span>
                                     {selectedVideo.views} Views
                                 </span>
-                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+                                <span>
                                     {selectedVideo.duration}
                                 </span>
                                 {/* ── Train This Spot — in-place overlay ── */}
@@ -2866,31 +2649,10 @@ export default function VideoLibraryPage() {
                                                 ...(analyticsToken ? { Authorization: `Bearer ${analyticsToken}` } : {}),
                                             },
                                             body: JSON.stringify({ ref: 'video-library', vid: ctx.vid, title: ctx.title, source: ctx.source, tags, matchedGameIds: gameIds.slice(0, 3) }),
-                                        }).catch(() => {});
-                                    }}
-                                    style={{
-                                        padding: '5px 14px',
-                                        background: 'linear-gradient(135deg, rgba(0,200,83,0.2) 0%, rgba(0,150,60,0.2) 100%)',
-                                        border: '1.5px solid rgba(0,200,83,0.55)',
-                                        borderRadius: 10,
-                                        color: '#34C759',
-                                        fontSize: 12,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 5,
-                                        transition: 'all 0.2s',
-                                        whiteSpace: 'nowrap',
-                                        boxShadow: '0 0 8px rgba(0,200,83,0.15)',
-                                        letterSpacing: '0.2px',
-                                        animation: 'tts-pulse 2.5s ease-in-out infinite',
+                                        }).catch(error => reportVideoLibraryIssue('training_log_request', error));
                                     }}
                                     title="Open GTO Trainer with AI-matched drills from this video"
                                 >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                                    </svg>
                                     Train This Spot
                                 </button>
                             </div>
@@ -2898,20 +2660,11 @@ export default function VideoLibraryPage() {
 
                         {/* ── P3: Related Videos Rail ── */}
                         {relatedVideos.length > 0 && (
-                            <div className="vl-up-next-rail" style={{ padding: '4px 20px 14px' }}>
-                                <div style={{
-                                    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
-                                    letterSpacing: '0.8px', marginBottom: 10, textTransform: 'uppercase',
-                                }}>
+                            <div className="vl-up-next-rail">
+                                <div className="vl-up-next-label">
                                     Up Next
                                 </div>
-                                <div style={{
-                                    display: 'flex',
-                                    gap: 12,
-                                    overflowX: 'auto',
-                                    scrollbarWidth: 'thin',
-                                    paddingBottom: 4,
-                                }}>
+                                <div className="vl-up-next-scroll vl-up-next-grid">
                                     {relatedVideos.map(v => (
                                         <div
                                             key={v.id}
@@ -2921,45 +2674,25 @@ export default function VideoLibraryPage() {
                                             tabIndex={0}
                                             aria-label={`Play ${v.title}`}
                                             className="vl-up-next-card"
-                                            style={{
-                                                minWidth: 160,
-                                                flexShrink: 0,
-                                                cursor: 'pointer',
-                                                borderRadius: 8,
-                                                overflow: 'hidden',
-                                                background: '#1a1a1a',
-                                                border: '1px solid rgba(255,255,255,0.08)',
-                                                transition: 'transform 0.15s, border-color 0.15s',
-                                            }}
                                         >
-                                            <div style={{ position: 'relative', aspectRatio: '16/9', background: '#111' }}>
+                                            <div className="vl-up-next-media">
                                                 <img
                                                     src={getThumbnail(v.videoId)}
                                                     alt=""
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                     loading="lazy"
                                                     decoding="async"
                                                     onLoad={event => recoverYouTubeThumbnail(event, v.videoId)}
                                                     onError={event => recoverYouTubeThumbnail(event, v.videoId)}
                                                 />
                                                 {v.duration && (
-                                                    <div style={{
-                                                        position: 'absolute', bottom: 4, right: 4,
-                                                        background: 'rgba(0,0,0,0.85)', color: '#fff',
-                                                        fontSize: 9, fontWeight: 600, padding: '2px 5px', borderRadius: 3,
-                                                    }}>{v.duration}</div>
+                                                    <span className="vl-up-next-duration">{v.duration}</span>
                                                 )}
                                             </div>
-                                            <div style={{ padding: '7px 8px' }}>
-                                                <div style={{
-                                                    color: '#fff', fontSize: 11, fontWeight: 600,
-                                                    overflow: 'hidden', textOverflow: 'ellipsis',
-                                                    display: '-webkit-box', WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: 'vertical', lineHeight: 1.3,
-                                                }}>{v.title}</div>
-                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, marginTop: 3 }}>
+                                            <div className="vl-up-next-copy">
+                                                <strong>{v.title}</strong>
+                                                <span>
                                                     {v.source.replace('_', ' ')}
-                                                </div>
+                                                </span>
                                             </div>
                                         </div>
                                     ))}
@@ -2970,87 +2703,25 @@ export default function VideoLibraryPage() {
                 </div>
             )}
 
-            {/* CSS */}
             <style>{`
-                .vl-video-card:hover .play-btn {
-                    opacity: 1 !important;
+                /* The viewer's Close control clears the status bar. The page that
+                   owns the full-screen overlay carries the inset itself
+                   (overlays-leave-room-to-close.law), matching the world sheet. */
+                .vl-modal-close { top: calc(env(safe-area-inset-top, 0px) + 12px); }
+                .vl-show-more { display: block; width: 100%; min-height: 44px; margin-top: 12px; }
+                .vl-show-all-sources { display: none; }
+                @media (max-width: 768px) {
+                    .vl-search-wrap { width: 100% !important; flex-basis: 100% !important; margin-left: 0 !important; }
+                    .vl-show-all-sources { display: block; }
+                    .vl-info-bar { position: relative !important; max-height: 46dvh !important; flex: 0 0 auto; pointer-events: auto; z-index: 6; }
+                    .vl-up-next-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
                 }
-
-                /* Train This Spot button pulse */
-                @keyframes tts-pulse {
-                    0%, 100% { box-shadow: 0 0 8px rgba(0,200,83,0.15); border-color: rgba(0,200,83,0.55); }
-                    50%       { box-shadow: 0 0 20px rgba(0,200,83,0.4); border-color: rgba(0,200,83,0.85); }
-                }
-
-                /* Mobile: stack search on its own row */
-                @media (max-width: 480px) {
-                    .vl-search-wrap {
-                        width: 100% !important;
-                        flex-basis: 100% !important;
-                        margin-left: 0 !important;
-                    }
-                }
-
-                /* Mobile + Tablet: absolute info bar, hide Up Next */
-                @media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
-                    .vl-info-bar {
-                        position: relative !important;
-                        max-height: 140px !important;
-                        flex: 0 0 auto;
-                        pointer-events: auto;
-                        z-index: 6;
-                    }
-                    .vl-up-next-rail {
-                        display: none !important;
-                    }
-                }
-                /* Narrow screen fallback */
-                @media (max-width: 767px) {
-                    .vl-info-bar {
-                        position: relative !important;
-                        max-height: 140px !important;
-                        flex: 0 0 auto;
-                        pointer-events: auto;
-                        z-index: 6;
-                    }
-                    .vl-up-next-rail {
-                        display: none !important;
-                    }
-                }
-                /* Desktop: info bar caps */
-                @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-                    .vl-info-bar {
-                        max-height: min(25vh, 200px);
-                    }
-                }
-                @media (min-width: 1025px) {
-                    .vl-info-bar {
-                        max-height: min(25vh, 200px);
-                    }
-                }
-
-                /* Caption-style animation */
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateX(-50%) translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(0);
-                    }
-                }
+                @media (min-width: 769px) { .vl-info-bar { max-height: min(25dvh, 200px); } }
             `}</style>
 
             {/* Reels Modal — full-screen TikTok doom-scroll */}
             {showReelsModal && (
-                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1} style={{
-                    position: 'fixed', inset: 0,
-                    zIndex: 9999,
-                    background: '#000',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}>
+                <div ref={reelsDialogRef} className="vl-reels-dialog" role="dialog" aria-modal="true" aria-label="Video reels" tabIndex={-1}>
                     <VideoLibraryReelsBoundary onClose={() => setShowReelsModal(false)}>
                         <ReelsViewer onClose={() => setShowReelsModal(false)} />
                     </VideoLibraryReelsBoundary>
@@ -3058,79 +2729,60 @@ export default function VideoLibraryPage() {
             )}
 
             {/* Share Toast \u2014 floating clipboard feedback */}
-            {shareToast && (
+            {visibleShareToast && (
                 <div
-                    className={`vl-action-notice vl-action-notice--${shareToast.tone}`}
-                    role={shareToast.tone === 'error' ? 'alert' : 'status'}
-                    aria-live={shareToast.tone === 'error' ? 'assertive' : 'polite'}
-                    style={{
-                    position: 'fixed',
-                    bottom: 90,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(30,30,30,0.95)',
-                    backdropFilter: 'blur(12px)',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    padding: '12px 24px',
-                    borderRadius: 12,
-                    zIndex: 10001,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                    animation: 'fadeInUp 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                }}>
-                    <span aria-hidden="true">{shareToast.tone === 'error' ? '!' : shareToast.tone === 'info' ? 'i' : '✓'}</span>
-                    {shareToast.message}
+                    className={`vl-action-notice vl-action-notice--${visibleShareToast.tone}`}
+                    role={visibleShareToast.tone === 'error' ? 'alert' : 'status'}
+                    aria-live={visibleShareToast.tone === 'error' ? 'assertive' : 'polite'}
+                >
+                    {visibleShareToast.message}
                 </div>
             )}
     
             {/* Playlist Modal */}
-            {showPlaylistModal && (
-                <div className="vl-playlist-overlay" role="presentation" style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.8)', zIndex: 10000,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }} onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}>
+            {personalStateIsCurrent && showPlaylistModal && (
+                <div className="vl-playlist-overlay" role="presentation" onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}>
                     <div
                         ref={playlistDialogRef}
                         className="vl-playlist-dialog"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="vl-playlist-title"
-                        style={{
-                        background: '#1C1C1E', padding: 24, borderRadius: 16, width: '90%', maxWidth: 400,
-                        border: '1px solid #333'
-                    }} onClick={e => e.stopPropagation()}>
-                        <div className="vl-playlist-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                            <h3 id="vl-playlist-title" style={{ margin: 0, color: 'white', fontSize: 17, fontWeight: 700 }}>Save To Playlist</h3>
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <VideoLibraryConsole
+                            eyebrow="Personal Library"
+                            title="Save To Playlist"
+                            titleId="vl-playlist-title"
+                            subtitle="Choose A Playlist Or Create One"
+                            pill={`${playlists.length} Lists`}
+                            pillInk="gold"
+                            foot="foot"
+                        >
+                        <div className="vl-playlist-header">
                             <button onClick={() => { setShowPlaylistModal(null); setPlaylistActionError(null); }}
                                 type="button" aria-label="Close playlist dialog"
-                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 20, cursor: 'pointer', padding: 0 }}>×</button>
+                                className="vl-glass-action">Close</button>
                         </div>
-                        <div className="vl-playlist-list" style={{ maxHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
+                        <div className="vl-playlist-list">
                             {playlists.length === 0 && (
-                                <div className="vl-playlist-empty" style={{ textAlign: 'center', padding: '24px 0 16px', color: 'rgba(255,255,255,0.35)' }}>
-                                    <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
-                                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No Playlists Yet</div>
-                                    <div style={{ fontSize: 12 }}>Create One Below To Save This Video</div>
+                                <div className="vl-playlist-empty">
+                                    <strong>No Playlists Yet</strong>
+                                    <span>Create One Below To Save This Video</span>
                                 </div>
                             )}
                             {playlists.map(p => {
                                 const inPlaylist = p.items?.some(i => i.video_id === showPlaylistModal.videoId);
                                 return (
-                                    <div key={p.id} className="vl-playlist-row" style={{
-                                        padding: '12px 0', borderBottom: '1px solid #333',
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                                    }}>
-                                        <div>
-                                            <div style={{ color: 'white', fontSize: 14, fontWeight: 500 }}>{p.name}</div>
+                                    <div key={p.id} className="vl-playlist-row">
+                                        <div className="vl-playlist-copy">
+                                            <strong>{p.name}</strong>
                                             {p.items?.length != null && (
-                                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 }}>{p.items.length} video{p.items.length !== 1 ? 's' : ''}</div>
+                                                <span>{p.items.length} video{p.items.length !== 1 ? 's' : ''}</span>
                                             )}
                                         </div>
                                         <button onClick={async () => {
+                                            const ownerToken = ownerScopeRef.current.capture(userId);
                                             try {
                                                 setPlaylistActionError(null);
                                                 if (inPlaylist) {
@@ -3138,19 +2790,18 @@ export default function VideoLibraryPage() {
                                                 } else {
                                                     await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
                                                 }
+                                                if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
                                                 const refreshedPlaylists = await getVideoPlaylists(userId);
-                                                setPlaylists(refreshedPlaylists);
-                                                showActionNotice(inPlaylist ? 'Removed from playlist.' : 'Added to playlist.', { videoId: showPlaylistModal.videoId });
+                                                if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+                                                ownerScopeRef.current.commit(ownerToken, () => {
+                                                    setPlaylists(refreshedPlaylists);
+                                                    showActionNotice(inPlaylist ? 'Removed from playlist.' : 'Added to playlist.', { videoId: showPlaylistModal.videoId });
+                                                });
                                             } catch (err) {
-                                                setPlaylistActionError('Action failed. Please try again.');
+                                                if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+                                                ownerScopeRef.current.commit(ownerToken, () => setPlaylistActionError('Action failed. Please try again.'));
                                             }
-                                        }} style={{
-                                            background: inPlaylist ? 'rgba(255,69,58,0.2)' : 'rgba(10,132,255,0.2)',
-                                            color: inPlaylist ? '#FF453A' : '#0A84FF',
-                                            border: `1px solid ${inPlaylist ? 'rgba(255,69,58,0.4)' : 'rgba(10,132,255,0.4)'}`,
-                                            borderRadius: 8, padding: '6px 14px', cursor: 'pointer',
-                                            fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
-                                        }}>
+                                        }} data-active={inPlaylist ? 'true' : 'false'}>
                                             {inPlaylist ? 'Remove' : 'Add'}
                                         </button>
                                     </div>
@@ -3158,11 +2809,11 @@ export default function VideoLibraryPage() {
                             })}
                         </div>
                         {playlistActionError && (
-                            <div className="vl-playlist-error" role="alert" style={{ color: '#FF453A', fontSize: 12, marginBottom: 10, padding: '6px 10px', background: 'rgba(255,69,58,0.1)', borderRadius: 6, border: '1px solid rgba(255,69,58,0.25)' }}>
+                            <div className="vl-playlist-error" role="alert">
                                 {playlistActionError}
                             </div>
                         )}
-                        <div className="vl-playlist-create" style={{ display: 'flex', gap: 8 }}>
+                        <div className="vl-playlist-create">
                             <input
                                 ref={playlistNameInputRef}
                                 value={newPlaylistName}
@@ -3170,106 +2821,98 @@ export default function VideoLibraryPage() {
                                 onKeyDown={(e) => { if (e.key === 'Enter' && newPlaylistName.trim() && !isCreatingPlaylist) { e.preventDefault(); createPlaylistButtonRef.current?.click(); } }}
                                 placeholder="New playlist name..."
                                 disabled={isCreatingPlaylist}
-                                style={{ flex: 1, padding: '9px 12px', borderRadius: 8, background: '#000', border: '1px solid #444', color: 'white', fontSize: 14, opacity: isCreatingPlaylist ? 0.6 : 1 }}
                             />
                             <button
                                 ref={createPlaylistButtonRef}
                                 type="button"
                                 onClick={async () => {
                                     if (!newPlaylistName.trim() || isCreatingPlaylist) return;
+                                    const ownerToken = ownerScopeRef.current.capture(userId);
                                     setIsCreatingPlaylist(true);
                                     setPlaylistActionError(null);
                                     try {
                                         const p = await createPlaylist(userId, newPlaylistName.trim());
+                                        if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
                                         await addVideoToPlaylist(p.id, showPlaylistModal.videoId, showPlaylistModal.title, showPlaylistModal.source);
-                                        setNewPlaylistName('');
+                                        if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+                                        ownerScopeRef.current.commit(ownerToken, () => setNewPlaylistName(''));
                                         const refreshedPlaylists = await getVideoPlaylists(userId);
-                                        setPlaylists(refreshedPlaylists);
-                                        showActionNotice('Playlist created and video added.', { videoId: showPlaylistModal.videoId });
+                                        if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+                                        ownerScopeRef.current.commit(ownerToken, () => {
+                                            setPlaylists(refreshedPlaylists);
+                                            showActionNotice('Playlist created and video added.', { videoId: showPlaylistModal.videoId });
+                                        });
                                     } catch (err) {
-                                        setPlaylistActionError('Failed to create playlist. Please try again.');
+                                        if (!ownerScopeRef.current.isCurrent(ownerToken)) return;
+                                        ownerScopeRef.current.commit(ownerToken, () => setPlaylistActionError('Failed to create playlist. Please try again.'));
                                     } finally {
-                                        setIsCreatingPlaylist(false);
+                                        if (ownerScopeRef.current.isCurrent(ownerToken)) setIsCreatingPlaylist(false);
                                     }
                                 }}
                                 disabled={isCreatingPlaylist || !newPlaylistName.trim()}
-                                style={{
-                                    background: isCreatingPlaylist || !newPlaylistName.trim() ? 'rgba(255,255,255,0.15)' : 'white',
-                                    color: isCreatingPlaylist || !newPlaylistName.trim() ? 'rgba(255,255,255,0.35)' : 'black',
-                                    border: 'none', borderRadius: 8, padding: '0 16px',
-                                    fontWeight: 700, cursor: isCreatingPlaylist || !newPlaylistName.trim() ? 'not-allowed' : 'pointer',
-                                    fontSize: 14, transition: 'all 0.15s', minWidth: 72,
-                                }}
                             >
                                 {isCreatingPlaylist ? '...' : 'Create'}
                             </button>
                         </div>
+                        </VideoLibraryConsole>
                     </div>
                 </div>
             )}
 
             {/* ── Train This Spot In-Place Overlay ── */}
             {ttsOverlay && (
-                <div className="vl-tts-sheet" role="presentation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9500, animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both' }}>
-                    <div onClick={() => setTtsOverlay(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: -1 }} />
-                    <div ref={ttsDialogRef} role="dialog" aria-modal="true" aria-labelledby="vl-tts-title" style={{ background: 'linear-gradient(180deg, #0a0f1e, #060a14)', borderRadius: '20px 20px 0 0', border: '1px solid rgba(0,200,83,0.2)', borderBottom: 'none', maxHeight: '75vh', overflow: 'auto', paddingBottom: 'env(safe-area-inset-bottom, 0px)', boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}><div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} /></div>
-                        <div style={{ padding: '8px 20px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))', border: '1.5px solid rgba(0,200,83,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <div id="vl-tts-title" style={{ fontSize: 14, fontWeight: 800, color: '#34C759' }}>Train This Spot</div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>AI-Matched Drills For This Video</div>
-                            </div>
-                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="sp-icon-btn" onClick={() => setTtsOverlay(null)} style={{ '--sp-btn-size': '44px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 44, height: 44, minWidth: 44, minHeight: 44, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>✕</button>
+                <div className="vl-tts-sheet" role="presentation">
+                    <div className="vl-tts-backdrop" onClick={() => setTtsOverlay(null)} />
+                    <div ref={ttsDialogRef} className="vl-tts-dialog" role="dialog" aria-modal="true" aria-labelledby="vl-tts-title">
+                        <VideoLibraryConsole
+                            eyebrow="Smarter Training"
+                            title="Train This Spot"
+                            titleId="vl-tts-title"
+                            subtitle="Matched Drills For This Video"
+                            pill={`${ttsOverlay.games.length} Drills`}
+                            pillInk="green"
+                            foot="foot"
+                        >
+                        <div className="vl-tts-header">
+                            <button ref={ttsCloseButtonRef} type="button" aria-label="Close" className="vl-glass-action" onClick={() => setTtsOverlay(null)}>Close</button>
                         </div>
-                        <div style={{ padding: '0 20px 12px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                            <div style={{ width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#111', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                <img src={`https://img.youtube.com/vi/${ttsOverlay.ctx.vid}/mqdefault.jpg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        <div className="vl-tts-video">
+                            <div className="vl-tts-video-media">
+                                <img src={`https://img.youtube.com/vi/${ttsOverlay.ctx.vid}/mqdefault.jpg`} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{ttsOverlay.ctx.title || 'Poker Video'}</div>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 6, padding: '2px 7px' }}>
-                                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#00D4FF' }} />
-                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#FF8888' }}>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
+                            <div className="vl-tts-video-copy">
+                                <strong>{ttsOverlay.ctx.title || 'Poker Video'}</strong>
+                                <div className="vl-tts-source">
+                                    <span>{(ttsOverlay.ctx.source || '').replace(/_/g, ' ')}</span>
                                 </div>
                             </div>
                         </div>
-                        <div style={{ padding: '0 20px 8px' }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>AI-Recommended Drills</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div className="vl-tts-drills">
+                            <div className="vl-tts-label">AI Recommended Drills</div>
+                            <div className="vl-tts-drill-list">
                                 {ttsOverlay.games.map((game, idx) => (
-                                    <button key={game.id} onClick={() => { setTtsOverlay(null); router.push(`/hub/training?autoLaunch=${game.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: idx === 0 ? 'rgba(0,200,83,0.08)' : 'rgba(255,255,255,0.03)', border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.3)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 10, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
-                                        <div style={{ width: 32, height: 32, borderRadius: 7, flexShrink: 0, background: idx === 0 ? 'rgba(0,200,83,0.15)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{game.icon || '🎯'}</div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                <span style={{ fontSize: 12, fontWeight: 700, color: idx === 0 ? '#34C759' : '#fff' }}>{game.name}</span>
-                                                {idx === 0 && <span style={{ fontSize: 8, fontWeight: 800, color: '#34C759', background: 'rgba(0,200,83,0.12)', borderRadius: 5, padding: '1px 5px' }}>BEST MATCH</span>}
+                                    <button key={game.id} data-best-match={idx === 0 ? 'true' : 'false'} onClick={() => { setTtsOverlay(null); router.push(`/hub/training?autoLaunch=${game.id}`); }}>
+                                        <div className="vl-tts-drill-copy">
+                                            <div className="vl-tts-drill-name">
+                                                <span>{game.name}</span>
+                                                {idx === 0 && <em>Best Match</em>}
                                             </div>
-                                            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>{game.focus} · {'★'.repeat(Math.min(game.difficulty || 1, 5))} Difficulty</div>
+                                            <small>{game.focus} / Level {Math.min(game.difficulty || 1, 5)}</small>
                                         </div>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <div style={{ padding: '6px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training?source=video-library'); }} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))', border: '1.5px solid rgba(0,150,255,0.35)', color: '#4DA6FF', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'all 0.15s' }}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+                        <div className="vl-tts-actions">
+                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training?source=video-library'); }}>
                                 Open Verified Training
                             </button>
-                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }} style={{ width: '100%', padding: '8px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Browse All 100 Training Games</button>
+                            <button onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }}>Browse All 100 Training Games</button>
                         </div>
+                        </VideoLibraryConsole>
                     </div>
                 </div>
             )}
-            <style>{`
-                @keyframes tts-sheet-up {
-                    from { transform: translateY(100%); opacity: 0.7; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-            `}</style>
 
         </PageTransition>
         {/* Outside <PageTransition> for the same reason the head is, and

@@ -30,56 +30,120 @@
  *   2. yt-dlp downloads at <=1080p, MP4 container preferred
  *   3. ffmpeg re-encodes to libx264 main + AAC + faststart (web-safe, matches
  *      the cron transcoder's output for visual parity)
- *   4. Upload to social-media bucket at reels/{user_id}/{ts}_{job_id}.mp4
+ *   4. Upload to a claim-scoped social-media object path
  *   5. social_reels.video_url ← public Supabase URL
  *      social_reels.source_type ← 'native'
  *      social_reels.media_status ← 'ready'
  *      video_transcode_jobs.status ← 'completed'
  *
- * On failure: reel stays as YouTube iframe (media_status='failed'),
- * job marked failed with error_message. Zero user-facing impact —
- * the YouTube iframe player keeps working as it always did.
+ * On failure: transient errors leave the explicit native request in place for
+ * bounded recovery. Terminal conversion errors retire that request and keep the
+ * existing YouTube embed; trusted access verdicts own availability fallback.
  *
  * Required env (loaded from /etc/sp-yt-transcode.env on Hetzner):
  *   SUPABASE_SERVICE_ROLE_KEY  — required
- *   NEXT_PUBLIC_SUPABASE_URL   — optional, defaults to production
+ *   NEXT_PUBLIC_SUPABASE_URL   — required, exact project origin
  *   WORKER_ID                  — optional, defaults to hostname
  *   MAX_CONCURRENT_YT          — optional, defaults to 3
  *
- * Required system packages (apt + pip):
+ * Required runtime components:
  *   ffmpeg    (apt install ffmpeg)
  *   python3   (apt install python3)
- *   yt-dlp    (pip3 install --upgrade yt-dlp  OR  apt install yt-dlp)
+ *   yt-dlp    (pinned into this release's vendor/ directory by deployment)
  *   Node.js >= 18
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
+import { constants as fsConstants } from 'node:fs';
 import { mkdtemp, rm, readFile, stat, access } from 'node:fs/promises';
 import { tmpdir, hostname } from 'node:os';
-import { join, dirname } from 'node:path';
+import { dirname, join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const COOKIES_FILE = join(__dirname, 'cookies.txt');
-
 // ─── Config ──────────────────────────────────────────────────────────────────
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SERVICE_KEY) {
-  console.error('[yt-worker] FATAL: missing SUPABASE_SERVICE_ROLE_KEY');
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error('[yt-worker] FATAL: missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
+}
+try {
+  const parsedSupabaseUrl = new URL(SUPABASE_URL);
+  if (
+    parsedSupabaseUrl.protocol !== 'https:'
+    || parsedSupabaseUrl.username
+    || parsedSupabaseUrl.password
+    || parsedSupabaseUrl.port
+    || (parsedSupabaseUrl.pathname && parsedSupabaseUrl.pathname !== '/')
+    || parsedSupabaseUrl.search
+    || parsedSupabaseUrl.hash
+  ) {
+    throw new Error('invalid Supabase origin');
+  }
+} catch (_) {
+  console.error('[yt-worker] FATAL: Supabase URL must be a credential-free HTTPS origin');
+  process.exit(1);
+}
+
+const DATABASE_REQUEST_TIMEOUT_MS = 20_000;
+const CONTROL_REQUEST_TIMEOUT_MS = 4_000;
+const STORAGE_UPLOAD_TIMEOUT_MS = 10 * 60_000;
+const activeStorageUploadControllers = new Set();
+
+function fetchWithDeadline(input, init = {}) {
+  const requestUrl = typeof input === 'string' ? input : input?.url || String(input);
+  const method = String(init.method || input?.method || 'GET').toUpperCase();
+  const isStorageUpload = requestUrl.includes('/storage/v1/object/')
+    && ['POST', 'PUT', 'PATCH'].includes(method);
+  const isControlRequest = requestUrl.includes('/rest/v1/video_reels_pipeline_controls');
+  const timeoutMs = isStorageUpload
+    ? STORAGE_UPLOAD_TIMEOUT_MS
+    : (isControlRequest ? CONTROL_REQUEST_TIMEOUT_MS : DATABASE_REQUEST_TIMEOUT_MS);
+  const controller = new AbortController();
+  const upstreamSignal = init.signal || input?.signal;
+  const abortFromUpstream = () => controller.abort(upstreamSignal?.reason);
+  if (upstreamSignal?.aborted) abortFromUpstream();
+  else upstreamSignal?.addEventListener('abort', abortFromUpstream, { once: true });
+  const timer = setTimeout(
+    () => controller.abort(new Error(`request_timeout_${timeoutMs}ms`)),
+    timeoutMs,
+  );
+  timer.unref?.();
+  if (isStorageUpload) activeStorageUploadControllers.add(controller);
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    clearTimeout(timer);
+    upstreamSignal?.removeEventListener('abort', abortFromUpstream);
+    activeStorageUploadControllers.delete(controller);
+  });
+}
+
+function abortActiveStorageUploads(reason = 'native_control_not_enabled') {
+  for (const controller of activeStorageUploadControllers) {
+    controller.abort(new Error(reason));
+  }
 }
 
 const supa = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
+  global: { fetch: fetchWithDeadline },
 });
 
 const POLL_MS = 60_000;                  // Idle poll interval
 const FAST_POLL_MS = 5_000;              // When jobs are flowing, poll faster
 const STORAGE_BUCKET = 'social-media';
 const WORKER_ID = process.env.WORKER_ID || `hetzner-${hostname()}`;
-const MAX_CONCURRENT_YT = Number(process.env.MAX_CONCURRENT_YT) || 3;
+if (!/^[A-Za-z0-9._:-]{1,80}$/.test(WORKER_ID)) {
+  console.error('[yt-worker] FATAL: WORKER_ID must use 1-80 safe identifier characters');
+  process.exit(1);
+}
+const MAX_CONCURRENT_YT = Number(process.env.MAX_CONCURRENT_YT || 3);
+if (!Number.isInteger(MAX_CONCURRENT_YT) || MAX_CONCURRENT_YT < 1 || MAX_CONCURRENT_YT > 6) {
+  console.error('[yt-worker] FATAL: MAX_CONCURRENT_YT must be an integer from 1 through 6');
+  process.exit(1);
+}
 // 2026-08-15: raised 300s -> 900s as a direct consequence of the
 // player_client fix below. The old budget was sized for the 360p muxed
 // file that was previously the ONLY format on offer (~14 MB). Now that
@@ -91,6 +155,107 @@ const MAX_CONCURRENT_YT = Number(process.env.MAX_CONCURRENT_YT) || 3;
 const YT_DOWNLOAD_TIMEOUT = 900_000;     // 15 min per yt-dlp call
 const FFMPEG_TIMEOUT = 600_000;          // 10 min per re-encode
 const MAX_FILE_SIZE = 500_000_000;       // 500 MB hard cap
+const LEASE_HEARTBEAT_MS = 60_000;
+const CONTROL_WATCH_MS = 5_000;
+const STALE_LEASE_MS = 35 * 60_000;
+const MAX_TRANSIENT_ATTEMPTS = 5;
+const WORKER_ROOT = dirname(fileURLToPath(import.meta.url));
+const VENDORED_YT_DLP_ROOT = join(WORKER_ROOT, 'vendor');
+const PINNED_YT_DLP_VERSION_FILE = join(WORKER_ROOT, 'yt-dlp.version');
+
+// Native copies of YouTube material are an exception, not the default.  The
+// database migration also enforces this for new rows, but the worker must not
+// trust an old queue row, a maintenance sweep, or a service-role caller to
+// have done the right thing.  Every path that can reach yt-dlp re-checks both
+// the queued authorization and the linked Reel's current, explicit request.
+const NATIVE_PROCESSING_RIGHTS = ['owned', 'licensed'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const hasNativeProcessingRights = (rightsStatus) =>
+  NATIVE_PROCESSING_RIGHTS.includes(rightsStatus);
+
+function extractYouTubeVideoId(value) {
+  if (typeof value !== 'string' || value.length > 4096) return null;
+  const trimmed = value.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch (_) {
+    return null;
+  }
+  if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.port) {
+    return null;
+  }
+  const host = parsed.hostname.toLowerCase();
+  let candidate = null;
+  if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) {
+    if (parsed.pathname === '/watch') candidate = parsed.searchParams.get('v');
+    else {
+      const match = parsed.pathname.match(/^\/(?:shorts|embed|live)\/([A-Za-z0-9_-]{11})(?:\/)?$/);
+      candidate = match?.[1] || null;
+    }
+  } else if (host === 'youtu.be') {
+    candidate = parsed.pathname.match(/^\/([A-Za-z0-9_-]{11})(?:\/)?$/)?.[1] || null;
+  } else if (['youtube-nocookie.com', 'www.youtube-nocookie.com'].includes(host)) {
+    candidate = parsed.pathname.match(/^\/embed\/([A-Za-z0-9_-]{11})(?:\/)?$/)?.[1] || null;
+  }
+  return /^[A-Za-z0-9_-]{11}$/.test(candidate || '') ? candidate : null;
+}
+
+const canonicalYouTubeUrl = (videoId) =>
+  `https://www.youtube.com/watch?v=${videoId}`;
+
+function isNativeProcessingAuthorized(job, reel) {
+  const jobYoutubeId = extractYouTubeVideoId(job?.youtube_url);
+  return Boolean(
+    UUID_RE.test(job?.id || '') &&
+    UUID_RE.test(job?.reel_id || '') &&
+    reel &&
+    reel.id === job.reel_id &&
+    UUID_RE.test(job.user_id || '') &&
+    UUID_RE.test(reel.author_id || '') &&
+    UUID_RE.test(reel.source_post_id || '') &&
+    (!job.source_asset_id || UUID_RE.test(job.source_asset_id)) &&
+    (!reel.source_asset_id || UUID_RE.test(reel.source_asset_id)) &&
+    !reel.is_deleted &&
+    reel.native_processing_requested === true &&
+    hasNativeProcessingRights(job.rights_status) &&
+    hasNativeProcessingRights(reel.rights_status) &&
+    job.rights_status === reel.rights_status &&
+    job.user_id === reel.author_id &&
+    job.source_type === 'youtube' &&
+    reel.source_type === 'youtube' &&
+    reel.origin_type !== 'video_library' &&
+    job.origin_type === reel.origin_type &&
+    (job.source_asset_id || null) === (reel.source_asset_id || null) &&
+    jobYoutubeId &&
+    extractYouTubeVideoId(job.source_url) === jobYoutubeId &&
+    extractYouTubeVideoId(reel.video_url) === jobYoutubeId &&
+    extractYouTubeVideoId(reel.original_youtube_url) === jobYoutubeId &&
+    reel.youtube_video_id === jobYoutubeId &&
+    job.canonical_asset_key === `youtube:${jobYoutubeId}` &&
+    reel.canonical_asset_key === `youtube:${jobYoutubeId}`
+  );
+}
+
+async function loadNativeTranscodeControl() {
+  const { data, error } = await supa
+    .from('video_reels_pipeline_controls')
+    .select('control_key, enabled, reason, updated_at')
+    .eq('control_key', 'youtube_native_transcode')
+    .maybeSingle();
+  if (error) {
+    warn('native-transcode control lookup failed:', error.message);
+    return { state: 'indeterminate', reason: 'native_control_lookup_failed', error };
+  }
+  if (!data) {
+    return { state: 'indeterminate', reason: 'native_control_missing' };
+  }
+  if (data.enabled !== true) {
+    return { state: 'denied', reason: 'native_control_disabled' };
+  }
+  return { state: 'enabled' };
+}
 
 let activeJobs = 0;
 let shutdownRequested = false;
@@ -99,17 +264,273 @@ let shutdownRequested = false;
 const log = (...args) => console.log(`[yt-worker ${new Date().toISOString()}]`, ...args);
 const warn = (...args) => console.warn(`[yt-worker ${new Date().toISOString()}]`, ...args);
 
+const JOB_IDENTITY_FIELDS = [
+  'id', 'reel_id', 'user_id', 'youtube_url', 'source_url', 'source_type',
+  'rights_status', 'origin_type', 'source_asset_id', 'canonical_asset_key',
+  'claim_token', 'worker_id', 'locked_at', 'heartbeat_at', 'attempts',
+].join(', ');
+
+const REEL_IDENTITY_FIELDS = [
+  'id', 'author_id', 'rights_status', 'native_processing_requested',
+  'is_deleted', 'source_type', 'origin_type', 'source_asset_id',
+  'canonical_asset_key', 'youtube_video_id', 'video_url',
+  'original_youtube_url', 'source_post_id',
+].join(', ');
+
+const POST_ACK_FIELDS = [
+  'id', 'author_id', 'media_urls', 'playback_type', 'is_deleted',
+  'canonical_asset_key', 'rights_status',
+].join(', ');
+
+async function verifyBundledRuntime() {
+  await Promise.all([
+    access('/usr/bin/python3', fsConstants.X_OK),
+    access('/usr/bin/ffmpeg', fsConstants.X_OK),
+    access(join(VENDORED_YT_DLP_ROOT, 'yt_dlp', '__main__.py'), fsConstants.R_OK),
+  ]);
+  const pinnedVersion = (await readFile(PINNED_YT_DLP_VERSION_FILE, 'utf8')).trim();
+  if (!/^\d{4}\.\d{2}\.\d{2}$/.test(pinnedVersion)) {
+    throw new Error('yt_dlp_version_pin_invalid');
+  }
+  const versionSource = await readFile(
+    join(VENDORED_YT_DLP_ROOT, 'yt_dlp', 'version.py'),
+    'utf8',
+  );
+  const installedVersion = versionSource.match(
+    /^__version__\s*=\s*['"]([^'"]+)['"]/m,
+  )?.[1];
+  if (installedVersion !== pinnedVersion) {
+    throw new Error(`yt_dlp_version_mismatch:${installedVersion || 'missing'}:${pinnedVersion}`);
+  }
+}
+
+async function runStartupPreflight() {
+  await verifyBundledRuntime();
+  const [jobSchema, reelSchema, postSchema, verdictSchema] = await Promise.all([
+    supa.from('video_transcode_jobs').select(JOB_IDENTITY_FIELDS).limit(1),
+    supa.from('social_reels').select(REEL_IDENTITY_FIELDS).limit(1),
+    supa.from('social_posts').select(POST_ACK_FIELDS).limit(1),
+    supa.from('youtube_embed_failures')
+      .select('video_id,verification_status,resolved,last_verified_at')
+      .limit(1),
+  ]);
+  if (jobSchema.error) {
+    throw new Error(`job_schema_preflight_failed:${jobSchema.error.message}`);
+  }
+  if (reelSchema.error) {
+    throw new Error(`reel_schema_preflight_failed:${reelSchema.error.message}`);
+  }
+  if (postSchema.error) {
+    throw new Error(`post_schema_preflight_failed:${postSchema.error.message}`);
+  }
+  if (verdictSchema.error) {
+    throw new Error(`verdict_schema_preflight_failed:${verdictSchema.error.message}`);
+  }
+
+  const control = await loadNativeTranscodeControl();
+  if (control.state === 'indeterminate') {
+    throw new Error(`native_control_preflight_failed:${control.reason}`);
+  }
+
+  // Exercise PostgREST's exact function signature without touching a row. The
+  // RPC validates this deliberately malformed text id before any SELECT/UPDATE
+  // and must answer with SQLSTATE 22023. A missing/stale signature instead
+  // returns a different PostgREST/SQL error and keeps the service from starting.
+  const { error: rpcProbeError } = await supa.rpc(
+    'complete_rights_cleared_youtube_transcode',
+    {
+      p_job_id: 'schema-preflight',
+      p_claim_token: randomUUID(),
+      p_worker_id: WORKER_ID,
+      p_output_url: 'https://invalid.example/schema-preflight.mp4',
+      p_thumbnail_url: null,
+    },
+  );
+  if (!rpcProbeError || String(rpcProbeError.code || '') !== '22023') {
+    throw new Error(
+      `completion_rpc_preflight_failed:${rpcProbeError?.code || 'unexpected_success'}:${rpcProbeError?.message || 'no_error'}`
+    );
+  }
+
+  // Probe the control/claim branch with a syntactically valid but nonexistent
+  // job. This is read-only, yet distinguishes the current kill-switch-aware RPC
+  // from an older same-signature implementation that would pass the shape probe.
+  const { error: behaviorProbeError } = await supa.rpc(
+    'complete_rights_cleared_youtube_transcode',
+    {
+      p_job_id: randomUUID(),
+      p_claim_token: randomUUID(),
+      p_worker_id: WORKER_ID,
+      p_output_url: 'https://invalid.example/schema-preflight.mp4',
+      p_thumbnail_url: null,
+    },
+  );
+  const expectedBehaviorCode = control.state === 'enabled' ? '40001' : '55000';
+  if (String(behaviorProbeError?.code || '') !== expectedBehaviorCode) {
+    throw new Error(
+      `completion_rpc_behavior_preflight_failed:${behaviorProbeError?.code || 'unexpected_success'}:${behaviorProbeError?.message || 'no_error'}`
+    );
+  }
+
+  const { error: verdictProbeError } = await supa.rpc(
+    'record_youtube_embed_failure_verdict',
+    {
+      p_video_id: 'schema-preflight',
+      p_verdict: 'error',
+      p_error_code: null,
+      p_surface: 'yt_transcode_worker_preflight',
+      p_verification_started_at: null,
+    },
+  );
+  if (String(verdictProbeError?.code || '') !== '22023') {
+    throw new Error(
+      `verdict_rpc_preflight_failed:${verdictProbeError?.code || 'unexpected_success'}:${verdictProbeError?.message || 'no_error'}`
+    );
+  }
+
+  return control;
+}
+
+async function loadNativeAuthorization(job) {
+  if (!job?.reel_id || !hasNativeProcessingRights(job.rights_status)) {
+    return { state: 'denied', reason: 'job_rights_or_reel_missing' };
+  }
+
+  const control = await loadNativeTranscodeControl();
+  if (control.state !== 'enabled') return control;
+
+  const { data: reel, error } = await supa
+    .from('social_reels')
+    .select(REEL_IDENTITY_FIELDS)
+    .eq('id', job.reel_id)
+    .maybeSingle();
+
+  if (error) {
+    warn(`rights lookup failed for job ${job.id}:`, error.message);
+    return { state: 'indeterminate', reason: 'reel_lookup_failed', error };
+  }
+  if (!isNativeProcessingAuthorized(job, reel)) {
+    return { state: 'denied', reason: 'job_reel_identity_or_rights_mismatch', reel };
+  }
+  return {
+    state: 'authorized',
+    reel,
+    youtubeId: reel.youtube_video_id,
+    sourceUrl: canonicalYouTubeUrl(reel.youtube_video_id),
+  };
+}
+
+function applyClaimScope(query, job) {
+  let scoped = query.eq('id', job.id);
+  if (job.claim_token) scoped = scoped.eq('claim_token', job.claim_token);
+  if (job.worker_id) scoped = scoped.eq('worker_id', job.worker_id);
+  return scoped;
+}
+
+const DEFINITIVE_COMPLETION_ERROR_CODES = new Set([
+  '22023', '23503', '23514', '40001', '42501', '55000',
+]);
+
+function isDefinitiveCompletionRejection(error) {
+  const code = String(error?.code || '');
+  return DEFINITIVE_COMPLETION_ERROR_CODES.has(code);
+}
+
+function normalizeCompletionUrl(value) {
+  return String(value || '').trim().split(/[?#]/, 1)[0];
+}
+
+async function reconcileCompletionAck(job, outputUrl) {
+  const { data: persistedJob, error: jobError } = await supa
+    .from('video_transcode_jobs')
+    .select('id,reel_id,status,claim_token,worker_id,output_url')
+    .eq('id', job.id)
+    .maybeSingle();
+  if (jobError) return { state: 'indeterminate', error: jobError };
+  if (!persistedJob) return { state: 'rejected', reason: 'job_missing' };
+
+  const exactClaim = persistedJob.claim_token === job.claim_token
+    && persistedJob.worker_id === WORKER_ID;
+  if (
+    persistedJob.status === 'processing'
+    && exactClaim
+  ) return { state: 'pending' };
+  if (
+    persistedJob.status === 'completed'
+    && exactClaim
+    && normalizeCompletionUrl(persistedJob.output_url) === normalizeCompletionUrl(outputUrl)
+    && persistedJob.reel_id === job.reel_id
+  ) {
+    // The completed exact-claim job is the durable commit record. Reel/Post
+    // state is mutable after publication; using it to reject an ACK could make
+    // a stale worker delete the object belonging to a successful publication.
+    return { state: 'committed' };
+  }
+
+  return { state: 'rejected', reason: 'job_state_mismatch' };
+}
+
+async function releaseClaimForRetry(job, reason) {
+  let query = supa.from('video_transcode_jobs').update({
+    status: 'queued',
+    worker_id: null,
+    claim_token: null,
+    locked_at: null,
+    heartbeat_at: new Date().toISOString(),
+    error_message: `retry:${reason}`,
+  }).eq('status', 'processing');
+  query = applyClaimScope(query, job);
+  const { data, error } = await query.select('id').maybeSingle();
+  if (error) warn(`could not release claim for job ${job.id}:`, error.message);
+  return Boolean(!error && data?.id === job.id);
+}
+
+async function cancelUnauthorizedJob(job, stage) {
+  const message = `native_processing_not_authorized:${stage}`;
+  let cancelQuery = supa
+    .from('video_transcode_jobs')
+    .update({
+      status: 'cancelled',
+      completed_at: new Date().toISOString(),
+      error_message: message,
+      worker_id: null,
+      claim_token: null,
+      locked_at: null,
+      heartbeat_at: new Date().toISOString(),
+    })
+    .in('status', ['queued', 'processing', 'running']);
+  cancelQuery = applyClaimScope(cancelQuery, job);
+  const { data: cancelledJob, error } = await cancelQuery
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    warn(`could not cancel unauthorized job ${job.id}:`, error.message);
+    return false;
+  }
+  if (!cancelledJob || cancelledJob.id !== job.id) {
+    warn(`did not cancel stale/lost job claim ${job.id}; linked Reel was left untouched`);
+    return false;
+  }
+
+  // Reel authorization/visibility belongs to the database trigger and trusted
+  // verifier. A worker-side follow-up write would race a concurrent grant or
+  // revocation after this exact job was cancelled.
+  warn(`cancelled unauthorized YouTube native-processing job ${job.id} (${stage})`);
+  return true;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
-// Permanent-failure patterns — yt-dlp exits non-zero and prints one of these.
-// These videos will NEVER succeed regardless of retries. Promote reel to
-// media_status='ready' so it renders as iframe-forever and clears the M4 gate.
+// Terminal conversion patterns. These cannot be fixed by retrying the same
+// native pipeline, so the exact Reel request is retired and its embed retained.
+// Infrastructure exits/timeouts are deliberately absent and use bounded cron
+// recovery instead.
 //
 // 2026-05-07 incident: 187 jobs stacked in 'processing' state with 0
 // completing or failing in 10 min. Diagnosis: worker had been up 24h+
 // since the 2026-05-06 12:52 deploy and accumulated orphaned 'processing'
 // rows from prior restarts (each restart claimed MAX_CONCURRENT_YT=6
 // jobs, crashed before finishing them, jobs stayed in DB processing state).
-// resetStaleProcessing's 10-min threshold should have cleaned them up
+// resetStaleProcessing's then-10-minute threshold should have cleaned them up
 // but the poll loop itself was likely stuck on a hung subprocess.
 //
 // Fix: trigger a fresh deploy to force `systemctl restart sp-yt-transcode`,
@@ -125,20 +546,30 @@ const PERMANENT_PATTERNS = [
   /age-restricted/i,
   /members-only/i,
   /copyright claim/i,
-  /ffmpeg_timeout_/i,
-  // M7.6: caught in deep audit — 8,177 reels were stuck because these
-  // failures hit the worker but weren't classified permanent, so the
-  // broadcast never fanned out 'iframe-forever' to siblings.
   /available to this channel's members/i,           // YouTube channel members-only (different msg from /members-only/)
   /Use --cookies-from-browser or --cookies/i,       // cookie auth required (datacenter IP blocked)
   /from-browser or --cookies for the authentication/i, // alternate phrasing
   /not available in your country/i,                 // region-blocked
   /use a VPN or a proxy server/i,                   // alternate region-block phrasing
-  /yt-dlp_exit_null/i,                              // yt-dlp crashed without exit code — treat permanent, requeue manually if recoverable
   /Sign in to confirm/i,                            // YouTube anti-bot challenge
   /filtered_too_long_or_large/i,                    // yt-dlp --match-filter rejected (>10min or >400MB) — fundamentally unconvertible by this pipeline
+  /raw_too_large_/i,
+  /output_too_large_/i,
 ];
 const isPermanentFailure = (msg) => PERMANENT_PATTERNS.some((rx) => rx.test(msg));
+const ACCESS_RESTRICTED_PATTERNS = [
+  /Video unavailable/i,
+  /This video is private/i,
+  /This video has been removed/i,
+  /removed by the uploader/i,
+  /age-restricted/i,
+  /members-only/i,
+  /available to this channel's members/i,
+  /not available in your country/i,
+  /use a VPN or a proxy server/i,
+];
+const isAccessRestrictedFailure = (msg) =>
+  ACCESS_RESTRICTED_PATTERNS.some((rx) => rx.test(msg));
 
 // ════════════════════════════════════════════════════════════════════════════
 // Atomic claim — UPDATE only succeeds if status is still 'queued', so two
@@ -148,54 +579,167 @@ const isPermanentFailure = (msg) => PERMANENT_PATTERNS.some((rx) => rx.test(msg)
 async function claimJob() {
   const { data: candidates, error } = await supa
     .from('video_transcode_jobs')
-    .select('id, reel_id, user_id, youtube_url, source_url')
+    .select(JOB_IDENTITY_FIELDS)
     .eq('status', 'queued')
     .eq('source_type', 'youtube')
     .order('created_at', { ascending: true })
-    .limit(1);
+    // A bounded batch lets us actively retire legacy/invalid queue rows
+    // instead of letting the oldest bad row starve all eligible work.
+    .limit(25);
 
   if (error) { warn('poll error:', error.message); return null; }
   if (!candidates || candidates.length === 0) return null;
 
-  const candidate = candidates[0];
+  for (const candidate of candidates) {
+    const authorization = await loadNativeAuthorization(candidate);
+    if (authorization.state === 'indeterminate') {
+      continue;
+    }
+    if (authorization.state === 'denied') {
+      await cancelUnauthorizedJob(candidate, `claim:${authorization.reason}`);
+      continue;
+    }
 
-  const { data: claimed, error: claimErr } = await supa
-    .from('video_transcode_jobs')
-    .update({
-      status: 'processing',
-      worker_id: WORKER_ID,
-      started_at: new Date().toISOString(),
-    })
-    .eq('id', candidate.id)
-    .eq('status', 'queued')
-    .select('id, reel_id, user_id, youtube_url, source_url')
-    .maybeSingle();
+    const claimToken = randomUUID();
+    const claimedAt = new Date().toISOString();
+    const { data: claimed, error: claimErr } = await supa
+      .from('video_transcode_jobs')
+      .update({
+        status: 'processing',
+        worker_id: WORKER_ID,
+        claim_token: claimToken,
+        started_at: claimedAt,
+        locked_at: claimedAt,
+        heartbeat_at: claimedAt,
+      })
+      .eq('id', candidate.id)
+      .eq('status', 'queued')
+      .select(JOB_IDENTITY_FIELDS)
+      .maybeSingle();
 
-  if (claimErr) { warn('claim error:', claimErr.message); return null; }
-  return claimed;
+    if (claimErr) { warn('claim error:', claimErr.message); continue; }
+    if (claimed) return claimed;
+  }
+  return null;
+}
+
+async function renewJobLease(job) {
+  const now = new Date().toISOString();
+  let query = supa.from('video_transcode_jobs')
+    .update({ locked_at: now, heartbeat_at: now })
+    .eq('status', 'processing');
+  query = applyClaimScope(query, job);
+  const { data, error } = await query.select('id').maybeSingle();
+  if (error) return { state: 'indeterminate', error };
+  if (!data) return { state: 'lost' };
+  return { state: 'renewed' };
+}
+
+async function revalidateClaimForSideEffect(job, stage) {
+  const lease = await renewJobLease(job);
+  if (lease.state !== 'renewed') {
+    const error = new Error(`transcode_lease_${lease.state}:${stage}`);
+    error.interruptionState = lease.state;
+    throw error;
+  }
+  const authorization = await loadNativeAuthorization(job);
+  if (authorization.state === 'indeterminate') {
+    const error = new Error(`authorization_recheck_indeterminate:${stage}`);
+    error.interruptionState = 'indeterminate';
+    throw error;
+  }
+  if (authorization.state === 'denied') {
+    const disabled = authorization.reason === 'native_control_disabled';
+    const error = new Error(
+      `${disabled ? 'native_control_disabled' : 'authorization_revoked'}:${stage}:${authorization.reason}`
+    );
+    error.interruptionState = disabled ? 'disabled' : 'denied';
+    throw error;
+  }
+  return authorization;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 // Process one job: download → re-encode → upload → DB update
 // ════════════════════════════════════════════════════════════════════════════
 async function processJob(job) {
-  const ytUrl = job.youtube_url || job.source_url;
+  // Defense in depth against rights changing between the queue claim and the
+  // worker slot becoming available.  This is intentionally before mkdtemp and
+  // before the first yt-dlp invocation: unauthorized URLs are never fetched.
+  const initialAuthorization = await loadNativeAuthorization(job);
+  if (initialAuthorization.state === 'indeterminate') {
+    await releaseClaimForRetry(job, initialAuthorization.reason);
+    return;
+  }
+  if (initialAuthorization.state === 'denied') {
+    await cancelUnauthorizedJob(job, `before_download:${initialAuthorization.reason}`);
+    return;
+  }
+
+  // Never pass a queue-controlled URL spelling to yt-dlp. Authorization above
+  // proves one exact ID across job and Reel; this canonical URL is derived
+  // locally from that identity.
+  const ytUrl = initialAuthorization.sourceUrl;
   const dir = await mkdtemp(join(tmpdir(), `yt-${job.id}-`));
   const rawFile = join(dir, 'raw.mp4');
   const outFile = join(dir, 'out.mp4');
+  // Never disclose Supabase credentials to yt-dlp, its JavaScript runtime, or
+  // ffmpeg. A job-private HOME plus ignored configs/plugins also prevents a
+  // retired cookie/POT installation on the host from changing this release.
+  const isolatedSubprocessEnv = {
+    HOME: dir,
+    TMPDIR: dir,
+    PATH: '/usr/bin:/bin',
+    LANG: 'C.UTF-8',
+    LC_ALL: 'C.UTF-8',
+  };
+  let leaseState = 'renewed';
+  let heartbeatInFlight = false;
+  let controlCheckInFlight = false;
+  let storagePath = null;
+  let thumbPath = null;
+  let publicUrl = null;
+  let publicationCommitted = false;
+  let completionAttempted = false;
+  let completionAckAmbiguous = false;
+  let completionRejected = false;
+  let completionErrorCode = null;
+  const controlTimer = setInterval(() => {
+    if (controlCheckInFlight || leaseState !== 'renewed') return;
+    controlCheckInFlight = true;
+    loadNativeTranscodeControl()
+      .then((control) => {
+        if (control.state !== 'enabled') {
+          leaseState = control.reason === 'native_control_disabled' ? 'disabled' : 'indeterminate';
+          abortActiveStorageUploads(`native_transcode_${leaseState}`);
+        }
+      })
+      .catch(() => {
+        leaseState = 'indeterminate';
+        abortActiveStorageUploads('native_transcode_control_indeterminate');
+      })
+      .finally(() => { controlCheckInFlight = false; });
+  }, CONTROL_WATCH_MS);
+  controlTimer.unref?.();
+
+  const heartbeatTimer = setInterval(() => {
+    if (heartbeatInFlight) return;
+    heartbeatInFlight = true;
+    if (leaseState !== 'renewed') {
+      heartbeatInFlight = false;
+      return;
+    }
+    renewJobLease(job)
+      .then((result) => { leaseState = result.state; })
+      .catch(() => { leaseState = 'indeterminate'; })
+      .finally(() => { heartbeatInFlight = false; });
+  }, LEASE_HEARTBEAT_MS);
+  heartbeatTimer.unref?.();
 
   log(`▶ Job ${job.id} — ${ytUrl}`);
 
   try {
     // ── 1. Download via yt-dlp (<=1080p, MP4 preferred) ─────────────────────
-    // Check for camoufox-harvested cookies (written by refresh-yt-cookies.py)
-    const cookiesExist = await access(COOKIES_FILE).then(() => true).catch(() => false);
-    if (cookiesExist) {
-      log(`  Using cookies: ${COOKIES_FILE}`);
-    } else {
-      warn('  No cookies.txt found — downloads may fail on datacenter IPs');
-    }
-
     // QUALITY: pick the BEST overall quality up to 1080p, regardless of codec.
     //
     // Earlier version preferred avc1 (H.264) so we could stream-copy.
@@ -226,58 +770,35 @@ async function processJob(job) {
       '--merge-output-format', 'mp4',
       '--no-playlist',
       '--no-warnings',
+      '--ignore-config',
+      '--no-plugin-dirs',
+      '--no-cache-dir',
       '--restrict-filenames',
-      '--js-runtimes', 'node',
-      '--remote-components', 'ejs:github',
+      '--js-runtimes', 'node:/usr/bin/node',
       '--max-filesize', '400m',          // Abort download if file > 400 MB (before re-encode)
       '--match-filter', 'duration < 600', // Skip videos longer than 10 minutes
-      // 2026-05-12: rotate through bot-detection-resistant clients so a single
-      // cookie-auth failure doesn't kill the whole download. yt-dlp will try
-      // each client in order — tv & web_safari survive most "Sign in to confirm
-      // you're not a bot" walls because YouTube treats those as legacy
-      // embedded surfaces with looser checks. With this set, the vast majority
-      // of downloads succeed even when cookies are stale or anonymous.
-      // 2026-05-12: extractor args bundle — combines three optimizations:
-      //   1. player_client rotation — tv & web_safari treated as legacy
-      //      embedded surfaces by YouTube → looser bot detection.
-      //   2. player_skip=webpage,configs — bypasses the youtube.com HTML
-      //      scrape where most bot detection lives; yt-dlp uses only the
-      //      JSON innertube API, which has materially looser checks.
-      //   3. visitor_data + po_token come from bgutil-pot-provider (installed
-      //      as a systemd service on the same Hetzner host via
-      //      scripts/yt-transcode-worker/install-pot-provider.sh). The yt-dlp
-      //      plugin (bgutil-ytdlp-pot-provider) auto-discovers the local
-      //      HTTP service on :4416 and injects fresh tokens per request.
-      //      No Google login required. No cookies required for ~95% of
-      //      videos. Only age-restricted content still needs the cookie
-      //      keep-alive path (PR #521).
-      // 2026-08-15: THIS LINE WAS THE 360p BUG.
-      //
-      // The pinned client set (tv, web_safari, mweb, web_embedded) plus
-      // player_skip=webpage,configs made YouTube return exactly ONE format
-      // for our videos: itag 18, 640x360 muxed. Not "prefer" it — it was the
-      // only entry in the list, so `bv*[height<=1080]+ba` had nothing better
-      // to choose and every ingest landed at 360p (202x360 for shorts).
-      // That is why the feed looked grainy: the stored MP4s really were
-      // 360p, and the posters, extracted at native resolution, inherited it.
-      //
-      // Verified on the worker box against the same video, same cookies:
-      //   player_client=tv,web_safari,mweb,web_embedded -> 18  640x360  (only)
-      //   player_client=default                         -> up to 3840x2160
-      //
-      // The bot-detection workaround those clients existed for is now
-      // carried by the cookie jar plus the bgutil PO-token provider
-      // (bgutil-pot.service on :4416, plugin bgutil:http-1.3.1 confirmed
-      // loaded), so the restricted clients are no longer buying us anything
-      // except a 360p ceiling. SCALE_1080P below still caps output at 1080p.
+      // Keep the default public extractor surface. The former cookie-harvester
+      // and local proof-token services were retired; account-authenticated or
+      // access-restricted videos fail closed instead of being scraped.
       '--extractor-args', 'youtube:player_client=default',
     ];
-    if (cookiesExist) {
-      ytdlpArgs.push('--cookies', COOKIES_FILE);
-    }
     ytdlpArgs.push('-o', rawFile, ytUrl);
 
-    await runProcess('yt-dlp', ytdlpArgs, YT_DOWNLOAD_TIMEOUT);
+    await runProcess(
+      '/usr/bin/python3',
+      ['-m', 'yt_dlp', ...ytdlpArgs],
+      YT_DOWNLOAD_TIMEOUT,
+      () => leaseState,
+      {
+        env: {
+          ...isolatedSubprocessEnv,
+          PYTHONPATH: VENDORED_YT_DLP_ROOT,
+          PYTHONNOUSERSITE: '1',
+          PYTHONDONTWRITEBYTECODE: '1',
+        },
+        label: 'yt-dlp',
+      },
+    );
 
     // --match-filter exits with code 0 but creates no file when video is filtered
     //
@@ -291,9 +812,8 @@ async function processJob(job) {
     // jobs were stuck in this loop with 0 forward progress in 2+ hours.
     //
     // Fix: throw an Error with a unique pattern that PERMANENT_PATTERNS
-    // matches. The catch block below sets status='failed' (allowed) AND
-    // broadcasts iframe-forever to all sibling reels with the same URL.
-    // Net result: long-video reels become permanent iframes, no stuck rows.
+    // matches. The catch block first owns the exact job failure, then retires
+    // only that still-matching native request back to its source embed.
     const rawExists = await access(rawFile).then(() => true).catch(() => false);
     if (!rawExists) {
       throw new Error('filtered_too_long_or_large: yt-dlp --match-filter rejected (duration ≥ 600s or size > 400m)');
@@ -322,7 +842,7 @@ async function processJob(job) {
     // ffmpeg timeout per job → comfortable headroom even for outliers.
     const SCALE_1080P =
       "scale='if(gt(iw,ih), min(1920,iw), -2)':'if(gt(iw,ih), -2, min(1920,ih))'";
-    await runProcess('ffmpeg', [
+    await runProcess('/usr/bin/ffmpeg', [
       '-y', '-hide_banner', '-loglevel', 'error',
       '-i', rawFile,
       '-vf', SCALE_1080P,
@@ -331,10 +851,18 @@ async function processJob(job) {
       '-c:a', 'aac', '-b:a', '192k',
       '-movflags', '+faststart',
       outFile,
-    ], FFMPEG_TIMEOUT);
+    ], FFMPEG_TIMEOUT, () => leaseState, { env: isolatedSubprocessEnv, label: 'ffmpeg' });
 
     const outStat = await stat(outFile);
+    if (outStat.size > MAX_FILE_SIZE) {
+      throw new Error(`output_too_large_${outStat.size}_bytes`);
+    }
     log(`  Re-encoded HQ → ${(outStat.size / 1_048_576).toFixed(1)} MB`);
+
+    // Rights are mutable.  Re-attest immediately before writing a native
+    // object or changing public playback, so a revoked request cannot race a
+    // long download/re-encode.
+    await revalidateClaimForSideEffect(job, 'before_thumbnail_extraction');
 
     // ── 3. Extract thumbnail (1s frame) ─────────────────────────────────────
     // Pull from rawFile (yt-dlp's pristine source) NOT outFile — avoids
@@ -343,19 +871,20 @@ async function processJob(job) {
     const thumbFile = join(dir, 'thumb.jpg');
     let thumbUrl = null;
     try {
-      await runProcess('ffmpeg', [
+      await runProcess('/usr/bin/ffmpeg', [
         '-y', '-hide_banner', '-loglevel', 'error',
         '-ss', '1',
         '-i', rawFile,
         '-vframes', '1',
         '-q:v', '2',
         thumbFile,
-      ], 30_000);
+      ], 30_000, () => leaseState, { env: isolatedSubprocessEnv, label: 'ffmpeg' });
       const thumbBuf = await readFile(thumbFile);
-      const thumbPath = `reels/thumbs/${job.user_id}/${Date.now()}_${job.id}.jpg`;
+      await revalidateClaimForSideEffect(job, 'thumbnail_upload');
+      thumbPath = `reels/thumbs/${job.user_id}/youtube-${job.id}-${job.claim_token}.jpg`;
       const { error: thumbErr } = await supa.storage
         .from(STORAGE_BUCKET)
-        .upload(thumbPath, thumbBuf, { contentType: 'image/jpeg', upsert: true });
+        .upload(thumbPath, thumbBuf, { contentType: 'image/jpeg', upsert: false });
       if (thumbErr) {
         warn(`  thumbnail upload warn:`, thumbErr.message);
       } else {
@@ -364,129 +893,97 @@ async function processJob(job) {
         log(`  Thumbnail → ${thumbUrl}`);
       }
     } catch (thumbEx) {
+      if (thumbEx?.interruptionState) throw thumbEx;
       warn(`  thumbnail extract skipped: ${thumbEx.message}`);
     }
 
     // ── 4. Upload video to social-media bucket ───────────────────────────────
-    const storagePath = `reels/${job.user_id}/${Date.now()}_${job.id}.mp4`;
+    storagePath = `reels/${job.user_id}/youtube-${job.id}-${job.claim_token}.mp4`;
     const fileBuf = await readFile(outFile);
+    // Reading a near-limit output into memory can overlap a control change. Do
+    // the side-effect guard after that read so a disabled watcher cannot be
+    // followed by the start of a new upload that it did not get a chance to
+    // abort. The watcher still aborts an upload if the switch changes after
+    // this final pre-upload attestation.
+    await revalidateClaimForSideEffect(job, 'video_upload');
     const { error: upErr } = await supa.storage
       .from(STORAGE_BUCKET)
       .upload(storagePath, fileBuf, {
         contentType: 'video/mp4',
-        upsert: true,
+        upsert: false,
         cacheControl: '3600',
       });
     if (upErr) throw upErr;
 
     const { data: pub } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
-    const publicUrl = pub.publicUrl;
+    publicUrl = pub.publicUrl;
 
-    // ── 5. Flip the reel: youtube → native ──────────────────────────────────
-    if (job.reel_id) {
-      const reelUpdate = {
-        video_url: publicUrl,
-        source_type: 'native',
-        media_status: 'ready',
-      };
-      if (thumbUrl) reelUpdate.thumbnail_url = thumbUrl;
-      const { error: reelErr } = await supa.from('social_reels').update(reelUpdate).eq('id', job.reel_id);
-      if (reelErr) warn(`  reel update warn (job ${job.id}):`, reelErr.message);
-
-      // M7: also rewrite the source social_posts.media_urls[0] so the main
-      // social feed (and any other reader of social_posts) gets the native
-      // URL. Without this, the same content shows twice in the Reels feed:
-      // once as the converted reel, once as the still-iframe post.
-      // Wrapped in a tolerant try/catch — failures here MUST NOT mark the
-      // whole job failed (the reel side already succeeded).
-      try {
-        const { data: reelRow } = await supa.from('social_reels')
-          .select('source_post_id, thumbnail_url')
-          .eq('id', job.reel_id).maybeSingle();
-        if (reelRow?.source_post_id) {
-          const { data: postRow } = await supa.from('social_posts')
-            .select('media_urls, thumbnail_url, original_media_url')
-            .eq('id', reelRow.source_post_id).maybeSingle();
-          if (postRow) {
-            const existingArr = Array.isArray(postRow.media_urls) ? postRow.media_urls : [];
-            const updatePayload = {
-              media_urls: [publicUrl, ...existingArr.slice(1)],
-              original_media_url: postRow.original_media_url || existingArr[0] || null,
-            };
-            if (!postRow.thumbnail_url && reelRow.thumbnail_url) {
-              updatePayload.thumbnail_url = reelRow.thumbnail_url;
-            }
-            const { error: postErr } = await supa.from('social_posts')
-              .update(updatePayload).eq('id', reelRow.source_post_id);
-            if (postErr) warn(`  post sync warn (job ${job.id}):`, postErr.message);
-            else log(`  ↳ synced social_posts.media_urls[0] for post ${reelRow.source_post_id}`);
-          }
-        }
-      } catch (syncErr) {
-        warn(`  syncPostFromReel skipped (job ${job.id}):`, syncErr?.message);
-      }
-
-      // M7.1: BROADCAST — multiple horses can post the same YouTube clip,
-      // landing as N social_reels rows with the same video_url. The trigger
-      // (m7_1) cancels redundant jobs so we convert each unique URL once.
-      // Now we fan the conversion result out to ALL sibling reels (same
-      // original_youtube_url, different reel id) and their source_posts.
-      const sourceYtUrl = job.youtube_url || job.source_url;
-      if (sourceYtUrl) {
-        try {
-          // Update sibling reels — use original_youtube_url which the trigger
-          // populated and which never gets rewritten by the worker (only
-          // video_url flips). Excludes the reel we just updated above.
-          const { data: siblings, error: sibErr } = await supa
-            .from('social_reels')
-            .update({
-              video_url: publicUrl,
-              source_type: 'native',
-              media_status: 'ready',
-              ...(thumbUrl ? { thumbnail_url: thumbUrl } : {}),
-            })
-            .eq('original_youtube_url', sourceYtUrl)
-            .neq('id', job.reel_id)
-            .select('id, source_post_id');
-          if (sibErr) {
-            warn(`  sibling broadcast warn (job ${job.id}):`, sibErr.message);
-          } else if (siblings?.length) {
-            log(`  ↳ broadcast native URL to ${siblings.length} sibling reel(s)`);
-
-            // Sync each sibling's source_post in one batch — pull all rows,
-            // rewrite media_urls[0], write back. ~10ms per sibling.
-            const sourcePostIds = siblings.map(s => s.source_post_id).filter(Boolean);
-            if (sourcePostIds.length) {
-              const { data: siblingPosts } = await supa.from('social_posts')
-                .select('id, media_urls, thumbnail_url, original_media_url')
-                .in('id', sourcePostIds);
-              for (const sp of (siblingPosts || [])) {
-                const arr = Array.isArray(sp.media_urls) ? sp.media_urls : [];
-                const payload = {
-                  media_urls: [publicUrl, ...arr.slice(1)],
-                  original_media_url: sp.original_media_url || arr[0] || null,
-                };
-                if (!sp.thumbnail_url && thumbUrl) payload.thumbnail_url = thumbUrl;
-                await supa.from('social_posts').update(payload).eq('id', sp.id);
-              }
-              log(`  ↳ broadcast native URL to ${siblingPosts?.length || 0} sibling post(s)`);
-            }
-          }
-        } catch (broadcastErr) {
-          warn(`  sibling broadcast skipped (job ${job.id}):`, broadcastErr?.message);
-        }
-      }
-    } else {
-      warn(`  Job ${job.id} has no reel_id — video uploaded but no reel linked`);
+    // ── 5. Atomically publish Reel + post + job ─────────────────────────────
+    const completionAuthorization = await revalidateClaimForSideEffect(job, 'completion');
+    completionAttempted = true;
+    const completionResultIsExact = (rows) => Array.isArray(rows)
+      && rows.length === 1
+      && rows[0].transcode_job_id === job.id
+      && rows[0].social_reel_id === job.reel_id
+      && rows[0].social_post_id === completionAuthorization.reel.source_post_id;
+    let { data: completionRows, error: completionError } = await supa.rpc(
+      'complete_rights_cleared_youtube_transcode',
+      {
+        p_job_id: job.id,
+        p_claim_token: job.claim_token,
+        p_worker_id: WORKER_ID,
+        p_output_url: publicUrl,
+        p_thumbnail_url: thumbUrl,
+      },
+    );
+    let completionConfirmed = completionResultIsExact(completionRows);
+    if (!completionConfirmed && !isDefinitiveCompletionRejection(completionError)) {
+      // A transport response can disappear after the database committed. The
+      // RPC is replay-safe for this exact claim/output, so one retry is an ACK
+      // reconciliation and cannot publish twice.
+      const replay = await supa.rpc(
+        'complete_rights_cleared_youtube_transcode',
+        {
+          p_job_id: job.id,
+          p_claim_token: job.claim_token,
+          p_worker_id: WORKER_ID,
+          p_output_url: publicUrl,
+          p_thumbnail_url: thumbUrl,
+        },
+      );
+      completionRows = replay.data;
+      completionError = replay.error;
+      completionConfirmed = completionResultIsExact(completionRows);
     }
-
-    // ── 6. Mark job done ────────────────────────────────────────────────────
-    await supa.from('video_transcode_jobs').update({
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      output_url: publicUrl,
-      error_message: null,
-    }).eq('id', job.id);
+    if (!completionConfirmed) {
+      completionErrorCode = String(completionError?.code || '') || null;
+      const reconciliation = await reconcileCompletionAck(job, publicUrl);
+      if (reconciliation.state === 'committed') {
+        // The exact completed job is the durable commit record even if its
+        // mutable Reel/Post were edited before an ACK replay reached us.
+        completionConfirmed = true;
+        completionError = null;
+      } else if (reconciliation.state === 'rejected') {
+        // Claim-token-scoped object paths make cleanup safe when another claim
+        // owns the job or the database definitively rejected this attempt.
+        completionRejected = true;
+      } else if (
+        isDefinitiveCompletionRejection(completionError)
+        && reconciliation.state === 'pending'
+      ) {
+        completionRejected = true;
+      } else {
+        completionAckAmbiguous = true;
+      }
+    }
+    if (!completionConfirmed) {
+      const failure = new Error(
+        `atomic_transcode_completion_failed:${completionError?.message || (completionAckAmbiguous ? 'ack_ambiguous' : 'unconfirmed_result')}`
+      );
+      failure.code = completionErrorCode;
+      throw failure;
+    }
+    publicationCommitted = true;
 
     log(`✓ Job ${job.id} → ${publicUrl}`);
 
@@ -495,46 +992,174 @@ async function processJob(job) {
     warn(`✗ Job ${job.id} failed: ${msg}`);
 
     const permanent = isPermanentFailure(msg);
-
-    if (job.reel_id) {
-      try {
-        await supa.from('social_reels')
-          .update({ media_status: permanent ? 'ready' : 'failed' })
-          .eq('id', job.reel_id);
-      } catch (_) {}
-
-      // M7.1: BROADCAST FAILURE — when a video is permanently unconvertible
-      // (private/removed/age-restricted/...), every sibling reel sharing the
-      // same source URL is also unconvertible. Set them all to iframe-forever
-      // so they don't stay stuck in 'queued' state with no job to claim them.
-      if (permanent) {
-        const sourceYtUrl = job.youtube_url || job.source_url;
-        if (sourceYtUrl) {
-          try {
-            const { data: siblings } = await supa.from('social_reels')
-              .update({ media_status: 'ready' })
-              .eq('original_youtube_url', sourceYtUrl)
-              .neq('id', job.reel_id)
-              .in('media_status', ['queued', 'processing', 'failed'])
-              .select('id');
-            if (siblings?.length) {
-              log(`  ↳ broadcast iframe-forever to ${siblings.length} sibling reel(s) (permanent failure)`);
-            }
-          } catch (_) {}
-        }
+    const accessRestricted = isAccessRestrictedFailure(msg);
+    const retryBudgetExhausted = Number(job.attempts || 0) >= MAX_TRANSIENT_ATTEMPTS;
+    const terminal = permanent || retryBudgetExhausted;
+    const objectPaths = [storagePath, thumbPath].filter(Boolean);
+    const cleanupClaimObjects = async () => {
+      if (!objectPaths.length) return true;
+      const { error: cleanupError } = await supa.storage
+        .from(STORAGE_BUCKET)
+        .remove(objectPaths);
+      if (cleanupError) {
+        warn(`  orphan cleanup failed for job ${job.id}:`, cleanupError.message);
+        return false;
       }
+      return true;
+    };
+
+    if (completionAckAmbiguous) {
+      const released = await releaseClaimForRetry(job, 'completion_ack_ambiguous');
+      if (released) await cleanupClaimObjects();
+      warn(
+        `  completion ACK remains ambiguous for job ${job.id}; ` +
+        (released
+          ? 'the exact claim was requeued and its claim-scoped objects were retired'
+          : 'claim-scoped objects were preserved for database reconciliation')
+      );
+      return;
     }
+
+    const interruptionState = err?.interruptionState
+      || (!completionAttempted && leaseState !== 'renewed' ? leaseState : null);
+    if (interruptionState === 'disabled' || completionErrorCode === '55000') {
+      await cleanupClaimObjects();
+      await cancelUnauthorizedJob(job, 'native_control_disabled');
+      return;
+    }
+    if (interruptionState === 'denied') {
+      await cleanupClaimObjects();
+      await cancelUnauthorizedJob(job, 'rights_or_identity_revoked');
+      return;
+    }
+    if (interruptionState === 'indeterminate') {
+      await cleanupClaimObjects();
+      await releaseClaimForRetry(job, 'authorization_recheck_indeterminate');
+      return;
+    }
+    if (interruptionState === 'lost') {
+      await cleanupClaimObjects();
+      warn(`  claim ${job.claim_token} is no longer current; Reel state was left untouched`);
+      return;
+    }
+
+    if (!publicationCommitted && (!completionAttempted || completionRejected)) {
+      await cleanupClaimObjects();
+    }
+
+    // Establish ownership of the failure before touching the linked Reel. A
+    // stale worker that lost its claim must never overwrite a newer claim's
+    // playback state.
+    let jobFailureConfirmed = false;
     try {
-      await supa.from('video_transcode_jobs').update({
+      let failureQuery = supa.from('video_transcode_jobs').update({
         status: 'failed',
         completed_at: new Date().toISOString(),
         error_message: msg,
-      }).eq('id', job.id);
-    } catch (_) {}
+        locked_at: null,
+        heartbeat_at: new Date().toISOString(),
+      }).eq('status', 'processing');
+      failureQuery = applyClaimScope(failureQuery, job);
+      const { data: failedJob, error: failureError } = await failureQuery
+        .select('id')
+        .maybeSingle();
+      if (failureError) throw failureError;
+      jobFailureConfirmed = Boolean(failedJob?.id);
+      if (!jobFailureConfirmed) {
+        warn(`  Job ${job.id} failure state was not changed; claim may have moved`);
+        return;
+      }
+    } catch (failureError) {
+      warn(`  Job ${job.id} failure update failed:`, failureError?.message);
+      return;
+    }
 
-    if (permanent) log(`  (permanent — reel ${job.reel_id} kept as iframe-forever)`);
+    // A transient conversion failure must not touch media_status: the Reel
+    // trigger treats such an update as a fresh queue request and would bypass
+    // the attempts cap. A terminal failure retires only the exact current
+    // request. Trusted access verdicts additionally perform their atomic
+    // all-sibling fallback inside record_youtube_embed_failure_verdict.
+    let terminalFallbackConfirmed = !terminal || !job.reel_id;
+    if (terminal && job.reel_id) {
+      try {
+        const fallbackAuthorization = await loadNativeAuthorization(job);
+        if (fallbackAuthorization.state !== 'authorized') {
+          warn(`  Reel ${job.reel_id} terminal fallback skipped: authorization is ${fallbackAuthorization.state}`);
+        } else {
+          const currentReel = fallbackAuthorization.reel;
+          let fallbackQuery = supa
+          .from('social_reels')
+          .update({
+            media_status: 'ready',
+            native_processing_requested: false,
+          })
+          .eq('id', job.reel_id)
+          .eq('author_id', job.user_id)
+          .eq('source_type', 'youtube')
+          .eq('rights_status', job.rights_status)
+          .eq('native_processing_requested', true)
+          .eq('youtube_video_id', fallbackAuthorization.youtubeId)
+          .eq('canonical_asset_key', job.canonical_asset_key)
+          .eq('video_url', currentReel.video_url)
+          .eq('original_youtube_url', currentReel.original_youtube_url)
+          .eq('source_post_id', currentReel.source_post_id)
+          .in('media_status', ['queued', 'processing', 'failed']);
+          fallbackQuery = job.origin_type === null || job.origin_type === undefined
+            ? fallbackQuery.is('origin_type', null)
+            : fallbackQuery.eq('origin_type', job.origin_type);
+          fallbackQuery = currentReel.is_deleted === null || currentReel.is_deleted === undefined
+            ? fallbackQuery.is('is_deleted', null)
+            : fallbackQuery.eq('is_deleted', currentReel.is_deleted);
+          fallbackQuery = job.source_asset_id === null || job.source_asset_id === undefined
+            ? fallbackQuery.is('source_asset_id', null)
+            : fallbackQuery.eq('source_asset_id', job.source_asset_id);
+          const { data: fallbackReel, error: fallbackError } = await fallbackQuery
+            .select('id')
+            .maybeSingle();
+          if (fallbackError) throw fallbackError;
+          terminalFallbackConfirmed = Boolean(fallbackReel?.id);
+          if (!terminalFallbackConfirmed) {
+            warn(`  Reel ${job.reel_id} terminal fallback lost its identity compare-and-set`);
+          }
+        }
+      } catch (fallbackError) {
+        warn(`  Reel ${job.reel_id} terminal fallback failed:`, fallbackError?.message);
+      }
+    }
 
+    let verdictConfirmed = !accessRestricted;
+    if (accessRestricted) {
+      try {
+        const { data: verdictRows, error: verdictError } = await supa.rpc('record_youtube_embed_failure_verdict', {
+          p_video_id: extractYouTubeVideoId(job.youtube_url),
+          p_verdict: /private|members-only|channel's members/i.test(msg) ? 'private' : 'restricted',
+          p_error_code: /private|removed|unavailable/i.test(msg) ? 100 : 150,
+          p_surface: 'yt_transcode_worker',
+          p_verification_started_at: null,
+        });
+        if (verdictError) throw verdictError;
+        verdictConfirmed = Array.isArray(verdictRows)
+          && verdictRows.length === 1
+          && verdictRows[0].verification_status === 'confirmed'
+          && verdictRows[0].resolved === false;
+        if (!verdictConfirmed) throw new Error('failure verdict was not confirmed');
+      } catch (verdictError) {
+        warn(`  YouTube failure verdict failed for job ${job.id}:`, verdictError?.message);
+      }
+    }
+
+    if (accessRestricted && terminalFallbackConfirmed && verdictConfirmed && jobFailureConfirmed) {
+      log(`  (access restricted — trusted verdict confirmed and canonical fallback applied)`);
+    } else if (accessRestricted) {
+      warn(`  access-restriction handling incomplete for job ${job.id}; reconciliation required`);
+    }
+    else if (terminal && terminalFallbackConfirmed) {
+      log(`  (${permanent ? 'terminal conversion failure' : 'transient retry budget exhausted'} — source embed retained)`);
+    }
+    else if (terminal) warn(`  terminal fallback incomplete for job ${job.id}; reconciliation required`);
   } finally {
+    clearInterval(controlTimer);
+    clearInterval(heartbeatTimer);
     try { await rm(dir, { recursive: true, force: true }); } catch (_) {}
   }
 }
@@ -562,1053 +1187,186 @@ async function tick() {
 // Generic process runner — captures stderr tail in the rejected error so
 // failures are diagnosable from journalctl without repro.
 // ════════════════════════════════════════════════════════════════════════════
-function runProcess(cmd, args, timeoutMs) {
+function runProcess(cmd, args, timeoutMs, shouldContinue = null, options = {}) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(cmd, args);
+    const { label = cmd, ...spawnOptions } = options;
+    const detached = process.platform !== 'win32';
+    const proc = spawn(cmd, args, { ...spawnOptions, detached });
     let stderrTail = '';
+    let settled = false;
+    let terminationError = null;
+    let timeoutTimer = null;
+    let authorizationTimer = null;
+    let forceKillTimer = null;
+    const finish = (error = null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutTimer);
+      clearTimeout(forceKillTimer);
+      if (authorizationTimer) clearInterval(authorizationTimer);
+      if (error) reject(error);
+      else resolve();
+    };
+    const signalProcessTree = (signal) => {
+      try {
+        if (detached && proc.pid) process.kill(-proc.pid, signal);
+        else proc.kill(signal);
+      } catch (error) {
+        if (error?.code !== 'ESRCH') warn(`${label} ${signal} failed:`, error?.message);
+      }
+    };
+    const terminate = (error) => {
+      if (terminationError || settled) return;
+      terminationError = error;
+      signalProcessTree('SIGTERM');
+      forceKillTimer = setTimeout(() => signalProcessTree('SIGKILL'), 5_000);
+      forceKillTimer.unref?.();
+    };
     proc.stderr.on('data', (d) => {
       const s = d.toString();
       stderrTail = (stderrTail + s).slice(-1000);
     });
-    proc.on('error', (err) => reject(new Error(`${cmd}_spawn_${err.code || err.message}`)));
+    proc.on('error', (err) => finish(new Error(`${label}_spawn_${err.code || err.message}`)));
     proc.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${cmd}_exit_${code}: ${stderrTail.slice(-300)}`));
+      if (terminationError) finish(terminationError);
+      else if (code === 0) finish();
+      else finish(new Error(`${label}_exit_${code}: ${stderrTail.slice(-300)}`));
     });
-    const timer = setTimeout(() => {
-      proc.kill('SIGTERM');
-      reject(new Error(`${cmd}_timeout_${timeoutMs / 1000}s`));
+    timeoutTimer = setTimeout(() => {
+      terminate(new Error(`${label}_timeout_${timeoutMs / 1000}s`));
     }, timeoutMs);
-    proc.on('close', () => clearTimeout(timer));
+    authorizationTimer = typeof shouldContinue === 'function'
+      ? setInterval(() => {
+        let continuation;
+        try {
+          continuation = shouldContinue();
+        } catch (_) {
+          continuation = 'indeterminate';
+        }
+        if (continuation !== true && continuation !== 'renewed') {
+          const interruptionState = typeof continuation === 'string'
+            ? continuation
+            : 'denied';
+          const error = new Error(`${label}_interrupted_${interruptionState}`);
+          error.interruptionState = interruptionState;
+          terminate(error);
+        }
+      }, 2_000)
+      : null;
+    authorizationTimer?.unref?.();
   });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Stale-processing reset — clears ANY 'processing' YouTube job that has been
-// stuck for >10 minutes, regardless of which worker claimed it. Called at
+// Stale-processing reset requeues only a claim whose renewable lease has been
+// silent longer than the full 15m download + 10m encode budget. Called at
 // startup (worker_startup) AND on every poll tick (periodic_stale_reset) so
 // orphans from crashed workers / previous deploys are never permanent zombies.
 // ════════════════════════════════════════════════════════════════════════════
 async function resetStaleProcessing(reason = 'periodic_stale_reset') {
+  const staleBefore = new Date(Date.now() - STALE_LEASE_MS).toISOString();
   const { data, error } = await supa.from('video_transcode_jobs')
-    .update({
-      status: 'queued',
-      worker_id: null,
-      started_at: null,
-      error_message: reason,
-    })
+    .select(JOB_IDENTITY_FIELDS)
     .eq('status', 'processing')
     .eq('source_type', 'youtube')
-    .lt('started_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
-    .select('reel_id');
+    .lt('locked_at', staleBefore)
+    .limit(100);
 
   if (error) { warn('stale reset error:', error.message); return; }
   if (!data?.length) return;
 
-  log(`Reset ${data.length} stale 'processing' row(s) (${reason})`);
-
-  const reelIds = data.map((r) => r.reel_id).filter(Boolean);
-  if (reelIds.length) {
-    await supa.from('social_reels')
-      .update({ media_status: 'queued' })
-      .in('id', reelIds);
+  let requeued = 0;
+  let cancelled = 0;
+  for (const job of data) {
+    const authorization = await loadNativeAuthorization(job);
+    if (authorization.state === 'indeterminate') {
+      warn(`stale reset deferred job ${job.id}: authorization is indeterminate`);
+      continue;
+    }
+    if (authorization.state === 'denied') {
+      await cancelUnauthorizedJob(job, `${reason}:${authorization.reason}`);
+      cancelled++;
+      continue;
+    }
+    let requeueQuery = supa.from('video_transcode_jobs')
+      .update({
+        status: 'queued',
+        worker_id: null,
+        claim_token: null,
+        started_at: null,
+        locked_at: null,
+        heartbeat_at: new Date().toISOString(),
+        error_message: reason,
+      })
+      .eq('status', 'processing')
+      .eq('locked_at', job.locked_at)
+      .lt('locked_at', staleBefore);
+    requeueQuery = applyClaimScope(requeueQuery, job);
+    const { data: requeuedJob, error: requeueError } = await requeueQuery
+      .select('id')
+      .maybeSingle();
+    if (requeueError) {
+      warn(`stale reset failed for job ${job.id}:`, requeueError.message);
+      continue;
+    }
+    if (requeuedJob?.id === job.id) requeued++;
   }
+  log(`Reset ${requeued} stale authorized row(s); cancelled ${cancelled} unauthorized row(s) (${reason})`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Orphaned-queued sweep — finds reels stuck in media_status='queued' for
-// over 5 minutes with no live transcode job. This happens when:
-//   - A bulk SQL UPDATE moved reels to 'queued' but the queue trigger only
-//     fires on INSERT, so no jobs were created.
-//   - A previous job's permanent-failure broadcast went stale.
-//   - Manual ops re-queues that didn't go through the INSERT path.
-//
-// One-shot recovery: INSERT a fresh transcode job per distinct URL
-// (deduped via the partial unique index). The worker picks them up on
-// the next claim cycle.
-//
-// Throttled to once / ORPHAN_SWEEP_INTERVAL_MS (5 min). Cheap query;
-// safe to run every tick if needed.
-// ════════════════════════════════════════════════════════════════════════════
-const ORPHAN_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
-let lastOrphanSweepAt = 0;
-
-async function orphanedQueuedSweep() {
-  if (Date.now() - lastOrphanSweepAt < ORPHAN_SWEEP_INTERVAL_MS) return;
-  lastOrphanSweepAt = Date.now();
-
-  // Find reels that have been 'queued' >5 min but have no live job for
-  // their video_url (delay prevents thrashing on legitimate insert races).
-  const minAgeIso = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-  const { data: orphans } = await supa.from('social_reels')
-    .select('id, author_id, video_url, updated_at')
-    .eq('media_status', 'queued')
-    .eq('source_type', 'youtube')
-    .ilike('video_url', '%youtube%')
-    .lt('updated_at', minAgeIso)
-    .limit(500);
-  if (!orphans?.length) return;
-
-  // Batch-fetch live jobs for those URLs in one query
-  const urls = Array.from(new Set(orphans.map((o) => o.video_url)));
-  const { data: liveJobs } = await supa.from('video_transcode_jobs')
-    .select('youtube_url')
-    .eq('source_type', 'youtube')
-    .in('youtube_url', urls)
-    .in('status', ['queued', 'processing', 'completed']);
-  const haveLiveJob = new Set((liveJobs || []).map((j) => j.youtube_url));
-
-  // Filter to actual orphans (no live job for their URL)
-  const trulyOrphaned = orphans.filter((o) => !haveLiveJob.has(o.video_url));
-  if (!trulyOrphaned.length) {
-    log(`orphan-sweep: ${orphans.length} candidates checked, all have live jobs (no action)`);
-    return;
-  }
-
-  log(`orphan-sweep: ${trulyOrphaned.length} reel(s) without live job — inserting jobs`);
-
-  // INSERT one job per distinct URL, tolerate unique-violation races
-  const seen = new Set();
-  let inserted = 0;
-  let skipped = 0;
-  for (const o of trulyOrphaned) {
-    if (seen.has(o.video_url)) continue;
-    seen.add(o.video_url);
-
-    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
-      reel_id: o.id, user_id: o.author_id,
-      source_url: o.video_url,
-      youtube_url: o.video_url,
-      source_type: 'youtube', status: 'queued',
-      target_format: 'h264_1080p', target_bitrate: 2500000,
-    });
-    if (insErr) {
-      if (insErr.code === '23505') skipped++;       // race against another insert
-      else warn(`orphan-sweep: insert failed for ${o.video_url}: ${insErr.message}`);
-    } else {
-      inserted++;
-    }
-  }
-  log(`orphan-sweep: enqueued ${inserted} job(s); skipped ${skipped} (race)`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Cookie-recovery self-healer — runs once every COOKIE_RECOVERY_INTERVAL.
-//
-// Problem: cookie/auth failures are classified PERMANENT (M7.6) so the worker
-// broadcasts iframe-forever to siblings to clear the queue. But cookies are
-// recoverable — when a fresh authenticated cookies.txt arrives on the box
-// (via deploy-yt-cookies.yml or the local launchd refresh), the previously-
-// flagged-permanent reels can convert successfully. They just need someone
-// to put them back in the queue.
-//
-// This function does that automatically:
-//   1. Confirm cookies are healthy NOW: a successful conversion has happened
-//      MORE RECENTLY than the latest cookie-auth failure.
-//   2. Find reels that were broadcast iframe-forever during the broken
-//      window AND have an `original_youtube_url` (i.e., came through the
-//      YouTube pipeline, are convertible).
-//   3. Reset them: video_url ← original_youtube_url, source_type='youtube',
-//      media_status='queued', thumbnail_url=NULL.
-//   4. INSERT new transcode jobs for distinct URLs (deduped against any
-//      live job).
-//
-// Throttled to once per COOKIE_RECOVERY_INTERVAL_MS (15 min) so it doesn't
-// hammer DB. Idempotent — re-running is safe.
-// ════════════════════════════════════════════════════════════════════════════
-const COOKIE_RECOVERY_INTERVAL_MS = 15 * 60 * 1000;
-let lastCookieRecoveryAt = 0;
-
-async function cookieRecoverySweep() {
-  if (Date.now() - lastCookieRecoveryAt < COOKIE_RECOVERY_INTERVAL_MS) return;
-  lastCookieRecoveryAt = Date.now();
-
-  // 1. Confirm cookies are healthy: latest success > latest cookie failure
-  const { data: lastSuccess } = await supa.from('video_transcode_jobs')
-    .select('completed_at')
-    .eq('status', 'completed').eq('source_type', 'youtube')
-    .order('completed_at', { ascending: false }).limit(1).maybeSingle();
-  if (!lastSuccess?.completed_at) {
-    log('cookie-recovery: no successful conversions yet — bailing');
-    return;
-  }
-
-  const { data: lastCookieFail } = await supa.from('video_transcode_jobs')
-    .select('completed_at')
-    .eq('status', 'failed').eq('source_type', 'youtube')
-    .or('error_message.ilike.%cookies-from-browser%,error_message.ilike.%cookies for the authentication%,error_message.ilike.%Sign in to confirm%')
-    .order('completed_at', { ascending: false }).limit(1).maybeSingle();
-
-  // Cookies still broken if most-recent failure is newer than (or equal to)
-  // most-recent success. Bail.
-  if (lastCookieFail?.completed_at && new Date(lastCookieFail.completed_at) >= new Date(lastSuccess.completed_at)) {
-    log('cookie-recovery: cookies still broken (latest failure is newer than latest success) — bailing');
-    return;
-  }
-
-  // 2. PRE-FILTER candidate URLs by failure cause BEFORE pulling reels.
-  //
-  // BUGFIX 2026-05-08: prior version pulled the first 500 social_reels
-  // rows with .limit(500) but no ORDER BY, then post-filtered to
-  // cookie-auth failures. With ~9,300 iframe-flagged YouTube reels and
-  // only ~1,000 of them affected by cookie-auth, Postgres' heap-order
-  // first-500 typically contained ZERO cookie-auth ones. The sweep would
-  // log "0 had cookie-auth as latest failure" and bail forever, leaving
-  // the cookie-failed pool permanently stranded. Now we query the
-  // FAILED-JOBS table first (filtered to cookie-auth patterns), build
-  // the URL set, then pull social_reels.in(those URLs) so the LIMIT 500
-  // only counts eligible reels.
-  const { data: cookieFailedJobs } = await supa.from('video_transcode_jobs')
-    .select('youtube_url, completed_at')
-    .eq('source_type', 'youtube')
-    .eq('status', 'failed')
-    .or('error_message.ilike.%cookies-from-browser%,error_message.ilike.%cookies for the authentication%,error_message.ilike.%Sign in to confirm%')
-    .order('completed_at', { ascending: false, nullsFirst: false })
-    .limit(2000);
-
-  // Dedup by URL — the most-recent failure per URL wins (ordered DESC).
-  const cookieFailedUrls = new Set();
-  for (const j of (cookieFailedJobs || [])) {
-    cookieFailedUrls.add(j.youtube_url);
-  }
-  if (cookieFailedUrls.size === 0) {
-    log('cookie-recovery: no cookie-auth failures in jobs history — nothing to recover');
-    return;
-  }
-
-  // 3. Pull social_reels rows whose original_youtube_url is in the cookie-
-  // failed URL set, limited to ones still in 'ready' state (iframe-forever).
-  const urlsArray = Array.from(cookieFailedUrls).slice(0, 500);
-  const { data: candidates } = await supa.from('social_reels')
-    .select('id, author_id, original_youtube_url')
-    .eq('media_status', 'ready')
-    .ilike('video_url', '%youtube%')
-    .in('original_youtube_url', urlsArray)
-    .limit(500);
-  if (!candidates?.length) {
-    log(`cookie-recovery: ${cookieFailedUrls.size} cookie-auth URL(s) but no matching ready-state reels — nothing to recover`);
-    return;
-  }
-
-  // 4. Verify the LATEST failed job per URL is still cookie-auth (not a
-  // mixed-failure URL where a permanent failure happened more recently).
-  // This prevents re-queueing reels whose most-recent failure is actually
-  // members-only / private / region-blocked.
-  const allUrlsForLatestCheck = Array.from(new Set(candidates.map((r) => r.original_youtube_url)));
-  const { data: latestJobs } = await supa.from('video_transcode_jobs')
-    .select('youtube_url, status, error_message, completed_at')
-    .eq('source_type', 'youtube')
-    .eq('status', 'failed')
-    .in('youtube_url', allUrlsForLatestCheck)
-    .order('completed_at', { ascending: false, nullsFirst: false });
-
-  const latestCookieFailedUrls = new Set();
-  const seenUrl = new Set();
-  for (const j of (latestJobs || [])) {
-    if (seenUrl.has(j.youtube_url)) continue;
-    seenUrl.add(j.youtube_url);
-    if (/cookies-from-browser|cookies for the authentication|Sign in to confirm/i.test(j.error_message || '')) {
-      latestCookieFailedUrls.add(j.youtube_url);
-    }
-  }
-
-  const recoverable = candidates.filter((r) => latestCookieFailedUrls.has(r.original_youtube_url));
-  if (!recoverable.length) {
-    log(`cookie-recovery: ${candidates.length} candidates checked, 0 had cookie-auth as latest failure (later permanent failure took precedence)`);
-    return;
-  }
-  log(`cookie-recovery: ${recoverable.length} reel(s) eligible (across ${latestCookieFailedUrls.size} URL(s)) — re-queueing`);
-
-  // 4. Reset reel state in a small batched loop. We need per-row video_url
-  // assignments (supabase-js doesn't allow CASE expressions in update()).
-  for (const r of recoverable) {
-    await supa.from('social_reels').update({
-      video_url: r.original_youtube_url,
-      source_type: 'youtube',
-      media_status: 'queued',
-      thumbnail_url: null,
-    }).eq('id', r.id);
-  }
-
-  // 5. INSERT one job per distinct URL. Trigger fires on INSERT not UPDATE.
-  // Wrapped in try/catch per-URL because the partial unique index
-  // uniq_video_transcode_jobs_yt_url_live can race-reject duplicates if a
-  // sibling worker / trigger already enqueued — we tolerate that as a
-  // "someone else handled it" outcome.
-  let inserted = 0;
-  let raceSkipped = 0;
-  for (const url of cookieFailedUrls) {
-    const reel = recoverable.find((r) => r.original_youtube_url === url);
-    if (!reel) continue;
-
-    // Skip if already a live job for this URL (race safety)
-    const { data: existing } = await supa.from('video_transcode_jobs')
-      .select('id').eq('source_type', 'youtube')
-      .eq('youtube_url', url)
-      .in('status', ['queued', 'processing'])
-      .limit(1).maybeSingle();
-    if (existing) { raceSkipped++; continue; }
-
-    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
-      reel_id: reel.id, user_id: reel.author_id,
-      source_url: url,
-      youtube_url: url,
-      source_type: 'youtube', status: 'queued',
-      target_format: 'h264_1080p', target_bitrate: 2500000,
-    });
-    if (insErr) {
-      // unique_violation = partial-index race, treat as benign
-      if (insErr.code === '23505') raceSkipped++;
-      else warn(`cookie-recovery: insert failed for ${url}: ${insErr.message}`);
-    } else {
-      inserted++;
-    }
-  }
-  log(`cookie-recovery: enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already queued)`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Transient-failure retry sweep — finds reels stuck in media_status='failed'
-// whose LATEST job hit a transient error (rate-limited / timeout /
-// ffmpeg_exit_255 / yt-dlp_spawn / Bad Gateway / cookie-auth), and that have
-// NO permanent-failure history (members-only / private / region-blocked /
-// filtered-too-long). These should retry: rate limits decay, cookies refresh,
-// transient ffmpeg crashes don't repeat.
-//
-// Why this exists: cookieRecoverySweep covers `media_status='ready'`
-// (iframe-flagged) reels. orphanedQueuedSweep covers `media_status='queued'`.
-// Reels in `media_status='failed'` are invisible to both — they need a
-// dedicated sweep. Audited 2026-05-07 and found 117 reels stuck this way
-// with 50 rate-limit / 31 cookie / 24 timeout / 9 ffmpeg-255 / 2 spawn —
-// all transient, none had been retried.
-//
-// Bounded retries: skip reels with ≥3 failed jobs for the same URL to
-// prevent infinite retry loops on persistent (but transient-shaped) issues.
-// Throttled to once / TRANSIENT_RETRY_INTERVAL_MS (30 min).
-// Only reconsiders failures older than 1 hour (gives transient sources
-// time to recover before retrying — rate limits, cookie pushes, etc.).
-// ════════════════════════════════════════════════════════════════════════════
-const TRANSIENT_RETRY_INTERVAL_MS = 30 * 60 * 1000;
-const TRANSIENT_FAILURE_MIN_AGE_MS = 60 * 60 * 1000;   // only retry failures >1h old
-const TRANSIENT_RETRY_CAP = 3;                          // skip reels with ≥3 failures
-let lastTransientRetryAt = 0;
-
-// Stranded-reel recovery sweep — catch-all safety net.
-// PERMANENT_PATTERNS includes several patterns that are actually transient
-// (cookies, ffmpeg_timeout_, Sign in to confirm, yt-dlp_exit_null, etc).
-// When the worker hits one, it flips media_status='ready' (iframe-forever)
-// to keep the user-facing iframe working. cookieRecoverySweep handles the
-// cookie subset, but other transient-but-classified-permanent failures
-// have no dedicated retry path. This sweep is the universal catch-all:
-// it scans ANY ready-state YT reel whose failures are only transient
-// (no truly-permanent ones mixed in) and re-queues them. Runs hourly,
-// capped at 100 per tick, plus once on worker startup so deploys
-// auto-recover any stranded backlog.
-const STRANDED_RECOVERY_INTERVAL_MS = 60 * 60 * 1000;   // hourly
-const STRANDED_RECOVERY_BATCH       = 100;
-const STRANDED_RECOVERY_MIN_AGE_MS  = 60 * 60 * 1000;   // wait >1h after last failure
-let lastStrandedRecoveryAt = 0;
-
-// Failed-reel iframe fallback — eighth self-healer. The frontend treats
-// media_status='failed' (and 'queued' with no live job) as un-renderable, so
-// users see a broken state on those rows. For YouTube reels, iframe playback
-// will work fine even when our native conversion path keeps failing — so any
-// public+youtube reel that's not in 'ready' state AND has a valid YT URL
-// AND has no live job AND has hit the retry cap gets flipped to 'ready'
-// (video_url <- original_youtube_url) so the iframe path renders.
-//
-// Why a sweep and not "just don't INSERT failed status": worker MUST mark
-// jobs failed so transient-retry logic works (we need failure count + age).
-// This sweep is the gracefully-degrade-to-iframe layer that runs after the
-// retry sweeps have given up. Hourly cadence is plenty — failure->visible
-// gap of up to 60 min is acceptable; users only see the "ready" state.
-const FAILED_FALLBACK_INTERVAL_MS = 60 * 60 * 1000;     // hourly
-const FAILED_FALLBACK_BATCH       = 200;
-let lastFailedFallbackAt = 0;
-
-// Native-MP4 poster backfill — covers reels uploaded directly by users (not
-// via the YouTube transcode path) that landed with thumbnail_url=NULL.
-// Stories.jsx INSERTs social_reels without a thumb; the social_posts→reels
-// mirror trigger copies thumbnail_url which may itself be NULL. Without this
-// sweep, those reels paint a black frame on first render. The 2026-05-07
-// one-shot scripts/backfill-native-poster-thumbnails.mjs cleared the
-// historical backlog (17/19 succeeded). This sweep keeps the lights on.
-const NATIVE_POSTER_INTERVAL_MS = 30 * 60 * 1000;
-const NATIVE_POSTER_BATCH      = 20;
-let lastNativePosterAt = 0;
-const nativePosterBlacklist = new Set();   // in-memory IDs that failed this process lifetime
-
-// YouTube iframe thumbnail derive — sister sweep to nativePosterBackfillSweep
-// covering source_type='youtube'. Reels mirrored from social_posts or
-// transitioned to 'ready' state after the 20260507200000 one-shot backfill
-// can land with thumbnail_url=NULL. The fix is pure SQL: derive
-// img.youtube.com/vi/<id>/hqdefault.jpg from the 11-char video ID in the
-// URL. No ffmpeg, no storage upload — runs in milliseconds.
-const IFRAME_THUMB_INTERVAL_MS = 30 * 60 * 1000;
-let lastIframeThumbAt = 0;
-
-// Dead-video hiding sweep — periodically detects YouTube reels whose source
-// video has been deleted/privated/copyright-stricken (signature: 404 on
-// img.youtube.com/vi/<id>/hqdefault.jpg) and flips is_public=false so the
-// iframe stops rendering "Video unavailable" in the user feed. Same logic
-// as the manual scripts/cleanup-broken-videos.js but self-healing on a 6h
-// cadence — long enough to be cheap, frequent enough that dead videos
-// never linger more than a quarter-day.
-const DEAD_VIDEO_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const DEAD_VIDEO_BATCH       = 200;
-let lastDeadVideoAt = 0;
-
-const TRANSIENT_PATTERNS = [
-  // 2026-09-04: "The page needs to be reloaded." is yt-dlp's symptom of an
-  // extractor that YouTube has moved out from under - it clears the moment
-  // yt-dlp is upgraded (2026.07.04 -> 2026.08.19 did it today). It matched
-  // neither list, so 1,515 reels sat in media_status='failed' from 05-03 with
-  // no retry path, and 246 of the last 3 days' jobs failed 246:1. Transient.
-  /page needs to be reloaded/i,
-  /cookies-from-browser/i,
-  /cookies for the authentication/i,
-  /Sign in to confirm/i,
-  /rate-limit|rate limit/i,
-  /timeout/i,
-  /ffmpeg_exit_255/i,
-  /ffmpeg_timeout_/i,        // ffmpeg_timeout_600s (~129 stranded as of 2026-05-10) — wallclock cap, retry can succeed
-  /yt-dlp_spawn/i,
-  /yt-dlp_exit_null/i,       // yt-dlp crashed without exit code (~15 stranded) — usually transient (network blip, OOM)
-  /Bad Gateway/i,
-  /Gateway Timeout/i,        // 504 from YouTube CDN — pure infra blip
-];
-const PERMANENT_HISTORY_PATTERNS = [
-  /members-only/i,
-  /This video is private/i,
-  /age-restricted/i,
-  /not available in your country/i,
-  /filtered_too_long_or_large/i,
-  /Video unavailable/i,
-  /removed by the uploader/i,
-  /This live event will begin/i,
-  /copyright claim/i,
-];
-const isTransientFailure = (msg) => TRANSIENT_PATTERNS.some((rx) => rx.test(msg || ''));
-const hasPermanentHistory = (msgs) => msgs.some((m) => PERMANENT_HISTORY_PATTERNS.some((rx) => rx.test(m || '')));
-
-async function transientFailureRetrySweep() {
-  if (Date.now() - lastTransientRetryAt < TRANSIENT_RETRY_INTERVAL_MS) return;
-  lastTransientRetryAt = Date.now();
-
-  // 1. Find candidate reels in 'failed' state, video_url is YouTube
-  const { data: candidates } = await supa.from('social_reels')
-    .select('id, author_id, video_url')
-    .eq('media_status', 'failed')
-    .eq('source_type', 'youtube')
-    .ilike('video_url', '%youtube%')
-    .limit(500);
-  if (!candidates?.length) {
-    log('transient-retry: no failed reels found');
-    return;
-  }
-
-  // 2. Batch-fetch all failed jobs for these reels' URLs (one query)
-  const urls = Array.from(new Set(candidates.map((c) => c.video_url)));
-  const ageCutoff = new Date(Date.now() - TRANSIENT_FAILURE_MIN_AGE_MS).toISOString();
-  const { data: allFailedJobs } = await supa.from('video_transcode_jobs')
-    .select('youtube_url, error_message, completed_at, reel_id')
-    .eq('source_type', 'youtube')
-    .eq('status', 'failed')
-    .in('youtube_url', urls)
-    .order('completed_at', { ascending: false, nullsFirst: false });
-
-  // 3. Group jobs by URL, classify
-  const jobsByUrl = new Map();
-  for (const j of (allFailedJobs || [])) {
-    if (!jobsByUrl.has(j.youtube_url)) jobsByUrl.set(j.youtube_url, []);
-    jobsByUrl.get(j.youtube_url).push(j);
-  }
-
-  // 4. Determine which reels qualify for retry:
-  //    - Latest failure was transient
-  //    - Latest failure is OLDER than 1 hour (transient sources had time to recover)
-  //    - Has < TRANSIENT_RETRY_CAP failures total for this URL
-  //    - No permanent-failure history mixed in
-  const eligible = [];
-  for (const reel of candidates) {
-    const jobs = jobsByUrl.get(reel.video_url) || [];
-    if (jobs.length === 0 || jobs.length >= TRANSIENT_RETRY_CAP) continue;
-    const latest = jobs[0];
-    if (!isTransientFailure(latest.error_message)) continue;
-    if (latest.completed_at && new Date(latest.completed_at) > new Date(ageCutoff)) continue;
-    const allMsgs = jobs.map((j) => j.error_message);
-    if (hasPermanentHistory(allMsgs)) continue;
-    eligible.push(reel);
-  }
-
-  if (!eligible.length) {
-    log(`transient-retry: ${candidates.length} failed reels checked, 0 eligible (none transient + age + uncapped)`);
-    return;
-  }
-  log(`transient-retry: ${eligible.length} reel(s) eligible — retrying`);
-
-  // 5. Reset reel to 'queued', INSERT new transcode job (per distinct URL)
-  for (const r of eligible) {
-    await supa.from('social_reels').update({ media_status: 'queued' }).eq('id', r.id);
-  }
-  const seen = new Set();
-  let inserted = 0, raceSkipped = 0;
-  for (const r of eligible) {
-    if (seen.has(r.video_url)) continue;
-    seen.add(r.video_url);
-    // Skip if a live job exists for this URL
-    const { data: existing } = await supa.from('video_transcode_jobs')
-      .select('id').eq('source_type', 'youtube').eq('youtube_url', r.video_url)
-      .in('status', ['queued', 'processing']).limit(1).maybeSingle();
-    if (existing) { raceSkipped++; continue; }
-    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
-      reel_id: r.id, user_id: r.author_id,
-      source_url: r.video_url, youtube_url: r.video_url,
-      source_type: 'youtube', status: 'queued',
-      target_format: 'h264_1080p', target_bitrate: 2500000,
-    });
-    if (insErr) {
-      if (insErr.code === '23505') raceSkipped++;
-      else warn(`transient-retry: insert failed for ${r.video_url}: ${insErr.message}`);
-    } else {
-      inserted++;
-    }
-  }
-  log(`transient-retry: enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already live)`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Stranded-reel recovery sweep — universal catch-all (seventh self-healer).
-//
-// Why this exists: cookieRecoverySweep covers the cookie-auth subset of
-// transient-but-classified-permanent failures. transientFailureRetrySweep
-// covers reels in 'failed' state. But the worker's permanent-failure path
-// flips reels to media_status='ready' (iframe-forever) for SEVERAL transient
-// patterns (cookies, ffmpeg_timeout_, Sign in to confirm, yt-dlp_exit_null)
-// — we kept those in PERMANENT_PATTERNS so the user-facing iframe always
-// works, but that means non-cookie transient failures had NO retry path.
-//
-// This sweep is the universal catch-all: for ANY ready-state YT reel
-// whose ALL failures are transient (cookies / timeout / rate-limit /
-// Bad Gateway / ffmpeg-255 / spawn errors / Sign-in / yt-dlp_exit_null),
-// re-queue it. Skips reels with even one truly-permanent failure mixed
-// in (members-only, private, region-blocked, age-restricted, filtered_too_long).
-//
-// Runs hourly + once at startup. Capped at STRANDED_RECOVERY_BATCH=100
-// per tick. Bounded retries: skip URLs with ≥3 prior failed jobs.
-// Idempotent: NOT EXISTS check on live jobs prevents double-enqueue.
-//
-// IMPORTANT: this is the catch-all, so it will overlap with cookieRecoverySweep
-// and transientFailureRetrySweep. The NOT EXISTS guard makes that safe.
-// ════════════════════════════════════════════════════════════════════════════
-async function strandedReelRecoverySweep(opts = {}) {
-  const { force = false } = opts;
-  if (!force && Date.now() - lastStrandedRecoveryAt < STRANDED_RECOVERY_INTERVAL_MS) return;
-  lastStrandedRecoveryAt = Date.now();
-
-  // 1. Confirm pipeline is healthy: latest success > latest cookie/transient
-  // failure. If cookies are still broken, retrying is pointless.
-  const { data: lastSuccess } = await supa.from('video_transcode_jobs')
-    .select('completed_at')
-    .eq('status', 'completed').eq('source_type', 'youtube')
-    .order('completed_at', { ascending: false }).limit(1).maybeSingle();
-  if (!lastSuccess?.completed_at) {
-    log('stranded-recovery: no successful conversions yet — bailing');
-    return;
-  }
-
-  // 2. Pull ALL recent failed jobs (last 30 days), classify per URL.
-  // We need every failure per URL to know if there's a permanent mixed in.
-  const { data: failedJobs } = await supa.from('video_transcode_jobs')
-    .select('youtube_url, error_message, completed_at')
-    .eq('source_type', 'youtube').eq('status', 'failed')
-    .gte('completed_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-    .order('completed_at', { ascending: false, nullsFirst: false })
-    .limit(10000);
-  if (!failedJobs?.length) {
-    log('stranded-recovery: no recent failed jobs');
-    return;
-  }
-
-  // Group by URL
-  const jobsByUrl = new Map();
-  for (const j of failedJobs) {
-    if (!jobsByUrl.has(j.youtube_url)) jobsByUrl.set(j.youtube_url, []);
-    jobsByUrl.get(j.youtube_url).push(j);
-  }
-
-  // 3. Classify each URL: eligible if all failures are transient and the
-  // most-recent is older than the min-age threshold.
-  const ageCutoff = new Date(Date.now() - STRANDED_RECOVERY_MIN_AGE_MS);
-  const eligibleUrls = [];
-  for (const [url, jobs] of jobsByUrl) {
-    if (jobs.length >= TRANSIENT_RETRY_CAP) continue;
-    const allMsgs = jobs.map(j => j.error_message || '');
-    if (hasPermanentHistory(allMsgs)) continue;
-    if (!isTransientFailure(jobs[0].error_message)) continue;
-    if (jobs[0].completed_at && new Date(jobs[0].completed_at) > ageCutoff) continue;
-    eligibleUrls.push(url);
-  }
-  if (!eligibleUrls.length) {
-    log(`stranded-recovery: ${jobsByUrl.size} URLs scanned, 0 eligible (none all-transient + age + uncapped)`);
-    return;
-  }
-
-  // 4. Find ready-state reels matching these URLs (iframe-forever stranded).
-  // Cap at STRANDED_RECOVERY_BATCH per tick to avoid overwhelming the queue.
-  const batchUrls = eligibleUrls.slice(0, STRANDED_RECOVERY_BATCH);
-  const { data: candidates } = await supa.from('social_reels')
-    .select('id, author_id, original_youtube_url')
-    .eq('media_status', 'ready')
-    .eq('is_public', true)
-    .ilike('video_url', '%youtube%')
-    .in('original_youtube_url', batchUrls)
-    .limit(STRANDED_RECOVERY_BATCH);
-  if (!candidates?.length) {
-    log(`stranded-recovery: ${batchUrls.length} eligible URL(s) but no matching ready+public reels`);
-    return;
-  }
-
-  log(`stranded-recovery: ${candidates.length} stranded reel(s) found across ${batchUrls.length} URL(s) — re-queueing`);
-
-  // 5. Flip reels back to queued, then INSERT one job per distinct URL.
-  // Per-URL deduplication so we don't insert two jobs for the same video.
-  const seen = new Set();
-  let inserted = 0, raceSkipped = 0, flipped = 0;
-  for (const r of candidates) {
-    if (seen.has(r.original_youtube_url)) continue;
-    seen.add(r.original_youtube_url);
-
-    // Skip if already a live job for this URL (race-safety)
-    const { data: existing } = await supa.from('video_transcode_jobs')
-      .select('id').eq('source_type', 'youtube')
-      .eq('youtube_url', r.original_youtube_url)
-      .in('status', ['queued', 'processing'])
-      .limit(1).maybeSingle();
-    if (existing) { raceSkipped++; continue; }
-
-    // Flip the reel back to queued state
-    const { error: updErr } = await supa.from('social_reels').update({
-      media_status: 'queued',
-      video_url: r.original_youtube_url,
-      source_type: 'youtube',
-      thumbnail_url: null,
-    }).eq('id', r.id);
-    if (updErr) { warn(`stranded-recovery: flip failed for ${r.id}:`, updErr.message); continue; }
-    flipped++;
-
-    // Insert fresh transcode job
-    const { error: insErr } = await supa.from('video_transcode_jobs').insert({
-      reel_id: r.id, user_id: r.author_id,
-      source_url: r.original_youtube_url, youtube_url: r.original_youtube_url,
-      source_type: 'youtube', status: 'queued',
-      target_format: 'h264_1080p', target_bitrate: 2500000,
-    });
-    if (insErr) {
-      if (insErr.code === '23505') raceSkipped++;
-      else warn(`stranded-recovery: insert failed for ${r.original_youtube_url}: ${insErr.message}`);
-    } else {
-      inserted++;
-    }
-  }
-  log(`stranded-recovery: flipped ${flipped} reel(s), enqueued ${inserted} job(s); skipped ${raceSkipped} (race / already live)`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Failed-reel iframe fallback sweep — eighth self-healer.
-//
-// Why this exists: when transient retries cap out, reels are left in
-// media_status='failed' (or queued with no live job) — both unrenderable on
-// the feed, so users see broken rows. For source_type='youtube' reels we
-// already know the YouTube iframe path will work; this sweep flips them to
-// media_status='ready' with video_url <- original_youtube_url so the
-// iframe renders. Idempotent: no live job allowed, must have hit retry cap.
-// ════════════════════════════════════════════════════════════════════════════
-async function failedReelFallbackSweep() {
-  if (Date.now() - lastFailedFallbackAt < FAILED_FALLBACK_INTERVAL_MS) return;
-  lastFailedFallbackAt = Date.now();
-
-  // Age gate: only flip rows whose last attempt is older than this. Gives
-  // transientFailureRetrySweep (30-min cadence, 1-h age threshold) a chance
-  // to re-queue before we permanently downgrade to iframe-forever. Without
-  // this, brand-new transient failures (e.g., a single 504) would be flipped
-  // before the retry path even fired.
-  const FAILED_FALLBACK_MIN_AGE_MS = 2 * 60 * 60 * 1000; // 2h
-  const ageCutoff = new Date(Date.now() - FAILED_FALLBACK_MIN_AGE_MS).toISOString();
-
-  // Pull failed/queued public YT reels with a valid YT URL stamp.
-  // (Earlier revision had a dead `const { data: rows, error } = await supa.rpc ? null : null;`
-  // here — `await null` resolves to null, destructure threw, .catch() swallowed it,
-  // and the sweep never functionally ran. Deleted.)
-  const { data: candidates, error: selErr } = await supa.from('social_reels')
-    .select('id, video_url, original_youtube_url, source_type, media_status, updated_at')
-    .eq('is_public', true)
-    .eq('source_type', 'youtube')
-    .in('media_status', ['failed', 'queued'])
-    .or('video_url.ilike.%youtube%,original_youtube_url.ilike.%youtube%')
-    .lt('updated_at', ageCutoff)  // BUG-6 fix: respect retry window
-    .limit(FAILED_FALLBACK_BATCH);
-
-  if (selErr) { warn('failed-fallback: select failed:', selErr.message); return; }
-  if (!candidates?.length) { log('failed-fallback: no aged failed/queued public YT reels'); return; }
-
-  // Batch the live-job check (BUG-3 fix: was N+1 query per candidate).
-  // Pull every active job whose reel_id matches any of our candidates,
-  // build a Set in memory, filter locally.
-  const candidateIds = candidates.map((r) => r.id);
-  const { data: liveJobs, error: liveErr } = await supa.from('video_transcode_jobs')
-    .select('reel_id')
-    .in('reel_id', candidateIds)
-    .in('status', ['queued', 'processing']);
-  if (liveErr) { warn('failed-fallback: live-job lookup failed:', liveErr.message); return; }
-  const liveReelIds = new Set((liveJobs || []).map((j) => j.reel_id));
-  const eligible = candidates.filter((r) => !liveReelIds.has(r.id));
-  if (!eligible.length) {
-    log(`failed-fallback: ${candidates.length} candidates, all have live jobs`);
-    return;
-  }
-
-  let flipped = 0;
-  for (const r of eligible) {
-    const ytUrl = r.original_youtube_url || r.video_url;
-    if (!ytUrl || !/youtube\.com|youtu\.be/i.test(ytUrl)) continue;
-    const { error: updErr } = await supa.from('social_reels').update({
-      media_status: 'ready',
-      video_url: ytUrl,
-    }).eq('id', r.id);
-    if (updErr) { warn(`failed-fallback: flip failed for ${r.id}:`, updErr.message); continue; }
-    flipped++;
-  }
-  log(`failed-fallback: flipped ${flipped} broken-feed reel(s) to ready+iframe (age>${FAILED_FALLBACK_MIN_AGE_MS / 3.6e6}h)`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Native-MP4 poster backfill sweep — fourth self-healer.
-//
-// Why this exists: Stories.jsx (line ~839) and the social_posts→social_reels
-// mirror trigger (fn_social_posts_video_to_reel_mirror) both write
-// social_reels rows where thumbnail_url can be NULL. The Reels.jsx player
-// conditionally renders <img> only when thumbnail_url is set — so a missing
-// thumb makes the player paint a black frame on first render. The 2026-05-07
-// one-shot scripts/backfill-native-poster-thumbnails.mjs cleared the
-// historical backlog (17/19 reels). This sweep keeps things healthy from
-// here on without requiring frontend changes (client-side canvas.toBlob
-// would taint on Supabase Storage public URLs that lack CORS headers).
-//
-// Per tick: SELECT up to NATIVE_POSTER_BATCH eligible reels, for each
-//   1. fetch a small range of the source MP4 (HTTP Range; cap 8 MB)
-//   2. ffmpeg -ss 1 -vframes 1 → JPEG poster
-//   3. upload to social-media bucket at reels/thumbs/native_backfill/{reel_id}.jpg
-//   4. UPDATE social_reels.thumbnail_url with the public URL
-//
-// Reels with corrupt MP4s (no moov atom, etc.) are added to an in-memory
-// blacklist for the lifetime of this process so we don't burn CPU on them
-// every 30 min. Process restarts forget the blacklist (acceptable — one
-// retry per restart, then quiet for the rest of the run).
-// ════════════════════════════════════════════════════════════════════════════
-async function nativePosterBackfillSweep() {
-  if (Date.now() - lastNativePosterAt < NATIVE_POSTER_INTERVAL_MS) return;
-  lastNativePosterAt = Date.now();
-
-  const { data: candidates, error } = await supa.from('social_reels')
-    .select('id, video_url')
-    .eq('media_status', 'ready')
-    .is('thumbnail_url', null)
-    .in('source_type', ['native', 'user'])
-    .eq('is_public', true)
-    .ilike('video_url', `%${new URL(SUPABASE_URL).host}%`)
-    .limit(NATIVE_POSTER_BATCH);
-
-  if (error) { warn('native-poster: select error:', error.message); return; }
-  if (!candidates?.length) {
-    log('native-poster: no reels found needing posters');
-    return;
-  }
-
-  const targets = candidates.filter((r) => !nativePosterBlacklist.has(r.id));
-  if (!targets.length) {
-    log(`native-poster: ${candidates.length} candidate(s) all blacklisted this process`);
-    return;
-  }
-
-  log(`native-poster: processing ${targets.length} reel(s)`);
-  let ok = 0, failed = 0;
-  let tmpDir;
-  try {
-    tmpDir = await mkdtemp(join(tmpdir(), 'native-poster-'));
-  } catch (mkErr) {
-    warn('native-poster: mkdtemp failed:', mkErr.message);
-    return;
-  }
-
-  for (const reel of targets) {
-    const localMp4 = join(tmpDir, `${reel.id}.mp4`);
-    const localJpg = join(tmpDir, `${reel.id}.jpg`);
-    try {
-      // 1. Fetch up to first 8 MB via Range — enough for the moov atom on
-      //    streaming-friendly MP4s (faststart). Avoids downloading whole reel.
-      const res = await fetch(reel.video_url, { headers: { Range: 'bytes=0-8388607' } });
-      if (!res.ok && res.status !== 206) {
-        throw new Error(`fetch HTTP ${res.status}`);
-      }
-      const buf = Buffer.from(await res.arrayBuffer());
-      const { writeFile } = await import('node:fs/promises');
-      await writeFile(localMp4, buf);
-
-      // 2. ffmpeg poster — same args as the YouTube transcode poster path.
-      await runProcess('ffmpeg', [
-        '-y', '-hide_banner', '-loglevel', 'error',
-        '-ss', '1',
-        '-i', localMp4,
-        '-t', '3',
-        '-vframes', '1',
-        '-an',
-        '-vf', 'scale=480:-1',
-        '-q:v', '2',
-        localJpg,
-      ], 30_000);
-
-      // 3. Upload poster to social-media bucket
-      const jpgBuf = await readFile(localJpg);
-      const objectPath = `reels/thumbs/native_backfill/${reel.id}.jpg`;
-      const { error: upErr } = await supa.storage
-        .from(STORAGE_BUCKET)
-        .upload(objectPath, jpgBuf, {
-          contentType: 'image/jpeg',
-          upsert: true,
-          cacheControl: '604800',
-        });
-      if (upErr) throw new Error(`storage upload: ${upErr.message}`);
-      const { data: pub } = supa.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
-
-      // 4. UPDATE social_reels.thumbnail_url
-      const { error: updErr } = await supa.from('social_reels')
-        .update({ thumbnail_url: pub.publicUrl })
-        .eq('id', reel.id);
-      if (updErr) throw new Error(`db update: ${updErr.message}`);
-      ok++;
-    } catch (err) {
-      // Corrupt MP4 / fetch fail / ffmpeg fail — blacklist for this process
-      nativePosterBlacklist.add(reel.id);
-      warn(`native-poster: blacklisted ${reel.id} — ${err.message}`);
-      failed++;
-    } finally {
-      // Best-effort cleanup of per-reel temp files; whole tmpDir cleaned at end
-      await Promise.all([
-        rm(localMp4, { force: true }).catch(() => {}),
-        rm(localJpg, { force: true }).catch(() => {}),
-      ]);
-    }
-  }
-
-  await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-  log(`native-poster: ${ok} backfilled, ${failed} blacklisted`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// YouTube-iframe thumbnail derive sweep — fifth self-healer.
-//
-// Sister sweep to nativePosterBackfillSweep, but for source_type='youtube'.
-// The 2026-05-07 one-shot migration 20260507200000_backfill_iframe_reel_thumbnails
-// fixed 8,982 historical iframe reels — but reels can transition to
-// (media_status='ready', is_public=true, thumbnail_url=NULL) AFTER that
-// migration ran via:
-//   - the social_posts → social_reels mirror trigger (NEW.thumbnail_url NULL)
-//   - the worker's permanent-failure path setting media_status='ready'
-//     (iframe-forever) on a previously-queued reel
-//
-// Without a periodic sweep, those new stragglers paint a black frame on
-// first render until someone notices. This sweep runs the SAME regex-derive
-// UPDATE as the migration. Pure SQL — no ffmpeg, no fetch, no storage.
-// Idempotent: WHERE clauses match 0 rows after first successful run.
-// ════════════════════════════════════════════════════════════════════════════
-async function iframeThumbnailDeriveSweep() {
-  if (Date.now() - lastIframeThumbAt < IFRAME_THUMB_INTERVAL_MS) return;
-  lastIframeThumbAt = Date.now();
-
-  // Use rpc('exec', ...) is not available on supabase-js; instead, do this
-  // as a multi-step JS pattern: SELECT candidates, derive video_id in JS,
-  // UPDATE one-by-one. Tiny batch (max 50) keeps it cheap.
-  const { data: candidates, error } = await supa.from('social_reels')
-    .select('id, video_url')
-    .eq('media_status', 'ready')
-    .eq('is_public', true)
-    .is('thumbnail_url', null)
-    .ilike('video_url', '%youtube%')
-    .limit(50);
-
-  if (error) { warn('iframe-thumb: select error:', error.message); return; }
-  if (!candidates?.length) {
-    log('iframe-thumb: no youtube reels need thumbs');
-    return;
-  }
-
-  // Match the migration's regex pattern set: /embed/, /shorts/, /v/, ?v=
-  const RE1 = /\/(?:embed|shorts|v)\/([A-Za-z0-9_-]{11})/;
-  const RE2 = /[?&]v=([A-Za-z0-9_-]{11})/;
-  let updated = 0, unmatched = 0;
-
-  for (const reel of candidates) {
-    const m1 = RE1.exec(reel.video_url || '');
-    const m2 = !m1 ? RE2.exec(reel.video_url || '') : null;
-    const videoId = m1?.[1] || m2?.[1] || null;
-    if (!videoId) { unmatched++; continue; }
-
-    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-    const { error: updErr } = await supa.from('social_reels')
-      .update({ thumbnail_url: thumbUrl })
-      .eq('id', reel.id);
-    if (updErr) {
-      warn(`iframe-thumb: update failed for ${reel.id}: ${updErr.message}`);
-    } else {
-      updated++;
-    }
-  }
-  log(`iframe-thumb: ${updated} thumbnails derived, ${unmatched} unmatched URLs`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// Dead-video hiding sweep — sixth self-healer.
-//
-// 2026-05-07 audit found 644 reels (138 distinct YouTube URLs) hidden via
-// the manual scripts/cleanup-broken-videos.js. Verified: hqdefault.jpg
-// returns 404 for all sampled — same signature as known-deleted IDs. The
-// cleanup logic is correct, but the script is unscheduled, so dead-video
-// detection only runs when an operator manually triggers it. This sweep
-// makes that detection self-healing on a 6h cadence.
-//
-// Safe to run frequently: HEAD requests against img.youtube.com are cheap
-// (no body), and we cap at DEAD_VIDEO_BATCH=200 reels per tick. Per-reel
-// cost is ~50ms (HEAD + small UPDATE), so a full tick is ~10s wall-clock.
-// Negligible against MAX_CONCURRENT_YT=3 transcode jobs.
-//
-// Idempotent: WHERE is_public=true filter means already-hidden reels are
-// skipped on subsequent ticks.
-// ════════════════════════════════════════════════════════════════════════════
-async function deadVideoHidingSweep() {
-  if (Date.now() - lastDeadVideoAt < DEAD_VIDEO_INTERVAL_MS) return;
-  lastDeadVideoAt = Date.now();
-
-  const { data: candidates, error } = await supa.from('social_reels')
-    .select('id, video_url')
-    .eq('media_status', 'ready')
-    .eq('is_public', true)
-    .eq('source_type', 'youtube')
-    .ilike('video_url', '%youtube%')
-    .limit(DEAD_VIDEO_BATCH);
-
-  if (error) { warn('dead-video: select error:', error.message); return; }
-  if (!candidates?.length) {
-    log('dead-video: no candidates');
-    return;
-  }
-
-  // Same regex set the rest of the worker uses — covers /embed/, /shorts/, /v/, ?v=
-  const RE1 = /\/(?:embed|shorts|v)\/([A-Za-z0-9_-]{11})/;
-  const RE2 = /[?&]v=([A-Za-z0-9_-]{11})/;
-  const deadIds = [];
-  let unmatchedUrl = 0, alive = 0, headErrors = 0;
-
-  for (const reel of candidates) {
-    const m1 = RE1.exec(reel.video_url || '');
-    const m2 = !m1 ? RE2.exec(reel.video_url || '') : null;
-    const videoId = m1?.[1] || m2?.[1] || null;
-    if (!videoId) { unmatchedUrl++; continue; }
-
-    try {
-      const res = await fetch(
-        `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        { method: 'HEAD', signal: AbortSignal.timeout(5_000) },
-      );
-      if (res.status === 404) {
-        deadIds.push(reel.id);
-      } else if (res.status >= 200 && res.status < 300) {
-        alive++;
-      } else {
-        // 5xx, 429 — ambiguous; don't hide on transient errors
-        headErrors++;
-      }
-    } catch (_) {
-      headErrors++;
-    }
-  }
-
-  if (deadIds.length) {
-    const { error: updErr } = await supa.from('social_reels')
-      .update({ is_public: false })
-      .in('id', deadIds);
-    if (updErr) {
-      warn(`dead-video: bulk update failed:`, updErr.message);
-      return;
-    }
-  }
-
-  log(`dead-video: ${candidates.length} checked, ${deadIds.length} hidden, ${alive} alive, ${unmatchedUrl} unmatched URLs, ${headErrors} HEAD errors`);
-}
-
-// ════════════════════════════════════════════════════════════════════════════
+// Cookie/POT refreshers and heuristic Reel repair sweeps were intentionally
+// retired. Queue creation, availability verdicts, and fallback state now belong
+// to their database/API owners; this worker only reclaims and processes explicit
+// rights-cleared claims.
 // Main loop — adaptive polling. Fast (5s) when jobs are flowing, slow (60s)
 // when the queue is idle. Saves wasted DB roundtrips during quiet hours.
 // ════════════════════════════════════════════════════════════════════════════
-log(`Starting yt-transcode-worker`);
-log(`  Worker ID:        ${WORKER_ID}`);
-log(`  Supabase:         ${SUPABASE_URL}`);
-log(`  Concurrency:      ${MAX_CONCURRENT_YT}`);
-log(`  Poll: idle ${POLL_MS / 1000}s / busy ${FAST_POLL_MS / 1000}s`);
+async function startWorker() {
+  log(`Starting yt-transcode-worker`);
+  log(`  Worker ID:        ${WORKER_ID}`);
+  log(`  Supabase:         ${SUPABASE_URL}`);
+  log(`  Concurrency:      ${MAX_CONCURRENT_YT}`);
+  log(`  Poll: idle ${POLL_MS / 1000}s / busy ${FAST_POLL_MS / 1000}s`);
 
-await resetStaleProcessing('worker_startup');
-// Startup catch-up: scan once for stranded reels (any failure mode classified
-// as permanent-but-actually-transient that no other sweep is handling). This
-// makes deploys self-healing — restart the worker and it picks up any drift
-// without any human intervention. Force=true bypasses the throttle.
-strandedReelRecoverySweep({ force: true }).catch((e) => warn('stranded-recovery startup error:', e?.message));
+  let prefetchedControl = await runStartupPreflight();
+  let lastControlState = null;
+  log('  Startup preflight: schema and RPC behavior contract verified');
 
-async function pollLoop() {
-  try {
-    await resetStaleProcessing();   // periodic: every tick, catches cross-worker orphans
-    // Self-healing sweeps — both throttled internally:
-    //   - cookieRecoverySweep: once / 15 min, only mutates when cookies have
-    //     recovered since the last cookie-auth failure cluster.
-    //   - orphanedQueuedSweep: once / 5 min, INSERTs jobs for reels stuck
-    //     in 'queued' state with no live transcode job (typically from bulk
-    //     SQL updates that bypassed the INSERT trigger).
-    cookieRecoverySweep().catch((e) => warn('cookie-recovery error:', e?.message));
-    orphanedQueuedSweep().catch((e) => warn('orphan-sweep error:', e?.message));
-    transientFailureRetrySweep().catch((e) => warn('transient-retry error:', e?.message));
-    //   - nativePosterBackfillSweep: once / 30 min, generates posters for
-    //     native-MP4 reels uploaded with NULL thumbnail_url (Stories.jsx +
-    //     mirror-trigger paths). Self-healing forever.
-    nativePosterBackfillSweep().catch((e) => warn('native-poster error:', e?.message));
-    //   - iframeThumbnailDeriveSweep: once / 30 min, derives YouTube
-    //     hqdefault thumbnails for source_type='youtube' reels with NULL
-    //     thumbnail_url. Pure SQL — sister to the native-MP4 sweep.
-    iframeThumbnailDeriveSweep().catch((e) => warn('iframe-thumb error:', e?.message));
-    //   - deadVideoHidingSweep: once / 6h, HEAD-checks YouTube hqdefault.jpg
-    //     for public reels and flips is_public=false on 404s (deleted/private/
-    //     copyright-stricken videos). Self-healing replacement for the manual
-    //     scripts/cleanup-broken-videos.js.
-    deadVideoHidingSweep().catch((e) => warn('dead-video error:', e?.message));
-    //   - strandedReelRecoverySweep: once / 60 min, universal catch-all that
-    //     scans every ready-state YT reel with all-transient failures and
-    //     re-queues them. Closes the gap left by cookieRecoverySweep (which
-    //     only handled cookie-auth) and transientFailureRetrySweep (which
-    //     only looks at media_status='failed'). Also runs once at startup.
-    strandedReelRecoverySweep().catch((e) => warn('stranded-recovery error:', e?.message));
-    //   - failedReelFallbackSweep: once / 60 min, give-up-and-iframe layer.
-    //     Any public YT reel in failed/queued state with no live job gets
-    //     flipped to ready+iframe so the user sees content even when native
-    //     conversion can't be made to work. Last line of defense.
-    failedReelFallbackSweep().catch((e) => warn('failed-fallback error:', e?.message));
-    const dispatched = await tick();
-    // If we just dispatched work or are still busy, poll fast; else slow.
-    const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
-    setTimeout(pollLoop, nextDelay);
-  } catch (e) {
-    warn('tick error:', e?.message);
-    setTimeout(pollLoop, POLL_MS);
+  async function pollLoop() {
+    try {
+      const control = prefetchedControl || await loadNativeTranscodeControl();
+      prefetchedControl = null;
+
+      if (control.state !== 'enabled') {
+        if (lastControlState !== control.state) {
+          warn(`Native processing idle (${control.reason}); no queue, Reel, or Storage writes will run`);
+        }
+        lastControlState = control.state;
+        if (!shutdownRequested) setTimeout(pollLoop, POLL_MS);
+        return;
+      }
+
+      // The legacy heuristic sweeps are intentionally not scheduled here. New
+      // work must enter through the database's rights-gated queue trigger, and
+      // the trusted availability verifier owns embed health. This worker only
+      // renews/reclaims explicit claims and processes them while the database
+      // control is enabled.
+      const enabledTransition = lastControlState !== 'enabled';
+      lastControlState = 'enabled';
+      await resetStaleProcessing(enabledTransition ? 'worker_enabled' : 'periodic_stale_reset');
+      const dispatched = await tick();
+      // If we just dispatched work or are still busy, poll fast; else slow.
+      const nextDelay = (dispatched > 0 || activeJobs > 0) ? FAST_POLL_MS : POLL_MS;
+      if (!shutdownRequested) setTimeout(pollLoop, nextDelay);
+    } catch (e) {
+      warn('tick error:', e?.message);
+      lastControlState = 'indeterminate';
+      if (!shutdownRequested) setTimeout(pollLoop, POLL_MS);
+    }
   }
+  await pollLoop();
 }
-pollLoop();
 
 // ─── Graceful shutdown ───────────────────────────────────────────────────────
 function gracefulShutdown(signal) {
@@ -1631,5 +1389,19 @@ function gracefulShutdown(signal) {
     process.exit(1);
   }, 600_000).unref();
 }
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+if (process.env.YT_WORKER_TEST_MODE !== '1') {
+  if (process.argv.includes('--preflight-only')) {
+    await runStartupPreflight();
+    log('Startup preflight-only check passed');
+  } else {
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+    await startWorker();
+  }
+}
+
+export {
+  hasNativeProcessingRights,
+  isNativeProcessingAuthorized,
+  normalizeCompletionUrl,
+};

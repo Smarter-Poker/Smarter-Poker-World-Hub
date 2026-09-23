@@ -39,6 +39,8 @@ Auth: Authorization: Bearer <CRON_SECRET>
 """
 
 import os
+import ipaddress
+import urllib.parse
 import re
 import sys
 import time
@@ -54,14 +56,8 @@ from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 
-try:
-    from apscheduler.schedulers.blocking import BlockingScheduler
-    from apscheduler.triggers.cron import CronTrigger
-except ImportError:
-    import subprocess, sys
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'apscheduler', 'requests'])
-    from apscheduler.schedulers.blocking import BlockingScheduler
-    from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 BASE_URL     = 'https://smarter.poker'
@@ -98,13 +94,13 @@ CRON_SECRET  = _load_cron_secret()
 # only ever probed Vercel. 58 distinct jobs were dead, including every horse
 # social post and story, hard-stop, ledger-reconcile and the anti-cheat sweeps.
 #
-# So: one env var per hop. WORKERS_CRON_SECRET is host-local (it lives in
-# /opt/openclaw/.env, which deploy-openclaw.yml seeds into /etc/openclaw.env
-# and never overwrites), and falls back to CRON_SECRET when unset so a box
-# where the two genuinely agree needs no configuration at all.
-WORKERS_CRON_SECRET = os.environ.get('WORKERS_CRON_SECRET', '').strip() or CRON_SECRET
+# So: one independently managed env var per hop. Both live in the root-owned
+# /etc/openclaw.env. Deployment validates them in place and never copies,
+# derives, or rewrites either credential. A fallback would silently restore
+# the exact cross-host rotation coupling that caused the outage.
+WORKERS_CRON_SECRET = os.environ.get('WORKERS_CRON_SECRET', '')
 
-LOG_DIR      = Path.home() / '.smarter-poker' / 'logs'
+LOG_DIR      = Path(os.environ.get('SP_LOG_DIR') or (Path.home() / '.smarter-poker' / 'logs'))
 LOG_FILE     = LOG_DIR / 'openclaw-cron.log'
 REQUEST_TIMEOUT = 120  # seconds — cron jobs can be slow
 
@@ -135,7 +131,7 @@ JOB_TIMEOUTS = {
     # real run is minutes, not two. The reels bridge is fast but shares the
     # discipline: never kill a writer at 120s.
     '/api/cron/video-library-scraper':  1800,
-    '/api/cron/video-library-reels':     900,
+    '/api/cron/video-library-reels':    1800,  #1650s publisher +150s final checkpoint reserve
     '/api/cron/video-library-backfill': 1800,
     '/api/cron/video-library-purge':    1800,
     '/api/cron/video-library-views':    1800,
@@ -150,8 +146,8 @@ def job_timeout(path: str) -> int:
 #     every 5 min; SMS-alerts after 2 consecutive failures (~10 min outage).
 #   * Internal _heartbeat cron logs ALIVE every 15 min so journalctl shows
 #     liveness; external scrape of the journal would catch a dead dispatcher.
-# Twilio credentials come from the systemd EnvironmentFile and are required for
-# paging. Missing credentials leave alerts pending so the next run retries.
+# Legacy Twilio names remain available to older helpers; this dispatcher sends
+# alerts through the committed operational inbox using CRON_SECRET.
 TWILIO_SID    = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
 TWILIO_TOKEN  = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
 TWILIO_FROM   = os.environ.get('TWILIO_PHONE_NUMBER', '').strip()
@@ -208,8 +204,13 @@ PID_FILE = LOG_DIR / 'openclaw-cron.pid'
 def _acquire_pid_lock():
     """Bail out if another instance is already running."""
     try:
-        fp = open(PID_FILE, 'w')
+        # Opening with ``w`` truncates the incumbent process's PID before the
+        # non-blocking flock can tell us that it owns the file. Acquire first,
+        # then replace the diagnostic contents only after we hold the lock.
+        fp = open(PID_FILE, 'a+')
         fcntl.flock(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fp.seek(0)
+        fp.truncate()
         fp.write(str(os.getpid()))
         fp.flush()
         atexit.register(lambda: PID_FILE.unlink(missing_ok=True))
@@ -220,7 +221,7 @@ def _acquire_pid_lock():
         print(f"[openclaw-cron] Another instance is running (lock held). Exiting.", flush=True)
         sys.exit(0)
 
-_pid_lock_fh = _acquire_pid_lock()
+_pid_lock_fh = None
 
 
 
@@ -991,14 +992,14 @@ SCRIPT_JOB_SCRIPTS = {
 # and returns before the bridge runs. Scheduled that way, no new library video
 # could ever reach social_reels - the last video_library reel was written
 # 2026-04-22 while the library gained 185 videos on 2026-08-30. The daily job
-# now runs the bridge itself, bounded to the newest 100 library videos by
+# now runs the verified bridge itself, bounded to the newest 500 library videos by
 # published_at (the bridge stamps created_at = now(), so an unbounded run
 # after a gap would drop the whole backlog onto the feed in one burst; the
 # backlog is a deliberate manual run: `video_library_to_reels.py` with no
 # --limit). Caption sync is folded into the end of every bridge run.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
-    '/api/cron/video-library-reels':    ['--limit', '100'],   # bridge newest 100 → social_reels, then caption sync
+    '/api/cron/video-library-reels':    ['--limit', '500', '--verify'],  # bounded verified atomic publisher
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
@@ -1015,24 +1016,13 @@ SCRIPT_JOBS = {
 # WORKERS_BASE_URL and DISPATCHER_PRIVATE_IP come from env so the same code
 # runs on primary (Mac, no private network → empty URL → falls through to
 # Vercel) and secondary (Hetzner, with private network → workers URL set).
-WORKERS_BASE_URL       = os.environ.get('WORKERS_BASE_URL', '').strip()
-DISPATCHER_PRIVATE_IP  = os.environ.get('DISPATCHER_PRIVATE_IP', '').strip()
+_WORKERS_BASE_URL_RAW = os.environ.get('WORKERS_BASE_URL', '')
+WORKERS_BASE_URL = _WORKERS_BASE_URL_RAW.rstrip('/')
+DISPATCHER_PRIVATE_IP = os.environ.get('DISPATCHER_PRIVATE_IP', '')
+DISPATCHER_ROLE = os.environ.get('DISPATCHER_ROLE', '')
 
 WORKERS_PREFERRED = {
-    # ─── 2B.2(b) — video-library SCRIPT_JOBS, all idempotent via Supabase upserts ───
-    # REMOVED: These must run locally via Python; workers HTTP routes just report status.
-    #
-    # EXCEPT video-library-reels, restored here 2026-09-06. It was a SCRIPT_JOB
-    # not in this map, so `_should_skip_on_secondary` skipped it on the ONLY
-    # host that fires - the library gained 1,573 videos between 2026-04-22 and
-    # today while the reels feed gained none, and the daily job reported itself
-    # as running the whole time. A 2026-09-04 pass corrected the script's flag
-    # from --sync-captions to --limit 100, which was right and changed nothing,
-    # because the script never executes on that host.
-    #
-    # The workers route now does BOTH halves - caption sync and the bridge -
-    # so routing it here is what makes the fix reachable.
-    '/api/cron/video-library-reels':    '/cron/video-library-reels',
+    # Video Library uses the deployed verified atomic Python publisher.
     # ─── 2B.2(c) Batch A+B — lowest-risk: scrapers, content gen, log cleanup ───
     # Each verified to return 200 from openclaw via private net before flip.
     # Each handler is idempotent via DELETE-by-cutoff or upsert-on-unique-key.
@@ -1183,6 +1173,11 @@ WORKERS_PREFERRED = {
     '/api/cron/anti-cheat-bot-timing':         '/cron/anti-cheat-bot-timing',
     '/api/cron/anti-cheat-chip-dump':          '/cron/anti-cheat-chip-dump',
 }
+
+
+SCRIPT_WORKER_OVERLAP = sorted(set(SCRIPT_JOBS).intersection(WORKERS_PREFERRED))
+if SCRIPT_WORKER_OVERLAP:
+    raise RuntimeError('SCRIPT_JOB/worker routing overlap: ' + ', '.join(SCRIPT_WORKER_OVERLAP))
 
 
 def _workers_dispatch(path: str) -> bool:
@@ -1551,11 +1546,9 @@ def _auth_drift_watchdog_job():
     state = _auth_drift_state
     failures = []
     # Track what was actually PROVEN vs merely absent. First cut of this job
-    # logged a bare "OK" after silently skipping the Supabase probe, because
-    # this host does not hold SUPABASE_SERVICE_ROLE_KEY (verified: only
-    # CRON_SECRET is in the dispatcher's environ). A watchdog that reports OK
-    # for a check it never ran is the same defect it was written to catch, so
-    # every run now names its coverage.
+    # logged a bare "OK" after silently skipping the Supabase probe. A watchdog
+    # that reports OK for a check it never ran is the same defect it was written
+    # to catch, so every run now names its coverage.
     verified = []
     absent = []
 
@@ -1581,22 +1574,25 @@ def _auth_drift_watchdog_job():
                 failures.append('CRON_SECRET rejected by production (401) - rotation did not reach this host')
             elif r.status_code == 200 and '"secretMalformed":true' in r.text.replace(' ', ''):
                 failures.append("production's own CRON_SECRET has surrounding whitespace - builds will fail")
+            elif r.status_code == 200:
                 verified.append('CRON_SECRET')
             elif r.status_code == 404:
                 absent.append('CRON_SECRET probe endpoint not deployed yet (404)')
                 log.warning('[auth-drift] probe endpoint missing (404) - deploy pending?')
             else:
-                verified.append('CRON_SECRET')
+                absent.append(f'CRON_SECRET probe inconclusive (HTTP {r.status_code})')
+                log.warning(f'[auth-drift] CRON_SECRET probe returned unexpected HTTP {r.status_code}')
         except Exception as e:
+            absent.append(f'CRON_SECRET probe transport failed ({type(e).__name__})')
             log.warning(f'[auth-drift] CRON_SECRET probe inconclusive: {type(e).__name__}: {e}')
 
     sb_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
     sb_url = os.environ.get('NEXT_PUBLIC_SUPABASE_URL',
                             'https://kuklfnapbkmacvwxktbh.supabase.co').rstrip('/')
     if not sb_key:
-        # Legitimate on the dispatcher, which routes HTTP and holds no service
-        # key. Recorded explicitly so "OK" can never be mistaken for "both
-        # credentials proven".
+        # Recorded explicitly so "OK" can never be mistaken for "both
+        # credentials proven". Startup validation normally makes this branch
+        # unreachable on the canonical host.
         absent.append('SUPABASE_SERVICE_ROLE_KEY (not held on this host)')
     if sb_key:
         try:
@@ -1606,9 +1602,13 @@ def _auth_drift_watchdog_job():
             if r.status_code == 401:
                 kind = 'legacy JWT' if sb_key.startswith('eyJ') else 'key'
                 failures.append(f'SUPABASE_SERVICE_ROLE_KEY rejected (401) - this host holds a revoked {kind}')
-            else:
+            elif r.status_code == 200:
                 verified.append('SUPABASE_SERVICE_ROLE_KEY')
+            else:
+                absent.append(f'SUPABASE_SERVICE_ROLE_KEY probe inconclusive (HTTP {r.status_code})')
+                log.warning(f'[auth-drift] supabase probe returned unexpected HTTP {r.status_code}')
         except Exception as e:
+            absent.append(f'SUPABASE_SERVICE_ROLE_KEY probe transport failed ({type(e).__name__})')
             log.warning(f'[auth-drift] supabase probe inconclusive: {type(e).__name__}: {e}')
 
     # ── The workers hop (added 2026-09-01) ─────────────────────────────────
@@ -1629,7 +1629,7 @@ def _auth_drift_watchdog_job():
     # and nothing is executed either way.
     if WORKERS_BASE_URL and WORKERS_PREFERRED:
         if not WORKERS_CRON_SECRET:
-            failures.append('WORKERS_CRON_SECRET is empty and CRON_SECRET is too - workers routes cannot authenticate')
+            failures.append('WORKERS_CRON_SECRET is empty - workers routes cannot authenticate')
         else:
             probe_headers = {'Authorization': f'Bearer {WORKERS_CRON_SECRET}'}
             if DISPATCHER_PRIVATE_IP:
@@ -1648,9 +1648,19 @@ def _auth_drift_watchdog_job():
                     absent.append(f'workers auth probe inconclusive (HTTP {r.status_code})')
                     log.warning(f'[auth-drift] workers probe returned HTTP {r.status_code}, expected 401 or 404')
             except Exception as e:
+                absent.append(f'WORKERS_CRON_SECRET probe transport failed ({type(e).__name__})')
                 log.warning(f'[auth-drift] workers probe inconclusive: {type(e).__name__}: {e}')
     else:
         absent.append('WORKERS_CRON_SECRET (no workers routing configured on this host)')
+
+    if not failures and absent:
+        # An outage, missing probe, or unexpected response is not evidence that
+        # a previously rejected credential recovered. Preserve the incident
+        # state and retry on the next scheduled check without sending a false
+        # recovery page or incrementing an auth-failure counter.
+        log.warning('[auth-drift] INCONCLUSIVE - ' + '; '.join(absent))
+        _alert_flush(state)
+        return
 
     if not failures:
         if state['alert_sent']:
@@ -2008,58 +2018,110 @@ def apply_stagger_if_secondary(path: str, kwargs: dict, role: str) -> dict:
 
 def should_skip_on_secondary(path: str, role: str) -> bool:
     """
-    SCRIPT_JOBS invoke a local Python scraper at SCRAPER_PY. That file only
-    exists on Dan's Mac. On Hetzner (role='secondary'), subprocess.run()
-    against it would FileNotFoundError every cycle.
+    Only the host-specific CardPlayer helper is skipped on secondary.
 
-    Phase 2B.2(b) (2026-04-24): paths in WORKERS_PREFERRED now fire via HTTP
-    against the workers VM instead — they are NOT skipped on secondary. Only
-    SCRIPT_JOBS that haven't been workers-ported are skipped.
-
-    Currently this means: if all SCRIPT_JOBS are in WORKERS_PREFERRED (they
-    are, as of 2B.2(b)), this function returns False for everything and the
-    function becomes a no-op. Retained to catch any future SCRIPT_JOBS
-    additions that land before their workers HTTP port.
+    Video Library jobs are mandatory on every scheduler host. Their scripts
+    are validated before registration in ``main``; silently skipping them was
+    the root cause of the historical ingestion gap.
     """
     if role == 'secondary' and path == '/api/cron/cardplayer-scraper':
         return True
+    return False
 
-    skip = (
-        role == 'secondary'
-        and path in SCRIPT_JOBS
-        and path not in WORKERS_PREFERRED
+
+def _validate_runtime_contract() -> None:
+    """Fail closed on an incomplete canonical-host environment."""
+    failures = []
+
+    def require_secret(name: str, value: str) -> None:
+        if len(value) < 20:
+            failures.append(f'{name} is missing or too short')
+        if any(character.isspace() for character in value):
+            failures.append(f'{name} contains whitespace')
+        if any(character in value for character in ('"', '\\')):
+            failures.append(f'{name} contains unsafe quoting characters')
+
+    require_secret('CRON_SECRET', CRON_SECRET)
+    require_secret('WORKERS_CRON_SECRET', WORKERS_CRON_SECRET)
+    require_secret(
+        'SUPABASE_SERVICE_ROLE_KEY',
+        os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''),
     )
+    supabase_url = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '')
+    for name, value in (
+        ('NEXT_PUBLIC_SUPABASE_URL', supabase_url),
+        ('WORKERS_BASE_URL', _WORKERS_BASE_URL_RAW),
+        ('DISPATCHER_PRIVATE_IP', DISPATCHER_PRIVATE_IP),
+        ('DISPATCHER_ROLE', DISPATCHER_ROLE),
+    ):
+        if value != value.strip() or any(character.isspace() for character in value):
+            failures.append(f'{name} contains whitespace')
+    parsed_supabase = urllib.parse.urlsplit(supabase_url)
+    if (
+        parsed_supabase.scheme != 'https'
+        or not parsed_supabase.hostname
+        or parsed_supabase.username
+        or parsed_supabase.password
+        or parsed_supabase.query
+        or parsed_supabase.fragment
+        or parsed_supabase.path not in ('', '/')
+    ):
+        failures.append('NEXT_PUBLIC_SUPABASE_URL must be a credential-free HTTPS origin')
 
-    # 2026-08-29: this used to return True silently and that silence cost 129
-    # days of video-library ingestion. A job that is skipped on the ONLY host
-    # that runs it is indistinguishable from a job that is working, so say so
-    # loudly and say why. SP_ENABLE_SCRIPT_JOBS=1 opts a secondary host in once
-    # the scripts are deployed alongside it (they are host-portable as of the
-    # same date); the scripts upsert into Supabase, so a brief overlap with the
-    # Mac dispatcher is safe.
-    if skip:
-        script = SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)
-        if os.environ.get('SP_ENABLE_SCRIPT_JOBS', '').strip() in ('1', 'true', 'yes'):
-            if os.path.exists(script):
-                log.info(f'{path}: SCRIPT_JOB enabled on secondary → {script}')
-                return False
-            log.warning(
-                f'{path}: SP_ENABLE_SCRIPT_JOBS is set but {script} is missing on '
-                f'this host — deploy the scripts/ directory alongside the dispatcher.'
-            )
-        log.warning(
-            f'{path}: SKIPPED on secondary (SCRIPT_JOB, script expected at {script}). '
-            f'This job runs ONLY on a primary/Mac dispatcher. If no primary is '
-            f'running, this work is not happening anywhere.'
+    parsed_workers = urllib.parse.urlsplit(WORKERS_BASE_URL)
+    if (
+        parsed_workers.scheme not in ('http', 'https')
+        or not parsed_workers.hostname
+        or parsed_workers.username
+        or parsed_workers.password
+        or parsed_workers.query
+        or parsed_workers.fragment
+        or parsed_workers.path not in ('', '/')
+    ):
+        failures.append('WORKERS_BASE_URL must be a credential-free HTTP(S) origin')
+    try:
+        ipaddress.ip_address(DISPATCHER_PRIVATE_IP)
+    except ValueError:
+        failures.append('DISPATCHER_PRIVATE_IP must be an explicit IP address')
+    if DISPATCHER_ROLE not in ('primary', 'secondary'):
+        failures.append('DISPATCHER_ROLE must be explicitly primary or secondary')
+
+    if failures:
+        raise RuntimeError('invalid Open Claw runtime configuration: ' + '; '.join(failures))
+
+
+def _validate_required_scripts() -> None:
+    required_script_paths = {
+        path: SCRIPT_JOB_SCRIPTS.get(path, SCRAPER_PY)
+        for path in SCRIPT_JOBS
+    }
+    missing_scripts = sorted(
+        f'{path} -> {script}'
+        for path, script in required_script_paths.items()
+        if not os.path.isfile(script)
+    )
+    if missing_scripts:
+        raise RuntimeError(
+            'required SCRIPT_JOB source is missing: ' + '; '.join(missing_scripts)
         )
-    return skip
 
 
 def main():
-    role = os.environ.get('DISPATCHER_ROLE', 'primary').strip().lower()
-    if role not in ('primary', 'secondary'):
-        log.warning(f"DISPATCHER_ROLE='{role}' not recognized, defaulting to 'primary'")
-        role = 'primary'
+    global _pid_lock_fh
+    if len(sys.argv) > 1 and sys.argv[1:] != ['--preflight-only']:
+        raise RuntimeError('unsupported dispatcher argument')
+    _validate_runtime_contract()
+    _validate_required_scripts()
+    if sys.argv[1:] == ['--preflight-only']:
+        log.info('Open Claw dispatcher preflight: runtime and script contract verified')
+        return
+
+    # Candidate and systemd ExecStartPre checks must be able to run while the
+    # incumbent service owns its singleton lock. Only the long-lived scheduler
+    # acquires it, after every fail-closed startup check has completed.
+    _pid_lock_fh = _acquire_pid_lock()
+
+    role = DISPATCHER_ROLE
 
     log.info('=' * 60)
     log.info('OpenClaw Cron Dispatcher v1.8 starting up')
@@ -2071,8 +2133,7 @@ def main():
     log.info(f'Dispatcher role: {role}')
     if role == 'secondary':
         log.info(f'Stagger active:  +{STAGGER_MINUTES} min on {len(STAGGERED_JOBS)} non-idempotent jobs')
-        if SCRIPT_JOBS:
-            log.info(f'Skipping {len(SCRIPT_JOBS)} SCRIPT_JOBS on secondary (SCRAPER_PY is Mac-only)')
+    log.info('SCRIPT_JOBS ready: %s configured, all sources present', len(SCRIPT_JOBS))
     log.info(f'Managing {len(ALL_CRONS)} cron jobs')
     log.info('=' * 60)
 

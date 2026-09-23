@@ -1,27 +1,20 @@
-name: Deploy Open Claw Cron Dispatcher
+name: Deploy Open Claw Dispatcher + Script Jobs
 
-# Auto-deploys scripts/openclaw-cron-dispatcher.py to the openclaw VM on
-# Hetzner canonical Open Claw host whenever the dispatcher
-# changes on main, AND self-bootstraps Open Claw on a fresh box.
-#
-# Bootstrap behaviour: if openclaw.service is missing on the VM, this
-# workflow installs python3 + apscheduler/requests + the systemd unit +
-# the env file, then starts the service. Subsequent runs only scp the
-# dispatcher and restart.
-#
-# OPENCLAW_HOST is deliberately separate from HETZNER_HOST. The latter belongs
-# to the PepNation/worker host and must never receive the cron dispatcher.
-# OPENCLAW_SSH_PRIVATE_KEY is likewise scoped to the scheduler host.
-#
-# Note: `on: push`, NOT `schedule:`, so it does not violate
-# the cron-governance rule in CLAUDE.md §11.5.
+# Immutable Open Claw releases. Host-managed credentials are validated in
+# place, never printed, copied into artifacts, derived from one another, or
+# overwritten by deployment.
 
 on:
   push:
     branches: [main]
     paths:
       - 'scripts/openclaw-cron-dispatcher.py'
+      - 'scripts/video_library_scraper.py'
+      - 'scripts/video_library_to_reels.py'
+      - 'scripts/openclaw-requirements.txt'
+      - 'scripts/openclaw-requirements.lock'
       - 'scripts/openclaw.service'
+      - 'supabase/migrations/20260906235959_video_reels_integrity_foundation.sql'
       - '.github/workflows/deploy-openclaw.yml'
   workflow_dispatch:
 
@@ -29,197 +22,509 @@ concurrency:
   group: deploy-openclaw
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    environment: Production
+    timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require the exact merged main revision
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          git fetch --no-tags --depth=1 origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
 
       - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.OPENCLAW_SSH_PRIVATE_KEY }}
 
-      - name: Require the canonical Open Claw host
+      # Canonical openclaw-dispatcher: Hetzner server 127861894.
+      - name: Trust the independently pinned Open Claw host key
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
-        run: test -n "$HOST"
-
-      - name: Trust Hetzner host key
+          EXPECTED_ED25519_FINGERPRINT: SHA256:MnBhnIy9+ocCKI8Dlg74XgqBIdMK+M7TNFKMC9OeVyM
         run: |
+          set -euo pipefail
+          test -n "$HOST"
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.OPENCLAW_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 10 -t ed25519 -H "$HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          actual_fingerprint="$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}' | sort -u)"
+          test "$actual_fingerprint" = "$EXPECTED_ED25519_FINGERPRINT"
+          chmod 0600 ~/.ssh/known_hosts
+          printf '%s\n' \
+            'Host *' \
+            '  StrictHostKeyChecking yes' \
+            '  UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
+          chmod 0600 ~/.ssh/config
 
-      - name: Bootstrap (idempotent — installs python3 + apscheduler + dirs)
+      - name: Verify runtime and prepare release directories
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
-          ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
-          set -e
-          if ! id openclaw >/dev/null 2>&1; then
-            sudo useradd --system --home-dir /opt/openclaw --create-home --shell /bin/bash openclaw
-          fi
-          # Python deps for apscheduler/requests — idempotent.
-          if ! python3 -c 'import apscheduler, requests' 2>/dev/null; then
-            sudo apt-get update -y
-            sudo apt-get install -y python3 python3-pip
-            sudo pip3 install --break-system-packages apscheduler requests 2>/dev/null \
-              || sudo pip3 install apscheduler requests
-          fi
-          python3 -c 'import apscheduler, requests; print("openclaw deps OK")'
-          sudo mkdir -p /opt/openclaw /var/log/openclaw /var/lib/openclaw
-          sudo chown openclaw:openclaw /opt/openclaw /var/log/openclaw /var/lib/openclaw
+          ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
+          set -euo pipefail
+          # Runtime provisioning is separate; publication never installs on Hetzner.
+          test -x /usr/bin/python3
+          command -v curl >/dev/null
+          test "$(uname -s)" = Linux
+          test "$(uname -m)" = x86_64
+          /usr/bin/python3 -c 'import sys; assert sys.version_info[:2] == (3, 10), "Open Claw lock requires CPython 3.10"'
+          id -u openclaw >/dev/null
+          sudo install -d -o root -g root -m 0755 /opt/openclaw /opt/openclaw/releases
+          sudo install -d -o openclaw -g openclaw -m 0750 \
+            /opt/openclaw/.smarter-poker \
+            /opt/openclaw/.smarter-poker/logs \
+            /var/log/openclaw \
+            /var/lib/openclaw \
+            /var/lib/openclaw/evidence
+          test "$(sudo stat -c '%U:%G %a' /opt/openclaw)" = 'root:root 755'
+          test "$(sudo stat -c '%U:%G %a' /opt/openclaw/releases)" = 'root:root 755'
           EOSSH
 
-      - name: Merge managed dispatcher secrets into the canonical env file
+      - name: Validate the complete host-managed runtime contract
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET || secrets.HENDON_AUTO_SYNC_SECRET || '' }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
-          ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
-          umask 077
-          # ── WORKERS_CRON_SECRET is deliberately NOT managed here ──────────────
-          #
-          # The workers VM (WORKERS_BASE_URL, private 10.0.0.x) has its own copy
-          # of CRON_SECRET in its compose env and its own rotation cadence. This
-          # runner cannot reach that private address, so it cannot prove a
-          # candidate before writing one, and the rule below — never write an
-          # unproven secret — applies with more force, not less.
-          #
-          # So the workers secret is HOST-LOCAL: it lives in /opt/openclaw/.env,
-          # which the merge step at the bottom of this job seeds into
-          # /etc/openclaw.env only when the key is absent, and which nothing here
-          # ever overwrites. The dispatcher falls back to CRON_SECRET when
-          # WORKERS_CRON_SECRET is unset, so a box where the two agree needs no
-          # configuration.
-          #
-          # Added 2026-09-01 after the two values diverged silently for a day and
-          # every workers-routed job 401'd. See
-          # .agent/audits/2026-09-01-workers-cron-secret-split.md.
-          #
-          # ── Never overwrite a WORKING credential with one production rejects ──
-          #
-          # This step used to stamp secrets.CRON_SECRET onto /etc/openclaw.env
-          # unconditionally on every push to main that touches the dispatcher.
-          # On 2026-08-31 the GitHub copy was two weeks stale (last set
-          # 2026-08-16) while Vercel's had been rotated, so each deploy silently
-          # re-poisoned the box: all 89 dispatcher routes 401'd, a hand-repair on
-          # the VM at 13:49 UTC was erased by the very next dispatcher merge at
-          # 14:54, and the auth-drift watchdog paged Dan once per restart.
-          #
-          # The candidate is now PROVED against the same no-side-effect auth
-          # boundary the watchdog uses before it is allowed to replace anything.
-          # If it fails, we leave the host's existing value alone (it may be the
-          # good one, hand-repaired) and fail the workflow at the end — loudly,
-          # because a stale GitHub secret is a real problem that needs a human to
-          # re-copy the value from Vercel. Silence is what let this run for weeks.
-          PROBE_URL="https://smarter.poker/api/internal/cron-auth-probe"
-          CRON_SECRET_OK=no
-          if [ -z "$CRON_SECRET" ]; then
-            echo "::warning::CRON_SECRET is empty in GitHub secrets — leaving the host's copy untouched"
+          ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
+          set -euo pipefail
+          sudo test -f /etc/openclaw.env
+          test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
+          sudo /usr/bin/python3 - <<'PY'
+          import ipaddress
+          import re
+          import urllib.parse
+          from pathlib import Path
+
+          values = {}
+          for line_number, raw in enumerate(Path('/etc/openclaw.env').read_text().splitlines(), 1):
+              line = raw.strip()
+              if not line or line.startswith('#'):
+                  continue
+              if '=' not in line:
+                  raise SystemExit(f'invalid /etc/openclaw.env line {line_number}')
+              key, value = line.split('=', 1)
+              key = key.strip()
+              if not re.fullmatch(r'[A-Z][A-Z0-9_]*', key):
+                  raise SystemExit(f'invalid /etc/openclaw.env key at line {line_number}')
+              if key in values:
+                  raise SystemExit(f'duplicate /etc/openclaw.env key: {key}')
+              value = value.strip()
+              if value[:1] in ('"', "'"):
+                  if len(value) < 2 or value[-1] != value[0]:
+                      raise SystemExit(f'unbalanced quotes for /etc/openclaw.env key: {key}')
+                  value = value[1:-1]
+              elif value[-1:] in ('"', "'"):
+                  raise SystemExit(f'unbalanced quotes for /etc/openclaw.env key: {key}')
+              values[key] = value
+
+          def required(name, minimum=1):
+              value = values.get(name, '')
+              if (len(value) < minimum or value != value.strip()
+                      or any(ch.isspace() for ch in value) or any(ch in value for ch in ('"', '\\'))):
+                  raise SystemExit(f'missing or malformed /etc/openclaw.env key: {name}')
+              return value
+
+          required('CRON_SECRET', 20)
+          required('WORKERS_CRON_SECRET', 20)
+          required('SUPABASE_SERVICE_ROLE_KEY', 20)
+          supabase = urllib.parse.urlsplit(required('NEXT_PUBLIC_SUPABASE_URL'))
+          if (supabase.scheme != 'https' or not supabase.hostname
+                  or supabase.username or supabase.password or supabase.query or supabase.fragment
+                  or supabase.path not in ('', '/')):
+              raise SystemExit('NEXT_PUBLIC_SUPABASE_URL must be a credential-free HTTPS origin')
+          workers = urllib.parse.urlsplit(required('WORKERS_BASE_URL'))
+          if (workers.scheme not in ('http', 'https') or not workers.hostname
+                  or workers.username or workers.password or workers.query or workers.fragment
+                  or workers.path not in ('', '/')):
+              raise SystemExit('WORKERS_BASE_URL must be a credential-free HTTP(S) origin')
+          ipaddress.ip_address(required('DISPATCHER_PRIVATE_IP'))
+          if required('DISPATCHER_ROLE') not in ('primary', 'secondary'):
+              raise SystemExit('DISPATCHER_ROLE must be primary or secondary')
+          PY
+          EOSSH
+
+      - name: Build on the runner, import and preflight immutable release
+        env:
+          BUILD_IMAGE: ${{ vars.VIDEO_OPENCLAW_BUILD_IMAGE }}
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          def normalized(name):
+              return re.sub(r'[-_.]+', '-', name).lower()
+
+          direct = {}
+          for raw in Path('scripts/openclaw-requirements.txt').read_text().splitlines():
+              line = raw.strip()
+              if not line or line.startswith('#'):
+                  continue
+              match = re.fullmatch(r'([A-Za-z0-9_.-]+)==([^\s]+)', line)
+              if not match:
+                  raise SystemExit(f'unpinned direct Open Claw requirement: {line}')
+              direct[normalized(match.group(1))] = match.group(2)
+
+          locked = {}
+          for raw in Path('scripts/openclaw-requirements.lock').read_text().splitlines():
+              match = re.match(r'^([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?==([^\s]+)\s+\\$', raw)
+              if match:
+                  locked[normalized(match.group(1))] = match.group(2)
+
+          mismatch = {
+              name: (version, locked.get(name))
+              for name, version in direct.items()
+              if locked.get(name) != version
+          }
+          if mismatch:
+              raise SystemExit(f'Direct Open Claw requirements do not match hash lock: {mismatch}')
+          PY
+          # GitHub-hosted runners hold no pre-seeded build image. Pull only an
+          # immutable registry digest; the selection below still re-validates the
+          # reference, the resolved image ID and the platform before anything
+          # runs, and a bare image ID that is not present fails closed there.
+          if [[ "$BUILD_IMAGE" =~ ^[a-zA-Z0-9./:_-]+@sha256:[0-9a-f]{64}$ ]]; then
+            timeout --signal=TERM --kill-after=10s 600s \
+              docker pull --quiet --platform linux/amd64 "$BUILD_IMAGE" >/dev/null
+          fi
+          # Existing lock is Linux x86_64/CPython3.10; no host/site dependencies.
+          # Accept only immutable registry digests or a qualified local image ID.
+          [[ "$BUILD_IMAGE" =~ ^([a-zA-Z0-9./:_-]+@)?sha256:[0-9a-f]{64}$ ]] || exit 1
+          image_id="$(docker image inspect --format '{{.Id}}' "$BUILD_IMAGE")"
+          [[ "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+          if [[ "$BUILD_IMAGE" = sha256:* ]]; then test "$image_id" = "$BUILD_IMAGE"; fi
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image_id")" = linux/amd64
+          local_stage="$(mktemp -d "$RUNNER_TEMP/openclaw-stage.XXXXXX")"
+          build_container="wh-openclaw-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker rm -f "$build_container" >/dev/null 2>&1 || true; rm -rf -- "$local_stage"' EXIT
+          cp scripts/openclaw-cron-dispatcher.py scripts/video_library_scraper.py \
+            scripts/video_library_to_reels.py scripts/openclaw-requirements.txt \
+            scripts/openclaw-requirements.lock "$local_stage/"
+          timeout --signal=TERM --kill-after=10s 900s docker run --rm --pull=never \
+            --name "$build_container" --platform linux/amd64 --cpus=2 \
+            --memory=1g --memory-swap=1g --pids-limit=256 --read-only \
+            --tmpfs /tmp:rw,nosuid,size=256m --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --mount "type=bind,src=$local_stage,dst=/release" \
+            --workdir /release --entrypoint /bin/sh "$image_id" -eu -c '
+              python3 -c "import sys,platform; assert sys.version_info[:2] == (3,10); assert platform.machine() == \"x86_64\""
+              python3 -m pip install --disable-pip-version-check --no-cache-dir \
+                --no-compile --only-binary=:all: --require-hashes \
+                --target vendor --requirement openclaw-requirements.lock
+              PYTHONPATH=/release/vendor python3 -s -c "import apscheduler,requests,supabase,yt_dlp"
+            '
+          (cd "$local_stage" && find . -type f ! -name release-manifest.sha256 -print0 \
+            | LC_ALL=C sort -z | xargs -0 sha256sum > release-manifest.sha256)
+          archive="$RUNNER_TEMP/openclaw-${GITHUB_SHA}.tgz"
+          upload="openclaw-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tgz"
+          tar -czf "$archive" -C "$local_stage" .
+          manifest_hash="$(sha256sum "$local_stage/release-manifest.sha256" | awk '{print $1}')"
+          archive_hash="$(sha256sum "$archive" | awk '{print $1}')"
+          dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
+          scraper_hash="$(sha256sum scripts/video_library_scraper.py | awk '{print $1}')"
+          publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
+          lock_hash="$(sha256sum scripts/openclaw-requirements.lock | awk '{print $1}')"
+          scp "$archive" "$SSH_USER@$HOST:$upload"
+          ssh "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash" "$lock_hash" "$manifest_hash" <<'EOSSH'
+          set -euo pipefail
+          release_sha="$1"
+          run_id="$2"
+          run_attempt="$3"
+          archive_hash="$4"
+          dispatcher_hash="$5"
+          scraper_hash="$6"
+          publisher_hash="$7"
+          lock_hash="$8"
+          manifest_hash="$9"
+          case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#release_sha}" -eq 40
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          for expected_hash in "$archive_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash" "$lock_hash" "$manifest_hash"; do
+            case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
+            test "${#expected_hash}" -eq 64
+          done
+
+          upload="$HOME/openclaw-${release_sha}-${run_id}-${run_attempt}.tgz"
+          release="/opt/openclaw/releases/${release_sha}"
+          created=false
+          keep_release=false
+          cleanup() {
+            status=$?
+            rm -f "$upload"
+            if [ "$created" = true ] && [ "$keep_release" != true ]; then
+              test "$release" = "/opt/openclaw/releases/${release_sha}"
+              sudo rm -rf -- "$release"
+            fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+          echo "$archive_hash  $upload" | sha256sum -c -
+
+          if sudo test -e "$release"; then
+            test ! -L "$release"
+            sudo test -d "$release"
+            sudo test -f "$release/release-manifest.sha256"
+            test "$(sudo stat -c '%U:%G' "$release")" = 'root:root'
+            test -z "$(sudo find "$release" -xdev \( ! -user root -o ! -group root \) -print -quit)"
+            test -z "$(sudo find "$release" -xdev -perm /022 -print -quit)"
+            sudo sh -c "cd '$release' && sha256sum --quiet -c release-manifest.sha256"
           else
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
-                     -H "Authorization: Bearer $CRON_SECRET" "$PROBE_URL" || echo 000)
-            case "$code" in
-              200) CRON_SECRET_OK=yes; echo "CRON_SECRET accepted by production (200) — safe to write" ;;
-              401) echo "::error::GitHub's CRON_SECRET is REJECTED by production (401). It is stale. Copy the current value from the Vercel hub-vanguard env into the repo secret CRON_SECRET. Leaving /etc/openclaw.env untouched so a working host value is not destroyed." ;;
-              *)   echo "::warning::CRON_SECRET probe inconclusive (HTTP $code) — refusing to write on an unproven result" ;;
-            esac
+            sudo install -d -o root -g root -m 0755 "$release"
+            created=true
+            sudo tar --no-same-owner -xzf "$upload" -C "$release"
+            test "$(sudo sha256sum "$release/release-manifest.sha256" | awk '{print $1}')" = "$manifest_hash"
+            sudo chown -R root:root "$release"
+            sudo chmod -R u=rwX,go=rX "$release"
+            test -z "$(sudo find "$release" -xdev \( ! -user root -o ! -group root \) -print -quit)"
+            test -z "$(sudo find "$release" -xdev -perm /022 -print -quit)"
+            sudo sh -c "cd '$release' && sha256sum --quiet -c release-manifest.sha256"
           fi
-          echo "cron_secret_ok=$CRON_SECRET_OK" >> "$GITHUB_ENV"
-          {
-            if [ "$CRON_SECRET_OK" = yes ]; then printf 'CRON_SECRET=%s\n' "$CRON_SECRET"; fi
-            printf 'TWILIO_ACCOUNT_SID=%s\n' "$TWILIO_ACCOUNT_SID"
-            printf 'TWILIO_AUTH_TOKEN=%s\n' "$TWILIO_AUTH_TOKEN"
-            printf 'TWILIO_PHONE_NUMBER=%s\n' "$TWILIO_PHONE_NUMBER"
-            printf 'ADMIN_PHONE=%s\n' "$ADMIN_PHONE"
-          } > /tmp/openclaw-managed.env
-          scp /tmp/openclaw-managed.env "$USER@$HOST:/tmp/openclaw-managed.env"
-          ssh "$USER@$HOST" 'bash -s' <<'EOSSH'
-          set -e
-          sudo touch /etc/openclaw.env
-          if [ -f /opt/openclaw/.env ]; then
-            while IFS= read -r line; do
-              key=${line%%=*}
-              [ -n "$key" ] || continue
-              sudo grep -q "^${key}=" /etc/openclaw.env || printf '%s\n' "$line" | sudo tee -a /etc/openclaw.env >/dev/null
-            done < /opt/openclaw/.env
-          fi
-          while IFS= read -r line; do
-            key=${line%%=*}
-            sudo sed -i "/^${key}=/d" /etc/openclaw.env
-            printf '%s\n' "$line" | sudo tee -a /etc/openclaw.env >/dev/null
-          done < /tmp/openclaw-managed.env
-          sudo rm -f /tmp/openclaw-managed.env
-          sudo chmod 600 /etc/openclaw.env
-          sudo chown root:root /etc/openclaw.env
+          test "$(sudo sha256sum "$release/release-manifest.sha256" | awk '{print $1}')" = "$manifest_hash"
+          sudo env -u PYTHONHOME -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 \
+            PYTHONPATH="$release/vendor" /usr/bin/python3 -s - "$release" <<'PY'
+          import importlib.metadata, re, sys
+          from pathlib import Path
+          release = Path(sys.argv[1])
+          expected = dict(re.findall(r'^([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?==([^\s]+)\s+\\$', (release / 'openclaw-requirements.lock').read_text(), re.M))
+          normalize = lambda value: re.sub(r'[-_.]+', '-', value).lower()
+          actual = {normalize(d.metadata['Name']): d.version for d in importlib.metadata.distributions(path=[str(release / 'vendor')])}
+          if actual != {normalize(k): v for k, v in expected.items()}:
+              raise SystemExit('Open Claw installed dependency closure differs from lock')
+          import apscheduler, requests, supabase, yt_dlp
+          PY
+          rm -f "$upload"
+
+          test "$(sudo sha256sum "$release/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
+          test "$(sudo sha256sum "$release/video_library_scraper.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$release/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
+          test "$(sudo sha256sum "$release/openclaw-requirements.lock" | awk '{print $1}')" = "$lock_hash"
+
+          run_preflight() {
+            unit_name="$1"
+            shift
+            sudo systemd-run --quiet --wait --collect --unit "$unit_name" \
+              --property Type=oneshot \
+              --property User=openclaw \
+              --property WorkingDirectory="$release" \
+              --property EnvironmentFile=/etc/openclaw.env \
+              --setenv=PYTHONNOUSERSITE=1 \
+              --setenv=PYTHONDONTWRITEBYTECODE=1 \
+              --setenv=SP_LOG_DIR=/var/log/openclaw \
+              --setenv=SP_EVIDENCE_DIR=/var/lib/openclaw/evidence \
+              /usr/bin/timeout --signal=TERM --kill-after=5s 140s "$@"
+          }
+          run_preflight "openclaw-dispatcher-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/openclaw-cron-dispatcher.py" --preflight-only
+          run_preflight "openclaw-scraper-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_scraper.py" --preflight-only
+          run_preflight "openclaw-publisher-preflight-${run_id}-${run_attempt}" \
+            /usr/bin/env -u PYTHONHOME -u PYTHONPATH "PYTHONPATH=$release/vendor" /usr/bin/python3 -s "$release/video_library_to_reels.py" --preflight-only
+          sudo systemd-run --quiet --wait --collect \
+            --unit "openclaw-workers-auth-preflight-${run_id}-${run_attempt}" \
+            --property Type=oneshot \
+            --property EnvironmentFile=/etc/openclaw.env \
+            /bin/bash -c '
+              set -euo pipefail
+              production_status="$(printf '\''header = "Authorization: Bearer %s"\n'\'' \
+                "$CRON_SECRET" \
+                | curl --disable --silent --show-error --output /dev/null --write-out '\''%{http_code}'\'' \
+                    --connect-timeout 10 --max-time 20 --config - \
+                    https://smarter.poker/api/internal/cron-auth-probe)"
+              test "$production_status" = 200
+              workers_status="$(printf '\''header = "Authorization: Bearer %s"\nheader = "X-Forwarded-For: %s"\n'\'' \
+                "$WORKERS_CRON_SECRET" "$DISPATCHER_PRIVATE_IP" \
+                | curl --disable --silent --show-error --output /dev/null --write-out '\''%{http_code}'\'' \
+                    --connect-timeout 10 --max-time 20 --config - \
+                    "$WORKERS_BASE_URL/cron/__auth_probe_no_such_route__")"
+              test "$workers_status" = 404
+            '
+          keep_release=true
+          trap - EXIT
           EOSSH
-          rm -f /tmp/openclaw-managed.env
 
-      - name: Sync dispatcher.py + systemd unit
+      - name: Atomically promote, restart, and verify exact release
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
         run: |
-          scp scripts/openclaw-cron-dispatcher.py \
-            "$USER@$HOST:/tmp/openclaw-cron-dispatcher.py"
-          scp scripts/openclaw.service \
-            "$USER@$HOST:/tmp/openclaw.service"
-          ssh "$USER@$HOST" '
-            set -e
-            sudo mv /tmp/openclaw-cron-dispatcher.py /opt/openclaw/dispatcher.py
-            sudo chmod 0644 /opt/openclaw/dispatcher.py
-            sudo mv /tmp/openclaw.service /etc/systemd/system/openclaw.service
-            sudo chmod 0644 /etc/systemd/system/openclaw.service
+          set -euo pipefail
+          unit_upload="openclaw-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.service"
+          unit_hash="$(sha256sum scripts/openclaw.service | awk '{print $1}')"
+          dispatcher_hash="$(sha256sum scripts/openclaw-cron-dispatcher.py | awk '{print $1}')"
+          scraper_hash="$(sha256sum scripts/video_library_scraper.py | awk '{print $1}')"
+          publisher_hash="$(sha256sum scripts/video_library_to_reels.py | awk '{print $1}')"
+          scp scripts/openclaw.service "$SSH_USER@$HOST:$unit_upload"
+          ssh "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash" <<'EOSSH'
+          set -euo pipefail
+          release_sha="$1"
+          run_id="$2"
+          run_attempt="$3"
+          unit_hash="$4"
+          dispatcher_hash="$5"
+          scraper_hash="$6"
+          publisher_hash="$7"
+          case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#release_sha}" -eq 40
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          for expected_hash in "$unit_hash" "$dispatcher_hash" "$scraper_hash" "$publisher_hash"; do
+            case "$expected_hash" in (*[!0-9a-f]*|'') exit 2 ;; esac
+            test "${#expected_hash}" -eq 64
+          done
+
+          release="/opt/openclaw/releases/${release_sha}"
+          current=/opt/openclaw/current
+          unit=/etc/systemd/system/openclaw.service
+          unit_upload="$HOME/openclaw-${run_id}-${run_attempt}.service"
+          unit_backup="/opt/openclaw/releases/.unit-backup-${run_id}-${run_attempt}"
+          next_link="/opt/openclaw/.current-${run_id}-${run_attempt}"
+          sudo test -d "$release"
+          test ! -L "$release"
+          sudo sh -c "cd '$release' && sha256sum --quiet -c release-manifest.sha256"
+          test "$(sha256sum "$unit_upload" | awk '{print $1}')" = "$unit_hash"
+
+          old_target=''
+          had_current=false
+          had_unit=false
+          enabled_before="$(sudo systemctl is-enabled openclaw.service 2>/dev/null || true)"
+          case "$enabled_before" in enabled|disabled) ;; *) exit 1 ;; esac
+          active_before="$(sudo systemctl show openclaw.service -p ActiveState --value)"
+          case "$active_before" in active|inactive) ;; *) exit 1 ;; esac
+          was_active=false
+          if sudo test -e "$current" || sudo test -L "$current"; then
+            had_current=true
+            sudo test -L "$current"
+            old_target="$(sudo readlink "$current")"
+          fi
+          if sudo test -f "$unit"; then
+            sudo cp -a "$unit" "$unit_backup"
+            had_unit=true
+          fi
+          if [ "$active_before" = active ]; then
+            was_active=true
+          fi
+
+          rollback() {
+            status=$?
+            trap - ERR
+            set +e
+            if [ "$had_unit" = true ]; then
+              sudo cp -a "$unit_backup" "$unit"
+            else
+              sudo rm -f "$unit"
+            fi
+            sudo rm -f "$current" "$next_link"
+            if [ "$had_current" = true ]; then sudo ln -s "$old_target" "$current"; fi
             sudo systemctl daemon-reload
-          '
+            # The first immutable deploy migrates an active legacy unit that
+            # has no /opt/openclaw/current symlink yet. Restoring that unit is
+            # sufficient to restart it because legacy sources are retained
+            # until after readiness succeeds.
+            if [ "$was_active" = true ] && [ "$had_unit" = true ]; then
+              sudo systemctl reset-failed openclaw.service >/dev/null 2>&1
+              sudo systemctl restart openclaw.service
+            else
+              sudo systemctl stop openclaw.service
+            fi
+            sudo rm -f "$unit_backup"
+            rm -f "$unit_upload"
+            exit "$status"
+          }
+          trap rollback ERR
 
-      - name: Enable + (re)start openclaw.service and verify
-        env:
-          HOST: ${{ secrets.OPENCLAW_HOST }}
-          USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
-        run: |
-          expected_dispatcher=$(sha256sum scripts/openclaw-cron-dispatcher.py | cut -d' ' -f1)
-          expected_unit=$(sha256sum scripts/openclaw.service | cut -d' ' -f1)
-          ssh "$USER@$HOST" '
-            set -e
-            sudo systemctl enable openclaw.service
-            sudo systemctl restart openclaw.service
-            sleep 3
-            sudo systemctl is-active openclaw.service
-            test "$(sudo systemctl show openclaw.service -p User --value)" = openclaw
-            for key in CRON_SECRET TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_PHONE_NUMBER ADMIN_PHONE; do
-              sudo grep -q "^${key}=.." /etc/openclaw.env
-            done
-            sudo journalctl -u openclaw.service -n 30 --no-pager
-          '
-          remote_dispatcher=$(ssh "$USER@$HOST" 'sha256sum /opt/openclaw/dispatcher.py' | cut -d' ' -f1)
-          remote_unit=$(ssh "$USER@$HOST" 'sha256sum /etc/systemd/system/openclaw.service' | cut -d' ' -f1)
-          test "$remote_dispatcher" = "$expected_dispatcher"
-          test "$remote_unit" = "$expected_unit"
+          sudo rm -f "$next_link"
+          sudo ln -s "$release" "$next_link"
+          sudo mv -Tf "$next_link" "$current"
+          # Verify after the candidate symlink exists so the first immutable
+          # migration does not fail merely because the unit's absolute
+          # ExecStart paths had no /opt/openclaw/current target beforehand.
+          sudo systemd-analyze verify "$unit_upload"
+          sudo install -o root -g root -m 0644 "$unit_upload" "$unit"
+          test "$(sudo sha256sum "$unit" | awk '{print $1}')" = "$unit_hash"
+          sudo systemctl daemon-reload
+          # BEGIN preserve-active-state
+          if [ "$was_active" = true ]; then
+          previous_invocation="$(sudo systemctl show openclaw.service -p InvocationID --value 2>/dev/null || true)"
+          sudo systemctl reset-failed openclaw.service >/dev/null 2>&1 || true
+          sudo systemctl restart openclaw.service
+          invocation_one="$(sudo systemctl show openclaw.service -p InvocationID --value)"
+          test -n "$invocation_one"
+          test "$invocation_one" != "$previous_invocation"
+          sudo systemctl is-active --quiet openclaw.service
+          sleep 8
+          sudo systemctl is-active --quiet openclaw.service
+          invocation_two="$(sudo systemctl show openclaw.service -p InvocationID --value)"
+          test "$invocation_two" = "$invocation_one"
+          test "$(sudo readlink "$current")" = "$release"
+          test "$(sudo sha256sum "$current/openclaw-cron-dispatcher.py" | awk '{print $1}')" = "$dispatcher_hash"
+          test "$(sudo sha256sum "$current/video_library_scraper.py" | awk '{print $1}')" = "$scraper_hash"
+          test "$(sudo sha256sum "$current/video_library_to_reels.py" | awk '{print $1}')" = "$publisher_hash"
+          sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
+          test "$(sudo systemctl show openclaw.service -p User --value)" = openclaw
+          pid="$(sudo systemctl show openclaw.service -p MainPID --value)"
+          test "${pid:-0}" -gt 1
+          for key in \
+            CRON_SECRET WORKERS_CRON_SECRET WORKERS_BASE_URL DISPATCHER_PRIVATE_IP DISPATCHER_ROLE \
+            NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            sudo grep -zq "^${key}=" "/proc/$pid/environ"
+          done
+          for route in \
+            /api/cron/video-library-scraper \
+            /api/cron/video-library-reels \
+            /api/cron/video-library-backfill \
+            /api/cron/video-library-purge \
+            /api/cron/video-library-views; do
+            sudo journalctl "_SYSTEMD_INVOCATION_ID=$invocation_two" --no-pager \
+              | grep -Fq "Registered: $route  ["
+          done
+          if sudo journalctl "_SYSTEMD_INVOCATION_ID=$invocation_two" --no-pager \
+            | grep -Eq 'ERROR|Exception|Traceback'; then
+            # Never print the journal wholesale: service output can carry request
+            # URLs, headers or environment-derived values. Show the unit state and
+            # a bounded tail with credential-looking lines dropped and URL
+            # userinfo, query strings, JWTs and long opaque strings masked.
+            sudo systemctl status openclaw.service --no-pager --lines=0 | head -n 12 || true
+            sudo journalctl "_SYSTEMD_INVOCATION_ID=$invocation_two" --no-pager \
+              | grep -Eiv 'secret|token|passw|authorization|bearer|cookie|credential|api[_-]?key|service_role|environ' \
+              | sed -E \
+                  -e 's#(https?://)[^/@[:space:]]+@#\1[REDACTED]@#g' \
+                  -e 's#[?][^[:space:]]*#?[REDACTED]#g' \
+                  -e 's#eyJ[A-Za-z0-9_.-]+#[REDACTED]#g' \
+                  -e 's#[A-Za-z0-9_+=-]{32,}#[REDACTED]#g' \
+              | cut -c1-400 | tail -n 60 || true
+            # `false`, not `exit 1`: an explicit exit bypasses the ERR trap and
+            # would leave the failed release promoted without rollback.
+            false
+          fi
 
-      # The deploy itself succeeded above — the dispatcher is running the new
-      # code. This step exists so a stale GitHub CRON_SECRET cannot sit
-      # unnoticed: the box keeps whatever value it had, and the run goes red
-      # until a human re-copies the current value from the Vercel hub-vanguard
-      # env into the repo secret. Before this guard, the same stale value was
-      # stamped onto the VM on every dispatcher merge and the only symptom was
-      # an SMS to Dan's phone once per restart.
-      - name: Fail if GitHub's CRON_SECRET is stale
-        if: env.cron_secret_ok != 'yes'
-        run: |
-          echo "The dispatcher deployed, but GitHub's CRON_SECRET was NOT written"
-          echo "to /etc/openclaw.env because production did not accept it."
-          echo
-          echo "FIX: copy CRON_SECRET from the Vercel hub-vanguard project env"
-          echo "into this repo's secret of the same name, then re-run this workflow."
-          echo "Until then the dispatcher authenticates with whatever the host"
-          echo "already held, which the auth-drift watchdog reports every 5 min."
-          exit 1
+          else
+            test "$(sudo systemctl show openclaw.service -p ActiveState --value)" = inactive
+            echo "Immutable release verified; Open Claw remains inactive."
+          fi
+          # END preserve-active-state
+          test "$(sudo systemctl is-enabled openclaw.service 2>/dev/null || true)" = "$enabled_before"
+          test "$(sudo readlink "$current")" = "$release"
+          sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
+
+          trap - ERR
+          sudo rm -f "$unit_backup"
+          rm -f "$unit_upload"
+          EOSSH

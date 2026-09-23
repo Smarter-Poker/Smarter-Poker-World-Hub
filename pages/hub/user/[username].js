@@ -46,6 +46,10 @@ import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule'
 import CrewDashboard from '../../../src/components/social/CrewDashboard';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { homeGamePageUrl } from '../../../src/lib/home-games/urls';
+import VideoLibraryConsole, {
+  ConsoleCopy,
+} from '../../../src/components/video-library/console/VideoLibraryConsole';
+import auxiliaryReelsStyles from '../../../src/components/reels/AuxiliaryReelsSurfaces.module.css';
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), {
   ssr: false,
 });
@@ -77,6 +81,58 @@ const timeAgo = (date) => {
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
 };
+
+function compactReelCount(value) {
+  const count = Math.max(0, Math.floor(Number(value) || 0));
+  if (count < 1000) return String(count);
+  if (count < 1_000_000) return `${Math.floor(count / 1000)}K`;
+  return `${Math.floor(count / 1_000_000)}M`;
+}
+
+function ProfileReelMedia({ reel }) {
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const videoUrl = typeof reel?.video_url === 'string' ? reel.video_url.trim() : '';
+  const youtubeMatch = videoUrl.match(
+    /(?:^|\/{2})(?:[\w-]+\.)*(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/
+  );
+  const youtubeId = youtubeMatch?.[1] || '';
+  const thumbnailUrl = typeof reel?.thumbnail_url === 'string' && reel.thumbnail_url.trim()
+    ? reel.thumbnail_url.trim()
+    : youtubeId
+      ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`
+      : '';
+
+  if (thumbnailUrl && !thumbnailFailed) {
+    return (
+      <img
+        src={thumbnailUrl}
+        className={auxiliaryReelsStyles.profileMedia}
+        alt="Poker Reel Preview"
+        loading="lazy"
+        onError={() => setThumbnailFailed(true)}
+      />
+    );
+  }
+
+  if (videoUrl && !youtubeId) {
+    return (
+      <video
+        src={videoUrl}
+        className={auxiliaryReelsStyles.profileMedia}
+        aria-label="Poker Reel Preview"
+        muted
+        playsInline
+        preload="metadata"
+      />
+    );
+  }
+
+  return (
+    <div className={`${auxiliaryReelsStyles.profileMedia} ${auxiliaryReelsStyles.profileMediaMissing}`}>
+      Media Unavailable
+    </div>
+  );
+}
 
 // Avatar Component with online status
 function Avatar({ src, name, size = 120 }) {
@@ -6668,162 +6724,73 @@ export default function UserProfilePage() {
 
           {/* REELS TAB */}
           {activeTab === 'reels' && (
-            <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: C.text }}>
-                Reels
-              </h3>
+            <VideoLibraryConsole
+              eyebrow="Player Profile"
+              title="Poker Reels"
+              titleId="profile-poker-reels-title"
+              titleAs="h2"
+              subtitle={isOwnProfile ? 'Your Published Reels' : 'Published Poker Reels'}
+              pill={contentLoading ? 'Loading' : `${compactReelCount(reels.length)} Loaded`}
+              pillInk={contentLoading ? 'gold' : reels.length > 0 ? 'green' : 'muted'}
+              foot="foot"
+              className={auxiliaryReelsStyles.profileConsole}
+              aria-labelledby="profile-poker-reels-title"
+            >
               {contentLoading ? (
-                <ContentSkeleton type="grid" />
+                <div className={auxiliaryReelsStyles.profileState} role="status">
+                  <ConsoleCopy align="center">Loading Poker Reels.</ConsoleCopy>
+                </div>
               ) : reels.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
-                  {reels.map((reel) => (
-                    <div key={reel.id} style={{ position: 'relative' }}>
-                      <Link href={`/hub/reels?id=${reel.id}`} style={{ textDecoration: 'none' }}>
-                        <div
-                          style={{
-                            aspectRatio: '9/16',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            borderRadius: 8,
-                            background: '#000',
-                          }}
-                        >
-                          {reel.thumbnail_url ? (
-                            <img
-                              src={reel.thumbnail_url}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              alt="Video thumbnail"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <video
-                              src={reel.video_url}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              muted
-                            />
-                          )}
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: 8,
-                              left: 8,
-                              color: 'white',
-                              fontSize: 12,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            ▶️ {reel.view_count || 0}
-                          </div>
-                        </div>
+                <div className={auxiliaryReelsStyles.profileGrid} aria-label="Published Poker Reels">
+                  {reels.map((reel, index) => (
+                    <article key={reel.id} className={auxiliaryReelsStyles.profileReel}>
+                      <Link
+                        href={`/hub/reels?id=${reel.id}`}
+                        className={auxiliaryReelsStyles.profileReelLink}
+                        aria-label={`Open Poker Reel ${index + 1}`}
+                      >
+                        <ProfileReelMedia reel={reel} />
+                        <span className={auxiliaryReelsStyles.profileMeta}>
+                          <span className={auxiliaryReelsStyles.profileIndex}>
+                            Reel {index + 1}
+                          </span>
+                          <span>{compactReelCount(reel.view_count)} Views</span>
+                        </span>
                       </Link>
-                      {/* Own-profile delete affordance — many older reels have
-                                                source_post_id=NULL and won't cascade when a post is
-                                                deleted, so the only way to remove them is a direct
-                                                reel delete. See handleDeleteReel above. */}
+                      {/* Older direct uploads can have no source post, so this
+                          account-scoped delete remains wired to the reel row. */}
                       {isOwnProfile && (
                         <button
                           type="button"
-                          aria-label="Delete this reel"
+                          aria-label="Delete Reel"
+                          className={auxiliaryReelsStyles.profileDelete}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             handleDeleteReel(reel.id);
                           }}
-                          style={{
-                            position: 'absolute',
-                            top: 6,
-                            right: 6,
-                            width: 28,
-                            height: 28,
-                            borderRadius: '50%',
-                            background: 'rgba(0,0,0,0.65)',
-                            color: '#ff5560',
-                            border: '1px solid rgba(255,255,255,0.18)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: 0,
-                            zIndex: 2,
-                          }}
                         >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden
-                          >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                            <path d="M10 11v6" />
-                            <path d="M14 11v6" />
-                            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                          </svg>
+                          Delete Reel
                         </button>
                       )}
-                    </div>
+                    </article>
                   ))}
                 </div>
               ) : (
-                <div
-                  style={{
-                    background: C.card,
-                    borderRadius: 12,
-                    padding: 40,
-                    textAlign: 'center',
-                    color: C.textSec,
-                  }}
-                >
-                  <svg
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={C.textSec}
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ opacity: 0.4, marginBottom: 12 }}
-                  >
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                    <line x1="12" y1="11" x2="12" y2="17" />
-                    <line x1="9" y1="14" x2="15" y2="14" />
-                  </svg>
-                  <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 4px', color: C.text }}>
-                    {isOwnProfile ? 'Create Your First Reel' : 'No Reels Yet'}
-                  </p>
-                  <p style={{ fontSize: 13, margin: '0 0 12px' }}>
+                <div className={auxiliaryReelsStyles.profileState}>
+                  <ConsoleCopy align="center">
                     {isOwnProfile
-                      ? 'Short-form poker content gets more engagement!'
-                      : `${displayName} hasn't created any reels yet.`}
-                  </p>
+                      ? 'Publish Your First Poker Reel.'
+                      : `${displayName} Has Not Published Any Poker Reels Yet.`}
+                  </ConsoleCopy>
                   {isOwnProfile && (
-                    <Link
-                      href="/hub/social-media"
-                      style={{
-                        display: 'inline-block',
-                        padding: '8px 20px',
-                        background: C.blue, color: '#000',
-                        borderRadius: 8,
-                        fontWeight: 600,
-                        fontSize: 13,
-                        textDecoration: 'none',
-                      }}
-                    >
+                    <Link href="/hub/social-media" className={auxiliaryReelsStyles.profileCreate}>
                       Create A Reel
                     </Link>
                   )}
                 </div>
               )}
-            </div>
+            </VideoLibraryConsole>
           )}
           {/* LIVES TAB */}
           {activeTab === 'lives' && (

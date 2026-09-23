@@ -26,11 +26,16 @@ const src = fs.readFileSync(
   'utf8',
 );
 
-test('the dispatcher reads a workers-specific secret, falling back to CRON_SECRET', () => {
+test('the dispatcher requires a workers-specific secret with no CRON_SECRET fallback', () => {
   assert.match(
     src,
-    /WORKERS_CRON_SECRET\s*=\s*os\.environ\.get\('WORKERS_CRON_SECRET',\s*''\)\.strip\(\)\s*or\s*CRON_SECRET/,
-    'WORKERS_CRON_SECRET must be defined with a CRON_SECRET fallback',
+    /WORKERS_CRON_SECRET\s*=\s*os\.environ\.get\('WORKERS_CRON_SECRET',\s*''\)/,
+    'WORKERS_CRON_SECRET must be read independently',
+  );
+  assert.doesNotMatch(
+    src,
+    /WORKERS_CRON_SECRET[^\n]*\bor\s+CRON_SECRET/,
+    'cross-host secret fallback would restore the outage coupling',
   );
 });
 
@@ -120,12 +125,15 @@ test('the auth-drift watchdog proves the Vercel hop through the no-side-effect p
     'a Vercel 404 means the probe endpoint is missing and must be recorded absent, not verified',
   );
 
-  // And the terminal else - i.e. 200 - is what verifies CRON_SECRET.
+  // Exact 200 is what verifies CRON_SECRET. A 5xx/redirect must never fall
+  // through as proof or clear a previously active credential incident.
   assert.match(
     body,
-    /else:\s*\n\s*verified\.append\('CRON_SECRET'\)/,
-    "200 from the dedicated probe is the success gate: the fall-through must verify CRON_SECRET",
+    /elif r\.status_code\s*==\s*200:\s*\n\s*verified\.append\('CRON_SECRET'\)/,
+    'only 200 from the dedicated probe may verify CRON_SECRET',
   );
+  assert.match(body, /if not failures and absent:[\s\S]{0,500}?_alert_flush\(state\)[\s\S]{0,80}?return/);
+  assert.match(body, /elif r\.status_code == 200:\s*\n\s*verified\.append\('SUPABASE_SERVICE_ROLE_KEY'\)/);
 });
 
 test('the Vercel probe endpoint the watchdog depends on actually exists', () => {
@@ -166,7 +174,9 @@ test('deploy-openclaw.yml does not manage WORKERS_CRON_SECRET', () => {
   );
   assert.match(
     wf,
-    /WORKERS_CRON_SECRET is deliberately NOT managed here/,
-    'the reason it is host-local must stay documented next to the code that would break it',
+    /Host-managed credentials are validated/,
+    'the host-local credential boundary must remain documented',
   );
+  assert.match(wf, /sudo test -f \/etc\/openclaw\.env/);
+  assert.match(wf, /test "\$workers_status" = 404/);
 });

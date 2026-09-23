@@ -30,6 +30,12 @@ import {
   compressVideo,
 } from '../../../src/lib/videoCompressor';
 import { uploadThumbnail } from '../../../src/lib/thumbnailUploader';
+import {
+  assertUserReelPublicationSlot,
+  createUserReelPublicationIntent,
+  persistUserReelPublicationIntent,
+  updateUserReelPublicationIntent,
+} from '../../../src/lib/userReelPublicationRecovery.mjs';
 // useComposeStore import removed (2026-05-03): the /compose route handoff
 // is gone, inline staging handles everything via local component state.
 
@@ -58,6 +64,7 @@ export function SharedPostCreator({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null); // null | { pct: number, label: string }
   const [error, setError] = useState('');
+  const [shareToPokerReels, setShareToPokerReels] = useState(false);
   // STAGE-AWARE BANNER (audit-6 2026-04-30 per Dan):
   // 'picker'  — user just tapped Photo/Video, OS file picker is opening
   // 'loading' — picker dismissed, iOS handing the file off (sandbox copy + iCloud pull)
@@ -167,6 +174,14 @@ export function SharedPostCreator({
   // Home group post targets
   const [homeGroupTargets, setHomeGroupTargets] = useState([]);
   const [activeHomeGroup, setActiveHomeGroup] = useState(null); // null = not posting as home group
+  const canShareToPokerReels =
+    context === 'social-media' && !isClubMode && !activeHomeGroup;
+
+  // Page/club/home-group post APIs create a post only. Never carry a checked
+  // personal-Reel option across an identity switch and imply a Reel exists.
+  useEffect(() => {
+    if (!canShareToPokerReels && shareToPokerReels) setShareToPokerReels(false);
+  }, [canShareToPokerReels, shareToPokerReels]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -874,6 +889,29 @@ export function SharedPostCreator({
       }
       setError('');
 
+      const wantsPokerReel = shareToPokerReels && canShareToPokerReels;
+      if (wantsPokerReel && postVisibility !== 'public') {
+        setError('Poker Reels are public. Change this post to Public or turn off Reel featuring.');
+        _submittingRef.current = false;
+        return;
+      }
+      if (wantsPokerReel && !isSingleVideoDraft) {
+        setError('Poker Reels can feature exactly one video per post.');
+        _submittingRef.current = false;
+        return;
+      }
+      const shouldPublishPokerReel = wantsPokerReel;
+      let reelPublicationIntent = null;
+      if (shouldPublishPokerReel && media.some((item) => item.type === 'video' && item.file)) {
+        try {
+          assertUserReelPublicationSlot(window.localStorage, user.id);
+        } catch (storageError) {
+          setError(storageError.message || 'Durable Reel recovery is unavailable in this browser.');
+          _submittingRef.current = false;
+          return;
+        }
+      }
+
       // PHASE-A (2026-05-03): network pre-check. If the device is offline OR
       // the connection is too slow to plausibly complete the upload, fail
       // fast with a clear message instead of letting TUS retry-loop for 60s
@@ -1042,12 +1080,30 @@ export function SharedPostCreator({
                     folder,
                     content: [content?.trim(), pokerCardsMarkup].filter(Boolean).join('\n'),
                     thumbnail: staged.thumbnail,
+                    publicationKind: shouldPublishPokerReel ? 'poker_reel' : null,
                   })
                   .catch(reject);
                 bgUnsub = bgUpload.subscribe({
                   onProgress: ({ pct, label }) => {
                     if (!mountedRef.current) return;
                     setUploadProgress({ pct, label });
+                  },
+                  onStorageCommitted: ({ publicUrl }) => {
+                    const isFirstPublishedVideo =
+                      !reelPublicationIntent
+                      && !uploadedMedia.some((item) => item.type === 'video');
+                    if (shouldPublishPokerReel && isFirstPublishedVideo) {
+                      reelPublicationIntent = createUserReelPublicationIntent({
+                        userId: user.id,
+                        videoUrl: publicUrl,
+                        caption: content.trim() || null,
+                      });
+                      persistUserReelPublicationIntent(
+                        window.localStorage,
+                        reelPublicationIntent,
+                        { eventTarget: window },
+                      );
+                    }
                   },
                   onComplete: ({ publicUrl }) => resolve(publicUrl),
                   onError: ({ error }) => reject(error),
@@ -1061,6 +1117,7 @@ export function SharedPostCreator({
                       setPokerCardsMarkup('');
                       setMedia([]);
                       setLinkPreview(null);
+                      setShareToPokerReels(false);
                       try {
                         localStorage.removeItem('sp-post-draft');
                         localStorage.removeItem('sp-post-card-draft');
@@ -1316,6 +1373,38 @@ export function SharedPostCreator({
         finalContent = finalContent ? `${prefix} - ${finalContent}` : prefix;
       }
 
+      // Older staged media can already have a Storage URL. Establish the same
+      // durable hand-off before the atomic RPC, then enrich it with the final
+      // caption and thumbnail. YouTube embeds do not need a Storage hand-off.
+      if (
+        shouldPublishPokerReel
+        && !reelPublicationIntent
+        && type === 'video'
+        && urls[0]?.includes('/storage/v1/object/public/')
+      ) {
+        assertUserReelPublicationSlot(window.localStorage, user.id);
+        reelPublicationIntent = createUserReelPublicationIntent({
+          userId: user.id,
+          videoUrl: urls[0],
+          caption: finalContent || null,
+          thumbnailUrl: persistedThumbnailUrl,
+        });
+        persistUserReelPublicationIntent(
+          window.localStorage,
+          reelPublicationIntent,
+          { eventTarget: window },
+        );
+      } else if (reelPublicationIntent) {
+        const updated = updateUserReelPublicationIntent(
+          window.localStorage,
+          user.id,
+          reelPublicationIntent.id,
+          { caption: finalContent || null, thumbnailUrl: persistedThumbnailUrl },
+          { eventTarget: window },
+        );
+        if (updated.status === 'pending') reelPublicationIntent = updated.intent;
+      }
+
       // If posting as a home group, route through /api/social/pages/posts with the group's social_page_id
       let ok;
       if (activeHomeGroup?.social_page_id) {
@@ -1353,7 +1442,9 @@ export function SharedPostCreator({
           mentions,
           linkPreview,
           postVisibility,
-          persistedThumbnailUrl
+          persistedThumbnailUrl,
+          shouldPublishPokerReel,
+          reelPublicationIntent?.id || null,
         );
       }
       if (ok) {
@@ -1386,6 +1477,7 @@ export function SharedPostCreator({
           setPokerCardsMarkup('');
           setMedia([]);
           setLinkPreview(null);
+          setShareToPokerReels(false);
           // 2026-05-08 (per Dan: "WHEN THE VIDEO FINALLY POSTS, YOU GET A
           // DOUBLE POSTED SUCCESSFULLY AND POST SHARED SUCCESSFULLY. REMOVE
           // THE BOTTOM ONE"): the parent feed page
@@ -1454,6 +1546,16 @@ export function SharedPostCreator({
 
   const isHomeGroupMode = !!activeHomeGroup;
   const hasAnyIdentitySwitcher = hasClubPage || homeGroupTargets.length > 0;
+  const isSingleVideoDraft =
+    (media.length === 1 && media[0]?.type === 'video' && !linkPreview) ||
+    (media.length === 0 && linkPreview?.type === 'video');
+  const canFeaturePokerReel =
+    canShareToPokerReels && postVisibility === 'public' && isSingleVideoDraft;
+
+  // A checked Reel option must never survive a privacy or media-shape change.
+  useEffect(() => {
+    if (!canFeaturePokerReel && shareToPokerReels) setShareToPokerReels(false);
+  }, [canFeaturePokerReel, shareToPokerReels]);
 
   return (
     <div
@@ -2827,6 +2929,24 @@ export function SharedPostCreator({
           </button>
           {/* Reels, Find Friends, and Club Pages are in the bottom/side navigation naturally */}
         </div>
+        {canFeaturePokerReel && (
+          <label style={{
+            margin: '2px 12px 8px', padding: '10px 12px', borderRadius: 8,
+            background: '#F0F7FF', border: '1px solid #C7DDF8',
+            display: 'flex', alignItems: 'flex-start', gap: 9,
+            color: '#344054', fontSize: 12, lineHeight: 1.4, cursor: 'pointer',
+          }}>
+            <input
+              type="checkbox"
+              checked={shareToPokerReels}
+              onChange={(event) => setShareToPokerReels(event.target.checked)}
+              style={{ width: 17, height: 17, marginTop: 1, accentColor: C.blue }}
+            />
+            <span>
+              Feature this one video in Poker Reels. It will be published publicly, and I confirm it is poker-related and mine to share.
+            </span>
+          </label>
+        )}
         <div style={{ padding: '4px 8px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
           {context === 'social-media' && (
             <button

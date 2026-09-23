@@ -79,6 +79,16 @@ import { getAccessToken } from './authUtils';
 import { sniffMimeType } from './socialHelpers';
 import toast, { useToastStore } from '../stores/toastStore';
 import * as tus from 'tus-js-client';
+import {
+    REEL_PUBLICATION_KIND,
+    clearUploadIntentForUser,
+    isOwnedUploadObject,
+    probeUploadRecoveryCandidate,
+    quarantineUploadIntentForUser,
+    readUploadIntentForUser,
+    validateUploadRecoveryCandidate,
+    writeUploadIntentForUser,
+} from './uploadRecoveryIdentity.mjs';
 
 // ─── apikey for Supabase Storage TUS requests ────────────────────────────────
 // CRITICAL: this used to be `import { SUPABASE_ANON_KEY } from './authUtils'`,
@@ -284,7 +294,6 @@ let _uploadQueue = [];        // Array of { file, userId, folder, resolve, rejec
 let _isProcessingQueue = false;
 
 // ─── Session Storage Keys ─────────────────────────────────────────────────────
-const STORAGE_KEY = 'sp-bg-upload-intent';
 const TUS_URL_KEY_PREFIX = 'sp-tus-url:'; // stores resumable TUS upload URL per file key
 
 // ─── TUS chunk size ────────────────────────────────────────────────────────────
@@ -407,6 +416,23 @@ function _emit(type, payload) {
     _permanentListeners.forEach((l) => l[type]?.(payload));
 }
 
+// Storage commit is a stronger boundary than ordinary progress events. Every
+// listener gets a synchronous chance to persist its database-publication
+// hand-off before the upload session record can be cleared. If any listener
+// fails, finish notifying the others and then fail closed with the committed
+// object URL still present in sessionStorage.
+function _emitStorageCommitted(payload) {
+    let firstError = null;
+    [..._listeners, ..._permanentListeners].forEach((listener) => {
+        try {
+            listener.onStorageCommitted?.(payload);
+        } catch (error) {
+            if (!firstError) firstError = error;
+        }
+    });
+    if (firstError) throw firstError;
+}
+
 function _setState(state, progress, label) {
     _state = state;
     if (progress !== undefined) {
@@ -444,21 +470,43 @@ function _formatEta(seconds) {
 
 /**
  * Save upload intent to sessionStorage for cross-navigation recovery.
+ *
+ * The historical singleton key leaked one signed-in user's interrupted upload
+ * into the next user's session in the same tab. New records are owner-scoped;
+ * checkDanglingIntent migrates a matching legacy record lazily so old browser
+ * state remains recoverable without ever blocking or probing it for a
+ * different account.
  */
 function _saveUploadIntent(data) {
     try {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-            ...data,
-            timestamp: Date.now(),
-        }));
+        writeUploadIntentForUser(sessionStorage, data);
     } catch (_) { /* sessionStorage not available */ }
 }
 
 /**
  * Clear saved upload intent.
  */
-function _clearUploadIntent() {
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+function _clearUploadIntent(userId) {
+    try {
+        if (userId) clearUploadIntentForUser(sessionStorage, userId);
+        return true;
+    } catch (_) {
+        // Clearing is best-effort for generic uploads. Poker Reel candidates
+        // remain fail-closed because start() re-reads the same owner key.
+        return false;
+    }
+}
+
+function _assertUploadMetaOwnership(meta, userId, folder) {
+    if (!isOwnedUploadObject({
+        publicUrl: meta?.publicUrl,
+        storagePath: meta?.path,
+        bucket: meta?.bucket,
+        userId,
+        folder,
+    }, { supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL })) {
+        throw new Error('Upload server returned an object outside the authenticated user namespace');
+    }
 }
 
 /**
@@ -498,6 +546,7 @@ async function _fetchUploadMeta(file, userId, folder) {
     if (!meta.tusEndpoint && !meta.signedUrl?.startsWith('http')) {
         throw new Error(meta.error || 'No upload URL received from server');
     }
+    _assertUploadMetaOwnership(meta, userId, folder);
 
     return meta;
 }
@@ -900,7 +949,7 @@ const bgUpload = {
 
     /**
      * Subscribe to upload events.
-     * @param {{ onProgress?, onComplete?, onError?, onBackground?, onGhostPost? }} listener
+     * @param {{ onProgress?, onStorageCommitted?, onComplete?, onError?, onBackground?, onGhostPost? }} listener
      * @returns {Function} unsubscribe
      */
     subscribe(listener) {
@@ -968,9 +1017,69 @@ const bgUpload = {
      * @param {Function} [opts.onRouter]   - Router push fn for completion toast click
      * @param {string}   [opts.content]    - Post content for ghost post metadata
      * @param {string}   [opts.thumbnail]  - Thumbnail data URL for ghost post
+     * @param {'poker_reel'|null} [opts.publicationKind] - Explicit durable Reel hand-off
      * @returns {Promise<{ publicUrl: string, wasBackground: boolean }>}
      */
-    async start({ file, userId, folder = 'videos', bgAfterMs = 10_000, onDismiss, onRouter, content, thumbnail }) {
+    async start({
+        file,
+        userId,
+        folder = 'videos',
+        bgAfterMs = 10_000,
+        onDismiss,
+        onRouter,
+        content,
+        thumbnail,
+        publicationKind = null,
+    }) {
+        // A completed Storage upload is no longer an upload-in-progress: it is
+        // the only browser-side evidence needed to finish the database commit.
+        // Fail closed before resetting listeners, state, TUS fingerprints, or
+        // the session record so a new upload can never erase that evidence.
+        const danglingIntent = bgUpload.checkDanglingIntent({ userId });
+        if (
+            danglingIntent?.publicationKind === REEL_PUBLICATION_KIND
+            && (danglingIntent.storageCandidate || danglingIntent.storageCommitted)
+        ) {
+            // Resolve the exact persisted object before it is allowed to block
+            // another upload. A confirmed missing object is cleared; malformed,
+            // stale, or wrong-owner data is quarantined; a live or temporarily
+            // unverifiable object remains fail-closed for lossless recovery.
+            const recovery = danglingIntent.storageCandidate
+                ? await bgUpload.reconcileDanglingIntent({ userId })
+                : { status: 'invalid', error: 'Upload recovery candidate marker is missing' };
+            if (recovery.status === 'missing') {
+                if (!bgUpload.clearDanglingIntent({ userId, allowStorageCandidate: true })) {
+                    throw new Error('The missing upload recovery record could not be cleared');
+                }
+            } else if (recovery.status === 'invalid' || recovery.status === 'empty') {
+                const quarantined = bgUpload.quarantineDanglingIntent({
+                    userId,
+                    reason: recovery.error || 'Invalid upload recovery record',
+                });
+                if (!quarantined) {
+                    const quarantineError = new Error(
+                        'Invalid upload recovery evidence could not be preserved. Retry before uploading another video.'
+                    );
+                    quarantineError.code = 'REEL_PUBLICATION_RECOVERY_REQUIRED';
+                    throw quarantineError;
+                }
+                toast.info('Invalid upload recovery data was saved for support. Starting your new upload.', 5000);
+            } else {
+                const recoveredIntent = recovery.intent || danglingIntent;
+                const recoveryError = new Error(
+                    'A previously uploaded video is waiting to finish publishing. Recover it before starting another upload.'
+                );
+                recoveryError.code = 'REEL_PUBLICATION_RECOVERY_REQUIRED';
+                recoveryError.recoveryStatus = recovery.status;
+                recoveryError.storageCommitted = Boolean(recoveredIntent.storageCommitted);
+                recoveryError.storageCandidate = Boolean(recoveredIntent.storageCandidate);
+                recoveryError.publicUrl = recoveredIntent.publicUrl || null;
+                throw recoveryError;
+            }
+        }
+
+        let provisionalUpload = null;
+        let committedUpload = null;
         // Save state BEFORE abort() wipes everything
         const savedPrefetch = _prefetchCache;
         const savedListeners = new Set(_listeners);
@@ -992,7 +1101,7 @@ const bgUpload = {
         _removeNetworkListeners();
         _removeVisibilityListener();
         _disarmWatchdog();
-        _clearUploadIntent();
+        _clearUploadIntent(userId);
         if (_bgToastId) {
             useToastStore.getState().removeToast(_bgToastId);
             _bgToastId = null;
@@ -1034,13 +1143,24 @@ const bgUpload = {
             fileName: file.name,
             fileSize: file.size,
             content: content || '',
+            publicationKind,
         });
 
         // Prevent accidental tab close during upload
         _installBeforeUnload();
 
         // Save params for retry-on-failure
-        _lastUploadParams = { file, userId, folder, bgAfterMs, onDismiss, onRouter, content, thumbnail };
+        _lastUploadParams = {
+            file,
+            userId,
+            folder,
+            bgAfterMs,
+            onDismiss,
+            onRouter,
+            content,
+            thumbnail,
+            publicationKind,
+        };
 
         // Network state monitoring — shows connection status in progress label
         _installNetworkListeners();
@@ -1069,9 +1189,18 @@ const bgUpload = {
             _removeNetworkListeners();
             _removeVisibilityListener();
             _disarmWatchdog();
-            _removeVisibilityListener();
-            _disarmWatchdog();
-            _clearUploadIntent();
+            if (
+                provisionalUpload?.publicationKind === REEL_PUBLICATION_KIND
+                && provisionalUpload.storageCandidate
+            ) {
+                _saveUploadIntent({
+                    ...provisionalUpload,
+                    uploadAcknowledgementLost: true,
+                    publicationRecoveryError: errorMsg,
+                });
+            } else {
+                _clearUploadIntent(userId);
+            }
             if (_bgToastId) {
                 useToastStore.getState().removeToast(_bgToastId);
                 _bgToastId = null;
@@ -1124,6 +1253,26 @@ const bgUpload = {
                 meta = await _fetchUploadMeta(file, userId, folder);
             }
 
+            // Persist the exact, server-issued object identity before the first
+            // upload byte. If Storage commits but the final TUS response is
+            // dropped, reload recovery can HEAD this one owner-scoped object
+            // and resume publication without uploading a duplicate.
+            provisionalUpload = {
+                userId,
+                folder,
+                fileName: file.name,
+                fileSize: file.size,
+                content: content || '',
+                publicationKind,
+                bucket: meta.bucket,
+                storagePath: meta.path,
+                publicUrl: meta.publicUrl,
+                storageCandidate: publicationKind === REEL_PUBLICATION_KIND,
+                storageCommitted: false,
+                candidateCreatedAt: Date.now(),
+            };
+            _saveUploadIntent(provisionalUpload);
+
             _setState('uploading', 5, 'Uploading…');
 
             // ── Step 2: TUS upload — chunked/resumable for all videos ─────
@@ -1138,6 +1287,36 @@ const bgUpload = {
             }
             await _uploadWithTus(file, meta, mimeType);
             const finalPublicUrl = meta.publicUrl;
+            const wasBackground = (_state === 'background');
+
+            // TUS has committed the bytes. Upgrade the session evidence with
+            // the public URL, then synchronously let callers persist their
+            // durable post/Reel intent BEFORE clearing anything.
+            committedUpload = {
+                userId,
+                folder,
+                fileName: file.name,
+                fileSize: file.size,
+                content: content || '',
+                publicationKind,
+                bucket: meta.bucket,
+                storagePath: meta.path,
+                publicUrl: finalPublicUrl,
+                storageCandidate: publicationKind === REEL_PUBLICATION_KIND,
+                storageCommitted: true,
+            };
+            _saveUploadIntent(committedUpload);
+            try {
+                _emitStorageCommitted({ publicUrl: finalPublicUrl, wasBackground, userId, folder });
+            } catch (persistenceError) {
+                const committedError = new Error(
+                    `Video upload completed, but publication recovery could not be saved: ${persistenceError?.message || persistenceError}`
+                );
+                committedError.storageCommitted = true;
+                committedError.publicUrl = finalPublicUrl;
+                committedError.cause = persistenceError;
+                throw committedError;
+            }
 
             // ── Upload complete ───────────────────────────────────────────────
             clearTimeout(_bgTimer);
@@ -1146,14 +1325,13 @@ const bgUpload = {
             _removeNetworkListeners();
             _removeVisibilityListener();
             _disarmWatchdog();
-            _clearUploadIntent();
+            _clearUploadIntent(userId);
             _lastUploadParams = null;
             // Dismiss the persistent background toast before showing completion
             if (_bgToastId) {
                 useToastStore.getState().removeToast(_bgToastId);
                 _bgToastId = null;
             }
-            const wasBackground = (_state === 'background');
             _setState('done', 100, 'Upload complete!');
             _emit('onComplete', { publicUrl: finalPublicUrl, wasBackground });
 
@@ -1197,7 +1375,29 @@ const bgUpload = {
             _removeNetworkListeners();
             _removeVisibilityListener();
             _disarmWatchdog();
-            _clearUploadIntent();
+            if (committedUpload) {
+                // Never erase the only surviving pointer to a committed object.
+                // A recovery surface can promote this session record into the
+                // durable publication queue without uploading the file again.
+                _saveUploadIntent({
+                    ...committedUpload,
+                    publicationRecoveryError: err?.message || String(err),
+                });
+            } else if (
+                provisionalUpload?.publicationKind === REEL_PUBLICATION_KIND
+                && provisionalUpload.storageCandidate
+            ) {
+                // The final TUS acknowledgement may be the packet that was
+                // lost. Preserve the exact candidate until a no-store HEAD
+                // proves whether Storage committed it.
+                _saveUploadIntent({
+                    ...provisionalUpload,
+                    uploadAcknowledgementLost: true,
+                    publicationRecoveryError: err?.message || String(err),
+                });
+            } else {
+                _clearUploadIntent(userId);
+            }
             _activeXhr = null;
             // Dismiss the persistent background toast
             if (_bgToastId) {
@@ -1209,7 +1409,16 @@ const bgUpload = {
             _emit('onError', { error: err });
 
             // Show error toast with retry button if in background mode
-            if (wasBackground) {
+            if (wasBackground && committedUpload) {
+                toast.action(
+                    'Your video finished uploading, but publishing needs attention. Tap to recover it.',
+                    () => {
+                        if (onRouter) onRouter('/hub/reels');
+                        else if (typeof window !== 'undefined') window.location.href = '/hub/reels';
+                    },
+                    'warning'
+                );
+            } else if (wasBackground) {
                 const retryParams = _lastUploadParams;
                 if (retryParams) {
                     toast.action(
@@ -1271,25 +1480,93 @@ const bgUpload = {
      * Call this on mount in the social feed component.
      * @returns {{ userId, folder, fileName, fileSize, content, timestamp } | null}
      */
-    checkDanglingIntent() {
+    checkDanglingIntent({ userId } = {}) {
         try {
-            const raw = sessionStorage.getItem(STORAGE_KEY);
-            if (!raw) return null;
-            const intent = JSON.parse(raw);
-            // Only return if less than 15 minutes old
-            if (Date.now() - intent.timestamp > 15 * 60 * 1000) {
-                _clearUploadIntent();
+            if (!userId) return null;
+            const intent = readUploadIntentForUser(sessionStorage, userId);
+            if (!intent) return null;
+            // In-progress uploads become stale after 15 minutes. A committed
+            // object is publication evidence and must not be timed away.
+            if (
+                !intent.storageCommitted
+                && !intent.storageCandidate
+                && Date.now() - intent.timestamp > 15 * 60 * 1000
+            ) {
+                _clearUploadIntent(userId || intent.userId);
                 return null;
+            }
+            if (
+                intent.publicationKind === REEL_PUBLICATION_KIND
+                && (intent.storageCandidate || intent.storageCommitted)
+            ) {
+                const validation = validateUploadRecoveryCandidate(intent, {
+                    userId,
+                    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+                });
+                return {
+                    ...intent,
+                    recoveryValidation: validation.valid ? 'valid' : 'invalid',
+                    recoveryValidationError: validation.valid ? null : validation.error,
+                };
             }
             return intent;
         } catch (_) { return null; }
     },
 
     /**
+     * Resolve an upload whose final TUS acknowledgement may have been lost.
+     * Only the server-issued, exact public object path for the same user is
+     * probed; arbitrary hostile sessionStorage URLs are never fetched.
+     */
+    async reconcileDanglingIntent({ userId } = {}) {
+        const intent = bgUpload.checkDanglingIntent({ userId });
+        if (
+            !intent
+            || intent.publicationKind !== REEL_PUBLICATION_KIND
+            || !intent.storageCandidate
+        ) return { status: 'empty', intent: null };
+        if (intent.userId !== userId) {
+            return { status: 'invalid', intent, error: 'Upload recovery belongs to another user' };
+        }
+        const result = await probeUploadRecoveryCandidate(intent, {
+            userId,
+            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        });
+        if (result.status === 'committed' && !intent.storageCommitted) {
+            const committed = {
+                ...intent,
+                storageCommitted: true,
+                storageVerifiedAt: Date.now(),
+                uploadAcknowledgementLost: true,
+            };
+            _saveUploadIntent(committed);
+            return { ...result, intent: committed };
+        }
+        return result;
+    },
+
+    /**
      * Clear a dangling intent (user dismissed recovery dialog).
      */
-    clearDanglingIntent() {
-        _clearUploadIntent();
+    clearDanglingIntent({
+        userId,
+        allowStorageCommitted = false,
+        allowStorageCandidate = false,
+    } = {}) {
+        const dangling = bgUpload.checkDanglingIntent({ userId });
+        if (dangling?.storageCommitted && !allowStorageCommitted) return false;
+        if (dangling?.storageCandidate && !allowStorageCandidate && !dangling.storageCommitted) return false;
+        _clearUploadIntent(userId || dangling?.userId);
+        return true;
+    },
+
+    /** Preserve invalid owner-scoped recovery bytes without blocking uploads. */
+    quarantineDanglingIntent({ userId, reason } = {}) {
+        try {
+            return quarantineUploadIntentForUser(sessionStorage, userId, { reason });
+        } catch (_) {
+            return false;
+        }
     },
 
     /** Get ghost post metadata for feed placeholder */
@@ -1309,19 +1586,36 @@ const bgUpload = {
         // if the retry itself fails, the catch block can show a retry toast again.
         const params = { ..._lastUploadParams };
         bgUpload.start(params).catch((err) => {
+            if (err?.code === 'REEL_PUBLICATION_RECOVERY_REQUIRED') {
+                toast.action(
+                    'Your previous video is uploaded and waiting to finish publishing. Tap to recover it.',
+                    () => {
+                        if (params.onRouter) params.onRouter('/hub/reels');
+                        else if (typeof window !== 'undefined') window.location.href = '/hub/reels';
+                    },
+                    'warning'
+                );
+                return;
+            }
             console.warn('[bgUpload] Retry failed:', err.message);
         });
     },
 
     /** Abort the active upload */
     abort() {
+        // An abort may cancel bytes still in flight, but it must not discard a
+        // Storage-committed object that still needs its publication DB commit.
+        const activeUserId = _ghostMeta?.userId || _lastUploadParams?.userId;
+        const danglingIntent = bgUpload.checkDanglingIntent({ userId: activeUserId });
         clearTimeout(_bgTimer);
         _bgTimer = null;
         _removeBeforeUnload();
         _removeNetworkListeners();
         _removeVisibilityListener();
         _disarmWatchdog();
-        _clearUploadIntent();
+        if (!danglingIntent?.storageCommitted && !danglingIntent?.storageCandidate) {
+            _clearUploadIntent(activeUserId);
+        }
         _lastUploadParams = null;
         if (_bgToastId) {
             useToastStore.getState().removeToast(_bgToastId);

@@ -1,74 +1,127 @@
-import React from 'react';
-import { getProfileJwt } from './utils';
-import { busEmit } from '../../engine/EventBus';
-import { broadcastSync } from '../../lib/broadcastSync';
+import { useEffect, useRef } from 'react';
 
-export default function ReelsGalleryModal({ isOpen, onClose, userReels }) {
+import VideoLibraryConsole, {
+    ConsoleCopy,
+    ConsoleDataRow,
+} from '../video-library/console/VideoLibraryConsole';
+import styles from './ReelsGalleryModal.module.css';
+
+const FOCUSABLE = [
+    'button:not([disabled])',
+    'video[controls]',
+    'a[href]',
+    'input:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+export default function ReelsGalleryModal({ isOpen, onClose, userReels = [] }) {
+    const dialogRef = useRef(null);
+    const returnFocusRef = useRef(null);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        returnFocusRef.current = document.activeElement;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const focusTimer = window.setTimeout(() => {
+            dialogRef.current?.querySelector(FOCUSABLE)?.focus();
+        }, 0);
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = [...(dialogRef.current?.querySelectorAll(FOCUSABLE) || [])]
+                .filter(element => element.getClientRects().length > 0);
+            if (!focusable.length) {
+                event.preventDefault();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.clearTimeout(focusTimer);
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = previousOverflow;
+            const returnFocus = returnFocusRef.current;
+            if (returnFocus?.isConnected) returnFocus.focus();
+        };
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
-    return (
+    const reels = Array.isArray(userReels) ? userReels.filter(Boolean) : [];
 
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.9)', zIndex: 9999,
-                    display: 'flex', flexDirection: 'column'
-                }}>
-                    <div style={{
-                        padding: 16, display: 'flex', justifyContent: 'space-between',
-                        alignItems: 'center', borderBottom: '1px solid #333'
-                    }}>
-                        <h2 style={{ margin: 0, color: 'white', fontSize: 20 }}>My Reels</h2>
-                        <button
-                            onClick={onClose}
-                            style={{
-                                background: 'none', border: 'none', color: 'white',
-                                fontSize: 28, cursor: 'pointer'
-                            }}
-                        >×</button>
-                    </div>
-                    <div style={{
-                        flex: 1, overflow: 'auto', padding: 16,
-                        display: 'flex', flexDirection: 'column', gap: 16,
-                        maxWidth: 600, margin: '0 auto', width: '100%'
-                    }}>
-                        {userReels.length === 0 ? (
-                            <div style={{
-                                textAlign: 'center', color: '#888',
-                                padding: 60
-                            }}>
-                                <div style={{ fontSize: 48, marginBottom: 16 }}>🎞️</div>
-                                <div style={{ fontSize: 18 }}>No Reels Yet</div>
-                                <div style={{ fontSize: 14, color: '#666', marginTop: 8 }}>
-                                    Videos From Your Posts Will Appear Here
-                                </div>
-                            </div>
-                        ) : (
-                            userReels.map(reel => (
-                                <div
-                                    key={reel.id}
-                                    style={{
-                                        background: '#111', borderRadius: 12, overflow: 'hidden'
-                                    }}
-                                >
-                                    <video
-                                        src={reel.media_url}
-                                        poster={reel.thumbnail_url}
-                                        style={{
-                                            width: '100%', height: 'auto',
-                                            display: 'block', maxHeight: '80vh'
-                                        }}
-                                        controls
-                                    />
-                                    {reel.caption && (
-                                        <div style={{
-                                            padding: '12px 16px', color: 'white',
-                                            fontSize: 14, background: '#1a1a1a'
-                                        }}>{reel.caption}</div>
+    return (
+        <div className={styles.overlay} role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) onClose();
+        }}>
+            <div
+                ref={dialogRef}
+                className={styles.dialog}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-reels-title"
+            >
+                <VideoLibraryConsole
+                    eyebrow="Profile Archive"
+                    title="My Reels"
+                    titleId="profile-reels-title"
+                    titleAs="h2"
+                    subtitle="Videos Published From Your Poker Posts"
+                    pill={`${reels.length} Loaded`}
+                    pillInk="blue"
+                    foot="foot"
+                    className={styles.console}
+                >
+                    <ConsoleDataRow
+                        label="Archive Status"
+                        value={reels.length ? 'Reels Available' : 'No Reels Yet'}
+                        valueInk={reels.length ? 'green' : 'gold'}
+                    />
+                    <button type="button" className={styles.closeAction} onClick={onClose}>
+                        Close Gallery
+                    </button>
+                    {reels.length === 0 ? (
+                        <ConsoleCopy align="center">
+                            Videos From Your Posts Will Appear Here
+                        </ConsoleCopy>
+                    ) : (
+                        <div className={styles.gallery} aria-label="My Published Reels">
+                            {reels.map((reel, index) => (
+                                <article className={styles.reel} key={reel.id || `${reel.media_url}-${index}`}>
+                                    {reel.media_url ? (
+                                        <video
+                                            className={styles.media}
+                                            src={reel.media_url}
+                                            poster={reel.thumbnail_url || undefined}
+                                            controls
+                                            playsInline
+                                            preload="metadata"
+                                            aria-label={`Reel ${index + 1}${reel.caption ? `: ${reel.caption}` : ''}`}
+                                        />
+                                    ) : (
+                                        <ConsoleCopy align="center">Reel Media Is Unavailable</ConsoleCopy>
                                     )}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            
+                                    {reel.caption ? <p className={styles.caption}>{reel.caption}</p> : null}
+                                </article>
+                            ))}
+                        </div>
+                    )}
+                </VideoLibraryConsole>
+            </div>
+        </div>
     );
 }

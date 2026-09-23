@@ -1,226 +1,51 @@
 #!/usr/bin/env bash
-# deploy-openclaw.sh — sync openclaw-cron-dispatcher.py to Hetzner VM + restart systemd + verify
-#
-# Usage:  bash scripts/deploy-openclaw.sh
-#
-# Prerequisites (configured in Phase 2A.1):
-#   - SSH key: ~/.ssh/openclaw_ed25519 (0600, authorized on the VM as root)
-#   - macOS Keychain entries:
-#       security find-generic-password -a smarter-poker -s openclaw-server-ip
-#       security find-generic-password -a smarter-poker -s openclaw-server-id
-#       security find-generic-password -a smarter-poker -s hetzner-api
-#
-# What it does:
-#   1. Diffs the local dispatcher.py against what's on the VM.
-#   2. scp's the updated file to /opt/openclaw/dispatcher.py.
-#   2b. scp's the SCRIPT_JOB scripts (video_library_scraper.py,
-#       video_library_to_reels.py) to /opt/openclaw/ whenever they differ —
-#       the dispatcher runs them from beside itself, so they drift exactly the
-#       way dispatcher.py used to (2026-09-04: the box ran a scraper with an
-#       env loader nobody had committed, and a reels bridge nobody had ported).
-#   3. Restarts systemd openclaw.service.
-#   4. Tails journalctl to confirm all jobs re-registered with zero errors.
-#   5. Verifies systemctl is-active returns active.
-#   6. Verifies the process has NOT crash-looped (NRestarts should be 0).
-#
-# Exit codes:
-#   0 — success
-#   1 — local prereq missing (key, Keychain entry, source file)
-#   2 — ssh/scp failed
-#   3 — systemctl reports failed after restart
-#   4 — journalctl shows ERROR/Exception post-restart
+# Safe manual entry point for the canonical immutable deployment workflow.
+# This script deliberately performs no SSH, copying, dependency installation,
+# or in-place mutation. GitHub Actions deploys the exact remote commit SHA.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-LOCAL_SRC="$REPO_ROOT/scripts/openclaw-cron-dispatcher.py"
-REMOTE_PATH="/opt/openclaw/dispatcher.py"
-SERVICE="openclaw.service"
-# SCRIPT_JOB scripts the dispatcher invokes from its own directory (see
-# _SCRAPER_DIR_CANDIDATES in openclaw-cron-dispatcher.py). Kept in sync on
-# every deploy; each is idempotent against Supabase so a re-upload is safe.
-SCRIPT_JOB_FILES=(video_library_scraper.py video_library_to_reels.py)
-REMOTE_DIR="/opt/openclaw"
+DEPLOY_REF=main
 
-# Source .env if present
-if [ -f "$REPO_ROOT/.env" ]; then
-  set -a
-  source "$REPO_ROOT/.env" 2>/dev/null || true
-  set +a
+die() {
+  printf '[deploy-openclaw] ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+if [ "$#" -gt 0 ]; then
+  die 'usage: bash scripts/deploy-openclaw.sh (merged main only; no ref override)'
 fi
+command -v git >/dev/null 2>&1 || die 'git is required'
+command -v gh >/dev/null 2>&1 || die 'GitHub CLI is required'
+test "$(git -C "$REPO_ROOT" branch --show-current)" = main \
+  || die 'check out merged main before deploying'
 
-# ─── SSH key resolution (2026-08-16) ──────────────────────────────────────────
-#
-# This was hardcoded to $HOME/.ssh/openclaw_ed25519 -- a key "Phase 2A.1
-# creates" that was never actually created on this Mac. The prereq check below
-# therefore aborted on every single invocation, so NOBODY COULD DEPLOY.
-#
-# That is the direct cause of the dispatcher drift CLAUDE.md 11.3 forbids: on
-# 2026-08-16 the repo file had 6 jobs the production box did not, because the
-# only sanctioned way to push them had never once run. It also explains the
-# 2026-08-13 news-digest handoff, which assumed the VM was stale "unless
-# someone has been running deploy-openclaw.sh by hand" -- nobody could have.
-#
-# Now: honour $OPENCLAW_SSH_KEY if set, otherwise take the first candidate that
-# exists. All three fallbacks were verified on 2026-08-16 to authenticate as
-# root on the dispatcher (hostname: openclaw-dispatcher). Still fails loudly
-# when no key is present -- it just no longer fails when a working key is
-# sitting right there.
-SSH_KEY="${OPENCLAW_SSH_KEY:-}"
-if [ -z "$SSH_KEY" ]; then
-  for _cand in "$HOME/.ssh/openclaw_ed25519" \
-               "$HOME/.ssh/hetzner_deploy" \
-               "$HOME/.ssh/hetzner_engine_key" \
-               "$HOME/.ssh/id_ed25519_hetzner"; do
-    if [ -f "$_cand" ]; then SSH_KEY="$_cand"; break; fi
-  done
-fi
+release_paths=(
+  .github/workflows/deploy-openclaw.yml
+  scripts/openclaw-cron-dispatcher.py
+  scripts/video_library_scraper.py
+  scripts/video_library_to_reels.py
+  scripts/openclaw-requirements.txt
+  scripts/openclaw-requirements.lock
+  scripts/openclaw.service
+)
+git -C "$REPO_ROOT" diff --quiet -- "${release_paths[@]}" \
+  || die 'release files have uncommitted changes; commit and push them first'
+git -C "$REPO_ROOT" diff --cached --quiet -- "${release_paths[@]}" \
+  || die 'release files have staged but uncommitted changes; commit and push them first'
 
-# ─── Prereq checks ────────────────────────────────────────────────────────────
+local_sha="$(git -C "$REPO_ROOT" rev-parse --verify 'refs/heads/main^{commit}')" \
+  || die 'local main does not resolve'
+test "$(git -C "$REPO_ROOT" rev-parse HEAD)" = "$local_sha" \
+  || die 'HEAD is not the local main tip'
+remote_sha="$(git -C "$REPO_ROOT" ls-remote --exit-code origin "refs/heads/$DEPLOY_REF" | awk 'NR == 1 {print $1}')" \
+  || die 'origin/main does not exist'
+test -n "$remote_sha" || die 'origin/main does not exist'
+test "$local_sha" = "$remote_sha" \
+  || die 'local main does not match origin/main; pull or push the exact merged release first'
 
-log() { echo "[deploy-openclaw] $*"; }
-die() { echo "[deploy-openclaw] ERROR: $*" >&2; exit "${2:-1}"; }
-
-[ -f "$LOCAL_SRC" ] || die "local dispatcher source missing at $LOCAL_SRC" 1
-[ -n "$SSH_KEY" ] && [ -f "$SSH_KEY" ] \
-  || die "no usable SSH key (set OPENCLAW_SSH_KEY, or install one of: openclaw_ed25519, hetzner_deploy, hetzner_engine_key, id_ed25519_hetzner)" 1
-log "SSH key: $SSH_KEY"
-
-SERVER_IP="${OPENCLAW_SERVER_IP:-$(security find-generic-password -a smarter-poker -s openclaw-server-ip -w 2>/dev/null || echo "")}"
-[ -n "$SERVER_IP" ] || die "Target server IP missing (set OPENCLAW_SERVER_IP in .env or add Keychain entry 'smarter-poker/openclaw-server-ip')" 1
-
-SERVER_ID="${OPENCLAW_SERVER_ID:-$(security find-generic-password -a smarter-poker -s openclaw-server-id -w 2>/dev/null || echo "")}"
-
-log "Target: $SERVER_IP (id=${SERVER_ID:-unknown})"
-
-# ─── 0. Sync SCRIPT_JOB scripts (independent of the dispatcher hash) ─────────
-
-SCRIPTS_CHANGED=0
-for f in "${SCRIPT_JOB_FILES[@]}"; do
-  src="$REPO_ROOT/scripts/$f"
-  [ -f "$src" ] || die "SCRIPT_JOB source missing at $src" 1
-  lsha=$(shasum -a 256 "$src" | cut -d' ' -f1)
-  rsha=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
-    "root@$SERVER_IP" "sha256sum $REMOTE_DIR/$f 2>/dev/null | cut -d' ' -f1" 2>/dev/null || echo "missing")
-  if [ "$lsha" = "$rsha" ]; then
-    log "$f: in sync"
-    continue
-  fi
-  log "$f: uploading (remote ${rsha:0:12} → local ${lsha:0:12})"
-  scp -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
-    "$src" "root@$SERVER_IP:$REMOTE_DIR/$f.new" || die "scp $f failed" 2
-  ssh -i "$SSH_KEY" "root@$SERVER_IP" "
-    set -euo pipefail
-    chown openclaw:openclaw $REMOTE_DIR/$f.new
-    chmod 0755 $REMOTE_DIR/$f.new
-    mv $REMOTE_DIR/$f.new $REMOTE_DIR/$f
-    # Syntax check as the service user. PYTHONPYCACHEPREFIX keeps the .pyc out
-    # of $REMOTE_DIR/__pycache__, which is root-owned on the box.
-    sudo -u openclaw env PYTHONPYCACHEPREFIX=/tmp/openclaw-pyc /usr/bin/python3 -m py_compile $REMOTE_DIR/$f
-  " || die "remote install of $f failed" 2
-  SCRIPTS_CHANGED=1
-done
-
-# ─── 1. Diff local vs. remote ─────────────────────────────────────────────────
-
-LOCAL_SHA=$(shasum -a 256 "$LOCAL_SRC" | cut -d' ' -f1)
-REMOTE_SHA=$(ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
-  "root@$SERVER_IP" "sha256sum $REMOTE_PATH 2>/dev/null | cut -d' ' -f1" 2>/dev/null || echo "missing")
-
-log "Local  SHA256: $LOCAL_SHA"
-log "Remote SHA256: $REMOTE_SHA"
-
-# Support --force to re-deploy even when SHAs match (e.g., to verify systemd health).
-FORCE=0
-for arg in "$@"; do
-  [ "$arg" = "--force" ] && FORCE=1
-done
-
-if [ "$LOCAL_SHA" = "$REMOTE_SHA" ] && [ "$FORCE" -eq 0 ]; then
-  if [ "$SCRIPTS_CHANGED" -eq 1 ]; then
-    log "dispatcher.py already in sync; SCRIPT_JOB scripts updated (no restart needed — they run as subprocesses)."
-  else
-    log "Already in sync — dispatcher.py and SCRIPT_JOB scripts match remote. Nothing to deploy."
-  fi
-  log "Pass --force to re-upload and restart anyway (e.g., to recover a flapping service)."
-  exit 0
-fi
-
-# ─── 2. scp ───────────────────────────────────────────────────────────────────
-
-log "Uploading dispatcher.py..."
-scp -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new \
-  "$LOCAL_SRC" "root@$SERVER_IP:${REMOTE_PATH}.new" \
-  || die "scp failed" 2
-
-ssh -i "$SSH_KEY" "root@$SERVER_IP" "
-  set -euo pipefail
-  chown openclaw:openclaw ${REMOTE_PATH}.new
-  chmod 0755 ${REMOTE_PATH}.new
-  mv ${REMOTE_PATH}.new ${REMOTE_PATH}
-" || die "remote file move failed" 2
-
-log "dispatcher.py deployed"
-
-# ─── 3. Restart + verify ──────────────────────────────────────────────────────
-
-# journalctl --since= wants 'YYYY-MM-DD HH:MM:SS' (systemd.time(7)), NOT ISO-8601 with T/Z.
-# Passing 'T...Z' returns zero rows silently on some systemd versions.
-RESTART_TS=$(date -u +"%Y-%m-%d %H:%M:%S")
-log "Restarting $SERVICE at $RESTART_TS UTC..."
-
-ssh -i "$SSH_KEY" "root@$SERVER_IP" "
-  set -euo pipefail
-  systemctl restart $SERVICE
-  sleep 5
-" || die "systemctl restart failed" 3
-
-# 3a — systemctl is-active
-STATE=$(ssh -i "$SSH_KEY" "root@$SERVER_IP" "systemctl is-active $SERVICE" || echo "failed")
-if [ "$STATE" != "active" ]; then
-  ssh -i "$SSH_KEY" "root@$SERVER_IP" "journalctl -u $SERVICE -n 80 --no-pager"
-  die "systemctl is-active = $STATE (expected: active)" 3
-fi
-log "systemctl is-active: $STATE"
-
-# 3b — NRestarts (must be 0 or 1 — 1 is OK since we just restarted)
-NRESTARTS=$(ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-  "systemctl show $SERVICE -p NRestarts --value" | tr -d '[:space:]')
-log "systemd NRestarts: $NRESTARTS"
-if [ "${NRESTARTS:-0}" -gt 1 ]; then
-  log "WARN: NRestarts = $NRESTARTS — service is flapping. Investigate."
-fi
-
-# 3c — Registered jobs count from post-restart log
-log "Verifying registered jobs (10s window after restart)..."
-sleep 5
-# Note the `|| true` inside the remote quotes: `grep -c` exits 1 when it
-# finds zero matches (while still printing "0" on stdout). Without this,
-# the SSH call exits 1, our local `|| echo "0"` fallback fires, and we
-# end up capturing "0\n0" → "0 0" which fails `[ ... -gt 0 ]` with
-# 'integer expression expected'. Making grep's pipeline exit 0 lets the
-# count pass through cleanly.
-REGISTERED=$(ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-  "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -c 'Registered:' || true" || echo "0")
-log "Registered jobs: $REGISTERED"
-if [ "${REGISTERED:-0}" -lt 1 ]; then
-  ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-    "journalctl -u $SERVICE --since='$RESTART_TS' -n 100 --no-pager"
-  die "no 'Registered:' lines in journalctl since restart — dispatcher may be silent" 4
-fi
-
-# 3d — ERROR / Exception / Traceback scan. Same `|| true` pattern as above.
-ERRORS=$(ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-  "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -cE 'ERROR|Exception|Traceback' || true" || echo "0")
-if [ "${ERRORS:-0}" -gt 0 ]; then
-  ssh -i "$SSH_KEY" "root@$SERVER_IP" \
-    "journalctl -u $SERVICE --since='$RESTART_TS' --no-pager | grep -E 'ERROR|Exception|Traceback' | head -30"
-  die "$ERRORS error line(s) in journalctl since restart" 4
-fi
-
-# ─── 4. Success ───────────────────────────────────────────────────────────────
-
-log "✓ Deploy complete: dispatcher.py synced, systemd restarted, $REGISTERED jobs registered, 0 errors"
-log ""
-log "Live tail with:  ssh -i $SSH_KEY root@$SERVER_IP 'journalctl -u $SERVICE -f'"
+printf '[deploy-openclaw] Dispatching immutable release %s from origin/%s\n' "$local_sha" "$DEPLOY_REF"
+gh workflow run deploy-openclaw.yml --repo Smarter-Poker/Smarter-Poker-World-Hub --ref "$DEPLOY_REF"
+printf '[deploy-openclaw] Workflow dispatched; GitHub Actions will report promotion or rollback.\n'

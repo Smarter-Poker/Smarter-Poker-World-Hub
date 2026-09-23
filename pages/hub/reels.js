@@ -3,7 +3,10 @@
  * Swipe up/down to navigate, tap to mute/unmute
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useId } from 'react';
+import { createPortal } from 'react-dom';
+import styles from './reels-console.module.css';
+import { useFitText } from '../../src/components/video-library/console/useFitText';
 import {
   YouTubeErrorOverlay,
   reportFailureToServer,
@@ -18,6 +21,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { reelsPreferences, savedReelsService } from '../../src/services/preferences-service';
 import { getAuthUser } from '../../src/lib/authUtils';
 import UploadReelModal from '../../src/components/reels/UploadReelModal';
+import ReelPublicationRecoveryBanner from '../../src/components/reels/ReelPublicationRecoveryBanner';
 import { saveAppSetting } from '../../src/lib/appSettingsSync';
 import { busEmit, eventBus, EventType } from '../../src/engine/EventBus';
 import GiphyPicker from '../../src/components/shared/GiphyPicker';
@@ -27,6 +31,31 @@ import {
   findBestGames,
 } from '../../src/utils/videoToTrainingMapper';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
+import {
+  fetchPokerReels,
+  mergePokerReels,
+} from '../../src/lib/reelsFeedClient';
+import {
+  loadReelFollowState,
+  loadReelInteractionState,
+  normaliseReelAuthorIds,
+} from '../../src/lib/reelInteractionHydration';
+import { createLatestRequestGuard } from '../../src/lib/latestRequestGuard.mjs';
+import { scanReelsContinuations } from '../../src/lib/reelsContinuation.mjs';
+import {
+  loadWatchedReelIds,
+  loadNotInterestedReelIds,
+  persistWatchedReelIds,
+  persistNotInterestedReelIds,
+  readReelsSessionFlag,
+  safeSetReelsLocalStorage,
+  safeSetReelsSessionStorage,
+} from '../../src/lib/reelsWatchedStorage.mjs';
+import { createReelAccountScope } from '../../src/lib/reelAccountScope.mjs';
+import VideoLibraryConsole, {
+  ConsoleCopy,
+  ConsoleDataRow,
+} from '../../src/components/video-library/console/VideoLibraryConsole';
 
 const C = {
   bg: '#000000',
@@ -37,17 +66,122 @@ const C = {
 function timeAgo(d) {
   if (!d) return '';
   const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
-  if (s < 60) return 'Just now';
+  if (s < 60) return 'Just Now';
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d ago`;
+  return `${Math.floor(s / 86400)} Days Ago`;
+}
+
+function ReelsConsoleScreen({
+  eyebrow = 'Video Library',
+  title,
+  subtitle,
+  pill,
+  pillInk = 'blue',
+  copy,
+  rows = [],
+  secondary,
+  primary,
+  titleAs = 'h1',
+}) {
+  return (
+    <main className={styles.screen}>
+      <VideoLibraryConsole
+        eyebrow={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        pill={pill}
+        pillInk={pillInk}
+        titleAs={titleAs}
+        foot="plates"
+        plates={{ secondary, primary }}
+        aria-label={title}
+      >
+        <ConsoleCopy align="center">{consoleText(copy)}</ConsoleCopy>
+        {rows.map((row) => <ConsoleDataRow key={row.label} {...row} />)}
+      </VideoLibraryConsole>
+    </main>
+  );
+}
+
+function consoleText(value) {
+  return String(value || '').replace(/\\u2014|—/g, ' - ').replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+}
+
+function ReelAction({ children, className = '', ...props }) {
+  const text = Array.isArray(children) ? children.join('') : String(children ?? '');
+  const fitRef = useFitText(text, 1, 0.5);
+  return (
+    <button type="button" {...props} className={`${styles.action} ${className}`}>
+      <span className={styles.actionFace}><span ref={fitRef}>{children}</span></span>
+    </button>
+  );
+}
+
+function ReelsConsoleDialog({ title, children, onClose, primary, ...rest }) {
+  const dialogRef = useRef(null);
+  const closeRef = useRef(onClose);
+  const titleId = useId();
+  closeRef.current = onClose;
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const dialog = dialogRef.current;
+    const focusables = () => [...dialog.querySelectorAll('button:not(:disabled), a[href], input:not([type="hidden"]), textarea, select, [tabindex="0"]')]
+      .filter((element) => element.getClientRects().length > 0);
+    (focusables()[0] || dialog)?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeRef.current?.();
+      } else if (event.key === 'Tab') {
+        const items = focusables();
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (!first) { event.preventDefault(); dialog?.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+          event.preventDefault(); first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, []);
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path" className={styles.dialogBackdrop} onClick={() => closeRef.current?.()}>
+      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true"
+        aria-labelledby={titleId} tabIndex={-1} data-sp-skip-a11y="propagation guard, not a control" onClick={(event) => event.stopPropagation()} {...rest}>
+        <VideoLibraryConsole eyebrow="Reel Controls" title={title} titleId={titleId}
+          foot={primary ? 'plates' : 'foot'}
+          plates={primary ? { secondary: { label: 'Close', onClick: onClose }, primary } : undefined}>
+          {children}
+          {!primary && <ReelAction onClick={onClose}>Close</ReelAction>}
+        </VideoLibraryConsole>
+      </div>
+    </div>, document.body
+  );
 }
 
 export default function ReelsPage() {
   const [reels, setReels] = useState([]);
+  const reelsCursorRef = useRef(null);
+  const reelsRequestGuardRef = useRef(null);
+  const commentRequestGuardRef = useRef(null);
+  const activeCommentReelIdRef = useRef(null);
+  if (!reelsRequestGuardRef.current) reelsRequestGuardRef.current = createLatestRequestGuard();
+  if (!commentRequestGuardRef.current) commentRequestGuardRef.current = createLatestRequestGuard();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   // Every navigation starts muted so browser autoplay is deterministic. Sound
   // can be restored only inside a fresh user gesture; carrying an unmuted value
   // across reloads causes Chrome/Safari to leave the first reel paused.
@@ -56,8 +190,7 @@ export default function ReelsPage() {
   // but never use it to bypass the cold-start autoplay requirement above.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try { localStorage.setItem('sp:reels:muted', muted ? '1' : '0'); }
-    catch (_) { /* sandboxed contexts may throw */ }
+    safeSetReelsLocalStorage('sp:reels:muted', muted ? '1' : '0');
   }, [muted]);
   const [userWantsSound, setUserWantsSound] = useState(true); // User preference — auto-unmute after YT confirms playing
   // Auto-play immediately - videos start muted per browser policy, unmute after onStateChange confirms playing
@@ -96,7 +229,7 @@ export default function ReelsPage() {
   // extra click. Mirrors the matching pattern in
   // src/components/social/Reels.jsx and src/components/social/ReelsFeedCarousel.jsx.
   const userInteractedRef = useRef(
-    typeof window !== 'undefined' && window.sessionStorage?.getItem('sp:reels:interacted') === '1'
+    readReelsSessionFlag('sp:reels:interacted')
   );
   // Stricter than userInteractedRef: only true when a gesture happened on
   // THIS page load. Browsers gate autoplay-with-sound per-document; the
@@ -123,18 +256,22 @@ export default function ReelsPage() {
   const slideDebounceRef = useRef(false);
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const activeUserIdRef = useRef(null);
+  const accountScopeRef = useRef(null);
+  if (!accountScopeRef.current) accountScopeRef.current = createReelAccountScope();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuOpenRef = useRef(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [savedReels, setSavedReels] = useState(new Set());
+  const savedTargetsByReelRef = useRef(new Map());
   const [showHeart, setShowHeart] = useState(false);
   const [ttsOverlay, setTtsOverlay] = useState(null); // Train This Spot in-place overlay { ctx, games }
   // Age-restricted / errored YouTube video detection
   const [ytError, setYtError] = useState(null); // { code, videoId } when current reel has a YT error
   const [slideDirection, setSlideDirection] = useState(null);
-  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(null);
   const [viewCounts, setViewCounts] = useState({});
   const [videoProgress, setVideoProgress] = useState(0);
   const viewedReelsRef = useRef(new Set());
@@ -142,16 +279,7 @@ export default function ReelsPage() {
   const playVideoOnLoadTimersRef = useRef([]); // Cancelled on every reel change — prevents premature playVideo to new iframe
   const [refreshing, setRefreshing] = useState(false);
   // #4 Not Interested - persist disliked reel IDs in localStorage
-  const [notInterestedIds, setNotInterestedIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return new Set(JSON.parse(localStorage.getItem('reels-not-interested') || '[]'));
-      } catch {
-        return new Set();
-      }
-    }
-    return new Set();
-  });
+  const [notInterestedIds, setNotInterestedIds] = useState(loadNotInterestedReelIds);
   // #8 Share Options Modal
   const [showShareModal, setShowShareModal] = useState(false);
   // #7 Animated Like Counter
@@ -262,16 +390,7 @@ export default function ReelsPage() {
   // Phase 9: Watched Indicator
   const [watchedReelIds, setWatchedReelIds] = useState([]);
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('smarter-reels-watched');
-      if (saved) {
-        try {
-          setWatchedReelIds(JSON.parse(saved));
-        } catch (e) {
-          console.warn('[App] Handled exception:', e);
-        }
-      }
-    }
+    setWatchedReelIds(loadWatchedReelIds(activeUserIdRef.current));
   }, []);
 
   // Reels preferences state
@@ -291,83 +410,125 @@ export default function ReelsPage() {
   // Sound is ALWAYS on by default — user requirement: never muted on load.
   // Users can manually mute during a session, but next visit starts fresh with sound on.
 
-  // Load user and preferences
+  const clearAccountOwnedState = useCallback(() => {
+    reelsRequestGuardRef.current?.abort();
+    commentRequestGuardRef.current?.abort();
+    setLiked({});
+    setDisliked({});
+    setFollowing({});
+    setSavedReels(new Set());
+    savedTargetsByReelRef.current = new Map();
+    setWatchedReelIds(loadWatchedReelIds(activeUserIdRef.current));
+    setNotInterestedIds(loadNotInterestedReelIds(activeUserIdRef.current));
+    setCommentLikes({});
+    setCommentLikeCounts({});
+    setCommentText('');
+    setComments([]);
+    setReplyTo(null);
+    setEditingComment(null);
+    setEditCommentText('');
+    setCommentMediaUrl(null);
+    setCommentMediaType(null);
+    setShowGifPicker(false);
+    setShowCommentPanel(false);
+    setShowReactionPicker(false);
+    setShowMoreMenu(false);
+    setShowShareModal(false);
+    setShowShareDescriptionModal(false);
+    setShareDescription('');
+    setSharingToFeed(false);
+    setSharedToFeed(false);
+    setShowReportModal(false);
+    setReportReason('');
+    setReportSubmitted(false);
+    setSubmittingComment(false);
+    setUploadingImage(false);
+    likeDebounceRef.current = false;
+  }, []);
+
+  const bindAuthUser = useCallback((nextUser) => {
+    const next = nextUser?.id ? nextUser : null;
+    const binding = accountScopeRef.current.bind(next?.id);
+    activeUserIdRef.current = next?.id || null;
+    if (binding.changed) clearAccountOwnedState();
+    setUser(next);
+  }, [clearAccountOwnedState]);
+
+  // React to both same-tab Supabase transitions and cross-tab storage changes.
+  // The owner ref changes before React paints, so no late A response can reach B.
   useEffect(() => {
-    let cancelled = false;
-    const loadUserData = async () => {
-      const authUser = getAuthUser();
-      if (!cancelled) setUser(authUser);
-
-      // Reels preferences are local-first and apply to guests as well as
-      // signed-in players. Load them before allowing any media autoplay.
-      try {
-        const prefs = await reelsPreferences.get(authUser?.id);
-        if (!cancelled) setPreferences(prefs);
-      } catch (error) {
-        console.warn('[Reels] Could not load preferences:', error?.message || error);
-      } finally {
-        if (!cancelled) setPreferencesLoaded(true);
-      }
-
-      if (authUser) {
-        // Load saved reels
-        try {
-          const saved = await savedReelsService.getSavedReels(authUser.id);
-          if (!cancelled) {
-            const savedIds = new Set(saved.map((item) => item.reel_id));
-            setSavedReels(savedIds);
-          }
-        } catch (error) {
-          console.warn('[Reels] Could not load saved reels:', error?.message || error);
-        }
-
-        // Pre-fetch existing likes (filter by reaction_type='like')
-        const { data: likeData } = await supabase
-          .from('social_likes')
-          .select('post_id')
-          .eq('user_id', authUser.id)
-          .eq('reaction_type', 'like');
-        if (!cancelled && likeData) {
-          const likeMap = {};
-          likeData.forEach((l) => {
-            likeMap[l.post_id] = true;
-          });
-          setLiked(likeMap);
-        }
-
-        // Pre-fetch existing dislikes
-        const { data: dislikeData } = await supabase
-          .from('social_likes')
-          .select('post_id')
-          .eq('user_id', authUser.id)
-          .eq('reaction_type', 'dislike');
-        if (!cancelled && dislikeData) {
-          const dislikeMap = {};
-          dislikeData.forEach((d) => {
-            dislikeMap[d.post_id] = true;
-          });
-          setDisliked(dislikeMap);
-        }
-
-        // Pre-fetch follows
-        const { data: followData } = await supabase
-          .from('social_follows')
-          .select('following_id')
-          .eq('follower_id', authUser.id);
-        if (!cancelled && followData) {
-          const followMap = {};
-          followData.forEach((f) => {
-            followMap[f.following_id] = true;
-          });
-          setFollowing(followMap);
-        }
-      }
+    bindAuthUser(getAuthUser());
+    const handleStorage = (event) => {
+      if (event.key !== 'smarter-poker-auth'
+        && !(event.key?.startsWith('sb-') && event.key?.endsWith('-auth-token'))) return;
+      bindAuthUser(event.key === 'smarter-poker-auth' && !event.newValue ? null : getAuthUser());
     };
-    loadUserData();
+    window.addEventListener('storage', handleStorage);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      bindAuthUser(event === 'SIGNED_OUT' ? null : session?.user || getAuthUser());
+    });
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      subscription?.unsubscribe();
+    };
+  }, [bindAuthUser]);
+
+  // Reels preferences are account-scoped and local-first. Clear A's values
+  // while B loads; a rejected B read falls back to the safe defaults.
+  useEffect(() => {
+    const ownerRequest = accountScopeRef.current.capture(user?.id);
+    let cancelled = false;
+    setPreferencesLoaded(false);
+    setPreferences({ autoplay: true, soundOnScroll: true, dataSaver: false, showCaptions: true });
+    reelsPreferences.get(ownerRequest.ownerId).then((prefs) => {
+      if (!cancelled && ownerRequest.isCurrent()) setPreferences(prefs);
+    }).catch((error) => {
+      if (!cancelled && ownerRequest.isCurrent()) {
+        console.warn('[Reels] Could not load preferences:', error?.message || error);
+      }
+    }).finally(() => {
+      if (!cancelled && ownerRequest.isCurrent()) setPreferencesLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Interaction and follow truth are scoped to the currently loaded Reels.
+  // The canonical saved API resolves historical loser/post aliases before the
+  // UI decides whether the displayed winner is saved.
+  useEffect(() => {
+    if (!user?.id || reels.length === 0) {
+      setLiked({});
+      setDisliked({});
+      setFollowing({});
+      setSavedReels(new Set());
+      savedTargetsByReelRef.current = new Map();
+      return undefined;
+    }
+    const ownerRequest = accountScopeRef.current.capture(user.id);
+    let cancelled = false;
+    const controller = new AbortController();
+    Promise.all([
+      loadReelInteractionState(supabase, user.id, reels, {
+        loadSavedReels: (ownerId, reelIds, options) => savedReelsService.getSavedReelsForIds(ownerId, reelIds, options),
+        signal: controller.signal,
+      }),
+      loadReelFollowState(supabase, user.id, normaliseReelAuthorIds(reels)),
+    ]).then(([interactionState, followState]) => {
+      if (cancelled || !ownerRequest.isCurrent()) return;
+      setLiked(interactionState.liked);
+      setDisliked(interactionState.disliked);
+      setFollowing(followState);
+      setSavedReels(new Set(Object.keys(interactionState.saved)));
+      savedTargetsByReelRef.current = new Map(Object.entries(interactionState.savedTargets));
+    }).catch((error) => {
+      if (cancelled || !ownerRequest.isCurrent() || error?.name === 'AbortError') return;
+      console.warn('[Reels] Interaction hydration failed:', error?.message || error);
+    });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, []);
+  }, [reels, user?.id]);
 
   // YouTube API: Send command to iframe via postMessage
   // The 'listening' handshake initializes the command bridge
@@ -466,7 +627,6 @@ export default function ReelsPage() {
       autoUnmuteRetryTimersRef.current.forEach((t) => clearTimeout(t));
       autoUnmuteRetryTimersRef.current = [];
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, loading, preferences.autoplay, preferences.soundOnScroll, preferencesLoaded, reels.length]);
 
   const handleUnmute = () => {
@@ -476,7 +636,7 @@ export default function ReelsPage() {
     setUserWantsSound(true);
     // Save preference to localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('reels-sound-enabled', 'true');
+      safeSetReelsLocalStorage('reels-sound-enabled', 'true');
       saveAppSetting('reels_sound_enabled', true, 'reels-sound-enabled');
     }
   };
@@ -486,7 +646,7 @@ export default function ReelsPage() {
     setMuted(true);
     setUserWantsSound(false);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('reels-sound-enabled', 'false');
+      safeSetReelsLocalStorage('reels-sound-enabled', 'false');
       saveAppSetting('reels_sound_enabled', false, 'reels-sound-enabled');
     }
   };
@@ -537,7 +697,7 @@ export default function ReelsPage() {
       if (!userInteractedRef.current) {
         userInteractedRef.current = true;
         try {
-          window.sessionStorage?.setItem('sp:reels:interacted', '1');
+          safeSetReelsSessionStorage('sp:reels:interacted', '1');
         } catch (_) {}
       }
       if (userWantsSoundRef.current) {
@@ -565,7 +725,6 @@ export default function ReelsPage() {
       window.removeEventListener('wheel', onGesture, opts);
       window.removeEventListener('touchstart', onGesture, opts);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Wait for router.isReady so router.query.id is populated before loadReels runs.
@@ -611,241 +770,76 @@ export default function ReelsPage() {
       playVideoOnLoadTimersRef.current.forEach((t) => clearTimeout(t));
       playVideoOnLoadTimersRef.current = [];
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady, router.query.feed]);
+  }, [router.isReady, router.query.feed, router.query.id]);
+
+  useEffect(() => () => {
+    reelsRequestGuardRef.current?.abort();
+    commentRequestGuardRef.current?.abort();
+  }, []);
 
   const loadReels = useCallback(async () => {
+    const reelsRequest = reelsRequestGuardRef.current.begin({ append: false });
     setLoading(true);
-    setLoadError(false);
+    setLoadingMore(false);
+    setLoadError(null);
+    setLoadMoreError(null);
     setHasMore(true);
+    reelsCursorRef.current = null;
+    const initialId = Array.isArray(router.query.id) ? router.query.id[0] : router.query.id;
+    const deepLinkRequest = { id: initialId };
     try {
-      const initialId = router.query.id;
-
-      // BUG FIX: single limit-50 query let video_library (newest timestamps) monopolize feed.
-      // Fix: 3 parallel per-source queries, interleaved 2:1 (user:library) so both always appear.
-      // M7.1 (2026-05-03): retired the social_posts query. Every public
-      // video post has a social_reels mirror via the
-      // trg_social_posts_video_to_reel_mirror trigger, so a separate
-      // social_posts query produced duplicates that the dedup filter
-      // dropped (pure waste). Horse-posted reels surface via the
-      // horseResult slot below — same pattern as src/components/social/Reels.jsx.
-      // 2026-05-06: added thumbnail_url so the initial feed shows the
-      // worker-extracted poster image immediately (was missing here while
-      // the load-more REEL_SELECT below already had it — caused a
-      // brief black flash on first paint for newly-converted reels).
-      const REEL_SELECT =
-        'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type';
-      const [userResult, libraryResult, horseResult] = await Promise.all([
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'user')
-          .order('created_at', { ascending: false })
-          .limit(60),
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'video_library')
-          .order('created_at', { ascending: false })
-          .limit(60),
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .in('source_type', ['youtube', 'native'])
-          .not('source_post_id', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(60),
-      ]);
-
-      const initialQueryError = userResult.error || libraryResult.error || horseResult.error;
-      if (initialQueryError) throw initialQueryError;
-
-      const userReels = (userResult.data || []).map((r) => ({ ...r, source: 'reels' }));
-      const libReels = (libraryResult.data || []).map((r) => ({ ...r, source: 'reels' }));
-      const horseReels = (horseResult.data || []).map((r) => ({ ...r, source: 'reels' }));
-
-      // Interleave 2:1 (user:library) + sprinkle horse-posted every 10
-      const allVideos = [];
-      let uIdx = 0,
-        lIdx = 0,
-        hIdx = 0;
-      for (
-        let i = 0;
-        i < Math.max(userReels.length, libReels.length, horseReels.length) * 3 &&
-        allVideos.length < 120;
-        i++
-      ) {
-        const slot = i % 3;
-        if (slot === 0 || slot === 1) {
-          if (uIdx < userReels.length) allVideos.push(userReels[uIdx++]);
-          else if (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
-        } else {
-          if (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
-          else if (uIdx < userReels.length) allVideos.push(userReels[uIdx++]);
-        }
-        // Splice a horse reel every 10 items
-        if (allVideos.length > 0 && allVideos.length % 10 === 0 && hIdx < horseReels.length) {
-          allVideos.push(horseReels[hIdx++]);
-        }
-      }
-      while (uIdx < userReels.length) allVideos.push(userReels[uIdx++]);
-      while (lIdx < libReels.length) allVideos.push(libReels[lIdx++]);
-      while (hIdx < horseReels.length) allVideos.push(horseReels[hIdx++]);
-
-      // Deduplicate by BOTH id and video_url.
-      // The auto-mirror trigger can clone a social_post into social_reels with a
-      // different row ID but the same physical video — id-only dedup lets it render twice.
-      const seenIds = new Set();
-      const seenUrls = new Set();
-      let deduped = allVideos.filter((v) => {
-        if (seenIds.has(v.id)) return false;
-        if (v.video_url && seenUrls.has(v.video_url)) return false;
-        seenIds.add(v.id);
-        if (v.video_url) seenUrls.add(v.video_url);
-        return true;
-      });
-
       const feedMode = ['following', 'trending'].includes(String(router.query.feed))
         ? String(router.query.feed)
         : 'foryou';
-      if (feedMode === 'trending') {
-        deduped = [...deduped].sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
-      } else if (feedMode === 'following') {
-        const authUser = getAuthUser();
-        if (!authUser) {
-          deduped = [];
-        } else {
-          const { data: followRows, error: followError } = await supabase
-            .from('social_follows')
-            .select('following_id')
-            .eq('follower_id', authUser.id);
-          if (followError) throw followError;
-          const followedIds = new Set((followRows || []).map(row => row.following_id));
-          deduped = deduped.filter(reel => followedIds.has(reel.author_id));
-        }
+      const authUser = feedMode === 'following' ? getAuthUser() : null;
+      if (feedMode === 'following' && !authUser?.id) {
+        setReels([]);
+        setCurrentIndex(0);
+        setHasMore(false);
+        return;
       }
-
-      if (deduped.length > 0) {
-        // Get all unique author IDs
-        const authorIds = [...new Set(deduped.map((v) => v.author_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, username, avatar_url, full_name')
-          .in('id', authorIds)
-          .limit(200);
-
-        const profileMap = {};
-        (profiles || []).forEach((p) => {
-          profileMap[p.id] = p;
-        });
-
-        // Map videos with profile data
-        // CRITICAL: preserve the source flag so incrementMetric routes to the right table
-        const mappedReels = deduped.map((video) => ({
-          id: video.id,
-          author_id: video.author_id,
-          video_url: video.video_url,
-          thumbnail_url: video.thumbnail_url || null, // BUG FIX: was fetched in REEL_SELECT but not mapped — caused black flash on native video poster frames
-          caption: video.caption,
-          like_count: video.like_count,
-          comment_count: video.comment_count,
-          view_count: video.view_count || 0,
-          created_at: video.created_at,
-          source: video.source || 'reels', // MUST be preserved - drives DB table routing
-          profiles: profileMap[video.author_id] || { username: 'Anonymous' },
-        }));
-
-        // #4 Not Interested - move disliked reels to end of feed
-        // NOTE: no shuffle here - interleave order already provides diversity
-        const fresh = mappedReels.filter((r) => !notInterestedIds.has(r.id));
-        const stale = mappedReels.filter((r) => notInterestedIds.has(r.id));
-
-        if (initialId) {
-          const targetIdx = fresh.findIndex((r) => r.id === initialId);
-          if (targetIdx > 0) {
-            const target = fresh.splice(targetIdx, 1)[0];
-            fresh.unshift(target);
-          } else if (targetIdx === -1) {
-            const staleIdx = stale.findIndex((r) => r.id === initialId);
-            if (staleIdx !== -1) {
-              const target = stale.splice(staleIdx, 1)[0];
-              fresh.unshift(target);
-            } else {
-              // Video wasn't in the first 150 items. Query directly.
-              let directReel = null;
-              const { data: pData } = await supabase
-                .from('social_posts')
-                .select('id, author_id, content, media_urls, like_count, comment_count, created_at')
-                .eq('id', initialId)
-                .maybeSingle();
-              if (pData) {
-                directReel = {
-                  id: pData.id,
-                  author_id: pData.author_id,
-                  video_url: pData.media_urls?.[0],
-                  caption: pData.content,
-                  like_count: pData.like_count || 0,
-                  comment_count: pData.comment_count || 0,
-                  view_count: 0,
-                  created_at: pData.created_at,
-                  source: 'posts',
-                };
-              } else {
-                const { data: rData } = await supabase
-                  .from('social_reels')
-                  .select('*')
-                  .eq('id', initialId)
-                  .maybeSingle();
-                if (rData) {
-                  directReel = {
-                    id: rData.id,
-                    author_id: rData.author_id,
-                    video_url: rData.video_url,
-                    caption: rData.caption,
-                    like_count: rData.like_count || 0,
-                    comment_count: rData.comment_count || 0,
-                    view_count: rData.view_count || 0,
-                    created_at: rData.created_at,
-                    source: 'reels',
-                  };
-                }
-              }
-              if (directReel) {
-                let pMap = profileMap[directReel.author_id];
-                if (!pMap) {
-                  const { data: dProfile } = await supabase
-                    .from('profiles')
-                    .select('id, username, avatar_url, full_name')
-                    .eq('id', directReel.author_id)
-                    .maybeSingle();
-                  pMap = dProfile || { username: 'Anonymous' };
-                }
-                directReel.profiles = pMap;
-                fresh.unshift(directReel);
-              }
+      const payload = await scanReelsContinuations({
+        fetchPage: (cursor, pageNumber) => fetchPokerReels({
+          limit: 120,
+          cursor,
+          id: pageNumber === 1 ? deepLinkRequest.id || null : null,
+          sort: feedMode === 'trending' ? 'popular' : 'recent',
+          signal: reelsRequest.signal,
+          scope: feedMode === 'following' ? 'following' : 'standalone',
+          accessToken: feedMode === 'following' ? getAccessToken() : null,
+        }),
+        selectRows: (rows) => {
+          const mappedReels = rows.map((video) => ({
+            ...video,
+            source: 'reels',
+            profiles: video.profiles || { username: 'Anonymous' },
+          }));
+          const fresh = mappedReels.filter((reel) => !notInterestedIds.has(reel.id));
+          const stale = mappedReels.filter((reel) => notInterestedIds.has(reel.id));
+          if (initialId) {
+            const targetIdx = fresh.findIndex((reel) => (
+              reel.id === initialId || reel.source_post_id === initialId
+            ));
+            if (targetIdx > 0) fresh.unshift(fresh.splice(targetIdx, 1)[0]);
+            else if (targetIdx === -1) {
+              const staleIdx = stale.findIndex((reel) => (
+                reel.id === initialId || reel.source_post_id === initialId
+              ));
+              if (staleIdx !== -1) fresh.unshift(stale.splice(staleIdx, 1)[0]);
             }
           }
-          setCurrentIndex(0);
-        }
+          const broken = brokenUrlsRef.current;
+          return [...fresh, ...stale].filter((reel) => !broken.has(reel.video_url));
+        },
+      });
+      if (!reelsRequest.isCurrent()) return;
+      reelsCursorRef.current = payload.next_cursor || null;
+      setHasMore(Boolean(payload.next_cursor));
+      const finalReels = payload.data;
 
-        // Filter out URLs already known to be broken/undecodable in this
-        // tab session (HEVC failures, dead Supabase URLs, corrupt MP4s
-        // that hung the watchdog). Without this, every loadReels refresh
-        // would re-add the same broken reels and the user would hit them
-        // again. brokenUrlsRef is session-scoped, lost on reload — which
-        // is correct because the worker may have transcoded HEVC by then.
-        const broken = brokenUrlsRef.current;
-        const filteredFresh =
-          broken.size > 0 ? fresh.filter((r) => !broken.has(r.video_url)) : fresh;
-        const filteredStale =
-          broken.size > 0 ? stale.filter((r) => !broken.has(r.video_url)) : stale;
-        const finalReels = [...filteredFresh, ...filteredStale];
+      if (finalReels.length > 0) {
+        if (initialId) setCurrentIndex(0);
         setReels(finalReels);
-        if (feedMode !== 'foryou') setHasMore(false);
-
         // Initialize like/comment/view counts from the FINAL displayed array
         // (not shuffled - fresh/stale order may differ, and Not Interested IDs may be excluded)
         const lc = {},
@@ -866,12 +860,28 @@ export default function ReelsPage() {
         setCurrentIndex(0);
       }
     } catch (e) {
+      if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
       console.warn('Load reels error:', e);
-      setLoadError(true);
+      setReels([]);
+      setLoadError(
+        initialId && [400, 404, 410].includes(e?.status) ? 'unavailable' : 'network',
+      );
+    } finally {
+      if (reelsRequest.finish()) setLoading(false);
     }
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notInterestedIds, router.query.feed]);
+  }, [notInterestedIds, router.query.feed, router.query.id]);
+
+  useEffect(() => {
+    const revalidateVisibleFeed = () => {
+      if (document.visibilityState === 'visible') loadReels();
+    };
+    window.addEventListener('focus', revalidateVisibleFeed);
+    document.addEventListener('visibilitychange', revalidateVisibleFeed);
+    return () => {
+      window.removeEventListener('focus', revalidateVisibleFeed);
+      document.removeEventListener('visibilitychange', revalidateVisibleFeed);
+    };
+  }, [loadReels]);
 
   // Helper to atomically increment/decrement counts for reels OR posts
   // Uses SECURITY DEFINER RPCs - no race condition, no read-then-write
@@ -898,76 +908,31 @@ export default function ReelsPage() {
   // Fires when reels load OR when router.query.id becomes available.
   useEffect(() => {
     if (!router.query.id || reels.length === 0) return;
-    const targetIdx = reels.findIndex((r) => r.id === router.query.id);
+    const targetIdx = reels.findIndex(
+      (r) => r.id === router.query.id || r.source_post_id === router.query.id
+    );
     if (targetIdx !== -1 && targetIdx !== currentIndex) {
-      // Found in current batch - jump to it
+      // Both legacy Reel IDs and post IDs are resolved by the canonical API.
       setCurrentIndex(targetIdx);
-    } else if (targetIdx === -1) {
-      // Not in loaded batch - direct-query for this specific reel and prepend
-      (async () => {
-        try {
-          const { supabase } = await import('../../src/lib/supabase');
-          let directReel = null;
-          const { data: pData } = await supabase
-            .from('social_posts')
-            .select(
-              'id, author_id, content, content_type, media_urls, like_count, comment_count, created_at'
-            )
-            .eq('id', router.query.id)
-            .maybeSingle();
-          if (pData && pData.media_urls?.length) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('id, username, avatar_url, full_name')
-              .eq('id', pData.author_id)
-              .maybeSingle();
-            directReel = {
-              id: pData.id,
-              author_id: pData.author_id,
-              source: 'posts',
-              video_url: pData.media_urls[0],
-              caption: pData.content,
-              like_count: pData.like_count || 0,
-              comment_count: pData.comment_count || 0,
-              view_count: 0,
-              created_at: pData.created_at,
-              profiles: profile || { username: 'Player' },
-            };
-          } else {
-            const { data: rData } = await supabase
-              .from('social_reels')
-              .select('*, profiles:author_id (id, username, avatar_url, full_name)')
-              .eq('id', router.query.id)
-              .maybeSingle();
-            if (rData) directReel = { ...rData, source: 'reels' };
-          }
-          if (directReel) {
-            setReels((prev) => [directReel, ...prev.filter((r) => r.id !== directReel.id)]);
-            setCurrentIndex(0);
-          }
-        } catch (e) {
-          console.warn('[Reels] Direct-query fallback failed:', e?.message);
-        }
-      })();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reels.length, router.query.id]);
 
   const currentReel = reels[currentIndex];
+  activeCommentReelIdRef.current = currentReel?.id || null;
 
   // Phase 9: Watched Indicator Timer
   useEffect(() => {
     if (!currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const watchTimer = setTimeout(() => {
+      if (!ownerRequest.isCurrent()) return;
       setWatchedReelIds((prev) => {
         if (prev.includes(currentReel.id)) return prev;
-        const next = [...prev, currentReel.id].slice(-500); // Keep last 500
-        localStorage.setItem('smarter-reels-watched', JSON.stringify(next));
-        return next;
+        return persistWatchedReelIds([...prev, currentReel.id], ownerRequest.ownerId);
       });
     }, 3000); // 3 seconds = watched
     return () => clearTimeout(watchTimer);
-  }, [currentReel?.id]);
+  }, [currentReel?.id, user?.id]);
 
   // ─── Stall watchdog ────────────────────────────────────────────────────
   // For NATIVE video reels only (YouTube iframes have their own onError +
@@ -1013,7 +978,6 @@ export default function ReelsPage() {
         videoStallTimerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentReel?.id, currentReel?.video_url]);
 
   const goNext = () => {
@@ -1048,138 +1012,91 @@ export default function ReelsPage() {
 
   // Infinite scroll - load more when near end
   useEffect(() => {
-    if (currentIndex >= reels.length - 3 && hasMore && !loadingMore && reels.length > 0) {
+    if (
+      currentIndex >= reels.length - 3
+      && hasMore
+      && !loadingMore
+      && !loadMoreError
+      && reels.length > 0
+    ) {
       loadMoreReels();
     }
-  }, [currentIndex, reels.length, hasMore, loadingMore]);
+  }, [currentIndex, reels.length, hasMore, loadingMore, loadMoreError]);
 
   const loadMoreReels = async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || !reelsCursorRef.current) return;
+    const reelsRequest = reelsRequestGuardRef.current.begin({ append: true });
+    if (!reelsRequest) return;
     setLoadingMore(true);
+    setLoadMoreError(null);
     try {
-      const nextPage = page + 1;
-      // BUG FIX (Bug 19): initial load fetches 60 per source, so offset must use 60-row pages
-      // to avoid overlap. Old code used 50-row pages causing 10-row overlap on page 2.
-      // Also: missing source_type split - library reels could re-monopolize load-more batches.
-      // Initial load consumes 60 rows/source. Subsequent pages consume 30 user,
-      // 30 library and 20 horse rows, so each stream needs its own cursor.
-      const standardOffset = 60 + (nextPage - 1) * 30;
-      const horseOffset = 60 + (nextPage - 1) * 20;
-      const allNewVideos = [];
+      const feedMode = ['following', 'trending'].includes(String(router.query.feed))
+        ? String(router.query.feed)
+        : 'foryou';
+      const existingIds = new Set(reels.map((reel) => reel.id));
+      const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
+      const seenUrlsThisScan = new Set();
+      const payload = await scanReelsContinuations({
+        cursor: reelsCursorRef.current,
+        fetchPage: (cursor) => fetchPokerReels({
+          limit: 60,
+          cursor,
+          sort: feedMode === 'trending' ? 'popular' : 'recent',
+          signal: reelsRequest.signal,
+          scope: feedMode === 'following' ? 'following' : 'standalone',
+          accessToken: feedMode === 'following' ? getAccessToken() : null,
+        }),
+        selectRows: (rows) => rows
+          .map((reel) => ({
+            ...reel,
+            source: 'reels',
+            profiles: reel.profiles || { username: 'Anonymous' },
+          }))
+          .filter((reel) => {
+            if (existingIds.has(reel.id) || notInterestedIds.has(reel.id)) return false;
+            if (reel.video_url && (
+              existingUrls.has(reel.video_url)
+              || seenUrlsThisScan.has(reel.video_url)
+              || brokenUrlsRef.current.has(reel.video_url)
+            )) return false;
+            if (reel.video_url) seenUrlsThisScan.add(reel.video_url);
+            return true;
+          }),
+      });
+      if (!reelsRequest.isCurrent()) return;
+      reelsCursorRef.current = payload.next_cursor || null;
+      setHasMore(Boolean(payload.next_cursor));
+      const mappedFiltered = payload.data;
 
-      const REEL_SELECT =
-        'id, author_id, caption, video_url, thumbnail_url, view_count, like_count, comment_count, created_at, is_public, source_type';
-
-      // M7.1 (2026-05-03): retired the social_posts query — same reason
-      // as loadReels above. Horse-posted reels surface via horseRes.
-      const [userResult, libraryResult, horseRes] = await Promise.all([
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'user')
-          .order('created_at', { ascending: false })
-          .range(standardOffset, standardOffset + 29),
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .eq('source_type', 'video_library')
-          .order('created_at', { ascending: false })
-          .range(standardOffset, standardOffset + 29),
-        supabase
-          .from('social_reels')
-          .select(REEL_SELECT)
-          .eq('is_public', true)
-          .in('source_type', ['youtube', 'native'])
-          .not('source_post_id', 'is', null)
-          .order('created_at', { ascending: false })
-          .range(horseOffset, horseOffset + 19),
-      ]);
-
-      const loadMoreError = userResult.error || libraryResult.error || horseRes.error;
-      if (loadMoreError) throw loadMoreError;
-
-      // Interleave 2:2:1 - user reels : library reels : horse reels
-      const userReels = (userResult.data || []).map((r) => ({ ...r, source: 'reels' }));
-      const libReels = (libraryResult.data || []).map((r) => ({ ...r, source: 'reels' }));
-      const horseReelsMore = (horseRes.data || []).map((r) => ({ ...r, source: 'reels' }));
-
-      // Interleave in 2:2:1 ratio
-      const maxLen = Math.max(userReels.length, libReels.length, horseReelsMore.length);
-      for (let i = 0; i < maxLen; i++) {
-        if (userReels[i]) allNewVideos.push(userReels[i]);
-        if (libReels[i]) allNewVideos.push(libReels[i]);
-        if (i % 2 === 0 && horseReelsMore[Math.floor(i / 2)])
-          allNewVideos.push(horseReelsMore[Math.floor(i / 2)]);
-      }
-
-      if (allNewVideos.length === 0) {
-        setHasMore(false);
-      } else {
-        // AUDIT FIX: deduplicate by BOTH id AND video_url against already-loaded
-        // reels. The auto-mirror trigger creates a social_reels row for every
-        // social_post video — they share the same video_url with different IDs,
-        // so id-only dedup allowed the same clip to reappear on every load-more page.
-        const existingIds = new Set(reels.map((r) => r.id));
-        const existingUrls = new Set(reels.map((r) => r.video_url).filter(Boolean));
-        const seenUrlsThisBatch = new Set();
-        const uniqueNew = allNewVideos.filter((v) => {
-          if (existingIds.has(v.id)) return false;
-          if (v.video_url && existingUrls.has(v.video_url)) return false;
-          if (v.video_url && seenUrlsThisBatch.has(v.video_url)) return false;
-          if (v.video_url) seenUrlsThisBatch.add(v.video_url);
-          return true;
-        });
-        if (uniqueNew.length === 0) {
-          setHasMore(false);
-        } else {
-          const authorIds = [...new Set(uniqueNew.map((v) => v.author_id))];
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url, full_name')
-            .in('id', authorIds);
-          const pm = {};
-          (profiles || []).forEach((p) => {
-            pm[p.id] = p;
-          });
-          const mapped = uniqueNew.map((v) => ({
-            id: v.id,
-            author_id: v.author_id,
-            video_url: v.video_url,
-            thumbnail_url: v.thumbnail_url || null, // BUG FIX: match loadReels mapping
-            caption: v.caption,
-            like_count: v.like_count,
-            comment_count: v.comment_count,
-            view_count: v.view_count,
-            created_at: v.created_at,
-            source: v.source || 'reels', // preserve source for incrementMetric routing
-            profiles: pm[v.author_id] || { username: 'Anonymous' },
-          }));
-          // Skip any URL already known broken in this session (HEVC stalls,
-          // corrupt MP4s, dead URLs). Same filter as initial loadReels.
-          const broken = brokenUrlsRef.current;
-          const mappedFiltered =
-            broken.size > 0 ? mapped.filter((r) => !broken.has(r.video_url)) : mapped;
-          setReels((prev) => [...prev, ...mappedFiltered]);
-          const lc = {},
-            cc = {},
-            vc = {};
-          mappedFiltered.forEach((r) => {
-            lc[r.id] = r.like_count || 0;
-            cc[r.id] = r.comment_count || 0;
-            vc[r.id] = r.view_count || 0;
-          });
-          setLikeCounts((prev) => ({ ...prev, ...lc }));
-          setCommentCounts((prev) => ({ ...prev, ...cc }));
-          setViewCounts((prev) => ({ ...prev, ...vc }));
-          setPage(nextPage);
+      if (mappedFiltered.length === 0) {
+        if (payload.next_cursor) {
+          setLoadMoreError('More Reels remain beyond filtered results. Continue when ready.');
         }
+      } else {
+        setReels((prev) => mergePokerReels(prev, mappedFiltered));
+        const lc = {},
+          cc = {},
+          vc = {};
+        mappedFiltered.forEach((reel) => {
+          lc[reel.id] = reel.like_count || 0;
+          cc[reel.id] = reel.comment_count || 0;
+          vc[reel.id] = reel.view_count || 0;
+        });
+        setLikeCounts((prev) => ({ ...prev, ...lc }));
+        setCommentCounts((prev) => ({ ...prev, ...cc }));
+        setViewCounts((prev) => ({ ...prev, ...vc }));
       }
     } catch (e) {
+      if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
       console.warn('Load more error:', e);
+      // Preserve the cursor but gate automatic retries. Without this state the
+      // near-end effect immediately retriggered after every failed request,
+      // creating a tight request loop during an outage.
+      setLoadMoreError('More Reels could not be loaded.');
+      showErrorToast('More Reels could not be loaded. Tap Retry when you are ready.');
+    } finally {
+      if (reelsRequest.finish()) setLoadingMore(false);
     }
-    setLoadingMore(false);
   };
 
   // Haptic helper
@@ -1219,8 +1136,11 @@ export default function ReelsPage() {
   }, [ytError]);
 
   const handleLike = async () => {
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     if (!currentReel?.id) return;
-    if (!user?.id) return showErrorToast('Sign in to like reels');
+    if (!ownerRequest.ownerId) return showErrorToast('Sign in to like reels');
+    if (!ownerRequest.isCurrent()) return;
+    const ownerId = ownerRequest.ownerId;
     if (likeDebounceRef.current) return;
     likeDebounceRef.current = true;
     setTimeout(() => {
@@ -1253,11 +1173,20 @@ export default function ReelsPage() {
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', user.id)
+          .eq('user_id', ownerId)
           .eq('reaction_type', 'dislike');
-        if (err_social_likes_061sa) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_061sa.message);
+        if (err_social_likes_061sa) throw err_social_likes_061sa;
+        if (!ownerRequest.isCurrent()) return;
       } catch (e) {
-        console.warn('[App] Handled exception:', e);
+        if (!ownerRequest.isCurrent()) return;
+        setDisliked((prev) => ({ ...prev, [postId]: true }));
+        setLiked((prev) => ({ ...prev, [postId]: wasLiked }));
+        setLikeCounts((prev) => ({
+          ...prev,
+          [postId]: Math.max(0, (prev[postId] || 0) + (wasLiked ? 1 : -1)),
+        }));
+        showErrorToast('Like failed - try again');
+        return;
       }
     }
 
@@ -1268,19 +1197,22 @@ export default function ReelsPage() {
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', user.id)
+          .eq('user_id', ownerId)
           .eq('reaction_type', 'like');
-        if (err_social_likes_sz3lr) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_sz3lr.message);
-        busEmit.socialPostLiked(postId, user.id, { added: false, reactionType: 'like' });
+        if (err_social_likes_sz3lr) throw err_social_likes_sz3lr;
+        if (!ownerRequest.isCurrent()) return;
+        busEmit.socialPostLiked(postId, ownerId, { added: false, reactionType: 'like' });
       } else {
         // DB trigger (trig_sync_like_count) handles like_count increment atomically - no RPC needed
         const { error: err_social_likes_3qvxx } = await supabase
           .from('social_likes')
-          .insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
-        if (err_social_likes_3qvxx) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_3qvxx.message);
-        busEmit.socialPostLiked(postId, user.id, { added: true, reactionType: 'like' });
+          .insert({ post_id: postId, user_id: ownerId, reaction_type: 'like' });
+        if (err_social_likes_3qvxx) throw err_social_likes_3qvxx;
+        if (!ownerRequest.isCurrent()) return;
+        busEmit.socialPostLiked(postId, ownerId, { added: true, reactionType: 'like' });
       }
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       setLiked((prev) => ({ ...prev, [postId]: wasLiked }));
       setLikeCounts((prev) => ({
         ...prev,
@@ -1291,7 +1223,9 @@ export default function ReelsPage() {
   };
 
   const handleDislike = async () => {
-    if (!currentReel?.id || !user?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!currentReel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent()) return;
+    const ownerId = ownerRequest.ownerId;
     if (likeDebounceRef.current) return;
     likeDebounceRef.current = true;
     setTimeout(() => {
@@ -1312,11 +1246,17 @@ export default function ReelsPage() {
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', user.id)
+          .eq('user_id', ownerId)
           .eq('reaction_type', 'like');
-        if (err_social_likes_fmb7o) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_fmb7o.message);
+        if (err_social_likes_fmb7o) throw err_social_likes_fmb7o;
+        if (!ownerRequest.isCurrent()) return;
       } catch (e) {
-        console.warn('[App] Handled exception:', e);
+        if (!ownerRequest.isCurrent()) return;
+        setLiked((prev) => ({ ...prev, [postId]: true }));
+        setLikeCounts((prev) => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+        setDisliked((prev) => ({ ...prev, [postId]: wasDisliked }));
+        showErrorToast('Dislike failed - try again');
+        return;
       }
     }
     try {
@@ -1325,40 +1265,43 @@ export default function ReelsPage() {
           .from('social_likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', user.id)
+          .eq('user_id', ownerId)
           .eq('reaction_type', 'dislike');
-        if (err_social_likes_gsc1r) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_gsc1r.message);
+        if (err_social_likes_gsc1r) throw err_social_likes_gsc1r;
+        if (!ownerRequest.isCurrent()) return;
         // #4 Not Interested - remove from filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
           n.delete(postId);
-          if (typeof window !== 'undefined')
-            localStorage.setItem('reels-not-interested', JSON.stringify([...n]));
-          return n;
+          return persistNotInterestedReelIds(n, ownerId);
         });
       } else {
         const { error: err_social_likes_xk2a9 } = await supabase
           .from('social_likes')
-          .insert({ post_id: postId, user_id: user.id, reaction_type: 'dislike' });
-        if (err_social_likes_xk2a9) console.warn('[Supabase] Silent mutation failed in social_likes:', err_social_likes_xk2a9.message);
+          .insert({ post_id: postId, user_id: ownerId, reaction_type: 'dislike' });
+        if (err_social_likes_xk2a9) throw err_social_likes_xk2a9;
+        if (!ownerRequest.isCurrent()) return;
         // #4 Not Interested - add to filter
         setNotInterestedIds((prev) => {
           const n = new Set(prev);
           n.add(postId);
-          if (typeof window !== 'undefined')
-            localStorage.setItem('reels-not-interested', JSON.stringify([...n]));
-          return n;
+          return persistNotInterestedReelIds(n, ownerId);
         });
       }
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       setDisliked((prev) => ({ ...prev, [postId]: wasDisliked }));
+      showErrorToast('Dislike failed - try again');
     }
   };
 
   const handleFollow = async () => {
     const authorId = currentReel?.author_id || currentReel?.profiles?.id;
-    if (!authorId || authorId === user?.id) return;
-    if (!user?.id) return showErrorToast('Sign in to follow players');
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!authorId || authorId === ownerRequest.ownerId) return;
+    if (!ownerRequest.ownerId) return showErrorToast('Sign in to follow players');
+    if (!ownerRequest.isCurrent()) return;
+    const ownerId = ownerRequest.ownerId;
     const wasFollowing = following[authorId];
     setFollowing((prev) => ({ ...prev, [authorId]: !wasFollowing }));
     haptic(wasFollowing ? 5 : 15);
@@ -1367,35 +1310,39 @@ export default function ReelsPage() {
         const { error: err_social_follows_gan5p } = await supabase
           .from('social_follows')
           .delete()
-          .eq('follower_id', user.id)
+          .eq('follower_id', ownerId)
           .eq('following_id', authorId);
-        if (err_social_follows_gan5p) console.warn('[Supabase] Silent mutation failed in social_follows:', err_social_follows_gan5p.message);
+        if (err_social_follows_gan5p) throw err_social_follows_gan5p;
       } else {
         const { error: err_social_follows_n962e } = await supabase.from('social_follows').insert({
-          follower_id: user.id,
+          follower_id: ownerId,
           following_id: authorId,
         });
-        if (err_social_follows_n962e) console.warn('[Supabase] Silent mutation failed in social_follows:', err_social_follows_n962e.message);
+        if (err_social_follows_n962e) throw err_social_follows_n962e;
       }
+      if (!ownerRequest.isCurrent()) return;
       busEmit.socialFollowChanged &&
-        busEmit.socialFollowChanged(authorId, user.id, { added: !wasFollowing });
+        busEmit.socialFollowChanged(authorId, ownerId, { added: !wasFollowing });
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       setFollowing((prev) => ({ ...prev, [authorId]: wasFollowing }));
       showErrorToast('Follow failed \u2014 try again');
     }
   };
 
   const handleReport = async () => {
-    if (!currentReel?.id || !user?.id || !reportReason.trim()) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!currentReel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !reportReason.trim()) return;
     try {
       const { error } = await supabase.from('social_interactions').insert({
-        user_id: user.id,
+        user_id: ownerRequest.ownerId,
         post_id: currentReel.id,
         interaction_type: 'report',
         metadata: { reason: reportReason.trim() },
       });
       // AUDIT FIX: do NOT show success UI if the insert failed silently
       if (error) throw error;
+      if (!ownerRequest.isCurrent()) return;
       setReportSubmitted(true);
       clearTimeout(reportModalTimerRef.current);
       reportModalTimerRef.current = setTimeout(() => {
@@ -1404,12 +1351,14 @@ export default function ReelsPage() {
         setReportReason('');
       }, 2000);
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       showErrorToast('Report failed \u2014 please try again');
     }
   };
 
   const handleCommentImageUpload = async (file) => {
-    if (!file || !user?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!file || !ownerRequest.ownerId || !ownerRequest.isCurrent()) return;
     setUploadingImage(true);
     try {
       let uploadFile = file;
@@ -1440,14 +1389,14 @@ export default function ReelsPage() {
         body: formData,
       });
       const result = await resp.json();
-      if (resp.ok && result.success) {
+      if (resp.ok && result.success && ownerRequest.isCurrent()) {
         setCommentMediaUrl(result.url);
         setCommentMediaType('image');
       }
     } catch (err) {
-      console.warn('[ReelComment] Upload error:', err);
+      if (ownerRequest.isCurrent()) console.warn('[ReelComment] Upload error:', err);
     }
-    setUploadingImage(false);
+    if (ownerRequest.isCurrent()) setUploadingImage(false);
   };
 
   // Upload error toast state
@@ -1457,23 +1406,32 @@ export default function ReelsPage() {
     if (!currentReel) return;
     const wasOpen = showCommentPanel;
     setShowCommentPanel((prev) => !prev);
+    if (wasOpen) {
+      commentRequestGuardRef.current.abort();
+      return;
+    }
     // Always fetch fresh comments when opening (not closing)
-    if (!wasOpen) {
-      setCommentPage(0);
-      try {
-        const { data } = await supabase
+    const reelId = currentReel.id;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    const commentRequest = commentRequestGuardRef.current.begin({ append: false });
+    setCommentPage(0);
+    setLoadingMoreComments(false);
+    try {
+        const { data, error } = await supabase
           .from('social_comments')
           .select(
             'id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)'
           )
-          .eq('post_id', currentReel.id)
+          .eq('post_id', reelId)
           .order('created_at', { ascending: commentSort === 'oldest' })
           .limit(50);
+        if (error) throw error;
+        if (!commentRequest.isCurrent() || !ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
         setComments(data || []);
         setHasMoreComments((data || []).length >= 50);
         // #3 Don't overwrite server count when at page limit (could be 100+ comments)
         if ((data || []).length < 50) {
-          setCommentCounts((prev) => ({ ...prev, [currentReel.id]: (data || []).length }));
+          setCommentCounts((prev) => ({ ...prev, [reelId]: (data || []).length }));
         }
         // #6 Load comment like counts (totals) AND current user's own likes
         try {
@@ -1482,18 +1440,19 @@ export default function ReelsPage() {
             supabase
               .from('social_interactions')
               .select('metadata')
-              .eq('post_id', currentReel.id)
+              .eq('post_id', reelId)
               .eq('interaction_type', 'comment_like'),
             // BUG-R07 FIX: current user's own comment likes (for heart fill state)
-            user?.id
+            ownerRequest.ownerId
               ? supabase
                   .from('social_interactions')
                   .select('metadata')
-                  .eq('post_id', currentReel.id)
-                  .eq('user_id', user.id)
+                  .eq('post_id', reelId)
+                  .eq('user_id', ownerRequest.ownerId)
                   .eq('interaction_type', 'comment_like')
               : Promise.resolve({ data: [] }),
           ]);
+          if (!commentRequest.isCurrent() || !ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
           const clCounts = {};
           (clAllResult.data || []).forEach((row) => {
             const cid = row.metadata?.comment_id;
@@ -1510,28 +1469,38 @@ export default function ReelsPage() {
             setCommentLikes((prev) => ({ ...prev, ...myLikes }));
           }
         } catch (e) {
-          console.warn('[App] Handled exception:', e);
+          if (commentRequest.isCurrent() && ownerRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
+            console.warn('[App] Handled exception:', e);
+          }
         }
       } catch (e) {
-        console.warn('Load comments:', e);
+        if (commentRequest.isCurrent() && ownerRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
+          console.warn('Load comments:', e);
+        }
+      } finally {
+        commentRequest.finish();
       }
-    }
   };
 
   // #6 Comment Pagination - Load More
   const loadMoreComments = async () => {
     if (!currentReel?.id || loadingMoreComments || !hasMoreComments) return;
+    const commentRequest = commentRequestGuardRef.current.begin({ append: true });
+    if (!commentRequest) return;
+    const reelId = currentReel.id;
     setLoadingMoreComments(true);
     const nextPage = commentPage + 1;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('social_comments')
         .select(
           'id, content, created_at, media_url, media_type, profiles:author_id(username, avatar_url)'
         )
-        .eq('post_id', currentReel.id)
+        .eq('post_id', reelId)
         .order('created_at', { ascending: commentSort === 'oldest' })
         .range(nextPage * 50, (nextPage + 1) * 50 - 1);
+      if (error) throw error;
+      if (!commentRequest.isCurrent() || activeCommentReelIdRef.current !== reelId) return;
       if (data && data.length > 0) {
         setComments((prev) => [...prev, ...data]);
         setCommentPage(nextPage);
@@ -1539,14 +1508,20 @@ export default function ReelsPage() {
       } else {
         setHasMoreComments(false);
       }
-    } catch {
-      setHasMoreComments(false);
+    } catch (error) {
+      if (commentRequest.isCurrent() && activeCommentReelIdRef.current === reelId) {
+        console.warn('Load more comments:', error);
+        setHasMoreComments(false);
+      }
+    } finally {
+      if (commentRequest.finish()) setLoadingMoreComments(false);
     }
-    setLoadingMoreComments(false);
   };
 
   const submitComment = async () => {
-    if ((!commentText.trim() && !commentMediaUrl) || !user?.id || !currentReel?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if ((!commentText.trim() && !commentMediaUrl) || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
+    const reelId = currentReel.id;
     const text = commentText.trim();
     const mediaUrl = commentMediaUrl;
     const mediaType = commentMediaType;
@@ -1572,7 +1547,7 @@ export default function ReelsPage() {
       },
     ]);
     try {
-      const payload = { post_id: currentReel.id, author_id: user.id, content: text || '' };
+      const payload = { post_id: reelId, author_id: ownerRequest.ownerId, content: text || '' };
       if (mediaUrl) {
         payload.media_url = mediaUrl;
         payload.media_type = mediaType;
@@ -1580,50 +1555,26 @@ export default function ReelsPage() {
       if (parentId) {
         payload.parent_id = parentId;
       }
-      // social_comments.post_id FK may reference social_posts only.
-      // For social_reels items, first check if a matching social_posts row exists.
-      // If not, create a lightweight proxy post so the comment FK is satisfied.
-      if (currentReel.source === 'reels') {
-        const { data: existing } = await supabase
-          .from('social_posts')
-          .select('id')
-          .eq('id', currentReel.id)
-          .maybeSingle();
-        if (!existing) {
-          // Create a proxy social_posts row for this reel so comments can FK to it
-          const { error: proxyErr } = await supabase.from('social_posts').insert({
-            id: currentReel.id,
-            author_id: user.id, // RLS requires author_id = auth.uid()
-            content: currentReel.caption || '',
-            content_type: 'video',
-            media_urls: currentReel.video_url ? [currentReel.video_url] : [],
-            visibility: 'public',
-          });
-          if (proxyErr) {
-            console.warn(
-              '[CommentInsert] Proxy post creation failed (may already exist):',
-              proxyErr.message
-            );
-            // Continue anyway — the FK might work if another process created it
-          }
-        }
-      }
       const { error } = await supabase.from('social_comments').insert(payload);
       if (error) throw error;
-      busEmit.socialCommentAdded && busEmit.socialCommentAdded(currentReel.id, user.id);
+      if (!ownerRequest.isCurrent()) return;
+      busEmit.socialCommentAdded && busEmit.socialCommentAdded(reelId, ownerRequest.ownerId);
       // DB trigger handles comment_count increment atomically
-      setCommentCounts((prev) => ({ ...prev, [currentReel.id]: (prev[currentReel.id] || 0) + 1 }));
+      setCommentCounts((prev) => ({ ...prev, [reelId]: (prev[reelId] || 0) + 1 }));
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       console.error('[CommentInsert] Failed:', err?.message, err?.details, err?.hint);
       setComments((prev) => prev.filter((c) => c.id !== tempId));
       showErrorToast('Comment failed - ' + (err?.message || 'try again'));
     }
-    setSubmittingComment(false);
+    if (ownerRequest.isCurrent()) setSubmittingComment(false);
   };
 
   // Phase 6 - Comment like toggle
   const handleCommentLike = async (commentId) => {
-    if (!user?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
+    const reelId = currentReel.id;
     const wasLiked = commentLikes[commentId];
     setCommentLikes((prev) => ({ ...prev, [commentId]: !wasLiked }));
     // Optimistic comment like count sync
@@ -1638,21 +1589,22 @@ export default function ReelsPage() {
         const { error: err_social_interactions_av320 } = await supabase
           .from('social_interactions')
           .delete()
-          .eq('user_id', user.id)
-          .eq('post_id', currentReel.id)
+          .eq('user_id', ownerRequest.ownerId)
+          .eq('post_id', reelId)
           .eq('interaction_type', 'comment_like')
           .eq('metadata->>comment_id', commentId);
-        if (err_social_interactions_av320) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_av320.message);
+        if (err_social_interactions_av320) throw err_social_interactions_av320;
       } else {
         const { error: err_social_interactions_wvfm0 } = await supabase.from('social_interactions').insert({
-          user_id: user.id,
-          post_id: currentReel.id,
+          user_id: ownerRequest.ownerId,
+          post_id: reelId,
           interaction_type: 'comment_like',
           metadata: { comment_id: commentId },
         });
-        if (err_social_interactions_wvfm0) console.warn('[Supabase] Silent mutation failed in social_interactions:', err_social_interactions_wvfm0.message);
+        if (err_social_interactions_wvfm0) throw err_social_interactions_wvfm0;
       }
     } catch {
+      if (!ownerRequest.isCurrent()) return;
       setCommentLikes((prev) => ({ ...prev, [commentId]: wasLiked }));
       setCommentLikeCounts((prev) => ({
         ...prev,
@@ -1663,25 +1615,37 @@ export default function ReelsPage() {
 
   // Phase 6 - Delete own comment
   const handleDeleteComment = async (commentId) => {
-    if (!user?.id || !currentReel?.id) return;
-    const prev = comments;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
+    const reelId = currentReel.id;
+    const deletedIndex = comments.findIndex((comment) => comment.id === commentId);
+    const deletedComment = deletedIndex >= 0 ? comments[deletedIndex] : null;
     setComments((c) => c.filter((x) => x.id !== commentId));
     try {
       const { error } = await supabase
         .from('social_comments')
         .delete()
         .eq('id', commentId)
-        .eq('author_id', user.id);
+        .eq('author_id', ownerRequest.ownerId);
       if (error) throw error;
+      if (!ownerRequest.isCurrent()) return;
       // DB trigger handles comment_count decrement atomically
       setCommentCounts((p) => ({
         ...p,
-        [currentReel.id]: Math.max(0, (p[currentReel.id] || 1) - 1),
+        [reelId]: Math.max(0, (p[reelId] || 1) - 1),
       }));
       busEmit.socialCommentAdded &&
-        busEmit.socialCommentAdded(currentReel.id, user.id, { removed: true });
-    } catch {
-      setComments(prev);
+        busEmit.socialCommentAdded(reelId, ownerRequest.ownerId, { removed: true });
+    } catch (error) {
+      console.warn('[ReelsPage] Comment delete failed:', error?.message || error);
+      if (!ownerRequest.isCurrent() || activeCommentReelIdRef.current !== reelId || !deletedComment) return;
+      setComments((current) => {
+        if (current.some((comment) => comment.id === commentId)) return current;
+        const restored = [...current];
+        restored.splice(Math.min(deletedIndex, restored.length), 0, deletedComment);
+        return restored;
+      });
+      showErrorToast('Delete failed - please try again');
     }
   };
 
@@ -1691,7 +1655,9 @@ export default function ReelsPage() {
     setEditCommentText(comment.content || '');
   };
   const handleSaveEdit = async (commentId) => {
-    if (!editCommentText.trim() || !user?.id) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    if (!editCommentText.trim() || !ownerRequest.ownerId || !ownerRequest.isCurrent() || !currentReel?.id) return;
+    const reelId = currentReel.id;
     const orig = comments.find((c) => c.id === commentId);
     setComments((prev) =>
       prev.map((c) => (c.id === commentId ? { ...c, content: editCommentText.trim() } : c))
@@ -1702,12 +1668,15 @@ export default function ReelsPage() {
         .from('social_comments')
         .update({ content: editCommentText.trim() })
         .eq('id', commentId)
-        .eq('author_id', user.id);
+        .eq('author_id', ownerRequest.ownerId);
       if (error) throw error;
-    } catch {
-      if (orig) setComments((prev) => prev.map((c) => (c.id === commentId ? orig : c)));
+    } catch (error) {
+      console.warn('[ReelsPage] Comment edit failed:', error?.message || error);
+      if (ownerRequest.isCurrent() && activeCommentReelIdRef.current === reelId && orig) {
+        setComments((prev) => prev.map((c) => (c.id === commentId ? orig : c)));
+      }
     }
-    setEditCommentText('');
+    if (ownerRequest.isCurrent()) setEditCommentText('');
   };
 
   // Phase 7 - Playback speed toggle (YouTube)
@@ -1742,17 +1711,22 @@ export default function ReelsPage() {
     : '';
 
   const handleShareAction = async (platform) => {
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    const reel = currentReel;
+    if (!reel?.id) return;
     setShowShareModal(false);
     const url = shareUrl;
     const title = `Check out this poker reel on Smarter.Poker`;
     try {
       if (platform === 'copy') {
         await navigator.clipboard.writeText(url);
+        if (!ownerRequest.isCurrent()) return;
         setShareToast(true);
         clearTimeout(shareToastTimerRef.current);
         shareToastTimerRef.current = setTimeout(() => setShareToast(false), 2000);
       } else if (platform === 'native' && navigator.share) {
         await navigator.share({ title, url });
+        if (!ownerRequest.isCurrent()) return;
       } else if (platform === 'x') {
         window.open(
           `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
@@ -1766,11 +1740,13 @@ export default function ReelsPage() {
       } else if (platform === 'whatsapp') {
         window.open(`https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`, '_blank');
       }
+      if (!ownerRequest.isCurrent()) return;
       if (platform !== 'copy') {
-        incrementMetric(currentReel, 'share_count', 1);
+        incrementMetric(reel, 'share_count', 1);
       }
-      if (user?.id) busEmit.socialPostShared(currentReel.id, user.id);
+      if (ownerRequest.ownerId) busEmit.socialPostShared(reel.id, ownerRequest.ownerId);
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       // AUDIT FIX: do NOT show 'Link Copied' toast on failures unrelated to clipboard.
       // navigator.share() throws AbortError on user-cancel (not an error) and
       // other errors on share failures. Only show the copy toast for actual copy failures.
@@ -1797,7 +1773,9 @@ export default function ReelsPage() {
   };
 
   const handleShareToFeed = async (descOverride) => {
-    if (!currentReel?.id || !user?.id || sharingToFeed) return;
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    const reel = currentReel;
+    if (!reel?.id || !ownerRequest.ownerId || !ownerRequest.isCurrent() || sharingToFeed) return;
     // descOverride allows the skip button to bypass stale shareDescription state
     const descToSend = typeof descOverride === 'string' ? descOverride : shareDescription;
     setSharingToFeed(true);
@@ -1811,19 +1789,20 @@ export default function ReelsPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          reel_id: currentReel.id,
-          video_url: currentReel.video_url || null,
-          caption: currentReel.caption || '',
+          reel_id: reel.id,
+          video_url: reel.video_url || null,
+          caption: reel.caption || '',
           user_description: descToSend.trim() || '',
         }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Share failed');
+      if (!ownerRequest.isCurrent()) return;
       if (result.already_shared) {
         showErrorToast('Already shared this reel!');
       } else {
-        incrementMetric(currentReel, 'share_count', 1);
-        busEmit.socialPostShared(currentReel.id, user.id);
+        incrementMetric(reel, 'share_count', 1);
+        busEmit.socialPostShared(reel.id, ownerRequest.ownerId);
         busEmit.dataMutated('social');
       }
       setSharedToFeed(true);
@@ -1832,17 +1811,22 @@ export default function ReelsPage() {
         setSharedToFeed(false);
       }, 3000);
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       console.error('[ShareToFeed] Failed:', err?.message || err);
       showErrorToast('Share failed - ' + (err?.message || 'try again'));
     }
-    setSharingToFeed(false);
-    setShareDescription('');
+    if (ownerRequest.isCurrent()) {
+      setSharingToFeed(false);
+      setShareDescription('');
+    }
   };
 
   // Reset comment panel + media + report + share state when switching reels
   useEffect(() => {
+    commentRequestGuardRef.current.abort();
     setShowCommentPanel(false);
     setComments([]);
+    setLoadingMoreComments(false);
     setCommentText('');
     setShowGifPicker(false);
     setCommentMediaUrl(null);
@@ -1890,39 +1874,52 @@ export default function ReelsPage() {
   }, [currentIndex]);
 
   const handleSave = async () => {
-    if (!currentReel) return;
-    if (!user?.id) return showErrorToast('Sign in to save reels');
-    const isSaved = savedReels.has(currentReel.id);
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
+    const reel = currentReel;
+    if (!reel) return;
+    if (!ownerRequest.ownerId) return showErrorToast('Sign in to save reels');
+    if (!ownerRequest.isCurrent()) return;
+    const isSaved = savedReels.has(reel.id);
+    const previousTargets = savedTargetsByReelRef.current.get(reel.id) || [];
     // #1 Optimistic update - instant UI response
     if (isSaved) {
       setSavedReels((prev) => {
         const s = new Set(prev);
-        s.delete(currentReel.id);
+        s.delete(reel.id);
         return s;
       });
     } else {
-      setSavedReels((prev) => new Set([...prev, currentReel.id]));
+      setSavedReels((prev) => new Set([...prev, reel.id]));
     }
     try {
       if (isSaved) {
-        await savedReelsService.unsaveReel(user.id, currentReel.id);
+        await savedReelsService.unsaveReel(
+          ownerRequest.ownerId,
+          previousTargets.length ? previousTargets : reel.id,
+        );
+        if (!ownerRequest.isCurrent()) return;
+        savedTargetsByReelRef.current.delete(reel.id);
       } else {
-        // BUG FIX (Bug 28): pass source_type so post-sourced reels can be saved
-        // without hitting the FK constraint on social_reels
-        const srcType = currentReel.source === 'posts' ? 'post' : 'reel';
-        await savedReelsService.saveReel(user.id, currentReel.id, srcType);
+        await savedReelsService.saveReel(ownerRequest.ownerId, reel.id, 'reel');
+        if (!ownerRequest.isCurrent()) return;
+        savedTargetsByReelRef.current.set(reel.id, [reel.id]);
       }
-      busEmit.socialPostBookmarked(currentReel.id, user.id, { added: !isSaved });
+      try {
+        busEmit.socialPostBookmarked(reel.id, ownerRequest.ownerId, { added: !isSaved });
+      } catch (eventError) {
+        console.warn('[Reels] Bookmark event failed:', eventError?.message || eventError);
+      }
     } catch (err) {
+      if (!ownerRequest.isCurrent()) return;
       // AUDIT FIX: rollback to the PRE-operation state, not unconditionally delete.
       // Old: always deleted from Set, which was wrong when save (not unsave) failed —
       // the optimistic add was reverted by deleting, but re-adding if isSaved was never handled.
       if (isSaved) {
-        setSavedReels((prev) => new Set([...prev, currentReel.id])); // restore the saved state
+        setSavedReels((prev) => new Set([...prev, reel.id])); // restore the saved state
       } else {
         setSavedReels((prev) => {
           const s = new Set(prev);
-          s.delete(currentReel.id);
+          s.delete(reel.id);
           return s;
         }); // restore unsaved state
       }
@@ -1945,12 +1942,14 @@ export default function ReelsPage() {
   }, [router.isReady, router.query.upload]);
 
   const updatePreference = async (key, value) => {
+    const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
     try {
       // Storage is local-first, so guest choices must persist too.
-      await reelsPreferences.update(user?.id, newPrefs);
+      await reelsPreferences.update(ownerRequest.ownerId, newPrefs);
     } catch (error) {
+      if (!ownerRequest.isCurrent()) return;
       setPreferences(preferences);
       showErrorToast('Preference could not be saved');
       console.warn('[Reels] Preference update failed:', error?.message || error);
@@ -2369,21 +2368,11 @@ export default function ReelsPage() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'social_reels' },
-        (payload) => {
-          const next = payload?.new;
-          if (!next?.id) return;
-          setReels((prev) =>
-            prev.map((r) => {
-              if (r.id !== next.id) return r;
-              if (r.video_url === next.video_url) return r;
-              return {
-                ...r,
-                video_url: next.video_url,
-                source_type: next.source_type,
-                thumbnail_url: next.thumbnail_url || r.thumbnail_url,
-              };
-            })
-          );
+        () => {
+          // Any safety/provenance field can change without video_url changing.
+          // Re-read the canonical feed so hostile mid-flight updates fail closed.
+          clearTimeout(reloadTimer);
+          reloadTimer = setTimeout(() => loadReels(), 400);
         }
       )
       // BUG FIX (REELS-DELETE-1): when a user deletes a post from their
@@ -2419,7 +2408,6 @@ export default function ReelsPage() {
       clearTimeout(reloadTimer);
       supabase.removeChannel(_ch);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // EventBus listeners - sync state from other video viewers
@@ -2438,7 +2426,7 @@ export default function ReelsPage() {
     };
     const handleBookmarkBus = (event) => {
       const d = event?.payload;
-      if (d?.postId && user?.id) {
+      if (d?.postId && user?.id && d.userId === user.id) {
         setSavedReels((prev) => {
           const newSet = new Set(prev);
           if (d.added) newSet.add(d.postId);
@@ -2458,7 +2446,7 @@ export default function ReelsPage() {
     };
     const handleFollowBus = (event) => {
       const d = event?.payload;
-      if (d?.followedId && d?.followerId !== user?.id) {
+      if (d?.followedId && user?.id && d.followerId === user.id) {
         setFollowing((prev) => ({ ...prev, [d.followedId]: d.added }));
       }
     };
@@ -2475,6 +2463,17 @@ export default function ReelsPage() {
     };
   }, [user?.id]);
 
+  const uploadModal = showUploadModal && user ? (
+    <UploadReelModal
+      user={user}
+      onClose={() => setShowUploadModal(false)}
+      onSuccess={() => {
+        setShowUploadModal(false);
+        loadReels();
+      }}
+    />
+  ) : null;
+
   if (loading) {
     return (
       <>
@@ -2483,125 +2482,65 @@ export default function ReelsPage() {
           description="Watch And Share Short Poker Video On Smarter.Poker Reels: Hands Worth Watching Twice, Reads That Paid Off And Moments From The Circuit. Free To Watch, No Account Needed, And Nothing In It Is A Wager."
           canonical="/hub/reels"
         />
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: C.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: 20,
-          }}
-        >
-          {/* Shimmer skeleton */}
-          <div
-            style={{
-              width: 280,
-              height: 500,
-              borderRadius: 16,
-              background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s linear infinite',
-            }}
-          />
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: 'linear-gradient(110deg, #1a1a1a 8%, #2a2a2a 18%, #1a1a1a 33%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 1.5s linear infinite',
-              }}
-            />
-            <div>
-              <div
-                style={{
-                  width: 120,
-                  height: 14,
-                  borderRadius: 7,
-                  background: '#1a1a1a',
-                  marginBottom: 6,
-                }}
-              />
-              <div style={{ width: 60, height: 10, borderRadius: 5, background: '#1a1a1a' }} />
-            </div>
-          </div>
-          <style>{`@keyframes shimmer { to { background-position-x: -200%; } }`}</style>
-        </div>
+        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+        {uploadModal}
+        <ReelsConsoleScreen
+          title="Tuning Reel Signal"
+          titleAs="h2"
+          subtitle="Live Poker Video"
+          pill="Connecting"
+          copy="The console is verifying playable poker footage and preparing your first reel."
+          rows={[
+            { label: 'Source', value: 'Verified Library' },
+            { label: 'Playback', value: 'Preparing', valueInk: 'blue' },
+          ]}
+          secondary={{ label: 'Back To Feed', onClick: () => router.push('/hub/social-media') }}
+          primary={{ label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' }}
+        />
+        {/* Server rendered: this loading branch is the one a crawler always
+            receives (AEO phase 3, 2026-09-17), so the summary keeps the page h1
+            here and the transient console title above is an h2. */}
         <HubPageSummary page="reels" as="h1" />
       </>
     );
   }
 
   if (loadError && !reels.length) {
+    const unavailable = loadError === 'unavailable';
     return (
       <>
         <Head>
           <title>Reels | Smarter Poker</title>
         </Head>
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: C.bg,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
+        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+        {uploadModal}
+        <ReelsConsoleScreen
+          eyebrow="Playback Control"
+          title={unavailable ? 'Video Unavailable' : 'Signal Interrupted'}
+          subtitle="Reel Recovery"
+          pill="Attention"
+          pillInk="red"
+          copy={unavailable
+            ? 'This saved video is no longer available or has not passed playback verification.'
+            : 'The Reel service did not answer. Your account state has been kept isolated.'}
+          rows={[
+            { label: 'Library', value: unavailable ? 'Available Reels' : 'Connection Required' },
+            { label: 'Account State', value: 'Protected', valueInk: 'green' },
+          ]}
+          secondary={{ label: 'Back To Feed', onClick: () => router.push('/hub/social-media') }}
+          primary={{
+            label: unavailable ? 'Browse Available Reels' : 'Try Again',
+            ink: unavailable ? 'silver' : 'blue',
+            onClick: () => {
+              setLoadError(null);
+              if (unavailable) router.replace('/hub/reels');
+              else loadReels();
+            },
           }}
-        >
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth="1.5"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <h1
-            style={{ color: C.text, fontSize: 24, fontWeight: 700, marginTop: 16, marginBottom: 8 }}
-          >
-            Failed To Load Reels
-          </h1>
-          <p
-            style={{
-              color: C.textSec,
-              fontSize: 14,
-              marginBottom: 24,
-              textAlign: 'center',
-              maxWidth: 280,
-            }}
-          >
-            Check Your Connection And Try Again.
-          </p>
-          <button
-            onClick={() => {
-              setLoadError(false);
-              loadReels();
-            }}
-            style={{
-              padding: '12px 32px',
-              background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-              color: 'white',
-              borderRadius: 8,
-              fontWeight: 600,
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 15,
-            }}
-          >
-            Try Again
-          </button>
-        </div>
-        <HubPageSummary page="reels" as="h1" />
+        />
+        {/* Server rendered for crawlers (AEO phase 3). The console title above is
+            this state's only h1, so the summary heading stays an h2. */}
+        <HubPageSummary page="reels" />
       </>
     );
   }
@@ -2612,57 +2551,30 @@ export default function ReelsPage() {
         <Head>
           <title>Reels | Smarter Poker</title>
         </Head>
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: C.bg,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
+        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+        {uploadModal}
+        <ReelsConsoleScreen
+          title="No Reels Yet"
+          subtitle="Verified Poker Video"
+          pill={hasMore ? 'Scanning' : 'Stand By'}
+          copy="No playable Reel is available in this pass. Continue the verified scan or return to the social feed."
+          rows={[
+            { label: 'Playback', value: 'No Match' },
+            { label: 'Safety Check', value: 'Complete', valueInk: 'green' },
+          ]}
+          secondary={{ label: 'Back To Feed', onClick: () => router.push('/hub/social-media') }}
+          primary={{
+            label: loadingMore ? 'Finding Reels' : hasMore ? 'Continue Finding Reels' : 'Refresh Library',
+            ink: 'blue',
+            disabled: loadingMore,
+            onClick: hasMore && reelsCursorRef.current
+              ? () => void loadMoreReels()
+              : () => void loadReels(),
           }}
-        >
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#888"
-            strokeWidth="1.5"
-          >
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="M10 9l5 3-5 3V9z" fill="#888" />
-          </svg>
-          <h1 style={{ color: C.text, fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
-            No Reels Yet
-          </h1>
-          <p
-            style={{
-              color: C.textSec,
-              fontSize: 16,
-              marginBottom: 32,
-              textAlign: 'center',
-              maxWidth: 300,
-            }}
-          >
-            Fresh Poker Clips Are Posted Hourly!
-          </p>
-          <Link
-            href="/hub/social-media"
-            style={{
-              padding: '12px 32px',
-              background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-              color: 'white',
-              borderRadius: 8,
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
-            Back To Feed
-          </Link>
-        </div>
-        <HubPageSummary page="reels" as="h1" />
+        />
+        {/* Server rendered for crawlers (AEO phase 3). The console title above is
+            this state's only h1, so the summary heading stays an h2. */}
+        <HubPageSummary page="reels" />
       </>
     );
   }
@@ -2721,9 +2633,11 @@ export default function ReelsPage() {
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
+      {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+
       {/* Universal Header */}
       {showOverlay && (
-        <div style={{ position: 'relative', zIndex: 200 }}>
+        <div style={{ position: 'relative', zIndex: 10001 }}>
           <UniversalHeader
             pageDepth={1}
             commandMenuOpen={menuOpen}
@@ -2736,20 +2650,28 @@ export default function ReelsPage() {
       )}
 
       {/* Upload Modal */}
-      {showUploadModal && (
-        <UploadReelModal
-          user={user}
-          onClose={() => setShowUploadModal(false)}
-          onSuccess={() => {
-            setShowUploadModal(false);
-            loadReels();
-          }}
-        />
-      )}
+      {uploadModal}
 
-      {/* Full-screen container */}
+      <main className={styles.viewerShell}>
+        <VideoLibraryConsole
+          eyebrow="Video Library"
+          title="Reels"
+          subtitle={currentReel?.profiles?.username ? `By ${currentReel.profiles.username}` : 'Live Poker Video'}
+          pill={`${currentIndex + 1} Of ${reels.length}`}
+          pillInk="blue"
+          titleAs="h1"
+          foot="plates"
+          plates={{
+            secondary: { label: 'Previous Reel', onClick: () => slideToPrevRef.current(), disabled: currentIndex === 0 },
+            primary: { label: 'Next Reel', onClick: () => slideToNextRef.current() },
+          }}
+          className={styles.liveConsole}
+          aria-label="Poker Reels viewer"
+        >
+      {/* Live video stage */}
       <div
         ref={containerRef}
+        className={styles.stage}
         style={{
           position: 'fixed',
           inset: 0,
@@ -2954,30 +2876,7 @@ export default function ReelsPage() {
           ) : null}
         </div>
 
-        {/* Video Progress Bar */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            height: 3,
-            background: 'rgba(255,255,255,0.15)',
-            zIndex: 60,
-            pointerEvents: 'none',
-          }}
-        >
-          <div
-            style={{
-              width: `${videoProgress}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, #00d4ff, #7c3aed)',
-              borderRadius: '0 2px 2px 0',
-              transition: 'width 0.3s linear',
-              boxShadow: '0 0 8px rgba(0,212,255,0.5)',
-            }}
-          />
-        </div>
+        <progress className={styles.progress} value={Math.round(videoProgress)} max={100} aria-label="Video Progress" />
 
         {/* FULL-SCREEN TOUCH OVERLAY — captures ALL touch events over the iframe */}
         {/* This is the ONLY reliable way to handle touches on iOS Safari over YouTube embeds */}
@@ -3108,2277 +3007,14 @@ export default function ReelsPage() {
             errorCode={ytError.code}
             videoId={videoId}
             thumbnailUrl={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-            actionLabel="Skipping in 3 seconds..."
+              actionLabel="Skipping In 3 Seconds"
             style={{ zIndex: 60 }}
           />
         )}
 
-        {!videoId && !currentReel?.video_url && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#666',
-              zIndex: 2,
-            }}
-          >
-            <div style={{ textAlign: 'center' }}>
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#666"
-                strokeWidth="1.5"
-              >
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-                <path d="M10 9l5 3-5 3V9z" fill="#666" />
-              </svg>
-              <div>Video Unavailable</div>
-            </div>
-          </div>
-        )}
-
-        {/* Pause indicator - shown only after YT confirms video state (ytReady) to avoid phantom play button during autoplay */}
-        {isPaused && ytReady && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              zIndex: 55,
-              animation: 'fadeInScale 0.2s ease',
-            }}
-          >
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: '50%',
-                background: 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-            </div>
-          </div>
-        )}
-
-        {/* Bottom gradient for text readability */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 300,
-            background: 'linear-gradient(transparent, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.9))',
-            pointerEvents: 'none',
-            zIndex: 90,
-            opacity: showOverlay ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-          }}
-        />
-
-        {/* Author info overlay - hidden by default, shown on tap */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 120,
-            left: 16,
-            right: 80,
-            zIndex: 100,
-            opacity: showOverlay ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showOverlay ? 'auto' : 'none',
-          }}
-        >
-          <Link
-            href={`/hub/user/${currentReel?.profiles?.username}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              textDecoration: 'none',
-              marginBottom: 12,
-            }}
-          >
-            <img
-              src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '2px solid white',
-              }}
-              loading="lazy"
-            />
-            <div>
-              <div
-                style={{
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <span>{currentReel?.profiles?.full_name || currentReel?.profiles?.username}</span>
-                {watchedReelIds.includes(currentReel?.id) && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: 'rgba(255,255,255,0.7)',
-                      background: 'rgba(255,255,255,0.15)',
-                      padding: '2px 6px',
-                      borderRadius: 4,
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    Watched
-                  </span>
-                )}
-              </div>
-              <div
-                style={{
-                  color: C.textSec,
-                  fontSize: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                {timeAgo(currentReel?.created_at)}
-                <span style={{ opacity: 0.6 }}>·</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <svg
-                    width="11"
-                    height="11"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  {viewCounts[currentReel?.id] || currentReel?.view_count || 0}
-                </span>
-              </div>
-            </div>
-          </Link>
-          {/* Follow button */}
-          {currentReel?.profiles?.id && user?.id && currentReel.profiles.id !== user.id && (
-            <button
-              onClick={handleFollow}
-              style={{
-                padding: '4px 14px',
-                borderRadius: 16,
-                fontSize: 12,
-                fontWeight: 600,
-                border: following[currentReel.profiles.id]
-                  ? '1px solid rgba(255,255,255,0.5)'
-                  : 'none',
-                background: following[currentReel.profiles.id] ? 'transparent' : '#1877F2',
-                color: 'white',
-                cursor: 'pointer',
-                marginBottom: 8,
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              }}
-            >
-              {following[currentReel.profiles.id] ? 'Following' : 'Follow'}
-            </button>
-          )}
-
-          {preferences.showCaptions && currentReel?.caption && (
-            <div style={{ maxWidth: '80%' }}>
-              <p
-                style={{
-                  color: 'white',
-                  fontSize: 14,
-                  margin: 0,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                }}
-              >
-                {captionExpanded || currentReel.caption.length <= 100
-                  ? currentReel.caption
-                  : currentReel.caption.slice(0, 100) + '...'}
-              </p>
-              {currentReel.caption.length > 100 && (
-                <button
-                  onClick={() => setCaptionExpanded((prev) => !prev)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: '4px 0 0',
-                  }}
-                >
-                  {captionExpanded ? 'See Less' : 'See More'}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right Action Sidebar - hidden by default, shown on tap */}
-        <div
-          style={{
-            position: 'absolute',
-            right: 12,
-            bottom: 110,
-            zIndex: 100,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 24,
-            alignItems: 'center',
-            opacity: showOverlay ? 1 : 0,
-            transition: 'opacity 0.3s ease',
-            pointerEvents: showOverlay ? 'auto' : 'none',
-          }}
-        >
-          {/* Heart - tap to like, long-press for reactions */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => {
-                handleLike();
-                if (!liked[currentReel?.id]) {
-                  // BUG FIX (R-4): cancel previous heart hide timer before scheduling
-                  // a new one. Rapid taps accumulated N bare timeouts that all fired
-                  // setShowHeart(false) on an unmounted component.
-                  setShowHeart(true);
-                  if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
-                  showHeartTimerRef.current = setTimeout(() => {
-                    showHeartTimerRef.current = null;
-                    setShowHeart(false);
-                  }, 800);
-                }
-              }}
-              onPointerDown={() => {
-                reactionTimerRef.current = setTimeout(() => {
-                  haptic(20);
-                  setShowReactionPicker(true);
-                }, 500);
-              }}
-              onPointerUp={() => clearTimeout(reactionTimerRef.current)}
-              onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
-              aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill={liked[currentReel?.id] ? '#ef4444' : 'none'}
-                stroke={liked[currentReel?.id] ? '#ef4444' : 'white'}
-                strokeWidth="2"
-                style={{
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-                  transition: 'transform 0.15s ease',
-                }}
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-              <span
-                style={{
-                  color: 'white',
-                  fontSize: 11,
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  transform: likeBounceId === currentReel?.id ? 'scale(1.4)' : 'scale(1)',
-                  display: 'inline-block',
-                }}
-              >
-                {likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0)}
-              </span>
-            </button>
-            {/* Reaction Picker - appears on long-press */}
-            {showReactionPicker && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 48,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  display: 'flex',
-                  gap: 4,
-                  padding: '8px 12px',
-                  borderRadius: 24,
-                  background: 'rgba(0,0,0,0.85)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                  animation: 'fadeInScale 0.2s ease',
-                }}
-              >
-                {[
-                  { emoji: '\u2764\uFE0F', label: 'Love', type: 'like' },
-                  { emoji: '\uD83D\uDC4D', label: 'Thumbs Up', type: 'thumbsup' },
-                  { emoji: '\uD83D\uDC4E', label: 'Thumbs Down', type: 'dislike' },
-                  { emoji: '\uD83D\uDE02', label: 'Laughing', type: 'laughing' },
-                  { emoji: '\uD83D\uDE22', label: 'Crying', type: 'crying' },
-                  { emoji: '\uD83D\uDE21', label: 'Angry', type: 'angry' },
-                ].map((r) => (
-                  <button
-                    key={r.type}
-                    onClick={() => {
-                      // BUG FIX (R-5): use showHeartTimerRef for all reaction-picker heart animations
-                      const triggerHeart = () => {
-                        if (!liked[currentReel?.id]) {
-                          setShowHeart(true);
-                          if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
-                          showHeartTimerRef.current = setTimeout(() => {
-                            showHeartTimerRef.current = null;
-                            setShowHeart(false);
-                          }, 800);
-                        }
-                      };
-                      if (r.type === 'like') {
-                        handleLike();
-                        triggerHeart();
-                      } else if (r.type === 'dislike') handleDislike();
-                      else {
-                        handleLike();
-                        triggerHeart();
-                      }
-                      setShowReactionPicker(false);
-                      haptic(10);
-                    }}
-                    aria-label={r.label}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 28,
-                      padding: '4px',
-                      transition: 'transform 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => (e.target.style.transform = 'scale(1.3)')}
-                    onMouseLeave={(e) => (e.target.style.transform = 'scale(1)')}
-                  >
-                    {r.emoji}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Comment */}
-          <button
-            onClick={handleComment}
-            aria-label="Comments"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-            >
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-            </svg>
-            <span
-              style={{
-                color: showCommentPanel ? '#1877F2' : 'white',
-                fontSize: 11,
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              }}
-            >
-              {(commentCounts[currentReel?.id] || comments.length) > 0
-                ? commentCounts[currentReel?.id] || comments.length
-                : 'Comment'}
-            </span>
-          </button>
-
-          {/* Share */}
-          <button
-            onClick={handleShare}
-            aria-label="Share"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-            >
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-            <span style={{ color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-              Share
-            </span>
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            aria-label={savedReels.has(currentReel?.id) ? 'Unsave' : 'Save'}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill={savedReels.has(currentReel?.id) ? 'white' : 'none'}
-              stroke="white"
-              strokeWidth="2"
-              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-            >
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-            <span style={{ color: 'white', fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-              {savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}
-            </span>
-          </button>
-
-          {/* Train This Spot — opens in-place overlay (no navigation) */}
-          <button
-            onClick={() => {
-              const ytVid = getYouTubeVideoId(currentReel?.video_url);
-              const title = (currentReel?.caption || '').slice(0, 80);
-              const ctx = {
-                ref: 'reels',
-                vid: ytVid || currentReel?.id || '',
-                title,
-                source: 'Reels',
-                tags: currentReel?.tags || [],
-              };
-              const gameIds = findBestGames(ctx);
-              // Lazy-load to avoid Webpack circular initialization
-              const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
-              const games = gameIds
-                .map((id) => lookupGame(id))
-                .filter(Boolean)
-                .slice(0, 3);
-              setTtsOverlay({ ctx, games });
-
-              // Fire analytics (fire-and-forget)
-              fetch('/api/training/log-request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  ref: 'reels',
-                  vid: ctx.vid,
-                  title: ctx.title,
-                  source: 'Reels',
-                  matchedGameIds: gameIds.slice(0, 3),
-                }),
-              }).catch(() => {});
-            }}
-            aria-label="Train This Spot"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: 'rgba(0,200,83,0.25)',
-                border: '1.5px solid rgba(0,200,83,0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                filter: 'drop-shadow(0 0 6px rgba(0,200,83,0.5))',
-                animation: 'tts-glow 2.5s ease-in-out infinite',
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#34C759"
-                strokeWidth="2.5"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <span
-              style={{
-                color: '#34C759',
-                fontSize: 10,
-                fontWeight: 700,
-                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-              }}
-            >
-              Train
-            </span>
-          </button>
-
-          {/* More (···) - opens panel with Sound, Report, Speed, Link */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowMoreMenu((prev) => !prev)}
-              aria-label="More options"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="white"
-                stroke="none"
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-              >
-                <circle cx="12" cy="5" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="12" cy="19" r="2" />
-              </svg>
-              <span
-                style={{ color: 'white', fontSize: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-              >
-                More
-              </span>
-            </button>
-            {/* More Menu Panel */}
-            {showMoreMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 48,
-                  bottom: 0,
-                  minWidth: 180,
-                  padding: '8px 0',
-                  borderRadius: 12,
-                  background: 'rgba(0,0,0,0.9)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                  animation: 'fadeInScale 0.2s ease',
-                }}
-              >
-                {/* Sound */}
-                <button
-                  onClick={() => {
-                    muted ? handleUnmute() : handleMute();
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  {muted ? (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                      <line x1="23" y1="9" x2="17" y2="15" />
-                      <line x1="17" y1="9" x2="23" y2="15" />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                    </svg>
-                  )}
-                  {muted ? 'Unmute' : 'Mute'}
-                </button>
-                {/* Speed */}
-                <button
-                  onClick={() => {
-                    handleSpeedToggle();
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: playbackSpeed !== 1 ? '#00d4ff' : 'white',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      border: '1.5px solid currentColor',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 9,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {playbackSpeed}x
-                  </div>
-                  Speed ({playbackSpeed}x)
-                </button>
-                {/* Copy Link */}
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/hub/reels?id=${currentReel?.id || ''}`;
-                    navigator.clipboard
-                      .writeText(url)
-                      .then(() => {
-                        // BUG FIX (R-6): cancel previous copyToast timer before starting a new one.
-                        // Prevents setState-after-unmount if user copies then immediately navigates.
-                        setCopyToast(true);
-                        if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
-                        copyToastTimerRef.current = setTimeout(() => {
-                          copyToastTimerRef.current = null;
-                          setCopyToast(false);
-                        }, 2000);
-                      })
-                      .catch((e) =>
-                        console.warn('[App] Handled promise rejection:', e?.message || e)
-                      );
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                  Copy Link
-                </button>
-                {/* Report */}
-                <button
-                  onClick={() => {
-                    setShowReportModal(true);
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '10px 16px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#ef4444',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    borderTop: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                    <line x1="4" y1="22" x2="4" y2="15" />
-                  </svg>
-                  Report
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Floating Mute/Unmute Button - hidden by default, shown on tap */}
-        <button
-          onClick={() => {
-            if (muted) {
-              handleUnmute();
-            } else {
-              handleMute();
-            }
-          }}
-          aria-label={muted ? 'Unmute' : 'Mute'}
-          style={{
-            position: 'absolute',
-            bottom: 20,
-            right: 16,
-            zIndex: 120,
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: muted ? 'rgba(255,255,255,0.15)' : 'rgba(0,212,255,0.2)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            border: muted ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,212,255,0.4)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease',
-            opacity: muted || showOverlay ? 1 : 0,
-            pointerEvents: muted || showOverlay ? 'auto' : 'none',
-          }}
-        >
-          {muted ? (
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-          ) : (
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#00d4ff"
-              strokeWidth="2"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            </svg>
-          )}
-        </button>
-
-        {/* Instagram-style heart burst with particles */}
-        {showHeart && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              zIndex: 150,
-              width: 120,
-              height: 120,
-            }}
-          >
-            {/* Main heart */}
-            <svg
-              width="80"
-              height="80"
-              viewBox="0 0 24 24"
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                animation: 'heartBurstMain 0.8s ease-out forwards',
-                filter: 'drop-shadow(0 0 20px rgba(239,68,68,0.6))',
-              }}
-            >
-              <path
-                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                fill="#ef4444"
-                stroke="#ff6b6b"
-                strokeWidth="1"
-              />
-            </svg>
-            {/* Particle hearts */}
-            {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-              <svg
-                key={i}
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  animation: `heartParticle${i} 0.7s ${i * 0.05}s ease-out forwards`,
-                  opacity: 0,
-                }}
-              >
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                  fill={['#ef4444', '#ff6b6b', '#f472b6', '#ef4444', '#ff6b6b', '#f472b6'][i]}
-                />
-              </svg>
-            ))}
-          </div>
-        )}
-
-        {/* Share Toast */}
-        {shareToast && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 60,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(255,255,255,0.15)',
-              color: 'white',
-              padding: '8px 20px',
-              borderRadius: 20,
-              fontSize: 14,
-              zIndex: 200,
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }}
-          >
-            Link Copied
-          </div>
-        )}
-
-        {/* Keyboard Shortcuts Overlay */}
-        {showShortcutsOverlay && (
-          <div
-            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
-            data-reels-shortcuts-overlay="true"
-            onClick={() => setShowShortcutsOverlay(false)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 260,
-            }}
-          >
-            <div
-              data-sp-skip-a11y="propagation guard, not a control"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: 16,
-                padding: '20px 24px',
-                border: '1px solid rgba(255,255,255,0.15)',
-                maxWidth: 320,
-                width: '90%',
-              }}
-            >
-              <div
-                style={{
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: 16,
-                  marginBottom: 16,
-                  textAlign: 'center',
-                }}
-              >
-                Keyboard Shortcuts
-              </div>
-              {[
-                ['↑ / ↓', 'Previous / Next Reel'],
-                ['← / →', 'Previous / Next Reel'],
-                ['L', 'Like / Heart'],
-                ['S', 'Save / Bookmark'],
-                ['C', 'Comments'],
-                ['M', 'Mute / Unmute'],
-                ['Esc', 'Back to Feed'],
-                ['?', 'Toggle This Menu'],
-              ].map(([key, desc]) => (
-                <div
-                  key={key}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '6px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#00d4ff',
-                      fontWeight: 600,
-                      fontSize: 13,
-                      fontFamily: 'monospace',
-                      background: 'rgba(0,212,255,0.1)',
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                    }}
-                  >
-                    {key}
-                  </span>
-                  <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{desc}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Phase 9: Long Press Context Menu */}
-        {showContextMenu && (
-          <div
-            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
-            onClick={() => setShowContextMenu(false)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(10px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 300,
-            }}
-          >
-            <div
-              data-sp-skip-a11y="propagation guard, not a control"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'rgba(25, 25, 40, 0.95)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 16,
-                width: 260,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-              }}
-            >
-              <button
-                onClick={() => {
-                  setShowContextMenu(false);
-                  handleSave();
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  padding: '16px 20px',
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill={savedReels.has(currentReel?.id) ? 'white' : 'none'}
-                  stroke="white"
-                  strokeWidth="2"
-                >
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                </svg>
-                {savedReels.has(currentReel?.id) ? 'Unsave' : 'Save Reel'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowContextMenu(false);
-                  handleShare();
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  padding: '16px 20px',
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-                Share / Repost
-              </button>
-              <button
-                onClick={() => {
-                  setShowContextMenu(false);
-                  handleReport();
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '16px 20px',
-                  color: '#ff3b30',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  cursor: 'pointer',
-                }}
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                  <line x1="4" y1="22" x2="4" y2="15" />
-                </svg>
-                Report
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* #8 Share Options Modal */}
-        {showShareModal && (
-          <div
-            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
-            onClick={() => setShowShareModal(false)}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.7)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              zIndex: 250,
-            }}
-          >
-            <div
-              data-sp-skip-a11y="propagation guard, not a control"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: '16px 16px 0 0',
-                padding: '16px 20px 24px',
-                width: '100%',
-                maxWidth: 400,
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: 4 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 4,
-                    background: 'rgba(255,255,255,0.2)',
-                    borderRadius: 2,
-                    margin: '0 auto 12px',
-                  }}
-                />
-                <div style={{ color: 'white', fontWeight: 700, fontSize: 16, marginBottom: 16 }}>
-                  Share This Reel
-                </div>
-              </div>
-              {/* PRIMARY: Share to My Feed — opens description modal */}
-              <button
-                onClick={openShareDescriptionModal}
-                disabled={sharingToFeed || sharedToFeed}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 12,
-                  marginBottom: 14,
-                  background: sharedToFeed
-                    ? 'linear-gradient(135deg, #00c853, #69f0ae)'
-                    : 'linear-gradient(135deg, #0A84FF, #30D5C8)',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  border: 'none',
-                  cursor: sharingToFeed ? 'wait' : 'pointer',
-                  opacity: sharingToFeed ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                {sharedToFeed ? (
-                  <>
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="3"
-                    >
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>{' '}
-                    Shared To My Feed!
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                    >
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                      <polyline points="16 6 12 2 8 6" />
-                      <line x1="12" y1="2" x2="12" y2="15" />
-                    </svg>{' '}
-                    Share To My Feed
-                  </>
-                )}
-              </button>
-              <div
-                style={{
-                  color: 'rgba(255,255,255,0.4)',
-                  fontSize: 11,
-                  textAlign: 'center',
-                  marginBottom: 10,
-                  fontWeight: 500,
-                }}
-              >
-                OR SHARE EXTERNALLY
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                <button
-                  onClick={() => handleShareAction('copy')}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    padding: '14px 4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#00d4ff"
-                    strokeWidth="2"
-                  >
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>Copy Link</span>
-                </button>
-                <button
-                  onClick={() => handleShareAction('x')}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    padding: '14px 4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                  <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>X</span>
-                </button>
-                <button
-                  onClick={() => handleShareAction('facebook')}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    padding: '14px 4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877F2">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                  <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>Facebook</span>
-                </button>
-                <button
-                  onClick={() => handleShareAction('whatsapp')}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    padding: '14px 4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  <span style={{ color: 'white', fontSize: 10, fontWeight: 500 }}>WhatsApp</span>
-                </button>
-              </div>
-              {typeof navigator !== 'undefined' && navigator.share && (
-                <button
-                  onClick={() => handleShareAction('native')}
-                  style={{
-                    width: '100%',
-                    marginTop: 12,
-                    padding: '12px',
-                    borderRadius: 12,
-                    background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045)',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  More Sharing Options
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Share Description Modal — user adds description before posting to feed */}
-        {showShareDescriptionModal && (
-          <div
-            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
-            onClick={() => setShowShareDescriptionModal(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.75)',
-              zIndex: 10003,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 20,
-            }}
-          >
-            <div
-              data-sp-skip-a11y="propagation guard, not a control"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: 16,
-                padding: '20px',
-                width: '100%',
-                maxWidth: 420,
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}
-              >
-                <div style={{ color: 'white', fontWeight: 700, fontSize: 17 }}>
-                  Share To My Feed
-                </div>
-                <button
-                  onClick={() => setShowShareDescriptionModal(false)}
-                  aria-label="Close"
-                  className="sp-icon-btn"
-                  style={{ '--sp-btn-size': '44px',
-                    background: 'rgba(255,255,255,0.1)',
-                    border: 'none',
-                    color: 'white',
-                    width: 44,
-                    height: 44,
-                    minWidth: 44,
-                    minHeight: 44,
-                    touchAction: 'manipulation',
-                    WebkitTapHighlightColor: 'transparent',
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    fontSize: 16,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Reel preview */}
-              {currentReel?.caption && (
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    borderRadius: 10,
-                    padding: '10px 12px',
-                    marginBottom: 14,
-                    borderLeft: '3px solid #0A84FF',
-                  }}
-                >
-                  <div
-                    style={{
-                      color: 'rgba(255,255,255,0.5)',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      marginBottom: 4,
-                    }}
-                  >
-                    SHARING REEL
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.4 }}>
-                    {currentReel.caption.length > 100
-                      ? currentReel.caption.slice(0, 100) + '...'
-                      : currentReel.caption}
-                  </div>
-                </div>
-              )}
-
-              {/* Description textarea */}
-              <textarea
-                value={shareDescription}
-                onChange={(e) => setShareDescription(e.target.value.slice(0, 500))}
-                placeholder="Add your thoughts... (optional)"
-                autoFocus
-                style={{
-                  width: '100%',
-                  minHeight: 100,
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: 'white',
-                  fontSize: 15,
-                  resize: 'vertical',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  lineHeight: 1.5,
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#0A84FF';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255,255,255,0.15)';
-                }}
-              />
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginTop: 6,
-                  marginBottom: 16,
-                }}
-              >
-                <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>
-                  {shareDescription.length}/500
-                </span>
-              </div>
-
-              {/* Post button */}
-              <button
-                onClick={handleShareToFeed}
-                disabled={sharingToFeed}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: 12,
-                  background: 'linear-gradient(135deg, #0A84FF, #30D5C8)',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  border: 'none',
-                  cursor: sharingToFeed ? 'wait' : 'pointer',
-                  opacity: sharingToFeed ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                {sharingToFeed ? (
-                  'Posting...'
-                ) : (
-                  <>
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                    >
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                      <polyline points="16 6 12 2 8 6" />
-                      <line x1="12" y1="2" x2="12" y2="15" />
-                    </svg>{' '}
-                    Post To My Feed
-                  </>
-                )}
-              </button>
-
-              {/* Skip description option */}
-              <button
-                onClick={() => {
-                  setShareDescription('');
-                  handleShareToFeed('');
-                }}
-                disabled={sharingToFeed}
-                style={{
-                  width: '100%',
-                  marginTop: 8,
-                  padding: '10px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'rgba(255,255,255,0.4)',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                }}
-              >
-                Skip Description - Share Now
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Heart burst + slide animation CSS */}
-        <style>{`
-                    @keyframes heartBurstMain {
-                        0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
-                        30% { opacity: 1; transform: translate(-50%, -50%) scale(1.4); }
-                        60% { opacity: 1; transform: translate(-50%, -50%) scale(0.95); }
-                        80% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
-                        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
-                    }
-                    @keyframes heartParticle0 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% + 45px), calc(-50% - 35px)) scale(0.3) rotate(20deg); } }
-                    @keyframes heartParticle1 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% + 50px), calc(-50% + 20px)) scale(0.3) rotate(-15deg); } }
-                    @keyframes heartParticle2 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% + 15px), calc(-50% + 50px)) scale(0.3) rotate(30deg); } }
-                    @keyframes heartParticle3 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 45px), calc(-50% + 30px)) scale(0.3) rotate(-25deg); } }
-                    @keyframes heartParticle4 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 50px), calc(-50% - 20px)) scale(0.3) rotate(10deg); } }
-                    @keyframes heartParticle5 { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(calc(-50% - 15px), calc(-50% - 50px)) scale(0.3) rotate(-30deg); } }
-                    @keyframes shimmer { to { background-position-x: -200%; } }
-                    @keyframes soundWave {
-                        0% { height: 2px; }
-                        100% { height: var(--max-h, 10px); }
-                    }
-                    @keyframes fadeInScale {
-                        from { opacity: 0; transform: scale(0.85); }
-                        to { opacity: 1; transform: scale(1); }
-                    }
-                    @keyframes pulse {
-                        0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,255,0.3); }
-                        50% { box-shadow: 0 0 0 8px rgba(0,212,255,0); }
-                    }
-                    @keyframes tts-glow {
-                        0%, 100% { box-shadow: 0 0 6px rgba(0,200,83,0.4); border-color: rgba(0,200,83,0.7); }
-                        50%       { box-shadow: 0 0 18px rgba(0,200,83,0.8); border-color: rgba(0,200,83,1); }
-                    }
-                `}</style>
-
-        {/* Comment Panel */}
-        {showCommentPanel && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 200,
-              background: 'rgba(0,0,0,0.95)',
-              borderRadius: '16px 16px 0 0',
-              maxHeight: '55vh',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Comments</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Phase 8 - Sort toggle */}
-                <button
-                  onClick={() => {
-                    const next = commentSort === 'newest' ? 'oldest' : 'newest';
-                    setCommentSort(next);
-                    setComments((prev) =>
-                      [...prev].sort((a, b) =>
-                        next === 'newest'
-                          ? new Date(b.created_at) - new Date(a.created_at)
-                          : new Date(a.created_at) - new Date(b.created_at)
-                      )
-                    );
-                  }}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 12,
-                    padding: '3px 10px',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: 'rgba(255,255,255,0.6)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {commentSort === 'newest' ? 'Newest' : 'Oldest'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCommentPanel(false);
-                    setShowGifPicker(false);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: 20,
-                    cursor: 'pointer',
-                  }}
-                >
-                  X
-                </button>
-              </div>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', maxHeight: 250 }}>
-              {comments.length === 0 && (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: 'rgba(255,255,255,0.5)',
-                    padding: 20,
-                    fontSize: 14,
-                  }}
-                >
-                  No Comments Yet. Be The First!
-                </div>
-              )}
-              {comments.map((c, i) => (
-                <div
-                  key={c.id || i}
-                  style={{
-                    display: 'flex',
-                    gap: 10,
-                    marginBottom: 12,
-                    paddingLeft: c.parent_id ? 24 : 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      background: '#333',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 14,
-                      color: 'white',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(c.profiles?.username || c.author?.username || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>
-                      {c.profiles?.username || c.author?.username || 'User'}
-                    </span>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 8 }}>
-                      {c.created_at ? timeAgo(c.created_at) : ''}
-                    </span>
-                    {/* Phase 7 - Inline edit mode */}
-                    {editingComment === c.id ? (
-                      <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <input
-                          value={editCommentText}
-                          onChange={(e) => setEditCommentText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit(c.id);
-                            if (e.key === 'Escape') {
-                              setEditingComment(null);
-                              setEditCommentText('');
-                            }
-                          }}
-                          style={{
-                            flex: 1,
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(0,212,255,0.3)',
-                            borderRadius: 8,
-                            padding: '6px 10px',
-                            color: 'white',
-                            fontSize: 13,
-                            outline: 'none',
-                          }}
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleSaveEdit(c.id)}
-                          style={{
-                            background: '#1877F2',
-                            border: 'none',
-                            borderRadius: 20,
-                            padding: '4px 10px',
-                            color: 'white',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingComment(null);
-                            setEditCommentText('');
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'rgba(255,255,255,0.4)',
-                            fontSize: 11,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      c.content && (
-                        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 2 }}>
-                          {c.content}
-                        </div>
-                      )
-                    )}
-                    {c.media_url && (
-                      <img
-                        src={c.media_url}
-                        alt=""
-                        style={{
-                          maxWidth: 180,
-                          maxHeight: 140,
-                          borderRadius: 8,
-                          marginTop: 6,
-                          objectFit: 'cover',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                        }}
-                        loading="lazy"
-                      />
-                    )}
-                    {/* Phase 6+7 - Comment engagement row */}
-                    <div style={{ display: 'flex', gap: 14, marginTop: 4, alignItems: 'center' }}>
-                      <button
-                        onClick={() => handleCommentLike(c.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          color: commentLikes[c.id] ? '#FF2D55' : 'rgba(255,255,255,0.4)',
-                          fontSize: 12,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 3,
-                        }}
-                      >
-                        {commentLikes[c.id] ? '❤️' : '🤍'}
-                        {commentLikeCounts[c.id] > 0 && (
-                          <span style={{ fontSize: 10, opacity: 0.6 }}>
-                            {commentLikeCounts[c.id]}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setReplyTo({
-                            id: c.id,
-                            username: c.profiles?.username || c.author?.username || 'User',
-                          });
-                          setCommentText(
-                            `@${c.profiles?.username || c.author?.username || 'User'} `
-                          );
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          color: 'rgba(255,255,255,0.4)',
-                          fontSize: 12,
-                        }}
-                      >
-                        Reply
-                      </button>
-                      {(c.profiles?.username === 'You' || c.author_id === user?.id) && (
-                        <>
-                          <button
-                            onClick={() => handleEditComment(c)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: 0,
-                              color: 'rgba(255,255,255,0.4)',
-                              fontSize: 12,
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteComment(c.id)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: 0,
-                              color: 'rgba(255,255,255,0.3)',
-                              fontSize: 12,
-                              marginLeft: 'auto',
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {/* #6 Comment Pagination - Load More */}
-              {hasMoreComments && (
-                <button
-                  onClick={loadMoreComments}
-                  disabled={loadingMoreComments}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 10,
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: loadingMoreComments ? 'wait' : 'pointer',
-                    marginTop: 4,
-                  }}
-                >
-                  {loadingMoreComments ? 'Loading...' : 'Load More Comments'}
-                </button>
-              )}
-            </div>
-
-            {/* Media preview strip */}
-            {commentMediaUrl && (
-              <div
-                style={{
-                  padding: '6px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                <img
-                  src={commentMediaUrl}
-                  alt=""
-                  style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover' }}
-                />
-                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-                  {commentMediaType === 'gif' ? 'GIF' : 'Image'} Attached
-                </span>
-                <button
-                  onClick={() => {
-                    setCommentMediaUrl(null);
-                    setCommentMediaType(null);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#ef4444',
-                    fontSize: 16,
-                    cursor: 'pointer',
-                    marginLeft: 'auto',
-                  }}
-                >
-                  X
-                </button>
-              </div>
-            )}
-
-            {/* GIF picker */}
-            {showGifPicker && (
-              <div
-                style={{
-                  maxHeight: 200,
-                  overflow: 'auto',
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                <GiphyPicker
-                  onSelect={(gif) => {
-                    setCommentMediaUrl(gif.images?.fixed_height?.url || gif.url || gif);
-                    setCommentMediaType('gif');
-                    setShowGifPicker(false);
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Reply-to indicator */}
-            {replyTo && (
-              <div
-                style={{
-                  padding: '6px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  borderTop: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(0,212,255,0.06)',
-                }}
-              >
-                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                  Replying to{' '}
-                  <span style={{ color: '#00d4ff', fontWeight: 600 }}>@{replyTo.username}</span>
-                </span>
-                <button
-                  onClick={() => {
-                    setReplyTo(null);
-                    setCommentText('');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'rgba(255,255,255,0.4)',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    marginLeft: 'auto',
-                  }}
-                >
-                  X
-                </button>
-              </div>
-            )}
-
-            {/* Comment input toolbar */}
-            <div
-              style={{
-                padding: '8px 16px',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-              }}
-            >
-              {/* GIF + Image buttons */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setShowGifPicker((prev) => !prev)}
-                  style={{
-                    background: showGifPicker ? 'rgba(24,119,242,0.2)' : 'rgba(255,255,255,0.08)',
-                    border: showGifPicker
-                      ? '1px solid #1877F2'
-                      : '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 14,
-                    padding: '3px 10px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: showGifPicker ? '#1877F2' : 'rgba(255,255,255,0.7)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  GIF
-                </button>
-                <button
-                  onClick={() => commentFileInputRef.current?.click()}
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 14,
-                    padding: '3px 10px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: 'rgba(255,255,255,0.7)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {uploadingImage ? 'Uploading...' : 'Image'}
-                </button>
-                <input
-                  ref={commentFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) handleCommentImageUpload(e.target.files[0]);
-                    e.target.value = '';
-                  }}
-                />
-              </div>
-              {/* Input + Post */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={commentText}
-                  onChange={(e) => {
-                    if (e.target.value.length <= COMMENT_MAX_LENGTH) setCommentText(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      submitComment();
-                    }
-                  }}
-                  placeholder="Add A Comment..."
-                  maxLength={COMMENT_MAX_LENGTH}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.1)',
-                    border: 'none',
-                    borderRadius: 20,
-                    fontSize: 14,
-                    color: 'white',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={submitComment}
-                  disabled={(!commentText.trim() && !commentMediaUrl) || submittingComment}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#1877F2',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 20,
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: commentText.trim() || commentMediaUrl ? 'pointer' : 'not-allowed',
-                    opacity: commentText.trim() || commentMediaUrl ? 1 : 0.5,
-                  }}
-                >
-                  {submittingComment ? '...' : 'Post'}
-                </button>
-              </div>
-              {/* Phase 8 - Character counter */}
-              {commentText.length > 0 && (
-                <div
-                  style={{
-                    textAlign: 'right',
-                    fontSize: 10,
-                    color:
-                      commentText.length >= COMMENT_MAX_LENGTH - 20
-                        ? '#ef4444'
-                        : 'rgba(255,255,255,0.3)',
-                    paddingRight: 4,
-                  }}
-                >
-                  {commentText.length}/{COMMENT_MAX_LENGTH}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Phase 8 - Copy Link Toast */}
-        {copyToast && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 80,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(0,212,255,0.15)',
-              border: '1px solid rgba(0,212,255,0.4)',
-              borderRadius: 12,
-              padding: '8px 20px',
-              color: '#00d4ff',
-              fontSize: 13,
-              fontWeight: 600,
-              zIndex: 300,
-              backdropFilter: 'blur(10px)',
-              animation: 'fadeIn 0.2s ease-out',
-            }}
-          >
-            Link Copied!
-          </div>
-        )}
-
-        {/* #10 Error Toast */}
-        {errorToast && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 80,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(255,69,58,0.15)',
-              border: '1px solid rgba(255,69,58,0.4)',
-              borderRadius: 12,
-              padding: '10px 22px',
-              color: '#FF453A',
-              fontSize: 13,
-              fontWeight: 600,
-              zIndex: 300,
-              backdropFilter: 'blur(10px)',
-              animation: 'fadeIn 0.2s ease-out',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {errorToast}
-          </div>
-        )}
-
-        {/* Report Modal */}
-        {showReportModal && (
-          <div
-            data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
-            onClick={() => {
-              setShowReportModal(false);
-              setReportReason('');
-              setReportSubmitted(false);
-            }}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.8)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 300,
-            }}
-          >
-            <div
-              data-sp-skip-a11y="propagation guard, not a control"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: '#1a1a2e',
-                borderRadius: 16,
-                padding: 24,
-                width: '85%',
-                maxWidth: 360,
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              {reportSubmitted ? (
-                <div style={{ textAlign: 'center', color: 'white' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-                  <div style={{ fontSize: 16, fontWeight: 600 }}>Report Submitted</div>
-                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
-                    Thank You. We Will Review This Content.
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div style={{ color: 'white', fontWeight: 700, fontSize: 18, marginBottom: 16 }}>
-                    Report This Reel
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 12 }}>
-                    Why Are You Reporting This Content?
-                  </div>
-                  {[
-                    'Inappropriate Content',
-                    'Spam Or Scam',
-                    'Harassment',
-                    'Misinformation',
-                    'Other',
-                  ].map((reason) => (
-                    <button
-                      key={reason}
-                      onClick={() => setReportReason(reason)}
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '10px 14px',
-                        marginBottom: 6,
-                        borderRadius: 10,
-                        fontSize: 14,
-                        cursor: 'pointer',
-                        background:
-                          reportReason === reason
-                            ? 'rgba(24,119,242,0.2)'
-                            : 'rgba(255,255,255,0.06)',
-                        border:
-                          reportReason === reason
-                            ? '1px solid #1877F2'
-                            : '1px solid rgba(255,255,255,0.1)',
-                        color: reportReason === reason ? '#1877F2' : 'white',
-                      }}
-                    >
-                      {reason}
-                    </button>
-                  ))}
-                  <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                    <button
-                      onClick={() => {
-                        setShowReportModal(false);
-                        setReportReason('');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        background: 'rgba(255,255,255,0.08)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleReport}
-                      disabled={!reportReason}
-                      style={{
-                        flex: 1,
-                        padding: '10px',
-                        borderRadius: 10,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        background: reportReason ? '#ef4444' : 'rgba(255,255,255,0.08)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: reportReason ? 'pointer' : 'not-allowed',
-                        opacity: reportReason ? 1 : 0.5,
-                      }}
-                    >
-                      Submit Report
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
+{!videoId && !currentReel?.video_url && <div className={styles.stageSignal}>Video Unavailable</div>}
+        {isPaused && ytReady && <div className={styles.stageSignal}>Paused</div>}
+        {showHeart && <div className={`${styles.stageSignal} ${styles.likedSignal}`}>Liked</div>}
         {/* Preload next reel - hidden iframe for instant switching */}
         {reels[currentIndex + 1] &&
           (() => {
@@ -5474,430 +3110,273 @@ export default function ReelsPage() {
           );
         })()}
 
-        {/* Pull-to-refresh indicator */}
-        {refreshing && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 60,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 200,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 18px',
-              borderRadius: 20,
-              background: 'rgba(0,0,0,0.7)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-            }}
-          >
-            <div
-              style={{
-                width: 16,
-                height: 16,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: 'white',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <span style={{ color: 'white', fontSize: 13, fontWeight: 500 }}>Refreshing...</span>
-          </div>
-        )}
 
-        {/* Loading indicator at bottom */}
-        {!showCommentPanel && loadingMore && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 60,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              zIndex: 100,
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: 'white',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Spin animation for loader */}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-        {/* ── Train This Spot In-Place Overlay ── */}
-        {ttsOverlay && (
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 9500,
-              animation: 'tts-sheet-up 0.32s cubic-bezier(0.34,1.56,0.64,1) both',
-            }}
-          >
-            {/* Scrim */}
-            <div
-              data-sp-skip-a11y="backdrop: click dismisses, Escape is the keyboard path"
-              onClick={() => setTtsOverlay(null)}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0,0,0,0.55)',
-                zIndex: -1,
-              }}
-            />
-
-            <div
-              style={{
-                background: 'linear-gradient(180deg, #0a0f1e 0%, #060a14 100%)',
-                borderRadius: '20px 20px 0 0',
-                border: '1px solid rgba(0,200,83,0.2)',
-                borderBottom: 'none',
-                maxHeight: '75vh',
-                overflow: 'auto',
-                boxShadow: '0 -10px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,83,0.08)',
-              }}
-            >
-              {/* Drag handle */}
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 4,
-                    borderRadius: 2,
-                    background: 'rgba(255,255,255,0.15)',
-                  }}
-                />
-              </div>
-
-              {/* Header */}
-              <div
-                style={{ padding: '8px 20px 14px', display: 'flex', alignItems: 'center', gap: 10 }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: 'linear-gradient(135deg, rgba(0,200,83,0.3), rgba(0,150,60,0.15))',
-                    border: '1.5px solid rgba(0,200,83,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#34C759"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                    <path d="M2 17l10 5 10-5" />
-                    <path d="M2 12l10 5 10-5" />
-                  </svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{ fontSize: 14, fontWeight: 800, color: '#34C759', letterSpacing: 0.3 }}
-                  >
-                    Train This Spot
-                  </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                    AI-Matched Drills For This Reel
-                  </div>
-                </div>
-                <button
-                  onClick={() => setTtsOverlay(null)}
-                  aria-label="Close"
-                  className="sp-icon-btn"
-                  style={{ '--sp-btn-size': '44px',
-                    background: 'rgba(255,255,255,0.07)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    width: 44,
-                    height: 44,
-                    minWidth: 44,
-                    minHeight: 44,
-                    touchAction: 'manipulation',
-                    WebkitTapHighlightColor: 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'rgba(255,255,255,0.5)',
-                    fontSize: 16,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Video context card */}
-              <div
-                style={{
-                  padding: '0 20px 12px',
-                  display: 'flex',
-                  gap: 12,
-                  alignItems: 'flex-start',
-                }}
-              >
-                <div
-                  style={{
-                    width: 100,
-                    height: 56,
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    background: '#111',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <img
-                    src={`https://img.youtube.com/vi/${ttsOverlay.ctx.vid}/mqdefault.jpg`}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#fff',
-                      lineHeight: 1.35,
-                      overflow: 'hidden',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
-                    {ttsOverlay.ctx.title || 'Poker Reel'}
-                  </div>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      marginTop: 4,
-                      background: 'rgba(255,68,68,0.1)',
-                      border: '1px solid rgba(255,68,68,0.2)',
-                      borderRadius: 6,
-                      padding: '2px 7px',
-                    }}
-                  >
-                    <div
-                      style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF4444' }}
-                    />
-                    <span style={{ fontSize: 9, fontWeight: 700, color: '#FF8888' }}>
-                      {ttsOverlay.ctx.source || 'Reels'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Matched drills */}
-              <div style={{ padding: '0 20px 8px' }}>
-                <div
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: 'rgba(255,255,255,0.25)',
-                    letterSpacing: 0.8,
-                    textTransform: 'uppercase',
-                    marginBottom: 8,
-                  }}
-                >
-                  AI-Recommended Drills
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {ttsOverlay.games.map((game, idx) => (
-                    <button
-                      key={game.id}
-                      onClick={() => {
-                        setTtsOverlay(null);
-                        router.push(`/hub/training?autoLaunch=${game.id}`);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '10px 12px',
-                        background: idx === 0 ? 'rgba(0,200,83,0.08)' : 'rgba(255,255,255,0.03)',
-                        border: `1.5px solid ${idx === 0 ? 'rgba(0,200,83,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                        borderRadius: 10,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        width: '100%',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 7,
-                          flexShrink: 0,
-                          background: idx === 0 ? 'rgba(0,200,83,0.15)' : 'rgba(255,255,255,0.06)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 16,
-                        }}
-                      >
-                        {game.icon || '🎯'}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: idx === 0 ? '#34C759' : '#fff',
-                            }}
-                          >
-                            {game.name}
-                          </span>
-                          {idx === 0 && (
-                            <span
-                              style={{
-                                fontSize: 8,
-                                fontWeight: 800,
-                                color: '#34C759',
-                                background: 'rgba(0,200,83,0.12)',
-                                borderRadius: 5,
-                                padding: '1px 5px',
-                              }}
-                            >
-                              BEST MATCH
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                          {game.focus} · {'★'.repeat(Math.min(game.difficulty || 1, 5))} Difficulty
-                        </div>
-                      </div>
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="rgba(255,255,255,0.3)"
-                        strokeWidth="2.5"
-                      >
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div
-                style={{
-                  padding: '6px 20px 20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                }}
-              >
-                {/* Open the audited hand-review boundary. Reel context is not solver evidence. */}
-                <button
-                  onClick={() => {
-                    setTtsOverlay(null);
-                    router.push('/hub/training/hand-history-upload?source=reels');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 10,
-                    background: 'linear-gradient(135deg, rgba(0,150,255,0.1), rgba(0,100,200,0.1))',
-                    border: '1.5px solid rgba(0,150,255,0.35)',
-                    color: '#4DA6FF',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 7,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="2" y="3" width="20" height="14" rx="2" />
-                    <path d="M8 21h8" />
-                    <path d="M12 17v4" />
-                  </svg>
-                  Open Audited Hand Review
-                </button>
-
-                {/* Browse all training */}
-                <button
-                  onClick={() => {
-                    setTtsOverlay(null);
-                    router.push('/hub/training');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    borderRadius: 8,
-                    background: 'transparent',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    color: 'rgba(255,255,255,0.3)',
-                    fontSize: 10,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  Browse All 100 Training Games
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        <style>{`
-                    @keyframes tts-sheet-up {
-                        from { transform: translateY(100%); opacity: 0.7; }
-                        to { transform: translateY(0); opacity: 1; }
-                    }
-                `}</style>
       </div>
+      <div className={styles.body}>
+        <nav className={styles.actions} aria-label="Reel Navigation">
+          <ReelAction onClick={() => router.push('/hub/social-media')}>Back To Feed</ReelAction>
+          <ReelAction onClick={() => handleCommandMenuOpenChange(true)} aria-haspopup="dialog" aria-expanded={menuOpen}>Menu</ReelAction>
+          <ReelAction onClick={() => setShowShortcutsOverlay(true)}>Keyboard Help</ReelAction>
+        </nav>
+        <div className={styles.actions} aria-label="Playback Controls">
+          <ReelAction onClick={() => {
+            if (videoRef.current) {
+              if (videoRef.current.paused) videoRef.current.play().catch(() => showErrorToast('Playback Could Not Start'));
+              else videoRef.current.pause();
+            } else {
+              sendYouTubeCommand(isPaused ? 'playVideo' : 'pauseVideo');
+              setIsPaused(!isPaused);
+            }
+          }}>{isPaused ? 'Play' : 'Pause'}</ReelAction>
+          <ReelAction onClick={() => muted ? handleUnmute() : handleMute()}>{muted ? 'Unmute' : 'Mute'}</ReelAction>
+          <ReelAction onClick={handleSpeedToggle}>Speed {Math.round(playbackSpeed * 100)}%</ReelAction>
+        </div>
+        <div className={styles.creator}>
+          {currentReel?.profiles?.avatar_url && <img src={currentReel.profiles.avatar_url} alt="" className={styles.avatar} loading="lazy" onError={(event) => { event.currentTarget.hidden = true; }} />}
+          {currentReel?.profiles?.username
+            ? <Link className={styles.link} href={`/hub/user/${currentReel.profiles.username}`}>{currentReel.profiles.full_name || currentReel.profiles.username}</Link>
+            : <span className={styles.copy}>Poker Creator</span>}
+        </div>
+        {currentReel?.profiles?.id && user?.id && currentReel.profiles.id !== user.id && (
+          <ReelAction onClick={handleFollow} aria-pressed={Boolean(following[currentReel.profiles.id])}>{following[currentReel.profiles.id] ? 'Following' : 'Follow'}</ReelAction>
+        )}
+        <ConsoleDataRow label="Views" value={Math.floor(viewCounts[currentReel?.id] || currentReel?.view_count || 0)} />
+        <ConsoleDataRow label="Published" value={timeAgo(currentReel?.created_at)} />
+        {watchedReelIds.includes(currentReel?.id) && <p className={styles.status}>Watched</p>}
+        {preferences.showCaptions && currentReel?.caption && (
+          <>
+            <p className={styles.copy}>{captionExpanded || currentReel.caption.length <= 100 ? currentReel.caption : currentReel.caption.slice(0, 100) + '...'}</p>
+            {currentReel.caption.length > 100 && <ReelAction onClick={() => setCaptionExpanded((previous) => !previous)}>{captionExpanded ? 'See Less' : 'See More'}</ReelAction>}
+          </>
+        )}
+        <div className={styles.actions} aria-label="Reel Actions">
+          <ReelAction aria-label={liked[currentReel?.id] ? 'Unlike' : 'Like'} aria-pressed={Boolean(liked[currentReel?.id])}
+            onClick={() => {
+              handleLike();
+              if (!liked[currentReel?.id]) {
+                setShowHeart(true);
+                if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
+                showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
+              }
+            }}
+            onPointerDown={() => { reactionTimerRef.current = setTimeout(() => { haptic(20); setShowReactionPicker(true); }, 500); }}
+            onPointerUp={() => clearTimeout(reactionTimerRef.current)}
+            onPointerLeave={() => clearTimeout(reactionTimerRef.current)}
+            onPointerCancel={() => clearTimeout(reactionTimerRef.current)}
+          >{liked[currentReel?.id] ? 'Liked' : 'Like'}</ReelAction>
+          <ReelAction onClick={handleComment} aria-label="Comments">Comments</ReelAction>
+          <ReelAction onClick={handleShare} aria-label="Share">Share</ReelAction>
+          <ReelAction onClick={handleSave} aria-label={savedReels.has(currentReel?.id) ? 'Unsave' : 'Save'} aria-pressed={savedReels.has(currentReel?.id)}>{savedReels.has(currentReel?.id) ? 'Saved' : 'Save'}</ReelAction>
+          <ReelAction onClick={() => {
+            const ytVid = getYouTubeVideoId(currentReel?.video_url);
+            const title = (currentReel?.caption || '').slice(0, 80);
+            const ctx = { ref: 'reels', vid: ytVid || currentReel?.id || '', title, source: 'Reels', tags: currentReel?.tags || [] };
+            const gameIds = findBestGames(ctx);
+            const { getGameById: lookupGame } = require('../../src/data/TRAINING_LIBRARY');
+            const games = gameIds.map((id) => lookupGame(id)).filter(Boolean).slice(0, 3);
+            setTtsOverlay({ ctx, games });
+            fetch('/api/training/log-request', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ref: 'reels', vid: ctx.vid, title: ctx.title, source: 'Reels', matchedGameIds: gameIds.slice(0, 3) }),
+            }).catch((error) => console.warn('[Reels] Training Analytics Failed:', error));
+          }} aria-label="Train This Spot">Train This Spot</ReelAction>
+          <ReelAction onClick={() => setShowMoreMenu(true)} aria-label="More options">More</ReelAction>
+        </div>
+        <ConsoleDataRow label="Likes" value={Math.floor(likeCounts[currentReel?.id] ?? (currentReel?.like_count || 0))} />
+        <ConsoleDataRow label="Comments" value={Math.floor(commentCounts[currentReel?.id] || comments.length || 0)} />
+        {(shareToast || copyToast) && <p role="status" className={styles.status}>Link Copied</p>}
+        {errorToast && <p role="alert" className={`${styles.status} ${styles.error}`}>{consoleText(errorToast)}</p>}
+        {refreshing && <p role="status" className={styles.status}>Refreshing</p>}
+        {!showCommentPanel && loadingMore && <p role="status" className={styles.status}>Finding Reels</p>}
+        {!showCommentPanel && loadMoreError && !loadingMore && (
+          <ReelAction onClick={() => void loadMoreReels()} aria-label="Retry loading more Reels">Retry More Reels</ReelAction>
+        )}
+        {hasMore && !loadingMore && !loadMoreError && <ReelAction onClick={() => void loadMoreReels()}>Continue Finding Reels</ReelAction>}
+      </div>
+        </VideoLibraryConsole>
+      </main>
+
+      {showShortcutsOverlay && (
+        <ReelsConsoleDialog title="Keyboard Shortcuts" onClose={() => setShowShortcutsOverlay(false)} data-reels-shortcuts-overlay="true">
+          {[['Up / Down', 'Previous / Next Reel'], ['Left / Right', 'Previous / Next Reel'], ['Space', 'Play / Pause'], ['L', 'Like'], ['S', 'Save'], ['C', 'Comments'], ['M', 'Mute / Unmute'], ['Esc', 'Close / Back To Feed'], ['?', 'Toggle This Menu']].map(([label, value]) => <ConsoleDataRow key={label} label={label} value={value} />)}
+        </ReelsConsoleDialog>
+      )}
+
+      {(showContextMenu || showMoreMenu) && (
+        <ReelsConsoleDialog title="Reel Options" onClose={() => { setShowContextMenu(false); setShowMoreMenu(false); }}>
+          <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); handleSave(); }}>{savedReels.has(currentReel?.id) ? 'Unsave' : 'Save Reel'}</ReelAction>
+          <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); handleShare(); }}>Share / Repost</ReelAction>
+          <ReelAction onClick={() => { muted ? handleUnmute() : handleMute(); setShowMoreMenu(false); }}>{muted ? 'Unmute' : 'Mute'}</ReelAction>
+          <ReelAction onClick={handleSpeedToggle}>Speed {Math.round(playbackSpeed * 100)}%</ReelAction>
+          <ReelAction onClick={() => {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+              setCopyToast(true);
+              if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
+              copyToastTimerRef.current = setTimeout(() => { copyToastTimerRef.current = null; setCopyToast(false); }, 2000);
+            }).catch(() => showErrorToast('Copy Failed - Try Again'));
+            setShowContextMenu(false); setShowMoreMenu(false);
+          }}>Copy Link</ReelAction>
+          <ReelAction onClick={() => { setShowContextMenu(false); setShowMoreMenu(false); setShowReportModal(true); }}>Report</ReelAction>
+        </ReelsConsoleDialog>
+      )}
+
+      {showReactionPicker && (
+        <ReelsConsoleDialog title="Reactions" onClose={() => setShowReactionPicker(false)}>
+          {[{ label: 'Love', type: 'like' }, { label: 'Approve', type: 'thumbsup' }, { label: 'Not For Me', type: 'dislike' }, { label: 'Funny', type: 'laughing' }, { label: 'Tough Spot', type: 'crying' }, { label: 'Disagree', type: 'angry' }].map((reaction) => (
+            <ReelAction key={reaction.type} onClick={() => {
+              if (reaction.type === 'dislike') handleDislike();
+              else {
+                handleLike();
+                if (!liked[currentReel?.id]) {
+                  setShowHeart(true);
+                  if (showHeartTimerRef.current) clearTimeout(showHeartTimerRef.current);
+                  showHeartTimerRef.current = setTimeout(() => { showHeartTimerRef.current = null; setShowHeart(false); }, 800);
+                }
+              }
+              setShowReactionPicker(false); haptic(10);
+            }}>{reaction.label}</ReelAction>
+          ))}
+        </ReelsConsoleDialog>
+      )}
+
+      {showShareModal && (
+        <ReelsConsoleDialog title="Share This Reel" onClose={() => setShowShareModal(false)}
+          primary={{ label: sharedToFeed ? 'Shared To My Feed' : 'Share To My Feed', onClick: openShareDescriptionModal, disabled: sharingToFeed || sharedToFeed }}>
+          <ConsoleCopy align="center">Share Externally</ConsoleCopy>
+          <div className={styles.actions}>
+            <ReelAction onClick={() => handleShareAction('copy')}>Copy Link</ReelAction>
+            <ReelAction onClick={() => handleShareAction('x')}>X</ReelAction>
+            <ReelAction onClick={() => handleShareAction('facebook')}>Facebook</ReelAction>
+            <ReelAction onClick={() => handleShareAction('whatsapp')}>WhatsApp</ReelAction>
+          </div>
+          {typeof navigator !== 'undefined' && navigator.share && <ReelAction onClick={() => handleShareAction('native')}>More Sharing Options</ReelAction>}
+        </ReelsConsoleDialog>
+      )}
+
+      {showShareDescriptionModal && (
+        <ReelsConsoleDialog title="Share To My Feed" onClose={() => setShowShareDescriptionModal(false)}
+          primary={{ label: sharingToFeed ? 'Posting' : 'Post To My Feed', onClick: handleShareToFeed, disabled: sharingToFeed }}>
+          {currentReel?.caption && <p className={styles.copy}>{currentReel.caption}</p>}
+          <label className={styles.fieldLabel} htmlFor="reel-share-description">Your Thoughts</label>
+          <textarea id="reel-share-description" className={styles.field} value={shareDescription} maxLength={500}
+            onChange={(event) => setShareDescription(event.target.value.slice(0, 500))} placeholder="Add Your Thoughts (Optional)" />
+          <ConsoleDataRow label="Characters" value={`${shareDescription.length} / 500`} />
+          <ReelAction disabled={sharingToFeed} onClick={() => { setShareDescription(''); handleShareToFeed(''); }}>Skip Description - Share Now</ReelAction>
+        </ReelsConsoleDialog>
+      )}
+
+      {showCommentPanel && (
+        <ReelsConsoleDialog title="Comments" onClose={() => { setShowCommentPanel(false); setShowGifPicker(false); }}
+          primary={{ label: submittingComment ? 'Posting' : 'Post Comment', onClick: submitComment, disabled: (!commentText.trim() && !commentMediaUrl) || submittingComment }}>
+          <ReelAction onClick={() => {
+            const next = commentSort === 'newest' ? 'oldest' : 'newest';
+            setCommentSort(next);
+            setComments((previous) => [...previous].sort((a, b) => next === 'newest' ? new Date(b.created_at) - new Date(a.created_at) : new Date(a.created_at) - new Date(b.created_at)));
+          }}>{commentSort === 'newest' ? 'Newest First' : 'Oldest First'}</ReelAction>
+          <div className={styles.list}>
+            {comments.length === 0 && <ConsoleCopy align="center">No Comments Yet. Be The First!</ConsoleCopy>}
+            {comments.map((comment, index) => (
+              <article key={comment.id || index} className={`${styles.comment} ${comment.parent_id ? styles.reply : ''}`}>
+                <p className={styles.copy}>{comment.profiles?.username || comment.author?.username || 'User'}</p>
+                <p className={`${styles.copy} ${styles.muted}`}>{timeAgo(comment.created_at)}</p>
+                {editingComment === comment.id ? (
+                  <>
+                    <label className={styles.fieldLabel} htmlFor={`edit-reel-comment-${comment.id}`}>Edit Comment</label>
+                    <input id={`edit-reel-comment-${comment.id}`} className={styles.field} value={editCommentText} onChange={(event) => setEditCommentText(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') handleSaveEdit(comment.id);
+                        if (event.key === 'Escape') { event.stopPropagation(); setEditingComment(null); setEditCommentText(''); }
+                      }} />
+                    <div className={styles.actions}>
+                      <ReelAction onClick={() => handleSaveEdit(comment.id)}>Save</ReelAction>
+                      <ReelAction onClick={() => { setEditingComment(null); setEditCommentText(''); }}>Cancel Edit</ReelAction>
+                    </div>
+                  </>
+                ) : comment.content && <p className={styles.copy}>{comment.content}</p>}
+                {comment.media_url && <img src={comment.media_url} className={styles.media} alt="Comment Attachment" loading="lazy" />}
+                <div className={styles.actions}>
+                  <ReelAction aria-pressed={Boolean(commentLikes[comment.id])} onClick={() => handleCommentLike(comment.id)}>{commentLikes[comment.id] ? 'Liked' : 'Like'}</ReelAction>
+                  <ReelAction onClick={() => {
+                    setReplyTo({ id: comment.id, username: comment.profiles?.username || comment.author?.username || 'User' });
+                    setCommentText(`@${comment.profiles?.username || comment.author?.username || 'User'} `);
+                  }}>Reply</ReelAction>
+                  {(comment.profiles?.username === 'You' || comment.author_id === user?.id) && (
+                    <>
+                      <ReelAction onClick={() => handleEditComment(comment)}>Edit</ReelAction>
+                      <ReelAction onClick={() => handleDeleteComment(comment.id)}>Delete</ReelAction>
+                    </>
+                  )}
+                </div>
+                {commentLikeCounts[comment.id] > 0 && <ConsoleDataRow label="Likes" value={Math.floor(commentLikeCounts[comment.id])} />}
+              </article>
+            ))}
+          </div>
+          {hasMoreComments && <ReelAction onClick={loadMoreComments} disabled={loadingMoreComments}>{loadingMoreComments ? 'Loading' : 'Load More Comments'}</ReelAction>}
+          {commentMediaUrl && (
+            <>
+              <img src={commentMediaUrl} className={styles.media} alt="Selected Comment Attachment" />
+              <ConsoleCopy>{commentMediaType === 'gif' ? 'GIF Attached' : 'Image Attached'}</ConsoleCopy>
+              <ReelAction onClick={() => { setCommentMediaUrl(null); setCommentMediaType(null); }}>Remove Attachment</ReelAction>
+            </>
+          )}
+          {showGifPicker && <GiphyPicker onSelect={(gif) => { setCommentMediaUrl(gif.images?.fixed_height?.url || gif.url || gif); setCommentMediaType('gif'); setShowGifPicker(false); }} />}
+          {replyTo && (
+            <>
+              <ConsoleCopy>Replying To @{replyTo.username}</ConsoleCopy>
+              <ReelAction onClick={() => { setReplyTo(null); setCommentText(''); }}>Cancel Reply</ReelAction>
+            </>
+          )}
+          <div className={styles.actions}>
+            <ReelAction aria-pressed={showGifPicker} onClick={() => setShowGifPicker((previous) => !previous)}>GIF</ReelAction>
+            <ReelAction onClick={() => commentFileInputRef.current?.click()} disabled={uploadingImage}>{uploadingImage ? 'Uploading' : 'Image'}</ReelAction>
+          </div>
+          <input ref={commentFileInputRef} type="file" accept="image/*" hidden onChange={(event) => { if (event.target.files?.[0]) handleCommentImageUpload(event.target.files[0]); event.target.value = ''; }} />
+          <label className={styles.fieldLabel} htmlFor="reel-comment-text">Your Comment</label>
+          <input id="reel-comment-text" className={styles.field} value={commentText} maxLength={COMMENT_MAX_LENGTH}
+            onChange={(event) => { if (event.target.value.length <= COMMENT_MAX_LENGTH) setCommentText(event.target.value); }}
+            onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submitComment(); } }}
+            placeholder="Add A Comment..." />
+          <ConsoleDataRow label="Characters" value={`${commentText.length} / ${COMMENT_MAX_LENGTH}`} />
+          {errorToast && <p role="alert" className={`${styles.status} ${styles.error}`}>{consoleText(errorToast)}</p>}
+        </ReelsConsoleDialog>
+      )}
+
+      {showReportModal && (
+        <ReelsConsoleDialog title={reportSubmitted ? 'Report Submitted' : 'Report This Reel'}
+          onClose={() => { setShowReportModal(false); setReportReason(''); setReportSubmitted(false); }}
+          primary={reportSubmitted ? undefined : { label: 'Submit Report', onClick: handleReport, disabled: !reportReason, ink: 'red' }}>
+          {reportSubmitted ? <ConsoleCopy align="center">Thank You. We Will Review This Content.</ConsoleCopy> : (
+            <>
+              <ConsoleCopy>Why Are You Reporting This Content?</ConsoleCopy>
+              {['Inappropriate Content', 'Spam Or Scam', 'Harassment', 'Misinformation', 'Other'].map((reason) => (
+                <ReelAction key={reason} onClick={() => setReportReason(reason)} aria-pressed={reportReason === reason}>{reason}</ReelAction>
+              ))}
+            </>
+          )}
+          {errorToast && <p role="alert" className={`${styles.status} ${styles.error}`}>{consoleText(errorToast)}</p>}
+        </ReelsConsoleDialog>
+      )}
+
+      {ttsOverlay && (
+        <ReelsConsoleDialog title="Train This Spot" onClose={() => setTtsOverlay(null)}
+          primary={{ label: 'Open Audited Hand Review', onClick: () => { setTtsOverlay(null); router.push('/hub/training/hand-history-upload?source=reels'); } }}>
+          {(videoId || currentReel?.thumbnail_url) && <img src={videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : currentReel.thumbnail_url} className={styles.media} alt="Training Source Reel" />}
+          <p className={styles.copy}>{ttsOverlay.ctx.title || 'Poker Reel'}</p>
+          <ConsoleCopy>AI-Matched Drills For This Reel</ConsoleCopy>
+          {ttsOverlay.games.map((game, index) => (
+            <div key={game.id} className={styles.comment}>
+              <ConsoleDataRow label={index === 0 ? 'Best Match' : `Match ${index + 1}`} value={consoleText(game.name)} />
+              <p className={`${styles.copy} ${styles.muted}`}>{consoleText(game.focus)} / {Math.floor(Math.min(game.difficulty || 1, 5))} Of 5 Difficulty</p>
+              <ReelAction onClick={() => { setTtsOverlay(null); router.push(`/hub/training?autoLaunch=${game.id}`); }}>Start Drill</ReelAction>
+            </div>
+          ))}
+          <ReelAction onClick={() => { setTtsOverlay(null); router.push('/hub/training'); }}>Browse All 100 Training Games</ReelAction>
+        </ReelsConsoleDialog>
+      )}
       {/* Server rendered: measured on production this page returned
-          almost nothing to a crawler (AEO phase 3, 2026-09-17). */}
-      <HubPageSummary page="reels" as="h1" />
+          almost nothing to a crawler (AEO phase 3, 2026-09-17). The viewer
+          console title is the page h1, so this heading stays an h2. */}
+      <HubPageSummary page="reels" />
     </>
   );
 }
