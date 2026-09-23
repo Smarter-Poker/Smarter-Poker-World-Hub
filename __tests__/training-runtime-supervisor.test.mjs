@@ -165,6 +165,7 @@ test('package exposes the supervised runtime audit as a permanent entrypoint', (
     'training-solutions-v2-authority',
     'training-solver-contract',
     'training-solver-row-identity',
+    'training-solver-scoped-protocol-custody',
     'training-solver-worker-ingestion',
     'training-spot-study-authority',
     'training-spot-trainer-launcher-authority',
