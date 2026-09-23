@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 import { TextDecoder } from 'node:util';
-import { createContext, SourceTextModule, SyntheticModule } from 'node:vm';
+import { createContext, runInNewContext, SourceTextModule, SyntheticModule } from 'node:vm';
 
 import {
   decodeSolverWorkerSecret,
@@ -30,8 +30,111 @@ const BOUNDED_CANARY_MIGRATION_SOURCE = fs.readFileSync(
   'supabase/migrations/20260910120000_training_solver_bounded_canary_authority.sql',
   'utf8',
 );
+const OPERATION_SCOPE_MIGRATION_SOURCE = fs.readFileSync(
+  'supabase/migrations/20260913170000_training_solver_operation_scope_binding.sql',
+  'utf8',
+);
 const M1_SECRET_HEX = '1'.repeat(64);
 const M2_SECRET_HEX = '2'.repeat(64);
+const CATALOG_VERIFIER = fs.readFileSync('scripts/verify-training-solver-catalog-postgres.mjs', 'utf8');
+
+function receiptLockHarness() {
+  const start = CATALOG_VERIFIER.indexOf('async function withStaleReceiptLock(');
+  const end = CATALOG_VERIFIER.indexOf('\nfunction resolvePostgresBin()', start);
+  assert.ok(start >= 0 && end > start, 'receipt lock must have an explicit owner');
+  let child;
+  const hold = runInNewContext(`(${CATALOG_VERIFIER.slice(start, end)})`, {
+    ROOT: process.cwd(), process, setTimeout, clearTimeout,
+    spawn: (...args) => { child = spawn(...args); return child; },
+  });
+  return { hold, child: () => child };
+}
+
+const RECEIPT_LOCK_CLIENT = String.raw`
+  let input = '';
+  let ready = false;
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => {
+    input += chunk;
+    if (!ready && input.includes('\\echo stale-receipt-lock-held')) {
+      if (!input.includes("md5('stale-receipt-1')::uuid") || !input.includes('FOR UPDATE')) process.exit(2);
+      ready = true;
+      process.stdout.write('stale-receipt-lock-held\n');
+    }
+    if (input.includes('ROLLBACK;')) process.exit(ready ? 0 : 3);
+  });
+`;
+
+test('retention verifier holds the identified row until cleanup and reaps its client', async () => {
+  const harness = receiptLockHarness();
+  const result = await harness.hold(process.execPath, ['-e', RECEIPT_LOCK_CLIENT], async () => {
+    assert.equal(harness.child().exitCode, null);
+    return 'cleanup completed';
+  });
+  assert.equal(result, 'cleanup completed');
+  assert.equal(harness.child().exitCode, 0);
+});
+
+test('retention verifier releases and reaps the holder when cleanup fails', async () => {
+  const harness = receiptLockHarness();
+  await assert.rejects(harness.hold(process.execPath, ['-e', RECEIPT_LOCK_CLIENT], async () => {
+    throw new Error('cleanup assertion failed');
+  }), /cleanup assertion failed/);
+  assert.equal(harness.child().exitCode, 0);
+});
+
+test('retention verifier refuses a holder that exits before lock readiness', async () => {
+  const harness = receiptLockHarness();
+  let cleanupRan = false;
+  await assert.rejects(harness.hold(process.execPath, ['-e', 'process.exit(7)'], async () => {
+    cleanupRan = true;
+  }), /Stale receipt locker exited/);
+  assert.equal(cleanupRan, false);
+  assert.equal(harness.child().exitCode, 7);
+});
+
+test('retention verifier refuses successful holder exit before explicit release', async () => {
+  const harness = receiptLockHarness();
+  await assert.rejects(harness.hold(process.execPath, ['-e', String.raw`
+    process.stdout.write('stale-receipt-lock-held\n', () => process.exit(0));
+  `], async () => {
+    await new Promise((resolve) => harness.child().once('close', resolve));
+  }), /Stale receipt locker exited/);
+  assert.equal(harness.child().exitCode, 0);
+});
+
+test('retention verifier measures DB lock truth rather than delayed holder retirement', async () => {
+  const start = CATALOG_VERIFIER.search(/  \/\/ (?:Hold the oldest receipt row|Prove an actual row lock)/);
+  const end = CATALOG_VERIFIER.indexOf('\n  // Force the ON CONFLICT branch', start);
+  assert.ok(start >= 0 && end > start);
+  let clock = 0;
+  let releaseOldHolder;
+  let cleanupSql;
+  await runInNewContext(`(async () => {${CATALOG_VERIFIER.slice(start, end)}\n})()`, {
+    connection: [], tool: () => 'psql', Date: { now: () => clock },
+    setTimeout: (callback, delay) => { clock += delay; callback(); },
+    withStaleReceiptLock: async (_binary, _args, cleanup) => {
+      const result = await cleanup();
+      clock += 2_300; // Slow holder retirement must not become cleanup latency.
+      return result;
+    },
+    commandAsync: async (_binary, _args, { input }) => {
+      if (input.includes('pg_sleep(2)')) {
+        return new Promise((resolve) => {
+          releaseOldHolder = () => { clock += 2_300; resolve({ stdout: '' }); };
+        });
+      }
+      cleanupSql = input;
+      if (releaseOldHolder) releaseOldHolder();
+      return { stdout: input.includes('held_row_proof') ? 'SET\nDO\nt\nDO\nt\n' : 'SET\nt\n' };
+    },
+  });
+  assert.match(cleanupSql, /SET statement_timeout = '1500ms'/);
+  assert.equal((cleanupSql.match(/FOR UPDATE NOWAIT/g) || []).length, 2);
+  assert.equal((cleanupSql.match(/WHEN lock_not_available/g) || []).length, 2);
+  assert.match(cleanupSql, /SELECT count\(\*\) = 1 FROM public\.training_solver_worker_receipts/);
+});
+
 const FORBIDDEN_WORKER_DATABASE_ENV = [
   'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_KEY',
   'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY',
@@ -54,8 +157,9 @@ function cleanWorkerEnvironment(overrides = {}) {
   return { ...environment, ...overrides };
 }
 
-function worker(machineId = 'M1') {
+function worker(machineId = 'M1', admissionMode = 'backlog') {
   return {
+    admission_mode: admissionMode,
     machine_id: machineId,
     solver_version: 'PioSOLVER 3.0',
     solver_binary_checksum: 'a'.repeat(64),
@@ -87,16 +191,18 @@ function artifact(solvedAt = new Date().toISOString()) {
 }
 
 function signedRequest(operation, payload, {
+  admissionMode = 'backlog',
   machineId = 'M1',
   nonce = randomUUID(),
+  protocol = 'smarter-poker.solver-worker.v2',
   timestamp = String(Math.floor(Date.now() / 1000)),
   secretHex = M1_SECRET_HEX,
 } = {}) {
   const envelope = {
     operation,
     payload,
-    protocol: 'smarter-poker.solver-worker.v1',
-    worker: worker(machineId),
+    protocol,
+    worker: worker(machineId, admissionMode),
   };
   const rawBody = Buffer.from(JSON.stringify(envelope));
   const bodySha256 = solverWorkerBodySha256(rawBody);
@@ -154,10 +260,11 @@ async function loadApi({ claim = true, rowStateMutator = null } = {}) {
       if (name === 'check_rate_limit_strict') {
         return boundedResult({ data: true, error: null }, observations, name);
       }
-      if (name === 'training_claim_solver_worker_request_v1') {
-        return boundedResult({ data: claim, error: null }, observations, name);
+      if (name === 'training_claim_solver_worker_request_v2') {
+        const claimed = typeof claim === 'function' ? claim(args) : claim;
+        return boundedResult({ data: claimed, error: null }, observations, name);
       }
-      if (name === 'training_ingest_solver_artifact_v1') {
+      if (name === 'training_ingest_solver_artifact_v2') {
         return boundedResult({
           data: [{
             artifact_id: args.p_artifact.id,
@@ -168,7 +275,7 @@ async function loadApi({ claim = true, rowStateMutator = null } = {}) {
           error: null,
         }, observations, name);
       }
-      if (name === 'training_solver_worker_row_states_v2') {
+      if (name === 'training_solver_worker_row_states_v3') {
         let rows = args.p_scenario_hashes.map((scenarioHash) => ({
           id: artifact().id,
           scenario_hash: scenarioHash,
@@ -202,11 +309,14 @@ async function loadApi({ claim = true, rowStateMutator = null } = {}) {
           error: null,
         }, observations, name);
       }
-      if (name === 'training_solver_worker_board_page_v1') {
+      if (name === 'training_solver_worker_board_page_v2') {
         return boundedResult({
           data: [{ scenario_hash: 'hu_cash_BB_100bb_Jh7d2c' }],
           error: null,
         }, observations, name);
+      }
+      if (name === 'training_solver_worker_heartbeat_v1') {
+        return boundedResult({ data: true, error: null }, observations, name);
       }
       throw new Error(`unexpected RPC ${name}`);
     },
@@ -324,7 +434,7 @@ test('Node gateway and Python worker share one byte-exact HMAC vector', () => {
 import hashlib, hmac
 body = '{"nested":{"z":-0.0,"a":1e-7},"unicode":"é😀"}'.encode('utf-8')
 digest = hashlib.sha256(body).hexdigest()
-message = '\n'.join(('smarter-poker.solver-worker.v1', 'M1', '1788750000',
+message = '\n'.join(('smarter-poker.solver-worker.v2', 'M1', '1788750000',
                      '123e4567-e89b-42d3-a456-426614174000', digest)).encode('utf-8')
 print(hmac.new(bytes.fromhex('1' * 64), message, hashlib.sha256).hexdigest())
 `], { encoding: 'utf8' }).trim();
@@ -343,7 +453,7 @@ test('signed API ingests one exact artifact only through the transactional RPC',
   assert.equal(runtime.observations.tables.length, 0, 'the API cannot patch the warehouse directly');
   assert.deepEqual(runtime.observations.rpc.map(([name]) => name), [
     'check_rate_limit_strict',
-    'training_ingest_solver_artifact_v1',
+    'training_ingest_solver_artifact_v2',
   ]);
   assert.equal(runtime.observations.abortSignals.length, 2,
     'both rate-limit and ingest persistence calls must be cancellable and bounded');
@@ -351,6 +461,7 @@ test('signed API ingests one exact artifact only through the transactional RPC',
   assert.equal(ingestArgs.p_machine_id, 'M1');
   assert.equal(ingestArgs.p_nonce, req.headers['x-sp-solver-nonce']);
   assert.equal(ingestArgs.p_body_sha256, req.headers['x-sp-solver-content-sha256']);
+  assert.equal(ingestArgs.p_expected_admission_mode, 'backlog');
   assert.equal(ingestArgs.p_artifact.id, artifact().id);
 });
 
@@ -376,6 +487,26 @@ test('tampering and unsealed ICM fail before any database call', async () => {
   );
   assert.equal(icmResponse.statusCode, 400);
   assert.equal(icmRuntime.observations.rpc.length, 0);
+
+  const v1Runtime = await loadApi();
+  const v1Response = response();
+  await v1Runtime.handler(signedRequest('heartbeat', {
+    bad: 0, board: '', note: 'legacy', phase: 'legacy',
+    rows_written: 0, spots_done: 0,
+  }, { protocol: 'smarter-poker.solver-worker.v1' }), v1Response);
+  assert.equal(v1Response.statusCode, 400);
+  assert.equal(v1Runtime.observations.rpc.length, 0,
+    'wire-incompatible v1 envelopes must fail before any database operation');
+
+  const overflowRuntime = await loadApi();
+  const overflowResponse = response();
+  await overflowRuntime.handler(signedRequest('heartbeat', {
+    bad: 0, board: '', note: 'overflow', phase: 'overflow',
+    rows_written: 2_147_483_648, spots_done: 0,
+  }), overflowResponse);
+  assert.equal(overflowResponse.statusCode, 400);
+  assert.equal(overflowRuntime.observations.rpc.length, 0,
+    'heartbeat counters outside the production integer schema must fail before persistence');
 });
 
 test('metadata reads consume a durable nonce and remain keyset/row bounded', async () => {
@@ -392,8 +523,8 @@ test('metadata reads consume a durable nonce and remain keyset/row bounded', asy
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
   assert.deepEqual(runtime.observations.rpc.map(([name]) => name), [
     'check_rate_limit_strict',
-    'training_claim_solver_worker_request_v1',
-    'training_solver_worker_board_page_v1',
+    'training_claim_solver_worker_request_v2',
+    'training_solver_worker_board_page_v2',
   ]);
   assert.equal(runtime.observations.tables.length, 0,
     'board discovery must not grant the service key raw warehouse access');
@@ -426,8 +557,8 @@ test('metadata reads consume a durable nonce and remain keyset/row bounded', asy
   assert.equal(rowResponse.body.rows[0].hero_position, 'BB');
   assert.deepEqual(rowRuntime.observations.rpc.map(([name]) => name), [
     'check_rate_limit_strict',
-    'training_claim_solver_worker_request_v1',
-    'training_solver_worker_row_states_v2',
+    'training_claim_solver_worker_request_v2',
+    'training_solver_worker_row_states_v3',
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(rowRuntime.observations.rpc[2][1])), {
     p_machine_id: 'M1',
@@ -436,6 +567,7 @@ test('metadata reads consume a durable nonce and remain keyset/row bounded', asy
     p_pipeline_commit: 'b'.repeat(40),
     p_manifest_version: 'training-v2',
     p_manifest_checksum: 'c'.repeat(64),
+    p_expected_admission_mode: 'backlog',
     p_scenario_hashes: ['hu_cash_BB_100bb_Jh7d2c'],
   });
   assert.equal(rowRuntime.observations.tables.length, 0,
@@ -450,6 +582,56 @@ test('metadata reads consume a durable nonce and remain keyset/row bounded', asy
   assert.equal(replayResponse.statusCode, 409);
   assert.equal(replayRuntime.observations.tables.length, 0,
     'a consumed nonce cannot execute its metadata operation again');
+});
+
+test('signed execution mode is bound to active server scope before work is returned', async () => {
+  const backlogOnly = (args) => args.p_expected_admission_mode === 'backlog';
+  const runtime = await loadApi({ claim: backlogOnly });
+  const res = response();
+  await runtime.handler(signedRequest('heartbeat', {
+    bad: 0, board: '', note: 'preflight', phase: 'preflight',
+    rows_written: 0, spots_done: 0,
+  }, { admissionMode: 'bounded_canary' }), res);
+  assert.equal(res.statusCode, 409);
+  const claimArgs = runtime.observations.rpc.find(
+    ([name]) => name === 'training_claim_solver_worker_request_v2',
+  )[1];
+  assert.equal(claimArgs.p_expected_admission_mode, 'bounded_canary');
+  assert.equal(runtime.observations.rpc.some(
+    ([name]) => name === 'training_solver_worker_board_page_v2',
+  ), false);
+
+  const boardRuntime = await loadApi({ claim: () => false });
+  const boardResponse = response();
+  await boardRuntime.handler(signedRequest('board_page', {
+    after_scenario: null, game_type: 'hu_cash', limit: 1,
+    position: 'BB', stack_depth: 100, street: 'flop',
+  }, { admissionMode: 'bounded_canary' }), boardResponse);
+  assert.equal(boardResponse.statusCode, 409);
+  assert.equal(boardRuntime.observations.rpc.some(
+    ([name]) => name === 'training_solver_worker_board_page_v2',
+  ), false);
+});
+
+test('heartbeat status mutation uses the same scoped identity after its nonce claim', async () => {
+  const runtime = await loadApi();
+  const res = response();
+  await runtime.handler(signedRequest('heartbeat', {
+    bad: 0, board: '', note: 'preflight', phase: 'preflight',
+    rows_written: 0, spots_done: 0,
+  }), res);
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.deepEqual(runtime.observations.rpc.map(([name]) => name), [
+    'check_rate_limit_strict',
+    'training_claim_solver_worker_request_v2',
+    'training_solver_worker_heartbeat_v1',
+  ]);
+  const heartbeatArgs = runtime.observations.rpc[2][1];
+  assert.equal(heartbeatArgs.p_machine_id, 'M1');
+  assert.equal(heartbeatArgs.p_expected_admission_mode, 'backlog');
+  assert.equal(heartbeatArgs.p_phase, 'preflight');
+  assert.equal(runtime.observations.tables.length, 0,
+    'worker heartbeat must not write solver_status outside the scoped RPC');
 });
 
 test('caller-bound canary row-state proof fails closed on an invalid partition', async () => {
@@ -468,7 +650,7 @@ test('caller-bound canary row-state proof fails closed on an invalid partition',
   const res = response();
   await runtime.handler(signedRequest('row_states', {
     scenario_hashes: ['hu_cash_BB_100bb_Jh7d2c'],
-  }), res);
+  }, { admissionMode: 'bounded_canary' }), res);
   assert.equal(res.statusCode, 503);
   assert.deepEqual(JSON.parse(JSON.stringify(res.body)), {
     success: false,
@@ -491,8 +673,9 @@ test('worker transport is redirect-proof, service-key-free, bounded, and index-g
   assert.doesNotMatch(ORCHESTRATOR_SOURCE, /Authorization.*Bearer/);
   assert.match(API_SOURCE, /const DB_OPERATION_TIMEOUT_MS = 12_000/);
   assert.equal((API_SOURCE.match(/executeBoundedDatabaseOperation\(/g) || []).length >= 7, true);
-  assert.match(API_SOURCE, /training_solver_worker_row_states_v2/);
-  assert.match(API_SOURCE, /training_solver_worker_board_page_v1/);
+  assert.match(API_SOURCE, /training_solver_worker_row_states_v3/);
+  assert.match(API_SOURCE, /training_solver_worker_board_page_v2/);
+  assert.match(API_SOURCE, /training_solver_worker_heartbeat_v1/);
   assert.doesNotMatch(API_SOURCE, /\.from\('solved_spots_gold'\)/);
   assert.match(WORKER_MIGRATION_SOURCE,
     /ARRAY\['game_type', 'stack_depth', 'street', 'scenario_hash'\]::text\[\]/);
@@ -600,6 +783,38 @@ test('worker transport is redirect-proof, service-key-free, bounded, and index-g
     /REVOKE ALL ON FUNCTION public\.training_ingest_solver_artifact_unscoped_v1[\s\S]*service_role/);
   assert.doesNotMatch(BOUNDED_CANARY_MIGRATION_SOURCE,
     /(?:eyJ[a-zA-Z0-9_-]{20,}|sb_secret_[a-zA-Z0-9_-]{20,})/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /CREATE OR REPLACE FUNCTION public\.training_claim_solver_worker_request_v2/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /scope\.admission_mode = p_expected_admission_mode/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /p_expected_admission_mode = 'bounded_canary'[\s\S]*p_operation = 'board_page'/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /CREATE OR REPLACE FUNCTION public\.training_ingest_solver_artifact_v2/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /CREATE OR REPLACE FUNCTION public\.training_solver_worker_board_page_v2/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /CREATE OR REPLACE FUNCTION public\.training_solver_worker_row_states_v3/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /SOLVER_WORKER_CANARY_ROW_STATES_NOT_AUTHORIZED/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /CREATE OR REPLACE FUNCTION public\.training_solver_worker_heartbeat_v1/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /TRAINING_SOLVER_STATUS_CONTRACT_INCOMPLETE/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /SOLVER_WORKER_ROW_STATES_PAYLOAD_INVALID/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /REVOKE ALL ON TABLE public\.solver_status/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /SOLVER_WORKER_BOARD_PAGE_REQUIRES_BACKLOG/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /REVOKE ALL ON FUNCTION public\.training_claim_solver_worker_request_v1[\s\S]*FROM service_role/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /REVOKE ALL ON FUNCTION public\.training_ingest_solver_artifact_v1[\s\S]*FROM service_role/);
+  assert.match(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /REVOKE ALL ON FUNCTION public\.training_solver_worker_board_page_v1[\s\S]*FROM service_role/);
+  assert.doesNotMatch(OPERATION_SCOPE_MIGRATION_SOURCE,
+    /(?:eyJ[a-zA-Z0-9_-]{20,}|sb_secret_[a-zA-Z0-9_-]{20,})/);
 });
 
 test('legacy service-role worker configuration aborts before transport or solver work', () => {
@@ -677,6 +892,7 @@ manifest = {
     'artifact_combo_order': worker.h.COMBO_ORDER,
     'source_combo_order_schema': worker.h.SOURCE_COMBO_ORDER_SCHEMA,
     'source_combo_order_sha256': '1' * 64,
+    'execution_scope': worker.EXECUTION_SCOPE_BACKLOG,
     'release_gate': {'solver_ready': True}, 'phases': phases,
     'phase_contracts_schema': worker.PHASE_CONTRACT_SCHEMA,
     'phase_contracts': phase_contracts,

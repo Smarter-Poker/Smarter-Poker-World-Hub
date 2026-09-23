@@ -18,7 +18,7 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 144,
+    "tests": 145,
     "markerCandidates": 329,
     "possibleUnwiredFunctions": 375,
     "routeStateCells": 752,
@@ -22062,10 +22062,10 @@
       "persistenceWrites": {
         "localStorage": 0,
         "sessionStorage": 0,
-        "inserts": 1,
+        "inserts": 0,
         "updates": 0,
         "deletes": 0,
-        "rpc": 5
+        "rpc": 6
       },
       "realtime": {
         "channels": 0,
@@ -22148,7 +22148,7 @@
         },
         {
           "name": "operationPayloadIsValid",
-          "line": 186,
+          "line": 188,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22156,7 +22156,7 @@
         },
         {
           "name": "rpcIdentity",
-          "line": 194,
+          "line": 196,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -22164,7 +22164,7 @@
         },
         {
           "name": "executeBoundedDatabaseOperation",
-          "line": 208,
+          "line": 211,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -22172,7 +22172,7 @@
         },
         {
           "name": "enforceDurableWorkerRateLimit",
-          "line": 221,
+          "line": 224,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22180,7 +22180,7 @@
         },
         {
           "name": "claimRequest",
-          "line": 243,
+          "line": 246,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22188,7 +22188,7 @@
         },
         {
           "name": "ingestArtifact",
-          "line": 253,
+          "line": 256,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22196,7 +22196,7 @@
         },
         {
           "name": "rowStates",
-          "line": 270,
+          "line": 273,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22204,7 +22204,7 @@
         },
         {
           "name": "boardPage",
-          "line": 343,
+          "line": 348,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -22212,15 +22212,15 @@
         },
         {
           "name": "heartbeat",
-          "line": 368,
-          "references": 3,
+          "line": 380,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "handler",
-          "line": 383,
+          "line": 401,
           "references": 1,
           "exported": true,
           "defaultExport": true,
@@ -55075,7 +55075,7 @@
       "functions": [
         {
           "name": "solverWorkerSecretEnvName",
-          "line": 17,
+          "line": 19,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -55083,7 +55083,7 @@
         },
         {
           "name": "decodeSolverWorkerSecret",
-          "line": 21,
+          "line": 23,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55091,7 +55091,7 @@
         },
         {
           "name": "solverWorkerBodySha256",
-          "line": 35,
+          "line": 37,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55099,7 +55099,7 @@
         },
         {
           "name": "solverWorkerSignatureMessage",
-          "line": 39,
+          "line": 41,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55107,7 +55107,7 @@
         },
         {
           "name": "signSolverWorkerRequest",
-          "line": 43,
+          "line": 45,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55115,7 +55115,7 @@
         },
         {
           "name": "safeHexEqual",
-          "line": 49,
+          "line": 51,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -55123,7 +55123,7 @@
         },
         {
           "name": "verifySolverWorkerRequest",
-          "line": 54,
+          "line": 56,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55131,7 +55131,7 @@
         },
         {
           "name": "solverWorkerEnvelopeIsValid",
-          "line": 91,
+          "line": 93,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -62169,6 +62169,7 @@
     "__tests__/training-solver-bounded-canary.test.mjs",
     "__tests__/training-solver-contract.test.mjs",
     "__tests__/training-solver-row-identity.test.mjs",
+    "__tests__/training-solver-scoped-protocol-custody.test.mjs",
     "__tests__/training-solver-worker-ingestion.test.mjs",
     "__tests__/training-specialty-pages-phase-7.test.mjs",
     "__tests__/training-spot-study-authority.test.mjs",
@@ -62361,10 +62362,10 @@
       "writes": {
         "localStorage": 0,
         "sessionStorage": 0,
-        "inserts": 1,
+        "inserts": 0,
         "updates": 0,
         "deletes": 0,
-        "rpc": 5
+        "rpc": 6
       }
     },
     {
@@ -69704,10 +69705,10 @@
           "writes": {
             "localStorage": 0,
             "sessionStorage": 0,
-            "inserts": 1,
+            "inserts": 0,
             "updates": 0,
             "deletes": 0,
-            "rpc": 5
+            "rpc": 6
           }
         },
         {
@@ -69735,6 +69736,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-solver-scoped-protocol-custody.test.mjs",
         "__tests__/training-solver-worker-ingestion.test.mjs"
       ]
     },
@@ -84159,6 +84161,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-solver-scoped-protocol-custody.test.mjs",
         "__tests__/training-solver-worker-ingestion.test.mjs"
       ]
     },
@@ -88325,7 +88328,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 383,
+        "line": 401,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -92864,7 +92867,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "decodeSolverWorkerSecret",
-        "line": 21,
+        "line": 23,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92880,7 +92883,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "verifySolverWorkerRequest",
-        "line": 54,
+        "line": 56,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92896,7 +92899,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "solverWorkerEnvelopeIsValid",
-        "line": 91,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92905,6 +92908,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/training-solver-scoped-protocol-custody.test.mjs",
           "__tests__/training-solver-worker-ingestion.test.mjs",
           "pages/api/training/solver-worker.js"
         ]
@@ -97251,7 +97255,7 @@
       {
         "file": "pages/api/training/solver-worker.js",
         "name": "handler",
-        "line": 383,
+        "line": 401,
         "references": 1,
         "exported": true,
         "defaultExport": true,
@@ -101790,7 +101794,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "decodeSolverWorkerSecret",
-        "line": 21,
+        "line": 23,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101806,7 +101810,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "verifySolverWorkerRequest",
-        "line": 54,
+        "line": 56,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101822,7 +101826,7 @@
       {
         "file": "src/lib/training/solverWorkerAuth.mjs",
         "name": "solverWorkerEnvelopeIsValid",
-        "line": 91,
+        "line": 93,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101831,6 +101835,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/training-solver-scoped-protocol-custody.test.mjs",
           "__tests__/training-solver-worker-ingestion.test.mjs",
           "pages/api/training/solver-worker.js"
         ]
