@@ -16,6 +16,11 @@ import {
   TRAINING_ATTESTATION_CONTINUATION_SELECTION_RULE,
   validateTrainingAttestationContinuationPrecommit,
 } from '../src/lib/training/trainingAttestationContinuationContract.mjs';
+import {
+  createTrainingAttestationCohortCollector,
+  logTrainingAttestationCohortStage,
+  TRAINING_ATTESTATION_COHORT_LOG_PREFIX,
+} from '../src/lib/training/trainingAttestationCohortDiagnostics.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const nodeRequire = createRequire(import.meta.url);
@@ -83,6 +88,7 @@ function createHarness({
     cacheReads: 0,
     generateBatchCalls: [],
     continuationParentCalls: [],
+    cohortDiagnostics: [],
   };
 
   const db = {
@@ -257,6 +263,15 @@ function createHarness({
     },
     '../../../src/lib/training/trainingAttestationContinuationContract.mjs': {
       validateTrainingAttestationContinuationPrecommit,
+    },
+    // Real server-only diagnostics; the harness captures the log line so a
+    // test can prove the public body never varies while the stage does.
+    '../../../src/lib/training/trainingAttestationCohortDiagnostics.mjs': {
+      createTrainingAttestationCohortCollector,
+      logTrainingAttestationCohortStage: (input) => logTrainingAttestationCohortStage(
+        input,
+        (prefix, json) => captured.cohortDiagnostics.push({ prefix, record: JSON.parse(json) }),
+      ),
     },
     '../../../src/lib/training/trainingContinuationEligibility.mjs': {
       selectPublicAttestationContinuationAnswerForStrictParent: (question) => (
@@ -511,6 +526,27 @@ test('public continuation rule selects only visible three-quarter-pot aggression
   assert.equal(selectPublicAttestationContinuationAnswer({
     options: [{ id: 'grouped_small' }, { id: 'grouped_overbet' }],
   }), null);
+  // The canonical tree never bets an exact 75%: b412 into 550 chips is
+  // 74.909%, served as `bet_74_91pct` / "Bet 74.9% Pot". The public rule
+  // shares the canonical +/-0.03 band and fails closed on two in-band sizes.
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet_33_09pct', text: 'Bet 33.1% Pot' },
+      { id: 'bet_74_91pct', text: 'Bet 74.9% Pot' },
+      { id: 'bet_125_09pct', text: 'Bet 125.1% Pot' },
+    ],
+  }), 'bet_74_91pct');
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [
+      { id: 'check', text: 'Check' },
+      { id: 'bet_73pct', text: 'Bet 73% Pot' },
+      { id: 'bet_77pct', text: 'Bet 77% Pot' },
+    ],
+  }), null);
+  assert.equal(selectPublicAttestationContinuationAnswer({
+    options: [{ id: 'check', text: 'Check' }, { id: 'bet_71pct', text: 'Bet 71% Pot' }],
+  }), null);
 });
 
 test('non-designated accounts receive 403 before the audit cohort reads or writes data', async () => {
@@ -555,14 +591,30 @@ test('every pre-cohort attestation shortage uses the exact unavailable contract 
     }),
   ];
 
-  for (const harness of cases) {
+  const expectedStages = [
+    'no_candidate_questions',
+    'configured_candidate_shortfall',
+    'canonical_pair_shortfall',
+  ];
+  const bodies = [];
+  for (const [index, harness] of cases.entries()) {
     const response = await invoke(harness, { query, auditUserId });
     assert.equal(response.statusCode, 422);
     assert.equal(response.body.code, 'TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE');
     assert.equal(harness.captured.persistedRows.length, 0);
     assert.equal(harness.captured.servedReceipts.length, 0);
     assert.equal(harness.captured.deliveredQuestions.length, 0);
+    bodies.push(response.body);
+    // The public body is identical for every branch; only the server log
+    // says which stage refused, and it carries counts rather than content.
+    assert.equal(harness.captured.cohortDiagnostics.length, 1, JSON.stringify(harness.captured.cohortDiagnostics));
+    const [{ prefix, record }] = harness.captured.cohortDiagnostics;
+    assert.equal(prefix, TRAINING_ATTESTATION_COHORT_LOG_PREFIX);
+    assert.equal(record.stage, expectedStages[index]);
+    assert.equal(record.questionCount, 20);
+    assert.doesNotMatch(JSON.stringify(record), /solver-catalog-parent|cache-question|"answers?"|"options?"/);
   }
+  assert.equal(new Set(bodies.map((body) => JSON.stringify(body))).size, 1);
 });
 
 test('an unavailable attestation cohort returns the exact 422 before every write', async () => {
@@ -586,9 +638,16 @@ test('an unavailable attestation cohort returns the exact 422 before every write
   assert.equal(harness.captured.continuationParentCalls[0].count, 25);
   assert.equal(typeof harness.captured.continuationParentCalls[0].acceptQuestion, 'function');
   assert.equal(harness.captured.cohortCalls.length, 1);
+  assert.equal(harness.captured.cohortCalls[0].collector?.summary().candidates, 0,
+    'the route hands the selector a rejection collector');
   assert.equal(harness.captured.persistedRows.length, 0);
   assert.equal(harness.captured.servedReceipts.length, 0);
   assert.equal(harness.captured.deliveredQuestions.length, 0);
+  assert.deepEqual(
+    harness.captured.cohortDiagnostics.map(({ record }) => record.stage),
+    ['cohort_unavailable'],
+  );
+  assert.equal(harness.captured.cohortDiagnostics[0].record.canonicalPairs, 100);
 });
 
 test('a warm cache cannot starve a bounded solver-catalog parent from the sealed cohort', async () => {

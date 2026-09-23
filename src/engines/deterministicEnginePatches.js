@@ -185,6 +185,17 @@ async function fetchExactAdmittedArtifact(db, {
     return data[0];
 }
 
+/**
+ * Heads-up families (`hu_cash`, `mtt_hu_chipev`, `spin_hu_chipev`) seat the
+ * button as the in-position player on every postflop street, so their only
+ * possible continuation parent hero seat is BTN. Multiway families leave the
+ * in-position seat to the row's own `ip_player`, which the catalog RPC cannot
+ * filter on; they are scanned without a seat filter.
+ */
+export function headsUpInPositionSeat(gameType) {
+    return /(?:^|_)hu(?:_|$)/.test(String(gameType || '')) ? 'BTN' : null;
+}
+
 function exactContinuationScenarioHash(street, gameType, heroPosition, stackDepth, boardCards) {
     const prefix = street === 'flop' ? '' : `${street}_`;
     return `${prefix}${gameType}_${heroPosition}_${stackDepth}bb_${boardCards.join('')}`;
@@ -362,7 +373,13 @@ function stampSolverProvenance(question, row) {
         question.explanation = `Verified ${row.solver_version} export for ${row.scenario_hash}. Recorded action frequencies: ${mix}.`;
         question.evidenceDisclosure = 'Provenance-sealed PioSOLVER export; frequencies are exact for this recorded node. Per-action EV is not available.';
     }
-    return enforceSolverClaimHonesty(question);
+    // Solver-claim honesty is enforced AFTER the canonical policy is attached
+    // (see attachCanonicalPolicy). Since 2026-09-07 `isVerifiedSolverQuestion`
+    // is a projection of the canonical policy envelope, so running the
+    // enforcement here, before that envelope exists, downgraded every
+    // provenance-complete row to `verified: false` / LEGACY_STRATEGY_ARCHIVE
+    // and made the exact continuation contract unreachable in production.
+    return question;
 }
 
 function canonicalRangeActionSignature(action) {
@@ -670,6 +687,11 @@ export function applyDeterministicEnginePatches(engine) {
                     game_type: gameConfig.pioGameType,
                     stack_depth: stackDepth,
                 }],
+                // The catalog is paged by artifact UUID with a bounded page
+                // budget. A continuation parent must have hero in position, so
+                // for a heads-up family the out-of-position (BB) half of the
+                // catalog can never qualify and must not consume that budget.
+                position: headsUpInPositionSeat(gameConfig.pioGameType),
                 street: requestedStreet,
                 limit: wanted,
                 accept: (row) => {
@@ -693,7 +715,14 @@ export function applyDeterministicEnginePatches(engine) {
                     return false;
                 },
             });
-            if (!Array.isArray(rows)) return [];
+            if (!Array.isArray(rows)) {
+                // `null` is the catalog contract failing closed (RPC error,
+                // malformed page, cursor regression, or an unsealed row). The
+                // route reports the resulting empty cohort; say why here so an
+                // empty catalog and a refused catalog stay distinguishable.
+                console.warn('[EnginePatches] continuation parent catalog query failed closed: no admitted candidate page was accepted');
+                return [];
+            }
             return rows
                 .map((row) => acceptedQuestionByArtifactId.get(row.id))
                 .filter(Boolean)
@@ -808,10 +837,16 @@ export function applyDeterministicEnginePatches(engine) {
                     stamped,
                 );
                 if (!policy || policy.kind === 'unavailable') return null;
-                return synchronizeCanonicalPolicyQuestion(this.solverPolicyService.attachToQuestion({
-                    ...stamped,
-                    solverPolicy: policy,
-                }, 'get-question'));
+                // The honesty boundary reads the finished canonical envelope: a
+                // sealed row keeps its verified provenance, while anything the
+                // policy service could not classify as solver evidence is
+                // disclosed as a legacy archive before it can leave the engine.
+                return enforceSolverClaimHonesty(synchronizeCanonicalPolicyQuestion(
+                    this.solverPolicyService.attachToQuestion({
+                        ...stamped,
+                        solverPolicy: policy,
+                    }, 'get-question'),
+                ));
             };
 
             if (forcedHand) {
