@@ -40,6 +40,48 @@
 /** Categories this storefront can sell today, mirroring the create control. */
 export const CLUB_SHOP_EDITABLE_CATEGORIES = Object.freeze(['Time Banks']);
 
+/**
+ * THE ONE PLATFORM-MANAGED ROW.
+ *
+ * `enforceAllThrowablesMutation` on /api/club-arena/manage-shop refuses the
+ * WHOLE update when the canonical All Throwables Pack arrives with a name,
+ * description, category, image, grant quantity or per-member cap that differs
+ * from the platform constants, and its refusal names no field. Offering those
+ * controls for that row therefore sold the operator a form the server must
+ * refuse: a price change typed beside them was lost to a message nobody could
+ * act on. The editor offers only the commercial terms for this row, and the
+ * payload omits the rest. An omitted field is not a requested change, so the
+ * route normalizes it to the platform value itself.
+ */
+export const CLUB_SHOP_ALL_THROWABLES_NAME = 'All Throwables Pack (10)';
+
+/** The keys the server refuses to see changed on that one row. */
+export const CLUB_SHOP_PLATFORM_MANAGED_FIELDS = Object.freeze([
+  'name',
+  'description',
+  'category',
+  'imageUrl',
+  'grantQty',
+  'grantRef',
+  'perUserLimit',
+]);
+
+/** Whether this row is the canonical, active All Throwables Pack. */
+export function clubShopItemIsPlatformManaged(item) {
+  if (!item) return false;
+  const isThrowable =
+    String(item.category || '').toLowerCase() === 'throwables' ||
+    String(item.item_type || '').toLowerCase() === 'throwable' ||
+    item.grant_spec?.type === 'throwable';
+  return (
+    isThrowable &&
+    String(item.name || '')
+      .trim()
+      .toLowerCase() === CLUB_SHOP_ALL_THROWABLES_NAME.toLowerCase() &&
+    item.is_active === true
+  );
+}
+
 /** grant_spec.type by category, mirroring src/lib/club-arena/shopItemRules. */
 const GRANT_TYPE_BY_CATEGORY = Object.freeze({
   'Time Banks': 'time_bank',
@@ -288,6 +330,13 @@ export function buildClubShopItemUpdatePayload({ clubId, item, draft, maximumCar
   if (clubShopGrantTakesQuantity(category)) payload.grantQty = checked.grantQty;
   if (clubShopGrantTakesReference(category)) {
     payload.grantRef = String(draft.grantRef ?? '').trim();
+  }
+
+  // The platform-managed row keeps only the terms the server accepts from a
+  // club. Everything else is dropped rather than sent back unchanged, because
+  // a present-and-equal value is still a requested change to that guard.
+  if (clubShopItemIsPlatformManaged(item)) {
+    for (const key of CLUB_SHOP_PLATFORM_MANAGED_FIELDS) delete payload[key];
   }
 
   return { payload };

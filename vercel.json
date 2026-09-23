@@ -308,6 +308,23 @@
       ]
     },
     {
+      "source": "/api/store/merch-catalog",
+      "missing": [{ "type": "query", "key": "strict" }],
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
+      "source": "/api/store/readiness",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=30, stale-while-revalidate=30" },
+        { "key": "Pragma", "value": "" },
+        { "key": "Expires", "value": "" }
+      ]
+    },
+    {
       "source": "/pdfjs/(.*)",
       "headers": [
         {

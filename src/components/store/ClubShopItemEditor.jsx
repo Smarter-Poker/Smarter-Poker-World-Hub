@@ -20,9 +20,15 @@
  * sale price ends the sale, blank per-member limit removes the cap, and a blank
  * availability bound clears it. The date controls are local wall-clock and are
  * converted to a real instant before they travel.
+ *
+ * It is a real form, not a named div: Enter submits it, focus moves into it
+ * when it opens, and the page returns focus to the row's own control when it
+ * closes. The platform-managed All Throwables Pack is offered only the fields
+ * the server will accept from a club, because that guard refuses the whole
+ * update without naming a field.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import shellStyles from '../diamond-store/DiamondStoreShell.module.css';
 import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
@@ -31,6 +37,7 @@ import {
   clubShopEditableCategories,
   clubShopGrantTakesQuantity,
   clubShopGrantTakesReference,
+  clubShopItemIsPlatformManaged,
   createClubShopItemDraft,
   MAX_GRANT_QTY,
 } from '../../lib/store/clubShopItemDraft.mjs';
@@ -68,6 +75,7 @@ export default function ClubShopItemEditor({
   const itemId = item?.id || null;
   const [draft, setDraft] = useState(() => createClubShopItemDraft(item));
   const [formError, setFormError] = useState(null);
+  const formRef = useRef(null);
 
   // A different row reuses this editor; its draft must never carry over.
   useEffect(() => {
@@ -77,19 +85,30 @@ export default function ClubShopItemEditor({
     // report object would discard whatever the operator has typed since.
   }, [itemId]);
 
+  // An editor that opens under the row without taking focus leaves a keyboard
+  // or screen-reader operator with no way to know it is there.
+  useEffect(() => {
+    const first = formRef.current?.querySelector(
+      'input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
+    );
+    if (first && typeof first.focus === 'function') first.focus();
+  }, [itemId]);
+
+  const platformManaged = clubShopItemIsPlatformManaged(item);
   const categories = useMemo(
     () => clubShopEditableCategories(draft.category),
     [draft.category]
   );
-  const takesQuantity = clubShopGrantTakesQuantity(draft.category);
-  const takesReference = clubShopGrantTakesReference(draft.category);
+  const takesQuantity = !platformManaged && clubShopGrantTakesQuantity(draft.category);
+  const takesReference = !platformManaged && clubShopGrantTakesReference(draft.category);
   const field = (key) => (event) => {
     const { value } = event.target;
     setDraft((current) => ({ ...current, [key]: value }));
   };
   const locked = busy || disabled;
 
-  const submit = () => {
+  const submit = (event) => {
+    event?.preventDefault?.();
     if (locked) return;
     const built = buildClubShopItemUpdatePayload({
       clubId,
@@ -106,9 +125,10 @@ export default function ClubShopItemEditor({
   };
 
   return (
-    <div
+    <form
+      ref={formRef}
+      onSubmit={submit}
       className={shellStyles.clubAdminCreatePanel}
-      role="group"
       aria-label={`Edit ${marketplaceCopy(item?.name || 'Shop Item')}`}
       style={{
         background: 'rgba(255,255,255,0.03)',
@@ -123,17 +143,19 @@ export default function ClubShopItemEditor({
       </h4>
 
       <div className={shellStyles.controlRow} style={rowStyle}>
-        <input
-          data-preserve-case="true"
-          data-user-content="true"
-          aria-label="Item Name"
-          value={draft.name}
-          onChange={field('name')}
-          placeholder="Item Name"
-          maxLength={100}
-          disabled={locked}
-          style={{ ...fieldStyle, flex: 2 }}
-        />
+        {!platformManaged && (
+          <input
+            data-preserve-case="true"
+            data-user-content="true"
+            aria-label="Item Name"
+            value={draft.name}
+            onChange={field('name')}
+            placeholder="Item Name"
+            maxLength={100}
+            disabled={locked}
+            style={{ ...fieldStyle, flex: 2 }}
+          />
+        )}
         <input
           type="number"
           aria-label="Price In Diamonds"
@@ -148,52 +170,64 @@ export default function ClubShopItemEditor({
         />
       </div>
 
-      <div role="status" style={hintStyle}>
+      <div style={hintStyle}>
         {maximumCardFundedPrice
           ? `Current Card-Compatible Price Limit: ${maximumCardFundedPrice.toLocaleString('en-US')} Diamonds.`
           : 'Current Card Price Limit Is Unavailable. Saving Is Paused Until It Returns.'}
       </div>
 
-      <input
-        data-preserve-case="true"
-        data-user-content="true"
-        aria-label="Item Description"
-        value={draft.description}
-        onChange={field('description')}
-        placeholder="Description (Optional)"
-        maxLength={500}
-        disabled={locked}
-        style={{ ...fieldStyle, width: '100%', marginBottom: 10, boxSizing: 'border-box' }}
-      />
+      {platformManaged && (
+        <div style={hintStyle}>
+          {marketplaceCopy(item?.name || 'This Offer')} Is Platform Managed. Its Name, Description,
+          Category, Image, Uses Delivered And Max Per Member Are Fixed By Smarter.Poker, So Only Its
+          Price, Sale Price, Stock, Availability Window And Sort Order Can Be Changed Here.
+        </div>
+      )}
 
-      <div className={shellStyles.controlRow} style={rowStyle}>
-        <select
-          aria-label="Item Category"
-          value={draft.category}
-          onChange={field('category')}
-          disabled={locked}
-          style={{ ...fieldStyle, fontSize: 13, cursor: locked ? 'not-allowed' : 'pointer' }}
-        >
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+      {!platformManaged && (
         <input
           data-preserve-case="true"
           data-user-content="true"
-          aria-label="Item Image URL"
-          value={draft.imageUrl}
-          onChange={field('imageUrl')}
-          placeholder="Image URL (Https Only, Optional)"
-          inputMode="url"
-          autoCapitalize="none"
-          spellCheck={false}
+          aria-label="Item Description"
+          value={draft.description}
+          onChange={field('description')}
+          placeholder="Description (Optional)"
+          maxLength={500}
           disabled={locked}
-          style={fieldStyle}
+          style={{ ...fieldStyle, width: '100%', marginBottom: 10, boxSizing: 'border-box' }}
         />
-      </div>
+      )}
+
+      {!platformManaged && (
+        <div className={shellStyles.controlRow} style={rowStyle}>
+          <select
+            aria-label="Item Category"
+            value={draft.category}
+            onChange={field('category')}
+            disabled={locked}
+            style={{ ...fieldStyle, fontSize: 13, cursor: locked ? 'not-allowed' : 'pointer' }}
+          >
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          <input
+            data-preserve-case="true"
+            data-user-content="true"
+            aria-label="Item Image URL"
+            value={draft.imageUrl}
+            onChange={field('imageUrl')}
+            placeholder="Image URL (Https Only, Optional)"
+            inputMode="url"
+            autoCapitalize="none"
+            spellCheck={false}
+            disabled={locked}
+            style={fieldStyle}
+          />
+        </div>
+      )}
 
       {takesQuantity && (
         <div className={shellStyles.controlRow} style={rowStyle}>
@@ -268,17 +302,19 @@ export default function ClubShopItemEditor({
           disabled={locked}
           style={fieldStyle}
         />
-        <input
-          type="number"
-          aria-label="Maximum Purchases Per Member, Blank For No Cap"
-          value={draft.perUserLimit}
-          onChange={field('perUserLimit')}
-          placeholder="Max Per Member (Blank = No Cap)"
-          min="1"
-          step="1"
-          disabled={locked}
-          style={fieldStyle}
-        />
+        {!platformManaged && (
+          <input
+            type="number"
+            aria-label="Maximum Purchases Per Member, Blank For No Cap"
+            value={draft.perUserLimit}
+            onChange={field('perUserLimit')}
+            placeholder="Max Per Member (Blank = No Cap)"
+            min="1"
+            step="1"
+            disabled={locked}
+            style={fieldStyle}
+          />
+        )}
       </div>
 
       <div className={shellStyles.controlRow} style={rowStyle}>
@@ -314,7 +350,8 @@ export default function ClubShopItemEditor({
       </div>
 
       <div style={hintStyle}>
-        Stock Is A Limited Drop, Max Per Member Caps Lifetime Purchases, A Sale Price Is What Is
+        Stock Is A Limited Drop,{' '}
+        {platformManaged ? '' : 'Max Per Member Caps Lifetime Purchases, '}A Sale Price Is What Is
         Actually Charged, And Available Until Ends The Offer Automatically. Leave A Field Blank To
         Clear It.
       </div>
@@ -338,8 +375,7 @@ export default function ClubShopItemEditor({
 
       <div className={shellStyles.clubAdminActions}>
         <button
-          type="button"
-          onClick={submit}
+          type="submit"
           disabled={locked || !maximumCardFundedPrice}
           aria-busy={busy}
           aria-label={`Save Changes To ${marketplaceCopy(item?.name || 'Shop Item')}`}
@@ -355,6 +391,6 @@ export default function ClubShopItemEditor({
           Cancel
         </button>
       </div>
-    </div>
+    </form>
   );
 }

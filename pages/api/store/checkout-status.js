@@ -4,6 +4,7 @@ import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { CHECKOUT_STATUS_TYPES } from '../../../src/lib/store/verifiedCheckoutUrl.mjs';
 const { inspectStripeRuntime } = require('../../../src/lib/store/stripeRuntimeMode');
 
 let _supabase = null;
@@ -172,6 +173,23 @@ async function lookupRecord(session, userId) {
   return null;
 }
 
+/**
+ * Name the purchase with a type the return page's verifier understands. The
+ * previous fallback returned 'purchase', which is not in the shared contract,
+ * so the client rejected the whole response and the return page dead-ended on
+ * a real, paid session. Everything this application creates carries one of the
+ * four contract types in its metadata; anything else is named from the record
+ * the session settled into, and a subscription names itself.
+ */
+function publicCheckoutType(session, record) {
+  const declared = session.metadata?.type;
+  if (CHECKOUT_STATUS_TYPES.has(declared)) return declared;
+  if (session.mode === 'subscription') return 'subscription';
+  if (record?.orderSource === 'diamonds') return 'diamonds';
+  if (record?.orderSource === 'merchandise') return 'merchandise';
+  return 'vip_lifetime';
+}
+
 export default async function handler(req, res) {
   try {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -210,8 +228,7 @@ export default async function handler(req, res) {
         status,
         sessionId: session.id,
         accountId: user.id,
-        type:
-          session.metadata?.type || (session.mode === 'subscription' ? 'subscription' : 'purchase'),
+        type: publicCheckoutType(session, record),
         paymentStatus: session.payment_status,
         sessionStatus: session.status,
         amountTotal: session.amount_total,

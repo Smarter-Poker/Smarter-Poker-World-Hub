@@ -62,7 +62,14 @@ test('activeTab is derived from the route, never from persisted filters', () => 
 });
 
 test('legacy ?tab= links REDIRECT to the canonical route rather than swapping a tab', () => {
-  assert.match(STORE, /router\.replace\(TAB_ROUTES\[tab\]\)/, 'must redirect to the tab route');
+  // The redirect carries the rest of the address with it. `?tab=club-shop` was
+  // never alone: it travelled with &clubId=<uuid>, and a redirect that kept
+  // only the route resolved somebody else's club.
+  assert.match(
+    STORE,
+    /router\.replace\(withLegacyTabQuery\(TAB_ROUTES\[tab\], router\.query\)\)/,
+    'must redirect to the tab route, query and all'
+  );
   assert.ok(
     !/if \(typeof tab === 'string' && STORE_TABS\.includes\(tab\)\) \{\s*setActiveTab/.test(STORE),
     'the old "set state and stay on diamond-store" branch must be gone'
@@ -107,7 +114,10 @@ test('store navigation uses native links instead of popup-driven buttons', () =>
     join(ROOT, 'src/components/diamond-store/SmarterStoreShowcase.jsx'),
     'utf8'
   );
-  assert.match(showcase, /href=\{TAB_ROUTES\[id\]\}/);
+  // The href is still built from TAB_ROUTES; it now also keeps the club the
+  // visitor arrived in, so a round trip through the store returns to it.
+  assert.match(showcase, /href=\{storeTabHref\(id, clubId\)\}/);
+  assert.match(showcase, /const route = TAB_ROUTES\[tabId\]/);
   assert.match(showcase, /import Link from 'next\/link'/);
   assert.doesNotMatch(showcase, /target=.*_blank|noopener noreferrer/);
   assert.doesNotMatch(showcase, /<button[\s\S]*?Store Sections/);

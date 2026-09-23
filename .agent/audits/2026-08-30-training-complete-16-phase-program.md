@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-5 Complete; Phase 6 Open (sub-status 6E-6I recorded 2026-09-22/23); Phase 7 Not Started
+Status: Phases 1-5 Complete; Phase 6 Open (sub-status 6E-6I recorded 2026-09-22/23, closing entry 2026-09-23); Phase 7 Not Started
 
 ## Objective
 
@@ -158,12 +158,13 @@ unapproved for activation, and the `strategy_matrix_v2` backfill remains blocked
 by its production disk-headroom gate; neither operation was started by this
 phase.
 
-#### Phase 6 sub-status as of 2026-09-22/23 (6E-6I)
+#### Phase 6 sub-status as of 2026-09-23 (6E-6I)
 
 Phase 6 remains open. Phase 7 has not started. The 2026-09-20 resumption
 verified the Policy 2.9 handoff receipt (manifest
 `7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`; all four
-file hashes matched). The dated evidence record for everything below is
+file hashes matched). The dated evidence record for everything below,
+including its 2026-09-23 closing entry, is
 `2026-09-22-training-phase-6-source-database-repair-and-cohort-truth.md`;
 the sub-phase letters are the working breakdown used there.
 
@@ -179,8 +180,7 @@ the sub-phase letters are the working breakdown used there.
   `9969ba54a261108f7c990017506d225b9cca9e4e` with all seven required checks
   passing; the new guard
   `__tests__/training-solver-scoped-protocol-custody.test.mjs` fails 7/7 on
-  the pre-repair base and passes 7/7 after. Production served `9969ba54`
-  (`dpl_G3e6tW3NjMshfvyQoWQsuGekQsmh`); an unsigned `POST
+  the pre-repair base and passes 7/7 after. An unsigned `POST
   /api/training/solver-worker` returns 401 and `GET` returns 405. No worker
   HMAC exists, so no signed live round-trip to the scoped RPCs has been made,
   and `phases.json` keeps `release_gate.solver_ready=false`. Historical
@@ -195,39 +195,69 @@ the sub-phase letters are the working breakdown used there.
   cache rows) because no M1/M2 bounded canary has ever been admitted. It is
   not fixable in code without weakening provenance, and provenance was not
   weakened. Five real code defects that would have blocked a genuine canary
-  parent were fixed in PR #1966 (`1feebf43`; still open at the time of this
-  entry, head `119bb996`, all checks passing). One remaining blocker is the
+  parent were fixed in PR #1966 (merged 2026-09-23T04:43:37Z as
+  `16bafcb2c0af11558104626e95b86285dec018ab`). One remaining blocker is the
   canonical tree geometry itself: `scripts/preflop-deep/tree_gen.py:52`
   yields three flop actions and two turn actions at check-or-bet nodes, so
   the four-answer contract correctly rejects the real parent and child. A
   richer tree geometry (new manifest version, checksum and provenance
   tuple) is required before any solver-exact Training question can exist.
-  The audit-session custody established on 2026-09-15 no longer exists
-  server-side; PR #1965 (`f8ef1cfc`, merged 2026-09-23T04:03:40Z) makes the
-  attestation refresh custody once at startup, and a local follow-up
-  (`cdb9461a`, not yet pushed) persists the browser-rotated session and adds
-  a `--seed-from-storage-state` re-seeding path. Custody must be re-seeded
-  before the next run.
+  Audit-session custody: the 2026-09-15 session had expired server-side;
+  PR #1965 (`f8ef1cfc`, merged 2026-09-23T04:03:40Z) refreshes custody once
+  at attestation startup; PR #1967 (`21882008`, merged 04:49:34Z; its Vercel
+  production build failed on a root-insensitive `chmod` test and production
+  stayed on `e52f7bf5`) persists the browser-rotated session and adds
+  `--seed-from-storage-state`; PR #1969 (`cc2f82c4`, merged 05:12:05Z)
+  repaired that test and deployed. Custody was re-seeded on 2026-09-23T04:52Z
+  from the e2e auth storage state (files mode `0600`, session valid to
+  2026-12-22, access token to 2026-09-30; no token recorded anywhere). The
+  attestation was deliberately not re-run: its outcome is fixed by the data
+  dependency, and immutable `hub-vanguard-*.vercel.app` URLs now answer 302
+  to Vercel SSO with no protection-bypass secret in the custody env.
 - **6G - machine-administrator correlation: not started.** It consumes the
   6F public evidence, which does not yet exist in a passing state.
 - **6H - PR-B strict delivery enforcement: not started, must not open.**
   It requires a genuine `releaseGateReady: true` receipt from 6G.
-- **6I - final exact-build certification: attestation-dependent part
-  blocked on 6F/6G.** Live `/api/health` on the deployed build is verified;
-  the footer and Training smoke were not re-run for this entry, and the
-  delivery-authority portion cannot run until 6F has data.
+- **6I - final exact-build certification: partially exercised, not
+  complete.** A bounded Playwright/Chromium production smoke on 2026-09-23
+  (11 representative games x mobile/desktop plus `/auth/login`, one graded
+  answer each, against `9373149e`) recorded 24 cases / 19 pass / 5 fail:
+  cash-001 L1 returned 404 on both viewports; mtt-021 mobile and psy-001
+  (both viewports) passed gameplay but logged one 503 or 422 console error.
+  The 22 pages that loaded showed four options (two for Push/Fold), verdict,
+  Your Answer, Correct Answer, persistent feedback, Next, server
+  `isCorrect` equal to the on-screen verdict, zero page errors, zero
+  scanlines, 0 px overflow, and one identical approved global header.
+  Screenshots were size/entropy-checked, not inspected by eye. The cash-001
+  404 was a pre-#1966 defect in the declared-preflop batch path (refused
+  `LEGACY_UNVERIFIED` range questions with no fallback to the authored
+  curated bank); PR #1972 (`c3485b7a`, merged 2026-09-23T13:38:41Z) routes
+  campaign callers to the honest authored fallback without relabelling, and
+  its new 107-game real-handler matrix test pins the pre-existing 503 and
+  psy-001 shortfall as known, unfixed. A follow-up smoke on `c3485b7a`
+  passed cash-001 L1 (both viewports) and cash-002 L1 3/3. The full 107-game
+  runtime recertification was attempted on `cc2f82c4` and refused by its own
+  gate (needs at least 8.0 GiB free on `/Volumes/SmarterWork`; 1.6 GiB, then
+  about 7.1 GiB after worktree cleanup); its receipt records `status:
+  failed` and is not a certificate. Live `/api/health` serves `c3485b7a` on
+  `dpl_31QqZW1juxyzyDUirnHzjZPr82HM`.
 
-Honest external dependencies for closing Phase 6: (1) one admitted M1
-bounded-canary parent/child under the 2026-09-07 admission runbook (signed
-gateway live, credential rotation, per-host HMAC, binary/pipeline/manifest
-attestation, authority tuple), which first requires the richer tree geometry
-above; (2) re-seeded audit-session custody; (3) disk headroom on
-`/Volumes/SmarterWork` (100% used, about 1.3-1.5 GiB free, which prevented
-local `npm run build` for #1965/#1966; CI and Vercel built them). The M1/M2
+Honest external dependencies for closing Phase 6, as of 2026-09-23: (1) one
+admitted M1 bounded-canary parent/child under the 2026-09-07 admission
+runbook (signed gateway live, credential rotation, per-host HMAC,
+binary/pipeline/manifest attestation, authority tuple), which first requires
+the richer tree geometry above; (2) the owner provisioning
+`TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET` into the mode-`0600`
+custody env so the attestation can reach the immutable deployment URL;
+(3) at least 8 GiB free on `/Volumes/SmarterWork`, or an owner decision to
+run the runtime auditor from another volume, for the 107-game matrix; then
+(4) 6G administrator correlation, 6H PR-B strict enforcement, and 6I
+recertification on the exact deployed build, in that order. The M1/M2
 manifest remains `CLOSED`, both solver hosts remain stopped with the canary
-closed, the `strategy_matrix_v2` backfill is untouched, and the M1 range-file
-count contradiction (470 committed versus 450 corrected) still blocks Stage A
-acceptance. The approved global header was not changed.
+closed, the `strategy_matrix_v2` backfill is untouched, and the M1
+range-file count contradiction (470 committed versus 450 corrected) still
+blocks Stage A acceptance. Phases 1-5 remain complete. The approved global
+header was not changed.
 
 ### Phase 7: Every Game's Secondary Pages
 
