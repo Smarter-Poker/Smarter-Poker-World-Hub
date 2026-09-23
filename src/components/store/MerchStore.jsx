@@ -63,6 +63,7 @@ import {
   normalizeVerifiedCheckoutSession,
 } from '../../lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
+import { leaveForCheckout } from '../../lib/store/leaveForCheckout.mjs';
 import {
   classifyMerchDiamondPurchaseRefusal,
   normalizeVerifiedMerchDiamondPurchase,
@@ -1220,7 +1221,7 @@ export default function MerchStore({
         });
         // Leave the busy state on through the navigation.
         if (!attemptIsCurrent()) return;
-        window.location.assign(checkoutSession.url);
+        leaveForCheckout(checkoutSession.url);
       } catch (err) {
         if (err?.name === 'AbortError' || !attemptIsCurrent()) return;
         if (checkoutRequestReplacementRequired(err) && checkoutRequestId) {
