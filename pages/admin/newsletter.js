@@ -27,6 +27,16 @@ export default function NewsletterOperations() {
     const [preview, setPreview] = useState(null);
     const [running, setRunning] = useState('');
 
+    // A counter that reads the same when it is loading, when the request failed and
+    // when the answer is genuinely zero is not reporting, it is guessing on the operator's
+    // behalf. Loading, failed and read-but-empty are three different facts and are shown
+    // as three different strings.
+    const statValue = (value) => {
+        if (error) return 'Unavailable';
+        if (!data) return loading ? 'Reading' : 'Not Read';
+        return value ?? '-';
+    };
+
     const load = useCallback(async (sessionToken = token, nextPage = page, term = search) => {
         if (!sessionToken) return;
         setLoading(true);
@@ -34,14 +44,24 @@ export default function NewsletterOperations() {
         try {
             const params = new URLSearchParams({ page: String(nextPage), pageSize: '25' });
             if (term.trim()) params.set('search', term.trim());
-            const response = await fetch(`/api/admin/newsletter?${params}`, {
-                headers: { Authorization: `Bearer ${sessionToken}` },
-            });
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 15000);
+            let response;
+            try {
+                response = await fetch(`/api/admin/newsletter?${params}`, {
+                    headers: { Authorization: `Bearer ${sessionToken}` },
+                    signal: controller.signal,
+                });
+            } finally {
+                clearTimeout(timer);
+            }
             const body = await response.json();
             if (!response.ok || !body.success) throw new Error(body.error || 'Unable to load newsletter operations');
             setData(body);
         } catch (err) {
-            setError(err.message || 'Unable to load newsletter operations');
+            setError(err?.name === 'AbortError'
+                ? 'The newsletter service did not respond within 15 seconds. The counters below are unread, not zero.'
+                : err.message || 'Unable to load newsletter operations');
         } finally {
             setLoading(false);
         }
@@ -143,9 +163,9 @@ export default function NewsletterOperations() {
                 {error && <div className={styles.error} role="alert"><OperatorGlyph kind="alert" size={16} /> {error}</div>}
 
                 <section className={styles.signalGrid} aria-label="Newsletter health">
-                    <article><OperatorGlyph kind="users" size={17} /><span>Active Audience</span><strong>{data?.stats?.active ?? '-'}</strong></article>
-                    <article><OperatorGlyph kind="mail" size={17} /><span>Opted Out</span><strong>{data?.stats?.inactive ?? '-'}</strong></article>
-                    <article><OperatorGlyph kind="send" size={17} /><span>Recorded Campaigns</span><strong>{data?.stats?.campaigns ?? '-'}</strong></article>
+                    <article><OperatorGlyph kind="users" size={17} /><span>Active Audience</span><strong>{statValue(data?.stats?.active)}</strong></article>
+                    <article><OperatorGlyph kind="mail" size={17} /><span>Opted Out</span><strong>{statValue(data?.stats?.inactive)}</strong></article>
+                    <article><OperatorGlyph kind="send" size={17} /><span>Recorded Campaigns</span><strong>{statValue(data?.stats?.campaigns)}</strong></article>
                     <article><OperatorGlyph kind="clock" size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
                 </section>
 
