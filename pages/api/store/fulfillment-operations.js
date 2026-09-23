@@ -8,6 +8,50 @@ import { setPrivateCommerceResponse } from '../../../src/lib/store/privateCommer
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIONS = new Set(['mark_processing', 'mark_shipped', 'mark_delivered', 'refund']);
+const MAX_QUEUE_CURSOR_LENGTH = 512;
+const QUEUE_CURSOR_ID_RE = /^[A-Za-z0-9_-]{8,128}$/;
+const QUEUE_CURSOR_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Two orders can be created in the same instant. Paging on `created_at` alone
+ * made the boundary between pages ambiguous, so both halves of a tied pair
+ * could fall outside the next page and never reach the operator. Carry the row
+ * id as a tiebreaker, exactly as pages/api/store/order-ledger.js does.
+ *
+ * Returns `valid: false` for a malformed cursor and a null position for none.
+ * Both patterns above also keep the values safe to interpolate into the
+ * PostgREST filter below: neither admits a comma or a parenthesis, so a cursor
+ * cannot break out of the filter it is placed in.
+ */
+function parseQueueCursor(value) {
+  if (!value) return { valid: true, position: null };
+  if (typeof value !== 'string' || value.length > MAX_QUEUE_CURSOR_LENGTH) {
+    return { valid: false, position: null };
+  }
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
+    const createdAt = String(parsed?.createdAt || '');
+    const id = String(parsed?.id || '');
+    if (
+      parsed?.v !== 1 ||
+      !QUEUE_CURSOR_ID_RE.test(id) ||
+      // Preserve PostgreSQL's full timestamp precision. A Date round trip
+      // truncates microseconds and could skip same-millisecond rows.
+      !QUEUE_CURSOR_TIMESTAMP_RE.test(createdAt) ||
+      Number.isNaN(Date.parse(createdAt))
+    ) {
+      return { valid: false, position: null };
+    }
+    return { valid: true, position: { createdAt, id } };
+  } catch (_) {
+    return { valid: false, position: null };
+  }
+}
+
+function encodeQueueCursor(position) {
+  return Buffer.from(JSON.stringify({ v: 1, ...position }), 'utf8').toString('base64url');
+}
 
 let _supabase = null;
 function getSupabase() {
@@ -68,8 +112,9 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const rawLimit = Number(req.query?.limit || 50);
       const limit = Number.isInteger(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 50;
-      const cursor = typeof req.query?.cursor === 'string' ? req.query.cursor.trim() : '';
-      if (cursor && (cursor.length > 64 || Number.isNaN(Date.parse(cursor)))) {
+      const rawCursor = typeof req.query?.cursor === 'string' ? req.query.cursor.trim() : '';
+      const cursor = parseQueueCursor(rawCursor);
+      if (!cursor.valid) {
         return res.status(400).json({ success: false, error: 'Invalid queue cursor' });
       }
       let query = supabase
@@ -81,18 +126,28 @@ export default async function handler(req, res) {
         )
         .in('status', ['paid', 'processing', 'shipped'])
         .or('metadata->>fulfillment_mode.eq.manual,metadata->>needs_review.eq.true')
-        .order('created_at', { ascending: false });
-      if (cursor) query = query.lt('created_at', cursor);
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
+      if (cursor.position) {
+        query = query.or(
+          `created_at.lt.${cursor.position.createdAt},` +
+            `and(created_at.eq.${cursor.position.createdAt},id.lt.${cursor.position.id})`
+        );
+      }
       const { data, error } = await query.limit(limit + 1);
       if (error) throw error;
       const rows = data || [];
       const hasMore = rows.length > limit;
       const orders = rows.slice(0, limit);
+      const lastOrder = orders[orders.length - 1];
       return res.status(200).json({
         success: true,
         data: {
           orders,
-          nextCursor: hasMore ? orders[orders.length - 1]?.created_at || null : null,
+          nextCursor:
+            hasMore && lastOrder?.created_at && lastOrder?.id
+              ? encodeQueueCursor({ createdAt: lastOrder.created_at, id: lastOrder.id })
+              : null,
         },
       });
     }

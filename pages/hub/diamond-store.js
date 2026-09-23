@@ -13,7 +13,7 @@ import useHasMounted from '../../src/hooks/useHasMounted';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 // Tiny list module on purpose: importing eggVerifiers.js here would pull 28
 // server-side database queries into the client bundle just to print a count.
@@ -102,13 +102,25 @@ import { VIPCard } from '../../src/components/store/StoreCards';
 import SmarterStoreShowcase from '../../src/components/diamond-store/SmarterStoreShowcase';
 import CheckoutStatusPanel from '../../src/components/diamond-store/CheckoutStatusPanel';
 import MarketplaceCommerceNav from '../../src/components/store/MarketplaceCommerceNav';
-import ClubShopItemEditor from '../../src/components/store/ClubShopItemEditor';
-import ClubShopPurchaseLedger from '../../src/components/store/ClubShopPurchaseLedger';
-import ClubShopSalesAnalytics from '../../src/components/store/ClubShopSalesAnalytics';
 import {
   clubShopItemDeleteGuard,
   clubShopOperatorRequestId,
 } from '../../src/lib/store/clubShopItemDraft.mjs';
+
+// The three operator panels are about 60 KB of source that only an owner or an
+// admin can ever reach, inside the Manage sub-view of one of five tabs. Statically
+// imported they were downloaded by every shopper on /hub/diamond-store,
+// /hub/vip-membership, /hub/merch-store and /hub/smarter-rewards. Split out the
+// way MerchStore already is; they still render the moment Manage asks for them.
+const ClubShopItemEditor = dynamic(
+  () => import('../../src/components/store/ClubShopItemEditor')
+);
+const ClubShopPurchaseLedger = dynamic(
+  () => import('../../src/components/store/ClubShopPurchaseLedger')
+);
+const ClubShopSalesAnalytics = dynamic(
+  () => import('../../src/components/store/ClubShopSalesAnalytics')
+);
 
 const MerchStore = dynamic(() => import('../../src/components/store/MerchStore'), {
   loading: () => (
@@ -189,6 +201,15 @@ const isCanonicalAllThrowablesAdminItem = (item) =>
     .trim()
     .toLowerCase() === ALL_THROWABLES_NAME.toLowerCase() &&
   item.is_active === true;
+// The only categories the server still lets an operator update. The editor
+// always sends `category`, and `enforceFulfillableMutation` refuses the whole
+// save for anything outside this list (src/lib/club-arena/shopItemRules.js), so
+// a legacy Table Skins, Emotes, Avatars or Exclusive row must never be offered
+// a form its save can never complete.
+const CLUB_ADMIN_DELIVERABLE_CATEGORIES = Object.freeze(['Time Banks', 'Throwables']);
+const EMPTY_DELETE_GUARD = Object.freeze({ canDelete: true, reason: null });
+const isServerEditableAdminItem = (item) =>
+  CLUB_ADMIN_DELIVERABLE_CATEGORIES.includes(String(item?.category || 'Time Banks').trim());
 
 function vipDiamondPlanKey(plan) {
   if (plan?.interval === 'lifetime') return 'lifetime';
@@ -233,6 +254,34 @@ export const TAB_ROUTES = {
   rewards: '/hub/smarter-rewards',
   'club-shop': '/hub/club-shop',
 };
+
+/**
+ * A legacy ?tab= link carries more than the tab. `?tab=club-shop&clubId=<uuid>`
+ * named a club, and a redirect that kept only the route resolved a different
+ * one. Everything except `tab` travels to the canonical address.
+ */
+export function withLegacyTabQuery(route, query) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query || {})) {
+    if (key === 'tab' || value === undefined || value === null) continue;
+    for (const entry of Array.isArray(value) ? value : [value]) params.append(key, String(entry));
+  }
+  const search = params.toString();
+  return search ? `${route}?${search}` : route;
+}
+
+/**
+ * The Club Shop's own address: the club it is showing, and the sub-view on
+ * screen. The sub-view lives in component state, so unless a click writes it
+ * back the URL and the page disagree the moment anyone leaves 'store'.
+ */
+export function clubShopAddress(clubId, subTab) {
+  const params = new URLSearchParams();
+  if (clubId) params.set('clubId', String(clubId));
+  if (subTab && subTab !== 'store') params.set('view', String(subTab));
+  const search = params.toString();
+  return search ? `${TAB_ROUTES['club-shop']}?${search}` : TAB_ROUTES['club-shop'];
+}
 
 // Five addresses means five tab titles and five meta descriptions. Without
 // this, all five routes would share "Diamond Store" and be indistinguishable in
@@ -649,9 +698,15 @@ export default function DiamondStorePage({
   const [clubShopRole, setClubShopRole] = useState('player');
   const [clubShopSuccess, setClubShopSuccess] = useState(null);
   const [clubShopSortMode, setClubShopSortMode] = useState('newest');
-  const rawRouteClubId = Array.isArray(router.query.clubId)
-    ? router.query.clubId[0]
-    : router.query.clubId;
+  // On a statically optimized wrapper route the query is EMPTY for the first
+  // commit, so reading it before `router.isReady` reports "no club" for a page
+  // whose address names one. The identity effects below therefore wait too,
+  // rather than resetting the club shop to a club the visitor never asked for.
+  const rawRouteClubId = router.isReady
+    ? Array.isArray(router.query.clubId)
+      ? router.query.clubId[0]
+      : router.query.clubId
+    : null;
   const routeClubId = CLUB_ID_RE.test(String(rawRouteClubId || '')) ? String(rawRouteClubId) : null;
 
   // Admin Manage state
@@ -710,6 +765,61 @@ export default function DiamondStorePage({
     clubShopAdminActionRef.current = itemId;
     setClubShopAdminActionId(itemId);
   }, []);
+
+  // The sub-view is the one piece of this page's state a link can carry, so a
+  // click has to write it back or the address stops describing the page. The
+  // address is replaced shallowly: this is the same page, and a sub-view is not
+  // a Back-button stop. The identity resets below deliberately do NOT write the
+  // address, because the ?view= effect re-applies the request after them.
+  const clubShopSubTabRef = useRef('store');
+  useIsomorphicLayoutEffect(() => {
+    clubShopSubTabRef.current = clubShopSubTab;
+  }, [clubShopSubTab]);
+  const selectClubShopSubTab = useCallback(
+    (nextSubTab) => {
+      setClubShopSubTab(nextSubTab);
+      if (activeTab !== 'club-shop') return;
+      const nextAddress = clubShopAddress(routeClubId, nextSubTab);
+      router.replace(nextAddress, undefined, { shallow: true });
+    },
+    [activeTab, routeClubId, router]
+  );
+
+  // The guard was recomputed twice per row on every render of the Manage list.
+  // It only moves when the operator report does.
+  const clubShopDeleteGuards = useMemo(() => {
+    const guards = new Map();
+    for (const item of clubShopAdminItems) guards.set(item.id, clubShopItemDeleteGuard(item));
+    return guards;
+  }, [clubShopAdminItems]);
+
+  // Opening the in-place editor moves focus into it; closing it, by Cancel or
+  // by a saved change, has to give focus back to the row's own control rather
+  // than dropping it on <body>.
+  const clubShopEditControlsRef = useRef(new Map());
+  const clubShopEditControlRefsRef = useRef(new Map());
+  const clubShopEditReturnRef = useRef(null);
+  const registerClubShopEditControl = useCallback((itemId) => {
+    const cache = clubShopEditControlRefsRef.current;
+    if (!cache.has(itemId)) {
+      cache.set(itemId, (node) => {
+        if (node) clubShopEditControlsRef.current.set(itemId, node);
+        else clubShopEditControlsRef.current.delete(itemId);
+      });
+    }
+    return cache.get(itemId);
+  }, []);
+  useEffect(() => {
+    if (clubShopEditingItemId) {
+      clubShopEditReturnRef.current = clubShopEditingItemId;
+      return;
+    }
+    const previous = clubShopEditReturnRef.current;
+    clubShopEditReturnRef.current = null;
+    if (!previous) return;
+    const control = clubShopEditControlsRef.current.get(previous);
+    if (control && typeof control.focus === 'function') control.focus();
+  }, [clubShopEditingItemId]);
 
   useIsomorphicLayoutEffect(() => {
     if (!router.isReady || activeTab !== 'club-shop') return;
@@ -780,6 +890,8 @@ export default function DiamondStorePage({
   useIsomorphicLayoutEffect(() => {
     // A private catalog, wallet, purchase history, and admin role are one
     // account-bound snapshot. Never carry them across an auth transition.
+    // The club is read from the address, so this waits for the address.
+    if (!router.isReady) return;
     clubShopLoadRequestRef.current += 1;
     clubShopLoadingRef.current = false;
     if (clubShopLoadTimerRef.current) {
@@ -813,7 +925,7 @@ export default function DiamondStorePage({
     setClubShopDeleteTarget(null);
     setClubShopSubTab('store');
     setClubShopClubId(routeClubId || null);
-  }, [committedStoreAccountId, routeClubId, setClubShopAdminAction]);
+  }, [committedStoreAccountId, routeClubId, router.isReady, setClubShopAdminAction]);
 
   useDialogFocus(!!pendingSpend, pendingSpendDialogRef, dismissPendingSpend, isProcessing);
   useDialogFocus(!!clubShopBuyTarget, clubShopDialogRef, dismissClubShopDialog, clubShopProcessing);
@@ -847,8 +959,11 @@ export default function DiamondStorePage({
       router.replace(TAB_ROUTES.diamonds, undefined, { shallow: true });
       return;
     }
-    router.replace(TAB_ROUTES[tab]);
-  }, [router.isReady, initialTab, router.query.tab]);
+    // Everything else in the address travels with the redirect. Dropping it
+    // sent /hub/diamond-store?tab=club-shop&clubId=<uuid>&view=manage to a bare
+    // /hub/club-shop, which resolves a DIFFERENT club.
+    router.replace(withLegacyTabQuery(TAB_ROUTES[tab], router.query));
+  }, [router.isReady, initialTab, router.query]);
 
   // A Stripe return URL is only a transport signal. `success=true` is never
   // trusted on its own: the server retrieves the session from Stripe, verifies
@@ -858,9 +973,12 @@ export default function DiamondStorePage({
     if (!router.isReady) return undefined;
 
     const clearCheckoutTransport = () => {
+      // Only the transport parameters are cleared. The club and the sub-view
+      // are the address of what the shopper is looking at, and dropping them
+      // left the URL describing a different page than the one on screen.
       const cleanPath =
-        activeTab === 'club-shop' && routeClubId
-          ? `${TAB_ROUTES[activeTab]}?clubId=${encodeURIComponent(routeClubId)}`
+        activeTab === 'club-shop'
+          ? clubShopAddress(routeClubId, clubShopSubTabRef.current)
           : TAB_ROUTES[activeTab];
       window.history.replaceState(
         { ...window.history.state, as: cleanPath, url: cleanPath },
@@ -1418,7 +1536,12 @@ export default function DiamondStorePage({
         product: currentPackage.id,
       });
       if (!attemptIsCurrent()) return;
-      leaveForCheckout(checkoutSession.url);
+      // A refusal returns null and navigates nothing. Swallowed, the shopper
+      // saw a redirect toast, a re-enabled Buy button and no redirect, with the
+      // durable request still claimed. It is an error, so it takes the error path.
+      if (!leaveForCheckout(checkoutSession.url)) {
+        throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+      }
     } catch (err) {
       if (!attemptIsCurrent() || err?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(err) && commerceIntent && checkoutRequestId) {
@@ -1926,7 +2049,12 @@ export default function DiamondStorePage({
       });
       // Recheck after analytics so navigation remains the operation's final owned effect.
       if (!attemptIsCurrent()) return;
-      leaveForCheckout(checkoutSession.url);
+      // A refusal returns null and navigates nothing. Swallowed, the shopper
+      // saw a redirect toast, a re-enabled Buy button and no redirect, with the
+      // durable request still claimed. It is an error, so it takes the error path.
+      if (!leaveForCheckout(checkoutSession.url)) {
+        throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+      }
     } catch (error) {
       if (!attemptIsCurrent() || error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && checkoutRequestId) {
@@ -2586,7 +2714,12 @@ export default function DiamondStorePage({
         throw new Error('Your Signed-In Account Changed. The Checkout Link Was Not Opened.');
       }
       if (!attemptIsCurrent()) return;
-      leaveForCheckout(checkoutSession.url);
+      // A refusal returns null and navigates nothing. Swallowed, the shopper
+      // saw a redirect toast, a re-enabled Buy button and no redirect, with the
+      // durable request still claimed. It is an error, so it takes the error path.
+      if (!leaveForCheckout(checkoutSession.url)) {
+        throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+      }
     } catch (error) {
       if (!attemptIsCurrent() || error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && checkoutRequestId) {
@@ -2883,6 +3016,16 @@ export default function DiamondStorePage({
   );
 
   const clubShopIsAdmin = ['owner', 'admin'].includes(visibleClubShopRole);
+
+  // ═══ Club Shop: an operator demoted mid-session ═══
+  // The Manage button disappears with the role, but the sub-view it selected
+  // does not, so a demoted operator was left reading an empty panel under two
+  // remaining buttons. Only act once the role is actually known: an in-flight
+  // refresh drops `clubShopSnapshotOwned` for a moment and is not a demotion.
+  useEffect(() => {
+    if (!clubShopSnapshotOwned || clubShopIsAdmin) return;
+    setClubShopSubTab((current) => (current === 'manage' ? 'store' : current));
+  }, [clubShopIsAdmin, clubShopSnapshotOwned]);
 
   // ═══ Club Shop: ?view= deep link ═══
   // The sub-view lives in component state, so a link cannot reach it without
@@ -3270,6 +3413,7 @@ export default function DiamondStorePage({
             />
             <SmarterStoreShowcase
               activeTab={activeTab}
+              clubId={routeClubId || clubShopClubId}
               packages={diamondPackages}
               catalogState={diamondCatalogState}
               isProcessing={isProcessing || diamondCatalogState !== 'database'}
@@ -4803,7 +4947,7 @@ export default function DiamondStorePage({
                             key={st.key}
                             aria-pressed={clubShopSubTab === st.key}
                             onClick={() => {
-                              setClubShopSubTab(st.key);
+                              selectClubShopSubTab(st.key);
                               if (st.key === 'manage' && !clubShopAdminLoaded) loadClubShopAdmin();
                             }}
                             style={{
@@ -5278,7 +5422,7 @@ export default function DiamondStorePage({
                                 No Purchases Yet.
                               </div>
                               <button
-                                onClick={() => setClubShopSubTab('store')}
+                                onClick={() => selectClubShopSubTab('store')}
                                 style={{
                                   ...styles.paintedPrimaryAction,
                                   marginTop: 12,
@@ -5607,6 +5751,10 @@ export default function DiamondStorePage({
                             snapshotOwned={clubShopSnapshotOwned}
                             onLedgerChanged={() => {
                               clubShopLoadingRef.current = false;
+                              // Without this the operator report's own guard
+                              // drops the refresh, and a refund leaves the
+                              // lifetime totals and per-item counts stale.
+                              clubShopAdminLoadingRef.current = false;
                               loadClubShopAdmin();
                               loadClubShop(true);
                             }}
@@ -5907,6 +6055,7 @@ export default function DiamondStorePage({
                                   setClubProcessing(false);
                                 }
                               }}
+                              aria-busy={clubShopProcessing}
                               className={shellStyles.clubAdminCreateAction}
                             >
                               {clubShopProcessing ? 'Creating...' : 'Create Item'}
@@ -5930,7 +6079,10 @@ export default function DiamondStorePage({
                               </div>
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {clubShopAdminItems.map((item) => (
+                                {clubShopAdminItems.map((item) => {
+                                  const deleteGuard =
+                                    clubShopDeleteGuards.get(item.id) || EMPTY_DELETE_GUARD;
+                                  return (
                                   <div key={item.id}>
                                   <div
                                     className={shellStyles.clubAdminRow}
@@ -5980,23 +6132,31 @@ export default function DiamondStorePage({
                                       {/* A historical throwable receipt row is
                                           read only; everything else, including
                                           the one canonical pack, keeps an in
-                                          place editor for its commercial terms. */}
+                                          place editor for its commercial terms,
+                                          but only while the server will still
+                                          accept a save for its category. */}
                                       {(!isThrowableAdminItem(item) ||
-                                        isCanonicalAllThrowablesAdminItem(item)) && (
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            setClubShopEditingItemId((current) =>
-                                              current === item.id ? null : item.id
-                                            )
-                                          }
-                                          disabled={!!clubShopAdminActionId}
-                                          aria-expanded={clubShopEditingItemId === item.id}
-                                          aria-label={`${clubShopEditingItemId === item.id ? 'Close The Editor For' : 'Edit'} ${marketplaceCopy(item.name)}`}
-                                        >
-                                          {clubShopEditingItemId === item.id ? 'Close' : 'Edit'}
-                                        </button>
-                                      )}
+                                        isCanonicalAllThrowablesAdminItem(item)) &&
+                                        (isServerEditableAdminItem(item) ? (
+                                          <button
+                                            type="button"
+                                            ref={registerClubShopEditControl(item.id)}
+                                            onClick={() =>
+                                              setClubShopEditingItemId((current) =>
+                                                current === item.id ? null : item.id
+                                              )
+                                            }
+                                            disabled={!!clubShopAdminActionId}
+                                            aria-expanded={clubShopEditingItemId === item.id}
+                                            aria-label={`${clubShopEditingItemId === item.id ? 'Close The Editor For' : 'Edit'} ${marketplaceCopy(item.name)}`}
+                                          >
+                                            {clubShopEditingItemId === item.id ? 'Close' : 'Edit'}
+                                          </button>
+                                        ) : (
+                                          <span className={shellStyles.clubAdminManagedStatus}>
+                                            Legacy Category, Read Only
+                                          </span>
+                                        ))}
                                       {isThrowableAdminItem(item) ? (
                                         <span className={shellStyles.clubAdminManagedStatus}>
                                           {isCanonicalAllThrowablesAdminItem(item)
@@ -6016,20 +6176,35 @@ export default function DiamondStorePage({
                                           >
                                             {item.is_active ? 'Active' : 'Hidden'}
                                           </button>
+                                          {/* A sold item is still REACHABLE.
+                                              Disabled, its only explanation was
+                                              a `title` no phone and no screen
+                                              reader can read, and the guard's
+                                              own "Hide It Instead" answer was
+                                              unreachable code. The guard runs
+                                              on the click and says it out loud. */}
                                           <button
                                             type="button"
-                                            onClick={() => setClubShopDeleteTarget(item)}
-                                            disabled={
-                                              !!clubShopAdminActionId ||
-                                              !clubShopItemDeleteGuard(item).canDelete
+                                            onClick={() =>
+                                              deleteGuard.canDelete
+                                                ? setClubShopDeleteTarget(item)
+                                                : showStoreToast('warning', deleteGuard.reason)
                                             }
-                                            title={
-                                              clubShopItemDeleteGuard(item).reason ||
-                                              'Delete This Item'
+                                            disabled={!!clubShopAdminActionId}
+                                            title={deleteGuard.reason || 'Delete This Item'}
+                                            aria-haspopup={
+                                              deleteGuard.canDelete ? 'dialog' : undefined
                                             }
-                                            aria-haspopup="dialog"
-                                            aria-expanded={clubShopDeleteTarget?.id === item.id}
-                                            aria-label={`Delete ${marketplaceCopy(item.name)}`}
+                                            aria-expanded={
+                                              deleteGuard.canDelete
+                                                ? clubShopDeleteTarget?.id === item.id
+                                                : undefined
+                                            }
+                                            aria-label={
+                                              deleteGuard.canDelete
+                                                ? `Delete ${marketplaceCopy(item.name)}`
+                                                : `Delete ${marketplaceCopy(item.name)}. ${deleteGuard.reason}`
+                                            }
                                           >
                                             Delete
                                           </button>
@@ -6054,7 +6229,8 @@ export default function DiamondStorePage({
                                     />
                                   )}
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ))}
 
