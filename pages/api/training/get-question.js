@@ -357,6 +357,9 @@ export default async function handler(req, res) {
             scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
             spotTypes: scenarioConfig?.spotTypes || undefined,
             stackDepths: scenarioConfig?.stackDepths || undefined,
+            // Same campaign admissibility as batch-preload: see the preflop
+            // branch of DeterministicGTOEngine.generateBatch.
+            admissibleForCaller: isTrainingQuestionCampaignEligible,
           });
           const generatedCandidates = (generated || [])
             .map((candidate) => normalizeCampaignQuestionWithoutFabrication(candidate))
