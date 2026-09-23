@@ -26,6 +26,14 @@ import {
 } from '../../lib/reelInteractionHydration';
 import { createLatestRequestGuard } from '../../lib/latestRequestGuard.mjs';
 import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
+import {
+  BACKGROUND_REELS_REFRESH,
+  REELS_BACKGROUND_REFRESH_DELAY_MS,
+  createReelRealtimeChangeFilter,
+  createReelsRefreshCoordinator,
+  mergeBackgroundReels,
+  resolveStaleReels,
+} from '../../lib/reelsRealtimeRefresh.mjs';
 import { savedReelsService } from '../../services/preferences-service';
 import {
   loadWatchedReelIds,
@@ -185,10 +193,58 @@ export function ReelsViewer({ onClose }) {
   const activeCommentReelIdRef = useRef(null);
   if (!reelsRequestGuardRef.current) reelsRequestGuardRef.current = createLatestRequestGuard();
   if (!commentRequestGuardRef.current) commentRequestGuardRef.current = createLatestRequestGuard();
+  // Background refresh plumbing (realtime changes, tab focus). See
+  // src/lib/reelsRealtimeRefresh.mjs for the policy.
+  const reelsRef = useRef(reels);
+  const currentIndexRef = useRef(currentIndex);
+  const loadErrorRef = useRef(loadError);
+  loadErrorRef.current = loadError;
+  const loadReelsRef = useRef(null);
+  const reelsRefreshCoordinatorRef = useRef(null);
+  if (!reelsRefreshCoordinatorRef.current) {
+    reelsRefreshCoordinatorRef.current = createReelsRefreshCoordinator(reelsRequestGuardRef.current);
+  }
+  const backgroundReelsRefreshTimerRef = useRef(null);
+  const staleReelIdsRef = useRef(new Set());
+  const reelRealtimeFilterRef = useRef(null);
+  if (!reelRealtimeFilterRef.current) reelRealtimeFilterRef.current = createReelRealtimeChangeFilter();
+  useEffect(() => {
+    reelsRef.current = reels;
+    currentIndexRef.current = currentIndex;
+  }, [reels, currentIndex]);
 
   useEffect(() => () => {
     reelsRequestGuardRef.current?.abort();
     commentRequestGuardRef.current?.abort();
+    clearTimeout(backgroundReelsRefreshTimerRef.current);
+  }, []);
+
+  // One debounced background refresh serves realtime changes and tab focus.
+  const scheduleBackgroundReelsRefresh = useCallback(() => {
+    clearTimeout(backgroundReelsRefreshTimerRef.current);
+    backgroundReelsRefreshTimerRef.current = setTimeout(() => {
+      backgroundReelsRefreshTimerRef.current = null;
+      loadReelsRef.current?.(BACKGROUND_REELS_REFRESH);
+    }, REELS_BACKGROUND_REFRESH_DELAY_MS);
+  }, []);
+
+  // Fail-closed removal that keeps the active Reel when it survives and hands
+  // over to the next surviving Reel when it does not.
+  const removeMountedReels = useCallback((shouldRemove) => {
+    const current = reelsRef.current;
+    const removeIds = current.filter(shouldRemove).map((reel) => reel.id);
+    if (!removeIds.length) return;
+    const merged = mergeBackgroundReels({
+      current,
+      activeIndex: currentIndexRef.current,
+      removeIds,
+    });
+    reelsRef.current = merged.reels;
+    setReels(merged.reels);
+    if (merged.activeIndex !== currentIndexRef.current) {
+      currentIndexRef.current = merged.activeIndex;
+      setCurrentIndex(merged.activeIndex);
+    }
   }, []);
 
   // Anti-Drift: Preserve viewed reel when new reels are inserted above it
@@ -497,41 +553,47 @@ export function ReelsViewer({ onClose }) {
     };
   }, [currentUserId]);
 
-  // Realtime subscription - live updates when new reels are posted
-  // Debounced to 3s to batch rapid inserts and avoid feed-flash
+  // Realtime subscription. social_reels publishes every counter bump, the
+  // signed-in viewer's own view recording included, so counter, like and view
+  // updates are ignored here. Only a change that can alter playback or
+  // eligibility (playback address or identity, visibility, deletion, topic,
+  // media or rights status, or an INSERT/DELETE) acts: an explicitly
+  // ineligible mounted Reel is removed at once, and everything else schedules
+  // one debounced BACKGROUND refresh that merges into the mounted feed without
+  // swapping the player for the loading console.
   useEffect(() => {
     if (!currentUserId) return;
-    let reloadTimer = null;
+    const realtimeFilter = reelRealtimeFilterRef.current;
+    const handleReelChange = (eventType, row) => {
+      const stateReel = row?.id
+        ? reelsRef.current.find((reel) => reel.id === row.id) || null
+        : null;
+      const verdict = realtimeFilter.classify({ eventType, row, stateReel });
+      if (verdict.remove) removeMountedReels((reel) => reel.id === row.id);
+      if (!verdict.refresh) return;
+      if (stateReel && !verdict.remove) staleReelIdsRef.current.add(row.id);
+      scheduleBackgroundReelsRefresh();
+    };
     const _ch = supabase
       .channel(`reels-viewer:${currentUserId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
-        clearTimeout(reloadTimer);
-        reloadTimer = setTimeout(() => {
-          loadReels();
-        }, 3000);
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, (payload) => {
+        handleReelChange('INSERT', payload?.new);
       })
-      // M7.4: surgical UPDATE handler. When the YT worker converts a reel
-      // and broadcasts the new Supabase URL to siblings (UPDATE), swap state
-      // in place so mid-session viewers see the native player without
-      // a full reload. Only acts when video_url actually changed; ignores
-      // like_count / view_count / comment_count UPDATE noise.
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'social_reels' },
-        () => {
-          // Safety fields can change independently of video_url. Re-read the
-          // canonical server feed so a mid-session private/blocked/stale row
-          // is removed instead of merging an incomplete realtime payload.
-          clearTimeout(reloadTimer);
-          reloadTimer = setTimeout(() => loadReels(), 400);
-        }
+        (payload) => handleReelChange('UPDATE', payload?.new)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'social_reels' },
+        (payload) => handleReelChange('DELETE', payload?.old)
       )
       .subscribe();
     return () => {
-      clearTimeout(reloadTimer);
       supabase.removeChannel(_ch);
     };
-  }, [currentUserId]);
+  }, [currentUserId, removeMountedReels, scheduleBackgroundReelsRefresh]);
 
   // YouTube auto-advance & state tracking: listen for onStateChange postMessage
   useEffect(() => {
@@ -868,13 +930,25 @@ export function ReelsViewer({ onClose }) {
     };
   }, []);
 
-  const loadReels = useCallback(async () => {
-    const reelsRequest = reelsRequestGuardRef.current.begin({ append: false });
-    setLoading(true);
+  const loadReels = useCallback(async (mode) => {
+    // A BACKGROUND refresh never shows the loading console, resets the cursor
+    // or moves the active Reel: it merges into the mounted feed. It never
+    // supersedes an unresolved foreground load; it runs once that load settles.
+    const background = mode === BACKGROUND_REELS_REFRESH;
+    // An error console is resolved by an explicit retry, not by a quiet refresh.
+    if (background && loadErrorRef.current) return;
+    // Sequenced over the latest-request guard; null means this background
+    // refresh was queued behind an unresolved foreground load.
+    const reelsRequest = reelsRefreshCoordinatorRef.current.begin({ background });
+    if (!reelsRequest) return;
+    // Either kind of full refresh supersedes an unresolved append.
     setLoadingMore(false);
-    setLoadError(false);
-    setContinuationPaused(false);
-    reelsCursorRef.current = null;
+    if (!background) {
+      setLoading(true);
+      setLoadError(false);
+      setContinuationPaused(false);
+      reelsCursorRef.current = null;
+    }
     try {
       const idSet = new Set();
       const urlSet = new Set();
@@ -898,6 +972,66 @@ export function ReelsViewer({ onClose }) {
           }),
       });
       if (!reelsRequest.isCurrent()) return;
+      if (background) {
+        const windowComplete = !payload.next_cursor && payload.continuation_paused !== true;
+        const flaggedIds = [...staleReelIdsRef.current];
+        const windowIds = new Set(payload.data.map((reel) => reel.id));
+        const mountedIds = new Set(reelsRef.current.map((reel) => reel.id));
+        const verdicts = windowComplete
+          ? { replacements: [], removeIds: [] }
+          : await resolveStaleReels({
+            ids: flaggedIds.filter((id) => mountedIds.has(id) && !windowIds.has(id)),
+            isCurrent: reelsRequest.isCurrent,
+            fetchDetail: async (id) => (await fetchPokerReels({
+              limit: 1,
+              id,
+              signal: reelsRequest.signal,
+              scope: 'library-viewer',
+            })).data.map((reel) => ({ ...reel, source: 'reels' })),
+          });
+        if (!reelsRequest.isCurrent()) return;
+        // Ids without a verdict (not yet checked, or a non-verdict failure)
+        // stay flagged for the next background refresh.
+        const settledIds = new Set([
+          ...windowIds,
+          ...verdicts.removeIds,
+          ...verdicts.replacements.map((reel) => reel.id),
+        ]);
+        flaggedIds.forEach((id) => {
+          if (windowComplete || settledIds.has(id) || !mountedIds.has(id)) {
+            staleReelIdsRef.current.delete(id);
+          }
+        });
+        if (!reelsCursorRef.current && payload.next_cursor) {
+          reelsCursorRef.current = payload.next_cursor;
+          setHasMore(true);
+        }
+        const merged = mergeBackgroundReels({
+          current: reelsRef.current,
+          incoming: payload.data,
+          activeIndex: currentIndexRef.current,
+          removeIds: verdicts.removeIds,
+          replacements: verdicts.replacements,
+          windowComplete,
+        });
+        if (!merged.changed) return;
+        reelsRef.current = merged.reels;
+        setReels(merged.reels);
+        if (merged.activeIndex !== currentIndexRef.current) {
+          currentIndexRef.current = merged.activeIndex;
+          setCurrentIndex(merged.activeIndex);
+        }
+        const lc = {},
+          cc = {};
+        merged.additions.forEach((r) => {
+          lc[r.id] = r.like_count || 0;
+          cc[r.id] = r.comment_count || 0;
+        });
+        // Mounted counts (including optimistic ones) win over a quiet refresh.
+        setLikeCounts((prev) => ({ ...lc, ...prev }));
+        setCommentCounts((prev) => ({ ...cc, ...prev }));
+        return;
+      }
       reelsCursorRef.current = payload.next_cursor || null;
       setHasMore(Boolean(payload.next_cursor));
       setContinuationPaused(payload.continuation_paused === true);
@@ -915,18 +1049,28 @@ export function ReelsViewer({ onClose }) {
       setCommentCounts((prev) => ({ ...prev, ...cc }));
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
+      if (background) {
+        // A failed quiet refresh leaves the mounted feed and player untouched.
+        console.warn('Background reels refresh failed:', e?.message || e);
+        return;
+      }
       console.warn('Load reels error:', e);
       setReels([]);
       setLoadError(true);
     } finally {
-      if (reelsRequest.finish()) setLoading(false);
+      const settled = reelsRefreshCoordinatorRef.current.settle(reelsRequest);
+      if (settled.current && !background) setLoading(false);
+      if (settled.flushQueued) scheduleBackgroundReelsRefresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  loadReelsRef.current = loadReels;
 
   useEffect(() => {
+    // Returning to the tab revalidates quietly: the background refresh merges
+    // into the mounted feed and never swaps the player or restarts playback.
     const revalidateVisibleFeed = () => {
-      if (document.visibilityState === 'visible') loadReels();
+      if (document.visibilityState === 'visible') scheduleBackgroundReelsRefresh();
     };
     window.addEventListener('focus', revalidateVisibleFeed);
     document.addEventListener('visibilitychange', revalidateVisibleFeed);
@@ -934,7 +1078,7 @@ export function ReelsViewer({ onClose }) {
       window.removeEventListener('focus', revalidateVisibleFeed);
       document.removeEventListener('visibilitychange', revalidateVisibleFeed);
     };
-  }, [loadReels]);
+  }, [scheduleBackgroundReelsRefresh]);
 
   const currentReel = reels[currentIndex];
   activeCommentReelIdRef.current = currentReel?.id || null;

@@ -2,7 +2,9 @@ name: Deploy Open Claw Dispatcher + Script Jobs
 
 # Immutable Open Claw releases. Host-managed credentials are validated in
 # place, never printed, copied into artifacts, derived from one another, or
-# overwritten by deployment.
+# overwritten by deployment. The only GitHub-managed keys are main's legacy
+# alert delivery keys (TWILIO_* and ADMIN_PHONE), merged key by key and
+# atomically after the full contract validates; see the validation step.
 
 on:
   push:
@@ -81,56 +83,143 @@ jobs:
           test "$(uname -m)" = x86_64
           /usr/bin/python3 -c 'import sys; assert sys.version_info[:2] == (3, 10), "Open Claw lock requires CPython 3.10"'
           id -u openclaw >/dev/null
-          sudo install -d -o root -g root -m 0755 /opt/openclaw /opt/openclaw/releases
-          sudo install -d -o openclaw -g openclaw -m 0750 \
+          # The incumbent dispatcher (possibly the hand-installed legacy unit
+          # with WorkingDirectory=/opt/openclaw, running as openclaw) keeps
+          # running until promotion. Nothing here changes the owner or mode of
+          # an existing directory: /opt/openclaw becomes root-owned only inside
+          # the promotion step, whose rollback restores the captured original.
+          # Only the new release root and missing runtime directories are made.
+          if sudo test -L /opt/openclaw; then exit 1; fi
+          if ! sudo test -e /opt/openclaw; then
+            sudo install -d -o root -g root -m 0755 /opt/openclaw
+          fi
+          sudo test -d /opt/openclaw
+          if sudo test -L /opt/openclaw/releases; then exit 1; fi
+          if ! sudo test -e /opt/openclaw/releases; then
+            sudo install -d -o root -g root -m 0755 /opt/openclaw/releases
+          fi
+          test "$(sudo stat -c '%U:%G %a' /opt/openclaw/releases)" = 'root:root 755'
+          for runtime_dir in \
             /opt/openclaw/.smarter-poker \
             /opt/openclaw/.smarter-poker/logs \
             /var/log/openclaw \
             /var/lib/openclaw \
-            /var/lib/openclaw/evidence
-          test "$(sudo stat -c '%U:%G %a' /opt/openclaw)" = 'root:root 755'
-          test "$(sudo stat -c '%U:%G %a' /opt/openclaw/releases)" = 'root:root 755'
+            /var/lib/openclaw/evidence; do
+            if sudo test -L "$runtime_dir"; then exit 1; fi
+            if ! sudo test -e "$runtime_dir"; then
+              sudo install -d -o openclaw -g openclaw -m 0750 "$runtime_dir"
+            fi
+            sudo test -d "$runtime_dir"
+            sudo -u openclaw -- test -w "$runtime_dir"
+          done
           EOSSH
 
-      - name: Validate the complete host-managed runtime contract
+      # Legacy alert delivery keys stay GitHub-managed exactly as on main:
+      # TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER and
+      # ADMIN_PHONE. A configured secret replaces only its own key, after the
+      # whole merged contract validates, through a root-owned 0600 temporary
+      # file and one atomic rename. An unset secret leaves the host value
+      # alone. Every other key (CRON_SECRET, WORKERS_CRON_SECRET, Supabase and
+      # routing) stays host-managed and is never written by deployment. Values
+      # are never printed; errors name only the key.
+      - name: Validate the complete runtime contract and merge managed alert keys
         env:
           HOST: ${{ secrets.OPENCLAW_HOST }}
           SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
         run: |
-          ssh "$SSH_USER@$HOST" 'bash -s' <<'EOSSH'
           set -euo pipefail
+          umask 077
+          managed="$(mktemp "$RUNNER_TEMP/openclaw-managed-alert.XXXXXX")"
+          trap 'rm -f -- "$managed"' EXIT
+          python3 - "$managed" <<'PY'
+          import os
+          import sys
+
+          MANAGED_KEYS = ('TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE')
+          lines = []
+          for key in MANAGED_KEYS:
+              value = os.environ.get(key, '')
+              if not value:
+                  continue
+              if (len(value) < 2 or any(ch.isspace() for ch in value)
+                      or any(ch in value for ch in ('"', "'", '\\'))):
+                  raise SystemExit(f'GitHub secret {key} is malformed')
+              lines.append(f'{key}={value}\n')
+          with open(sys.argv[1], 'w', encoding='utf-8') as handle:
+              handle.writelines(lines)
+          PY
+          scp "$managed" "$SSH_USER@$HOST:openclaw-managed-alert-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.env"
+          ssh "$SSH_USER@$HOST" 'bash -s' -- "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'EOSSH'
+          set -euo pipefail
+          case "$1" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$2" in (*[!0-9]*|'') exit 2 ;; esac
+          managed_upload="$HOME/openclaw-managed-alert-$1-$2.env"
+          trap 'rm -f -- "$managed_upload"' EXIT
+          test -f "$managed_upload"
+          test ! -L "$managed_upload"
           sudo test -f /etc/openclaw.env
+          if sudo test -L /etc/openclaw.env; then exit 1; fi
           test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
-          sudo /usr/bin/python3 - <<'PY'
+          sudo /usr/bin/python3 - /etc/openclaw.env "$managed_upload" <<'PY'
           import ipaddress
+          import os
           import re
+          import sys
+          import tempfile
           import urllib.parse
           from pathlib import Path
 
-          values = {}
-          for line_number, raw in enumerate(Path('/etc/openclaw.env').read_text().splitlines(), 1):
-              line = raw.strip()
-              if not line or line.startswith('#'):
-                  continue
-              if '=' not in line:
-                  raise SystemExit(f'invalid /etc/openclaw.env line {line_number}')
-              key, value = line.split('=', 1)
-              key = key.strip()
-              if not re.fullmatch(r'[A-Z][A-Z0-9_]*', key):
-                  raise SystemExit(f'invalid /etc/openclaw.env key at line {line_number}')
-              if key in values:
-                  raise SystemExit(f'duplicate /etc/openclaw.env key: {key}')
-              value = value.strip()
-              if value[:1] in ('"', "'"):
-                  if len(value) < 2 or value[-1] != value[0]:
+          ENV_PATH = Path(sys.argv[1])
+          MANAGED_PATH = Path(sys.argv[2])
+          MANAGED_KEYS = ('TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE')
+
+          def parse(text):
+              values = {}
+              for line_number, raw in enumerate(text.splitlines(), 1):
+                  line = raw.strip()
+                  if not line or line.startswith('#'):
+                      continue
+                  if '=' not in line:
+                      raise SystemExit(f'invalid /etc/openclaw.env line {line_number}')
+                  key, value = line.split('=', 1)
+                  key = key.strip()
+                  if not re.fullmatch(r'[A-Z][A-Z0-9_]*', key):
+                      raise SystemExit(f'invalid /etc/openclaw.env key at line {line_number}')
+                  if key in values:
+                      raise SystemExit(f'duplicate /etc/openclaw.env key: {key}')
+                  value = value.strip()
+                  if value[:1] in ('"', "'"):
+                      if len(value) < 2 or value[-1] != value[0]:
+                          raise SystemExit(f'unbalanced quotes for /etc/openclaw.env key: {key}')
+                      value = value[1:-1]
+                  elif value[-1:] in ('"', "'"):
                       raise SystemExit(f'unbalanced quotes for /etc/openclaw.env key: {key}')
-                  value = value[1:-1]
-              elif value[-1:] in ('"', "'"):
-                  raise SystemExit(f'unbalanced quotes for /etc/openclaw.env key: {key}')
-              values[key] = value
+                  values[key] = value
+              return values
+
+          original = ENV_PATH.read_bytes()
+          original_text = original.decode('utf-8')
+          values = parse(original_text)
+
+          managed = {}
+          for line_number, raw in enumerate(MANAGED_PATH.read_text(encoding='utf-8').splitlines(), 1):
+              key, separator, value = raw.partition('=')
+              if not separator or key not in MANAGED_KEYS or key in managed:
+                  raise SystemExit(f'unexpected managed alert line {line_number}')
+              if (len(value) < 2 or any(ch.isspace() for ch in value)
+                      or any(ch in value for ch in ('"', "'", '\\'))):
+                  raise SystemExit(f'malformed managed alert key: {key}')
+              managed[key] = value
+
+          merged = dict(values)
+          merged.update(managed)
 
           def required(name, minimum=1):
-              value = values.get(name, '')
+              value = merged.get(name, '')
               if (len(value) < minimum or value != value.strip()
                       or any(ch.isspace() for ch in value) or any(ch in value for ch in ('"', '\\'))):
                   raise SystemExit(f'missing or malformed /etc/openclaw.env key: {name}')
@@ -152,7 +241,55 @@ jobs:
           ipaddress.ip_address(required('DISPATCHER_PRIVATE_IP'))
           if required('DISPATCHER_ROLE') not in ('primary', 'secondary'):
               raise SystemExit('DISPATCHER_ROLE must be primary or secondary')
+          # Main required every legacy alert delivery key after each deploy;
+          # the release now requires them before anything is promoted.
+          for key in MANAGED_KEYS:
+              required(key, 2)
+
+          changed = sorted(key for key, value in managed.items() if values.get(key) != value)
+          if not changed:
+              print('Runtime contract valid; managed alert keys unchanged')
+              raise SystemExit(0)
+
+          merged_lines = []
+          replaced = set()
+          for raw in original_text.splitlines():
+              line = raw.strip()
+              key = line.split('=', 1)[0].strip() if '=' in line and not line.startswith('#') else ''
+              if key in managed:
+                  merged_lines.append(f'{key}={managed[key]}')
+                  replaced.add(key)
+              else:
+                  merged_lines.append(raw)
+          merged_lines.extend(f'{key}={managed[key]}' for key in MANAGED_KEYS
+                              if key in managed and key not in replaced)
+          content = '\n'.join(merged_lines) + '\n'
+          if parse(content) != merged:
+              raise SystemExit('merged /etc/openclaw.env does not round-trip')
+
+          # mkstemp creates the file 0600 and owned by the effective user (root
+          # under sudo); the caller re-checks root:root 600 after the rename.
+          descriptor, staged = tempfile.mkstemp(prefix='.openclaw.env.', dir=str(ENV_PATH.parent))
+          try:
+              with os.fdopen(descriptor, 'w', encoding='utf-8') as handle:
+                  handle.write(content)
+                  handle.flush()
+                  os.fsync(handle.fileno())
+              if ENV_PATH.read_bytes() != original:
+                  raise SystemExit('/etc/openclaw.env changed during validation; not replaced')
+              os.replace(staged, ENV_PATH)
+          except BaseException:
+              if os.path.lexists(staged):
+                  os.unlink(staged)
+              raise
+          directory = os.open(str(ENV_PATH.parent), os.O_RDONLY)
+          try:
+              os.fsync(directory)
+          finally:
+              os.close(directory)
+          print('Runtime contract valid; merged managed alert keys: ' + ', '.join(changed))
           PY
+          test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
           EOSSH
 
       - name: Build on the runner, import and preflight immutable release
@@ -404,6 +541,17 @@ jobs:
           old_target=''
           had_current=false
           had_unit=false
+          # The legacy layout has /opt/openclaw owned by openclaw. The immutable
+          # layout needs it root-owned so the service account cannot swap
+          # current or releases. Capture the incumbent owner and mode first so
+          # rollback returns the legacy dispatcher its WorkingDirectory as it was.
+          sudo test -d /opt/openclaw
+          if sudo test -L /opt/openclaw; then exit 1; fi
+          base_owner_before="$(sudo stat -c '%u:%g' /opt/openclaw)"
+          base_mode_before="$(sudo stat -c '%a' /opt/openclaw)"
+          case "$base_owner_before" in (*[!0-9:]*|:*|*:|'') exit 1 ;; esac
+          case "$base_mode_before" in (*[!0-7]*|'') exit 1 ;; esac
+          base_changed=false
           enabled_before="$(sudo systemctl is-enabled openclaw.service 2>/dev/null || true)"
           case "$enabled_before" in enabled|disabled) ;; *) exit 1 ;; esac
           active_before="$(sudo systemctl show openclaw.service -p ActiveState --value)"
@@ -433,6 +581,10 @@ jobs:
             fi
             sudo rm -f "$current" "$next_link"
             if [ "$had_current" = true ]; then sudo ln -s "$old_target" "$current"; fi
+            if [ "$base_changed" = true ]; then
+              sudo chown "$base_owner_before" /opt/openclaw
+              sudo chmod "$base_mode_before" /opt/openclaw
+            fi
             sudo systemctl daemon-reload
             # The first immutable deploy migrates an active legacy unit that
             # has no /opt/openclaw/current symlink yet. Restoring that unit is
@@ -450,6 +602,17 @@ jobs:
           }
           trap rollback ERR
 
+          if [ "$(sudo stat -c '%U:%G %a' /opt/openclaw)" != 'root:root 755' ]; then
+            base_changed=true
+            sudo chown root:root /opt/openclaw
+            sudo chmod 0755 /opt/openclaw
+          fi
+          test "$(sudo stat -c '%U:%G %a' /opt/openclaw)" = 'root:root 755'
+          test "$(sudo stat -c '%U:%G %a' /opt/openclaw/releases)" = 'root:root 755'
+          # Re-verify the release now that no service account can rename it.
+          test -z "$(sudo find "$release" -xdev \( ! -user root -o ! -group root \) -print -quit)"
+          test -z "$(sudo find "$release" -xdev -perm /022 -print -quit)"
+          sudo sh -c "cd '$release' && sha256sum --quiet -c release-manifest.sha256"
           sudo rm -f "$next_link"
           sudo ln -s "$release" "$next_link"
           sudo mv -Tf "$next_link" "$current"

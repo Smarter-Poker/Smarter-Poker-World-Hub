@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
@@ -192,18 +193,53 @@ test('Open Claw validates routing and database without changing operational inbo
   assert.match(deployWorkflow, /curl --disable --silent --show-error/);
   assert.match(dispatcher, /BASE_URL \+ '\/api\/internal\/operational-alert'/);
   assert.match(dispatcher, /resp\.json\(\)\.get\('recorded'\) is True/);
-  assert.doesNotMatch(deployWorkflow, /TWILIO_ACCOUNT_SID|TWILIO_AUTH_TOKEN/);
+  // Operational alerts stay on the committed inbox: Twilio is never a
+  // delivery path here. The workflow carries only main's legacy alert keys
+  // into the host env (key-scoped, proved below) and never hands them to the
+  // credential probes or the release preflights.
+  assert.doesNotMatch(dispatcher, /api\.twilio\.com|import twilio|from twilio/);
+  const probeBlock = deployWorkflow.match(/--unit "openclaw-workers-auth-preflight[\s\S]*?keep_release=true/)?.[0];
+  assert.ok(probeBlock, 'credential probe block is missing');
+  assert.doesNotMatch(probeBlock, /TWILIO|ADMIN_PHONE/);
+  const managedKeySets = [...deployWorkflow.matchAll(/MANAGED_KEYS = \(([^)]*)\)/g)].map(match => match[1]);
+  assert.deepEqual(managedKeySets, [
+    "'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE'",
+    "'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE'",
+  ]);
+  for (const key of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'ADMIN_PHONE']) {
+    assert.equal(deployWorkflow.match(new RegExp(`secrets\\.${key}\\b`, 'g'))?.length, 1, key);
+  }
+  for (const hostManaged of ['CRON_SECRET', 'SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'WORKERS_BASE_URL']) {
+    assert.doesNotMatch(deployWorkflow, new RegExp(`secrets\\.${hostManaged}\\b`), hostManaged);
+  }
   assert.doesNotMatch(dispatcher, /DISPATCHER_ROLE\s*=\s*os\.environ\.get\([^\n]+\.lower\(\)/);
   assert.match(dispatcher, /\('WORKERS_BASE_URL', _WORKERS_BASE_URL_RAW\)/);
 });
 
-test('Open Claw service verifies the immutable release and schema on every start', () => {
+test('Open Claw service verifies the immutable release on every start; schema preflights gate the release', () => {
   assert.match(service, /^WorkingDirectory=\/opt\/openclaw\/current$/m);
   assert.match(service, /^EnvironmentFile=\/etc\/openclaw\.env$/m);
   assert.match(service, /^ExecStartPre=\/usr\/bin\/sha256sum --quiet -c release-manifest\.sha256$/m);
   assert.match(service, /^ExecStartPre=.*openclaw-cron-dispatcher\.py --preflight-only$/m);
-  assert.match(service, /^ExecStartPre=.*video_library_scraper\.py --preflight-only$/m);
-  assert.match(service, /^ExecStartPre=.*video_library_to_reels\.py --preflight-only$/m);
+  // The unit runs every platform cron. A Supabase outage or a video pipeline
+  // misconfiguration must not keep it from starting after a restart, so the
+  // networked scraper/publisher schema preflights are release gates only.
+  assert.deepEqual(
+    service.match(/^ExecStartPre=.*$/gm),
+    [
+      'ExecStartPre=/usr/bin/sha256sum --quiet -c release-manifest.sha256',
+      'ExecStartPre=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/openclaw-cron-dispatcher.py --preflight-only',
+    ],
+  );
+  assert.doesNotMatch(service, /^ExecStartPre=.*video_library_scraper\.py/m);
+  assert.doesNotMatch(service, /^ExecStartPre=.*video_library_to_reels\.py/m);
+  const promotion = deployWorkflow.indexOf('sudo mv -Tf "$next_link" "$current"');
+  for (const script of ['openclaw-cron-dispatcher.py', 'video_library_scraper.py', 'video_library_to_reels.py']) {
+    const gate = deployWorkflow.indexOf(`/usr/bin/python3 -s "$release/${script}" --preflight-only`);
+    assert.ok(gate >= 0, `${script} release preflight is missing`);
+    assert.ok(gate < promotion, `${script} release preflight must run before promotion`);
+  }
+  assert.match(deployWorkflow, /run_preflight\(\) \{[\s\S]*?systemd-run --quiet --wait --collect[\s\S]*?EnvironmentFile=\/etc\/openclaw\.env/);
   assert.match(service, /^ExecStart=\/usr\/bin\/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=\/opt\/openclaw\/current\/vendor \/usr\/bin\/python3 -s .*openclaw-cron-dispatcher\.py$/m);
   assert.match(service, /^TimeoutStartSec=300$/m);
   assert.match(service, /^KillMode=control-group$/m);
@@ -398,4 +434,143 @@ test('Open Claw builds only locally and an inactive service is never started', (
   }
   assert.deepEqual(result.stderr.split('\n').filter(line => line.startsWith('CALL:')), ['CALL:systemctl show openclaw.service -p ActiveState --value']);
   assert.match(deployWorkflow, /test "\$\(sudo systemctl is-enabled openclaw\.service[^\n]+" = "\$enabled_before"/);
+});
+
+
+test('managed alert keys merge key by key, atomically, only after the full contract validates', () => {
+  const marker = `sudo /usr/bin/python3 - /etc/openclaw.env "$managed_upload" <<'PY'\n`;
+  const start = deployWorkflow.indexOf(marker);
+  assert.ok(start >= 0, 'host merge program is missing');
+  const end = deployWorkflow.indexOf('\n          PY\n', start);
+  assert.ok(end > start);
+  const program = deployWorkflow.slice(start + marker.length, end)
+    .split('\n').map(line => line.replace(/^ {10}/, '')).join('\n') + '\n';
+  const after = deployWorkflow.slice(end, deployWorkflow.indexOf('EOSSH', end));
+  assert.match(after, /test "\$\(sudo stat -c '%U:%G %a' \/etc\/openclaw\.env\)" = 'root:root 600'/);
+  assert.match(program, /tempfile\.mkstemp\(prefix='\.openclaw\.env\.', dir=str\(ENV_PATH\.parent\)\)/);
+  assert.match(program, /os\.fsync\(handle\.fileno\(\)\)[\s\S]*os\.replace\(staged, ENV_PATH\)/);
+
+  const secrets = {
+    cron: 'CRONSECRETVALUE0123456789',
+    workers: 'WORKERSSECRETVALUE0123456789',
+    service: 'SERVICEROLEVALUE0123456789',
+    oldToken: 'OLDTOKENVALUE0123456789',
+    newToken: 'NEWTOKENVALUE0123456789',
+    sid: 'ACSIDVALUE0123456789',
+    from: '+15550000001',
+    admin: '+15550000002',
+  };
+  const hostLines = [
+    '# host managed',
+    `CRON_SECRET="${secrets.cron}"`,
+    `WORKERS_CRON_SECRET=${secrets.workers}`,
+    `SUPABASE_SERVICE_ROLE_KEY=${secrets.service}`,
+    'NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co',
+    'WORKERS_BASE_URL=http://10.0.0.3:8081',
+    'DISPATCHER_PRIVATE_IP=10.0.0.2',
+    'DISPATCHER_ROLE=secondary',
+  ];
+  const twilioLines = [
+    `TWILIO_ACCOUNT_SID=${secrets.sid}`,
+    `TWILIO_AUTH_TOKEN=${secrets.oldToken}`,
+    `TWILIO_PHONE_NUMBER=${secrets.from}`,
+  ];
+  const dir = mkdtempSync(join(tmpdir(), 'openclaw-env-merge-'));
+  const envPath = join(dir, 'openclaw.env');
+  const managedPath = join(dir, 'managed.env');
+  const run = (envText, managedText) => {
+    writeFileSync(envPath, envText, { mode: 0o600 });
+    writeFileSync(managedPath, managedText, { mode: 0o600 });
+    const result = spawnSync('python3', ['-', envPath, managedPath], {
+      input: program, encoding: 'utf8', timeout: 10000, env: { PATH: process.env.PATH },
+    });
+    const output = result.stdout + result.stderr;
+    for (const value of Object.values(secrets)) {
+      assert.ok(!output.includes(value), 'merge output must never contain a credential value');
+    }
+    assert.deepEqual(readdirSync(dir).filter(name => name.startsWith('.openclaw.env.')), []);
+    return { ...result, output, env: readFileSync(envPath, 'utf8') };
+  };
+  try {
+    const complete = [...hostLines, ...twilioLines, `ADMIN_PHONE=${secrets.admin}`].join('\n') + '\n';
+
+    // Unset GitHub secrets leave a complete host file byte-identical.
+    let result = run(complete, '');
+    assert.equal(result.status, 0, result.output);
+    assert.match(result.stdout, /managed alert keys unchanged/);
+    assert.equal(result.env, complete);
+
+    // Main required every alert key: a host missing one fails before any write.
+    const missingAdmin = [...hostLines, ...twilioLines].join('\n') + '\n';
+    result = run(missingAdmin, '');
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /missing or malformed \/etc\/openclaw\.env key: ADMIN_PHONE/);
+    assert.equal(result.env, missingAdmin);
+
+    // A configured secret replaces only its own key in place and appends a
+    // missing one; host-managed lines, quoting and comments are untouched.
+    result = run(missingAdmin, `TWILIO_AUTH_TOKEN=${secrets.newToken}\nADMIN_PHONE=${secrets.admin}\n`);
+    assert.equal(result.status, 0, result.output);
+    assert.match(result.stdout, /merged managed alert keys: ADMIN_PHONE, TWILIO_AUTH_TOKEN/);
+    assert.equal(result.env, [
+      ...hostLines,
+      `TWILIO_ACCOUNT_SID=${secrets.sid}`,
+      `TWILIO_AUTH_TOKEN=${secrets.newToken}`,
+      `TWILIO_PHONE_NUMBER=${secrets.from}`,
+      `ADMIN_PHONE=${secrets.admin}`,
+    ].join('\n') + '\n');
+    assert.equal(statSync(envPath).mode & 0o777, 0o600);
+
+    // Host-managed credentials can never be supplied through the managed file.
+    result = run(complete, `CRON_SECRET=${secrets.newToken}\n`);
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /unexpected managed alert line 1/);
+    assert.equal(result.env, complete);
+
+    // Malformed managed values are refused by key name, never echoed.
+    result = run(complete, `TWILIO_AUTH_TOKEN="${secrets.newToken}"\n`);
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /malformed managed alert key: TWILIO_AUTH_TOKEN/);
+    assert.equal(result.env, complete);
+
+    // An invalid host contract blocks the merge entirely.
+    const brokenHost = complete.replace(/^WORKERS_CRON_SECRET=.*\n/m, '');
+    result = run(brokenHost, `TWILIO_AUTH_TOKEN=${secrets.newToken}\n`);
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /missing or malformed \/etc\/openclaw\.env key: WORKERS_CRON_SECRET/);
+    assert.equal(result.env, brokenHost);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the incumbent /opt/openclaw is untouched until promotion, and rollback restores it', () => {
+  const validation = deployWorkflow.indexOf('- name: Validate the complete runtime contract and merge managed alert keys');
+  const preparation = deployWorkflow.slice(
+    deployWorkflow.indexOf('- name: Verify runtime and prepare release directories'),
+    validation,
+  );
+  assert.ok(preparation.length > 0 && validation > 0);
+  assert.doesNotMatch(preparation, /chown|chmod/);
+  const installs = preparation.match(/^.*install -d.*$/gm) || [];
+  assert.equal(installs.length, 3);
+  for (const line of installs) {
+    const index = preparation.indexOf(line);
+    assert.match(preparation.slice(0, index), /if ! sudo test -e "?[$/\w.-]+"?; then\n$/, line);
+  }
+
+  const promotionStep = deployWorkflow.slice(deployWorkflow.indexOf('- name: Atomically promote, restart, and verify exact release'));
+  const captured = promotionStep.indexOf(`base_owner_before="$(sudo stat -c '%u:%g' /opt/openclaw)"`);
+  const trapped = promotionStep.indexOf('trap rollback ERR');
+  const chown = promotionStep.indexOf('sudo chown root:root /opt/openclaw');
+  const swap = promotionStep.indexOf('sudo mv -Tf "$next_link" "$current"');
+  assert.ok(captured >= 0 && captured < trapped && trapped < chown && chown < swap);
+  assert.equal(deployWorkflow.match(/chown root:root \/opt\/openclaw\n/g)?.length, 1);
+  const rollback = promotionStep.match(/rollback\(\) \{([\s\S]*?)\n          \}/)?.[1];
+  assert.ok(rollback);
+  const restore = rollback.indexOf('sudo chown "$base_owner_before" /opt/openclaw');
+  assert.ok(restore >= 0);
+  assert.ok(rollback.indexOf('sudo chmod "$base_mode_before" /opt/openclaw') > restore);
+  assert.ok(rollback.indexOf('sudo systemctl restart openclaw.service') > restore,
+    'the legacy dispatcher must get its original directory back before it restarts');
 });

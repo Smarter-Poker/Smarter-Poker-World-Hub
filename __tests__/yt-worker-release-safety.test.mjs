@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
 
@@ -183,4 +185,53 @@ test('worker payload is built locally and a paused service preserves active and 
   }
   assert.deepEqual(result.stderr.split('\n').filter(line => line.startsWith('CALL:')), ['CALL:systemctl show sp-yt-transcode -p ActiveState --value']);
   assert.match(workflow, /test "\$\(sudo systemctl is-enabled sp-yt-transcode[^\n]+" = "\$enabled_before"/);
+});
+
+
+test('the host env boundary accepts legacy JWT and sb_secret_ service keys without printing them', () => {
+  const step = workflow.match(/- name: Validate host-managed configuration boundary[\s\S]*?<<'EOSSH'\n([\s\S]*?)\n\s+EOSSH\n/)?.[1];
+  assert.ok(step, 'host configuration validation block is missing');
+  const dir = mkdtempSync(join(tmpdir(), 'yt-worker-env-'));
+  const envPath = join(dir, 'sp-yt-transcode.env');
+  const body = step.split('\n').map(line => line.replace(/^ {10}/, '')).join('\n')
+    .replaceAll('/etc/sp-yt-transcode.env', envPath);
+  assert.ok(!body.includes('/etc/sp-yt-transcode.env'));
+  const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.SIGNATUREVALUE_-123';
+  const secretKey = 'sb_secret_SECRETKEYVALUE0123456789_-ab';
+  const check = serviceKeyLine => {
+    writeFileSync(envPath, [
+      '# host managed',
+      'NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co',
+      serviceKeyLine,
+      'WORKER_ID=reels-transcode-worker',
+      'MAX_CONCURRENT_YT=2',
+    ].join('\n') + '\n', { mode: 0o600 });
+    const result = spawnSync('bash', ['-c', `
+      sudo() { "$@"; }
+      stat() { printf 'root:root 600\\n'; }
+      ${body}
+    `], { encoding: 'utf8', timeout: 5000, env: { PATH: '/usr/bin:/bin' } });
+    const output = result.stdout + result.stderr;
+    assert.ok(!output.includes('SIGNATUREVALUE') && !output.includes('SECRETKEYVALUE'), 'values must never be printed');
+    return result.status;
+  };
+  try {
+    assert.equal(check(`SUPABASE_SERVICE_ROLE_KEY=${jwt}`), 0, 'legacy service_role JWT');
+    assert.equal(check(`SUPABASE_SERVICE_ROLE_KEY=${secretKey}`), 0, 'sb_secret_ secret API key');
+    for (const refused of [
+      'SUPABASE_SERVICE_ROLE_KEY=',
+      `SUPABASE_SERVICE_ROLE_KEY="${secretKey}"`,
+      `SUPABASE_SERVICE_ROLE_KEY='${jwt}'`,
+      `SUPABASE_SERVICE_ROLE_KEY=${secretKey} `,
+      `SUPABASE_SERVICE_ROLE_KEY= ${jwt}`,
+      'SUPABASE_SERVICE_ROLE_KEY=sb_secret_short',
+      'SUPABASE_SERVICE_ROLE_KEY=sb_publishable_PUBLISHABLEVALUE0123456789',
+      'SUPABASE_SERVICE_ROLE_KEY=eyJnotajwt',
+      `SUPABASE_SERVICE_ROLE_KEY=${secretKey}\\nextra`,
+    ]) {
+      assert.notEqual(check(refused), 0, `must refuse ${refused.slice(0, 40)}`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -83,7 +83,10 @@ jobs:
           test "$(sudo grep -Ec '^SUPABASE_SERVICE_ROLE_KEY=' /etc/sp-yt-transcode.env)" -eq 1
           test "$(sudo grep -Ec '^SUPABASE_URL=' /etc/sp-yt-transcode.env || true)" -eq 0
           sudo grep -Eq '^NEXT_PUBLIC_SUPABASE_URL=https://[A-Za-z0-9-]+\.supabase\.co/?$' /etc/sp-yt-transcode.env
-          sudo grep -Eq '^SUPABASE_SERVICE_ROLE_KEY=eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$' /etc/sp-yt-transcode.env
+          # Either a legacy service_role JWT or a Supabase secret API key
+          # (sb_secret_...). Both are matched unquoted, whole-line and free of
+          # whitespace; grep -q never prints the value.
+          sudo grep -Eq '^SUPABASE_SERVICE_ROLE_KEY=(eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]{20,})$' /etc/sp-yt-transcode.env
           if sudo grep -q '^WORKER_ID=' /etc/sp-yt-transcode.env; then
             test "$(sudo grep -Ec '^WORKER_ID=' /etc/sp-yt-transcode.env)" -eq 1
             sudo grep -Eq '^WORKER_ID=[A-Za-z0-9._:-]{1,80}$' /etc/sp-yt-transcode.env

@@ -23,10 +23,14 @@ Environment=PYTHONNOUSERSITE=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=SP_LOG_DIR=/var/log/openclaw
 Environment=SP_EVIDENCE_DIR=/var/lib/openclaw/evidence
+# Start gates stay local to this host: the release manifest and the
+# dispatcher's own runtime/script contract. This unit runs EVERY platform
+# cron, so a Supabase outage or a video pipeline misconfiguration must never
+# keep it from starting. The scraper and publisher schema preflights gate the
+# release in deploy-openclaw.yml before promotion, and the Reel publisher
+# re-reads its system publisher and kill switches on every run, failing closed.
 ExecStartPre=/usr/bin/sha256sum --quiet -c release-manifest.sha256
 ExecStartPre=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/openclaw-cron-dispatcher.py --preflight-only
-ExecStartPre=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/video_library_scraper.py --preflight-only
-ExecStartPre=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/video_library_to_reels.py --preflight-only
 ExecStart=/usr/bin/env -u PYTHONHOME -u PYTHONPATH PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s /opt/openclaw/current/openclaw-cron-dispatcher.py
 TimeoutStartSec=300
 TimeoutStopSec=30

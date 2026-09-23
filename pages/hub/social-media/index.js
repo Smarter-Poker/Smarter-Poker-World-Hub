@@ -116,17 +116,9 @@ const ClubPagesView = dynamic(() => import("../../../src/components/social/ClubP
 
 // Shared utilities — single source of truth (extracted from this file)
 import {
-  SOCIAL_COLORS,
   SOCIAL_COLORS as C,
   timeAgo,
-  decodeHtmlEntities,
-  isYouTubeUrl,
-  getYouTubeVideoId,
-  getYouTubeEmbedUrl,
-  getYouTubeThumbnail,
-  validateYouTubeVideo,
   buildUserVideoProvenance,
-  sniffMimeType,
 } from '../../../src/lib/socialHelpers';
 import { spKeyActivate } from '../../../src/lib/keyboardActivate';
 import { SharedAvatar as Avatar } from '../../../src/components/social/SharedAvatar';
@@ -135,7 +127,7 @@ import {
   FeedVideoPoster,
 } from '../../../src/components/social/SharedVideoComponents';
 
-import { feedCache, isManagedVideoLibraryPost } from '../../../src/lib/feedCache';
+import { feedCache } from '../../../src/lib/feedCache';
 import { retryUserReelPublication } from '../../../src/lib/userReelPublicationRecovery.mjs';
 import { createLatestRequestGuard } from '../../../src/lib/latestRequestGuard.mjs';
 import HubPageSummary from '../../../src/components/seo/HubPageSummary';

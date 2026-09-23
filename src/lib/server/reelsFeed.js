@@ -1504,11 +1504,3 @@ export async function readPokerReelsFeed(options = {}) {
         partial: page.partial,
     };
 }
-
-export const reelsFeedContract = Object.freeze({
-    defaultLimit: DEFAULT_LIMIT,
-    maxLimit: MAX_LIMIT,
-    defaultCollectionLimit: DEFAULT_COLLECTION_LIMIT,
-    maxCollectionLimit: MAX_COLLECTION_LIMIT,
-    topics: [...POKER_TOPICS],
-});
