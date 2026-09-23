@@ -503,7 +503,7 @@ test('canonical solver exports carry complete machine and artifact provenance', 
   assert.match(orchestrator, /"quality_status": "validated"/);
   assert.match(orchestrator, /"solver_binary_checksum": PIO_BINARY_CHECKSUM/);
   assert.match(orchestrator, /artifact_envelope = \{"scenario_hash": sh, "strategy_matrix_v2": sm\}/);
-  assert.match(orchestrator, /WORKER_PROTOCOL = "smarter-poker\.solver-worker\.v1"/);
+  assert.match(orchestrator, /WORKER_PROTOCOL = "smarter-poker\.solver-worker\.v2"/);
   assert.match(orchestrator, /hmac\.new\(WORKER_HMAC_SECRET, signature_message, hashlib\.sha256\)/);
   assert.match(orchestrator, /"X-SP-Solver-Nonce": nonce/);
   assert.match(orchestrator, /"ingest_artifact", \{"artifact": body\}/);
@@ -523,6 +523,7 @@ test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectiv
   const migration = fs.readFileSync('supabase/migrations/20260831141500_training_solver_provenance.sql', 'utf8');
   const manifest = JSON.parse(fs.readFileSync('scripts/preflop-deep/phases.json', 'utf8'));
   assert.equal(manifest.version, 4);
+  assert.equal(manifest.execution_scope, 'training_backlog');
   assert.equal(manifest.release_gate.solver_ready, false);
   assert.match(launcher, /PIPELINE_COMMIT is required; solver hosts may not follow a moving main branch/);
   assert.doesNotMatch(launcher, /repos\/%s\/commits\/main/);
@@ -562,10 +563,20 @@ test('solver hosts fail closed on unapproved manifests, ranges, and ICM objectiv
   assert.match(orchestrator, /solver self-test is missing approved inputs/);
   assert.match(orchestrator, /board must contain %d unique canonical cards/);
   assert.match(manifest.pipeline_bundle_checksum, /^[0-9a-f]{64}$/);
+  assert.deepEqual(
+    Object.keys(manifest.pipeline_files_sha256).sort(),
+    ['orchestrate.py', 'pio_harvest.py', 'run_machine.py', 'tree_gen.py'],
+  );
   const bundleDigest = createHash('sha256');
   for (const filename of ['run_machine.py', 'tree_gen.py', 'pio_harvest.py', 'orchestrate.py']) {
+    const payload = fs.readFileSync(`scripts/preflop-deep/${filename}`);
+    assert.equal(
+      createHash('sha256').update(payload).digest('hex'),
+      manifest.pipeline_files_sha256[filename],
+      `${filename} is not individually sealed by the real manifest`,
+    );
     bundleDigest.update(`${filename}\0`);
-    bundleDigest.update(fs.readFileSync(`scripts/preflop-deep/${filename}`));
+    bundleDigest.update(payload);
     bundleDigest.update('\0');
   }
   assert.equal(bundleDigest.digest('hex'), manifest.pipeline_bundle_checksum);

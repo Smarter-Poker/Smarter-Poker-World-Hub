@@ -32,6 +32,7 @@ import {
   sanctionBody,
   timingRowsOf,
   timingUrl,
+  handSearchCoverage,
 } from '../src/components/horses/integrityAdmin.js';
 import {
   DETECTOR_STATES,
@@ -266,4 +267,57 @@ test('the new client files obey source house rules', () => {
     assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(source), `${name}: no raw colour`);
     assert.ok(!source.includes('.single('), `${name}: use maybeSingle on data paths`);
   }
+});
+
+// An empty hand-search window is not proof that no hand evidence exists.
+// fn_ca_integrity_hands reads history in windows and reports 'search_incomplete'
+// with a cursor when a window filled without matching. Before this was wired,
+// the panel rendered that case as "No Hands Match That Search" and hid the pager,
+// so an investigator could close a false negative under a human decision gate.
+test('hand search coverage separates an exhausted search from an unfinished one', () => {
+  const finished = handSearchCoverage({ state: 'nothing_to_review', scanned_count: 120, next_cursor: null });
+  assert.equal(finished.incomplete, false);
+  assert.equal(finished.hasMore, false);
+
+  const unfinished = handSearchCoverage({
+    state: 'search_incomplete',
+    scanned_count: 500,
+    next_cursor: { hand_id: 'abc', played_at: '2026-09-01T00:00:00Z' },
+  });
+  assert.equal(unfinished.incomplete, true);
+  assert.equal(unfinished.hasMore, true);
+  assert.equal(unfinished.scannedCount, 500);
+  assert.deepEqual(unfinished.nextCursor, { hand_id: 'abc', played_at: '2026-09-01T00:00:00Z' });
+});
+
+test('hand search coverage never invents completeness from a missing payload', () => {
+  for (const empty of [null, undefined, {}, { state: null }]) {
+    const coverage = handSearchCoverage(empty);
+    assert.equal(coverage.incomplete, false, 'absent state must not claim an unfinished search');
+    assert.equal(coverage.hasMore, false, 'absent cursor must not claim another page');
+    assert.equal(coverage.scannedCount, null, 'a scanned count that was never reported stays null');
+  }
+});
+
+test('the integrity panel reads the continuation the database reports', async () => {
+  const panel = await readFile(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/components/horses/IntegrityPanel.jsx'),
+    'utf8'
+  );
+  assert.match(panel, /handSearchCoverage/, 'the panel must read the hand search coverage');
+  assert.match(
+    panel,
+    /handRows\.length > 0 \|\| handCoverage\.hasMore/,
+    'the hands pager must stay reachable when the window was full but matched nothing'
+  );
+  assert.match(
+    panel,
+    /This Search Did Not Reach The End Of History/,
+    'an unfinished hand search must say so instead of reporting no records'
+  );
+  assert.doesNotMatch(
+    panel,
+    /\{handRows\.length > 0 && \(\s*\n\s*<CursorPager/,
+    'the old row-count-only pager gate must not come back'
+  );
 });

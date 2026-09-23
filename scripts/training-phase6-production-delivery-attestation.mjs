@@ -36,6 +36,15 @@ import { pioQueryService } from '../src/services/PIOQueryService.js';
 import {
   validateStrictTrainingContinuationSnapshotPair,
 } from '../src/lib/training/trainingContinuationEligibility.mjs';
+import {
+  AUDIT_SESSION_OUTCOMES,
+  AUDIT_SESSION_PERSIST_OUTCOMES,
+  AUDIT_SESSION_PERSIST_REASONS,
+  auditSessionMaterialLeaks,
+  ensureFreshAuditSession,
+  persistBrowserSessionIfRotated,
+  readAuditSessionAuthStatePath,
+} from '../src/lib/training/trainingAuditSessionRefresh.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SHA40_RE = /^[0-9a-f]{40}$/i;
 const SHA256_RE = /^[0-9a-f]{64}$/i;
@@ -283,11 +292,25 @@ export function validateImmutableDeploymentUrl(value) {
 }
 
 export function readAttestationConfig(env = process.env) {
+  // The out-of-Git credential env (mode 0600) is the only refresh source. When
+  // it is configured and no explicit auth-state path is given, the auth state
+  // it names is the one the attestation reads, so the two can never diverge.
+  const auditCredentialEnv = String(env.TRAINING_PHASE6_AUDIT_ENV_FILE || '').trim();
+  if (auditCredentialEnv) {
+    assert.ok(
+      isAbsolute(auditCredentialEnv),
+      'TRAINING_PHASE6_AUDIT_ENV_FILE must be an absolute path to the mode-0600 credential env'
+    );
+  }
+  const authState =
+    env.TRAINING_PHASE6_DELIVERY_AUTH_STATE
+    || (auditCredentialEnv ? readAuditSessionAuthStatePath(auditCredentialEnv) : null)
+    || resolve(ROOT, 'playwright/.auth/user.json');
   return validateAttestationConfig({
     baseUrl: env.TRAINING_PHASE6_DELIVERY_BASE_URL,
     expectedBuild: env.TRAINING_PHASE6_DELIVERY_EXPECTED_BUILD,
-    authState:
-      env.TRAINING_PHASE6_DELIVERY_AUTH_STATE || resolve(ROOT, 'playwright/.auth/user.json'),
+    authState,
+    auditCredentialEnv,
     output: env.TRAINING_PHASE6_DELIVERY_EVIDENCE,
     expectedAuditUserId: env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID,
     writeAcknowledgement: env.TRAINING_PHASE6_DELIVERY_ACKNOWLEDGE_WRITES,
@@ -315,6 +338,13 @@ export function validateAttestationConfig(config) {
   );
   const authState = resolve(String(config?.authState || ''));
   assert.ok(existsSync(authState), `Authenticated storage state is missing: ${authState}`);
+  const auditCredentialEnv = String(config?.auditCredentialEnv || '').trim();
+  if (auditCredentialEnv) {
+    assert.ok(
+      isAbsolute(auditCredentialEnv),
+      'TRAINING_PHASE6_AUDIT_ENV_FILE must be an absolute path to the mode-0600 credential env'
+    );
+  }
   assert.ok(
     typeof config?.output === 'string' && config.output.trim().length > 0,
     'TRAINING_PHASE6_DELIVERY_EVIDENCE must be an explicit unique output path'
@@ -324,6 +354,7 @@ export function validateAttestationConfig(config) {
     expectedBuild: expectedBuild.toLowerCase(),
     expectedAuditUserId,
     authState,
+    auditCredentialEnv: auditCredentialEnv ? resolve(auditCredentialEnv) : '',
     output: resolve(config.output.trim()),
     writeAcknowledgement: WRITE_ACKNOWLEDGEMENT,
     protectionBypassSecret:
@@ -4430,11 +4461,6 @@ export async function runProductionDeliveryAttestation(
   const sleep =
     runtime.sleep ||
     ((delayMs) => new Promise((resolveSleep) => setTimeout(resolveSleep, delayMs)));
-  const designatedAuth = authStorageState(
-    config.authState,
-    config.baseUrl,
-    config.expectedAuditUserId
-  );
   const lease = acquireEvidenceRunLock(config.output);
   const startedAt = now().toISOString();
   const evidence = {
@@ -4445,11 +4471,12 @@ export async function runProductionDeliveryAttestation(
     status: 'in_progress',
     startedAt,
     expectedBuild: config.expectedBuild,
-    auditUserId: designatedAuth.auditUserId,
+    auditUserId: config.expectedAuditUserId,
+    auditSession: { outcome: 'pending', refreshAttempted: false, refreshCalls: 0 },
     deployment: { deploymentUrl: config.baseUrl },
     writeScope: {
       acknowledged: true,
-      auditUserId: designatedAuth.auditUserId,
+      auditUserId: config.expectedAuditUserId,
       gameId: GAME_ID,
       level: LEVEL,
       effects: [
@@ -4474,10 +4501,100 @@ export async function runProductionDeliveryAttestation(
   const publicClientErrors = [];
   let browser;
   let context;
+  let designatedAuth;
   let outputOwned = false;
+  // End-of-run custody, on success and failure alike, whenever a browser
+  // context exists: the page's own auth client rotates the refresh token
+  // inside the browser, and a pair left on disk after that rotation is revoked
+  // by GoTrue's reuse detection. The helper never throws and never upgrades
+  // the run's result; its record carries no token material.
+  const persistBrowserCustody = async () => {
+    if (!context) return;
+    let record;
+    try {
+      let baselineAccessToken = null;
+      try {
+        baselineAccessToken =
+          JSON.parse(designatedAuth?.storageState?.origins?.[0]?.localStorage?.[0]?.value || 'null')
+            ?.access_token ?? null;
+      } catch {
+        baselineAccessToken = null;
+      }
+      record = await persistBrowserSessionIfRotated({
+        browserContext: context,
+        browserOrigin: config.baseUrl,
+        credentialEnvPath: config.auditCredentialEnv || null,
+        authStatePath: config.authState,
+        expectedAuditUserId: config.expectedAuditUserId,
+        baselineAccessToken,
+        nowMs: runtime.nowMs,
+        sleep,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
+        supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null,
+      });
+    } catch (error) {
+      record = {
+        schemaVersion: 1,
+        persistedRotatedSession: false,
+        outcome: AUDIT_SESSION_PERSIST_OUTCOMES.failed,
+        reason: AUDIT_SESSION_PERSIST_REASONS.persistFailed,
+        code: null,
+        message: redactProtectionBypassSecret(
+          redactReceiptMaterial(error?.message || String(error)),
+          config.protectionBypassSecret
+        ),
+      };
+    }
+    if (auditSessionMaterialLeaks(record).length > 0) {
+      record = {
+        schemaVersion: 1,
+        persistedRotatedSession: false,
+        outcome: AUDIT_SESSION_PERSIST_OUTCOMES.failed,
+        reason: AUDIT_SESSION_PERSIST_REASONS.persistFailed,
+        code: null,
+        message: 'browser custody record was withheld because it carried token material',
+      };
+    }
+    evidence.auditSession = {
+      ...(evidence.auditSession && typeof evidence.auditSession === 'object'
+        ? evidence.auditSession
+        : { outcome: AUDIT_SESSION_OUTCOMES.refused }),
+      persistedRotatedSession: record.persistedRotatedSession === true,
+      browserCustody: record,
+    };
+  };
   try {
     writeOutputAtomic(config.output, evidence, { overwrite: false });
     outputOwned = true;
+    // Bounded audit-session custody, before the first request of any kind:
+    // exactly one refresh when the saved access token is expired or near
+    // expiry, none when it is fresh, and a fail-closed authoritative outcome
+    // otherwise. The auth state is read only after this step so the browser
+    // context and every API request carry the refreshed token.
+    evidence.auditSession = await ensureFreshAuditSession({
+      credentialEnvPath: config.auditCredentialEnv || null,
+      authStatePath: config.authState,
+      expectedAuditUserId: config.expectedAuditUserId,
+      fetchFn: runtime.fetchFn,
+      nowMs: runtime.nowMs,
+      sleep,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
+      supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null,
+      ...(Number.isFinite(runtime.auditSessionTimeoutMs)
+        ? { timeoutMs: runtime.auditSessionTimeoutMs }
+        : {}),
+    });
+    assert.deepEqual(
+      auditSessionMaterialLeaks(evidence.auditSession),
+      [],
+      'audit session record must not carry token material'
+    );
+    writeOutputAtomic(config.output, evidence);
+    designatedAuth = authStorageState(
+      config.authState,
+      config.baseUrl,
+      config.expectedAuditUserId
+    );
     evidence.deployment = await readDeploymentIdentity(config.baseUrl, config.expectedBuild, {
       fetchFn: runtime.fetchFn,
       now: runtime.nowMs,
@@ -4973,6 +5090,7 @@ export async function runProductionDeliveryAttestation(
       [],
       'public client emitted errors during the attestation window'
     );
+    await persistBrowserCustody();
     validateCompletePublicAttestation(evidence);
     writeOutputAtomic(config.output, evidence);
     await closeAttestationBrowserContext(context);
@@ -4990,7 +5108,25 @@ export async function runProductionDeliveryAttestation(
         error?.message || String(error),
         config.protectionBypassSecret
       ),
+      ...(error?.code ? { code: redactReceiptMaterial(error.code) } : {}),
+      ...(error?.operatorAction
+        ? { operatorAction: redactReceiptMaterial(error.operatorAction) }
+        : {}),
     };
+    if (error?.auditSession && typeof error.auditSession === 'object') {
+      // The authoritative custody outcome (including `unknown` after a
+      // refresh timeout) is preserved for the operator; it never carries
+      // token material.
+      evidence.auditSession = error.auditSession;
+    } else if (evidence.auditSession?.outcome === 'pending') {
+      evidence.auditSession = {
+        ...evidence.auditSession,
+        outcome: error?.outcome || AUDIT_SESSION_OUTCOMES.refused,
+      };
+    }
+    // A failed run still hands the browser's rotated session back to the
+    // custody files; the failure itself is what is thrown below, unchanged.
+    await persistBrowserCustody().catch(() => undefined);
     evidence.receiptFormatCensus = receiptFormatCensus(observations);
     if (outputOwned) writeOutputAtomic(config.output, evidence);
     throw error;
