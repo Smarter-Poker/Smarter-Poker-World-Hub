@@ -328,16 +328,35 @@ export function pendingSanctionsOf(payload) {
 // matching the searched player, and hands a cursor for the next window. An empty
 // window is therefore not proof that no hand evidence exists, and the panel must
 // never render it as if it were. See the integrity hand search continuation migration.
+//
+// `state` on its own is NOT the coverage signal, and reading only it was a live
+// defect. The function emits 'hands_available' as soon as one row matches, even
+// when the 500-row candidate window filled and a cursor was handed back: a
+// player with 28,395 hands answers state 'hands_available', matched_in_sample
+// 27, scanned_count 500, truncated true. Gating the disclosure on
+// state === 'search_incomplete' therefore hid the warning in exactly the case an
+// investigator is most likely to mistake for a finished review, because that
+// operator is looking at real matched hands. `truncated` is the authoritative
+// 'history was not exhausted' flag, so it is read here as well and either signal
+// is enough to make the search incomplete.
 export function handSearchCoverage(payload) {
   const body = payloadOf(payload);
   const state = body && typeof body.state === 'string' ? body.state : null;
   const scanned = Number(body ? body.scanned_count : NaN);
   const cursor = body && body.next_cursor != null ? body.next_cursor : null;
+  const rawTruncated = body ? (body.truncated ?? body.isTruncated) : undefined;
+  // Liberal about what counts as truncated, strict about what counts as
+  // finished. The unsafe direction is reporting a partial search as complete.
+  const truncated = rawTruncated === true || rawTruncated === 'true';
+  const rawNote = body ? (body.coverage_note ?? body.coverageNote) : null;
+  const coverageNote = typeof rawNote === 'string' && rawNote.trim() ? rawNote.trim() : null;
   return {
     state,
-    incomplete: state === 'search_incomplete',
+    incomplete: state === 'search_incomplete' || truncated,
+    truncated,
     scannedCount: Number.isFinite(scanned) ? scanned : null,
     nextCursor: cursor,
     hasMore: cursor != null,
+    coverageNote,
   };
 }
