@@ -21,6 +21,19 @@ const TAB_ROUTES = {
   'club-shop': '/hub/club-shop',
 };
 
+/**
+ * The club a visitor arrived in is part of the address, not of this rail. A
+ * player handed over from Club Arena with ?clubId=X used to lose it the moment
+ * they tapped Diamonds, and tapping Club Shop again silently resolved SOME
+ * OTHER club. The identity therefore rides every link in the rail while one is
+ * active, so a round trip through the store returns to the same shop.
+ */
+export function storeTabHref(tabId, clubId) {
+  const route = TAB_ROUTES[tabId];
+  if (!route || !clubId) return route;
+  return `${route}?clubId=${encodeURIComponent(clubId)}`;
+}
+
 const PACKAGE_ART_CLASS_BY_ID = Object.freeze({
   medium: 'package0',
   standard: 'package1',
@@ -60,6 +73,7 @@ const SECTION_COPY = {
 
 export default function SmarterStoreShowcase({
   activeTab,
+  clubId = null,
   packages = [],
   catalogState = 'database',
   isProcessing = false,
@@ -109,7 +123,7 @@ export default function SmarterStoreShowcase({
           <Link
             key={id}
             ref={id === activeTab ? activeTabRef : null}
-            href={TAB_ROUTES[id]}
+            href={storeTabHref(id, clubId)}
             className={`${styles.tab} ${id === activeTab ? styles.activeTab : ''}`}
             aria-current={id === activeTab ? 'page' : undefined}
             aria-label={id === activeTab ? `${label}, Current Page` : label}

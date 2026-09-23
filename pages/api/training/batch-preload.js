@@ -36,6 +36,7 @@ import {
     prepareTrainingAttemptDelivery,
     recordTrainingQuestionsServedForAttempt,
     recoverTrainingAttemptHand,
+    trainingQuestionCampaignEligibility,
 } from '../../../src/lib/training/trainingAttemptDelivery.mjs';
 import {
     filterTrainingQuestionsForAttempt,
@@ -79,9 +80,20 @@ function getSupabase() {
  * boundary. This deliberately does not add cards, a board, seats, a street,
  * pot geometry, stacks, options, frequencies, or provenance that the source
  * did not provide.
+ *
+ * `rejections` is an optional server-only tally (reason -> count). A dropped
+ * candidate used to vanish between "engine generated N" and "engines returned
+ * empty" with no trace of why; the tally names the contract or eligibility
+ * reason without recording the question itself.
  */
-function normalizeCampaignQuestionWithoutFabrication(question) {
-    if (!question || typeof question !== 'object' || Array.isArray(question)) return null;
+function normalizeCampaignQuestionWithoutFabrication(question, rejections = null) {
+    const reject = (reason) => {
+        if (rejections) rejections[reason] = (rejections[reason] || 0) + 1;
+        return null;
+    };
+    if (!question || typeof question !== 'object' || Array.isArray(question)) {
+        return reject('question_missing');
+    }
     if (String(question.type || '').toUpperCase() === 'CHART') {
         normalizeAuditedChartQuestion(question);
     }
@@ -99,9 +111,26 @@ function normalizeCampaignQuestionWithoutFabrication(question) {
     }
 
     const canonical = enforceTrainingQuestionContract(enforceSolverClaimHonesty(question));
-    return isTrainingQuestionValid(canonical) && isTrainingQuestionCampaignEligible(canonical)
-        ? canonical
-        : null;
+    if (!isTrainingQuestionValid(canonical)) {
+        const issue = String(canonical?.questionContract?.issues?.[0] || 'unspecified').slice(0, 120);
+        return reject(`question_contract_invalid: ${issue}`);
+    }
+    if (!isTrainingQuestionCampaignEligible(canonical)) {
+        const { reason } = trainingQuestionCampaignEligibility(canonical);
+        return reject(`campaign_ineligible: ${String(reason || 'unspecified').slice(0, 80)} `
+            + `(source=${String(canonical?.source || '').slice(0, 40)}, `
+            + `classification=${String(canonical?.dataQuality || '').slice(0, 40)})`);
+    }
+    return canonical;
+}
+
+/** One bounded server-log line for engine candidates the campaign contract refused. */
+function reportRejectedEngineCandidates({ gameId, level, generated, accepted, rejections }) {
+    if (generated <= accepted) return;
+    console.warn(
+        `[BatchPreload] ${generated - accepted} of ${generated} engine candidates for ${gameId} `
+        + `L${level} were refused by the campaign contract: ${JSON.stringify(rejections)}`,
+    );
 }
 
 export default async function handler(req, res) {
@@ -464,15 +493,28 @@ export default async function handler(req, res) {
                               spotTypes: scenarioConfig?.spotTypes || undefined,
                               stackDepths: scenarioConfig?.stackDepths || undefined,
                               seenIds: generationSeenIds,
+                              // Campaign attempts admit only progress-bearing
+                              // authority; the engine uses this to choose its
+                              // honest fallback instead of rows this route
+                              // would have to refuse.
+                              admissibleForCaller: isTrainingQuestionCampaignEligible,
                           });
                       generatedParentCandidates = Array.isArray(batch) ? batch.length : 0;
                       if (batch && batch.length > 0) {
+                          const rejections = {};
                           solverQuestions = batch
                               .map(question => ({
-                                  question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                                  question_data: normalizeCampaignQuestionWithoutFabrication(question, rejections),
                               }))
                               .filter(row => row.question_data);
                           console.debug(`[BatchPreload] DeterministicEngine generated ${batch.length} solver questions for ${gameId}`);
+                          reportRejectedEngineCandidates({
+                              gameId,
+                              level: gameLevel,
+                              generated: batch.length,
+                              accepted: solverQuestions.length,
+                              rejections,
+                          });
                       }
                   } catch (solverErr) {
                       console.warn('[BatchPreload] ▲ Solver engine failed:', solverErr.message);
@@ -500,12 +542,20 @@ export default async function handler(req, res) {
                           seenIds: Array.from(seenIds),
                       });
                       if (batch && batch.length > 0) {
+                          const rejections = {};
                           solverQuestions = batch
                               .map(question => ({
-                                  question_data: normalizeCampaignQuestionWithoutFabrication(question),
+                                  question_data: normalizeCampaignQuestionWithoutFabrication(question, rejections),
                               }))
                               .filter(row => row.question_data);
                           console.debug(`[BatchPreload] Engine generated ${batch.length} scenario questions for ${gameId}`);
+                          reportRejectedEngineCandidates({
+                              gameId,
+                              level: gameLevel,
+                              generated: batch.length,
+                              accepted: solverQuestions.length,
+                              rejections,
+                          });
                       }
                   } catch (scenarioErr) {
                       console.warn('[BatchPreload] ▲ Scenario engine failed:', scenarioErr.message);

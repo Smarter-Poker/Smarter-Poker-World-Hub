@@ -42,7 +42,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import shellStyles from '../diamond-store/DiamondStoreShell.module.css';
 import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
 import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
-import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import { marketplaceCopy, marketplacePreservedName } from '../../lib/store/marketplaceCopy';
 import { getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
 
@@ -166,13 +166,13 @@ export function ClubShopPurchaseLedgerView({
         <h3 style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>
           Purchase Ledger
         </h3>
-        <button
-          type="button"
-          className={shellStyles.clubAdminManagedStatus}
-          onClick={() => onHide?.()}
-        >
-          Hide Ledger
-        </button>
+        {/* A control is a control: the status-pill class is the read-only
+            badge's, and wearing it made this disclosure look like a label. */}
+        <div className={shellStyles.clubAdminActions}>
+          <button type="button" aria-expanded={true} onClick={() => onHide?.()}>
+            Hide Ledger
+          </button>
+        </div>
       </div>
 
       <div className={shellStyles.controlRow} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
@@ -269,8 +269,16 @@ export function ClubShopPurchaseLedgerView({
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id}>
-                    <td style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}>
-                      {marketplaceCopy(row.buyerName || 'Member')}
+                    {/* A member's name is an identity, not shopper copy. Run
+                        through marketplaceCopy, ALLIN_ACE reads as "Allin Ace"
+                        and two different members can render identically, which
+                        is how a refund reaches the wrong row. */}
+                    <td
+                      data-preserve-case="true"
+                      data-user-content="true"
+                      style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}
+                    >
+                      {row.buyerName || 'Member'}
                     </td>
                     <td style={cellStyle}>{marketplaceCopy(row.itemName || 'Deleted Item')}</td>
                     <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
@@ -290,15 +298,24 @@ export function ClubShopPurchaseLedgerView({
                           onClick={() => onRefund?.(row)}
                           disabled={refundingId !== null}
                           aria-busy={refundingId === row.id}
-                          aria-label={`Refund ${marketplaceCopy(row.itemName || 'Purchase')} For ${marketplaceCopy(row.buyerName || 'Member')}`}
+                          aria-label={`Refund ${marketplaceCopy(row.itemName || 'Purchase')} For ${row.buyerName || 'Member'}`}
                         >
                           {refundingId === row.id ? 'Refunding...' : 'Refund'}
                         </button>
                       ) : (
-                        <span
-                          title={UNAVAILABLE_REASON[row.status] || 'No Delivered Copy To Revoke.'}
-                        >
+                        // The reason was a `title` on a span, which no phone and
+                        // no screen reader can reach. It is ordinary text now.
+                        <span>
                           Refund Unavailable
+                          <span
+                            style={{
+                              display: 'block',
+                              marginTop: 2,
+                              color: 'rgba(255,255,255,0.45)',
+                            }}
+                          >
+                            {UNAVAILABLE_REASON[row.status] || 'No Delivered Copy To Revoke.'}
+                          </span>
                         </span>
                       )}
                     </td>
@@ -386,6 +403,10 @@ export default function ClubShopPurchaseLedger({
     setRows([]);
     setTotal(0);
     setOffset(0);
+    // A search term belongs to the club it was typed in. Carried across, it
+    // reported the next club empty for a term nobody there had searched for.
+    setQuery('');
+    setAppliedQuery('');
     setError(null);
     setLoaded(false);
     setLoading(false);
@@ -548,7 +569,10 @@ export default function ClubShopPurchaseLedger({
           'success',
           data.alreadyRefunded
             ? 'That Purchase Was Already Refunded.'
-            : `Refunded ${fmt(data.amount)} ${unitOf(data.currency || row.currency)} To ${marketplaceCopy(row.buyerName || 'Member')}.`
+            : // The name is carried through the toast formatter byte for byte: it is
+              // what somebody typed, not prose, and this toast names the member a
+              // refund was just issued to.
+              `Refunded ${fmt(data.amount)} ${unitOf(data.currency || row.currency)} To ${marketplacePreservedName(row.buyerName) || 'Member'}.`
         );
         await load();
         onLedgerChanged?.();
@@ -572,6 +596,7 @@ export default function ClubShopPurchaseLedger({
         <button
           type="button"
           className={shellStyles.clubAdminCreateAction}
+          aria-expanded={false}
           onClick={() => setOpen(true)}
         >
           Purchase Ledger

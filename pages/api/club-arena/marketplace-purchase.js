@@ -229,11 +229,15 @@ export default async function handler(req, res) {
           .eq('id', user.id)
           .limit(1)
           .maybeSingle();
+        // The charge is already committed and delivered at this point, so the
+        // only question is what the wallet now reads. A negative balance is a
+        // supported state after a card refund clawback, and refusing it here
+        // left a debt-carrying member's real purchase permanently unconfirmed
+        // and its durable request permanently bound.
         if (
           committedWalletError ||
           !committedWallet ||
-          !Number.isSafeInteger(committedWallet.diamonds) ||
-          committedWallet.diamonds < 0
+          !Number.isSafeInteger(committedWallet.diamonds)
         ) {
           return sendBoundFailure(503, {
             error:
@@ -277,9 +281,20 @@ export default async function handler(req, res) {
     // success remains replayable under the same durable key instead of being
     // shown as a completed purchase with invented zeroes or mismatched item
     // copy.
+    // The display name is not a financial term, and an operator can rename a
+    // row between the preflight read above and the RPC's own read inside the
+    // transaction. Checking the receipt against the pre-RPC name turned a
+    // completed, charged, delivered purchase into a 500 "Purchase failed", so
+    // verify against what the RPC itself reported and fall back to the row
+    // this request read only when the RPC reported no name at all (a durable
+    // replay). Price, purchase identity and item type stay strictly verified.
+    const settledItemName =
+      typeof settledResult?.item_name === 'string' && settledResult.item_name.trim()
+        ? settledResult.item_name
+        : fulfillmentItem.name;
     const verifiedResult = normalizeClubPurchaseRpcSuccess(settledResult, {
       price: expectedPrice,
-      name: fulfillmentItem.name,
+      name: settledItemName,
       itemType: fulfillmentItem.item_type,
     });
     if (!verifiedResult) {

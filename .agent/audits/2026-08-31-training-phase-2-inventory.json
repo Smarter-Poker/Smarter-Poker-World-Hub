@@ -18,15 +18,15 @@
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 148,
-    "markerCandidates": 329,
+    "tests": 149,
+    "markerCandidates": 332,
     "possibleUnwiredFunctions": 378,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 105,
+    "markerDocumentedFollowUp": 107,
     "functionPhaseReview": 0
   },
   "games": [
@@ -18714,7 +18714,7 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 67,
+          "line": 68,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -18722,23 +18722,39 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 83,
+          "line": 89,
           "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "reportRejectedEngineCandidates",
+          "line": 128,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "handler",
-          "line": 107,
+          "line": 136,
           "references": 2,
           "exported": true,
           "defaultExport": true,
           "namedFunctionExpression": false
         },
         {
+          "name": "reject",
+          "line": 90,
+          "references": 4,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "refuseUnavailableAttestationContinuationCohort",
-          "line": 227,
+          "line": 256,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -18746,7 +18762,7 @@
         },
         {
           "name": "isAggressiveAnswer",
-          "line": 544,
+          "line": 594,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18757,7 +18773,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 353,
+          "line": 382,
           "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -18766,7 +18782,15 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 489,
+          "line": 498,
+          "excerpt": "// honest fallback instead of rows this route",
+          "disposition": "historical-or-prohibition-comment",
+          "review": "accepted",
+          "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 531,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18774,7 +18798,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 520,
+          "line": 570,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18782,7 +18806,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 633,
+          "line": 683,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -18790,7 +18814,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 645,
+          "line": 695,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -19859,7 +19883,7 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 560,
+          "line": 563,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -19895,7 +19919,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 387,
+          "line": 390,
           "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -19903,7 +19927,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 397,
+          "line": 400,
           "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -19911,7 +19935,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 399,
+          "line": 402,
           "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -19919,7 +19943,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 431,
+          "line": 434,
           "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -19927,7 +19951,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 543,
+          "line": 546,
           "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -36614,7 +36638,7 @@
         {
           "element": "button",
           "name": "Dismiss Store Message",
-          "line": 108,
+          "line": 115,
           "handler": "() => removeToast(toast.id)",
           "destination": null,
           "type": "button",
@@ -44032,15 +44056,15 @@
         },
         {
           "name": "curatedFallback",
-          "line": 1287,
-          "references": 4,
+          "line": 1230,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "shouldStretch",
-          "line": 1346,
+          "line": 1363,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -44048,7 +44072,7 @@
         },
         {
           "name": "getActionSortKey",
-          "line": 2803,
+          "line": 2820,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44056,7 +44080,7 @@
         },
         {
           "name": "describeKey",
-          "line": 6868,
+          "line": 6885,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44064,7 +44088,7 @@
         },
         {
           "name": "calcAcc",
-          "line": 13756,
+          "line": 13773,
           "references": 15,
           "exported": false,
           "defaultExport": false,
@@ -44072,7 +44096,7 @@
         },
         {
           "name": "calcDeviation",
-          "line": 15051,
+          "line": 15068,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44080,7 +44104,7 @@
         },
         {
           "name": "getProfile",
-          "line": 16153,
+          "line": 16170,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44088,7 +44112,7 @@
         },
         {
           "name": "bucketOf",
-          "line": 16868,
+          "line": 16885,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44096,7 +44120,7 @@
         },
         {
           "name": "bad",
-          "line": 16923,
+          "line": 16940,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -44104,7 +44128,7 @@
         },
         {
           "name": "acc",
-          "line": 17009,
+          "line": 17026,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -44112,7 +44136,7 @@
         },
         {
           "name": "rankVal",
-          "line": 3788,
+          "line": 3805,
           "references": 25,
           "exported": false,
           "defaultExport": false,
@@ -44120,7 +44144,7 @@
         },
         {
           "name": "isAggressive",
-          "line": 13511,
+          "line": 13528,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -44204,7 +44228,25 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1989,
+          "line": 1227,
+          "excerpt": "// The authored concept bank is the honest fallback for a solver family",
+          "disposition": "identity-or-persistence-resilience",
+          "review": "documented-follow-up",
+          "followUpPhase": 8,
+          "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 1284,
+          "excerpt": "// spots pass it, the game takes the same authored-concept fallback",
+          "disposition": "identity-or-persistence-resilience",
+          "review": "documented-follow-up",
+          "followUpPhase": 8,
+          "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+        },
+        {
+          "kind": "FALLBACK",
+          "line": 2006,
           "excerpt": "// service. Its chart-id fallback and scenario hash are the",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44213,7 +44255,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2172,
+          "line": 2189,
           "excerpt": "// Fallback: infer from presence of check vs fold",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44222,7 +44264,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 4924,
+          "line": 4941,
           "excerpt": "// Fallback",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44231,7 +44273,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 6125,
+          "line": 6142,
           "excerpt": "// Fallback",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44240,7 +44282,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 10046,
+          "line": 10063,
           "excerpt": "// Fallback to frequency-based",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44249,7 +44291,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 11658,
+          "line": 11675,
           "excerpt": "// PHASE 229: BOARD RUNOUT SIMULATION",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44257,7 +44299,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 11662,
+          "line": 11679,
           "excerpt": "* Phase 229: Simulate possible runouts and their strategic implications.",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44265,7 +44307,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 13749,
+          "line": 13766,
           "excerpt": "// Simulate time via hand index proximity (we don't track real time)",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44273,7 +44315,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 14127,
+          "line": 14144,
           "excerpt": "// Simulate binomial variance for given accuracy rate",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44281,7 +44323,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 14142,
+          "line": 14159,
           "excerpt": "// Simulate 5 \"runs\" of n hands",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44289,7 +44331,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 15544,
+          "line": 15561,
           "excerpt": "else frequencyScore = accuracyScore; // Fallback",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -49310,32 +49352,40 @@
       },
       "functions": [
         {
-          "name": "protectMachineTokens",
-          "line": 91,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "marketplaceCopy",
-          "line": 108,
-          "references": 4,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "marketplaceToastCopy",
-          "line": 126,
+          "name": "marketplacePreservedName",
+          "line": 109,
           "references": 1,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "protectMachineTokens",
+          "line": 117,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceCopy",
+          "line": 134,
+          "references": 6,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceToastCopy",
+          "line": 152,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "marketplaceFulfillmentStatus",
-          "line": 140,
+          "line": 166,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49343,7 +49393,7 @@
         },
         {
           "name": "marketplaceCarrierName",
-          "line": 151,
+          "line": 177,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49351,15 +49401,23 @@
         },
         {
           "name": "marketplaceStructuredData",
-          "line": 157,
+          "line": 183,
           "references": 3,
           "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "capture",
+          "line": 119,
+          "references": 3,
+          "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [
-        "marketplaceToastCopy",
+        "marketplacePreservedName",
         "marketplaceFulfillmentStatus",
         "marketplaceCarrierName"
       ],
@@ -62249,6 +62307,7 @@
     "__tests__/training-batch-canonical-replacement.test.mjs",
     "__tests__/training-blind-grading-boundary.test.mjs",
     "__tests__/training-bookmark-authority.test.mjs",
+    "__tests__/training-campaign-batch-game-matrix.test.mjs",
     "__tests__/training-card-visual-contract.test.mjs",
     "__tests__/training-casino-realism-catalog.test.mjs",
     "__tests__/training-client-endpoint-wiring.test.mjs",
@@ -66349,11 +66408,11 @@
       "effectRef": "src/components/store/DiamondWalletModal.jsx"
     },
     {
-      "id": "src/components/store/StoreToast.jsx:108:1",
+      "id": "src/components/store/StoreToast.jsx:115:1",
       "file": "src/components/store/StoreToast.jsx",
       "element": "button",
       "name": "Dismiss Store Message",
-      "line": 108,
+      "line": 115,
       "handler": "() => removeToast(toast.id)",
       "destination": null,
       "type": "button",
@@ -68162,7 +68221,6 @@
       "tests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
         "__tests__/leak-engine-wiring.test.mjs",
-        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
@@ -81826,6 +81884,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-surface-inventory-classifier.test.mjs"
       ]
     },
@@ -82170,6 +82229,7 @@
       "tests": [
         "__tests__/every-lesson-answers-first.law.test.mjs",
         "__tests__/training-auxiliary-launch-wiring.test.mjs",
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-casino-realism-catalog.test.mjs",
         "__tests__/training-focused-launch-wiring.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
@@ -82280,6 +82340,7 @@
         "__tests__/training-arena-review-gateway-authority.test.mjs",
         "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs",
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-multistreet-hand-manager.test.mjs",
         "__tests__/training-phase-4-question-truth.test.mjs",
         "__tests__/training-postflop-heuristic-provenance.test.mjs",
@@ -82447,6 +82508,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-attestation-continuation-real-geometry.test.mjs",
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-solved-spots-warehouse-audit.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -83925,6 +83987,7 @@
         "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-grading-receipt.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
@@ -84436,6 +84499,7 @@
       "tests": [
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-custom-config-contract.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
@@ -84640,6 +84704,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-attestation-continuation-real-geometry.test.mjs",
+        "__tests__/training-campaign-batch-game-matrix.test.mjs",
         "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-retired-legacy-solver-surfaces.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -84971,7 +85036,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 353,
+        "line": 382,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -84981,7 +85046,16 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 489,
+        "line": 498,
+        "excerpt": "// honest fallback instead of rows this route",
+        "disposition": "historical-or-prohibition-comment",
+        "review": "accepted",
+        "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "pages/api/training/batch-preload.js",
+        "kind": "FALLBACK",
+        "line": 531,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84990,7 +85064,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 520,
+        "line": 570,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84999,7 +85073,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 633,
+        "line": 683,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -85008,7 +85082,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 645,
+        "line": 695,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -85046,7 +85120,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 387,
+        "line": 390,
         "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85055,7 +85129,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 397,
+        "line": 400,
         "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85064,7 +85138,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 399,
+        "line": 402,
         "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -85073,7 +85147,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "SIMULATED",
-        "line": 431,
+        "line": 434,
         "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -85082,7 +85156,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 543,
+        "line": 546,
         "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86651,7 +86725,27 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 1989,
+        "line": 1227,
+        "excerpt": "// The authored concept bank is the honest fallback for a solver family",
+        "disposition": "identity-or-persistence-resilience",
+        "review": "documented-follow-up",
+        "followUpPhase": 8,
+        "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+      },
+      {
+        "file": "src/engines/DeterministicGTOEngine.js",
+        "kind": "FALLBACK",
+        "line": 1284,
+        "excerpt": "// spots pass it, the game takes the same authored-concept fallback",
+        "disposition": "identity-or-persistence-resilience",
+        "review": "documented-follow-up",
+        "followUpPhase": 8,
+        "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+      },
+      {
+        "file": "src/engines/DeterministicGTOEngine.js",
+        "kind": "FALLBACK",
+        "line": 2006,
         "excerpt": "// service. Its chart-id fallback and scenario hash are the",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86661,7 +86755,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 2172,
+        "line": 2189,
         "excerpt": "// Fallback: infer from presence of check vs fold",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86671,7 +86765,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 4924,
+        "line": 4941,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86681,7 +86775,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 6125,
+        "line": 6142,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86691,7 +86785,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 10046,
+        "line": 10063,
         "excerpt": "// Fallback to frequency-based",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86701,7 +86795,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATION",
-        "line": 11658,
+        "line": 11675,
         "excerpt": "// PHASE 229: BOARD RUNOUT SIMULATION",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86710,7 +86804,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 11662,
+        "line": 11679,
         "excerpt": "* Phase 229: Simulate possible runouts and their strategic implications.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86719,7 +86813,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 13749,
+        "line": 13766,
         "excerpt": "// Simulate time via hand index proximity (we don't track real time)",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86728,7 +86822,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14127,
+        "line": 14144,
         "excerpt": "// Simulate binomial variance for given accuracy rate",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86737,7 +86831,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14142,
+        "line": 14159,
         "excerpt": "// Simulate 5 \"runs\" of n hands",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86746,7 +86840,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 15544,
+        "line": 15561,
         "excerpt": "else frequencyScore = accuracyScore; // Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -91879,6 +91973,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -91897,7 +91992,9 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/hub/diamond-store.js"
+          "__tests__/diamond-store-phase-25.test.mjs",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js"
         ]
       },
       {
@@ -91912,6 +92009,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -91932,6 +92030,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -91951,6 +92050,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -91970,14 +92070,15 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js"
         ]
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
-        "name": "marketplaceToastCopy",
-        "line": 126,
+        "name": "marketplacePreservedName",
+        "line": 109,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -91986,13 +92087,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/store/StoreToast.jsx"
+          "__tests__/diamond-store-phase-26.test.mjs",
+          "src/components/store/ClubShopPurchaseLedger.jsx"
         ]
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceFulfillmentStatus",
-        "line": 140,
+        "line": 166,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92008,7 +92110,7 @@
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceCarrierName",
-        "line": 151,
+        "line": 177,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93946,7 +94048,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 353,
+        "line": 382,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -93956,7 +94058,16 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 489,
+        "line": 498,
+        "excerpt": "// honest fallback instead of rows this route",
+        "disposition": "historical-or-prohibition-comment",
+        "review": "accepted",
+        "rationale": "Comment documents removed behavior or explicitly prohibits a fallback/stub."
+      },
+      {
+        "file": "pages/api/training/batch-preload.js",
+        "kind": "FALLBACK",
+        "line": 531,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -93965,7 +94076,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 520,
+        "line": 570,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -93974,7 +94085,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 633,
+        "line": 683,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -93983,7 +94094,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 645,
+        "line": 695,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -94021,7 +94132,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 387,
+        "line": 390,
         "excerpt": "// There is deliberately no second, permissive legacy PIO fallback here.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94030,7 +94141,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 397,
+        "line": 400,
         "excerpt": "// STEP 4: ENGINE-ONLY — No AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94039,7 +94150,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 399,
+        "line": 402,
         "excerpt": "// sealed Supabase cache. Local postflop heuristics are never an API fallback.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -94048,7 +94159,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "SIMULATED",
-        "line": 431,
+        "line": 434,
         "excerpt": "// legacy, heuristic, simulated, and incomplete rows cannot reach here.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -94057,7 +94168,7 @@
       {
         "file": "pages/api/training/get-question.js",
         "kind": "FALLBACK",
-        "line": 543,
+        "line": 546,
         "excerpt": "// This was a ~180-line LLM-fallback that hallucinated training questions when",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95626,7 +95737,27 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 1989,
+        "line": 1227,
+        "excerpt": "// The authored concept bank is the honest fallback for a solver family",
+        "disposition": "identity-or-persistence-resilience",
+        "review": "documented-follow-up",
+        "followUpPhase": 8,
+        "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+      },
+      {
+        "file": "src/engines/DeterministicGTOEngine.js",
+        "kind": "FALLBACK",
+        "line": 1284,
+        "excerpt": "// spots pass it, the game takes the same authored-concept fallback",
+        "disposition": "identity-or-persistence-resilience",
+        "review": "documented-follow-up",
+        "followUpPhase": 8,
+        "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
+      },
+      {
+        "file": "src/engines/DeterministicGTOEngine.js",
+        "kind": "FALLBACK",
+        "line": 2006,
         "excerpt": "// service. Its chart-id fallback and scenario hash are the",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95636,7 +95767,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 2172,
+        "line": 2189,
         "excerpt": "// Fallback: infer from presence of check vs fold",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95646,7 +95777,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 4924,
+        "line": 4941,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95656,7 +95787,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 6125,
+        "line": 6142,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95666,7 +95797,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 10046,
+        "line": 10063,
         "excerpt": "// Fallback to frequency-based",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95676,7 +95807,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATION",
-        "line": 11658,
+        "line": 11675,
         "excerpt": "// PHASE 229: BOARD RUNOUT SIMULATION",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95685,7 +95816,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 11662,
+        "line": 11679,
         "excerpt": "* Phase 229: Simulate possible runouts and their strategic implications.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95694,7 +95825,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 13749,
+        "line": 13766,
         "excerpt": "// Simulate time via hand index proximity (we don't track real time)",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95703,7 +95834,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14127,
+        "line": 14144,
         "excerpt": "// Simulate binomial variance for given accuracy rate",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95712,7 +95843,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14142,
+        "line": 14159,
         "excerpt": "// Simulate 5 \"runs\" of n hands",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95721,7 +95852,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 15544,
+        "line": 15561,
         "excerpt": "else frequencyScore = accuracyScore; // Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -100854,6 +100985,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -100872,7 +101004,9 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "pages/hub/diamond-store.js"
+          "__tests__/diamond-store-phase-25.test.mjs",
+          "pages/hub/diamond-store.js",
+          "pages/hub/diamond-store/cart.js"
         ]
       },
       {
@@ -100887,6 +101021,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -100907,6 +101042,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -100926,6 +101062,7 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js",
           "pages/hub/diamond-store/cart.js",
@@ -100945,14 +101082,15 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
+          "__tests__/diamond-store-phase-25.test.mjs",
           "pages/hub/club-shop/[itemId].js",
           "pages/hub/diamond-store.js"
         ]
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
-        "name": "marketplaceToastCopy",
-        "line": 126,
+        "name": "marketplacePreservedName",
+        "line": 109,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100961,13 +101099,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/store/StoreToast.jsx"
+          "__tests__/diamond-store-phase-26.test.mjs",
+          "src/components/store/ClubShopPurchaseLedger.jsx"
         ]
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceFulfillmentStatus",
-        "line": 140,
+        "line": 166,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -100983,7 +101122,7 @@
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceCarrierName",
-        "line": 151,
+        "line": 177,
         "references": 1,
         "exported": true,
         "defaultExport": false,
