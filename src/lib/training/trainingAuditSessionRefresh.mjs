@@ -22,6 +22,16 @@
 // There is no watcher, timer or retry loop here: one bounded execution with
 // an authoritative outcome. A refresh whose outcome cannot be established is
 // reported as `unknown`, never retried blindly, and leaves the old state intact.
+//
+// Custody after the run: the page's own supabase-js client (autoRefreshToken)
+// rotates the refresh token inside the browser while the attestation runs.
+// GoTrue's rotation + reuse detection then revokes the pair still on disk, so
+// `persistBrowserSessionIfRotated` copies the browser's rotated session back
+// into both custody files at the end of every run that created a browser
+// context, and only when it belongs to the audit account and is not older
+// than the session already persisted. `seedAuditSessionFromStorageState`
+// re-establishes the custody files from a fresh Playwright storage state
+// after a lost session; neither prints token material.
 
 import { randomUUID } from 'node:crypto';
 import {
@@ -71,6 +81,26 @@ export const AUDIT_SESSION_OUTCOMES = Object.freeze({
   unknown: 'unknown',
 });
 
+export const AUDIT_SESSION_PERSIST_OUTCOMES = Object.freeze({
+  persisted: 'persisted',
+  unchanged: 'unchanged',
+  refused: 'refused',
+  failed: 'failed',
+});
+
+export const AUDIT_SESSION_PERSIST_REASONS = Object.freeze({
+  unchanged: 'browser_session_unchanged',
+  storageStateUnavailable: 'browser_storage_state_unavailable',
+  browserSessionMalformed: 'browser_session_malformed',
+  identityMismatch: 'browser_session_identity_mismatch',
+  notNewer: 'browser_session_not_newer',
+  expired: 'browser_session_expired',
+  custodyStateInvalid: 'custody_state_invalid',
+  windowEnded: 'audit_session_window_ended',
+  lockHeld: 'custody_lock_held',
+  persistFailed: 'custody_persist_failed',
+});
+
 export const AUDIT_SESSION_ERROR_CODES = Object.freeze({
   refused: 'TRAINING_PHASE6_AUDIT_SESSION_REFUSED',
   windowEnded: 'TRAINING_PHASE6_AUDIT_SESSION_WINDOW_ENDED',
@@ -81,6 +111,8 @@ export const AUDIT_SESSION_ERROR_CODES = Object.freeze({
   lockHeld: 'TRAINING_PHASE6_AUDIT_SESSION_REFRESH_LOCK_HELD',
   outcomeUnknown: 'TRAINING_PHASE6_AUDIT_SESSION_REFRESH_OUTCOME_UNKNOWN',
   expiredWithoutRefreshSource: 'TRAINING_PHASE6_AUDIT_SESSION_EXPIRED_WITHOUT_REFRESH_SOURCE',
+  browserSessionNotNewer: 'TRAINING_PHASE6_AUDIT_SESSION_BROWSER_SESSION_NOT_NEWER',
+  persistFailed: 'TRAINING_PHASE6_AUDIT_SESSION_PERSIST_FAILED',
   failed: 'TRAINING_PHASE6_AUDIT_SESSION_FAILED',
 });
 
@@ -304,28 +336,32 @@ export function writePrivateAuditFileAtomic(path, contents) {
   }
 }
 
-function readStoredSession(authStatePath) {
-  let state;
-  try {
-    state = JSON.parse(readFileSync(authStatePath, 'utf8'));
-  } catch {
-    throw fail(AUDIT_SESSION_ERROR_CODES.malformedState, 'auth state is not valid JSON', {
+export function extractStoredAuditSession(
+  state,
+  { origins = [AUDIT_SESSION_TRUSTED_ORIGIN], label = 'auth state' } = {},
+) {
+  if (!state || typeof state !== 'object' || Array.isArray(state) || !Array.isArray(state.origins)) {
+    throw fail(AUDIT_SESSION_ERROR_CODES.malformedState, `${label} is not a storage-state object`, {
       outcome: AUDIT_SESSION_OUTCOMES.refused,
     });
   }
-  const origin = Array.isArray(state?.origins)
-    ? state.origins.find((entry) => entry?.origin === AUDIT_SESSION_TRUSTED_ORIGIN)
-    : null;
-  const item = Array.isArray(origin?.localStorage)
-    ? origin.localStorage.find((entry) => entry?.name === AUDIT_SESSION_STORAGE_KEY)
-    : null;
-  if (!item || typeof item.value !== 'string') {
+  const accepted = new Set(origins.map((origin) => String(origin)));
+  const candidates = [];
+  for (const entry of state.origins) {
+    if (!entry || typeof entry !== 'object' || !accepted.has(String(entry.origin))) continue;
+    if (!Array.isArray(entry.localStorage)) continue;
+    for (const item of entry.localStorage) {
+      if (item?.name === AUDIT_SESSION_STORAGE_KEY) candidates.push({ origin: entry.origin, item });
+    }
+  }
+  if (candidates.length !== 1 || typeof candidates[0].item.value !== 'string') {
     throw fail(
       AUDIT_SESSION_ERROR_CODES.malformedState,
-      'auth state is missing the trusted-origin smarter-poker-auth session',
+      `${label} must carry exactly one trusted-origin smarter-poker-auth session`,
       { outcome: AUDIT_SESSION_OUTCOMES.refused },
     );
   }
+  const [{ origin, item }] = candidates;
   let session;
   try {
     session = JSON.parse(item.value);
@@ -342,11 +378,50 @@ function readStoredSession(authStatePath) {
   ) {
     throw fail(
       AUDIT_SESSION_ERROR_CODES.malformedState,
-      'auth state session is missing its access/refresh token pair',
+      `${label} session is missing its access/refresh token pair`,
       { outcome: AUDIT_SESSION_OUTCOMES.refused },
     );
   }
-  return { state, item, session };
+  return { state, origin, item, session };
+}
+
+function readStoredSession(authStatePath) {
+  let state;
+  try {
+    state = JSON.parse(readFileSync(authStatePath, 'utf8'));
+  } catch {
+    throw fail(AUDIT_SESSION_ERROR_CODES.malformedState, 'auth state is not valid JSON', {
+      outcome: AUDIT_SESSION_OUTCOMES.refused,
+    });
+  }
+  return extractStoredAuditSession(state);
+}
+
+function normalizedSession(session, nowSeconds) {
+  const payload = decodeAuditAccessToken(session.access_token, 'session access token');
+  const expiresIn = Number.isFinite(Number(session.expires_in))
+    ? Number(session.expires_in)
+    : Number(payload.exp) - nowSeconds;
+  return {
+    access_token: session.access_token,
+    token_type: typeof session.token_type === 'string' ? session.token_type : 'bearer',
+    expires_in: expiresIn,
+    expires_at: Number.isFinite(Number(session.expires_at)) ? Number(session.expires_at) : Number(payload.exp),
+    refresh_token: session.refresh_token,
+    user: session.user,
+  };
+}
+
+function trustedOriginState(session) {
+  return {
+    cookies: [],
+    origins: [
+      {
+        origin: AUDIT_SESSION_TRUSTED_ORIGIN,
+        localStorage: [{ name: AUDIT_SESSION_STORAGE_KEY, value: JSON.stringify(session) }],
+      },
+    ],
+  };
 }
 
 export function readAuditSessionAuthStatePath(credentialEnvPath) {
@@ -497,6 +572,127 @@ function validateSupabaseUrl(value) {
   return url.origin;
 }
 
+
+function assertSessionIdentity(session, evaluation, label, expectedAuditUserId) {
+  if (evaluation.subject !== expectedAuditUserId || session?.user?.id !== expectedAuditUserId) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.identityMismatch,
+      `${label} does not belong to the designated audit account`,
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+}
+
+function loadCustodyState({
+  envPath,
+  resolvedAuthState,
+  expectedAuditUserId,
+  providedSupabaseUrl,
+  providedPublishableKey,
+  remember,
+  thresholdSeconds,
+  repositoryRoot,
+  nowValue,
+}) {
+  const values = parseAuditCredentialEnv(readFileSync(envPath, 'utf8'));
+  const accessToken = values.get(AUDIT_SESSION_ENV_KEYS.accessToken);
+  const refreshToken = values.get(AUDIT_SESSION_ENV_KEYS.refreshToken);
+  remember(accessToken);
+  remember(refreshToken);
+  const supabaseUrlValue = values.get(AUDIT_SESSION_ENV_KEYS.supabaseUrl) || providedSupabaseUrl;
+  const publishableKey =
+    values.get(AUDIT_SESSION_ENV_KEYS.supabasePublishableKey) || providedPublishableKey;
+  remember(publishableKey);
+  if (!accessToken || !refreshToken) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.malformedState,
+      'credential env is missing the audit session token pair',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const envAuditUser = values.get(AUDIT_SESSION_ENV_KEYS.expectedAuditUserId);
+  if (envAuditUser !== expectedAuditUserId) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.identityMismatch,
+      'credential env names a different audit account than the attestation',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const envAuthState = values.get(AUDIT_SESSION_ENV_KEYS.authState);
+  if (!envAuthState || resolve(envAuthState) !== resolvedAuthState) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'credential env names a different auth-state file than the attestation',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  if (!supabaseUrlValue || !publishableKey) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'credential env is missing the Supabase URL or publishable key',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const supabaseUrl = validateSupabaseUrl(supabaseUrlValue);
+  assertPrivateAuditFile(resolvedAuthState, 'Phase 6 auth state', { repositoryRoot });
+  const stored = readStoredSession(resolvedAuthState);
+  remember(stored.session.access_token);
+  remember(stored.session.refresh_token);
+  if (
+    stored.session.access_token !== accessToken
+    || stored.session.refresh_token !== refreshToken
+  ) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'credential env and auth state disagree about the session token pair; '
+        + 'a previous refresh may have been interrupted between its two writes',
+      {
+        outcome: AUDIT_SESSION_OUTCOMES.refused,
+        operatorAction: 'Reconcile the credential store deliberately before starting the attestation.',
+      },
+    );
+  }
+  const evaluation = evaluateAuditAccessToken(accessToken, { nowMs: nowValue, thresholdSeconds });
+  assertSessionIdentity(stored.session, evaluation, 'saved access token', expectedAuditUserId);
+  const window = auditSessionWindow({
+    startedAtEpoch: values.get(AUDIT_SESSION_ENV_KEYS.sessionStartedAtEpoch),
+    configuredValidUntil: values.get(AUDIT_SESSION_ENV_KEYS.sessionValidUntil),
+    issuedAt: evaluation.issuedAt,
+    nowMs: nowValue,
+  });
+  return {
+    values,
+    accessToken,
+    refreshToken,
+    supabaseUrl,
+    publishableKey,
+    stored,
+    evaluation,
+    window,
+  };
+}
+
+// Persist a session into both custody files in the shared on-disk format:
+// credential env first, auth state second, each temp + fsync + rename, mode
+// 0600, then both re-checked as private files. Callers hold the custody lock.
+function writeRotatedSessionFiles({ loaded, session, envPath, resolvedAuthState, repositoryRoot }) {
+  const values = new Map(loaded.values);
+  values.set(AUDIT_SESSION_ENV_KEYS.accessToken, session.access_token);
+  values.set(AUDIT_SESSION_ENV_KEYS.refreshToken, session.refresh_token);
+  values.set(AUDIT_SESSION_ENV_KEYS.sessionStartedAtEpoch, String(loaded.window.startedAtEpoch));
+  values.set(AUDIT_SESSION_ENV_KEYS.sessionValidUntil, loaded.window.validUntil);
+  values.set(AUDIT_SESSION_ENV_KEYS.sessionMode, AUDIT_SESSION_MODE);
+  values.set(AUDIT_SESSION_ENV_KEYS.supabaseUrl, loaded.supabaseUrl);
+  values.set(AUDIT_SESSION_ENV_KEYS.supabasePublishableKey, loaded.publishableKey);
+  values.set(AUDIT_SESSION_ENV_KEYS.envFile, envPath);
+  const nextState = loaded.stored.state;
+  loaded.stored.item.value = JSON.stringify(session);
+  writePrivateAuditFileAtomic(envPath, renderAuditCredentialEnv(values));
+  writePrivateAuditFileAtomic(resolvedAuthState, `${JSON.stringify(nextState, null, 2)}\n`);
+  assertPrivateAuditFile(envPath, 'Phase 6 credential env', { repositoryRoot });
+  assertPrivateAuditFile(resolvedAuthState, 'Phase 6 auth state', { repositoryRoot });
+}
+
 export async function ensureFreshAuditSession(options = {}) {
   const {
     credentialEnvPath = null,
@@ -591,15 +787,8 @@ async function ensureFreshAuditSessionUnredacted({
     checkedAt: isoAt(startedAtMs),
   };
 
-  const identityOrThrow = (session, evaluation, label) => {
-    if (evaluation.subject !== expectedAuditUserId || session?.user?.id !== expectedAuditUserId) {
-      throw fail(
-        AUDIT_SESSION_ERROR_CODES.identityMismatch,
-        `${label} does not belong to the designated audit account`,
-        { outcome: AUDIT_SESSION_OUTCOMES.refused },
-      );
-    }
-  };
+  const identityOrThrow = (session, evaluation, label) =>
+    assertSessionIdentity(session, evaluation, label, expectedAuditUserId);
 
   if (!credentialEnvPath) {
     if (!existsSync(resolvedAuthState)) {
@@ -647,84 +836,18 @@ async function ensureFreshAuditSessionUnredacted({
   const envPath = resolve(String(credentialEnvPath));
   assertPrivateAuditFile(envPath, 'Phase 6 credential env', { repositoryRoot });
 
-  const loadState = (nowValue) => {
-    const values = parseAuditCredentialEnv(readFileSync(envPath, 'utf8'));
-    const accessToken = values.get(AUDIT_SESSION_ENV_KEYS.accessToken);
-    const refreshToken = values.get(AUDIT_SESSION_ENV_KEYS.refreshToken);
-    remember(accessToken);
-    remember(refreshToken);
-    const supabaseUrlValue = values.get(AUDIT_SESSION_ENV_KEYS.supabaseUrl) || providedSupabaseUrl;
-    const publishableKey =
-      values.get(AUDIT_SESSION_ENV_KEYS.supabasePublishableKey) || providedPublishableKey;
-    remember(publishableKey);
-    if (!accessToken || !refreshToken) {
-      throw fail(
-        AUDIT_SESSION_ERROR_CODES.malformedState,
-        'credential env is missing the audit session token pair',
-        { outcome: AUDIT_SESSION_OUTCOMES.refused },
-      );
-    }
-    const envAuditUser = values.get(AUDIT_SESSION_ENV_KEYS.expectedAuditUserId);
-    if (envAuditUser !== expectedAuditUserId) {
-      throw fail(
-        AUDIT_SESSION_ERROR_CODES.identityMismatch,
-        'credential env names a different audit account than the attestation',
-        { outcome: AUDIT_SESSION_OUTCOMES.refused },
-      );
-    }
-    const envAuthState = values.get(AUDIT_SESSION_ENV_KEYS.authState);
-    if (!envAuthState || resolve(envAuthState) !== resolvedAuthState) {
-      throw fail(
-        AUDIT_SESSION_ERROR_CODES.refused,
-        'credential env names a different auth-state file than the attestation',
-        { outcome: AUDIT_SESSION_OUTCOMES.refused },
-      );
-    }
-    if (!supabaseUrlValue || !publishableKey) {
-      throw fail(
-        AUDIT_SESSION_ERROR_CODES.refused,
-        'credential env is missing the Supabase URL or publishable key',
-        { outcome: AUDIT_SESSION_OUTCOMES.refused },
-      );
-    }
-    const supabaseUrl = validateSupabaseUrl(supabaseUrlValue);
-    assertPrivateAuditFile(resolvedAuthState, 'Phase 6 auth state', { repositoryRoot });
-    const stored = readStoredSession(resolvedAuthState);
-    remember(stored.session.access_token);
-    remember(stored.session.refresh_token);
-    if (
-      stored.session.access_token !== accessToken
-      || stored.session.refresh_token !== refreshToken
-    ) {
-      throw fail(
-        AUDIT_SESSION_ERROR_CODES.refused,
-        'credential env and auth state disagree about the session token pair; '
-          + 'a previous refresh may have been interrupted between its two writes',
-        {
-          outcome: AUDIT_SESSION_OUTCOMES.refused,
-          operatorAction: 'Reconcile the credential store deliberately before starting the attestation.',
-        },
-      );
-    }
-    const evaluation = evaluateAuditAccessToken(accessToken, { nowMs: nowValue, thresholdSeconds });
-    identityOrThrow(stored.session, evaluation, 'saved access token');
-    const window = auditSessionWindow({
-      startedAtEpoch: values.get(AUDIT_SESSION_ENV_KEYS.sessionStartedAtEpoch),
-      configuredValidUntil: values.get(AUDIT_SESSION_ENV_KEYS.sessionValidUntil),
-      issuedAt: evaluation.issuedAt,
-      nowMs: nowValue,
+  const loadState = (nowValue) =>
+    loadCustodyState({
+      envPath,
+      resolvedAuthState,
+      expectedAuditUserId,
+      providedSupabaseUrl,
+      providedPublishableKey,
+      remember,
+      thresholdSeconds,
+      repositoryRoot,
+      nowValue,
     });
-    return {
-      values,
-      accessToken,
-      refreshToken,
-      supabaseUrl,
-      publishableKey,
-      stored,
-      evaluation,
-      window,
-    };
-  };
 
   const describe = (loaded, extra) => ({
     ...base,
@@ -932,21 +1055,7 @@ async function ensureFreshAuditSessionUnredacted({
       user: payload.user,
     };
 
-    const values = new Map(loaded.values);
-    values.set(AUDIT_SESSION_ENV_KEYS.accessToken, session.access_token);
-    values.set(AUDIT_SESSION_ENV_KEYS.refreshToken, session.refresh_token);
-    values.set(AUDIT_SESSION_ENV_KEYS.sessionStartedAtEpoch, String(loaded.window.startedAtEpoch));
-    values.set(AUDIT_SESSION_ENV_KEYS.sessionValidUntil, loaded.window.validUntil);
-    values.set(AUDIT_SESSION_ENV_KEYS.sessionMode, AUDIT_SESSION_MODE);
-    values.set(AUDIT_SESSION_ENV_KEYS.supabaseUrl, loaded.supabaseUrl);
-    values.set(AUDIT_SESSION_ENV_KEYS.supabasePublishableKey, loaded.publishableKey);
-    values.set(AUDIT_SESSION_ENV_KEYS.envFile, envPath);
-    const nextState = loaded.stored.state;
-    loaded.stored.item.value = JSON.stringify(session);
-    writePrivateAuditFileAtomic(envPath, renderAuditCredentialEnv(values));
-    writePrivateAuditFileAtomic(resolvedAuthState, `${JSON.stringify(nextState, null, 2)}\n`);
-    assertPrivateAuditFile(envPath, 'Phase 6 credential env', { repositoryRoot });
-    assertPrivateAuditFile(resolvedAuthState, 'Phase 6 auth state', { repositoryRoot });
+    writeRotatedSessionFiles({ loaded, session, envPath, resolvedAuthState, repositoryRoot });
 
     return {
       ...base,
@@ -966,4 +1075,525 @@ async function ensureFreshAuditSessionUnredacted({
   } finally {
     release();
   }
+}
+
+function tokenIsNotOlder(candidate, reference) {
+  const candidateIat = Number.isSafeInteger(candidate.issuedAt) ? candidate.issuedAt : 0;
+  const referenceIat = Number.isSafeInteger(reference.issuedAt) ? reference.issuedAt : 0;
+  return candidateIat >= referenceIat && Date.parse(candidate.expiresAt) >= Date.parse(reference.expiresAt);
+}
+
+function tokenIsStrictlyNewer(candidate, reference) {
+  const candidateIat = Number.isSafeInteger(candidate.issuedAt) ? candidate.issuedAt : 0;
+  const referenceIat = Number.isSafeInteger(reference.issuedAt) ? reference.issuedAt : 0;
+  return candidateIat > referenceIat || Date.parse(candidate.expiresAt) > Date.parse(reference.expiresAt);
+}
+
+async function acquireCustodyLock({ lockPath, lockAttempts, lockRetryDelayMs, sleep, isProcessAlive }) {
+  let release = null;
+  let staleLockRemoved = false;
+  let attempts = 0;
+  for (let attempt = 1; attempt <= lockAttempts && !release; attempt += 1) {
+    attempts = attempt;
+    release = tryAcquireLock(lockPath);
+    if (release) break;
+    if (!staleLockRemoved && lockHolderIsGone(lockPath, isProcessAlive)) {
+      try {
+        unlinkSync(lockPath);
+      } catch {
+        /* another caller removed it first */
+      }
+      staleLockRemoved = true;
+      continue;
+    }
+    if (attempt < lockAttempts) await sleep(lockRetryDelayMs);
+  }
+  return { release, lock: { path: lockPath, attempts, staleLockRemoved } };
+}
+
+// End-of-run custody: copy the browser's rotated session back into both
+// custody files when, and only when, it belongs to the designated audit
+// account and is not older than the session already on disk (and than the
+// session the run started with). Never throws: the authoritative outcome is
+// the returned record, which carries identifiers, timestamps and codes only.
+export async function persistBrowserSessionIfRotated(options = {}) {
+  const {
+    browserContext = null,
+    storageState: providedStorageState = null,
+    browserOrigin = AUDIT_SESSION_TRUSTED_ORIGIN,
+    credentialEnvPath = null,
+    authStatePath,
+    expectedAuditUserId,
+    baselineAccessToken = null,
+    nowMs = () => Date.now(),
+    sleep = defaultSleep,
+    lockAttempts = AUDIT_SESSION_LOCK_ATTEMPTS,
+    lockRetryDelayMs = AUDIT_SESSION_LOCK_RETRY_DELAY_MS,
+    repositoryRoot = REPOSITORY_ROOT,
+    isProcessAlive = defaultIsProcessAlive,
+    supabaseUrl: providedSupabaseUrl = null,
+    supabasePublishableKey: providedPublishableKey = null,
+  } = options;
+  const secrets = new Set();
+  const remember = (value) => {
+    if (typeof value === 'string' && value.length >= 8) secrets.add(value);
+  };
+  remember(baselineAccessToken);
+  const record = {
+    schemaVersion: 1,
+    persistedRotatedSession: false,
+    outcome: AUDIT_SESSION_PERSIST_OUTCOMES.refused,
+    reason: null,
+    code: null,
+    message: null,
+    browserOrigin: String(browserOrigin),
+    checkedAt: isoAt(nowMs()),
+    sessionExpiresAt: null,
+    previousSessionExpiresAt: null,
+    lock: null,
+  };
+  const refuse = (reason, code, message, outcome = AUDIT_SESSION_PERSIST_OUTCOMES.refused) => ({
+    ...record,
+    outcome,
+    reason,
+    code,
+    message: redactAuditSessionMaterial(message, [...secrets]),
+  });
+
+  let storageState = providedStorageState;
+  if (!storageState) {
+    try {
+      if (!browserContext || typeof browserContext.storageState !== 'function') {
+        throw new Error('no browser context storage state is available');
+      }
+      storageState = await browserContext.storageState();
+    } catch (error) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.storageStateUnavailable,
+        AUDIT_SESSION_ERROR_CODES.malformedState,
+        `browser storage state could not be read: ${error?.message || String(error)}`,
+      );
+    }
+  }
+
+  let browser;
+  try {
+    browser = extractStoredAuditSession(storageState, {
+      origins: [String(browserOrigin), AUDIT_SESSION_TRUSTED_ORIGIN],
+      label: 'browser storage state',
+    });
+  } catch (error) {
+    return refuse(
+      AUDIT_SESSION_PERSIST_REASONS.browserSessionMalformed,
+      error?.code || AUDIT_SESSION_ERROR_CODES.malformedState,
+      error?.message || String(error),
+    );
+  }
+  remember(browser.session.access_token);
+  remember(browser.session.refresh_token);
+
+  let browserEvaluation;
+  try {
+    browserEvaluation = evaluateAuditAccessToken(browser.session.access_token, {
+      nowMs: nowMs(),
+      thresholdSeconds: 0,
+    });
+  } catch (error) {
+    return refuse(
+      AUDIT_SESSION_PERSIST_REASONS.browserSessionMalformed,
+      error?.code || AUDIT_SESSION_ERROR_CODES.malformedState,
+      `browser session ${error?.message || String(error)}`,
+    );
+  }
+  record.sessionExpiresAt = browserEvaluation.expiresAt;
+  if (
+    browserEvaluation.subject !== expectedAuditUserId
+    || browser.session.user?.id !== expectedAuditUserId
+  ) {
+    return refuse(
+      AUDIT_SESSION_PERSIST_REASONS.identityMismatch,
+      AUDIT_SESSION_ERROR_CODES.identityMismatch,
+      'browser session does not belong to the designated audit account; nothing was persisted',
+    );
+  }
+  if (baselineAccessToken) {
+    let baseline;
+    try {
+      baseline = evaluateAuditAccessToken(baselineAccessToken, { nowMs: nowMs(), thresholdSeconds: 0 });
+    } catch (error) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.custodyStateInvalid,
+        error?.code || AUDIT_SESSION_ERROR_CODES.malformedState,
+        `startup session ${error?.message || String(error)}`,
+      );
+    }
+    if (browser.session.access_token !== baselineAccessToken && !tokenIsNotOlder(browserEvaluation, baseline)) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.notNewer,
+        AUDIT_SESSION_ERROR_CODES.browserSessionNotNewer,
+        `browser session (expires ${browserEvaluation.expiresAt}) is older than the session the run started with `
+          + `(expires ${baseline.expiresAt}); nothing was persisted`,
+      );
+    }
+  }
+
+  const resolvedAuthState = resolve(String(authStatePath ?? ''));
+  const envPath = credentialEnvPath ? resolve(String(credentialEnvPath)) : null;
+  const lockPath = `${envPath || resolvedAuthState}${AUDIT_SESSION_LOCK_SUFFIX}`;
+  let acquired;
+  try {
+    acquired = await acquireCustodyLock({ lockPath, lockAttempts, lockRetryDelayMs, sleep, isProcessAlive });
+  } catch (error) {
+    return refuse(
+      AUDIT_SESSION_PERSIST_REASONS.lockHeld,
+      AUDIT_SESSION_ERROR_CODES.lockHeld,
+      `custody lock could not be taken: ${error?.message || String(error)}`,
+    );
+  }
+  record.lock = acquired.lock;
+  if (!acquired.release) {
+    return refuse(
+      AUDIT_SESSION_PERSIST_REASONS.lockHeld,
+      AUDIT_SESSION_ERROR_CODES.lockHeld,
+      `another audit session custody holder owns ${lockPath}; nothing was persisted`,
+    );
+  }
+  try {
+    let loaded;
+    try {
+      if (envPath) {
+        assertPrivateAuditFile(envPath, 'Phase 6 credential env', { repositoryRoot });
+        loaded = loadCustodyState({
+          envPath,
+          resolvedAuthState,
+          expectedAuditUserId,
+          providedSupabaseUrl,
+          providedPublishableKey,
+          remember,
+          thresholdSeconds: 0,
+          repositoryRoot,
+          nowValue: nowMs(),
+        });
+      } else {
+        assertPrivateAuditFile(resolvedAuthState, 'Phase 6 auth state', { repositoryRoot });
+        const stored = readStoredSession(resolvedAuthState);
+        remember(stored.session.access_token);
+        remember(stored.session.refresh_token);
+        const evaluation = evaluateAuditAccessToken(stored.session.access_token, {
+          nowMs: nowMs(),
+          thresholdSeconds: 0,
+        });
+        assertSessionIdentity(stored.session, evaluation, 'saved access token', expectedAuditUserId);
+        loaded = { stored, evaluation, window: { ended: false } };
+      }
+    } catch (error) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.custodyStateInvalid,
+        error?.code || AUDIT_SESSION_ERROR_CODES.malformedState,
+        `${error?.message || String(error)}; nothing was persisted`,
+      );
+    }
+    record.previousSessionExpiresAt = loaded.evaluation.expiresAt;
+    if (
+      browser.session.access_token === loaded.stored.session.access_token
+      && browser.session.refresh_token === loaded.stored.session.refresh_token
+    ) {
+      return {
+        ...record,
+        outcome: AUDIT_SESSION_PERSIST_OUTCOMES.unchanged,
+        reason: AUDIT_SESSION_PERSIST_REASONS.unchanged,
+      };
+    }
+    if (loaded.window.ended) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.windowEnded,
+        AUDIT_SESSION_ERROR_CODES.windowEnded,
+        `the 90-day audit session window ended at ${loaded.window.validUntil}; nothing was persisted`,
+      );
+    }
+    if (browserEvaluation.expired) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.expired,
+        AUDIT_SESSION_ERROR_CODES.browserSessionNotNewer,
+        `browser session expired at ${browserEvaluation.expiresAt}; nothing was persisted`,
+      );
+    }
+    if (
+      !tokenIsNotOlder(browserEvaluation, loaded.evaluation)
+      || (
+        browser.session.access_token !== loaded.stored.session.access_token
+        && !tokenIsStrictlyNewer(browserEvaluation, loaded.evaluation)
+      )
+    ) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.notNewer,
+        AUDIT_SESSION_ERROR_CODES.browserSessionNotNewer,
+        `browser session (expires ${browserEvaluation.expiresAt}) is not newer than the persisted session `
+          + `(expires ${loaded.evaluation.expiresAt}); nothing was persisted`,
+      );
+    }
+    let session;
+    try {
+      session = normalizedSession(browser.session, Math.floor(nowMs() / 1000));
+    } catch (error) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.browserSessionMalformed,
+        error?.code || AUDIT_SESSION_ERROR_CODES.malformedState,
+        error?.message || String(error),
+      );
+    }
+    try {
+      if (envPath) {
+        writeRotatedSessionFiles({ loaded, session, envPath, resolvedAuthState, repositoryRoot });
+      } else {
+        loaded.stored.item.value = JSON.stringify(session);
+        writePrivateAuditFileAtomic(resolvedAuthState, `${JSON.stringify(loaded.stored.state, null, 2)}\n`);
+        assertPrivateAuditFile(resolvedAuthState, 'Phase 6 auth state', { repositoryRoot });
+      }
+    } catch (error) {
+      return refuse(
+        AUDIT_SESSION_PERSIST_REASONS.persistFailed,
+        AUDIT_SESSION_ERROR_CODES.persistFailed,
+        `persisting the rotated browser session failed: ${error?.message || String(error)}`,
+        AUDIT_SESSION_PERSIST_OUTCOMES.failed,
+      );
+    }
+    return {
+      ...record,
+      persistedRotatedSession: true,
+      outcome: AUDIT_SESSION_PERSIST_OUTCOMES.persisted,
+    };
+  } finally {
+    acquired.release();
+  }
+}
+
+// Re-seed both custody files from a fresh Playwright storage state (for
+// example the one the e2e auth setup writes for the audit account) after the
+// persisted session was lost. The new session starts a new 90-day window at
+// its access token's issue time. Metadata only is returned; token material
+// never leaves the files.
+export async function seedAuditSessionFromStorageState(options = {}) {
+  const {
+    storageStatePath,
+    credentialEnvPath,
+    authStatePath = null,
+    expectedAuditUserId = null,
+    origins = [AUDIT_SESSION_TRUSTED_ORIGIN],
+    nowMs = () => Date.now(),
+    sleep = defaultSleep,
+    lockAttempts = AUDIT_SESSION_LOCK_ATTEMPTS,
+    lockRetryDelayMs = AUDIT_SESSION_LOCK_RETRY_DELAY_MS,
+    repositoryRoot = REPOSITORY_ROOT,
+    isProcessAlive = defaultIsProcessAlive,
+    supabaseUrl: providedSupabaseUrl = null,
+    supabasePublishableKey: providedPublishableKey = null,
+  } = options;
+  const secrets = new Set();
+  const remember = (value) => {
+    if (typeof value === 'string' && value.length >= 8) secrets.add(value);
+  };
+  remember(providedPublishableKey);
+  try {
+    return await seedAuditSessionFromStorageStateUnredacted({
+      storageStatePath,
+      credentialEnvPath,
+      authStatePath,
+      expectedAuditUserId,
+      origins,
+      nowMs,
+      sleep,
+      lockAttempts,
+      lockRetryDelayMs,
+      repositoryRoot,
+      isProcessAlive,
+      providedSupabaseUrl,
+      providedPublishableKey,
+      remember,
+    });
+  } catch (error) {
+    const known = error instanceof TrainingAuditSessionError;
+    throw new TrainingAuditSessionError(
+      known ? error.code : AUDIT_SESSION_ERROR_CODES.failed,
+      redactAuditSessionMaterial(error?.message || String(error), [...secrets]),
+      {
+        outcome: known && error.outcome ? error.outcome : AUDIT_SESSION_OUTCOMES.failed,
+        auditSession: null,
+        operatorAction: known ? error.operatorAction : null,
+      },
+    );
+  }
+}
+
+async function seedAuditSessionFromStorageStateUnredacted({
+  storageStatePath,
+  credentialEnvPath,
+  authStatePath,
+  expectedAuditUserId,
+  origins,
+  nowMs,
+  sleep,
+  lockAttempts,
+  lockRetryDelayMs,
+  repositoryRoot,
+  isProcessAlive,
+  providedSupabaseUrl,
+  providedPublishableKey,
+  remember,
+}) {
+  const envPath = resolve(String(credentialEnvPath ?? ''));
+  if (!isAbsolute(String(credentialEnvPath ?? '')) || isInsideRepository(envPath, repositoryRoot)) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'Phase 6 credential env path must be absolute and outside the repository',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const sourcePath = resolve(String(storageStatePath ?? ''));
+  if (!isAbsolute(String(storageStatePath ?? ''))) {
+    throw fail(AUDIT_SESSION_ERROR_CODES.refused, 'storage state path must be absolute', {
+      outcome: AUDIT_SESSION_OUTCOMES.refused,
+    });
+  }
+  let sourceState;
+  try {
+    sourceState = JSON.parse(readFileSync(sourcePath, 'utf8'));
+  } catch {
+    throw fail(AUDIT_SESSION_ERROR_CODES.malformedState, 'storage state is missing or not valid JSON', {
+      outcome: AUDIT_SESSION_OUTCOMES.refused,
+    });
+  }
+  const source = extractStoredAuditSession(sourceState, { origins, label: 'storage state' });
+  remember(source.session.access_token);
+  remember(source.session.refresh_token);
+
+  // Existing custody values are preserved (Supabase URL, publishable key,
+  // auth-state path, audit account) and must agree with what was requested.
+  let values = new Map();
+  if (existsSync(envPath)) {
+    assertPrivateAuditFile(envPath, 'Phase 6 credential env', { repositoryRoot });
+    values = parseAuditCredentialEnv(readFileSync(envPath, 'utf8'));
+    remember(values.get(AUDIT_SESSION_ENV_KEYS.accessToken));
+    remember(values.get(AUDIT_SESSION_ENV_KEYS.refreshToken));
+    remember(values.get(AUDIT_SESSION_ENV_KEYS.supabasePublishableKey));
+  } else {
+    const directory = statSync(dirname(envPath));
+    if (!directory.isDirectory() || (directory.mode & PRIVATE_MODE_MASK) !== 0) {
+      throw fail(
+        AUDIT_SESSION_ERROR_CODES.refused,
+        'Phase 6 credential env directory must exist and not be group/world accessible',
+        { outcome: AUDIT_SESSION_OUTCOMES.refused },
+      );
+    }
+  }
+  const auditUserId = expectedAuditUserId || values.get(AUDIT_SESSION_ENV_KEYS.expectedAuditUserId) || null;
+  if (!UUID_V4_RE.test(String(auditUserId ?? ''))) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'designated audit account must be a canonical lowercase UUID v4',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const envAuditUser = values.get(AUDIT_SESSION_ENV_KEYS.expectedAuditUserId);
+  if (envAuditUser && envAuditUser !== auditUserId) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.identityMismatch,
+      'credential env names a different audit account than requested',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const envAuthState = values.get(AUDIT_SESSION_ENV_KEYS.authState);
+  const resolvedAuthState = resolve(String(authStatePath || envAuthState || ''));
+  if (!isAbsolute(String(authStatePath || envAuthState || ''))) {
+    throw fail(AUDIT_SESSION_ERROR_CODES.refused, 'auth state path must be absolute', {
+      outcome: AUDIT_SESSION_OUTCOMES.refused,
+    });
+  }
+  if (envAuthState && authStatePath && resolve(envAuthState) !== resolvedAuthState) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'credential env names a different auth-state file than requested',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  if (isInsideRepository(resolvedAuthState, repositoryRoot) || resolvedAuthState === sourcePath) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'auth state must live outside the repository and differ from the source storage state',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const supabaseUrl = validateSupabaseUrl(
+    values.get(AUDIT_SESSION_ENV_KEYS.supabaseUrl) || providedSupabaseUrl,
+  );
+  const publishableKey =
+    values.get(AUDIT_SESSION_ENV_KEYS.supabasePublishableKey) || providedPublishableKey;
+  if (!publishableKey) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      'seeding requires the Supabase publishable key from the credential env or the environment',
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+
+  const nowValue = nowMs();
+  const evaluation = evaluateAuditAccessToken(source.session.access_token, {
+    nowMs: nowValue,
+    thresholdSeconds: 0,
+  });
+  assertSessionIdentity(source.session, evaluation, 'storage state access token', auditUserId);
+  if (evaluation.expired) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.refused,
+      `storage state access token expired at ${evaluation.expiresAt}; sign in again and re-seed`,
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  const window = auditSessionWindow({
+    startedAtEpoch: evaluation.issuedAt,
+    configuredValidUntil: null,
+    issuedAt: evaluation.issuedAt,
+    nowMs: nowValue,
+  });
+  const session = normalizedSession(source.session, Math.floor(nowValue / 1000));
+
+  const lockPath = `${envPath}${AUDIT_SESSION_LOCK_SUFFIX}`;
+  const acquired = await acquireCustodyLock({ lockPath, lockAttempts, lockRetryDelayMs, sleep, isProcessAlive });
+  if (!acquired.release) {
+    throw fail(
+      AUDIT_SESSION_ERROR_CODES.lockHeld,
+      `another audit session custody holder owns ${lockPath}; nothing was seeded`,
+      { outcome: AUDIT_SESSION_OUTCOMES.refused },
+    );
+  }
+  try {
+    const next = new Map(values);
+    next.set(AUDIT_SESSION_ENV_KEYS.expectedAuditUserId, auditUserId);
+    next.set(AUDIT_SESSION_ENV_KEYS.authState, resolvedAuthState);
+    const loaded = {
+      values: next,
+      window,
+      supabaseUrl,
+      publishableKey,
+      stored: { state: trustedOriginState(session), item: null },
+    };
+    loaded.stored.item = loaded.stored.state.origins[0].localStorage[0];
+    writeRotatedSessionFiles({ loaded, session, envPath, resolvedAuthState, repositoryRoot });
+  } finally {
+    acquired.release();
+  }
+  return {
+    schemaVersion: 1,
+    seeded: true,
+    auditUserId,
+    custodyEnvPath: envPath,
+    authStatePath: resolvedAuthState,
+    sourceOrigin: source.origin,
+    seededAt: isoAt(nowValue),
+    sessionExpiresAt: evaluation.expiresAt,
+    sessionMode: AUDIT_SESSION_MODE,
+    sessionStartedAt: window.startedAt,
+    sessionValidUntil: window.validUntil,
+    lock: acquired.lock,
+  };
 }

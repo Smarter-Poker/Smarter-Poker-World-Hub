@@ -177,6 +177,85 @@ works for a token that will outlive the run (at least 20 minutes remaining); an
 expired or nearly expired token is refused with an explicit message naming the
 variable, instead of failing later at the authenticated probe.
 
+### Custody after the run: the browser's rotated session (2026-09-22)
+
+The startup refresh alone was not enough. Once the attestation launches
+Chromium with the persisted storage state, the page's own supabase-js client
+(`autoRefreshToken`) rotates the refresh token inside the browser. GoTrue
+rotates refresh tokens and detects reuse, so the pair still on disk after the
+run is revoked ("Refresh Token Not Found" at the next startup, and the session
+absent from `auth.sessions`). This is the mechanism behind the custody files
+last written 2026-09-15 holding a refresh token GoTrue rejected on 2026-09-22.
+
+At the end of every run that created a browser context, on success, failure
+and the catch path alike, the attestation now reads the context's storage
+state (`context.storageState()`), takes the `smarter-poker-auth` session for
+the origin the context was created with, and hands it to
+`persistBrowserSessionIfRotated` in `trainingAuditSessionRefresh.mjs`. That
+helper persists the session to both custody files, env first, then auth state,
+temp + fsync + rename, mode `0600`, under the same `<env>.refresh.lock`, when
+and only when:
+
+- it belongs to the designated audit UUID (JWT `sub` and `session.user.id`);
+- its access token is a well-formed, unexpired JWT that is not older (`iat`,
+  `exp`) than the session the run started with and than the session on disk at
+  that moment (an external rotation during the run is never overwritten);
+- it differs from what is on disk (an identical pair writes nothing and leaves
+  both files byte-identical);
+- the on-disk store itself is consistent and inside its 90-day window.
+
+The outcome is recorded under `auditSession` in the public evidence, with no
+token material:
+
+| Field | Meaning |
+| --- | --- |
+| `auditSession.persistedRotatedSession` | `true` when both custody files now hold the browser's rotated session |
+| `auditSession.browserCustody.outcome` | `persisted`, `unchanged`, `refused` or `failed` |
+| `auditSession.browserCustody.reason` | when not `persisted`: `browser_session_unchanged`, `browser_storage_state_unavailable`, `browser_session_malformed`, `browser_session_identity_mismatch`, `browser_session_not_newer`, `browser_session_expired`, `custody_state_invalid`, `audit_session_window_ended`, `custody_lock_held` or `custody_persist_failed` |
+| `auditSession.browserCustody.message` | redacted detail for the operator |
+
+Persistence never changes the run's result: a failed run stays
+`failed_closed` with its original failure, and a persistence error is recorded
+as `custody_persist_failed` without upgrading anything. If the second of the
+two writes fails, the next startup refuses with "credential env and auth state
+disagree about the session token pair"; reconcile deliberately (re-seed, below)
+rather than editing either file by hand.
+
+### Re-seeding custody after a lost session
+
+When GoTrue no longer accepts the persisted refresh token (the startup refresh
+records `failed` with `refresh_token_not_found`, or the out-of-Git refresher
+reports the same), the custody files must be re-established from a fresh
+sign-in; no refresh can recover them. The owner's e2e auth setup
+(`e2e/00-auth.setup.ts`, driven by `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`
+from the local env) signs in through the real login page and writes a
+Playwright storage state (`playwright/.auth/user.json`) for that account. When
+those variables name the audit account, that storage state is a valid seed.
+
+Seed both custody files from it with the tracked custody entrypoint, which
+reads the state file, verifies the session belongs to the designated audit
+UUID and holds an unexpired access token, and writes the credential env and
+the auth state atomically (mode `0600`, env first, under the custody lock):
+
+```text
+TRAINING_PHASE6_AUDIT_ENV_FILE=/absolute/path/to/phase6/.env \
+node scripts/training-phase6-audit-session-custody.mjs \
+  --seed-from-storage-state /absolute/path/to/playwright/.auth/user.json
+```
+
+An existing credential env supplies the audit UUID, the auth-state path, the
+Supabase URL and the publishable key, and they are preserved; when the env
+does not exist yet, pass `--audit-user-id`, `--auth-state` (or
+`TRAINING_PHASE6_DELIVERY_AUTH_STATE`) and provide
+`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the
+environment. The storage state must carry exactly one `smarter-poker-auth`
+session for `https://smarter.poker` (add `--origin <origin>` when the e2e run
+used another base URL). A new 90-day window starts at the seeded access
+token's issue time. The command prints metadata only (account, paths, expiry,
+window); no token is ever printed, and an argument that looks like token
+material is refused before anything is read. Delete the source storage state
+afterwards if it is not needed by the e2e suite; it holds the same session.
+
 ## Step 1: create immutable public evidence
 
 Run this only after PR A is the deployed build:
@@ -325,6 +404,7 @@ Phase 6 stays open.
 ```text
 node --test __tests__/training-production-delivery-attestation.test.mjs
 node --experimental-vm-modules --test __tests__/training-audit-session-refresh.test.mjs
+node --experimental-vm-modules --test __tests__/training-audit-session-browser-custody.test.mjs
 node --check scripts/training-phase6-production-delivery-attestation.mjs
 ```
 
@@ -339,6 +419,20 @@ timeout reported as an authoritative `unknown` with the old state intact, the
 90-day window refusal, the attestation's first API request carrying the
 refreshed token, evidence staying mode `0600`, and the absence of every seeded
 secret from thrown messages, records and evidence JSON.
+
+`training-audit-session-browser-custody` (16 tests, same gate) proves the
+end-of-run custody and re-seeding contracts with a fake browser context: a
+rotated browser session persisted to both files (0600, env and state
+agreeing, window unchanged), an unchanged session leaving both files
+byte-identical, foreign-user, older, expired and malformed browser sessions
+refused with redacted records, a live custody lock refused after three bounded
+attempts, a divergent store left alone, the attestation failure path still
+persisting, a mid-persist failure recorded as `custody_persist_failed` without
+upgrading the result and refused at the next startup, seeding from a fresh
+storage state (new 90-day window, unrelated cookies and origins dropped),
+seeding refusals (other account, expired, foreign, untrusted origin, path
+disagreements), and the CLI printing metadata only while refusing token
+material on argv.
 
 The current source contract passes 42/42 focused attestation tests, including immutable-host and
 deployment-ID checks through a fake fetch transport, explicit audit-account
