@@ -2,7 +2,7 @@
 
 Date: 2026-08-30
 Owner: Codex Training Program
-Status: Phases 1-5 Complete; Phase 6 Deep Re-Certification In Progress
+Status: Phases 1-5 Complete; Phase 6 Open (sub-status 6E-6I recorded 2026-09-22/23); Phase 7 Not Started
 
 ## Objective
 
@@ -157,6 +157,77 @@ desktop/mobile certification pass. The M1/M2 manifest remains `CLOSED` and
 unapproved for activation, and the `strategy_matrix_v2` backfill remains blocked
 by its production disk-headroom gate; neither operation was started by this
 phase.
+
+#### Phase 6 sub-status as of 2026-09-22/23 (6E-6I)
+
+Phase 6 remains open. Phase 7 has not started. The 2026-09-20 resumption
+verified the Policy 2.9 handoff receipt (manifest
+`7663cc909626f7e9966931d27166ad8774addc801f7ad1898a2d7564bc13c378`; all four
+file hashes matched). The dated evidence record for everything below is
+`2026-09-22-training-phase-6-source-database-repair-and-cohort-truth.md`;
+the sub-phase letters are the working breakdown used there.
+
+- **6E - scoped solver-worker source/database custody: repaired in source,
+  merged, deployed; live signed round-trip not proven.** PR #1821
+  (`35a6e033`, merged 2026-09-16) reverted the scoped solver-worker source
+  that PR #1762 had introduced, while production kept migration
+  `20260913170000_training_solver_operation_scope_binding`. Read-only
+  production inspection (2026-09-20, re-confirmed 2026-09-23) showed the
+  database enforcing the scoped `_v2`/`_v3` protocol that the source no
+  longer spoke. Repair PR #1939 (`4dc33a9b` + inventory refresh `c1c73e11`)
+  squash-merged 2026-09-23T03:13:50Z as
+  `9969ba54a261108f7c990017506d225b9cca9e4e` with all seven required checks
+  passing; the new guard
+  `__tests__/training-solver-scoped-protocol-custody.test.mjs` fails 7/7 on
+  the pre-repair base and passes 7/7 after. Production served `9969ba54`
+  (`dpl_G3e6tW3NjMshfvyQoWQsuGekQsmh`); an unsigned `POST
+  /api/training/solver-worker` returns 401 and `GET` returns 405. No worker
+  HMAC exists, so no signed live round-trip to the scoped RPCs has been made,
+  and `phases.json` keeps `release_gate.solver_ready=false`. Historical
+  correction: #1762 was not all-green; its required Pre-Deploy Safety Checks
+  failed on final head `22502e4b` at 2026-09-14T13:41:08Z and the PR merged
+  twelve seconds later under a ruleset bypass that has since been removed.
+- **6F - public delivery-authority attestation: blocked on data, not
+  code.** The `422 TRAINING_ATTESTATION_CONTINUATION_COHORT_UNAVAILABLE`
+  seen on every attestation run is a data dependency: production holds zero
+  admitted provenance-complete artifacts (`training_solver_artifact_catalog`
+  0 rows, `training_solver_provenance_authority` 0 rows, `SOLVER_EXACT` 0
+  cache rows) because no M1/M2 bounded canary has ever been admitted. It is
+  not fixable in code without weakening provenance, and provenance was not
+  weakened. Five real code defects that would have blocked a genuine canary
+  parent were fixed in PR #1966 (`1feebf43`; still open at the time of this
+  entry, head `119bb996`, all checks passing). One remaining blocker is the
+  canonical tree geometry itself: `scripts/preflop-deep/tree_gen.py:52`
+  yields three flop actions and two turn actions at check-or-bet nodes, so
+  the four-answer contract correctly rejects the real parent and child. A
+  richer tree geometry (new manifest version, checksum and provenance
+  tuple) is required before any solver-exact Training question can exist.
+  The audit-session custody established on 2026-09-15 no longer exists
+  server-side; PR #1965 (`f8ef1cfc`, merged 2026-09-23T04:03:40Z) makes the
+  attestation refresh custody once at startup, and a local follow-up
+  (`cdb9461a`, not yet pushed) persists the browser-rotated session and adds
+  a `--seed-from-storage-state` re-seeding path. Custody must be re-seeded
+  before the next run.
+- **6G - machine-administrator correlation: not started.** It consumes the
+  6F public evidence, which does not yet exist in a passing state.
+- **6H - PR-B strict delivery enforcement: not started, must not open.**
+  It requires a genuine `releaseGateReady: true` receipt from 6G.
+- **6I - final exact-build certification: attestation-dependent part
+  blocked on 6F/6G.** Live `/api/health` on the deployed build is verified;
+  the footer and Training smoke were not re-run for this entry, and the
+  delivery-authority portion cannot run until 6F has data.
+
+Honest external dependencies for closing Phase 6: (1) one admitted M1
+bounded-canary parent/child under the 2026-09-07 admission runbook (signed
+gateway live, credential rotation, per-host HMAC, binary/pipeline/manifest
+attestation, authority tuple), which first requires the richer tree geometry
+above; (2) re-seeded audit-session custody; (3) disk headroom on
+`/Volumes/SmarterWork` (100% used, about 1.3-1.5 GiB free, which prevented
+local `npm run build` for #1965/#1966; CI and Vercel built them). The M1/M2
+manifest remains `CLOSED`, both solver hosts remain stopped with the canary
+closed, the `strategy_matrix_v2` backfill is untouched, and the M1 range-file
+count contradiction (470 committed versus 450 corrected) still blocks Stage A
+acceptance. The approved global header was not changed.
 
 ### Phase 7: Every Game's Secondary Pages
 

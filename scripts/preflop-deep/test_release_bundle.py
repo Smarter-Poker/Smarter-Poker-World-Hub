@@ -33,7 +33,11 @@ class ReleaseBundleTests(unittest.TestCase):
         # the fixture on the canonical temp path instead of weakening it.
         self.temp = tempfile.TemporaryDirectory(dir=os.path.realpath(tempfile.gettempdir()))
         self.addCleanup(self.temp.cleanup)
-        self.bundle = Path(self.temp.name) / 'bundle'
+        # macOS spells its temporary root as /var even though /var resolves to
+        # /private/var. The production reader deliberately rejects links in a
+        # supplied path, so use the canonical fixture path for the valid case.
+        self.temp_root = Path(self.temp.name).resolve()
+        self.bundle = self.temp_root / 'bundle'
         self.bundle.mkdir()
         self.payloads = {name: ('# ' + name + '\n').encode('ascii') for name in FILES}
         self.payloads['run_machine.py'] = SOURCE.encode('utf-8')
@@ -160,6 +164,12 @@ class ReleaseBundleTests(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, 'reparse points'):
                 self.read()
 
+    def test_symlink_spelled_bundle_path_rejected(self):
+        alias = self.temp_root / 'bundle-link'
+        alias.symlink_to(self.bundle, target_is_directory=True)
+        with self.assertRaisesRegex(SystemExit, 'links or reparse points'):
+            READ(str(alias), self.approved, FILES)
+
     def test_non_object_manifest_rejected(self):
         raw = b'[]'
         (self.bundle / 'phases.json').write_bytes(raw)
@@ -174,7 +184,7 @@ class ReleaseBundleTests(unittest.TestCase):
             self.run_bootstrap(foreign_launcher=True)
 
     def run_bootstrap(self, foreign_launcher=False):
-        target = Path(self.temp.name) / 'installed'
+        target = self.temp_root / 'installed'
         target.mkdir()
         launcher = target / 'run_machine.py'
         launcher.write_bytes(b'# foreign' if foreign_launcher else self.payloads['run_machine.py'])

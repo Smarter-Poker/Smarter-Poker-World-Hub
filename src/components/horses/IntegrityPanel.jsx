@@ -44,6 +44,7 @@ import {
   rowsOf,
   sanctionBody,
   timingRowsOf,
+  handSearchCoverage,
   timingUrl,
 } from './integrityAdmin';
 import {
@@ -659,6 +660,7 @@ export default function IntegrityPanel({
   const timingRows = timingRowsOf(timing.data);
   const timingCoverage = first(payloadOf(timing.data), 'coverage') || {};
   const handRows = rowsOf(hands.data, 'hands');
+  const handCoverage = handSearchCoverage(hands.data);
   const liveHealth = healthOf(health.data);
 
   return (
@@ -1168,9 +1170,20 @@ export default function IntegrityPanel({
               <strong>No Hand Search Has Run. </strong>Enter A Player ID To Begin.
             </div>
           )}
-          {handFilters && renderListState(hands, handRows, { title: 'No Hands Match That Search', detail: 'The Hand-History Source Was Read And Returned No Matching Records.' })}
+          {handFilters && handCoverage.incomplete && handRows.length > 0 && (
+            <div className={styles.infoNote} role="status">
+              <strong>This Search Did Not Reach The End Of History. </strong>
+              Older Hands Remain Unscanned. Use Next To Continue The Search.
+            </div>
+          )}
+          {handFilters && renderListState(hands, handRows, handCoverage.incomplete
+            ? {
+                title: 'This Search Did Not Reach The End Of History',
+                detail: `The Hand-History Source Is Read In Windows. This Window Returned No Matching Records${handCoverage.scannedCount == null ? '' : `, After ${handCoverage.scannedCount} Hands Scanned`}, And Older Hands Remain Unscanned. Use Next To Continue The Search Before Treating This As No Evidence.`,
+              }
+            : { title: 'No Hands Match That Search', detail: 'The Hand-History Source Was Read To The End Of History And Returned No Matching Records.' })}
           {handRows.map((row, index) => <SimpleRecordCard key={String(first(row, 'id', 'hand_id', 'handId') || index)} row={row} kind="hands" />)}
-          {handRows.length > 0 && (
+          {(handRows.length > 0 || handCoverage.hasMore) && (
             <CursorPager resource={hands} cursor={handCursor} history={handBack} setCursor={setHandCursor} setHistory={setHandBack} noun="Hands" />
           )}
         </section>

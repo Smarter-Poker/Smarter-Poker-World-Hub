@@ -119,6 +119,143 @@ rotation invalidates unexpired receipts, whose maximum lifetime is 24 hours, so
 rotate only in a separately approved drain/maintenance window (or after a
 future multi-key verification design), never in the middle of this release.
 
+## Audit-session custody at startup (2026-09-22)
+
+The audit account's Supabase access JWT lives at most one week; its rotating
+refresh token keeps the session usable for a 90-day window. The tracked
+attestation now performs that rotation itself, once, at startup, through
+`src/lib/training/trainingAuditSessionRefresh.mjs`, before its first request
+of any kind. It refreshes when and only when the saved access token is expired
+or inside the 24-hour threshold; a fresh token makes zero refresh calls. The
+browser context and every API request then carry the refreshed token.
+
+Point the run at the mode-`0600` credential env kept outside the repository:
+
+```text
+TRAINING_PHASE6_AUDIT_ENV_FILE=/absolute/path/to/phase6/.env
+```
+
+That file is the same one the out-of-Git refresher (`refresh-session.mjs`)
+maintains, in the same `KEY='value'` format with the same keys
+(`TRAINING_PHASE6_AUDIT_ACCESS_TOKEN`, `TRAINING_PHASE6_AUDIT_REFRESH_TOKEN`,
+`TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID`,
+`TRAINING_PHASE6_DELIVERY_AUTH_STATE`,
+`TRAINING_PHASE6_AUDIT_SESSION_STARTED_AT_EPOCH`,
+`TRAINING_PHASE6_AUDIT_SESSION_VALID_UNTIL`, `TRAINING_PHASE6_AUDIT_SESSION_MODE`,
+`TRAINING_PHASE6_SUPABASE_URL`, `TRAINING_PHASE6_SUPABASE_PUBLISHABLE_KEY`,
+`TRAINING_PHASE6_AUDIT_ENV_FILE`). Both tools take the same exclusive
+`<env>.refresh.lock`, write temp + fsync + rename in the same directory, keep
+both files mode `0600` in a directory that is not group/world accessible, and
+never persist a session whose subject differs from the designated audit UUID.
+When `TRAINING_PHASE6_AUDIT_ENV_FILE` is set and
+`TRAINING_PHASE6_DELIVERY_AUTH_STATE` is not, the auth-state path named inside
+the credential env is used, so the two cannot diverge. Never print, source or
+copy either file; the harness reads them itself.
+
+The custody step is one bounded execution with an authoritative outcome,
+recorded under `auditSession` in the public evidence (identifiers, timestamps
+and counts only, never a token):
+
+| `auditSession.outcome` | Meaning | Operator action |
+| --- | --- | --- |
+| `fresh` | Token outlives the threshold; zero refresh calls | none |
+| `refreshed` | Exactly one refresh; both files rotated atomically | none |
+| `reused_persisted` | Another holder rotated while this run waited; nothing rotated twice | none |
+| `refused` | Fail-closed before any refresh call (90-day window ended, identity mismatch, malformed state, lock held by a live process, in-repository or loose-permission files) | read `failure.code` / `failure.operatorAction`; re-establish the session if the window ended |
+| `failed` | The refresh call answered but was rejected or malformed, or named another user; nothing persisted | re-establish the audit session with a fresh sign-in |
+| `unknown` | No response within the 20-second bound; the refresh token may already have rotated server-side | do not retry blindly; inspect the credential store, then run the out-of-Git refresher once, deliberately |
+
+On every non-`fresh`/`refreshed`/`reused_persisted` outcome the attestation
+exits before its first API request, the evidence file records
+`status: failed_closed` with the outcome, and the old credential files remain
+intact. A lock held by a live process is waited for at most three bounded
+attempts and then refused; a lock whose owning process is gone is removed
+once. A live lock is never deleted by the harness.
+
+Without `TRAINING_PHASE6_AUDIT_ENV_FILE` the plain auth-state flow below still
+works for a token that will outlive the run (at least 20 minutes remaining); an
+expired or nearly expired token is refused with an explicit message naming the
+variable, instead of failing later at the authenticated probe.
+
+### Custody after the run: the browser's rotated session (2026-09-22)
+
+The startup refresh alone was not enough. Once the attestation launches
+Chromium with the persisted storage state, the page's own supabase-js client
+(`autoRefreshToken`) rotates the refresh token inside the browser. GoTrue
+rotates refresh tokens and detects reuse, so the pair still on disk after the
+run is revoked ("Refresh Token Not Found" at the next startup, and the session
+absent from `auth.sessions`). This is the mechanism behind the custody files
+last written 2026-09-15 holding a refresh token GoTrue rejected on 2026-09-22.
+
+At the end of every run that created a browser context, on success, failure
+and the catch path alike, the attestation now reads the context's storage
+state (`context.storageState()`), takes the `smarter-poker-auth` session for
+the origin the context was created with, and hands it to
+`persistBrowserSessionIfRotated` in `trainingAuditSessionRefresh.mjs`. That
+helper persists the session to both custody files, env first, then auth state,
+temp + fsync + rename, mode `0600`, under the same `<env>.refresh.lock`, when
+and only when:
+
+- it belongs to the designated audit UUID (JWT `sub` and `session.user.id`);
+- its access token is a well-formed, unexpired JWT that is not older (`iat`,
+  `exp`) than the session the run started with and than the session on disk at
+  that moment (an external rotation during the run is never overwritten);
+- it differs from what is on disk (an identical pair writes nothing and leaves
+  both files byte-identical);
+- the on-disk store itself is consistent and inside its 90-day window.
+
+The outcome is recorded under `auditSession` in the public evidence, with no
+token material:
+
+| Field | Meaning |
+| --- | --- |
+| `auditSession.persistedRotatedSession` | `true` when both custody files now hold the browser's rotated session |
+| `auditSession.browserCustody.outcome` | `persisted`, `unchanged`, `refused` or `failed` |
+| `auditSession.browserCustody.reason` | when not `persisted`: `browser_session_unchanged`, `browser_storage_state_unavailable`, `browser_session_malformed`, `browser_session_identity_mismatch`, `browser_session_not_newer`, `browser_session_expired`, `custody_state_invalid`, `audit_session_window_ended`, `custody_lock_held` or `custody_persist_failed` |
+| `auditSession.browserCustody.message` | redacted detail for the operator |
+
+Persistence never changes the run's result: a failed run stays
+`failed_closed` with its original failure, and a persistence error is recorded
+as `custody_persist_failed` without upgrading anything. If the second of the
+two writes fails, the next startup refuses with "credential env and auth state
+disagree about the session token pair"; reconcile deliberately (re-seed, below)
+rather than editing either file by hand.
+
+### Re-seeding custody after a lost session
+
+When GoTrue no longer accepts the persisted refresh token (the startup refresh
+records `failed` with `refresh_token_not_found`, or the out-of-Git refresher
+reports the same), the custody files must be re-established from a fresh
+sign-in; no refresh can recover them. The owner's e2e auth setup
+(`e2e/00-auth.setup.ts`, driven by `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`
+from the local env) signs in through the real login page and writes a
+Playwright storage state (`playwright/.auth/user.json`) for that account. When
+those variables name the audit account, that storage state is a valid seed.
+
+Seed both custody files from it with the tracked custody entrypoint, which
+reads the state file, verifies the session belongs to the designated audit
+UUID and holds an unexpired access token, and writes the credential env and
+the auth state atomically (mode `0600`, env first, under the custody lock):
+
+```text
+TRAINING_PHASE6_AUDIT_ENV_FILE=/absolute/path/to/phase6/.env \
+node scripts/training-phase6-audit-session-custody.mjs \
+  --seed-from-storage-state /absolute/path/to/playwright/.auth/user.json
+```
+
+An existing credential env supplies the audit UUID, the auth-state path, the
+Supabase URL and the publishable key, and they are preserved; when the env
+does not exist yet, pass `--audit-user-id`, `--auth-state` (or
+`TRAINING_PHASE6_DELIVERY_AUTH_STATE`) and provide
+`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the
+environment. The storage state must carry exactly one `smarter-poker-auth`
+session for `https://smarter.poker` (add `--origin <origin>` when the e2e run
+used another base URL). A new 90-day window starts at the seeded access
+token's issue time. The command prints metadata only (account, paths, expiry,
+window); no token is ever printed, and an argument that looks like token
+material is refused before anything is read. Delete the source storage state
+afterwards if it is not needed by the e2e suite; it holds the same session.
+
 ## Step 1: create immutable public evidence
 
 Run this only after PR A is the deployed build:
@@ -127,11 +264,14 @@ Run this only after PR A is the deployed build:
 TRAINING_PHASE6_DELIVERY_BASE_URL=https://<immutable-deployment>.vercel.app \
 TRAINING_PHASE6_DELIVERY_EXPECTED_BUILD=<exact-40-character-sha> \
 TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID=<dedicated-audit-account-uuid-v4> \
-TRAINING_PHASE6_DELIVERY_AUTH_STATE=$PWD/playwright/.auth/user.json \
+TRAINING_PHASE6_AUDIT_ENV_FILE=/absolute/path/to/phase6/.env \
 TRAINING_PHASE6_DELIVERY_ACKNOWLEDGE_WRITES=I_ACKNOWLEDGE_THIS_CREATES_REAL_TRAINING_ATTEMPTS_AND_ANSWERS \
 TRAINING_PHASE6_DELIVERY_EVIDENCE=/tmp/phase6-pr-a-delivery-attestation.json \
 node scripts/training-phase6-production-delivery-attestation.mjs
 ```
+
+(`TRAINING_PHASE6_DELIVERY_AUTH_STATE=<path>` may still be given explicitly; it
+must then name the same file the credential env names.)
 
 Choose a new, run-specific evidence path. If either that path or its `.lock`
 file exists, stop and inspect the earlier artifact; do not delete or reuse it
@@ -263,10 +403,38 @@ Phase 6 stays open.
 
 ```text
 node --test __tests__/training-production-delivery-attestation.test.mjs
+node --experimental-vm-modules --test __tests__/training-audit-session-refresh.test.mjs
+node --experimental-vm-modules --test __tests__/training-audit-session-browser-custody.test.mjs
 node --check scripts/training-phase6-production-delivery-attestation.mjs
 ```
 
-The current source contract passes 34/34 focused attestation tests, including immutable-host and
+`training-audit-session-refresh` (21 tests, in the permanent
+`test:training:phase6-authority` gate) proves the startup custody contract with
+synthetic tokens and a fake transport: one refresh for an expired or
+near-expiry token and zero for a fresh one, identity-mismatch and malformed
+state/response fail-closed with nothing persisted, atomic mode-`0600`
+persistence with private-directory and outside-repository checks, exclusive
+lock with bounded retry and no double rotation across concurrent callers,
+timeout reported as an authoritative `unknown` with the old state intact, the
+90-day window refusal, the attestation's first API request carrying the
+refreshed token, evidence staying mode `0600`, and the absence of every seeded
+secret from thrown messages, records and evidence JSON.
+
+`training-audit-session-browser-custody` (16 tests, same gate) proves the
+end-of-run custody and re-seeding contracts with a fake browser context: a
+rotated browser session persisted to both files (0600, env and state
+agreeing, window unchanged), an unchanged session leaving both files
+byte-identical, foreign-user, older, expired and malformed browser sessions
+refused with redacted records, a live custody lock refused after three bounded
+attempts, a divergent store left alone, the attestation failure path still
+persisting, a mid-persist failure recorded as `custody_persist_failed` without
+upgrading the result and refused at the next startup, seeding from a fresh
+storage state (new 90-day window, unrelated cookies and origins dropped),
+seeding refusals (other account, expired, foreign, untrusted origin, path
+disagreements), and the CLI printing metadata only while refusing token
+material on argv.
+
+The current source contract passes 42/42 focused attestation tests, including immutable-host and
 deployment-ID checks through a fake fetch transport, explicit audit-account
 JWT-subject/session binding, write acknowledgement, exclusive mode-`0600`
 run locking, malformed-signature and canonical-JTI binding, exact Standard
