@@ -2943,7 +2943,7 @@ export function SharedPostCreator({
               style={{ width: 17, height: 17, marginTop: 1, accentColor: C.blue }}
             />
             <span>
-              Feature this one video in Poker Reels. It will be published publicly, and I confirm it is poker-related and mine to share.
+              Feature This One Video In Poker Reels. It Will Be Published Publicly, And I Confirm It Is Poker-Related And Mine To Share.
             </span>
           </label>
         )}
