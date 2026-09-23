@@ -20,6 +20,12 @@ export default function NewsletterOperations() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    // `error` is the banner channel: every action on this page writes to it. The
+    // counters must NOT read it. A failed subscriber PATCH or a failed digest run
+    // says nothing about whether the counters were read, and blanking good numbers
+    // on an unrelated failure is the same guessing this page exists to stop.
+    // `loadError` belongs to the counter read and to nothing else.
+    const [loadError, setLoadError] = useState('');
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [days, setDays] = useState(7);
@@ -32,36 +38,66 @@ export default function NewsletterOperations() {
     // behalf. Loading, failed and read-but-empty are three different facts and are shown
     // as three different strings.
     const statValue = (value) => {
-        if (error) return 'Unavailable';
-        if (!data) return loading ? 'Reading' : 'Not Read';
-        return value ?? '-';
+        // DEFECT 4: a counter that was read successfully keeps reporting its number.
+        // Only the absence of a successful counter read is 'Unavailable', and only
+        // loadError (not the page-wide banner) decides that.
+        if (data) return value ?? '-';
+        if (loading) return 'Reading';
+        return loadError ? 'Unavailable' : 'Not Read';
+    };
+
+    // DEFECT 5: Last Dispatch has four states, not one dash. Still reading, the read
+    // failed, the read succeeded and nothing has ever been dispatched, and an actual
+    // timestamp are four different facts and are shown as four different strings.
+    const lastDispatchValue = () => {
+        if (!data) {
+            if (loading) return 'Reading';
+            return loadError ? 'Unavailable' : 'Not Read';
+        }
+        const raw = data?.stats?.last_sent_at;
+        if (!raw) return 'Never Dispatched';
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? 'Unreadable Date' : parsed.toLocaleString();
     };
 
     const load = useCallback(async (sessionToken = token, nextPage = page, term = search) => {
         if (!sessionToken) return;
         setLoading(true);
         setError('');
+        setLoadError('');
         try {
             const params = new URLSearchParams({ page: String(nextPage), pageSize: '25' });
             if (term.trim()) params.set('search', term.trim());
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 15000);
-            let response;
+            let body;
             try {
-                response = await fetch(`/api/admin/newsletter?${params}`, {
+                const response = await fetch(`/api/admin/newsletter?${params}`, {
                     headers: { Authorization: `Bearer ${sessionToken}` },
                     signal: controller.signal,
                 });
+                // DEFECT 3: the body read stays INSIDE the armed abort window. A timeout
+                // that only bounds the headers bounds nothing an operator cares about: a
+                // server that answers 200 and then stalls the body used to hang this
+                // await forever with the timer already cleared, leaving loading true and
+                // the Refresh button disabled for the rest of the session. Aborting the
+                // controller rejects an in-flight body read too, so the whole round trip
+                // is bounded. clearTimeout only runs once the body is parsed or thrown.
+                body = await response.json();
+                if (!response.ok || !body.success) throw new Error(body.error || 'Unable to load newsletter operations');
             } finally {
                 clearTimeout(timer);
             }
-            const body = await response.json();
-            if (!response.ok || !body.success) throw new Error(body.error || 'Unable to load newsletter operations');
             setData(body);
         } catch (err) {
-            setError(err?.name === 'AbortError'
+            // DEFECT 6: err may not be an Error. Reading .message off a non-Error
+            // rejection threw a TypeError inside this catch, so no message was ever
+            // set and the rejection escaped load() unhandled at both call sites.
+            const message = err?.name === 'AbortError'
                 ? 'The newsletter service did not respond within 15 seconds. The counters below are unread, not zero.'
-                : err.message || 'Unable to load newsletter operations');
+                : err?.message || 'Unable to load newsletter operations';
+            setError(message);
+            setLoadError(message);
         } finally {
             setLoading(false);
         }
@@ -107,7 +143,7 @@ export default function NewsletterOperations() {
                 await load(token, 1, search);
             }
         } catch (err) {
-            setError(err.message || 'Newsletter operation failed');
+            setError(err?.message || 'Newsletter operation failed');
         } finally {
             setRunning('');
         }
@@ -129,7 +165,7 @@ export default function NewsletterOperations() {
             if (!response.ok || !body.success) throw new Error(body.error || 'Subscriber update failed');
             await load(token, page, search);
         } catch (err) {
-            setError(err.message || 'Subscriber update failed');
+            setError(err?.message || 'Subscriber update failed');
         } finally {
             setRunning('');
         }
@@ -166,7 +202,7 @@ export default function NewsletterOperations() {
                     <article><OperatorGlyph kind="users" size={17} /><span>Active Audience</span><strong>{statValue(data?.stats?.active)}</strong></article>
                     <article><OperatorGlyph kind="mail" size={17} /><span>Opted Out</span><strong>{statValue(data?.stats?.inactive)}</strong></article>
                     <article><OperatorGlyph kind="send" size={17} /><span>Recorded Campaigns</span><strong>{statValue(data?.stats?.campaigns)}</strong></article>
-                    <article><OperatorGlyph kind="clock" size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{formatDate(data?.stats?.last_sent_at)}</strong></article>
+                    <article><OperatorGlyph kind="clock" size={17} /><span>Last Dispatch</span><strong className={styles.dateValue}>{lastDispatchValue()}</strong></article>
                 </section>
 
                 <section className={styles.dispatch}>
