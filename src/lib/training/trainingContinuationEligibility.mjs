@@ -302,14 +302,29 @@ export function validatePersistedContinuationDecisionForDifficulty(
   };
 }
 
-/** Construct the one exact child row/node that may follow the signed parent. */
+export const TRAINING_CONTINUATION_PARENT_SEALS = Object.freeze(['persisted', 'preflight']);
+
+/**
+ * Construct the one exact child row/node that may follow the signed parent.
+ *
+ * `parentSeal` names which parent this lineage is proving. `persisted` (the
+ * default, used by next-street and snapshot re-verification) requires the
+ * database-sealed `policyChecksum` on the parent. `preflight` is used only by
+ * the batch-preload cohort selection, which evaluates the very same canonical
+ * parent moments BEFORE it is upserted: the trigger has not computed the seal
+ * yet, so requiring it there rejected every freshly generated parent with
+ * TRAINING_CONTINUATION_LINEAGE_INVALID. Preflight never persists or serves
+ * the child; the live continuation is re-proved against the sealed snapshot.
+ */
 export function buildExactContinuationLineage({
   parentQuestion,
   gameConfig,
   state,
   nextBoard,
   continuationAction,
+  parentSeal = 'persisted',
 }) {
+  if (!TRAINING_CONTINUATION_PARENT_SEALS.includes(parentSeal)) return null;
   const scenario = parentQuestion?.scenario || {};
   const provenance = parentQuestion?.solverProvenance || {};
   const solverLineage = scenario.solverLineage || {};
@@ -340,9 +355,14 @@ export function buildExactContinuationLineage({
     && exposedRunout.every(
       (card, index) => card === state.boardCards[state.boardCards.length - exposedRunout.length + index],
     );
+  const sealedParentPolicy = parentSeal === 'preflight'
+    ? parentQuestion?.policyChecksum === undefined
+      || parentQuestion?.policyChecksum === null
+      || SHA256_RE.test(String(parentQuestion.policyChecksum))
+    : SHA256_RE.test(String(parentQuestion?.policyChecksum || ''));
   const exactRelease = Boolean(
     canonicalContinuationPolicyMatchesQuestion(parentQuestion)
-    && SHA256_RE.test(String(parentQuestion?.policyChecksum || ''))
+    && sealedParentPolicy
     && provenance.verified === true
     && provenance.source === 'PioSOLVER'
     && provenance.qualityStatus === 'validated'
@@ -633,7 +653,15 @@ export async function resolveStrictTrainingContinuation({
   queryNextStreet,
   requireProvenanceCompleteParent = false,
   difficultyMode = 'exact',
+  parentSeal = 'persisted',
 }) {
+  if (!TRAINING_CONTINUATION_PARENT_SEALS.includes(parentSeal)) {
+    return continuationFailure(
+      422,
+      'TRAINING_CONTINUATION_LINEAGE_INVALID',
+      'The continuation parent seal mode is not recognised.',
+    );
+  }
   if (
     requireProvenanceCompleteParent
     && !['SOLVER_EXACT', 'SOLVER_DERIVED_RESPONSE'].includes(
@@ -680,6 +708,7 @@ export async function resolveStrictTrainingContinuation({
       state,
       nextBoard: boardCards,
       continuationAction: continuationDecision.action,
+      parentSeal,
     });
   }).filter(Boolean);
   if (continuationLineages.length !== candidateCards.length) {
@@ -767,6 +796,10 @@ export async function selectTrainingAttestationContinuationCohort({
   gameConfig,
   precommit,
   queryNextStreet,
+  // Optional server-only rejection counter (see
+  // trainingAttestationCohortDiagnostics.mjs). It receives failure codes and
+  // tallies only; never a question, answer, or the qualifying parent.
+  collector = null,
 }) {
   if (
     !isTrainingAttestationContinuationPrecommit(precommit)
@@ -778,12 +811,16 @@ export async function selectTrainingAttestationContinuationCohort({
   let qualifyingPair = null;
   for (const pair of questionPairs) {
     const canonicalQuestion = pair?.row?.question_data;
+    collector?.candidate?.();
     const publicAnswer = selectPublicAttestationContinuationAnswerForStrictParent(
       canonicalQuestion,
       precommit,
       difficultyMode,
     );
-    if (!publicAnswer) continue;
+    if (!publicAnswer) {
+      collector?.publicAnswerMissing?.();
+      continue;
+    }
     let resolution;
     try {
       resolution = await resolveStrictTrainingContinuation({
@@ -793,14 +830,20 @@ export async function selectTrainingAttestationContinuationCohort({
         queryNextStreet,
         requireProvenanceCompleteParent: true,
         difficultyMode,
+        // The candidate rows have not been upserted yet, so the database seal
+        // does not exist. See buildExactContinuationLineage.
+        parentSeal: 'preflight',
       });
     } catch {
       resolution = null;
+      collector?.resolverThrew?.();
     }
     if (resolution?.ok) {
+      collector?.qualified?.();
       qualifyingPair = pair;
       break;
     }
+    if (resolution && resolution.ok === false) collector?.resolutionFailed?.(resolution.code);
   }
   if (!qualifyingPair) return null;
 

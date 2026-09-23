@@ -37,6 +37,7 @@ import { calculateActionEVs } from './EVCalculator';
 import { heroActsFirstPostflop as actsFirstPostflop, heroIsInPosition } from './positionOrder';
 import { generateCuratedPokerConceptBatch } from '../lib/training/curatedPokerConcepts';
 import { selectTrustedSolverMatrix } from '../lib/training/solverMatrixTrust';
+import { selectUniqueTrainingContinuationCandidate } from '../lib/training/continuationSizingContract.mjs';
 import { SolverPolicyService } from '../services/SolverPolicyService';
 
 // ═══ SCENARIO/PSYCHOLOGY ENGINE (psy-001..psy-020, cash-020) ═══
@@ -103,8 +104,9 @@ const POT_BY_STREET = {
 };
 
 /**
- * Select the one solver source token that represents the certified 75%-pot
- * continuation branch. Pio's postflop bNNN amounts are cumulative contribution
+ * Select the one solver source token that represents the certified
+ * three-quarter-pot continuation branch (target and tolerance live in
+ * continuationSizingContract.mjs). Pio's postflop bNNN amounts are cumulative contribution
  * targets, not increments at the current node. A Turn token such as b1442 can
  * therefore mean adding 10.30 BB after the actor already invested 4.12 BB.
  *
@@ -145,15 +147,21 @@ export function selectExactContinuationBetSourceAction(strategyMatrix, validActi
             if (!Number.isFinite(incrementChips) || incrementChips <= 0) return null;
             return {
                 action: String(action),
-                distance: Math.abs((incrementChips / solverPotChips) - 0.75),
+                potFraction: incrementChips / solverPotChips,
             };
         })
-        .filter((candidate) => candidate && candidate.distance <= 0.03)
-        .sort((left, right) => left.distance - right.distance);
+        .filter(Boolean);
     // A lineage token must identify one exact branch. Two nearby tree sizes
-    // straddling 75% are not interchangeable, and choosing whichever happened
-    // to be exported first makes the next street depend on JSON key order.
-    return candidates.length === 1 ? candidates[0].action : null;
+    // straddling the target are not interchangeable, and choosing whichever
+    // happened to be exported first makes the next street depend on JSON key
+    // order. The band itself is shared with the public selection rule so the
+    // harness can never accept a size the canonical side rejects, or vice
+    // versa (the real b412 flop bet is 74.909% of the 550-chip pot).
+    const selected = selectUniqueTrainingContinuationCandidate(
+        candidates,
+        (candidate) => candidate.potFraction,
+    );
+    return selected ? selected.action : null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

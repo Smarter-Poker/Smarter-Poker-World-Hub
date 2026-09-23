@@ -11,16 +11,16 @@
     "dynamicGameRouteExpansions": 214,
     "trainingApiRouteTemplates": 54,
     "apiReferencePrefixes": 3,
-    "dependencyFiles": 341,
+    "dependencyFiles": 343,
     "componentFiles": 51,
     "hookFiles": 14,
     "ctas": 347,
     "dialogs": 12,
     "persistenceFiles": 77,
     "realtimeFiles": 6,
-    "tests": 146,
+    "tests": 147,
     "markerCandidates": 329,
-    "possibleUnwiredFunctions": 375,
+    "possibleUnwiredFunctions": 378,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
@@ -18671,6 +18671,7 @@
         "src/lib/training/sessionAttemptContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
         "src/lib/training/trainingAttestationContinuationContract.mjs",
         "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
@@ -18713,7 +18714,7 @@
       "functions": [
         {
           "name": "getSupabase",
-          "line": 63,
+          "line": 67,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -18721,7 +18722,7 @@
         },
         {
           "name": "normalizeCampaignQuestionWithoutFabrication",
-          "line": 79,
+          "line": 83,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -18729,7 +18730,7 @@
         },
         {
           "name": "handler",
-          "line": 103,
+          "line": 107,
           "references": 2,
           "exported": true,
           "defaultExport": true,
@@ -18737,7 +18738,7 @@
         },
         {
           "name": "refuseUnavailableAttestationContinuationCohort",
-          "line": 217,
+          "line": 227,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -18745,7 +18746,7 @@
         },
         {
           "name": "isAggressiveAnswer",
-          "line": 500,
+          "line": 544,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -18756,7 +18757,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 326,
+          "line": 353,
           "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -18765,7 +18766,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 449,
+          "line": 489,
           "excerpt": "// No AI fallback — engines handle all question generation",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18773,7 +18774,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 480,
+          "line": 520,
           "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -18781,7 +18782,7 @@
         },
         {
           "kind": "SIMULATED",
-          "line": 582,
+          "line": 633,
           "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -18789,7 +18790,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 594,
+          "line": 645,
           "excerpt": "* \"fallback\" called this same route (see the note in",
           "disposition": "runtime-resilience-fallback",
           "review": "documented-follow-up",
@@ -43902,6 +43903,7 @@
         "src/engines/PostflopScenarioGenerator.js",
         "src/engines/positionOrder.js",
         "src/lib/supabase.js",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/solverMatrixTrust.js",
         "src/services/SolverPolicyService.js"
@@ -43942,7 +43944,7 @@
       "functions": [
         {
           "name": "selectExactContinuationBetSourceAction",
-          "line": 115,
+          "line": 117,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -43950,7 +43952,7 @@
         },
         {
           "name": "parseHandToCards",
-          "line": 170,
+          "line": 178,
           "references": 7,
           "exported": false,
           "defaultExport": false,
@@ -43958,7 +43960,7 @@
         },
         {
           "name": "parseBoardFromHash",
-          "line": 214,
+          "line": 222,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43966,7 +43968,7 @@
         },
         {
           "name": "getMaxFrequency",
-          "line": 247,
+          "line": 255,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -43974,7 +43976,7 @@
         },
         {
           "name": "extractPositionFromHash",
-          "line": 288,
+          "line": 296,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -43982,7 +43984,7 @@
         },
         {
           "name": "extractScenarioContext",
-          "line": 311,
+          "line": 319,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -43990,7 +43992,7 @@
         },
         {
           "name": "hashSeed",
-          "line": 409,
+          "line": 417,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -43998,7 +44000,7 @@
         },
         {
           "name": "matchesHandClass",
-          "line": 421,
+          "line": 429,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -44006,7 +44008,7 @@
         },
         {
           "name": "cardAvailable",
-          "line": 180,
+          "line": 188,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -44014,7 +44016,7 @@
         },
         {
           "name": "commitTo",
-          "line": 825,
+          "line": 833,
           "references": 6,
           "exported": false,
           "defaultExport": false,
@@ -44022,7 +44024,7 @@
         },
         {
           "name": "idx",
-          "line": 918,
+          "line": 926,
           "references": 26,
           "exported": false,
           "defaultExport": false,
@@ -44030,7 +44032,7 @@
         },
         {
           "name": "curatedFallback",
-          "line": 1279,
+          "line": 1287,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -44038,7 +44040,7 @@
         },
         {
           "name": "shouldStretch",
-          "line": 1338,
+          "line": 1346,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -44046,7 +44048,7 @@
         },
         {
           "name": "getActionSortKey",
-          "line": 2795,
+          "line": 2803,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44054,7 +44056,7 @@
         },
         {
           "name": "describeKey",
-          "line": 6860,
+          "line": 6868,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44062,7 +44064,7 @@
         },
         {
           "name": "calcAcc",
-          "line": 13748,
+          "line": 13756,
           "references": 15,
           "exported": false,
           "defaultExport": false,
@@ -44070,7 +44072,7 @@
         },
         {
           "name": "calcDeviation",
-          "line": 15043,
+          "line": 15051,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44078,7 +44080,7 @@
         },
         {
           "name": "getProfile",
-          "line": 16145,
+          "line": 16153,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44086,7 +44088,7 @@
         },
         {
           "name": "bucketOf",
-          "line": 16860,
+          "line": 16868,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -44094,7 +44096,7 @@
         },
         {
           "name": "bad",
-          "line": 16915,
+          "line": 16923,
           "references": 11,
           "exported": false,
           "defaultExport": false,
@@ -44102,7 +44104,7 @@
         },
         {
           "name": "acc",
-          "line": 17001,
+          "line": 17009,
           "references": 10,
           "exported": false,
           "defaultExport": false,
@@ -44110,7 +44112,7 @@
         },
         {
           "name": "rankVal",
-          "line": 3780,
+          "line": 3788,
           "references": 25,
           "exported": false,
           "defaultExport": false,
@@ -44118,7 +44120,7 @@
         },
         {
           "name": "isAggressive",
-          "line": 13503,
+          "line": 13511,
           "references": 5,
           "exported": false,
           "defaultExport": false,
@@ -44129,7 +44131,7 @@
       "markers": [
         {
           "kind": "FALLBACK",
-          "line": 273,
+          "line": 281,
           "excerpt": "// Flat frequencies fallback (action → freq, no per-hand data)",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44137,7 +44139,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 505,
+          "line": 513,
           "excerpt": "// preflop spots, FIRST, not as a fallback ═══",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44145,7 +44147,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 510,
+          "line": 518,
           "excerpt": "// unreachable: the only call site was the fallback below, gated on",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44153,7 +44155,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 518,
+          "line": 526,
           "excerpt": "// hu_cash has plenty of postflop rows, so the fallback could never",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44161,7 +44163,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 527,
+          "line": 535,
           "excerpt": "// old `!question && pioStreet === 'preflop'` fallback here could",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44169,7 +44171,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 533,
+          "line": 541,
           "excerpt": "// SCENARIO games (psychology) — handled by solver data pool, no AI fallback",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44177,7 +44179,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 539,
+          "line": 547,
           "excerpt": "* Used as fallback when PIO database has no preflop spots for this config.",
           "disposition": "historical-or-prohibition-comment",
           "review": "accepted",
@@ -44185,7 +44187,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 743,
+          "line": 751,
           "excerpt": "// and let the caller's fallback surface it instead.",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44194,7 +44196,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 884,
+          "line": 892,
           "excerpt": "console.warn('[DeterministicEngine] Local solver ranges fallback error:', err.message);",
           "disposition": "input-normalization-default",
           "review": "accepted",
@@ -44202,7 +44204,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 1981,
+          "line": 1989,
           "excerpt": "// service. Its chart-id fallback and scenario hash are the",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44211,7 +44213,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 2164,
+          "line": 2172,
           "excerpt": "// Fallback: infer from presence of check vs fold",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44220,7 +44222,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 4916,
+          "line": 4924,
           "excerpt": "// Fallback",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44229,7 +44231,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 6117,
+          "line": 6125,
           "excerpt": "// Fallback",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44238,7 +44240,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 10038,
+          "line": 10046,
           "excerpt": "// Fallback to frequency-based",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -44247,7 +44249,7 @@
         },
         {
           "kind": "SIMULATION",
-          "line": 11650,
+          "line": 11658,
           "excerpt": "// PHASE 229: BOARD RUNOUT SIMULATION",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44255,7 +44257,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 11654,
+          "line": 11662,
           "excerpt": "* Phase 229: Simulate possible runouts and their strategic implications.",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44263,7 +44265,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 13741,
+          "line": 13749,
           "excerpt": "// Simulate time via hand index proximity (we don't track real time)",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44271,7 +44273,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 14119,
+          "line": 14127,
           "excerpt": "// Simulate binomial variance for given accuracy rate",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44279,7 +44281,7 @@
         },
         {
           "kind": "SIMULATE",
-          "line": 14134,
+          "line": 14142,
           "excerpt": "// Simulate 5 \"runs\" of n hands",
           "disposition": "domain-simulation",
           "review": "accepted",
@@ -44287,7 +44289,7 @@
         },
         {
           "kind": "FALLBACK",
-          "line": 15536,
+          "line": 15544,
           "excerpt": "else frequencyScore = accuracyScore; // Fallback",
           "disposition": "training-data-provenance-fallback",
           "review": "documented-follow-up",
@@ -45534,8 +45536,16 @@
           "namedFunctionExpression": false
         },
         {
+          "name": "headsUpInPositionSeat",
+          "line": 195,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "exactContinuationScenarioHash",
-          "line": 188,
+          "line": 199,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -45543,7 +45553,7 @@
         },
         {
           "name": "toHandClass",
-          "line": 194,
+          "line": 205,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -45551,7 +45561,7 @@
         },
         {
           "name": "prepareSolverScenarioRow",
-          "line": 215,
+          "line": 226,
           "references": 5,
           "exported": true,
           "defaultExport": false,
@@ -45559,7 +45569,7 @@
         },
         {
           "name": "provenanceIsComplete",
-          "line": 233,
+          "line": 244,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -45567,7 +45577,7 @@
         },
         {
           "name": "rowMatchesContinuationLineage",
-          "line": 258,
+          "line": 269,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -45575,7 +45585,7 @@
         },
         {
           "name": "orderedExactContinuationCandidates",
-          "line": 290,
+          "line": 301,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -45583,7 +45593,7 @@
         },
         {
           "name": "stampSolverProvenance",
-          "line": 300,
+          "line": 311,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45591,7 +45601,7 @@
         },
         {
           "name": "canonicalRangeActionSignature",
-          "line": 368,
+          "line": 385,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45599,7 +45609,7 @@
         },
         {
           "name": "rebindRawFrequenciesToCanonicalPolicy",
-          "line": 393,
+          "line": 410,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -45607,7 +45617,7 @@
         },
         {
           "name": "synchronizeCanonicalPolicyQuestion",
-          "line": 442,
+          "line": 459,
           "references": 4,
           "exported": false,
           "defaultExport": false,
@@ -45615,7 +45625,7 @@
         },
         {
           "name": "sanitizeStrategyMatrix",
-          "line": 500,
+          "line": 517,
           "references": 4,
           "exported": true,
           "defaultExport": false,
@@ -45623,7 +45633,7 @@
         },
         {
           "name": "matrixHasHand",
-          "line": 571,
+          "line": 588,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45631,7 +45641,7 @@
         },
         {
           "name": "pruneScenarioToHand",
-          "line": 578,
+          "line": 595,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45639,7 +45649,7 @@
         },
         {
           "name": "applyDeterministicEnginePatches",
-          "line": 600,
+          "line": 617,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -45647,7 +45657,7 @@
         },
         {
           "name": "patchedGenerateBatch",
-          "line": 612,
+          "line": 629,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45655,7 +45665,7 @@
         },
         {
           "name": "canonicalPolicyForValidatedSolvedRow",
-          "line": 624,
+          "line": 641,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45663,7 +45673,7 @@
         },
         {
           "name": "generateAttestationContinuationParentCandidates",
-          "line": 649,
+          "line": 666,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45671,7 +45681,7 @@
         },
         {
           "name": "patchedFetchSolverPool",
-          "line": 708,
+          "line": 737,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45679,7 +45689,7 @@
         },
         {
           "name": "patchedBuild",
-          "line": 788,
+          "line": 817,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45687,7 +45697,7 @@
         },
         {
           "name": "patchedQueryNextStreet",
-          "line": 847,
+          "line": 882,
           "references": 1,
           "exported": false,
           "defaultExport": false,
@@ -45695,7 +45705,7 @@
         },
         {
           "name": "isAggressiveAction",
-          "line": 208,
+          "line": 219,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -45703,15 +45713,15 @@
         },
         {
           "name": "attachCanonicalPolicy",
-          "line": 802,
-          "references": 4,
+          "line": 831,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "sameRelease",
-          "line": 870,
+          "line": 905,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -50807,6 +50817,65 @@
       "markers": []
     },
     {
+      "file": "src/lib/training/continuationSizingContract.mjs",
+      "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": false,
+        "error": true,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "isTrainingContinuationTargetPotFraction",
+          "line": 23,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "selectUniqueTrainingContinuationCandidate",
+          "line": 35,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "selectUniqueTrainingContinuationCandidate"
+      ],
+      "markers": []
+    },
+    {
       "file": "src/lib/training/curatedPokerConcepts.js",
       "imports": [],
       "links": [],
@@ -55554,8 +55623,94 @@
       ]
     },
     {
-      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "file": "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
       "imports": [],
+      "links": [],
+      "apiReferences": [],
+      "apiReferencePrefixes": [],
+      "ctas": [],
+      "dialogs": {
+        "native": 0,
+        "aria": 0,
+        "modalComponents": []
+      },
+      "states": {
+        "loading": false,
+        "empty": true,
+        "error": false,
+        "retry": false,
+        "offline": false,
+        "stale": false,
+        "success": false,
+        "authExpiry": false
+      },
+      "persistenceWrites": {
+        "localStorage": 0,
+        "sessionStorage": 0,
+        "inserts": 0,
+        "updates": 0,
+        "deletes": 0,
+        "rpc": 0
+      },
+      "realtime": {
+        "channels": 0,
+        "postgresChanges": 0,
+        "webSockets": 0,
+        "eventSources": 0
+      },
+      "functions": [
+        {
+          "name": "boundedCount",
+          "line": 30,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "boundedText",
+          "line": 35,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "createTrainingAttestationCohortCollector",
+          "line": 44,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "buildTrainingAttestationCohortRecord",
+          "line": 75,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "logTrainingAttestationCohortStage",
+          "line": 102,
+          "references": 1,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        }
+      ],
+      "possibleUnwiredFunctions": [
+        "createTrainingAttestationCohortCollector",
+        "logTrainingAttestationCohortStage"
+      ],
+      "markers": []
+    },
+    {
+      "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "imports": [
+        "src/lib/training/continuationSizingContract.mjs"
+      ],
       "links": [],
       "apiReferences": [],
       "apiReferencePrefixes": [],
@@ -55592,23 +55747,23 @@
       "functions": [
         {
           "name": "publicOptionId",
-          "line": 9,
-          "references": 3,
+          "line": 22,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
-          "name": "isPublicThreeQuarterPotAggression",
-          "line": 13,
+          "name": "publicOptionPotFraction",
+          "line": 33,
           "references": 2,
-          "exported": false,
+          "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "selectPublicAttestationContinuationAnswer",
-          "line": 25,
+          "line": 56,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55616,7 +55771,7 @@
         },
         {
           "name": "buildTrainingAttestationContinuationPrecommit",
-          "line": 35,
+          "line": 78,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55624,7 +55779,7 @@
         },
         {
           "name": "validateTrainingAttestationContinuationPrecommit",
-          "line": 70,
+          "line": 113,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55632,7 +55787,7 @@
         },
         {
           "name": "isTrainingAttestationContinuationPrecommit",
-          "line": 92,
+          "line": 135,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55757,15 +55912,15 @@
         },
         {
           "name": "buildExactContinuationLineage",
-          "line": 306,
-          "references": 3,
+          "line": 319,
+          "references": 4,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "bindExactContinuationQuestion",
-          "line": 420,
+          "line": 440,
           "references": 3,
           "exported": true,
           "defaultExport": false,
@@ -55773,7 +55928,7 @@
         },
         {
           "name": "validateStrictTrainingContinuationSnapshotPair",
-          "line": 485,
+          "line": 505,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -55781,7 +55936,7 @@
         },
         {
           "name": "deterministicCardOrderValue",
-          "line": 547,
+          "line": 567,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -55789,7 +55944,7 @@
         },
         {
           "name": "orderDeterministicEducationalCards",
-          "line": 560,
+          "line": 580,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55797,15 +55952,15 @@
         },
         {
           "name": "continuationFailure",
-          "line": 592,
-          "references": 14,
+          "line": 612,
+          "references": 15,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "selectPublicAttestationContinuationAnswerForStrictParent",
-          "line": 601,
+          "line": 621,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55813,7 +55968,7 @@
         },
         {
           "name": "resolveStrictTrainingContinuation",
-          "line": 629,
+          "line": 649,
           "references": 2,
           "exported": true,
           "defaultExport": false,
@@ -55821,7 +55976,7 @@
         },
         {
           "name": "selectTrainingAttestationContinuationCohort",
-          "line": 763,
+          "line": 792,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -58189,6 +58344,10 @@
     {
       "from": "pages/api/training/batch-preload.js",
       "to": "src/lib/training/trainingAttemptDelivery.mjs"
+    },
+    {
+      "from": "pages/api/training/batch-preload.js",
+      "to": "src/lib/training/trainingAttestationCohortDiagnostics.mjs"
     },
     {
       "from": "pages/api/training/batch-preload.js",
@@ -61508,6 +61667,10 @@
     },
     {
       "from": "src/engines/DeterministicGTOEngine.js",
+      "to": "src/lib/training/continuationSizingContract.mjs"
+    },
+    {
+      "from": "src/engines/DeterministicGTOEngine.js",
       "to": "src/lib/training/curatedPokerConcepts.js"
     },
     {
@@ -61883,6 +62046,10 @@
       "to": "src/lib/training/trainingPersistence.mjs"
     },
     {
+      "from": "src/lib/training/trainingAttestationContinuationContract.mjs",
+      "to": "src/lib/training/continuationSizingContract.mjs"
+    },
+    {
       "from": "src/lib/training/trainingContinuationEligibility.mjs",
       "to": "src/engines/deterministicEnginePatches.js"
     },
@@ -62073,6 +62240,7 @@
     "__tests__/training-arena-client-answer-authority.test.mjs",
     "__tests__/training-arena-phase-5.test.mjs",
     "__tests__/training-arena-review-gateway-authority.test.mjs",
+    "__tests__/training-attestation-continuation-real-geometry.test.mjs",
     "__tests__/training-audit-session-refresh.test.mjs",
     "__tests__/training-authored-model-honesty.test.mjs",
     "__tests__/training-authored-surface-authority.test.mjs",
@@ -67860,6 +68028,7 @@
         "src/lib/training/cacheContract.mjs",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/declaredStreet.js",
@@ -67876,6 +68045,7 @@
         "src/lib/training/solverPolicyContract.js",
         "src/lib/training/solverRowIdentity.mjs",
         "src/lib/training/trainingAttemptDelivery.mjs",
+        "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
         "src/lib/training/trainingAttestationContinuationContract.mjs",
         "src/lib/training/trainingContinuationEligibility.mjs",
         "src/lib/training/trainingPersistence.mjs",
@@ -67991,6 +68161,7 @@
       "tests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
         "__tests__/leak-engine-wiring.test.mjs",
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-client-endpoint-wiring.test.mjs",
         "__tests__/training-level-launch-authority.test.mjs",
@@ -68160,6 +68331,7 @@
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/customTrainerConfigContract.mjs",
@@ -68436,6 +68608,7 @@
         "src/lib/training/cacheContract.mjs",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/declaredStreet.js",
@@ -68952,6 +69125,7 @@
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
@@ -69779,6 +69953,7 @@
         "src/lib/supabaseServerClient.js",
         "src/lib/training/cacheTruthContract.mjs",
         "src/lib/training/cacheTruthPersistence.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/solverDecisionEvidence.js",
@@ -82075,6 +82250,7 @@
         "src/engines/positionOrder.js",
         "src/lib/supabase.js",
         "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/curatedPokerConcepts.js",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/solverMatrixTrust.js",
@@ -82101,6 +82277,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-arena-review-gateway-authority.test.mjs",
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-authored-model-honesty.test.mjs",
         "__tests__/training-multistreet-hand-manager.test.mjs",
         "__tests__/training-phase-4-question-truth.test.mjs",
@@ -82268,6 +82445,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-solved-spots-warehouse-audit.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -83549,6 +83727,7 @@
       "realtime": [],
       "tests": [
         "__tests__/horse-phase3-training-cache-truth.test.mjs",
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-next-street-authority.test.mjs"
       ]
     },
@@ -83613,6 +83792,18 @@
       ]
     },
     {
+      "file": "src/lib/training/continuationSizingContract.mjs",
+      "reachableFiles": [
+        "src/lib/training/continuationSizingContract.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/training/curatedPokerConcepts.js",
       "reachableFiles": [
         "src/lib/training/curatedPokerConcepts.js"
@@ -83636,6 +83827,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-custom-solver-spot-authority.test.mjs",
         "__tests__/training-spot-study-authority.test.mjs"
       ]
@@ -83691,6 +83883,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-answer-grading-contract.test.mjs",
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
         "__tests__/training-next-street-authority.test.mjs"
@@ -83728,6 +83921,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
@@ -83979,6 +84173,7 @@
       "realtime": [],
       "tests": [
         "__tests__/training-answer-grading-contract.test.mjs",
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-custom-config-contract.test.mjs",
         "__tests__/training-daily-challenge-authority.test.mjs",
@@ -84119,6 +84314,7 @@
       "realtime": [],
       "tests": [
         "__tests__/leak-engine-wiring.test.mjs",
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-blind-grading-boundary.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-production-delivery-attestation.test.mjs",
@@ -84251,8 +84447,23 @@
       ]
     },
     {
+      "file": "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
+      "reachableFiles": [
+        "src/lib/training/trainingAttestationCohortDiagnostics.mjs"
+      ],
+      "apiReferences": [],
+      "persistence": [],
+      "realtime": [],
+      "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
+        "__tests__/training-batch-canonical-replacement.test.mjs",
+        "__tests__/training-runtime-wiring.test.mjs"
+      ]
+    },
+    {
       "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
       "reachableFiles": [
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/trainingAttestationContinuationContract.mjs"
       ],
       "apiReferences": [],
@@ -84271,6 +84482,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-production-delivery-attestation.test.mjs",
@@ -84284,6 +84496,7 @@
         "src/engines/deterministicEnginePatches.js",
         "src/engines/positionOrder.js",
         "src/lib/training/cacheTruthContract.mjs",
+        "src/lib/training/continuationSizingContract.mjs",
         "src/lib/training/customSolverSpotContract.mjs",
         "src/lib/training/difficultyQuestionContract.mjs",
         "src/lib/training/questionContract.mjs",
@@ -84336,6 +84549,7 @@
       ],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-batch-canonical-replacement.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-production-delivery-attestation.test.mjs",
@@ -84424,6 +84638,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-production-delivery-attestation.test.mjs",
         "__tests__/training-retired-legacy-solver-surfaces.test.mjs",
         "__tests__/training-solver-contract.test.mjs"
@@ -84731,6 +84946,7 @@
       "persistence": [],
       "realtime": [],
       "tests": [
+        "__tests__/training-attestation-continuation-real-geometry.test.mjs",
         "__tests__/training-next-street-authority.test.mjs",
         "__tests__/training-solver-contract.test.mjs",
         "__tests__/training-spot-study-authority.test.mjs"
@@ -84754,7 +84970,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 326,
+        "line": 353,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -84764,7 +84980,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 449,
+        "line": 489,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84773,7 +84989,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 480,
+        "line": 520,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -84782,7 +84998,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 582,
+        "line": 633,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -84791,7 +85007,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 594,
+        "line": 645,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -86352,7 +86568,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 273,
+        "line": 281,
         "excerpt": "// Flat frequencies fallback (action → freq, no per-hand data)",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86361,7 +86577,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 505,
+        "line": 513,
         "excerpt": "// preflop spots, FIRST, not as a fallback ═══",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86370,7 +86586,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 510,
+        "line": 518,
         "excerpt": "// unreachable: the only call site was the fallback below, gated on",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86379,7 +86595,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 518,
+        "line": 526,
         "excerpt": "// hu_cash has plenty of postflop rows, so the fallback could never",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86388,7 +86604,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 527,
+        "line": 535,
         "excerpt": "// old `!question && pioStreet === 'preflop'` fallback here could",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86397,7 +86613,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 533,
+        "line": 541,
         "excerpt": "// SCENARIO games (psychology) — handled by solver data pool, no AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86406,7 +86622,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 539,
+        "line": 547,
         "excerpt": "* Used as fallback when PIO database has no preflop spots for this config.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -86415,7 +86631,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 743,
+        "line": 751,
         "excerpt": "// and let the caller's fallback surface it instead.",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86425,7 +86641,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 884,
+        "line": 892,
         "excerpt": "console.warn('[DeterministicEngine] Local solver ranges fallback error:', err.message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -86434,7 +86650,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 1981,
+        "line": 1989,
         "excerpt": "// service. Its chart-id fallback and scenario hash are the",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86444,7 +86660,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 2164,
+        "line": 2172,
         "excerpt": "// Fallback: infer from presence of check vs fold",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86454,7 +86670,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 4916,
+        "line": 4924,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86464,7 +86680,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 6117,
+        "line": 6125,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86474,7 +86690,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 10038,
+        "line": 10046,
         "excerpt": "// Fallback to frequency-based",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -86484,7 +86700,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATION",
-        "line": 11650,
+        "line": 11658,
         "excerpt": "// PHASE 229: BOARD RUNOUT SIMULATION",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86493,7 +86709,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 11654,
+        "line": 11662,
         "excerpt": "* Phase 229: Simulate possible runouts and their strategic implications.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86502,7 +86718,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 13741,
+        "line": 13749,
         "excerpt": "// Simulate time via hand index proximity (we don't track real time)",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86511,7 +86727,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14119,
+        "line": 14127,
         "excerpt": "// Simulate binomial variance for given accuracy rate",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86520,7 +86736,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14134,
+        "line": 14142,
         "excerpt": "// Simulate 5 \"runs\" of n hands",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -86529,7 +86745,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 15536,
+        "line": 15544,
         "excerpt": "else frequencyScore = accuracyScore; // Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -91189,7 +91405,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedGenerateBatch",
-        "line": 612,
+        "line": 629,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -91202,7 +91418,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 708,
+        "line": 737,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -91215,7 +91431,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 788,
+        "line": 817,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -91228,7 +91444,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 847,
+        "line": 882,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -92068,6 +92284,22 @@
         "externalReferenceFiles": [
           "__tests__/training-club-arena-geometry.test.mjs",
           "src/components/training/games/UniversalDynamicTable.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/continuationSizingContract.mjs",
+        "name": "selectUniqueTrainingContinuationCandidate",
+        "line": 35,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/engines/DeterministicGTOEngine.js",
+          "src/lib/training/trainingAttestationContinuationContract.mjs"
         ]
       },
       {
@@ -93072,9 +93304,41 @@
         ]
       },
       {
+        "file": "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
+        "name": "createTrainingAttestationCohortCollector",
+        "line": 44,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
+        "name": "logTrainingAttestationCohortStage",
+        "line": 102,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
         "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
         "name": "selectPublicAttestationContinuationAnswer",
-        "line": 25,
+        "line": 56,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93092,7 +93356,7 @@
       {
         "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
         "name": "validateTrainingAttestationContinuationPrecommit",
-        "line": 70,
+        "line": 113,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93108,7 +93372,7 @@
       {
         "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
         "name": "isTrainingAttestationContinuationPrecommit",
-        "line": 92,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93124,7 +93388,7 @@
       {
         "file": "src/lib/training/trainingContinuationEligibility.mjs",
         "name": "validateStrictTrainingContinuationSnapshotPair",
-        "line": 485,
+        "line": 505,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93141,7 +93405,7 @@
       {
         "file": "src/lib/training/trainingContinuationEligibility.mjs",
         "name": "selectTrainingAttestationContinuationCohort",
-        "line": 763,
+        "line": 792,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -93681,7 +93945,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 326,
+        "line": 353,
         "excerpt": "// SOLVER ENGINE FALLBACK: If cache is empty or insufficient,",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -93691,7 +93955,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 449,
+        "line": 489,
         "excerpt": "// No AI fallback — engines handle all question generation",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -93700,7 +93964,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 480,
+        "line": 520,
         "excerpt": "// ●●● Engine-only — no AI fallback. Return 404 if no solver data exists. ●●●",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -93709,7 +93973,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "SIMULATED",
-        "line": 582,
+        "line": 633,
         "excerpt": "// heuristic, simulated, and incomplete rows were already rejected",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -93718,7 +93982,7 @@
       {
         "file": "pages/api/training/batch-preload.js",
         "kind": "FALLBACK",
-        "line": 594,
+        "line": 645,
         "excerpt": "* \"fallback\" called this same route (see the note in",
         "disposition": "runtime-resilience-fallback",
         "review": "documented-follow-up",
@@ -95279,7 +95543,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 273,
+        "line": 281,
         "excerpt": "// Flat frequencies fallback (action → freq, no per-hand data)",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95288,7 +95552,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 505,
+        "line": 513,
         "excerpt": "// preflop spots, FIRST, not as a fallback ═══",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95297,7 +95561,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 510,
+        "line": 518,
         "excerpt": "// unreachable: the only call site was the fallback below, gated on",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95306,7 +95570,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 518,
+        "line": 526,
         "excerpt": "// hu_cash has plenty of postflop rows, so the fallback could never",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95315,7 +95579,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 527,
+        "line": 535,
         "excerpt": "// old `!question && pioStreet === 'preflop'` fallback here could",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95324,7 +95588,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 533,
+        "line": 541,
         "excerpt": "// SCENARIO games (psychology) — handled by solver data pool, no AI fallback",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95333,7 +95597,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 539,
+        "line": 547,
         "excerpt": "* Used as fallback when PIO database has no preflop spots for this config.",
         "disposition": "historical-or-prohibition-comment",
         "review": "accepted",
@@ -95342,7 +95606,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 743,
+        "line": 751,
         "excerpt": "// and let the caller's fallback surface it instead.",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95352,7 +95616,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 884,
+        "line": 892,
         "excerpt": "console.warn('[DeterministicEngine] Local solver ranges fallback error:', err.message);",
         "disposition": "input-normalization-default",
         "review": "accepted",
@@ -95361,7 +95625,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 1981,
+        "line": 1989,
         "excerpt": "// service. Its chart-id fallback and scenario hash are the",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95371,7 +95635,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 2164,
+        "line": 2172,
         "excerpt": "// Fallback: infer from presence of check vs fold",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95381,7 +95645,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 4916,
+        "line": 4924,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95391,7 +95655,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 6117,
+        "line": 6125,
         "excerpt": "// Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95401,7 +95665,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 10038,
+        "line": 10046,
         "excerpt": "// Fallback to frequency-based",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -95411,7 +95675,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATION",
-        "line": 11650,
+        "line": 11658,
         "excerpt": "// PHASE 229: BOARD RUNOUT SIMULATION",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95420,7 +95684,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 11654,
+        "line": 11662,
         "excerpt": "* Phase 229: Simulate possible runouts and their strategic implications.",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95429,7 +95693,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 13741,
+        "line": 13749,
         "excerpt": "// Simulate time via hand index proximity (we don't track real time)",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95438,7 +95702,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14119,
+        "line": 14127,
         "excerpt": "// Simulate binomial variance for given accuracy rate",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95447,7 +95711,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "SIMULATE",
-        "line": 14134,
+        "line": 14142,
         "excerpt": "// Simulate 5 \"runs\" of n hands",
         "disposition": "domain-simulation",
         "review": "accepted",
@@ -95456,7 +95720,7 @@
       {
         "file": "src/engines/DeterministicGTOEngine.js",
         "kind": "FALLBACK",
-        "line": 15536,
+        "line": 15544,
         "excerpt": "else frequencyScore = accuracyScore; // Fallback",
         "disposition": "training-data-provenance-fallback",
         "review": "documented-follow-up",
@@ -100116,7 +100380,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedGenerateBatch",
-        "line": 612,
+        "line": 629,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -100129,7 +100393,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedFetchSolverPool",
-        "line": 708,
+        "line": 737,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -100142,7 +100406,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedBuild",
-        "line": 788,
+        "line": 817,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -100155,7 +100419,7 @@
       {
         "file": "src/engines/deterministicEnginePatches.js",
         "name": "patchedQueryNextStreet",
-        "line": 847,
+        "line": 882,
         "references": 1,
         "exported": false,
         "defaultExport": false,
@@ -100995,6 +101259,22 @@
         "externalReferenceFiles": [
           "__tests__/training-club-arena-geometry.test.mjs",
           "src/components/training/games/UniversalDynamicTable.jsx"
+        ]
+      },
+      {
+        "file": "src/lib/training/continuationSizingContract.mjs",
+        "name": "selectUniqueTrainingContinuationCandidate",
+        "line": 35,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "src/engines/DeterministicGTOEngine.js",
+          "src/lib/training/trainingAttestationContinuationContract.mjs"
         ]
       },
       {
@@ -101999,9 +102279,41 @@
         ]
       },
       {
+        "file": "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
+        "name": "createTrainingAttestationCohortCollector",
+        "line": 44,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
+        "file": "src/lib/training/trainingAttestationCohortDiagnostics.mjs",
+        "name": "logTrainingAttestationCohortStage",
+        "line": 102,
+        "references": 1,
+        "exported": true,
+        "defaultExport": false,
+        "namedFunctionExpression": false,
+        "disposition": "imported-entrypoint",
+        "review": "accepted",
+        "rationale": "Named export is imported by another repository source file.",
+        "externalReferenceFiles": [
+          "__tests__/training-batch-canonical-replacement.test.mjs",
+          "pages/api/training/batch-preload.js"
+        ]
+      },
+      {
         "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
         "name": "selectPublicAttestationContinuationAnswer",
-        "line": 25,
+        "line": 56,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102019,7 +102331,7 @@
       {
         "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
         "name": "validateTrainingAttestationContinuationPrecommit",
-        "line": 70,
+        "line": 113,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102035,7 +102347,7 @@
       {
         "file": "src/lib/training/trainingAttestationContinuationContract.mjs",
         "name": "isTrainingAttestationContinuationPrecommit",
-        "line": 92,
+        "line": 135,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102051,7 +102363,7 @@
       {
         "file": "src/lib/training/trainingContinuationEligibility.mjs",
         "name": "validateStrictTrainingContinuationSnapshotPair",
-        "line": 485,
+        "line": 505,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -102068,7 +102380,7 @@
       {
         "file": "src/lib/training/trainingContinuationEligibility.mjs",
         "name": "selectTrainingAttestationContinuationCohort",
-        "line": 763,
+        "line": 792,
         "references": 1,
         "exported": true,
         "defaultExport": false,
