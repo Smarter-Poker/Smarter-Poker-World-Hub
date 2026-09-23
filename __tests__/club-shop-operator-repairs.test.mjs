@@ -267,8 +267,13 @@ test('the refund control names the member raw, so two members cannot share one l
   assert.match(html, /aria-label="Refund Ten Second Top Up For Allin Ace"/);
 });
 
-test('the refund confirmation names the member raw as well', () => {
-  assert.match(ledgerSource, /To \$\{row\.buyerName \|\| 'Member'\}\./);
+test('the refund confirmation names the member as they are recorded', () => {
+  // Taking marketplaceCopy off this string was only half of it: a toast is one
+  // string and StoreToast runs every one of them through marketplaceToastCopy,
+  // so the name was still Title Cased in the toast after it was raw everywhere
+  // else. It is now wrapped in the copy layer's preserved-name marker, which
+  // carries it through byte for byte (phase 26).
+  assert.match(ledgerSource, /To \$\{marketplacePreservedName\(row\.buyerName\) \|\| 'Member'\}\./);
   assert.doesNotMatch(ledgerSource, /marketplaceCopy\(row\.buyerName/);
 });
 

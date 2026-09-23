@@ -42,7 +42,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import shellStyles from '../diamond-store/DiamondStoreShell.module.css';
 import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
 import { getVerifiedCheckoutAuthorization } from '../../lib/store/checkoutAuthorization';
-import { marketplaceCopy } from '../../lib/store/marketplaceCopy';
+import { marketplaceCopy, marketplacePreservedName } from '../../lib/store/marketplaceCopy';
 import { getAuthUser } from '../../lib/authUtils';
 import { showStoreToast } from './StoreToast';
 
@@ -569,7 +569,10 @@ export default function ClubShopPurchaseLedger({
           'success',
           data.alreadyRefunded
             ? 'That Purchase Was Already Refunded.'
-            : `Refunded ${fmt(data.amount)} ${unitOf(data.currency || row.currency)} To ${row.buyerName || 'Member'}.`
+            : // The name is carried through the toast formatter byte for byte: it is
+              // what somebody typed, not prose, and this toast names the member a
+              // refund was just issued to.
+              `Refunded ${fmt(data.amount)} ${unitOf(data.currency || row.currency)} To ${marketplacePreservedName(row.buyerName) || 'Member'}.`
         );
         await load();
         onLedgerChanged?.();

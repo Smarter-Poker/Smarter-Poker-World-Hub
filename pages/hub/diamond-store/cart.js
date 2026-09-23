@@ -900,7 +900,12 @@ export default function ShoppingCart() {
         throw new Error('Your Account Or Cart Changed. The Checkout Link Was Not Opened.');
       }
       if (!attemptIsCurrent()) return;
-      leaveForCheckout(checkoutSession.url);
+      // A refusal returns null and navigates nothing. Swallowed, the shopper saw
+      // a redirect toast, a re-enabled button and no redirect, with the durable
+      // request still claimed. It is an error, so it takes the error path.
+      if (!leaveForCheckout(checkoutSession.url)) {
+        throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+      }
       return;
     } catch (err) {
       if (err?.name === 'AbortError' || !attemptIsCurrent()) return;

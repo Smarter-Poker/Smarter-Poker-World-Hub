@@ -49352,32 +49352,40 @@
       },
       "functions": [
         {
-          "name": "protectMachineTokens",
-          "line": 91,
-          "references": 2,
-          "exported": false,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "marketplaceCopy",
-          "line": 108,
-          "references": 4,
-          "exported": true,
-          "defaultExport": false,
-          "namedFunctionExpression": false
-        },
-        {
-          "name": "marketplaceToastCopy",
-          "line": 126,
+          "name": "marketplacePreservedName",
+          "line": 109,
           "references": 1,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "protectMachineTokens",
+          "line": 117,
+          "references": 3,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceCopy",
+          "line": 134,
+          "references": 6,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "marketplaceToastCopy",
+          "line": 152,
+          "references": 2,
+          "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "marketplaceFulfillmentStatus",
-          "line": 140,
+          "line": 166,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49385,7 +49393,7 @@
         },
         {
           "name": "marketplaceCarrierName",
-          "line": 151,
+          "line": 177,
           "references": 1,
           "exported": true,
           "defaultExport": false,
@@ -49393,15 +49401,23 @@
         },
         {
           "name": "marketplaceStructuredData",
-          "line": 157,
+          "line": 183,
           "references": 3,
           "exported": true,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
+          "name": "capture",
+          "line": 119,
+          "references": 3,
+          "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         }
       ],
       "possibleUnwiredFunctions": [
-        "marketplaceToastCopy",
+        "marketplacePreservedName",
         "marketplaceFulfillmentStatus",
         "marketplaceCarrierName"
       ],
@@ -92061,8 +92077,8 @@
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
-        "name": "marketplaceToastCopy",
-        "line": 126,
+        "name": "marketplacePreservedName",
+        "line": 109,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92071,13 +92087,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/store/StoreToast.jsx"
+          "__tests__/diamond-store-phase-26.test.mjs",
+          "src/components/store/ClubShopPurchaseLedger.jsx"
         ]
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceFulfillmentStatus",
-        "line": 140,
+        "line": 166,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -92093,7 +92110,7 @@
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceCarrierName",
-        "line": 151,
+        "line": 177,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101072,8 +101089,8 @@
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
-        "name": "marketplaceToastCopy",
-        "line": 126,
+        "name": "marketplacePreservedName",
+        "line": 109,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101082,13 +101099,14 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/components/store/StoreToast.jsx"
+          "__tests__/diamond-store-phase-26.test.mjs",
+          "src/components/store/ClubShopPurchaseLedger.jsx"
         ]
       },
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceFulfillmentStatus",
-        "line": 140,
+        "line": 166,
         "references": 1,
         "exported": true,
         "defaultExport": false,
@@ -101104,7 +101122,7 @@
       {
         "file": "src/lib/store/marketplaceCopy.js",
         "name": "marketplaceCarrierName",
-        "line": 151,
+        "line": 177,
         "references": 1,
         "exported": true,
         "defaultExport": false,

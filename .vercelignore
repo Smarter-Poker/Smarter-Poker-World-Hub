@@ -130,6 +130,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-23.test.mjs
 !/__tests__/diamond-store-phase-24.test.mjs
 !/__tests__/diamond-store-phase-25.test.mjs
+!/__tests__/diamond-store-phase-26.test.mjs
 !/__tests__/marketplace-phase-8-lifetime-entitlements.test.mjs
 !/__tests__/marketplace-phase-6-request-resilience.test.mjs
 !/__tests__/marketplace-phase-6-fulfillment-verifier.test.mjs

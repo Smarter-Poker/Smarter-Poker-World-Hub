@@ -1741,7 +1741,12 @@ export default function MemoryGamesPage() {
       }
       // Retain the durable identity through navigation. If the browser
       // loses Stripe's return, the same intent can recover this session.
-      leaveForCheckout(checkoutSession.url);
+      // A refusal returns null and navigates nothing. Swallowed, the shopper saw
+      // a redirect toast, a re-enabled button and no redirect, with the durable
+      // request still claimed. It is an error, so it takes the error path.
+      if (!leaveForCheckout(checkoutSession.url)) {
+        throw new Error('The Checkout Page Could Not Be Opened. Please Try Again.');
+      }
     } catch (error) {
       if (error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && commerceIntent && checkoutRequestId) {
