@@ -301,3 +301,200 @@ shasum -a 256 supabase/migrations/20260913170000_*.sql supabase/migrations/20260
 git log -1 4dc33a9b c1c73e11 13490915 1feebf43 cdb9461a ; git ls-remote --heads origin
 curl https://smarter.poker/api/health ; curl -X POST https://smarter.poker/api/training/solver-worker
 ```
+
+## 2026-09-23 Closing Entry
+
+Written from a fresh worktree at protected `origin/main` `7e3cd971` after the
+worktree that produced the entry above was removed. The same provenance
+tags apply: **writer-verified** (re-run here with `gh`, `git`, `curl`, or by
+reading the evidence files under `/Volumes/SmarterArchives/agent-evidence`)
+or **coordinator evidence**. Phase 6 remains open; Phase 7 has not started.
+
+### Source and merge layer (writer-verified with `gh pr view`)
+
+| PR | Title | Merged (UTC) | Squash SHA |
+| --- | --- | --- | --- |
+| #1966 | fix(training): let a real canary parent reach the attestation continuation cohort | 2026-09-23T04:43:37Z | `16bafcb2c0af11558104626e95b86285dec018ab` |
+| #1968 | docs(training): record Phase 6 source/database repair, cohort truth and remaining gates | 2026-09-23T04:44:55Z | `e52f7bf5a6662c57252e235a8afa09aef88fd757` |
+| #1967 | fix(training): persist the browser-rotated Phase 6 audit session back to custody | 2026-09-23T04:49:34Z | `21882008b111546aad663cb30c21f1a810bcfe38` |
+| #1969 | test(training): inject custody persist failures without relying on directory modes | 2026-09-23T05:12:05Z | `cc2f82c422ed520390eeec347a56f76b516dac80` |
+| #1972 | fix(training): a declared-preflop game takes the honest authored fallback instead of a refused range batch | 2026-09-23T13:38:41Z | `c3485b7a88ddaa5bf1c000ecf38ff46e5179884b` |
+
+This supersedes the "still open" and "not yet pushed" statements in the
+entry above for #1966 and for commit `cdb9461a` (published as #1967).
+
+### Deployment layer
+
+- #1967's Vercel production build **failed** (`dpl_GRd2kSNMxpHbhdttcVZ1jAQSJjCR`;
+  the `Vercel` commit status on `21882008` is `failure`, writer-verified via
+  the GitHub commit status API). Coordinator evidence for the cause: two
+  tests in `__tests__/training-audit-session-browser-custody.test.mjs`
+  simulated a read-only directory with `chmod`, and Vercel builds as root,
+  for whom the mode is not enforced. Production stayed on `e52f7bf5`; there
+  was no live impact.
+- #1969 replaced the mode-based simulation with injected persist failures
+  (coordinator evidence: 16/16 as uid 501 and as uid 0). Coordinator
+  evidence: `/api/health` then reported `cc2f82c4` on
+  `dpl_FXviP4VSWFvemGL1hhJQDDHFEZic`.
+- Writer-verified at 2026-09-23T13:51:24Z: `/api/health` reports
+  `c3485b7a88ddaa5bf1c000ecf38ff46e5179884b` on
+  `dpl_31QqZW1juxyzyDUirnHzjZPr82HM`, `status: ok`.
+
+### Audit-session custody (coordinator evidence)
+
+Re-seeded 2026-09-23T04:52Z with
+`scripts/training-phase6-audit-session-custody.mjs --seed-from-storage-state`
+from the repository's e2e auth storage state (`e2e/00-auth.setup.ts`, run
+against `https://smarter.poker` with the project's `TEST_USER` account,
+which is the designated audit UUID `2d1cd6c3-...`). Both custody files are
+mode `0600`; `sessionValidUntil` 2026-12-22T04:43:02Z; access token valid to
+2026-09-30. The out-of-Git `refresh-session.mjs` then exited 0 with
+`refreshed: false` and `liveTrainingApiStatus: 200`. No token value was
+displayed or recorded anywhere, including here.
+
+### Live UI layer - bounded production smoke (writer-verified from the evidence files)
+
+Evidence directory
+`/Volumes/SmarterArchives/agent-evidence/cowork-training-phase6-20260922/smoke-9373149ecb83/`
+(51 files: per-case question/feedback screenshots, login screenshots, and
+three `p6-smoke-results-*.json` runs). Playwright/Chromium, mobile 390x844
+and desktop 1440x1000, one graded answer per case, against
+`9373149ecb83b6f7130ca920535e3592a17dfce3` on
+`dpl_ABM49N3Xt2hCjaEb59teyW4BcFq2` (recorded in the file's `healthBefore`).
+
+The final run (`p6-smoke-results-1790168654577.json`, 13:01:47Z to
+13:04:14Z) records `summary: total 24, pass 19, fail 5, loginPass 2`:
+
+- Passing on every assertion (19): cash-002 L1 and L8, cash-012, cash-018,
+  spins-001, mtt-001 (Push/Fold, two options as the contract allows),
+  mtt-002, adv-011 and quiz-gauntlet on both viewports; mtt-021 desktop.
+- Failing only the `no_console_errors` assertion (3): mtt-021 mobile (one
+  503), psy-001 mobile and desktop (one 422 each). Their gameplay
+  assertions passed.
+- Failing outright (2): cash-001 L1 mobile and desktop
+  (`page.waitForFunction` timeout after a 404 from batch-preload).
+- `/auth/login` mobile and desktop: pass, no hydration messages.
+
+Coordinator evidence for the 22 pages that loaded: four options (two for
+Push/Fold), verdict plus Your Answer plus Correct Answer, feedback persisted
+at least 3 s without auto-advance, "Next Question" present, record-question
+200 with server `isCorrect` equal to the on-screen verdict on all 22, zero
+`pageerror`s, zero scanline animations, 0 px horizontal overflow, exactly one
+`.approved-global-header` per page with an identical outerHTML hash across
+all 22 pages. Screenshots were size/entropy-checked, not inspected by eye;
+this smoke is therefore not the Phase 6 visual certification. Two earlier
+runs in the same directory (12:49Z and 12:57Z) failed on a harness locator
+before the assertion was corrected; they are retained, not counted.
+
+Observed failures and their status:
+
+1. **cash-001 L1: HTTP 404 on 4/4 attempts** (batch-preload "No questions
+   available"; runtime log "DeterministicEngine generated 40 solver
+   questions ... engines returned empty"). Root cause (coordinator evidence,
+   reproduced in-process with the real handler against an empty database,
+   identical on pre-#1966 files, so **not a #1966 regression**):
+   declared-preflop games (cash-001, cash-008) are served by
+   `generateFromLocalSolverRanges` (source `local_solver_ranges`), sealed
+   `LEGACY_UNVERIFIED`, and refused for campaign attempts by the #1617
+   (2026-09-08) practice-only rule `local_range_provenance_missing`;
+   `generateBatch`'s preflop branch never reached the authored-concept
+   curated fallback that every other PioSOLVER game takes. Fixed by #1972
+   (`c3485b7a`, writer-verified merged): campaign callers pass
+   `admissibleForCaller = isTrainingQuestionCampaignEligible`; practice
+   callers are unchanged; nothing was relabelled. New
+   `__tests__/training-campaign-batch-game-matrix.test.mjs` (writer-verified
+   present on `origin/main`) runs all 107 games through the real handler
+   (coordinator evidence: 4/11 to 11/11; `phase6-authority` 818/818).
+   Consequence: the 2026-08-31 Phase 5 range-spot behaviour for cash-001 and
+   cash-008 is superseded by authored preflop concept questions until the
+   local 6-max range corpus is admitted as an audited local policy (an
+   authority decision plus a `fn_training_cache_row_is_valid` migration,
+   neither done).
+2. **Intermittent 503 `TRAINING_PERSISTENCE_UNAVAILABLE`** when two browser
+   contexts preloaded the same game/level in the same second (canonicalize
+   upsert; the client recovered). Pre-existing; pinned by the matrix test;
+   not fixed (persistence-path ordering/retry).
+3. **psy-001 422 `TRAINING_ATTEMPT_QUESTION_SHORTFALL`** ("31 of 40
+   candidates could not be canonicalised: Duplicate canonical question
+   identifier") while the UI still served 20 questions from cache.
+   Pre-existing; pinned by the matrix test; not fixed (SCENARIO bank sizes
+   of 8-9 unique hands versus the 20-hand minimum).
+
+Follow-up smoke at 13:46Z on `c3485b7a` (`dpl_31QqZW1juxyzyDUirnHzjZPr82HM`),
+evidence `.../smoke-c3485b7a88dd/p6-smoke-results-1790171233435.json`
+(writer-verified: `total 3, pass 3, fail 0, loginPass 2`): cash-001 L1 mobile
+and desktop and cash-002 L1 desktop pass all 22 assertions. Coordinator
+evidence: batch-preload 200 with 20 CURATED four-option preflop questions
+carrying "Expert-authored poker concept; no solver-exact frequency or EV is
+claimed."; runtime log "generated 25 solver questions" with no "engines
+returned empty". The header outerHTML hash differed from the earlier smoke
+only by a notification-badge span (1 unread); no header source is in any
+diff recorded here.
+
+### 6I - full 107-game runtime recertification: refused, not run
+
+`scripts/training-runtime-surface-audit-supervisor.mjs` (Node 24.12.0) was
+attempted at 05:18Z against `cc2f82c4`. Coordinator evidence: it was refused
+by its own gate, "runtime audit requires at least 8.0 GiB free; found 1.6
+GiB" (statfs of the worktree on `/Volumes/SmarterWork`). After removing only
+this task's two merged worktrees (about 5.5 GiB) the volume had about 7.1
+GiB free (writer-verified `df` at the time of this entry: 5.1 GiB free after
+the new worktree branch was created), still below the gate. The receipt
+`/Volumes/SmarterArchives/agent-evidence/cowork-training-phase6-20260922/runtime-recert-cc2f82c422ed520390eeec347a56f76b516dac80.json`
+(writer-verified, 296 bytes, mode `0600`) records `status: failed`,
+`success: false`, `certificationMode: full`, `expectedBuild: cc2f82c4...`,
+supervisor `attempts: 4`, `exitCode: 1`. It is a refusal receipt and must
+not be read as a certificate.
+
+### Public attestation layer - not re-run
+
+The public delivery-authority attestation was deliberately not re-run:
+
+1. Its outcome is predetermined by the data dependency recorded above (no
+   admitted canary, zero provenance-complete artifacts).
+2. Immutable `hub-vanguard-*.vercel.app` deployment URLs now answer HTTP 302
+   to Vercel SSO (deployment protection). Writer-verified: `GET
+   https://hub-vanguard-47lpiw333-smarter-poker.vercel.app/api/health` ->
+   302 to `https://vercel.com/sso-api?...`. No
+   `TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET` is configured in the
+   custody env (coordinator evidence). Re-running requires the owner to
+   provision that bypass secret into the mode-`0600` custody env, never
+   through chat; it is recorded below as an external dependency.
+
+### 6G, 6H, solver hosts
+
+Unchanged from the entry above: 6G not started; 6H not started and must not
+open before a genuine `releaseGateReady: true`; both solver hosts stopped,
+canary closed, `solver_ready: false`; `strategy_matrix_v2` backfill
+untouched; M1 range-file count contradiction unresolved.
+
+### Remaining external dependencies for closing Phase 6 (as of 2026-09-23)
+
+1. One admitted M1 bounded-canary parent/child under the 2026-09-07
+   admission runbook, which first requires the richer tree geometry
+   described under defect (a).
+2. `TRAINING_PHASE6_VERCEL_PROTECTION_BYPASS_SECRET` provisioned by the
+   owner into the custody env so the attestation can reach the immutable
+   deployment URL.
+3. At least 8 GiB free on `/Volumes/SmarterWork`, or an owner decision to
+   run the runtime auditor from another volume, for the 107-game matrix.
+4. Then, in order: 6G machine-administrator correlation, 6H PR-B strict
+   enforcement, 6I recertification on the exact deployed build.
+
+Audit-session custody is no longer a blocker (re-seeded, see above), but it
+expires and must be refreshed or re-seeded before any run past 2026-09-30
+if the startup refresh cannot rotate it.
+
+Phases 1-5 remain complete. Phase 6 remains open. Phase 7 has not started.
+The approved global header was not changed by any work recorded here.
+
+### Commands used for writer verification (this entry)
+
+```text
+gh pr view 1966 1967 1968 1969 1972 --json state,mergedAt,mergeCommit
+gh api repos/Smarter-Poker/Smarter-Poker-World-Hub/commits/21882008.../status
+curl https://smarter.poker/api/health
+curl -o /dev/null -w '%{http_code} %{redirect_url}' https://hub-vanguard-47lpiw333-smarter-poker.vercel.app/api/health
+python3 (read-only) over the p6-smoke-results-*.json and runtime-recert-*.json evidence files
+ls __tests__/training-campaign-batch-game-matrix.test.mjs __tests__/training-audit-session-browser-custody.test.mjs
+```
