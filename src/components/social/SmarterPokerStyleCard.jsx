@@ -91,7 +91,7 @@ export const CreatePostBox = ({ user, onPost }) => (
       </button>
     </div>
 
-    <style>{`
+    <style dangerouslySetInnerHTML={{ __html: `
             .sp-create-post {
                 background: ${SP_COLORS.bgWhite};
                 border-radius: 8px;
@@ -158,7 +158,7 @@ export const CreatePostBox = ({ user, onPost }) => (
             .sp-create-btn .icon {
                 font-size: 20px;
             }
-        `}</style>
+        ` }} />
   </div>
 );
 
@@ -686,12 +686,12 @@ export const SPPostCard = ({
                 </svg>
               </div>
             </div>
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                             @keyframes livePulse {
                                 0%, 100% { opacity: 1; transform: scale(1); }
                                 50% { opacity: 0.4; transform: scale(1.3); }
                             }
-                        `}</style>
+                        ` }} />
           </div>
         )}
 
@@ -907,7 +907,7 @@ export const SPPostCard = ({
         </div>
       )}
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
                 .sp-post {
                     background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
@@ -1342,7 +1342,7 @@ export const SPPostCard = ({
                     font-size: 15px;
                     color: ${SP_COLORS.textPrimary};
                 }
-            `}</style>
+            ` }} />
     </div>
   );
 };
@@ -1374,7 +1374,7 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
         </div>
       ))}
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
                 .sp-stories {
                     display: flex;
                     gap: 8px;
@@ -1486,7 +1486,7 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     text-shadow: none;
                     text-align: center;
                 }
-            `}</style>
+            ` }} />
     </div>
   );
 };

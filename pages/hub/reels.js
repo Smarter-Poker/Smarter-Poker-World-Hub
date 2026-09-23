@@ -56,6 +56,18 @@ import VideoLibraryConsole, {
   ConsoleCopy,
   ConsoleDataRow,
 } from '../../src/components/video-library/console/VideoLibraryConsole';
+import {
+  fetchPublicReelsListing,
+  feedListingCacheHeaders,
+} from '../../src/lib/seo/publicFeedData';
+import {
+  FEED_LISTING_LIMIT,
+  FEED_LISTING_TIMEOUT_MS,
+  formatListingDate,
+  reelsItemListSchema,
+  withDeadline,
+} from '../../src/lib/seo/publicFeedListing.mjs';
+import { readPokerReelsFeed } from '../../src/lib/server/reelsFeed';
 
 const C = {
   bg: '#000000',
@@ -171,7 +183,92 @@ function ReelsConsoleDialog({ title, children, onClose, primary, ...rest }) {
   );
 }
 
-export default function ReelsPage() {
+/**
+ * The crawler listing, printed as console text on the page's own black glass:
+ * lit blue caption links, muted dates and an engraved rule between rows, with
+ * no card, radius or fill. It sits in the normal flow right after
+ * HubPageSummary, below the fixed full-screen console, in every branch. The
+ * items and their ItemList JSON-LD are the ones the shared public listing
+ * (src/components/seo/PublicFeedListing.js) carries; nothing renders when the
+ * server read returned null or nothing.
+ */
+function ReelsListing({ items }) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const schema = reelsItemListSchema(items);
+  return (
+    <section className={styles.feedListing} aria-labelledby="reels-listing">
+      {schema ? (
+        <Head>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
+          />
+        </Head>
+      ) : null}
+      <h2 id="reels-listing" className={styles.feedListingTitle}>
+        Latest Reels
+      </h2>
+      <ol className={styles.feedListingList}>
+        {items.map((reel) => (
+          <li key={reel.id} className={`${styles.comment} ${styles.feedListingItem}`}>
+            <Link href={reel.href} className={styles.link}>
+              {reel.caption}
+            </Link>
+            <time dateTime={reel.createdAt} className={`${styles.copy} ${styles.muted}`}>
+              {formatListingDate(reel.createdAt)}
+            </time>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/**
+ * Ids the canonical Reels reader admits for the public feed, or null.
+ *
+ * readPokerReelsFeed (src/lib/server/reelsFeed.js) is the same fail-closed
+ * reader behind /api/reels/feed that the browser feed uses: poker topics
+ * only, ready playback, fresh verified availability and the confirmed-failure
+ * quarantine. A failure, a timeout or an empty answer yields null, so no
+ * listing is rendered rather than an unverified one.
+ */
+async function readCanonicalCrawlerReelIds() {
+  const result = await withDeadline(
+    readPokerReelsFeed({ limit: FEED_LISTING_LIMIT, sort: 'recent', scope: 'all' }),
+    FEED_LISTING_TIMEOUT_MS,
+    null
+  );
+  if (!result || !Array.isArray(result.data)) return null;
+  const ids = result.data.map((row) => row?.id).filter((id) => typeof id === 'string' && id);
+  return ids.length ? new Set(ids) : null;
+}
+
+/** Only ever narrows: an item is kept when the canonical reader admitted its id. */
+function admitCanonicalReels(items, canonicalIds) {
+  if (!Array.isArray(items) || !(canonicalIds instanceof Set)) return null;
+  const admitted = items.filter((item) => canonicalIds.has(item?.id));
+  return admitted.length ? admitted : null;
+}
+
+/**
+ * The latest public reels, read on the server so the HTML carries them
+ * (AEO, 2026-09-22: a non-JavaScript crawler saw 105 words and no reels).
+ * Anonymous client, row limit and deadline live in publicFeedData.js, so
+ * nothing a signed-out visitor cannot read reaches the HTML. A reel is then
+ * listed only if the canonical reader admits it too, so a private, off-topic
+ * (slots), unverified or quarantined reel never reaches the server HTML. On
+ * any failure reelsListing is null and the page renders without a listing.
+ */
+export async function getServerSideProps({ res }) {
+  feedListingCacheHeaders(res);
+  const canonicalIds = readCanonicalCrawlerReelIds().catch(() => null);
+  const publicListing = await fetchPublicReelsListing();
+  const reelsListing = admitCanonicalReels(publicListing, await canonicalIds);
+  return { props: { reelsListing } };
+}
+
+export default function ReelsPage({ reelsListing = null }) {
   const [reels, setReels] = useState([]);
   const reelsCursorRef = useRef(null);
   const reelsRequestGuardRef = useRef(null);
@@ -2501,6 +2598,7 @@ export default function ReelsPage() {
             receives (AEO phase 3, 2026-09-17), so the summary keeps the page h1
             here and the transient console title above is an h2. */}
         <HubPageSummary page="reels" as="h1" />
+        <ReelsListing items={reelsListing} />
       </>
     );
   }
@@ -2541,6 +2639,7 @@ export default function ReelsPage() {
         {/* Server rendered for crawlers (AEO phase 3). The console title above is
             this state's only h1, so the summary heading stays an h2. */}
         <HubPageSummary page="reels" />
+        <ReelsListing items={reelsListing} />
       </>
     );
   }
@@ -2575,6 +2674,7 @@ export default function ReelsPage() {
         {/* Server rendered for crawlers (AEO phase 3). The console title above is
             this state's only h1, so the summary heading stays an h2. */}
         <HubPageSummary page="reels" />
+        <ReelsListing items={reelsListing} />
       </>
     );
   }
@@ -3377,6 +3477,7 @@ export default function ReelsPage() {
           almost nothing to a crawler (AEO phase 3, 2026-09-17). The viewer
           console title is the page h1, so this heading stays an h2. */}
       <HubPageSummary page="reels" />
+      <ReelsListing items={reelsListing} />
     </>
   );
 }

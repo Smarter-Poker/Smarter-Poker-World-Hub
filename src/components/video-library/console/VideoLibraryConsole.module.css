@@ -20,6 +20,7 @@
     width: 100%;
     aspect-ratio: 1000 / 348;
     background: url('/assets/video-library/console/spade-console-v1/top.png') top center / 100% auto no-repeat;
+    background-image: image-set(url('/assets/video-library/console/spade-console-v1/top.webp') type('image/webp'), url('/assets/video-library/console/spade-console-v1/top.png') type('image/png'));
 }
 
 .body {
@@ -42,6 +43,7 @@
 .withPlates .foot {
     aspect-ratio: 1000 / 277;
     background-image: url('/assets/video-library/console/spade-console-v1/bottom-plates.png');
+    background-image: image-set(url('/assets/video-library/console/spade-console-v1/bottom-plates.webp') type('image/webp'), url('/assets/video-library/console/spade-console-v1/bottom-plates.png') type('image/png'));
 }
 
 .zone {

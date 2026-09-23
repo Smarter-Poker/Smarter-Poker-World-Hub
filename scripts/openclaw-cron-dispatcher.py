@@ -981,6 +981,28 @@ SCRAPER_PY = _resolve_script('video_library_scraper.py')
 # library videos never reached social_reels. The flag belongs to
 # video_library_to_reels.py, which no scheduler referenced at all.
 # SCRIPT_JOB_SCRIPTS overrides the script per path; default stays SCRAPER_PY.
+#
+# 2026-09-21 (fleet recertification D1) took video-library-reels out of
+# SCRIPT_JOBS because the script it ran then was a direct social_reels writer
+# that never read content_settings.engine_enabled and, with
+# VIDEO_LIBRARY_BOT_PROFILE_ID unset, wrote reels as the first
+# content_authors profile: always a horse.
+#
+# 2026-09-23 owner decision (Dan): Video Library Reels publish ONLY as the
+# official Smarter.Poker system account, never a horse and never a
+# content_authors profile, gated by the dedicated video_reels_pipeline_controls
+# kill switch (video_library_reel_creation + video_library_reel_publication),
+# NOT by the horse-fleet switch content_settings.engine_enabled. So the job
+# runs here again, but only as the verified atomic publisher: it never writes
+# social_reels/social_posts itself, it calls publish_video_library_reel as the
+# author pinned in video_reels_pipeline_config, and before any YouTube probe
+# or write it exits non-zero unless that profile exists, has is_horse = false
+# and has no content_authors row, and unless both Reel controls are readable
+# (a readable switch that is off is a logged no-op). The job is deliberately
+# NOT in WORKERS_PREFERRED: the horse-authored workers route
+# /cron/video-library-reels stays off with the fleet and is never called for
+# it, and SCRIPT_WORKER_OVERLAP below refuses to start if both claim a path.
+# __tests__/video-library-reels-fails-closed.test.mjs runs both halves.
 REELS_BRIDGE_PY = _resolve_script('video_library_to_reels.py')
 
 SCRIPT_JOB_SCRIPTS = {
@@ -997,6 +1019,9 @@ SCRIPT_JOB_SCRIPTS = {
 # after a gap would drop the whole backlog onto the feed in one burst; the
 # backlog is a deliberate manual run: `video_library_to_reels.py` with no
 # --limit). Caption sync is folded into the end of every bridge run.
+# 2026-09-21 D1 removed the reels job from SCRIPT_JOBS; the 2026-09-23 owner
+# decision (see the note above SCRIPT_JOB_SCRIPTS) restores it as the
+# verified atomic publisher, never as the old direct-write bridge.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
     '/api/cron/video-library-reels':    ['--limit', '500', '--verify'],  # bounded verified atomic publisher

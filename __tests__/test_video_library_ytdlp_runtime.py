@@ -128,6 +128,7 @@ class IsolatedYtDlpRuntimeTest(unittest.TestCase):
         self.bridge.EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
         for name in (
             '_request', '_rpc', '_select_page', 'get_system_bot_id',
+            'read_publication_controls',
             '_load_existing_publications', '_load_embed_failure_rows',
             '_catalog_pages', '_record_embed_verdict', '_publish_row',
         ):

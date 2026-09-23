@@ -128,5 +128,5 @@ test('the tutorial is registered for the prefix with eight steps whose targets e
 
 test('the budget row and the law count phase 5 as converted', () => {
   assert.equal(JSON.parse(read('scripts/ci/mobile-budget.json')).routes['/hub/training'].converted, true);
-  assert.match(read('__tests__/no-slide-to-see.law.test.mjs'), /const CONVERTED = \[1, 2, 3, 4, 5\];/);
+  assert.match(read('__tests__/no-slide-to-see.law.test.mjs'), /const CONVERTED = \[1, 2, 3, 4, 5, 9\];/);
 });

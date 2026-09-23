@@ -1,7 +1,9 @@
 /**
- * GTO GLOSSARY — Reference Tool
+ * GLOSSARY STUDY TOOL
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
- * Searchable glossary of 50+ GTO/poker terms with definitions.
+ * Search, filter and save the poker glossary. The definitions come from
+ * src/content/glossary/terms.js, the one source of truth; the indexable
+ * reference for them is /glossary, so this page canonicals there.
  *
  * Route: /hub/training/glossary
  * ●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●●
@@ -15,6 +17,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import TrainerEmptyState from '../../../src/components/training/TrainerEmptyState';
+import { GLOSSARY_TERMS, GLOSSARY_CATEGORIES, glossaryTermPath } from '../../../src/content/glossary/terms';
 // TRAIN-WIRE-EMPTY-3c — adoption: shared empty-state primitive
 
 
@@ -52,301 +55,21 @@ function StarToggleIcon({ filled=false, size=14 }) {
   );
 }
 
-const TERMS = [
-  {
-    term: '3-Bet',
-    cat: 'Preflop',
-    def: 'A re-raise over an initial raise (the blinds being the first bet, the open being the second).',
-  },
-  {
-    term: '4-Bet',
-    cat: 'Preflop',
-    def: 'A re-raise over a 3-bet. Usually committed to the pot at this point.',
-  },
-  {
-    term: 'Backdoor Draw',
-    cat: 'Postflop',
-    def: 'A draw needing two more cards to complete (e.g., needing both turn and river to make a flush).',
-  },
-  {
-    term: 'Barrel',
-    cat: 'Postflop',
-    def: 'A continuation bet on a subsequent street. Double barrel = flop + turn. Triple barrel = flop + turn + river.',
-  },
-  {
-    term: 'Blocker',
-    cat: 'Theory',
-    def: "A card in your hand that reduces the number of combos of a specific hand in your opponent's range.",
-  },
-  {
-    term: 'Board Texture',
-    cat: 'Postflop',
-    def: 'The characteristics of community cards - dry (disconnected), wet (draw-heavy), monotone (single suit).',
-  },
-  {
-    term: 'C-Bet',
-    cat: 'Postflop',
-    def: 'Continuation bet - a bet by the preflop aggressor on the flop.',
-  },
-  {
-    term: 'Cold Call',
-    cat: 'Preflop',
-    def: 'Calling an open raise without having previously put money in the pot (excluding blinds).',
-  },
-  {
-    term: 'Combo',
-    cat: 'Math',
-    def: 'A specific card combination. Pocket pairs have 6 combos, suited hands 4, offsuit hands 12.',
-  },
-  {
-    term: 'Donk Bet',
-    cat: 'Postflop',
-    def: 'A bet from the OOP player into the preflop aggressor. Rarely correct in GTO play.',
-  },
-  {
-    term: 'EV (Expected Value)',
-    cat: 'Math',
-    def: 'The average profit/loss of a decision over infinite repetitions. EV = (Win% × $Won) - (Lose% × $Lost).',
-  },
-  {
-    term: 'Equity',
-    cat: 'Math',
-    def: 'Your share of the pot based on the probability of winning the hand at showdown.',
-  },
-  {
-    term: 'Exploitative',
-    cat: 'Theory',
-    def: 'A strategy that deviates from GTO to maximize EV against specific opponent tendencies.',
-  },
-  {
-    term: 'Fold Equity',
-    cat: 'Theory',
-    def: 'The value gained from the possibility that your opponent will fold to your bet or raise.',
-  },
-  {
-    term: 'Frequency',
-    cat: 'Theory',
-    def: 'How often you take a specific action (e.g., c-bet frequency of 65% means you bet 65% of the time).',
-  },
-  {
-    term: 'GTO',
-    cat: 'Theory',
-    def: 'Game Theory Optimal - a mathematically unexploitable strategy based on Nash Equilibrium.',
-  },
-  {
-    term: 'ICM',
-    cat: 'Math',
-    def: 'Independent Chip Model - converts tournament chip stacks to real-money equity based on prize structure.',
-  },
-  {
-    term: 'Implied Odds',
-    cat: 'Math',
-    def: 'Future money you expect to win on later streets if you hit your draw, beyond current pot odds.',
-  },
-  {
-    term: 'In Position (IP)',
-    cat: 'Theory',
-    def: 'Acting after your opponent postflop. Significant strategic advantage due to additional information.',
-  },
-  {
-    term: 'Isolation Raise',
-    cat: 'Preflop',
-    def: 'A raise designed to play heads-up against a weak player who limped.',
-  },
-  {
-    term: 'Linear Range',
-    cat: 'Theory',
-    def: 'A range of hands ordered by strength - top pairs through medium pairs, no pure bluffs. Also called merged.',
-  },
-  {
-    term: 'MDF',
-    cat: 'Math',
-    def: 'Minimum Defense Frequency - the minimum % of your range you must continue with to prevent villain from auto-profiting with bluffs.',
-  },
-  {
-    term: 'Mixed Strategy',
-    cat: 'Theory',
-    def: 'Taking different actions with the same hand at different frequencies (e.g., bet 60%, check 40%).',
-  },
-  {
-    term: 'Nash Equilibrium',
-    cat: 'Theory',
-    def: 'A state where no player can improve their EV by changing strategy unilaterally.',
-  },
-  {
-    term: 'Nodelocking',
-    cat: 'Theory',
-    def: "Fixing one player's strategy at a decision point to see how the optimal counter-strategy changes.",
-  },
-  {
-    term: 'Nut Advantage',
-    cat: 'Theory',
-    def: "When one player's range contains more of the strongest possible hands on a given board.",
-  },
-  {
-    term: 'OOP',
-    cat: 'Theory',
-    def: 'Out of Position - acting first postflop. Disadvantaged due to less information.',
-  },
-  {
-    term: 'Overbet',
-    cat: 'Postflop',
-    def: 'A bet larger than the pot. Used when you have a polarized range and nut advantage.',
-  },
-  {
-    term: 'Outs',
-    cat: 'Math',
-    def: 'Cards remaining in the deck that will improve your hand to likely win. Flush draw = 9 outs.',
-  },
-  {
-    term: 'Polarized Range',
-    cat: 'Theory',
-    def: 'A range divided into very strong hands (value) and weak hands (bluffs), with no medium hands.',
-  },
-  {
-    term: 'Pot Odds',
-    cat: 'Math',
-    def: 'The ratio of the current bet to the total pot. Determines the minimum equity needed to call profitably.',
-  },
-  {
-    term: 'Probe Bet',
-    cat: 'Postflop',
-    def: 'A bet by the OOP player on a new street after the IP player checked back the previous street.',
-  },
-  {
-    term: 'Range',
-    cat: 'Theory',
-    def: 'The complete set of hands a player could have in a given situation based on prior actions.',
-  },
-  {
-    term: 'Range Advantage',
-    cat: 'Theory',
-    def: "When your range is stronger overall than your opponent's on a specific board texture.",
-  },
-  {
-    term: 'Reverse Implied Odds',
-    cat: 'Math',
-    def: 'Future money you expect to LOSE when you make your hand but opponent has a better hand.',
-  },
-  {
-    term: 'RFI',
-    cat: 'Preflop',
-    def: 'Raise First In - the first voluntary open raise when action folds to you.',
-  },
-  {
-    term: 'Semi-Bluff',
-    cat: 'Postflop',
-    def: "A bet with a hand that isn't the best currently but has outs to improve (e.g., flush draw).",
-  },
-  {
-    term: 'Sizing Tell',
-    cat: 'Theory',
-    def: 'When bet sizing leaks information about hand strength. GTO uses consistent sizings to prevent this.',
-  },
-  {
-    term: 'Slow Play',
-    cat: 'Postflop',
-    def: 'Checking or calling with a strong hand to disguise its strength. Risky in multiway pots.',
-  },
-  {
-    term: 'SPR',
-    cat: 'Math',
-    def: 'Stack-to-Pot Ratio = Effective Stack / Pot. Low SPR (<3) = committed, High SPR (>10) = deep play.',
-  },
-  {
-    term: 'Squeeze',
-    cat: 'Preflop',
-    def: 'A 3-bet after an open raise AND a cold call, putting pressure on both players.',
-  },
-  {
-    term: 'Thin Value Bet',
-    cat: 'Postflop',
-    def: 'A bet with a marginally strong hand that expects to be called by slightly worse hands.',
-  },
-  {
-    term: 'Tilt',
-    cat: 'Theory',
-    def: 'Emotional state causing suboptimal play due to frustration, overconfidence, or external factors.',
-  },
-  {
-    term: 'Trap',
-    cat: 'Postflop',
-    def: 'Check-calling or slow-playing a monster hand to induce bets from opponents.',
-  },
-  {
-    term: 'Under-defense',
-    cat: 'Theory',
-    def: 'Folding too often to bets, allowing opponent to profit with any bluff.',
-  },
-  {
-    term: 'Value Bet',
-    cat: 'Postflop',
-    def: 'A bet made with the expectation that worse hands will call.',
-  },
-  {
-    term: 'Variance',
-    cat: 'Math',
-    def: 'Statistical measure of deviation from expected results. High variance = bigger swings in results.',
-  },
-  { term: 'Villain', cat: 'Theory', def: 'Your opponent in a hand (poker slang).' },
-  {
-    term: 'VPIP',
-    cat: 'Math',
-    def: 'Voluntarily Put In Pot - % of hands a player enters the pot with a call or raise.',
-  },
-  {
-    term: 'Wet Board',
-    cat: 'Postflop',
-    def: 'A board with many draw possibilities (e.g., J♠T♥9♦ - straights, T♥9♥8♥ - flush + straight).',
-  },
-];
-
-const CATS = ['All', 'Preflop', 'Postflop', 'Math', 'Theory'];
-
 /* ─────────────────────────────────────────────────────────────────────────
-   AEO PHASE 3 (2026-09-17). This page already server-renders all 49
-   definitions - 866 words of prose that an engine with no JavaScript can
-   read -
-   and it was invisible anyway: absent from the sitemap, carrying a bare
-   <title> and not one line of structured data. A glossary is the single
-   most quotable thing a site owns, because a definitional question is the
-   question an AI engine answers most often.
-
-   DefinedTermSet is the schema built for exactly this. Each term becomes a
-   DefinedTerm with a stable @id and a url pointing at its own anchor, so an
-   engine can cite one definition rather than the whole page, and the set
-   points back at the WebSite node so the glossary is part of one entity
-   graph instead of a loose document.
+   ONE PAGE PER REAL THING (AEO section 3.4, 2026-09-22). The 50 terms that
+   lived here as a local TERMS array moved to src/content/glossary/terms.js,
+   were rewritten as 40 to 80 word answer-first definitions and joined by
+   the club poker, live room and basics vocabulary. /glossary renders the
+   same module as the indexable reference, one server-rendered page per
+   term, and carries the DefinedTermSet this page used to ship. Two pages
+   showing the same definitions would compete for the same questions, so
+   this one is the study tool: it canonicals to /glossary, is not in the
+   sitemap, and links every card to its term page.
    ───────────────────────────────────────────────────────────────────────── */
-const termSlug = (term) =>
-  String(term)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+const TERMS = GLOSSARY_TERMS;
+const CATS = ['All', ...GLOSSARY_CATEGORIES];
 
-const GLOSSARY_URL = 'https://smarter.poker/hub/training/glossary';
-
-const GLOSSARY_SCHEMA = {
-  '@type': 'DefinedTermSet',
-  '@id': `${GLOSSARY_URL}#glossary`,
-  name: 'Smarter.Poker Poker Glossary',
-  url: GLOSSARY_URL,
-  inLanguage: 'en-US',
-  description:
-    'Definitions Of The Preflop, Postflop, Math And Game Theory Terms Used In Poker Strategy And In Smarter.Poker GTO Training.',
-  isPartOf: { '@id': 'https://smarter.poker/#website' },
-  publisher: { '@id': 'https://smarter.poker/#organization' },
-  hasDefinedTerm: TERMS.map((t) => ({
-    '@type': 'DefinedTerm',
-    '@id': `${GLOSSARY_URL}#term-${termSlug(t.term)}`,
-    name: t.term,
-    description: t.def,
-    url: `${GLOSSARY_URL}#term-${termSlug(t.term)}`,
-    inDefinedTermSet: { '@id': `${GLOSSARY_URL}#glossary` },
-    termCode: t.cat,
-  })),
-};
-const CAT_COLORS = { Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
+const CAT_COLORS = { 'Club Poker': 'var(--sp-accent-cyan)', 'Live Room': 'var(--sp-accent-amber)', Basics: 'var(--sp-fg-muted)', Preflop: 'var(--sp-accent-blue)', Postflop: 'var(--sp-accent-green)', Math: 'var(--sp-accent-amber)', Theory: 'var(--sp-accent-purple)' };
 
 export default function GlossaryPage() {
   const router = useRouter();
@@ -382,11 +105,11 @@ export default function GlossaryPage() {
   };
 
   const filtered = TERMS.filter((t) => {
-    if (catFilter !== 'All' && t.cat !== catFilter) return false;
+    if (catFilter !== 'All' && t.category !== catFilter) return false;
     if (
       search &&
       !t.term.toLowerCase().includes(search.toLowerCase()) &&
-      !t.def.toLowerCase().includes(search.toLowerCase())
+      !t.definition.toLowerCase().includes(search.toLowerCase())
     )
       return false;
     return true;
@@ -395,10 +118,9 @@ export default function GlossaryPage() {
   return (
     <>
       <SEOHead
-        title="Poker Glossary: 49 GTO And Strategy Terms"
-        description="A Free Poker Glossary From Smarter.Poker. 49 Preflop, Postflop, Math And Game Theory Terms Defined In Plain Language, From 3-Bet To Wet Board."
-        canonical="/hub/training/glossary"
-        jsonLd={GLOSSARY_SCHEMA}
+        title="Glossary Study Tool: Search And Save Terms"
+        description="Search, Filter And Save The Smarter.Poker Poker Glossary While You Train. Every Definition Links To Its Full Entry In The Poker Glossary."
+        canonical="/glossary"
       />
       <div
         style={{
@@ -440,9 +162,9 @@ export default function GlossaryPage() {
           </button>
           <div>
             {/* TRAIN-GLOSSARY-A11Y-1: semantic h1 */}
-            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>GTO Glossary</h1>
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Glossary Study Tool</h1>
             <div style={{ fontSize: 12, color: 'var(--sp-fg-dim)' }}>
-              {TERMS.length} Terms · {favorites.size} Saved
+              {TERMS.length} Terms · {TERMS.filter((t) => favorites.has(t.term)).length} Saved
             </div>
           </div>
         </div>
@@ -468,7 +190,7 @@ export default function GlossaryPage() {
           />
 
           {/* Category */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 16 }} role="group" aria-label="Filter Glossary By Category">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 16 }} role="group" aria-label="Filter Glossary By Category">
             {CATS.map((c) => (
               <motion.button
                 key={c}
@@ -478,7 +200,7 @@ export default function GlossaryPage() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCatFilter(c)}
                 style={{
-                  flex: 1,
+                  flex: '1 0 auto',
                   padding: '6px',
                   borderRadius: 6,
                   border: `1px solid ${catFilter === c ? 'rgba(0,212,255,0.2)' : 'transparent'}`,
@@ -504,9 +226,8 @@ export default function GlossaryPage() {
           {filtered.map((t, i) => (
             <motion.div
               key={t.term}
-              // AEO phase 3: a stable anchor per term, so the DefinedTerm node
-              // has a real URL and an engine can cite one definition.
-              id={`term-${termSlug(t.term)}`}
+              // A stable anchor per term; the citable URL is the term page.
+              id={`term-${t.slug}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: i * 0.015 }}
@@ -528,13 +249,13 @@ export default function GlossaryPage() {
                   style={{
                     padding: '1px 6px',
                     borderRadius: 3,
-                    background: `${CAT_COLORS[t.cat]}12`,
-                    color: CAT_COLORS[t.cat],
+                    background: `${CAT_COLORS[t.category]}12`,
+                    color: CAT_COLORS[t.category],
                     fontSize: 12,
                     fontWeight: 700,
                   }}
                 >
-                  {t.cat}
+                  {t.category}
                 </span>
                 <motion.button
                   type="button"
@@ -565,7 +286,7 @@ export default function GlossaryPage() {
                   animate={{ opacity: 1, height: 'auto' }}
                 >
                   <div style={{ fontSize: 12, color: 'var(--sp-fg-muted)', lineHeight: 1.6, marginTop: 6 }}>
-                    {t.def}
+                    {t.definition}
                   </div>
                 </motion.div>
               ) : (
@@ -580,9 +301,16 @@ export default function GlossaryPage() {
                     whiteSpace: 'normal',
                   }}
                 >
-                  {t.def}
+                  {t.definition}
                 </div>
               )}
+              <a
+                href={glossaryTermPath(t.slug)}
+                onClick={(e) => e.stopPropagation()}
+                style={{ display: 'inline-block', marginTop: 6, fontSize: 12, color: 'var(--sp-accent-cyan)' }}
+              >
+                Full Entry: {t.term}
+              </a>
             </motion.div>
           ))}
 

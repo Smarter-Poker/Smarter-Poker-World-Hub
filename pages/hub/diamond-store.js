@@ -53,6 +53,11 @@ import {
   loadDiamondStorefrontPackages,
   sameDiamondStorefrontOffer,
 } from '../../src/lib/store/diamondStorefrontCatalog.mjs';
+import { leaveForCheckout } from '../../src/lib/store/leaveForCheckout.mjs';
+import {
+  normalizeClubShopDeepLinkView,
+  resolveClubShopDeepLinkSubTab,
+} from '../../src/lib/store/clubShopDeepLinkView.mjs';
 
 // God-Mode Stack
 import supabase from '../../src/lib/supabase';
@@ -1401,7 +1406,7 @@ export default function DiamondStorePage({
         product: currentPackage.id,
       });
       if (!attemptIsCurrent()) return;
-      window.location.assign(checkoutSession.url);
+      leaveForCheckout(checkoutSession.url);
     } catch (err) {
       if (!attemptIsCurrent() || err?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(err) && commerceIntent && checkoutRequestId) {
@@ -1909,7 +1914,7 @@ export default function DiamondStorePage({
       });
       // Recheck after analytics so navigation remains the operation's final owned effect.
       if (!attemptIsCurrent()) return;
-      window.location.assign(checkoutSession.url);
+      leaveForCheckout(checkoutSession.url);
     } catch (error) {
       if (!attemptIsCurrent() || error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && checkoutRequestId) {
@@ -2569,7 +2574,7 @@ export default function DiamondStorePage({
         throw new Error('Your Signed-In Account Changed. The Checkout Link Was Not Opened.');
       }
       if (!attemptIsCurrent()) return;
-      window.location.assign(checkoutSession.url);
+      leaveForCheckout(checkoutSession.url);
     } catch (error) {
       if (!attemptIsCurrent() || error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && checkoutRequestId) {
@@ -2805,6 +2810,44 @@ export default function DiamondStorePage({
   );
 
   const clubShopIsAdmin = ['owner', 'admin'].includes(visibleClubShopRole);
+
+  // ═══ Club Shop: ?view= deep link ═══
+  // The sub-view lives in component state, so a link cannot reach it without
+  // this. The route-identity and account effects above deliberately reset the
+  // sub-view to 'store', and the operator role only arrives with the club shop
+  // snapshot, so the request is re-applied per identity rather than set once:
+  // `resolveClubShopDeepLinkSubTab` withholds 'manage' until the role is known
+  // and gives a non-operator the storefront instead of an empty panel.
+  const requestedClubShopView = normalizeClubShopDeepLinkView(router.query.view);
+  const clubShopViewRequestRef = useRef(null);
+  useEffect(() => {
+    if (!router.isReady || activeTab !== 'club-shop' || !requestedClubShopView) return;
+    const requestIdentity = [
+      requestedClubShopView,
+      committedStoreAccountId || '',
+      clubShopClubId || '',
+    ].join('|');
+    if (clubShopViewRequestRef.current === requestIdentity) return;
+    const resolution = resolveClubShopDeepLinkSubTab(requestedClubShopView, {
+      isAdmin: clubShopIsAdmin,
+      roleResolved: clubShopSnapshotOwned,
+    });
+    if (!resolution.settled) return;
+    clubShopViewRequestRef.current = requestIdentity;
+    setClubShopSubTab(resolution.subTab);
+    // Landing on Manage loads the operator report the way clicking it does.
+    if (resolution.loadAdmin && !clubShopAdminLoaded) loadClubShopAdmin();
+  }, [
+    activeTab,
+    clubShopAdminLoaded,
+    clubShopClubId,
+    clubShopIsAdmin,
+    clubShopSnapshotOwned,
+    committedStoreAccountId,
+    loadClubShopAdmin,
+    requestedClubShopView,
+    router.isReady,
+  ]);
 
   // ═══ Club Shop: Auto-load when tab is restored/deep-linked ═══
   // activeTab is persisted, so a user can land directly on 'club-shop'
@@ -3104,7 +3147,7 @@ export default function DiamondStorePage({
           fetchPriority="high"
         />
 
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
                     /* <details> in the VIP FAQ: Safari/WebKit paints its OWN
                        disclosure triangle in addition to our chevron unless the
                        marker is removed, so the question rendered with two
@@ -3129,7 +3172,7 @@ export default function DiamondStorePage({
                         from { opacity: 0; transform: translate(-50%, -6px); }
                         to { opacity: 1; transform: translate(-50%, 0); }
                     }
-                `}</style>
+                ` }} />
       </Head>
 
       <StoreToast />

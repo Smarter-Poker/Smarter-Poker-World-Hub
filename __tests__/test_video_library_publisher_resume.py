@@ -154,10 +154,23 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         publications = {}
         publish_order = []
 
+        # The isolated yt-dlp child is proven by test_video_library_ytdlp_runtime;
+        # here it is recorded so the gate order stays pinned: runtime, then the
+        # anti-horse publisher check, then the dedicated Reel controls, and only
+        # then any catalog read, probe, or publication.
+        gate_order = []
+        bridge.ensure_ytdlp_runtime = lambda: gate_order.append('ytdlp') or '2026.08.19'
         bridge.get_system_bot_id = (
-            lambda: '33333333-3333-4333-8333-333333333333'
+            lambda: gate_order.append('publisher') or '33333333-3333-4333-8333-333333333333'
         )
-        bridge._load_existing_publications = lambda: dict(publications)
+        bridge.read_publication_controls = lambda: gate_order.append('controls') or {
+            'video_library_reel_creation': True,
+            'video_library_reel_publication': True,
+        }
+        real_existing = lambda: dict(publications)
+        bridge._load_existing_publications = lambda: (
+            gate_order.append('inventory') or real_existing()
+        )
         bridge._load_embed_failure_rows = lambda: []
         bridge._catalog_pages = lambda _source=None: iter(
             [[dict(asset) for asset in assets]]
@@ -214,6 +227,7 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
         )
         first = bridge.run_bridge(self._arguments())
 
+        self.assertEqual(gate_order, ['ytdlp', 'publisher', 'controls', 'inventory'])
         self.assertTrue(first['deadline_reached'])
         self.assertEqual(first['deadline_phase'], 'catalog_verification')
         self.assertEqual(publish_order, [assets[0]['id']])
@@ -239,6 +253,73 @@ class VideoLibraryPublisherResumeTest(unittest.TestCase):
             [assets[0]['id'], assets[1]['id']],
         )
         self.assertEqual(len(set(publish_order)), 2)
+
+
+    def _forbid_work_after_gate(self):
+        bridge = self.bridge
+        reached = []
+
+        def forbidden(name):
+            def record(*_args, **_kwargs):
+                reached.append(name)
+                raise AssertionError(f'{name} must not run when the gate refuses')
+            return record
+
+        bridge.ensure_ytdlp_runtime = lambda: '2026.08.19'
+        for name in (
+            '_load_existing_publications', '_load_embed_failure_rows',
+            '_catalog_pages', '_verify_row', 'verify_youtube_video_scrapling',
+            '_record_embed_verdict', '_publish_row', '_rpc',
+        ):
+            setattr(bridge, name, forbidden(name))
+        return reached
+
+    def test_switched_off_controls_stop_before_any_probe_or_write(self):
+        bridge = self.bridge
+        reached = self._forbid_work_after_gate()
+        bridge.get_system_bot_id = lambda: '00000000-0000-0000-0000-000000000001'
+        for controls in (
+            {'video_library_reel_creation': True, 'video_library_reel_publication': False},
+            {'video_library_reel_creation': False, 'video_library_reel_publication': True},
+            {'video_library_reel_creation': False, 'video_library_reel_publication': False},
+        ):
+            with self.subTest(controls=controls):
+                bridge.read_publication_controls = lambda controls=controls: dict(controls)
+                for dry_run in (False, True):
+                    arguments = self._arguments()
+                    arguments.dry_run = dry_run
+                    stats = bridge.run_bridge(arguments)
+                    self.assertEqual(stats['aborted_reason'], 'publication_controls_disabled')
+                    self.assertEqual(stats['publication_controls'], controls)
+                    self.assertEqual(stats['verification_attempted'], 0)
+                    self.assertEqual(stats['created'] + stats['repaired_or_updated'], 0)
+        self.assertEqual(reached, [])
+
+    def test_unsafe_publisher_or_unreadable_controls_raise_before_any_probe(self):
+        bridge = self.bridge
+        reached = self._forbid_work_after_gate()
+        controls_read = []
+
+        def unsafe_publisher():
+            raise bridge.PublisherIdentityError('configured publisher is a horse')
+
+        bridge.get_system_bot_id = unsafe_publisher
+        bridge.read_publication_controls = lambda: controls_read.append(True) or {}
+        with self.assertRaises(bridge.PublisherIdentityError):
+            bridge.run_bridge(self._arguments())
+        # An unsafe author stops the run before the switch is even consulted.
+        self.assertEqual(controls_read, [])
+
+        def unreadable_controls():
+            raise bridge.PublicationControlsError('Could not read video_reels_pipeline_controls')
+
+        bridge.get_system_bot_id = lambda: '00000000-0000-0000-0000-000000000001'
+        bridge.read_publication_controls = unreadable_controls
+        with self.assertRaises(bridge.PublicationControlsError):
+            bridge.run_bridge(self._arguments())
+        self.assertTrue(issubclass(bridge.PublisherIdentityError, RuntimeError))
+        self.assertTrue(issubclass(bridge.PublicationControlsError, RuntimeError))
+        self.assertEqual(reached, [])
 
 
 if __name__ == '__main__':

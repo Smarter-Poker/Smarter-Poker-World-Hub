@@ -83,6 +83,9 @@ import '../tests/spin-reserve-fund-contract.test.mjs';
 import './api-routes-exist.test.mjs';
 import './bankroll-mobile-upgrades.test.mjs';
 import './club-stats-maintenance-runtime-budget.test.mjs';
+// 2026-09-22: the same route schedules only its periodic steps. Runs the real
+// handler through vm.SourceTextModule (CHECK 8 passes --experimental-vm-modules).
+import './club-stats-maintenance-does-no-repair-work.law.test.mjs';
 import './deployment-version-stamp.test.mjs';
 import './events-calendar-ssr-fallback.test.mjs';
 import './fallback-menu-safety.test.mjs';
@@ -230,7 +233,42 @@ import './openclaw-video-library-routing.test.mjs';
 // The same boundary's shared 7-day availability-freshness contract: SQL,
 // JavaScript readers, Python renewal target and daily verifier capacity.
 import './video-library-freshness-contract.test.mjs';
+import './video-library-official-publisher-migration.test.mjs';
 import './yt-worker-release-safety.test.mjs';
+// 2026-09-21, fleet recertification D1: /api/cron/video-library-reels reaches
+// only the gated workers route, and the reels bridge script refuses to write
+// while the fleet switch is off or as anything but a pinned non-horse
+// profile. Same CHECK 8 reasoning as the block above.
+import './video-library-reels-fails-closed.test.mjs';
+// Video Library and Reels Phase 1 (2026-09-23): the suites behind
+// `npm run test:video-reels-phase-1` that need nothing from node_modules, so
+// CHECK 8 (which does not `npm ci`) executes them instead of only naming them.
+// Poker-only canonical feed, fail-closed availability, owner-scoped state and
+// the painted console surfaces. Left out on purpose: video-library-phase-8
+// (imports eslint) and yt-transcode-worker-rights-guard (imports
+// @supabase/supabase-js); both stay in the npm script.
+import './auxiliary-reels-console.test.mjs';
+import './background-video-upload-recovery.test.mjs';
+import './news-live-wire-phase-4.test.mjs';
+import './news-reels-club-arena-console.test.mjs';
+import './profile-reels-console.test.mjs';
+import './reels-carousel-console.test.mjs';
+import './reels-console-dependencies.test.mjs';
+import './reels-embedded-console-visual.test.mjs';
+import './social-feed-request-sequencing.test.mjs';
+import './user-reel-publication-recovery.test.mjs';
+import './video-clipper-storage-namespace.test.mjs';
+import './video-embed-report-adjudication.test.mjs';
+import './video-library-access-phase-9.test.mjs';
+import './video-library-club-arena-console.test.mjs';
+import './video-library-phase-5.test.mjs';
+import './video-library-phase-6.test.mjs';
+import './video-library-phase-7.test.mjs';
+import './video-reels-api-resilience.test.mjs';
+import './video-reels-collections-integrity.test.mjs';
+import './video-reels-integrity-phase-1.test.mjs';
+import './video-reels-ui-integrity.test.mjs';
+import './video-reels-youtube-sql-security.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -
@@ -281,6 +319,13 @@ import './a-scraper-run-is-judged-on-what-it-produced.test.mjs';
 // the inline restore script in _document, and the urgent `tournament_resumed`
 // push that tells a player their seat is being dealt again after the break.
 import './the-app-reopens-where-you-left-it.test.mjs';
+// 2026-09-22: a club's table count has one writer, the database's
+// trg_tables_sync_club_counts_* triggers. manage-table decremented it again
+// through decrement_club_table_count, dropped on 2026-09-20, and a
+// read-and-write-back of count - 1 when that call failed. Runs the real
+// handler through vm.SourceTextModule, which CHECK 8's
+// --experimental-vm-modules provides for this file.
+import './a-club-table-count-has-one-writer.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 

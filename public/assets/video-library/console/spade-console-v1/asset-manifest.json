@@ -24,5 +24,20 @@
       "height": 277,
       "sha256": "ef5934068adbb2327351f9cf21c192106af83d9252a8c0a0f3f77fbd4d547fa7"
     }
+  },
+  "webpSiblings": {
+    "note": "Lossless WebP (sharp 0.34.5, lossless+exact) of the master PNG, served first through CSS image-set with the unmodified PNG as fallback. Every visible pixel (alpha > 0) is identical to the master; only fully transparent pixels may differ in colour value. Required by an-oversized-raster-is-served-as-webp.law.",
+    "top.webp": {
+      "from": "top.png",
+      "width": 1000,
+      "height": 348,
+      "sha256": "60950dc2615c1c4019d1ec81728cb965f05a123a2271622977d045dcc49728a2"
+    },
+    "bottom-plates.webp": {
+      "from": "bottom-plates.png",
+      "width": 1000,
+      "height": 277,
+      "sha256": "8108d9f35e5dc5d61f308b308959b0a166ffb629b47c76457d89ccad06cf9703"
+    }
   }
 }

@@ -52,12 +52,56 @@ test('the Video Library Reel bridge always resolves to the deployed publisher sc
   assert.match(scriptJobs, /'\/api\/cron\/video-library-reels':\s*\['--limit',\s*'500',\s*'--verify'\]/);
   assert.match(scriptTargets, /'\/api\/cron\/video-library-reels':\s*REELS_BRIDGE_PY/);
   assert.doesNotMatch(workerRoutes, /\/api\/cron\/video-library-reels/);
+  // 2026-09-23 owner decision: the horse-authored workers bridge is never a
+  // target for this job, under any path key.
+  assert.doesNotMatch(workerRoutes, /'\/cron\/video-library-reels'/);
+  assert.match(dispatcher, /^REELS_BRIDGE_PY = _resolve_script\('video_library_to_reels\.py'\)$/m);
   assert.match(dispatcher, /'\/api\/cron\/video-library-reels',\s*dict\(hour=7,\s*minute=0\)/);
   assert.match(publisher, /VERIFICATION_REFRESH_AGE = timedelta\(hours=12\)/);
   assert.match(publisher, /'verification_refresh_hours': int\(/);
   assert.doesNotMatch(publisher, /verification_refresh_days/);
   assert.match(dispatcher, /SCRIPT_WORKER_OVERLAP = sorted\(set\(SCRIPT_JOBS\)\.intersection\(WORKERS_PREFERRED\)\)/);
   assert.match(dispatcher, /if SCRIPT_WORKER_OVERLAP:\s*\n\s*raise RuntimeError/);
+});
+
+test('the publisher posts only as a verified non-horse official account behind its own kill switch', () => {
+  const code = publisher.split('\n').map(line => line.split('#')[0]).join('\n');
+  const section = (start, end) => {
+    const from = code.indexOf(start);
+    const to = code.indexOf(end, from + start.length);
+    assert.ok(from > -1 && to > from, `${start} must precede ${end}`);
+    return code.slice(from, to);
+  };
+  // 2026-09-23 owner decision: the fleet switch is not this publisher's gate.
+  // (Docstrings explain why; no string literal may name the table or column.)
+  assert.doesNotMatch(code, /['"]content_settings['"]|['"]engine_enabled['"]/);
+  const author = section('def get_system_bot_id():', 'def read_publication_controls():');
+  assert.match(author, /'video_reels_pipeline_config'/);
+  assert.match(author, /'singleton_key': 'eq\.video_library'/);
+  assert.match(author, /VIDEO_LIBRARY_BOT_PROFILE_ID/);
+  assert.match(author, /'select': 'id,is_horse'/);
+  assert.match(author, /\.get\('is_horse'\) is not False/);
+  assert.match(author, /'content_authors'/);
+  assert.doesNotMatch(author, /return None|order=|'order'/, 'no fallback author and no roster pick');
+  // The official account 00000000-0000-0000-0000-000000000001 has no RFC 4122
+  // version nibble; the identity check must still accept it.
+  assert.match(code, /_UUID_RE = re\.compile\(\s*r'\^\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-/);
+  const controls = section('def read_publication_controls():', 'def run_schema_preflight():');
+  assert.match(controls, /'video_reels_pipeline_controls'/);
+  assert.match(controls, /isinstance\(row\.get\('enabled'\), bool\)/);
+  assert.match(publisher, /REQUIRED_PUBLICATION_CONTROLS = frozenset\(\s*\{'video_library_reel_creation', 'video_library_reel_publication'\}/);
+  // Order inside a run: runtime self-check, publisher, controls, then any read of work.
+  const run = section('def run_bridge(args):', 'def _write_evidence(');
+  const order = ['ensure_ytdlp_runtime()', 'get_system_bot_id()', 'read_publication_controls()',
+    "controls[key] is True for key in REQUIRED_PUBLICATION_CONTROLS", '_load_existing_publications()'];
+  const at = order.map(needle => run.indexOf(needle));
+  assert.ok(at.every(index => index > -1), JSON.stringify(at));
+  assert.deepEqual([...at].sort((a, b) => a - b), at, 'the gates must run before any work');
+  const preflight = section('def run_schema_preflight():', 'class YtDlpUnavailableError');
+  assert.ok(preflight.indexOf('get_system_bot_id()') > -1
+    && preflight.indexOf('get_system_bot_id()') < preflight.indexOf("_request('GET', relation"),
+  'the preflight checks the publisher before any other read');
+  assert.match(preflight, /read_publication_controls\(\)/);
 });
 
 test('poker clip supply routes remain wired to their real workers handlers', () => {

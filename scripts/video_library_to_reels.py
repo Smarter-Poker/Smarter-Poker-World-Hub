@@ -9,7 +9,24 @@ social_posts + social_reels transaction and canonical identity; this process
 owns discovery, availability verification, and bounded scheduling.
 
 Safety contract:
-  * the publisher identity is resolved from service-only database configuration;
+  * the publisher identity is resolved from service-only database configuration
+    (video_reels_pipeline_config.video_library_publisher_profile_id). Before any
+    YouTube probe or database write, in every mode (--dry-run,
+    --sync-captions and --preflight-only included), that profile must be a
+    UUID, exist, have profiles.is_horse exactly false and have no
+    content_authors row; an optional VIDEO_LIBRARY_BOT_PROFILE_ID pin must
+    equal it. Any failed or unreadable check exits non-zero. There is no
+    fallback author (2026-09-21 fleet recertification D1 found the old bridge
+    posting as the first content_authors profile, always a horse);
+  * 2026-09-23 owner decision (Dan): Reels publish only as the official
+    Smarter.Poker system account, gated by the dedicated
+    video_reels_pipeline_controls kill switch. Both
+    video_library_reel_creation and video_library_reel_publication must read
+    exactly enabled=true before any YouTube probe; a readable ``false`` is a
+    logged no-op and an unreadable, missing or non-boolean control exits
+    non-zero. The horse-fleet switch content_settings.engine_enabled is NOT
+    consulted here; it still gates the horse-authored workers bridge, which
+    Open Claw never calls for this job;
   * only ``cash`` and ``tournament`` catalog rows are eligible;
   * every new or repaired publication is verified with both YouTube oEmbed and
     yt-dlp's embedded-player metadata, and every unknown/error state fails closed;
@@ -153,6 +170,11 @@ _load_env()
 
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '').rstrip('/')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
+# Optional host-side cross-check of the database-pinned publisher. It is
+# never an author source: when set, it must equal
+# video_reels_pipeline_config.video_library_publisher_profile_id or the run
+# stops before any YouTube probe or write (get_system_bot_id lists the checks).
+VIDEO_LIBRARY_BOT_PROFILE_ID = os.environ.get('VIDEO_LIBRARY_BOT_PROFILE_ID', '').strip()
 
 
 def _bounded_env_int(name, default, minimum, maximum):
@@ -274,8 +296,46 @@ def _expect_rpc_error(name, parameters, expected_codes):
     raise RuntimeError(f'RPC {name} unexpectedly accepted its invalid preflight input')
 
 
+_UUID_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE,
+)
+REQUIRED_PUBLICATION_CONTROLS = frozenset(
+    {'video_library_reel_creation', 'video_library_reel_publication'}
+)
+
+
+class PublisherIdentityError(RuntimeError):
+    """The configured publisher is missing, unreadable, or not allowed to post."""
+
+
+class PublicationControlsError(RuntimeError):
+    """The dedicated Reel controls are unreadable, missing, or malformed."""
+
+
 def get_system_bot_id():
-    """Return the database-pinned publisher; never guess a host-local identity."""
+    """Return the database-pinned publisher after the anti-horse checks.
+
+    The author is never guessed and there is no fallback (2026-09-21 fleet
+    recertification D1: the old bridge fell back to the first content_authors
+    profile, and every such profile is a horse). The 2026-09-23 owner
+    decision makes the official Smarter.Poker system account the only
+    publisher. Each check reads fresh from the database; a failed check or an
+    unreadable answer raises PublisherIdentityError, which stops the run with
+    a non-zero exit before any YouTube probe or write:
+      1. video_reels_pipeline_config (singleton 'video_library') holds exactly
+         one video_library_publisher_profile_id, and it is a UUID (the
+         official account 00000000-0000-0000-0000-000000000001 is a valid
+         UUID but not an RFC 4122 v1-v5 one, so no version nibble is required);
+      2. VIDEO_LIBRARY_BOT_PROFILE_ID, when set on the host, equals it;
+      3. profiles has that id and its is_horse is exactly false (not true, not
+         null, not missing);
+      4. no content_authors row points at it, because the fleet engine treats
+         every content_authors profile as one of its horses whatever
+         profiles.is_horse says.
+    publish_video_library_reel independently requires p_author_id to equal
+    the configured profile.
+    """
     config_rows = _request(
         'GET',
         'video_reels_pipeline_config',
@@ -285,27 +345,98 @@ def get_system_bot_id():
             'limit': 1,
         },
     )
-    if config_rows is None:
-        raise RuntimeError('Could not read video-library publisher configuration')
-    if len(config_rows) != 1:
-        raise RuntimeError('Video-library publisher configuration is missing')
-    bot_id = config_rows[0].get('video_library_publisher_profile_id')
-    if not re.fullmatch(
-        r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}',
-        str(bot_id or ''),
-    ):
-        raise RuntimeError('Video-library publisher profile is not configured')
+    if not isinstance(config_rows, list):
+        raise PublisherIdentityError('Could not read video-library publisher configuration')
+    if len(config_rows) != 1 or not isinstance(config_rows[0], dict):
+        raise PublisherIdentityError('Video-library publisher configuration is missing')
+    bot_id = str(config_rows[0].get('video_library_publisher_profile_id') or '').strip().lower()
+    if not _UUID_RE.fullmatch(bot_id):
+        raise PublisherIdentityError('Video-library publisher profile is not configured')
+
+    if VIDEO_LIBRARY_BOT_PROFILE_ID and VIDEO_LIBRARY_BOT_PROFILE_ID.lower() != bot_id:
+        raise PublisherIdentityError(
+            'VIDEO_LIBRARY_BOT_PROFILE_ID does not match the database-pinned '
+            f'video-library publisher {bot_id}'
+        )
 
     profiles = _request(
         'GET',
         'profiles',
-        params={'select': 'id', 'id': f'eq.{bot_id}', 'limit': 1},
+        params={'select': 'id,is_horse', 'id': f'eq.{bot_id}', 'limit': 1},
     )
-    if profiles is None:
-        raise RuntimeError('Could not validate configured video-library publisher profile')
-    if not profiles:
-        raise RuntimeError('Configured video-library publisher profile is not live')
+    if not isinstance(profiles, list):
+        raise PublisherIdentityError(
+            f'Could not validate configured video-library publisher profile {bot_id}'
+        )
+    if not profiles or not isinstance(profiles[0], dict):
+        raise PublisherIdentityError(
+            f'Configured video-library publisher profile {bot_id} is not live'
+        )
+    if profiles[0].get('is_horse') is not False:
+        raise PublisherIdentityError(
+            f'Configured video-library publisher {bot_id} has '
+            f'is_horse={profiles[0].get("is_horse")!r}, not false: '
+            'Reels are never published as a horse'
+        )
+
+    roster = _request(
+        'GET',
+        'content_authors',
+        params={'select': 'id', 'profile_id': f'eq.{bot_id}', 'limit': 1},
+    )
+    if not isinstance(roster, list):
+        raise PublisherIdentityError(
+            f'Could not check content_authors for the configured publisher {bot_id}'
+        )
+    if roster:
+        raise PublisherIdentityError(
+            f'Configured video-library publisher {bot_id} is a content_authors '
+            '(horse fleet) profile'
+        )
+    log.info(
+        'Publisher verified: %s is the configured profile, is_horse=false, '
+        'not in content_authors',
+        bot_id,
+    )
     return bot_id
+
+
+def read_publication_controls():
+    """Return {control_key: enabled} for both dedicated Reel controls.
+
+    2026-09-23 owner decision (Dan): this official-account publisher is gated
+    by video_reels_pipeline_controls, NOT by the horse-fleet switch
+    content_settings.engine_enabled, which is deliberately never read here.
+    The fleet switch still gates the horse-authored workers bridge
+    (/cron/video-library-reels), and Open Claw never routes this job there.
+    Raises PublicationControlsError when the table cannot be read, a control
+    row is missing or duplicated, or ``enabled`` is not a boolean.
+    """
+    rows = _request(
+        'GET',
+        'video_reels_pipeline_controls',
+        params={
+            'select': 'control_key,enabled,updated_at',
+            'control_key': 'in.(' + ','.join(sorted(REQUIRED_PUBLICATION_CONTROLS)) + ')',
+        },
+    )
+    if not isinstance(rows, list):
+        raise PublicationControlsError('Could not read video_reels_pipeline_controls')
+    controls = {}
+    for row in rows:
+        key = row.get('control_key') if isinstance(row, dict) else None
+        if key not in REQUIRED_PUBLICATION_CONTROLS or key in controls:
+            raise PublicationControlsError(
+                f'Unexpected video_reels_pipeline_controls row: {row!r}'
+            )
+        if not isinstance(row.get('enabled'), bool):
+            raise PublicationControlsError(
+                f'Control {key} has enabled={row.get("enabled")!r}, not a boolean'
+            )
+        controls[key] = row['enabled']
+    if set(controls) != REQUIRED_PUBLICATION_CONTROLS:
+        raise PublicationControlsError('Required video-library Reel controls are missing')
+    return controls
 
 
 def run_schema_preflight():
@@ -335,20 +466,15 @@ def run_schema_preflight():
         if rows is None or not isinstance(rows, list):
             raise RuntimeError(f'Preflight could not read required relation {relation}')
 
-    required_controls = {
-        'video_library_reel_creation',
-        'video_library_reel_publication',
-    }
-    controls = _request(
-        'GET',
-        'video_reels_pipeline_controls',
-        params={
-            'select': 'control_key,enabled,updated_at',
-            'control_key': 'in.(' + ','.join(sorted(required_controls)) + ')',
-        },
+    # A release preflight validates that both controls are present and
+    # readable booleans; it does not require them to be on, so a deliberately
+    # paused pipeline can still be installed. Every run requires both to be
+    # exactly true before any YouTube probe (run_bridge).
+    controls = read_publication_controls()
+    log.info(
+        'Open Claw publisher preflight: Reel controls %s',
+        ', '.join(f'{key}={controls[key]}' for key in sorted(controls)),
     )
-    if controls is None or {row.get('control_key') for row in controls} != required_controls:
-        raise RuntimeError('Required video-library Reel controls are missing')
 
     # Both inputs fail before either function reaches a write. Their SQLSTATEs
     # prove that PostgREST sees the deployed argument lists and behavior.
@@ -896,6 +1022,7 @@ def _new_stats():
         'deadline_phase': None,
         'catalog_scan_complete': False,
         'aborted_reason': None,
+        'publication_controls': None,
         'verification_concurrency': VERIFY_CONCURRENCY,
         'candidate_reasons': Counter(),
         'failure_candidate_reasons': Counter(),
@@ -983,7 +1110,23 @@ def run_bridge(args):
     # isolated yt-dlp every probe would be recorded as an ``error`` verdict.
     ensure_ytdlp_runtime()
 
+    # Publisher identity, then the dedicated kill switch, both before any
+    # YouTube probe or database write in every mode (dry runs and caption
+    # sync included). An unsafe or unreadable publisher and unreadable
+    # controls raise and exit non-zero; readable controls that are off are
+    # a deliberate, logged no-op.
     author_id = get_system_bot_id()
+    controls = read_publication_controls()
+    stats['publication_controls'] = dict(sorted(controls.items()))
+    if not all(controls[key] is True for key in REQUIRED_PUBLICATION_CONTROLS):
+        stats['aborted_reason'] = 'publication_controls_disabled'
+        log.warning(
+            'Video-library Reel publication is switched off in '
+            'video_reels_pipeline_controls (%s). Exiting without probing or writing.',
+            ', '.join(f'{key}={controls[key]}' for key in sorted(controls)),
+        )
+        _write_checkpoint(args, stats, 'disabled')
+        return stats
     if _deadline_due(deadline_at):
         _mark_deadline(stats, 'publisher_identity')
         _write_checkpoint(args, stats, 'deadline')

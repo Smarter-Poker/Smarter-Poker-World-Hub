@@ -51,6 +51,7 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Poker Near Me', href: '/hub/poker-near-me/lobby', text: 'Live Poker Rooms And Card Rooms By State And City.' },
       { name: 'Home Games', href: '/hub/home-games', text: 'Find And Host Home Poker Games Near You.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track Sessions, Results And Bankroll With Exports.' },
+      { name: 'Poker App Comparisons', href: '/compare', text: 'How These Products Compare With The Alternatives, With Sources.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Free Poker Quiz Games With Leaderboards And Daily Runs.' },
     ],
   },
@@ -93,10 +94,11 @@ export const HUB_PAGE_SUMMARIES = {
       { name: 'Jarvis Hand Review', href: '/hub/training/jarvis', text: 'Walk A Hand Back Street By Street With A Solver-Grade Second Opinion.' },
       { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Bring Real Sessions In And Have Them Read For Leaks.' },
       { name: 'Solutions Library', href: '/hub/training/solutions', text: 'Worked Spots And The Reasoning Behind Each Line.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Plain Definitions For The Terms Used Across The Site.' },
       { name: 'Training Tournaments', href: '/hub/training/tournaments', text: 'Scheduled Training Events With Standings And Prizes.' },
       { name: 'Preflop Charts', href: '/hub/preflop-charts', text: 'Opening And Defending Ranges By Position And Stack Depth.' },
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Quiz Games On Rules, Odds And History, With Leaderboards.' },
+      { name: 'Poker Strategy Lessons', href: '/learn', text: 'Forty Free Lessons That Answer The Question Before The Drill.' },
     ],
   },
   'bankroll-manager': {
@@ -130,7 +132,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: 'GTO Training', href: '/hub/training', text: 'Drill The Spot A Video Just Explained.' },
       { name: 'Poker News', href: '/hub/news', text: 'Headlines And Results From The Poker World, Hourly.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Commentator Uses, Defined.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Every Term A Commentator Uses, Defined.' },
     ],
   },
   'preflop-charts': {
@@ -139,7 +141,7 @@ export const HUB_PAGE_SUMMARIES = {
       'The Preflop Range Lab Is Free Local Practice Against Authored Preflop Reference Ranges. Drill Opening, Three-Betting And Defending From Every Position, See Which Combos You Misplace, And Repeat The Ones You Miss. Results Stay On The Page: This Is Practice, So It Does Not Change Account Progress, Rank Or Rewards, And There Is Nothing To Wager.',
     links: [
       { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games With Solver-Grade Analysis.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Three-Bet, Squeeze, Range Advantage And 46 More, Defined.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Three-Bet, Squeeze, Range Advantage And 71 More, Defined.' },
       { name: 'Bankroll Manager', href: '/hub/bankroll-manager', text: 'Track What The Practice Changes In Real Sessions.' },
     ],
   },
@@ -474,7 +476,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
       { name: 'Survival', href: '/hub/trivia/survival-game', text: 'The Same Questions, With One Life.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Look Up Anything A Question Used And You Did Not Know.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Look Up Anything A Question Used And You Did Not Know.' },
     ],
   },
   'trivia-survival': {
@@ -503,7 +505,7 @@ export const HUB_PAGE_SUMMARIES = {
       'Mixed Draws From Every Category At Once And In Random Order: Hand Rankings Next To Tournament History Next To A Rules Dispute Next To Pot Odds. It Is The Mode That Finds The Category You Have Been Avoiding, Because You Cannot See What Is Coming And Cannot Prepare For It. Free To Play, And Nothing In It Is A Wager.',
     links: [
       { name: 'Poker Trivia', href: '/hub/trivia', text: 'Every Mode, And How The Question Bank Works.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Forty Nine Terms Defined, For The Category You Keep Missing.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Seventy Four Terms Defined, For The Category You Keep Missing.' },
       { name: 'Endless', href: '/hub/trivia/endless', text: 'The Same Breadth, With No Stop Condition.' },
     ],
   },
@@ -545,7 +547,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: 'GTO Training', href: '/hub/training', text: 'Over 100 Scenario Games And The Full Drill Library.' },
       { name: 'Training Leaderboard', href: '/hub/training/leaderboard', text: 'How Today\u2019s Scores Compare.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Solution Uses, Defined.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Every Term A Solution Uses, Defined.' },
     ],
   },
   'training-leaderboard': {
@@ -575,7 +577,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: 'GTO Training', href: '/hub/training', text: 'The Drills Jarvis Coaches You Through.' },
       { name: 'Hand History Upload', href: '/hub/training/hand-history-upload', text: 'Upload A Hand From Anywhere And Have It Graded.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term Jarvis Uses, Defined.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Every Term Jarvis Uses, Defined.' },
     ],
   },
   'training-hand-history-upload': {
@@ -585,7 +587,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: 'GTO Training', href: '/hub/training', text: 'Drill The Spots Your Uploads Keep Exposing.' },
       { name: 'Jarvis', href: '/hub/training/jarvis', text: 'Ask Why A Line Was Wrong, In Words.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Every Term A Hand Review Uses, Defined.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Every Term A Hand Review Uses, Defined.' },
     ],
   },
   'training-solutions': {
@@ -595,7 +597,7 @@ export const HUB_PAGE_SUMMARIES = {
     links: [
       { name: 'GTO Training', href: '/hub/training', text: 'The Drills That Use These Baselines.' },
       { name: 'Preflop Range Lab', href: '/hub/preflop-charts', text: 'Practise The Preflop Ranges Directly.' },
-      { name: 'Poker Glossary', href: '/hub/training/glossary', text: 'Range Advantage, Squeeze, Polarised And 46 More.' },
+      { name: 'Poker Glossary', href: '/glossary', text: 'Range Advantage, Squeeze, Polarised And 71 More.' },
     ],
   },
 };

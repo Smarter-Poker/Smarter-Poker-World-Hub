@@ -105,10 +105,16 @@ if not SUPABASE_URL or not SUPABASE_KEY:
         log.error('Missing SUPABASE credentials — check .env.local')
         sys.exit(1)
 
-from supabase import create_client
-# None in verify-only mode. Every write path is unreachable in that mode, and a
-# client built from empty credentials would fail later and more confusingly.
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if (SUPABASE_URL and SUPABASE_KEY) else None
+# None in verify-only and --help mode. Every write path is unreachable in that
+# mode, and a client built from empty credentials would fail later and more
+# confusingly. The client library is imported only when a client is built, so
+# `--help` and `--verify-sources` work on a host (or CI runner) whose release
+# vendor directory is absent, instead of dying on an import they never use.
+if SUPABASE_URL and SUPABASE_KEY:
+    from supabase import create_client
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+else:
+    supabase = None
 
 
 def pipeline_control_enabled(control_key: str) -> bool:

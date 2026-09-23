@@ -25,6 +25,7 @@ import {
   STRIPE_CHECKOUT_SESSION_ID_RE,
 } from '../../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../../src/lib/store/checkoutAuthorization';
+import { leaveForCheckout } from '../../../src/lib/store/leaveForCheckout.mjs';
 import {
   classifyClubPurchaseRefusal,
   getClubDiamondPurchaseProjection,
@@ -844,7 +845,7 @@ export default function ClubShopItemDetail({ routeItemId = null }) {
         throw new Error('Your Signed-In Account Changed. The Checkout Link Was Not Opened.');
       }
       if (!attemptIsCurrent()) return;
-      window.location.assign(checkoutSession.url);
+      leaveForCheckout(checkoutSession.url);
     } catch (error) {
       if (!attemptIsCurrent() || error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && checkoutRequestId) {

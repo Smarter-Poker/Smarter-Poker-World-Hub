@@ -1003,7 +1003,7 @@ function LoadingSkeleton() {
             {/* The pulse keyframes normally live in the main component's style
                 block, which is NOT rendered while loading — define them here
                 so the skeleton shimmer actually animates. */}
-            <style>{`@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
+            <style dangerouslySetInnerHTML={{ __html: `@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }` }} />
             <div style={loadingStyles.questionBar}>
                 <div style={loadingStyles.pulse} />
             </div>
@@ -3026,7 +3026,7 @@ function UniversalDynamicTable({
                 mid-page on top of the villain's cards. It now sits above everything
                 and sticks while the felt scrolls under it. */}
             {/* CSS Animation Keyframes + H5: Desktop-responsive layout */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
                 /* Active-seat rim light: the single strongest cue on the felt.
                    Slow, so it reads as "this seat is live" and not as an alarm. */
@@ -3324,7 +3324,7 @@ function UniversalDynamicTable({
                         width: 100%;
                     }
                 }
-            `}</style>
+            ` }} />
             {/* F11: Streak Toast */}
             <AnimatePresence>
                 {streakToast && <StreakToast key="streak-toast" message={streakToast} />}

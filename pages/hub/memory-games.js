@@ -150,6 +150,7 @@ import {
   subscriptionCheckoutOfferConfirmation,
 } from '../../src/lib/store/verifiedCheckoutUrl.mjs';
 import { getVerifiedCheckoutAuthorization } from '../../src/lib/store/checkoutAuthorization';
+import { leaveForCheckout } from '../../src/lib/store/leaveForCheckout.mjs';
 import { VIP_MEMBERSHIP } from '../../src/data/diamondStoreData';
 import PreflopRangeMatrix from '../../src/components/memory-games/PreflopRangeMatrix';
 import PreflopMatrixPrimer from '../../src/components/memory-games/PreflopMatrixPrimer';
@@ -1740,7 +1741,7 @@ export default function MemoryGamesPage() {
       }
       // Retain the durable identity through navigation. If the browser
       // loses Stripe's return, the same intent can recover this session.
-      window.location.assign(checkoutSession.url);
+      leaveForCheckout(checkoutSession.url);
     } catch (error) {
       if (error?.name === 'AbortError') return;
       if (checkoutRequestReplacementRequired(error) && commerceIntent && checkoutRequestId) {

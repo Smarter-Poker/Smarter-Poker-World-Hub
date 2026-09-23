@@ -93,7 +93,7 @@ export default function MetalTooltip({
                 </div>
             )}
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 .metal-tooltip-trigger {
                     display: inline-flex;
                     cursor: help;
@@ -166,7 +166,7 @@ export default function MetalTooltip({
                     border-bottom: none;
                     border-right: none;
                 }
-            `}</style>
+            ` }} />
         </>
     );
 }

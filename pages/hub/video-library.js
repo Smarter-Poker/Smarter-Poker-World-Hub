@@ -2704,7 +2704,7 @@ export default function VideoLibraryPage() {
             )}
 
             <style>{`
-                /* The viewer's Close control clears the status bar. The page that
+                /* The viewer Close control clears the status bar. The page that
                    owns the full-screen overlay carries the inset itself
                    (overlays-leave-room-to-close.law), matching the world sheet. */
                 .vl-modal-close { top: calc(env(safe-area-inset-top, 0px) + 12px); }
