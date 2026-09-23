@@ -52,12 +52,43 @@ both exist the workflow fails closed before any transfer. This does not affect
 the already verified Vercel web release.
 
 The workflow validates the host-managed environment without rewriting it,
-requires the already installed Linux x86_64/Python3.12/Node20/ffmpeg runtime,
-and refuses missing tools. `VIDEO_YT_BUILD_IMAGE` must name an already qualified
-Docker image by immutable registry digest (`name@sha256:...`), which the runner
-pulls before use, containing Linux x86_64 Python3.12 and
-Node20. The bounded runner container assembles the locked Node dependency tree
-and hashed yt-dlp vendor module; no dependency installation/build occurs on
+requires the already installed Linux x86_64/Python3.12/ffmpeg runtime and a
+host `/usr/bin/node` of major version 18 or later, and refuses missing tools.
+The release never ships a Node runtime; the host runs it with `/usr/bin/node`.
+
+Build image and Node toolchain (owner decision, 23 Sep 2026): the release
+build uses official sources only. No third-party or community image is
+accepted.
+
+- `VIDEO_YT_BUILD_IMAGE` must be the official Docker Hub
+  `python:3.12-slim-bookworm` image pinned by its `linux/amd64` manifest digest,
+  in the form `python@sha256:<64 hex>` (`library/python@...` and
+  `docker.io/library/python@...` are the same repository). The workflow refuses
+  any other repository, any tag and any bare local image ID before pulling, and
+  then re-checks the pulled image ID and its `linux/amd64` platform. Inside the
+  container it asserts Python 3.12 on x86_64 and Debian `bookworm`. The digest
+  resolved read-only from registry-1.docker.io on 23 Sep 2026 for
+  `library/python:3.12-slim-bookworm` `linux/amd64` is
+  `sha256:1aaa65a85fda306ffb8b910824d4e93bdce61e212c7e87168123ea3073b41a1a`
+  (image config `PYTHON_VERSION=3.12.14`). Setting the variable is a separate
+  provider step; re-resolve and review the digest when it is set or rotated.
+- The Node.js toolchain comes from nodejs.org, not from the image. The
+  bounded, read-only, unprivileged build container downloads
+  `https://nodejs.org/dist/v20.20.2/node-v20.20.2-linux-x64.tar.xz` and
+  `https://nodejs.org/dist/v20.20.2/SHASUMS256.txt`. The tarball is accepted
+  only when its SHA-256 equals both the literal pin in the workflow
+  (`df770b2a6f130ed8627c9782c988fda9669fa23898329a61a871e32f965e007d`) and the
+  single line for that exact filename in `SHASUMS256.txt`. A missing or
+  duplicated line, a changed published hash or any corrupted byte fails the
+  deploy closed before the archive is opened. The verified archive is extracted
+  with Python's standard `tarfile`/`lzma` modules and the `data` extraction
+  filter into a dedicated tmpfs (no apt, no `xz` binary), and the build then
+  requires `node -v` to be exactly `v20.20.2` and `npm` to come from that
+  toolchain.
+
+With that toolchain the container runs `npm ci --omit=dev --ignore-scripts`
+against the committed lockfile and installs the hash-locked yt-dlp vendor
+module with `pip --require-hashes`; no dependency installation/build occurs on
 Hetzner. Only its fixed nonsecret payload and manifest are transferred.
 
 The original root-owned per-SHA release, bounded schema/RPC preflight, atomic

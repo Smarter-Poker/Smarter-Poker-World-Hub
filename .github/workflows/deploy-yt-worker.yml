@@ -128,21 +128,96 @@ jobs:
           BUILD_IMAGE: ${{ vars.VIDEO_YT_BUILD_IMAGE }}
           HOST: ${{ secrets.HETZNER_HOST }}
           SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          # Owner decision (23 Sep 2026): official images only. The build
+          # container downloads the official Node.js v20.20.2 linux-x64 tarball
+          # from nodejs.org and accepts it only when its sha256 equals BOTH the
+          # literal pin below AND the tarball's line in the official
+          # SHASUMS256.txt; any mismatch fails closed before the archive is
+          # opened. Extraction uses the stdlib tarfile/lzma modules with the
+          # "data" filter (no apt, no xz binary). The toolchain only builds the
+          # payload: the release carries no Node runtime, and the host keeps
+          # running it with its own /usr/bin/node (>= 18, checked above).
+          NODE_TOOLCHAIN_PY: |
+            import hashlib
+            import os
+            import re
+            import sys
+            import tarfile
+            import urllib.request
+
+            RELEASE = 'node-v20.20.2-linux-x64'
+            TARBALL = RELEASE + '.tar.xz'
+            TARBALL_URL = 'https://nodejs.org/dist/v20.20.2/node-v20.20.2-linux-x64.tar.xz'
+            SHASUMS_URL = 'https://nodejs.org/dist/v20.20.2/SHASUMS256.txt'
+            # From https://nodejs.org/dist/v20.20.2/SHASUMS256.txt, resolved 23 Sep 2026.
+            PINNED_SHA256 = 'df770b2a6f130ed8627c9782c988fda9669fa23898329a61a871e32f965e007d'
+
+
+            def fail(message):
+                sys.exit('node toolchain: ' + message)
+
+
+            def fetch(url, destination, limit):
+                with urllib.request.urlopen(url, timeout=120) as response, open(destination, 'xb') as output:
+                    received = 0
+                    while True:
+                        chunk = response.read(1 << 20)
+                        if not chunk:
+                            break
+                        received += len(chunk)
+                        if received > limit:
+                            fail('download exceeds its size bound: ' + url)
+                        output.write(chunk)
+
+
+            download_dir, toolchain_dir = sys.argv[1], sys.argv[2]
+            os.makedirs(download_dir, mode=0o700)
+            shasums_path = os.path.join(download_dir, 'SHASUMS256.txt')
+            tarball_path = os.path.join(download_dir, TARBALL)
+            fetch(SHASUMS_URL, shasums_path, 64 * 1024)
+            fetch(TARBALL_URL, tarball_path, 64 * 1024 * 1024)
+            listed = []
+            with open(shasums_path, encoding='ascii') as shasums:
+                for line in shasums:
+                    match = re.fullmatch(r'([0-9a-f]{64})  (\S+)\n?', line)
+                    if match and match.group(2) == TARBALL:
+                        listed.append(match.group(1))
+            if len(listed) != 1:
+                fail('SHASUMS256.txt must list ' + TARBALL + ' exactly once')
+            if listed[0] != PINNED_SHA256:
+                fail('SHASUMS256.txt entry does not match the pinned sha256')
+            digest = hashlib.sha256()
+            with open(tarball_path, 'rb') as tarball:
+                for chunk in iter(lambda: tarball.read(1 << 20), b''):
+                    digest.update(chunk)
+            actual = digest.hexdigest()
+            if actual != PINNED_SHA256 or actual != listed[0]:
+                fail('downloaded tarball does not match the pinned and published sha256')
+            if not hasattr(tarfile, 'data_filter'):
+                fail('this Python lacks tarfile extraction filters')
+            with tarfile.open(tarball_path, mode='r:xz') as archive:
+                for member in archive.getmembers():
+                    if member.name != RELEASE and not member.name.startswith(RELEASE + '/'):
+                        fail('unexpected archive member outside ' + RELEASE)
+                archive.extractall(toolchain_dir, filter='data')
+            os.remove(tarball_path)
+            print(TARBALL + ' sha256 ' + actual + ' matches the pin and SHASUMS256.txt')
         run: |
           set -euo pipefail
-          # GitHub-hosted runners hold no pre-seeded build image. Pull only an
-          # immutable registry digest; the selection below still re-validates the
-          # reference, the resolved image ID and the platform before anything
-          # runs, and a bare image ID that is not present fails closed there.
-          if [[ "$BUILD_IMAGE" =~ ^[a-zA-Z0-9./:_-]+@sha256:[0-9a-f]{64}$ ]]; then
-            timeout --signal=TERM --kill-after=10s 600s \
-              docker pull --quiet --platform linux/amd64 "$BUILD_IMAGE" >/dev/null
-          fi
-          # Accept only immutable registry digests or a qualified local image ID.
-          [[ "$BUILD_IMAGE" =~ ^([a-zA-Z0-9./:_-]+@)?sha256:[0-9a-f]{64}$ ]] || exit 1
+          # GitHub-hosted runners hold no pre-seeded build image. Only the
+          # official Docker Hub python:3.12-slim-bookworm image, pinned by its
+          # linux/amd64 manifest digest, is ever pulled; the selection below
+          # still re-validates the reference, the resolved image ID and the
+          # platform before anything runs.
+          [[ "$BUILD_IMAGE" =~ ^(docker\.io/)?(library/)?python@sha256:[0-9a-f]{64}$ ]] || exit 1
+          timeout --signal=TERM --kill-after=10s 600s \
+            docker pull --quiet --platform linux/amd64 "$BUILD_IMAGE" >/dev/null
+          # Accept only immutable registry digests of the official Docker Hub
+          # python image (library/python); no bare local image ID and no
+          # third-party image.
+          [[ "$BUILD_IMAGE" =~ ^(docker\.io/)?(library/)?python@sha256:[0-9a-f]{64}$ ]] || exit 1
           image_id="$(docker image inspect --format '{{.Id}}' "$BUILD_IMAGE")"
           [[ "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
-          if [[ "$BUILD_IMAGE" = sha256:* ]]; then test "$image_id" = "$BUILD_IMAGE"; fi
           test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image_id")" = linux/amd64
           local_stage="$(mktemp -d "$RUNNER_TEMP/yt-worker-stage.XXXXXX")"
           build_container="wh-yt-worker-build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
@@ -157,11 +232,21 @@ jobs:
           timeout --signal=TERM --kill-after=10s 900s docker run --rm --pull=never \
             --name "$build_container" --platform linux/amd64 --cpus=2 \
             --memory=1g --memory-swap=1g --pids-limit=256 --read-only \
-            --tmpfs /tmp:rw,nosuid,size=256m --user "$(id -u):$(id -g)" \
-            --env HOME=/tmp --mount "type=bind,src=$local_stage,dst=/release" \
+            --tmpfs /tmp:rw,nosuid,size=256m \
+            --tmpfs /opt/node-toolchain:rw,exec,nosuid,nodev,size=256m \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env NODE_TOOLCHAIN_PY \
+            --mount "type=bind,src=$local_stage,dst=/release" \
             --workdir /release --entrypoint /bin/sh "$image_id" -eu -c '
               python3 -c "import sys,platform; assert sys.version_info[:2] == (3,12); assert platform.machine() == \"x86_64\""
-              node -e "if (process.versions.node.split(\".\")[0] !== \"20\") process.exit(1)"
+              grep -qx "VERSION_CODENAME=bookworm" /etc/os-release
+              python3 -I -c "$NODE_TOOLCHAIN_PY" /tmp/node-download /opt/node-toolchain
+              PATH="/opt/node-toolchain/node-v20.20.2-linux-x64/bin:$PATH"
+              export PATH
+              test "$(command -v node)" = /opt/node-toolchain/node-v20.20.2-linux-x64/bin/node
+              test "$(node -v)" = v20.20.2
+              test "$(command -v npm)" = /opt/node-toolchain/node-v20.20.2-linux-x64/bin/npm
+              npm --version >/dev/null
               npm ci --omit=dev --ignore-scripts --no-audit --no-fund
               node --check index.js
               python3 -m pip install --disable-pip-version-check --no-cache-dir --no-deps \

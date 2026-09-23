@@ -46,7 +46,7 @@
 .actionFace > span { display: inline-block; max-width: 100%; font-size: calc(3.6cqw * var(--console-fit, 1)); white-space: nowrap; }
 .action[aria-pressed='true'] { color: #c8ffd2 !important; }
 .action:disabled { opacity: .5; cursor: default; }
-.action:focus-visible, .link:focus-visible, .field:focus-visible { outline: 2px solid #45adff; outline-offset: 2px; }
+.action:focus-visible, .link:focus-visible, .field:focus-visible { outline: 2px solid #45adff !important; outline-offset: 2px !important; }
 .action:active { color: #f4f7fb !important; }
 .link { color: #45adff; font: 600 3.7cqw/1.5 'Roboto Condensed', 'Arial Narrow', sans-serif; text-decoration: none; overflow-wrap: anywhere; }
 .creator { display: flex; align-items: center; gap: 3cqw; min-width: 0; }
