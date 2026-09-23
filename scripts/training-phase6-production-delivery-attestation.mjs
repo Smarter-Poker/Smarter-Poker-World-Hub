@@ -36,6 +36,12 @@ import { pioQueryService } from '../src/services/PIOQueryService.js';
 import {
   validateStrictTrainingContinuationSnapshotPair,
 } from '../src/lib/training/trainingContinuationEligibility.mjs';
+import {
+  AUDIT_SESSION_OUTCOMES,
+  auditSessionMaterialLeaks,
+  ensureFreshAuditSession,
+  readAuditSessionAuthStatePath,
+} from '../src/lib/training/trainingAuditSessionRefresh.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SHA40_RE = /^[0-9a-f]{40}$/i;
 const SHA256_RE = /^[0-9a-f]{64}$/i;
@@ -283,11 +289,25 @@ export function validateImmutableDeploymentUrl(value) {
 }
 
 export function readAttestationConfig(env = process.env) {
+  // The out-of-Git credential env (mode 0600) is the only refresh source. When
+  // it is configured and no explicit auth-state path is given, the auth state
+  // it names is the one the attestation reads, so the two can never diverge.
+  const auditCredentialEnv = String(env.TRAINING_PHASE6_AUDIT_ENV_FILE || '').trim();
+  if (auditCredentialEnv) {
+    assert.ok(
+      isAbsolute(auditCredentialEnv),
+      'TRAINING_PHASE6_AUDIT_ENV_FILE must be an absolute path to the mode-0600 credential env'
+    );
+  }
+  const authState =
+    env.TRAINING_PHASE6_DELIVERY_AUTH_STATE
+    || (auditCredentialEnv ? readAuditSessionAuthStatePath(auditCredentialEnv) : null)
+    || resolve(ROOT, 'playwright/.auth/user.json');
   return validateAttestationConfig({
     baseUrl: env.TRAINING_PHASE6_DELIVERY_BASE_URL,
     expectedBuild: env.TRAINING_PHASE6_DELIVERY_EXPECTED_BUILD,
-    authState:
-      env.TRAINING_PHASE6_DELIVERY_AUTH_STATE || resolve(ROOT, 'playwright/.auth/user.json'),
+    authState,
+    auditCredentialEnv,
     output: env.TRAINING_PHASE6_DELIVERY_EVIDENCE,
     expectedAuditUserId: env.TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID,
     writeAcknowledgement: env.TRAINING_PHASE6_DELIVERY_ACKNOWLEDGE_WRITES,
@@ -315,6 +335,13 @@ export function validateAttestationConfig(config) {
   );
   const authState = resolve(String(config?.authState || ''));
   assert.ok(existsSync(authState), `Authenticated storage state is missing: ${authState}`);
+  const auditCredentialEnv = String(config?.auditCredentialEnv || '').trim();
+  if (auditCredentialEnv) {
+    assert.ok(
+      isAbsolute(auditCredentialEnv),
+      'TRAINING_PHASE6_AUDIT_ENV_FILE must be an absolute path to the mode-0600 credential env'
+    );
+  }
   assert.ok(
     typeof config?.output === 'string' && config.output.trim().length > 0,
     'TRAINING_PHASE6_DELIVERY_EVIDENCE must be an explicit unique output path'
@@ -324,6 +351,7 @@ export function validateAttestationConfig(config) {
     expectedBuild: expectedBuild.toLowerCase(),
     expectedAuditUserId,
     authState,
+    auditCredentialEnv: auditCredentialEnv ? resolve(auditCredentialEnv) : '',
     output: resolve(config.output.trim()),
     writeAcknowledgement: WRITE_ACKNOWLEDGEMENT,
     protectionBypassSecret:
@@ -4430,11 +4458,6 @@ export async function runProductionDeliveryAttestation(
   const sleep =
     runtime.sleep ||
     ((delayMs) => new Promise((resolveSleep) => setTimeout(resolveSleep, delayMs)));
-  const designatedAuth = authStorageState(
-    config.authState,
-    config.baseUrl,
-    config.expectedAuditUserId
-  );
   const lease = acquireEvidenceRunLock(config.output);
   const startedAt = now().toISOString();
   const evidence = {
@@ -4445,11 +4468,12 @@ export async function runProductionDeliveryAttestation(
     status: 'in_progress',
     startedAt,
     expectedBuild: config.expectedBuild,
-    auditUserId: designatedAuth.auditUserId,
+    auditUserId: config.expectedAuditUserId,
+    auditSession: { outcome: 'pending', refreshAttempted: false, refreshCalls: 0 },
     deployment: { deploymentUrl: config.baseUrl },
     writeScope: {
       acknowledged: true,
-      auditUserId: designatedAuth.auditUserId,
+      auditUserId: config.expectedAuditUserId,
       gameId: GAME_ID,
       level: LEVEL,
       effects: [
@@ -4478,6 +4502,35 @@ export async function runProductionDeliveryAttestation(
   try {
     writeOutputAtomic(config.output, evidence, { overwrite: false });
     outputOwned = true;
+    // Bounded audit-session custody, before the first request of any kind:
+    // exactly one refresh when the saved access token is expired or near
+    // expiry, none when it is fresh, and a fail-closed authoritative outcome
+    // otherwise. The auth state is read only after this step so the browser
+    // context and every API request carry the refreshed token.
+    evidence.auditSession = await ensureFreshAuditSession({
+      credentialEnvPath: config.auditCredentialEnv || null,
+      authStatePath: config.authState,
+      expectedAuditUserId: config.expectedAuditUserId,
+      fetchFn: runtime.fetchFn,
+      nowMs: runtime.nowMs,
+      sleep,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || null,
+      supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null,
+      ...(Number.isFinite(runtime.auditSessionTimeoutMs)
+        ? { timeoutMs: runtime.auditSessionTimeoutMs }
+        : {}),
+    });
+    assert.deepEqual(
+      auditSessionMaterialLeaks(evidence.auditSession),
+      [],
+      'audit session record must not carry token material'
+    );
+    writeOutputAtomic(config.output, evidence);
+    const designatedAuth = authStorageState(
+      config.authState,
+      config.baseUrl,
+      config.expectedAuditUserId
+    );
     evidence.deployment = await readDeploymentIdentity(config.baseUrl, config.expectedBuild, {
       fetchFn: runtime.fetchFn,
       now: runtime.nowMs,
@@ -4990,7 +5043,22 @@ export async function runProductionDeliveryAttestation(
         error?.message || String(error),
         config.protectionBypassSecret
       ),
+      ...(error?.code ? { code: redactReceiptMaterial(error.code) } : {}),
+      ...(error?.operatorAction
+        ? { operatorAction: redactReceiptMaterial(error.operatorAction) }
+        : {}),
     };
+    if (error?.auditSession && typeof error.auditSession === 'object') {
+      // The authoritative custody outcome (including `unknown` after a
+      // refresh timeout) is preserved for the operator; it never carries
+      // token material.
+      evidence.auditSession = error.auditSession;
+    } else if (evidence.auditSession?.outcome === 'pending') {
+      evidence.auditSession = {
+        ...evidence.auditSession,
+        outcome: error?.outcome || AUDIT_SESSION_OUTCOMES.refused,
+      };
+    }
     evidence.receiptFormatCensus = receiptFormatCensus(observations);
     if (outputOwned) writeOutputAtomic(config.output, evidence);
     throw error;

@@ -119,6 +119,64 @@ rotation invalidates unexpired receipts, whose maximum lifetime is 24 hours, so
 rotate only in a separately approved drain/maintenance window (or after a
 future multi-key verification design), never in the middle of this release.
 
+## Audit-session custody at startup (2026-09-22)
+
+The audit account's Supabase access JWT lives at most one week; its rotating
+refresh token keeps the session usable for a 90-day window. The tracked
+attestation now performs that rotation itself, once, at startup, through
+`src/lib/training/trainingAuditSessionRefresh.mjs`, before its first request
+of any kind. It refreshes when and only when the saved access token is expired
+or inside the 24-hour threshold; a fresh token makes zero refresh calls. The
+browser context and every API request then carry the refreshed token.
+
+Point the run at the mode-`0600` credential env kept outside the repository:
+
+```text
+TRAINING_PHASE6_AUDIT_ENV_FILE=/absolute/path/to/phase6/.env
+```
+
+That file is the same one the out-of-Git refresher (`refresh-session.mjs`)
+maintains, in the same `KEY='value'` format with the same keys
+(`TRAINING_PHASE6_AUDIT_ACCESS_TOKEN`, `TRAINING_PHASE6_AUDIT_REFRESH_TOKEN`,
+`TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID`,
+`TRAINING_PHASE6_DELIVERY_AUTH_STATE`,
+`TRAINING_PHASE6_AUDIT_SESSION_STARTED_AT_EPOCH`,
+`TRAINING_PHASE6_AUDIT_SESSION_VALID_UNTIL`, `TRAINING_PHASE6_AUDIT_SESSION_MODE`,
+`TRAINING_PHASE6_SUPABASE_URL`, `TRAINING_PHASE6_SUPABASE_PUBLISHABLE_KEY`,
+`TRAINING_PHASE6_AUDIT_ENV_FILE`). Both tools take the same exclusive
+`<env>.refresh.lock`, write temp + fsync + rename in the same directory, keep
+both files mode `0600` in a directory that is not group/world accessible, and
+never persist a session whose subject differs from the designated audit UUID.
+When `TRAINING_PHASE6_AUDIT_ENV_FILE` is set and
+`TRAINING_PHASE6_DELIVERY_AUTH_STATE` is not, the auth-state path named inside
+the credential env is used, so the two cannot diverge. Never print, source or
+copy either file; the harness reads them itself.
+
+The custody step is one bounded execution with an authoritative outcome,
+recorded under `auditSession` in the public evidence (identifiers, timestamps
+and counts only, never a token):
+
+| `auditSession.outcome` | Meaning | Operator action |
+| --- | --- | --- |
+| `fresh` | Token outlives the threshold; zero refresh calls | none |
+| `refreshed` | Exactly one refresh; both files rotated atomically | none |
+| `reused_persisted` | Another holder rotated while this run waited; nothing rotated twice | none |
+| `refused` | Fail-closed before any refresh call (90-day window ended, identity mismatch, malformed state, lock held by a live process, in-repository or loose-permission files) | read `failure.code` / `failure.operatorAction`; re-establish the session if the window ended |
+| `failed` | The refresh call answered but was rejected or malformed, or named another user; nothing persisted | re-establish the audit session with a fresh sign-in |
+| `unknown` | No response within the 20-second bound; the refresh token may already have rotated server-side | do not retry blindly; inspect the credential store, then run the out-of-Git refresher once, deliberately |
+
+On every non-`fresh`/`refreshed`/`reused_persisted` outcome the attestation
+exits before its first API request, the evidence file records
+`status: failed_closed` with the outcome, and the old credential files remain
+intact. A lock held by a live process is waited for at most three bounded
+attempts and then refused; a lock whose owning process is gone is removed
+once. A live lock is never deleted by the harness.
+
+Without `TRAINING_PHASE6_AUDIT_ENV_FILE` the plain auth-state flow below still
+works for a token that will outlive the run (at least 20 minutes remaining); an
+expired or nearly expired token is refused with an explicit message naming the
+variable, instead of failing later at the authenticated probe.
+
 ## Step 1: create immutable public evidence
 
 Run this only after PR A is the deployed build:
@@ -127,11 +185,14 @@ Run this only after PR A is the deployed build:
 TRAINING_PHASE6_DELIVERY_BASE_URL=https://<immutable-deployment>.vercel.app \
 TRAINING_PHASE6_DELIVERY_EXPECTED_BUILD=<exact-40-character-sha> \
 TRAINING_PHASE6_DELIVERY_EXPECTED_AUDIT_USER_ID=<dedicated-audit-account-uuid-v4> \
-TRAINING_PHASE6_DELIVERY_AUTH_STATE=$PWD/playwright/.auth/user.json \
+TRAINING_PHASE6_AUDIT_ENV_FILE=/absolute/path/to/phase6/.env \
 TRAINING_PHASE6_DELIVERY_ACKNOWLEDGE_WRITES=I_ACKNOWLEDGE_THIS_CREATES_REAL_TRAINING_ATTEMPTS_AND_ANSWERS \
 TRAINING_PHASE6_DELIVERY_EVIDENCE=/tmp/phase6-pr-a-delivery-attestation.json \
 node scripts/training-phase6-production-delivery-attestation.mjs
 ```
+
+(`TRAINING_PHASE6_DELIVERY_AUTH_STATE=<path>` may still be given explicitly; it
+must then name the same file the credential env names.)
 
 Choose a new, run-specific evidence path. If either that path or its `.lock`
 file exists, stop and inspect the earlier artifact; do not delete or reuse it
@@ -263,10 +324,23 @@ Phase 6 stays open.
 
 ```text
 node --test __tests__/training-production-delivery-attestation.test.mjs
+node --experimental-vm-modules --test __tests__/training-audit-session-refresh.test.mjs
 node --check scripts/training-phase6-production-delivery-attestation.mjs
 ```
 
-The current source contract passes 34/34 focused attestation tests, including immutable-host and
+`training-audit-session-refresh` (21 tests, in the permanent
+`test:training:phase6-authority` gate) proves the startup custody contract with
+synthetic tokens and a fake transport: one refresh for an expired or
+near-expiry token and zero for a fresh one, identity-mismatch and malformed
+state/response fail-closed with nothing persisted, atomic mode-`0600`
+persistence with private-directory and outside-repository checks, exclusive
+lock with bounded retry and no double rotation across concurrent callers,
+timeout reported as an authoritative `unknown` with the old state intact, the
+90-day window refusal, the attestation's first API request carrying the
+refreshed token, evidence staying mode `0600`, and the absence of every seeded
+secret from thrown messages, records and evidence JSON.
+
+The current source contract passes 42/42 focused attestation tests, including immutable-host and
 deployment-ID checks through a fake fetch transport, explicit audit-account
 JWT-subject/session binding, write acknowledgement, exclusive mode-`0600`
 run locking, malformed-signature and canonical-JTI binding, exact Standard
