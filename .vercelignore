@@ -113,6 +113,7 @@ _legacy_sql/
 !/__tests__/diamond-store-v3.test.mjs
 !/__tests__/club-shop-atomic-commerce.test.mjs
 !/__tests__/club-shop-manage-tools.test.mjs
+!/__tests__/club-shop-operator-repairs.test.mjs
 !/__tests__/diamond-store-phase-10.test.mjs
 !/__tests__/diamond-store-phase-11.test.mjs
 !/__tests__/diamond-store-phase-12.test.mjs
@@ -128,6 +129,7 @@ _legacy_sql/
 !/__tests__/diamond-store-phase-22.test.mjs
 !/__tests__/diamond-store-phase-23.test.mjs
 !/__tests__/diamond-store-phase-24.test.mjs
+!/__tests__/diamond-store-phase-25.test.mjs
 !/__tests__/marketplace-phase-8-lifetime-entitlements.test.mjs
 !/__tests__/marketplace-phase-6-request-resilience.test.mjs
 !/__tests__/marketplace-phase-6-fulfillment-verifier.test.mjs

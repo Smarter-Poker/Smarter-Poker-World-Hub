@@ -267,14 +267,25 @@ export default async function handler(req, res) {
           req.body;
         if (!clubId || !action)
           return res.status(400).json({ success: false, error: 'clubId and action required' });
+        // Match the GET above: a malformed id is a bad request, not a refused
+        // one. Without this the membership lookup simply matches nothing and
+        // the operator is told "Admin access required" for a typo.
+        if (!isUUID(clubId))
+          return res.status(400).json({ success: false, error: 'Invalid clubId format' });
+        if (itemId != null && !isUUID(itemId))
+          return res.status(400).json({ success: false, error: 'Invalid itemId format' });
 
-        const { data: member } = await getSupabase()
+        const { data: member, error: memberError } = await getSupabase()
           .from('club_members')
           .select('role')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
           .maybeSingle();
 
+        // A failed read is not an answer about this operator's role. Reporting
+        // a transient database failure as "Admin access required" tells an
+        // owner they were demoted.
+        if (memberError) throw memberError;
         if (!member || !['owner', 'admin'].includes(member.role)) {
           return res.status(403).json({ success: false, error: 'Admin access required' });
         }
@@ -592,13 +603,17 @@ export default async function handler(req, res) {
         if (action === 'toggle') {
           if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
-          const { data: item } = await getSupabase()
+          const { data: item, error: itemError } = await getSupabase()
             .from('club_shop_items')
             .select('name, category, item_type, grant_spec, is_active, stackable, price')
             .eq('id', itemId)
             .eq('club_id', clubId)
             .maybeSingle();
 
+          // A read that failed did not report that the row is absent, and the
+          // update below would flip is_active from an unread state. Fail as a
+          // failure, the way the update and delete branches already do.
+          if (itemError) throw itemError;
           if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
 
           const throwableGuard = enforceAllThrowablesMutation('toggle', req.body, item);

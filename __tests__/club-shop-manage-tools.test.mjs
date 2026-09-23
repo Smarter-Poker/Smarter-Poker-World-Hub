@@ -580,9 +580,18 @@ test('the open editor and the pending delete never survive a club or account cha
   );
 });
 
-test('a sold item cannot be walked into the delete dialog from the row either', () => {
-  assert.match(page, /!clubShopItemDeleteGuard\(item\)\.canDelete/);
-  assert.match(page, /clubShopItemDeleteGuard\(item\)\.reason \|\|\s*'Delete This Item'/);
+test('a sold item keeps a reachable delete control that answers with the guard', () => {
+  // The control used to be DISABLED with its only explanation in a `title`,
+  // which no phone and no screen reader can reach, and which left the guard's
+  // own "Hide It Instead" answer as code nothing could run. The guard decides
+  // on the click now, so the reason is spoken rather than hovered.
+  assert.match(page, /const clubShopDeleteGuards = useMemo\(/);
+  assert.match(page, /guards\.set\(item\.id, clubShopItemDeleteGuard\(item\)\)/);
+  assert.match(
+    page,
+    /deleteGuard\.canDelete\s*\?\s*setClubShopDeleteTarget\(item\)\s*:\s*showStoreToast\('warning', deleteGuard\.reason\)/
+  );
+  assert.match(page, /title=\{deleteGuard\.reason \|\| 'Delete This Item'\}/);
   const handler = page.slice(
     page.indexOf('const handleClubShopAdminAction'),
     page.indexOf('const clubShopIsAdmin =')
@@ -604,7 +613,7 @@ test('a historical throwable receipt row stays read only, and the platform pack 
   // Only a non-throwable row, or the one canonical pack, is offered an editor.
   assert.match(
     page,
-    /\(!isThrowableAdminItem\(item\) \|\|\s*isCanonicalAllThrowablesAdminItem\(item\)\) && \(/
+    /\(!isThrowableAdminItem\(item\) \|\|\s*isCanonicalAllThrowablesAdminItem\(item\)\) &&\s*\(isServerEditableAdminItem\(item\) \? \(/
   );
   assert.match(page, /\? 'Platform Managed'\s*:\s*'Historical Receipt Row'/s);
   const handler = page.slice(

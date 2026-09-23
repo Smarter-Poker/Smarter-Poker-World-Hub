@@ -7,6 +7,13 @@ import { SourceTextModule, SyntheticModule } from 'node:vm';
 const ROOT = process.cwd();
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 
+// The ledger refuses to build a client without the service key, because the
+// anon key reads nothing under RLS and would report an empty ledger as a
+// success. The linked createClient below is a stub, so the value is never used
+// for anything except passing that configuration check.
+process.env.SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'order-ledger-test-service-key';
+
 const API = read('pages/api/store/order-ledger.js');
 const ORDERS = read('pages/hub/diamond-store/orders.js');
 const RECEIPT = read('pages/hub/diamond-store/orders/[orderId].js');

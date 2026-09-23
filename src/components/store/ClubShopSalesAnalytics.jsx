@@ -21,7 +21,7 @@
  * without a network or a clock.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import shellStyles from '../diamond-store/DiamondStoreShell.module.css';
 import { boundedCommerceFetch } from '../../lib/store/boundedCommerceFetch';
@@ -35,6 +35,9 @@ const DEFAULT_RANGE = 30;
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 const fmt = (value) => Number(value || 0).toLocaleString('en-US');
+
+/** One stable empty series, so a report that has none does not re-memo. */
+const EMPTY_SERIES = Object.freeze([]);
 
 const panelStyle = {
   background: 'rgba(255,255,255,0.03)',
@@ -78,9 +81,14 @@ export function ClubShopSalesAnalyticsView({
   onRetry,
 }) {
   const totals = data?.totals || null;
-  const series = Array.isArray(data?.series) ? data.series : [];
+  const series = Array.isArray(data?.series) ? data.series : EMPTY_SERIES;
   // A flat series still has to draw: dividing by a zero peak paints nothing.
-  const peak = Math.max(1, ...series.map((point) => Number(point.netRevenue ?? point.revenue) || 0));
+  // Held across renders: the peak only moves when the report does, and every
+  // unrelated render was walking the whole ninety-day series again.
+  const peak = useMemo(
+    () => Math.max(1, ...series.map((point) => Number(point.netRevenue ?? point.revenue) || 0)),
+    [series]
+  );
 
   return (
     <div
@@ -310,8 +318,14 @@ export function ClubShopSalesAnalyticsView({
                     <tbody>
                       {data.topBuyers.map((buyer) => (
                         <tr key={buyer.userId}>
-                          <td style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}>
-                            {marketplaceCopy(buyer.name || 'Member')}
+                          {/* A member's name is an identity, not shopper copy:
+                              Title-Casing it can make two members identical. */}
+                          <td
+                            data-preserve-case="true"
+                            data-user-content="true"
+                            style={{ ...cellStyle, fontWeight: 700, color: '#E4E6EB' }}
+                          >
+                            {buyer.name || 'Member'}
                           </td>
                           <td style={cellStyle}>{fmt(buyer.netPurchases)}</td>
                           <td style={cellStyle}>{fmt(buyer.netSpent)}</td>

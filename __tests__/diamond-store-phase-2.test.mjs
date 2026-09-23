@@ -17,7 +17,9 @@ test('announces active store navigation and complete package purchase names', ()
   assert.match(showcase, /import Link from 'next\/link'/);
   assert.match(showcase, /className=\{`\$\{styles\.tab\}/);
   assert.match(showcase, /aria-current=\{id === activeTab \? 'page' : undefined\}/);
-  assert.match(showcase, /href=\{TAB_ROUTES\[id\]\}/);
+  // Still the canonical route, now carrying the club the visitor arrived in.
+  assert.match(showcase, /href=\{storeTabHref\(id, clubId\)\}/);
+  assert.match(showcase, /const route = TAB_ROUTES\[tabId\]/);
   assert.doesNotMatch(showcase, /MarketplaceConsoleSelectorGrid|MARKETPLACE_SELECTOR_ART/);
   assert.doesNotMatch(showcase, /target=["']_blank["']|Opens In New Tab/);
   assert.doesNotMatch(consoleControls, /target=["']_blank["']|window\.open/);

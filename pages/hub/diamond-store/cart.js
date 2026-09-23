@@ -28,6 +28,7 @@ import {
   clearCommerceRequestId,
   getOrCreateCommerceRequestId,
   inspectCommerceRequestRecovery,
+  listCommerceRequestRecoverySlots,
   replaceCommerceRequestId,
 } from '../../../src/lib/store/checkoutIntentStore';
 import {
@@ -138,6 +139,14 @@ export default function ShoppingCart() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [pendingDiamondCheckout, setPendingDiamondCheckout] = useState(null);
+  // A durable checkout request is bound to the exact cart terms that started
+  // it, and it lives for 48 hours. Until now, changing the cart before that
+  // attempt was resolved made every further checkout throw
+  // COMMERCE_INTENT_UNRESOLVED, and the only escape was rebuilding the cart
+  // byte-identically, which no message said. This holds the earlier attempt so
+  // the shopper can see what it was for and either resume it or discard it,
+  // the way /hub/diamond-store already surfaces its own protected slots.
+  const [checkoutRecovery, setCheckoutRecovery] = useState(null);
 
   const hydratedRef = useRef(false);
   // JSON of the last cart known to match Supabase: prevents mirror loops
@@ -174,6 +183,7 @@ export default function ShoppingCart() {
     cardCheckoutAbortRef.current = null;
     cardCheckoutProcessingRef.current = false;
     setPendingDiamondCheckout(null);
+    setCheckoutRecovery(null);
     if (invalidatedDiamondAttempt || invalidatedCardAttempt) setCheckingOut(false);
     setDiamondBalance(0);
   }, [user?.id]);
@@ -376,7 +386,14 @@ export default function ShoppingCart() {
         if (!res.ok) throw new Error(`Wallet Verification Failed (${res.status})`);
         const data = await res.json();
         const verifiedBalance = Number(data?.balance);
-        if (!data?.success || !Number.isSafeInteger(verifiedBalance) || verifiedBalance < 0) {
+        // A negative wallet is a supported, deliberate state: a card refund
+        // claws back Diamonds that were already spent and leaves an
+        // enforceable debt that future earnings repay. Treating it as a
+        // corrupt read replaced the whole cart with an error panel whose only
+        // action repeated the same request, so a member carrying a debt could
+        // not remove an item or pay by card. Report the figure instead; the
+        // Diamond payment path already refuses a cart it cannot cover.
+        if (!data?.success || !Number.isSafeInteger(verifiedBalance)) {
           throw new Error('Your Diamond Balance Could Not Be Verified. Try Again Before Checkout.');
         }
         if (isCurrentCartLoad(ownerId, requestId)) {
@@ -491,6 +508,120 @@ export default function ShoppingCart() {
     lastLocalEditRef.current = Date.now();
     storeClearCart();
   };
+
+  // ═══ Protected checkout recovery ═══════════════════════════════════════
+  // Every blocked cart scope maps to one group of cart lines and one identity
+  // per line, built exactly the way the checkout payload above builds it, so a
+  // stored attempt can be matched against what is in the cart right now.
+  const isScopeMember = (item, scope) =>
+    scope === 'cart-diamonds'
+      ? item?.type === 'diamonds'
+      : item?.type !== 'diamonds' && item?.type !== 'vip';
+
+  const scopeLineIdentity = (item, scope) => {
+    if (scope === 'cart-diamonds') {
+      const packageId = String(item?.packageId || item?.id || '').replace(/^diamond-/, '');
+      return packageId ? `${packageId}\u0000` : null;
+    }
+    const line = canonicalMerchCartLine(item);
+    return line ? `${line.id}\u0000${line.variantId || ''}` : null;
+  };
+
+  const storedLineIdentity = (line) => `${String(line?.id || '')}\u0000${line?.variantId || ''}`;
+
+  /**
+   * Read the protected request that is blocking this scope. The stored terms
+   * come back from the slot listing, and re-inspecting them with those exact
+   * terms is what yields the request identifier the shopper needs to retire.
+   * Returns null when nothing is actually held, so the ordinary error stands.
+   */
+  const describeProtectedCheckout = (commerceIntent) => {
+    const slots = listCommerceRequestRecoverySlots({
+      userId: commerceIntent.userId,
+      paymentMethod: commerceIntent.paymentMethod,
+      scopePrefix: 'cart-',
+    });
+    const slot = slots.find((entry) => entry.scope === commerceIntent.scope);
+    if (!slot) return null;
+    const stored = inspectCommerceRequestRecovery({
+      scope: slot.scope,
+      userId: commerceIntent.userId,
+      paymentMethod: commerceIntent.paymentMethod,
+      intent: slot.intent,
+    });
+    if (stored.status !== 'recoverable' || !stored.requestId) return null;
+    const storedLines = Array.isArray(slot.intent?.items) ? slot.intent.items : [];
+    const group = useCartStore.getState().items.filter((item) => isScopeMember(item, slot.scope));
+    const lines = storedLines.map((line) => {
+      const identity = storedLineIdentity(line);
+      const match = group.find((item) => scopeLineIdentity(item, slot.scope) === identity);
+      const quantity = Number(line?.quantity) || 0;
+      return {
+        identity,
+        quantity,
+        name: match?.name || String(line?.id || ''),
+        inCart: Boolean(match) && quantity > 0,
+      };
+    });
+    return {
+      scope: slot.scope,
+      userId: commerceIntent.userId,
+      paymentMethod: commerceIntent.paymentMethod,
+      requestId: stored.requestId,
+      lines,
+      resumable: lines.length > 0 && lines.every((line) => line.inCart),
+      groupLabel: slot.scope === 'cart-diamonds' ? 'Diamond Packages' : 'Merchandise',
+      paymentLabel: commerceIntent.paymentMethod === 'card' ? 'Card' : 'Diamonds',
+    };
+  };
+
+  const reportProtectedCheckout = (commerceIntent) => {
+    try {
+      setCheckoutRecovery(describeProtectedCheckout(commerceIntent));
+    } catch (recoveryError) {
+      setCheckoutRecovery(null);
+      console.warn(
+        '[cart] Protected checkout recovery could not be read:',
+        recoveryError?.message || recoveryError
+      );
+    }
+  };
+
+  // Resuming puts the cart back to the terms the protected request is bound
+  // to, so the next checkout reuses its original request identifier instead of
+  // minting a second payment path for the same purchase.
+  const resumeProtectedCheckout = () => {
+    if (!checkoutRecovery?.resumable) return;
+    const scope = checkoutRecovery.scope;
+    const wanted = new Map(checkoutRecovery.lines.map((line) => [line.identity, line.quantity]));
+    lastLocalEditRef.current = Date.now();
+    setCartItems(
+      useCartStore.getState().items.flatMap((item) => {
+        if (!isScopeMember(item, scope)) return [item];
+        const identity = scopeLineIdentity(item, scope);
+        const quantity = identity ? wanted.get(identity) : undefined;
+        return quantity ? [{ ...item, quantity }] : [];
+      })
+    );
+    setCheckoutRecovery(null);
+    toast.success('The Earlier Checkout Was Restored. Check Out Again To Continue It.');
+  };
+
+  // There is deliberately no "discard this attempt" control here. The durable
+  // request identifier is the Stripe idempotency key
+  // (create-checkout-session.js passes it as `idempotencyKey`, and reuses the
+  // open session already carrying it in `metadata.checkout_request_id`), so it
+  // is what guarantees ONE payable session per protected attempt. Retiring it
+  // from the browser without the server saying the attempt is finished would
+  // mint a second payable session while the first is still open, and a shopper
+  // who later returns to that tab pays twice. Nothing reachable from this page
+  // can resolve an attempt by request identifier alone: /api/store/checkout-status
+  // answers by session id only. So the exit offered here is the one that cannot
+  // double-charge: put the cart back to the terms that attempt is bound to and
+  // continue it under its original identifier. Every other route out of this
+  // state is server-stated already: an expired session comes back as
+  // CHECKOUT_EXPIRED and `replaceCommerceRequestId` retires the key on the spot,
+  // and a settled one is retired against a verified receipt.
 
   // ═══ Cart grouping ═══
   // A Stripe checkout session is single-purpose: create-checkout-session.js
@@ -773,6 +904,10 @@ export default function ShoppingCart() {
       return;
     } catch (err) {
       if (err?.name === 'AbortError' || !attemptIsCurrent()) return;
+      // The durable store is still holding an earlier attempt for this rail.
+      // Surface it so the shopper has a way out other than rebuilding the
+      // cart byte-identically.
+      if (err?.code === 'COMMERCE_INTENT_UNRESOLVED') reportProtectedCheckout(commerceIntent);
       if (checkoutRequestReplacementRequired(err) && checkoutRequestId) {
         try {
           replaceCommerceRequestId({ ...commerceIntent, expectedRequestId: checkoutRequestId });
@@ -859,9 +994,11 @@ export default function ShoppingCart() {
     try {
       recovery = inspectCommerceRequestRecovery(commerceIntent);
       if (recovery.status === 'terms-changed') {
-        throw new Error(
+        const termsChangedError = new Error(
           'An Earlier Protected Purchase Uses Different Cart Terms. Verify It Before Starting Another.'
         );
+        termsChangedError.code = 'COMMERCE_INTENT_UNRESOLVED';
+        throw termsChangedError;
       }
       const purchaseWasResumed = recovery.status === 'recoverable';
       purchaseRequestId = purchaseWasResumed
@@ -887,6 +1024,10 @@ export default function ShoppingCart() {
         offerConfirmation,
       });
     } catch (error) {
+      // Same escape hatch as the Card rail: an earlier protected attempt for
+      // different terms must be nameable, resumable and discardable instead of
+      // holding this cart shut until the 48 hour window expires.
+      if (error?.code === 'COMMERCE_INTENT_UNRESOLVED') reportProtectedCheckout(commerceIntent);
       toast.error(error?.message || 'Secure Purchase Recovery Is Unavailable. Please Try Again.');
       return;
     }
@@ -1130,6 +1271,45 @@ export default function ShoppingCart() {
           title="Your Cart"
           description="Review Your Stack, Confirm The Delivery Details, And Settle Every Eligible Merchandise Order With Card Or Diamonds."
         >
+          {checkoutRecovery && (
+            <div role="alert">
+              <MarketplaceConsolePanel
+                title="An Earlier Checkout Is Still Protected"
+                primaryAction={
+                  checkoutRecovery.resumable
+                    ? {
+                        label: 'Restore Those Items And Resume',
+                        onClick: resumeProtectedCheckout,
+                      }
+                    : undefined
+                }
+              >
+                <MarketplaceConsoleStatusRow
+                  label={`${checkoutRecovery.groupLabel} Paid By ${checkoutRecovery.paymentLabel}`}
+                  value="Held For Verification"
+                  detail={
+                    checkoutRecovery.resumable
+                      ? 'Resuming Puts This Cart Back To The Items That Attempt Was For, So It Continues Under Its Original Request Instead Of Starting A Second Payment. Items Added Since Are Removed From The Cart.'
+                      : 'Put The Items Listed Below Back In This Cart At The Quantities Shown, Then Resume. Continuing The Original Attempt Is What Keeps This From Becoming A Second Payment.'
+                  }
+                  valueInk="red"
+                />
+                {checkoutRecovery.lines.map((line, index) => (
+                  <MarketplaceConsoleStatusRow
+                    key={line.identity}
+                    label={`Protected Item ${index + 1}`}
+                    value={marketplaceCopy(line.name || 'Item No Longer In This Cart')}
+                    detail={
+                      line.inCart
+                        ? `Quantity ${line.quantity.toLocaleString()}`
+                        : `Quantity ${line.quantity.toLocaleString()}: No Longer In This Cart`
+                    }
+                    valueInk={line.inCart ? 'white' : 'red'}
+                  />
+                ))}
+              </MarketplaceConsolePanel>
+            </div>
+          )}
           {projectedCartLoadError ? (
             <div role="alert">
               <MarketplaceConsolePanel
