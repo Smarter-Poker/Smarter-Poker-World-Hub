@@ -293,6 +293,12 @@ import './the-app-reopens-where-you-left-it.test.mjs';
 // handler through vm.SourceTextModule, which CHECK 8's
 // --experimental-vm-modules provides for this file.
 import './a-club-table-count-has-one-writer.law.test.mjs';
+// 2026-09-24: the gate that finds the NEXT dead rpc without a person looking.
+// decrement_club_table_count was dropped by a migration in ANOTHER repository,
+// so CHECK 17 (a migration this branch adds must already be applied) could not
+// see it. CHECK 26 reads the live PostgREST catalogue instead. This law pins
+// the scanner's parser and its decision; CI runs the scanner itself.
+import './an-rpc-call-names-a-live-function.law.test.mjs';
 
 const REPO = path.resolve(new URL('.', import.meta.url).pathname, '..');
 
@@ -303,6 +309,9 @@ const REQUIRED_TEST_FILES = [
     '__tests__/a-script-never-wears-a-persons-face.law.test.mjs',
     '__tests__/the-hub-notices-a-revoked-session.law.test.mjs',
     '__tests__/a-probe-that-cannot-run-says-so.law.test.mjs',
+    // A call naming a function the database no longer has is PGRST202, a 404
+    // in an `error` object. Deleting this law un-gates CHECK 26.
+    '__tests__/an-rpc-call-names-a-live-function.law.test.mjs',
     // An env var cannot change unseen (2026-09-03 began with exactly one).
     '__tests__/an-env-var-cannot-change-unseen.law.test.mjs',
     // Pins the two-hop cron auth boundary (Vercel 200 / workers 404). Deleting
