@@ -628,6 +628,42 @@ jobs:
           node --test __tests__/stranded-writers.test.mjs
           node scripts/ci/check-stranded-writers.mjs
 
+      - name: "CHECK 26: No phantom Supabase RPCs"
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://kuklfnapbkmacvwxktbh.supabase.co
+        run: |
+          # The function-level member of the phantom family. CHECK 11 covers
+          # tables, CHECK 13 covers columns, this covers supabase.rpc('name').
+          # PostgREST answers an unresolvable call with PGRST202, a 404 that
+          # arrives in the `error` object rather than as a throw, so the call
+          # site logs it and continues and the feature silently never works.
+          #
+          # WHY IT READS THE LIVE CATALOGUE RATHER THAN THIS REPO'S MIGRATIONS
+          # The break it was written for was a DROP in ANOTHER repository.
+          # Club Arena's three_watchers_whose_defects_were_fixed_stop_running
+          # dropped increment_club_table_count and decrement_club_table_count
+          # on 2026-09-20 (correctly: the trg_tables_sync_club_counts_*
+          # triggers recompute clubs.table_count from fn_live_table_count(),
+          # and those two wrote it blind). manage-table.js was still calling
+          # the decrement, and CHECK 17 could not see it, because CHECK 17
+          # reads the migrations THIS branch adds. A cross-repository drop is
+          # invisible to every gate that reads only this repository. This one
+          # asks the database instead, so it does not care who moved it.
+          #
+          # Clean on the first run: 309 distinct rpc names, 3,010 live
+          # functions, 6 findings, all 6 allowlisted with evidence (one
+          # deliberate Stripe fallback whose primary IS live, and five calls
+          # in src/content-engine, a separate deployment unit this project's
+          # runtime cannot reach). No burndown was needed, so it goes in
+          # BLOCKING rather than warn-only.
+          node --test __tests__/an-rpc-call-names-a-live-function.law.test.mjs
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::SUPABASE_SERVICE_ROLE_KEY secret not set - phantom-rpc check is NOT enforced."
+            exit 0
+          fi
+          node scripts/ci/check-phantom-rpcs.mjs
+
       - name: "CHECK 14: Vendor drift guard (CJS-under-ESM + override bypass)"
         run: |
           # Closes the vendoring-drift bug CLASS behind three separate prod
