@@ -783,6 +783,14 @@
     {
       "source": "/images/commander/:path*",
       "destination": "https://commander.smarter.poker/images/commander/:path*"
+    },
+    {
+      "source": "/Portfolio",
+      "destination": "https://daniel-bekavac-portfolio.vercel.app/Portfolio"
+    },
+    {
+      "source": "/Portfolio/:path*",
+      "destination": "https://daniel-bekavac-portfolio.vercel.app/Portfolio/:path*"
     }
   ]
 }
