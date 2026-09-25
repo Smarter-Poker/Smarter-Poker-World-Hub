@@ -1,7 +1,7 @@
 {
   "version": 2,
   "updated": "2026-05-03",
-  "notes": "ISO-3166-1 alpha-2 codes. Block list for play-money launch — jurisdictions where online poker (even play-money) is either explicitly illegal or carries a high legal risk for the operator. The real-money list will be stricter; see §1.3.3 of the launch-readiness plan. | v2 (2026-05-03): /auth/* and /api/auth/* added to allow_paths. Geo gating belongs at chip-purchase / prize-redemption time, NOT at account creation. Blocking signup at the edge bricked every signup originating from WA, UT, LA, ID, MT, SD, IN, MI, MS, TN between 2026-04-24 and 2026-05-03. State-tier gating still applies inside the app via profiles.access_tier = 'Restricted_Tier'.",
+  "notes": "ISO-3166-1 alpha-2 codes. Block list for play-money launch \\u2014 jurisdictions where online poker (even play-money) is either explicitly illegal or carries a high legal risk for the operator. The real-money list will be stricter; see \\u00a71.3.3 of the launch-readiness plan. | v2 (2026-05-03): /auth/* and /api/auth/* added to allow_paths. Geo gating belongs at chip-purchase / prize-redemption time, NOT at account creation. Blocking signup at the edge bricked every signup originating from WA, UT, LA, ID, MT, SD, IN, MI, MS, TN between 2026-04-24 and 2026-05-03. State-tier gating still applies inside the app via profiles.access_tier = 'Restricted_Tier'.",
   "mode": "deny",
   "denied_countries": [
     "CN",
