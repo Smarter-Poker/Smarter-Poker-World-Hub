@@ -132,12 +132,25 @@ function splitSqlArguments(source) {
   return args;
 }
 
-function functionArgumentNames(signature) {
+function functionArguments(signature) {
   return splitSqlArguments(signature)
     .map((argument) => argument.replace(/^\s*(?:inout|in|out|variadic)\s+/i, '').trim())
-    .map((argument) => argument.match(/^"?([a-z_][a-z0-9_]*)"?\s+/i)?.[1]?.toLowerCase())
+    .map((argument) => {
+      const match = argument.match(
+        /^"?([a-z_][a-z0-9_]*)"?\s+((?:"?[a-z_][a-z0-9_]*"?\.)?"?[a-z_][a-z0-9_]*"?)/i
+      );
+      if (!match) return null;
+      return {
+        name: match[1].toLowerCase(),
+        type: match[2].replaceAll('"', '').toLowerCase(),
+      };
+    })
     .filter(Boolean);
 }
+
+// Keep SQL types private so the long-standing declaredObjects().fns contract
+// remains `{ name, args }` for callers that compare or serialize it.
+const functionArgumentTypes = new WeakMap();
 
 export function declaredObjects(sql) {
   const clean = sql.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -158,7 +171,15 @@ export function declaredObjects(sql) {
     ),
   ]
     .filter((m) => !/^(?:trigger|event_trigger)$/i.test(m[3]))
-    .map((m) => ({ name: m[1].toLowerCase(), args: functionArgumentNames(m[2]) }));
+    .map((m) => {
+      const args = functionArguments(m[2]);
+      const fn = {
+        name: m[1].toLowerCase(),
+        args: args.map((argument) => argument.name),
+      };
+      functionArgumentTypes.set(fn, args.map((argument) => argument.type));
+      return fn;
+    });
   // A migration can legitimately use a durable table as private staging and
   // deliberately remove it after the data swap succeeds. CHECK 17 validates
   // the migration's *final* desired schema, not every object that existed
@@ -317,7 +338,28 @@ export function unappliedObjects(declared, live) {
       continue;
     }
     if (fn.args.length > 0) {
+      // PostgREST represents a single relation-row argument as the composite
+      // object's fields, not as a JSON property bearing the SQL argument name.
+      // Requiring `p_reel` for `(p_reel public.social_reels)` therefore creates
+      // a false missing-signature report. Limit this exception to a single
+      // argument whose declared type is an exposed relation, and require the
+      // live expanded signature to equal that relation's complete column set.
+      // A scalar overload named like one relation column must not satisfy it;
+      // scalar and multi-argument overloads retain the named-argument check.
+      const argumentTypes = functionArgumentTypes.get(fn) || [];
+      const singleArgumentType = argumentTypes.length === 1
+        ? argumentTypes[0].split('.').at(-1)
+        : null;
       const liveSignatures = rpcArgs.get(fn.name) || [];
+      if (singleArgumentType && fn.args.length === 1 && tables.has(singleArgumentType)) {
+        const relationColumns = tables.get(singleArgumentType);
+        const compositeSignatureReady = relationColumns.size > 0
+          && liveSignatures.some((liveArgs) =>
+            liveArgs.size === relationColumns.size
+            && [...relationColumns].every((column) => liveArgs.has(column))
+          );
+        if (compositeSignatureReady) continue;
+      }
       const signatureReady = liveSignatures.some((liveArgs) =>
         fn.args.every((argument) => liveArgs.has(argument))
       );

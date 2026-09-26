@@ -1,10 +1,10 @@
 # Roadmap
 
-## Phase 1 Of 10: Integrity And Safe Publication
+## Phase 1 Of 10: Restore Safe Supply And Endless Delivery
 
-Separate provenance, playback, topic, rights, and canonical identity. Stop automatic third-party YouTube downloads. Add atomic, idempotent library-Reel-social-post publication. Make new poker library Reels visible in Reels and the main social feed. Add production health proof and a publication kill switch.
+Separate provenance, playback, topic, rights, and canonical identity. Stop automatic third-party YouTube downloads. Install the official atomic publisher, restore verified Video Library and horse-video publication without enabling unrelated generated content, and replace the Social Media viewer's fixed 50-item window with cursor-backed continuation. Introduce the allowlisted For You, Poker, Casino And Slots, Sports, and Following contract while retaining all readiness, moderation, rights, and availability gates.
 
-**Requirements:** INT-01, INT-02, INT-03, INT-04, INT-06, RGT-01, RGT-02, ING-05, OPS-04, OPS-05.
+**Requirements:** INT-01 through INT-04, INT-06, RGT-01, RGT-02, ING-05, SUP-01 through SUP-07, UX-01, UX-09 through UX-12, OPS-04, OPS-05, OPS-07.
 
 ## Phase 2 Of 10: Historical Reconciliation And Legacy Retirement
 
@@ -14,9 +14,9 @@ Consolidate historical duplicates while preserving engagement and old links, rep
 
 ## Phase 3 Of 10: Source Registry And High-Volume Ingestion
 
-Replace hardcoded sources with an operator-controlled registry, stable channel IDs, supported incremental ingestion, batching, source health, per-source cadence, and at least 250 qualified daily candidates.
+Replace hardcoded sources with an operator-controlled registry, stable channel IDs, supported incremental ingestion, batching, source health, per-source cadence, and at least 500 qualified daily candidates. Add current top poker, gambling, and slot channels plus official or rights-safe trending sports sources, all with lifecycle and attribution data.
 
-**Requirements:** INT-06, ING-01 through ING-06, OPS-02, OPS-04.
+**Requirements:** INT-06, ING-01 through ING-06, ING-08, OPS-02, OPS-04, OPS-08.
 
 ## Phase 4 Of 10: Durable Enrichment And Editorial Workflow
 
@@ -26,7 +26,7 @@ Create durable metadata, tagging, transcript, chapter, classification, quality s
 
 ## Phase 5 Of 10: Reel Candidate And Highlight Engine
 
-Convert validated Shorts into candidates, find useful segments in long-form poker content, store selection rationale, provide start/end embedded playback, and enforce publication diversity and rate limits.
+Convert validated Shorts into candidates, find useful segments in long-form content, store selection rationale, provide start/end embedded playback for third-party sources, and enforce publication diversity and rate limits. Native clipping remains limited to owned or licensed masters.
 
 **Requirements:** REL-01, REL-02, REL-05, REL-06.
 
@@ -38,7 +38,7 @@ Add source-master upload, permission enforcement, vertical reframing, subtitles,
 
 ## Phase 7 Of 10: Unified Mobile-First Library And Reels Delivery
 
-Replace duplicated clients with one API, player, card, ranking contract, and cursor model. Add feed modes, discovery shelves, accessibility, data saver, playback lifecycle, virtualization, and measured mobile budgets.
+Replace duplicated clients with one API, controller, player, card, ranking contract, and cursor model. Add the dedicated painted Reels Console art family, feed modes, discovery shelves, accessibility, data saver, playback lifecycle, bounded virtualization, and measured mobile budgets at 375px, 393px, 768px, and 1440px.
 
 **Requirements:** UX-01 through UX-04, UX-06 through UX-08, OPS-06.
 
@@ -52,7 +52,7 @@ Add semantic search, recommendations, transparent ranking, study lists, timestam
 
 Ship source claiming, rights evidence, creator submissions, attribution controls, review, reporting, responsible-play labeling, revocation, and end-to-end takedowns.
 
-**Requirements:** RGT-03 through RGT-06, OPS-01.
+**Requirements:** RGT-03 through RGT-07, OPS-01.
 
 ## Phase 10 Of 10: Operations, Analytics, Experimentation, And Final Hardening
 

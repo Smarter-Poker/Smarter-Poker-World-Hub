@@ -44,7 +44,7 @@ export const BLOCKED_VIDEO_LIBRARY_IDS = Object.freeze([
 
 const BLOCKED_VIDEO_LIBRARY_ID_SET = new Set(BLOCKED_VIDEO_LIBRARY_IDS);
 export const YOUTUBE_VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
-export const VIDEO_LIBRARY_ALLOWED_TYPES = Object.freeze(['cash', 'tournament']);
+export const VIDEO_LIBRARY_ALLOWED_TYPES = Object.freeze(['cash', 'tournament', 'slots']);
 const VIDEO_LIBRARY_ALLOWED_TYPE_SET = new Set(VIDEO_LIBRARY_ALLOWED_TYPES);
 
 /**
@@ -64,10 +64,10 @@ const VIDEO_LIBRARY_ALLOWED_TYPE_SET = new Set(VIDEO_LIBRARY_ALLOWED_TYPES);
  *   availability_checked_at <= now() + interval '5 minutes'
  * (fn_queue_youtube_verification re-queues at 6 days, inside the bound).
  *
- * Why 7 days and not 24 hours: the single daily verifier run (limit 500,
+ * Why 7 days and not 24 hours: the single daily verifier run (limit 750,
  * 12-hour renewal target in scripts/video_library_to_reels.py) re-verifies
- * each of the ~1,417 poker rows about every 2.8 days. Seven days is therefore
- * a fail-closed expiry bound with margin. A 24-hour bound cannot be sustained
+ * each of the current ~2,200 poker and slots rows about every five days.
+ * Seven days is therefore a fail-closed expiry bound with margin. A 24-hour bound cannot be sustained
  * by one daily run and made the catalog API's JavaScript filter disagree with
  * the SQL view it paginates (total/hasMore counted rows the filter dropped).
  *
@@ -95,9 +95,9 @@ export function isVideoLibraryVideoAllowed(videoOrId) {
     if (normalizedId.startsWith('FAKE') || BLOCKED_VIDEO_LIBRARY_ID_SET.has(normalizedId)) return false;
 
     // ID-only checks protect old bookmarks before their catalog row resolves.
-    // Once row metadata exists, keep the poker library limited to its supported
-    // cash-game and tournament taxonomy. This rejects stale cached responses
-    // containing slot/casino records without deleting those records at source.
+    // Once row metadata exists, keep the managed library limited to its
+    // explicitly supported poker and slots taxonomy. This rejects stale cached
+    // responses containing unrelated records without deleting them at source.
     if (typeof videoOrId === 'object' && videoOrId !== null && videoOrId.type) {
         if (!VIDEO_LIBRARY_ALLOWED_TYPE_SET.has(String(videoOrId.type).toLowerCase())) return false;
     }

@@ -55,7 +55,6 @@ test('News Reels surfaces use one exact shared console master per surface', () =
     assert.match(VIEWER, /titleId="news-reels-viewer-title"/);
     assert.match(NEWS, /aria-labelledby="news-reels-viewer-title"/);
 });
-
 test('Reel scans are real media or explicit no-image text, never generic art', () => {
     assert.doesNotMatch(CARD, /FALLBACK_IMAGES|default-avatar|lucide-react|<svg|<Play\b/);
     assert.match(CARD, /thumbnailUrl && !posterFailed/);
@@ -139,4 +138,3 @@ test('viewer recovery, keyboard containment, and real media playback remain wire
     assert.match(VIEWER, /onError=\{\(\) =>/);
     assert.match(VIEWER, /Close Viewer/);
 });
-

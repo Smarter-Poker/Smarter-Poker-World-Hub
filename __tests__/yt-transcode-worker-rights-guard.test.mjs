@@ -136,6 +136,11 @@ test('startup preflight checks schema plus completion and verdict RPC behavior',
   assert.match(workerSource, /--preflight-only/);
 });
 
+test('the Node 20 worker supplies the supported Supabase Realtime transport', () => {
+  assert.match(workerSource, /import WebSocket from ['"]ws['"]/);
+  assert.match(workerSource, /realtime:\s*\{\s*transport:\s*WebSocket\s*\}/);
+});
+
 test('active work is stopped on control uncertainty and subprocess trees are reaped', () => {
   assert.match(workerSource, /const CONTROL_WATCH_MS = 5_000/);
   assert.match(workerSource, /const CONTROL_REQUEST_TIMEOUT_MS = 4_000/);

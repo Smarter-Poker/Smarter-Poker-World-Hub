@@ -16,7 +16,16 @@ import { getAccessToken, getAuthUser } from '../../lib/authUtils';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import GiphyPicker from '../shared/GiphyPicker';
-import { fetchPokerReels } from '../../lib/reelsFeedClient';
+import { canonicalReelKey, fetchPokerReels } from '../../lib/reelsFeedClient';
+import { scanReelsContinuations } from '../../lib/reelsContinuation.mjs';
+import {
+  BACKGROUND_REELS_REFRESH,
+  REELS_BACKGROUND_REFRESH_DELAY_MS,
+  createReelRealtimeChangeFilter,
+  createReelsRefreshCoordinator,
+  mergeBackgroundReels,
+  resolveStaleReels,
+} from '../../lib/reelsRealtimeRefresh.mjs';
 import {
   loadReelFollowState,
   loadReelInteractionState,
@@ -83,19 +92,98 @@ function getYouTubeThumbnail(url) {
   return null;
 }
 
+const REELS_NEAR_END_THRESHOLD = 3;
+const SOCIAL_REEL_CATEGORIES = Object.freeze([
+  { id: 'for-you', label: 'For You', title: 'For You Reels' },
+  { id: 'poker', label: 'Poker', title: 'Poker Reels' },
+  { id: 'casino-slots', label: 'Casino And Slots', title: 'Casino And Slots Reels' },
+  { id: 'sports', label: 'Sports', title: 'Sports Reels' },
+  { id: 'following', label: 'Following', title: 'Following Reels', requiresAccount: true },
+]);
+const SOCIAL_REEL_CATEGORY_TOPICS = Object.freeze({
+  poker: new Set(['poker', 'cash', 'tournament']),
+  'casino-slots': new Set(['slots']),
+  sports: new Set(['sports']),
+  'for-you': new Set(['poker', 'cash', 'tournament', 'slots', 'sports']),
+  following: new Set(['poker', 'cash', 'tournament', 'slots', 'sports']),
+});
+
+// The shared realtime classifier is intentionally poker-strict for its older
+// standalone consumers. Adapt an explicit topic to that vocabulary only when
+// it belongs to the carousel's currently selected category. A topic that no
+// longer belongs becomes an invalid sentinel and is therefore fail-closed.
+function realtimeRowForCategory(row, category) {
+  if (!row || typeof row !== 'object' || !Object.prototype.hasOwnProperty.call(row, 'topic')) {
+    return row;
+  }
+  const topic = String(row.topic || '').trim().toLowerCase();
+  const allowed = SOCIAL_REEL_CATEGORY_TOPICS[category] || SOCIAL_REEL_CATEGORY_TOPICS['for-you'];
+  return {
+    ...row,
+    topic: allowed.has(topic) ? 'poker' : '__category_ineligible__',
+  };
+}
+
+function mergeCarouselReels(current, incoming) {
+  const byId = new Map();
+  for (const reel of Array.isArray(current) ? current : []) {
+    if (reel?.id) byId.set(reel.id, reel);
+  }
+  for (const reel of Array.isArray(incoming) ? incoming : []) {
+    if (!reel?.id) continue;
+    byId.set(reel.id, { ...(byId.get(reel.id) || {}), ...reel });
+  }
+  return [...byId.values()].sort((left, right) => {
+    const createdAtDifference =
+      new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+    if (createdAtDifference) return createdAtDifference;
+    return String(right.id).localeCompare(String(left.id));
+  });
+}
+
+function canonicalSupersededReelIds(current, incoming) {
+  const incomingWinnerByKey = new Map();
+  for (const reel of Array.isArray(incoming) ? incoming : []) {
+    const key = canonicalReelKey(reel);
+    if (key && !incomingWinnerByKey.has(key)) incomingWinnerByKey.set(key, reel.id);
+  }
+  return (Array.isArray(current) ? current : [])
+    .filter((reel) => {
+      const key = canonicalReelKey(reel);
+      const winnerId = key ? incomingWinnerByKey.get(key) : null;
+      return Boolean(winnerId && winnerId !== reel.id);
+    })
+    .map((reel) => reel.id);
+}
+
+function readContinuationState(payload) {
+  const nextCursor = typeof payload?.next_cursor === 'string' && payload.next_cursor
+    ? payload.next_cursor
+    : null;
+  return {
+    nextCursor,
+    hasMore: Boolean(nextCursor) && payload?.has_more !== false,
+  };
+}
+
+function isReelsAuthError(error) {
+  return error?.code === 'REELS_AUTH_REQUIRED' || error?.status === 401 || error?.status === 403;
+}
+
 // Individual Reel Card in the carousel
 function ReelCard({ reel, onClick }) {
   const isYouTube = isYouTubeUrl(reel.video_url);
   const youtubeThumbnail = isYouTube
     ? reel.thumbnail_url || getYouTubeThumbnail(reel.video_url)
     : null;
+  const creatorName = reel.profiles?.username || reel.channel_name || 'Reel Creator';
 
   return (
     <button
       type="button"
       onClick={onClick}
       className="vlc-reel-card"
-      aria-label={`Open reel by ${reel.profiles?.username || 'Poker Creator'}`}
+      aria-label={`Open reel by ${creatorName}`}
     >
       <span className="vlc-reel-card__media">
         {isYouTube && youtubeThumbnail ? (
@@ -107,22 +195,32 @@ function ReelCard({ reel, onClick }) {
             playsInline
             preload="none"
             poster={reel.thumbnail_url || undefined}
-            aria-label={reel.caption || 'Poker reel preview'}
+            aria-label={reel.caption || 'Reel preview'}
           />
         ) : (
-          <span className="vlc-reel-card__fallback">Verified Poker Video</span>
+          <span className="vlc-reel-card__fallback">Verified Video</span>
         )}
       </span>
       <span className="vlc-reel-card__author">
         {reel.profiles?.avatar_url ? <img src={reel.profiles.avatar_url} alt="" /> : null}
-        <span>{reel.profiles?.username || 'Poker Creator'}</span>
+        <span>{creatorName}</span>
       </span>
       <span className="vlc-reel-card__caption">{reel.caption || 'Open Reel'}</span>
     </button>
   );
 }
 
-function ReelViewer({ reels, startIndex, onClose }) {
+function ReelViewer({
+  reels,
+  startIndex,
+  onClose,
+  hasMore,
+  loadingMore,
+  continuationError,
+  onNearEnd,
+  onRetryContinuation,
+  onActiveIndexChange,
+}) {
   const { user: providerUser } = useSupabase();
   const [authUser, setAuthUser] = useState(providerUser || null);
   const activeUserIdRef = useRef(providerUser?.id || null);
@@ -197,24 +295,50 @@ function ReelViewer({ reels, startIndex, onClose }) {
   const [showShortcutsOverlay, setShowShortcutsOverlay] = useState(false);
 
   // Anti-Drift: Preserve viewed reel when new reels are inserted above it
-  const prevReelIdRef = useRef(null);
+  const previousReelsRef = useRef(reels);
+  const activeReelIdRef = useRef(reels[startIndex]?.id || null);
   useEffect(() => {
     if (!reels || reels.length === 0) return;
-    const currentReelId = reels[currentIndex]?.id;
+    const reelsChanged = previousReelsRef.current !== reels;
+    previousReelsRef.current = reels;
 
-    if (prevReelIdRef.current && currentReelId !== prevReelIdRef.current) {
-      // reels array changed under us! Find where our reel moved to.
-      const newIndex = reels.findIndex((r) => r.id === prevReelIdRef.current);
+    if (reelsChanged && activeReelIdRef.current) {
+      // The array changed under us. Follow the active id to its new index, but
+      // never interpret a deliberate user navigation as array drift.
+      const newIndex = reels.findIndex((reel) => reel.id === activeReelIdRef.current);
       if (newIndex !== -1 && newIndex !== currentIndex) {
         setCurrentIndex(newIndex);
+        return;
+      }
+      if (newIndex === -1 && reels.length > 0) {
+        const fallbackIndex = Math.min(currentIndex, reels.length - 1);
+        activeReelIdRef.current = reels[fallbackIndex]?.id || null;
+        if (fallbackIndex !== currentIndex) setCurrentIndex(fallbackIndex);
+        return;
       }
     }
 
-    // Update the ref to the currently viewing reel
+    // With a stable array, an index change is a real Previous/Next/swipe.
     if (reels[currentIndex]?.id) {
-      prevReelIdRef.current = reels[currentIndex].id;
+      activeReelIdRef.current = reels[currentIndex].id;
     }
   }, [reels, currentIndex]);
+
+  useEffect(() => {
+    onActiveIndexChange?.(currentIndex);
+  }, [currentIndex, onActiveIndexChange]);
+
+  useEffect(() => {
+    const remainingLoadedReels = reels.length - currentIndex;
+    if (
+      hasMore
+      && !loadingMore
+      && !continuationError
+      && remainingLoadedReels <= REELS_NEAR_END_THRESHOLD
+    ) {
+      onNearEnd?.();
+    }
+  }, [continuationError, currentIndex, hasMore, loadingMore, onNearEnd, reels]);
 
   // Phase 9: Long Press Context Menu
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -2210,9 +2334,11 @@ function ReelViewer({ reels, startIndex, onClose }) {
         titleId="carousel-viewer-title"
         titleAs="h1"
         subtitle={
-          currentReel.profiles?.username ? `By ${currentReel.profiles.username}` : 'Poker Video'
+          currentReel.profiles?.username || currentReel.channel_name
+            ? `By ${currentReel.profiles?.username || currentReel.channel_name}`
+            : 'Verified Video'
         }
-        pill={`${currentIndex + 1} Of ${reels.length}`}
+        pill={`${currentIndex + 1} Of ${reels.length}${hasMore ? '+' : ''}`}
         pillInk="blue"
         foot="plates"
         plates={
@@ -2229,7 +2355,10 @@ function ReelViewer({ reels, startIndex, onClose }) {
                   ink: 'silver',
                 },
                 primary: {
-                  label: 'Next Reel',
+                  label:
+                    loadingMore && currentIndex >= reels.length - 1
+                      ? 'Loading More Reels'
+                      : 'Next Reel',
                   onClick: goNext,
                   disabled: currentIndex >= reels.length - 1,
                   ink: 'white',
@@ -2602,7 +2731,7 @@ function ReelViewer({ reels, startIndex, onClose }) {
                   {currentReel.profiles.full_name || currentReel.profiles.username}
                 </Link>
               ) : (
-                <span>Poker Creator</span>
+                <span>{currentReel.channel_name || 'Reel Creator'}</span>
               )}
             </div>
             <ConsoleDataRow label="Published" value={timeAgo(currentReel.created_at)} />
@@ -2615,6 +2744,15 @@ function ReelViewer({ reels, startIndex, onClose }) {
             )}
             {!isYouTubeUrl(currentReel.video_url) && (
               <ConsoleDataRow label="Playback" value={`${Math.floor(progress)}%`} />
+            )}
+            {loadingMore && <ConsoleDataRow label="Reel Signal" value="Loading More" valueInk="blue" />}
+            {continuationError && (
+              <div className="vlc-carousel-continuation-recovery" role="alert">
+                <ConsoleCopy>{continuationError.message}</ConsoleCopy>
+                <button type="button" onClick={onRetryContinuation} disabled={loadingMore}>
+                  {loadingMore ? 'Retrying More Reels' : 'Retry More Reels'}
+                </button>
+              </div>
             )}
             {currentReel.author_id && authUser?.id && currentReel.author_id !== authUser.id && (
               <button
@@ -3044,108 +3182,528 @@ export function ReelsFeedCarousel() {
   const router = useRouter();
   const { user: providerUser } = useSupabase();
   const ownerId = providerUser?.id || null;
+  const [activeCategory, setActiveCategory] = useState('for-you');
+  const activeCategoryRef = useRef('for-you');
+  activeCategoryRef.current = activeCategory;
+  const [focusedCategoryId, setFocusedCategoryId] = useState('for-you');
   const [reels, setReels] = useState([]);
+  const reelsRef = useRef([]);
+  reelsRef.current = reels;
   const reelsRequestGuardRef = useRef(null);
   if (!reelsRequestGuardRef.current) reelsRequestGuardRef.current = createLatestRequestGuard();
+  const reelsRefreshCoordinatorRef = useRef(null);
+  if (!reelsRefreshCoordinatorRef.current) {
+    reelsRefreshCoordinatorRef.current = createReelsRefreshCoordinator(reelsRequestGuardRef.current);
+  }
+  const loadReelsRef = useRef(null);
+  const loadMoreReelsRef = useRef(null);
+  const reelsCursorRef = useRef(null);
+  const hasMoreRef = useRef(false);
+  const continuationInFlightRef = useRef(null);
+  const queuedBackgroundRefreshRef = useRef(false);
+  const pendingContinuationRef = useRef(null);
+  const failedAutomaticCursorRef = useRef(null);
+  const staleReelIdsRef = useRef(new Set());
+  const reelRealtimeFilterRef = useRef(null);
+  if (!reelRealtimeFilterRef.current) {
+    reelRealtimeFilterRef.current = createReelRealtimeChangeFilter();
+  }
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [continuationError, setContinuationError] = useState(null);
+  const continuationErrorRef = useRef(null);
+  continuationErrorRef.current = continuationError;
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerStartIndex, setViewerStartIndex] = useState(0);
+  const viewerActiveIndexRef = useRef(0);
+  const categoryRailRef = useRef(null);
   const scrollRef = useRef(null);
-  // Tracks first vs subsequent loads — background refreshes skip the loading skeleton
-  const isInitialLoadRef = useRef(true);
-  // Debounce ref: collapses burst Realtime INSERTs into a single reload
+  // One timer collapses burst realtime, EventBus and focus revalidation.
   const reloadDebounceRef = useRef(null);
 
-  const loadReels = useCallback(async (isBackground = false) => {
-    const reelsRequest = reelsRequestGuardRef.current.begin({ append: false });
-    // Background refresh (triggered by Realtime): don't flash the loading skeleton.
-    // Only the very first load should show the shimmer placeholder.
-    if (!isBackground) setLoading(true);
+  const followingUnavailable = activeCategory === 'following' && !ownerId;
+  const selectedCategoryId = followingUnavailable ? 'for-you' : activeCategory;
+  const categoryDefinition = SOCIAL_REEL_CATEGORIES.find(
+    (category) => category.id === selectedCategoryId
+  ) || SOCIAL_REEL_CATEGORIES[0];
+
+  const selectCategory = useCallback((nextCategoryId) => {
+    const nextCategory = SOCIAL_REEL_CATEGORIES.find(
+      (category) => category.id === nextCategoryId
+    );
+    if (
+      !nextCategory
+      || nextCategory.id === activeCategory
+      || (nextCategory.requiresAccount && !ownerId)
+    ) return;
+
+    // A category is a separate cursor namespace. Invalidate the old request
+    // synchronously so its response cannot paint beneath the newly selected tab.
+    reelsRequestGuardRef.current.abort();
+    if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+    reloadDebounceRef.current = null;
+    continuationInFlightRef.current = null;
+    queuedBackgroundRefreshRef.current = false;
+    pendingContinuationRef.current = null;
+    reelsCursorRef.current = null;
+    hasMoreRef.current = false;
+    failedAutomaticCursorRef.current = null;
+    continuationErrorRef.current = null;
+    staleReelIdsRef.current.clear();
+    reelRealtimeFilterRef.current.reset();
+    reelsRef.current = [];
+    viewerActiveIndexRef.current = 0;
+    setViewerOpen(false);
+    setViewerStartIndex(0);
+    setLoading(true);
+    setLoadingMore(false);
+    setLoadError(null);
+    setHasMore(false);
+    setContinuationError(null);
+    setReels([]);
+    setFocusedCategoryId(nextCategory.id);
+    activeCategoryRef.current = nextCategory.id;
+    setActiveCategory(nextCategory.id);
+  }, [activeCategory, ownerId]);
+
+  const handleCategoryKeyDown = useCallback((event, index) => {
+    let nextIndex = null;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % SOCIAL_REEL_CATEGORIES.length;
+    if (event.key === 'ArrowLeft') {
+      nextIndex = (index - 1 + SOCIAL_REEL_CATEGORIES.length) % SOCIAL_REEL_CATEGORIES.length;
+    }
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = SOCIAL_REEL_CATEGORIES.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextCategory = SOCIAL_REEL_CATEGORIES[nextIndex];
+    setFocusedCategoryId(nextCategory.id);
+    categoryRailRef.current?.querySelectorAll('[role="tab"]')?.[nextIndex]?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (followingUnavailable) selectCategory('for-you');
+  }, [followingUnavailable, selectCategory]);
+
+  useEffect(() => {
+    categoryRailRef.current
+      ?.querySelector(`#vlc-reel-category-${selectedCategoryId}`)
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [selectedCategoryId]);
+
+  const renderCategoryRail = () => (
+    <div
+      ref={categoryRailRef}
+      className="vlc-reel-category-rail"
+      role="tablist"
+      aria-label="Choose A Reel Feed"
+      aria-orientation="horizontal"
+    >
+      {SOCIAL_REEL_CATEGORIES.map((category, index) => {
+        const disabled = category.requiresAccount && !ownerId;
+        const active = category.id === selectedCategoryId;
+        return (
+          <button
+            key={category.id}
+            id={`vlc-reel-category-${category.id}`}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-disabled={disabled || undefined}
+            aria-label={disabled ? `${category.label}, Sign In Required` : undefined}
+            aria-controls="vlc-social-reel-strip"
+            tabIndex={category.id === focusedCategoryId ? 0 : -1}
+            className={`vlc-reel-category-command${active ? ' is-active' : ''}`}
+            title={disabled ? 'Sign In To View Reels From Accounts You Follow' : undefined}
+            onClick={() => selectCategory(category.id)}
+            onFocus={() => setFocusedCategoryId(category.id)}
+            onKeyDown={(event) => handleCategoryKeyDown(event, index)}
+          >
+            {category.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const scheduleBackgroundReelsRefresh = useCallback(() => {
+    if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
+    reloadDebounceRef.current = setTimeout(() => {
+      reloadDebounceRef.current = null;
+      loadReelsRef.current?.(BACKGROUND_REELS_REFRESH);
+    }, REELS_BACKGROUND_REFRESH_DELAY_MS);
+  }, []);
+
+  const removeMountedReels = useCallback((shouldRemove) => {
+    const current = reelsRef.current;
+    const removeIds = current.filter(shouldRemove).map((reel) => reel.id);
+    if (!removeIds.length) return;
+    const merged = mergeBackgroundReels({
+      current,
+      activeIndex: viewerActiveIndexRef.current,
+      removeIds,
+    });
+    if (!merged.changed) return;
+    reelsRef.current = merged.reels;
+    viewerActiveIndexRef.current = merged.activeIndex;
+    setReels(merged.reels);
+    if (!merged.reels.length) setViewerOpen(false);
+  }, []);
+
+  const loadReels = useCallback(async (mode) => {
+    if (activeCategoryRef.current !== activeCategory) return;
+    if (activeCategory === 'following' && !ownerId) return;
+    const background = mode === BACKGROUND_REELS_REFRESH;
+    if (background && continuationInFlightRef.current) {
+      queuedBackgroundRefreshRef.current = true;
+      return;
+    }
+    const following = activeCategory === 'following';
+    const reelsRequest = reelsRefreshCoordinatorRef.current.begin({ background });
+    if (!reelsRequest) return;
+    if (!background) {
+      continuationInFlightRef.current = null;
+      queuedBackgroundRefreshRef.current = false;
+      pendingContinuationRef.current = null;
+      setLoadingMore(false);
+      setLoading(true);
+      setLoadError(null);
+      reelsCursorRef.current = null;
+      hasMoreRef.current = false;
+      setHasMore(false);
+      failedAutomaticCursorRef.current = null;
+      setContinuationError(null);
+    }
     try {
-      const payload = await fetchPokerReels({
-        limit: 50,
-        signal: reelsRequest.signal,
-        scope: 'social-carousel',
+      const accessToken = following ? getAccessToken() : null;
+      if (following && !accessToken) {
+        const error = new Error('Sign In Again To View Following Reels.');
+        error.code = 'REELS_AUTH_REQUIRED';
+        throw error;
+      }
+      const notInterested = loadNotInterestedReelIds(ownerId);
+      const payload = await scanReelsContinuations({
+        fetchPage: (pageCursor) => fetchPokerReels({
+          limit: 50,
+          cursor: pageCursor,
+          signal: reelsRequest.signal,
+          scope: following ? 'following' : 'social-carousel',
+          category: activeCategory,
+          accessToken,
+        }),
+        selectRows: (rows) => rows
+          .filter((reel) => !notInterested.has(reel.id))
+          .map((reel) => ({ ...reel, source: 'reels' })),
       });
       if (!reelsRequest.isCurrent()) return;
-      const notInterested = loadNotInterestedReelIds(ownerId);
-      const allReels = payload.data
-        .filter((reel) => !notInterested.has(reel.id))
-        .map((reel) => ({ ...reel, source: 'reels' }));
+      const allReels = payload.data;
+      const { nextCursor, hasMore: pageHasMore } = readContinuationState(payload);
 
-      // Sort merged set by date descending
-      allReels.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-      setReels(allReels);
-      setLoadError(false);
-    } catch (e) {
-      if (e?.name === 'AbortError') return;
-      console.warn('Load reels error:', e);
-      if (reelsRequest.isCurrent()) {
-        setReels([]);
-        setLoadError(true);
+      if (background) {
+        const windowComplete = !nextCursor && payload.continuation_paused !== true;
+        const flaggedIds = [...staleReelIdsRef.current];
+        const windowIds = new Set(allReels.map((reel) => reel.id));
+        const mountedIds = new Set(reelsRef.current.map((reel) => reel.id));
+        const verdicts = windowComplete
+          ? { replacements: [], removeIds: [] }
+          : await resolveStaleReels({
+            ids: flaggedIds.filter((id) => mountedIds.has(id) && !windowIds.has(id)),
+            isCurrent: reelsRequest.isCurrent,
+            fetchDetail: async (id) => (await fetchPokerReels({
+              limit: 1,
+              id,
+              signal: reelsRequest.signal,
+              scope: following ? 'following' : 'social-carousel',
+              category: activeCategory,
+              accessToken,
+            })).data.map((reel) => ({ ...reel, source: 'reels' })),
+          });
+        if (!reelsRequest.isCurrent()) return;
+        const settledIds = new Set([
+          ...windowIds,
+          ...verdicts.removeIds,
+          ...verdicts.replacements.map((reel) => reel.id),
+        ]);
+        const canonicalRemoveIds = canonicalSupersededReelIds(reelsRef.current, allReels);
+        const authoritativeRemoveIds = [...new Set([
+          ...verdicts.removeIds,
+          ...canonicalRemoveIds,
+        ])];
+        authoritativeRemoveIds.forEach((id) => settledIds.add(id));
+        flaggedIds.forEach((id) => {
+          if (windowComplete || settledIds.has(id) || !mountedIds.has(id)) {
+            staleReelIdsRef.current.delete(id);
+          }
+        });
+        if (!reelsCursorRef.current && nextCursor) {
+          reelsCursorRef.current = nextCursor;
+          hasMoreRef.current = true;
+          setHasMore(true);
+        }
+        const merged = mergeBackgroundReels({
+          current: reelsRef.current,
+          incoming: allReels,
+          activeIndex: viewerActiveIndexRef.current,
+          removeIds: authoritativeRemoveIds,
+          replacements: verdicts.replacements,
+          windowComplete,
+        });
+        if (merged.changed) {
+          reelsRef.current = merged.reels;
+          viewerActiveIndexRef.current = merged.activeIndex;
+          setReels(merged.reels);
+          if (!merged.reels.length) setViewerOpen(false);
+        }
+        setLoadError(null);
+        return;
       }
+
+      reelsCursorRef.current = nextCursor;
+      hasMoreRef.current = pageHasMore;
+      setHasMore(pageHasMore);
+      reelsRef.current = allReels;
+      setReels(allReels);
+      if (payload.continuation_paused === true && nextCursor) {
+        failedAutomaticCursorRef.current = nextCursor;
+        setContinuationError({
+          cursor: nextCursor,
+          message: 'More Reels Remain. Continue When Ready.',
+        });
+      } else {
+        failedAutomaticCursorRef.current = null;
+        setContinuationError(null);
+      }
+      setLoadError(null);
+    } catch (e) {
+      if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
+      console.warn(background ? 'Background reels refresh failed:' : 'Load reels error:', e);
+      const authFailure = following && isReelsAuthError(e);
+      if (background && !authFailure) {
+        // A failed quiet refresh preserves the mounted feed. Any cursor append
+        // refused while it was active is resumed from the exact saved cursor.
+        return;
+      }
+      if (authFailure) {
+        reelsCursorRef.current = null;
+        hasMoreRef.current = false;
+        failedAutomaticCursorRef.current = null;
+        setHasMore(false);
+        setContinuationError(null);
+        setViewerOpen(false);
+      }
+      reelsRef.current = [];
+      setReels([]);
+      setLoadError(
+        authFailure
+          ? 'Sign In Again To View Following Reels.'
+          : 'The Reel Service Did Not Answer. Try The Signal Again.'
+      );
     } finally {
-      if (reelsRequest.finish()) {
-        isInitialLoadRef.current = false;
-        setLoading(false);
+      const settled = reelsRefreshCoordinatorRef.current.settle(reelsRequest);
+      if (settled.current && !background) setLoading(false);
+      if (settled.flushQueued) scheduleBackgroundReelsRefresh();
+      const pendingContinuation = pendingContinuationRef.current;
+      if (settled.current && pendingContinuation && !continuationInFlightRef.current) {
+        pendingContinuationRef.current = null;
+        Promise.resolve().then(() => loadMoreReelsRef.current?.(pendingContinuation));
       }
     }
-  }, [ownerId]);
+  }, [activeCategory, ownerId, scheduleBackgroundReelsRefresh]);
+  loadReelsRef.current = loadReels;
+
+  const loadMoreReels = useCallback(async ({ automatic = false, cursor: retryCursor = null } = {}) => {
+    if (activeCategoryRef.current !== activeCategory) return;
+    if (activeCategory === 'following' && !ownerId) return;
+    const following = activeCategory === 'following';
+    const cursor = retryCursor || reelsCursorRef.current;
+    if (!cursor || !hasMoreRef.current || continuationInFlightRef.current) return;
+    if (automatic && failedAutomaticCursorRef.current === cursor) return;
+
+    const reelsRequest = reelsRequestGuardRef.current.begin({ append: true });
+    if (!reelsRequest) {
+      pendingContinuationRef.current = { automatic, cursor };
+      return;
+    }
+    pendingContinuationRef.current = null;
+    const attempt = { id: reelsRequest.id, cursor };
+    continuationInFlightRef.current = attempt;
+    if (!automatic) failedAutomaticCursorRef.current = null;
+    setLoadingMore(true);
+    setContinuationError(null);
+
+    try {
+      const accessToken = following ? getAccessToken() : null;
+      if (following && !accessToken) {
+        const error = new Error('Sign In Again To Continue Following Reels.');
+        error.code = 'REELS_AUTH_REQUIRED';
+        throw error;
+      }
+      const notInterested = loadNotInterestedReelIds(ownerId);
+      const existingIds = new Set(reelsRef.current.map((reel) => reel.id));
+      const seenThisScan = new Set();
+      const payload = await scanReelsContinuations({
+        cursor,
+        fetchPage: (pageCursor) => fetchPokerReels({
+          limit: 50,
+          cursor: pageCursor,
+          signal: reelsRequest.signal,
+          scope: following ? 'following' : 'social-carousel',
+          category: activeCategory,
+          accessToken,
+        }),
+        selectRows: (rows) => rows
+          .filter((reel) => !notInterested.has(reel.id))
+          .map((reel) => ({ ...reel, source: 'reels' }))
+          .filter((reel) => {
+            if (!reel.id || existingIds.has(reel.id) || seenThisScan.has(reel.id)) return false;
+            seenThisScan.add(reel.id);
+            return true;
+          }),
+      });
+      if (!reelsRequest.isCurrent()) return;
+
+      const { nextCursor, hasMore: pageHasMore } = readContinuationState(payload);
+      if (nextCursor && nextCursor === cursor) {
+        const stalled = new Error('The Reel cursor did not advance.');
+        stalled.code = 'REELS_CONTINUATION_STALLED';
+        throw stalled;
+      }
+
+      reelsCursorRef.current = nextCursor;
+      hasMoreRef.current = pageHasMore;
+      setHasMore(pageHasMore);
+      if (payload.data.length > 0) {
+        setReels((current) => {
+          const merged = mergeCarouselReels(current, payload.data);
+          reelsRef.current = merged;
+          return merged;
+        });
+      }
+
+      if (payload.continuation_paused === true && nextCursor) {
+        failedAutomaticCursorRef.current = nextCursor;
+        setContinuationError({
+          cursor: nextCursor,
+          message: 'More Reels Remain. Continue When Ready.',
+        });
+      } else {
+        failedAutomaticCursorRef.current = null;
+        setContinuationError(null);
+      }
+    } catch (error) {
+      if (error?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
+      console.warn('[ReelsFeedCarousel] continuation failed:', error?.message || error);
+      // The cursor and mounted list deliberately remain unchanged. Automatic
+      // near-end effects cannot retry this cursor again; the visible recovery
+      // action below is the only path that repeats the failed request.
+      failedAutomaticCursorRef.current = cursor;
+      setContinuationError({
+        cursor,
+        message:
+          following && isReelsAuthError(error)
+            ? 'Sign In Again To Continue Following Reels.'
+            : 'More Reels Could Not Be Loaded. Your Current Reel Is Still Available.',
+      });
+    } finally {
+      const requestStillCurrent = reelsRequest.finish();
+      if (continuationInFlightRef.current === attempt) {
+        continuationInFlightRef.current = null;
+        if (requestStillCurrent) setLoadingMore(false);
+        if (queuedBackgroundRefreshRef.current) {
+          queuedBackgroundRefreshRef.current = false;
+          scheduleBackgroundReelsRefresh();
+        }
+      }
+    }
+  }, [activeCategory, ownerId, scheduleBackgroundReelsRefresh]);
+  loadMoreReelsRef.current = loadMoreReels;
+
+  const requestNearEndContinuation = useCallback(() => {
+    loadMoreReels({ automatic: true });
+  }, [loadMoreReels]);
+
+  const retryContinuation = useCallback(() => {
+    const failedCursor = continuationErrorRef.current?.cursor;
+    if (failedCursor) loadMoreReels({ automatic: false, cursor: failedCursor });
+  }, [loadMoreReels]);
 
   // Initial load + Realtime subscriptions
   useEffect(() => {
     loadReels();
 
-    // Unique channel name prevents duplicate subscriptions in React StrictMode
-    // (double-invoke of useEffect in dev would create two channels with the same
-    // static name, causing loadReels() to fire twice per INSERT event).
-    // Debounced background reload: two rapid INSERTs collapse into one fetch.
-    const debouncedReload = () => {
-      if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
-      reloadDebounceRef.current = setTimeout(() => loadReels(true), 400);
+    // Realtime emits every counter bump. Classify the row before acting so a
+    // view/like/comment/share update cannot abort a cursor append. Eligibility
+    // changes remove mounted content immediately and then revalidate quietly.
+    const realtimeFilter = reelRealtimeFilterRef.current;
+    const handleReelChange = (eventType, row) => {
+      const stateReel = row?.id
+        ? reelsRef.current.find((reel) => reel.id === row.id) || null
+        : null;
+      const categoryRow = realtimeRowForCategory(row, activeCategoryRef.current);
+      let verdict = realtimeFilter.classify({ eventType, row: categoryRow, stateReel });
+      const incomingCanonicalKey = canonicalReelKey(row);
+      const canonicalConflicts = incomingCanonicalKey
+        ? reelsRef.current.filter((reel) => (
+          reel.id !== row?.id && canonicalReelKey(reel) === incomingCanonicalKey
+        ))
+        : [];
+      canonicalConflicts.forEach((reel) => staleReelIdsRef.current.add(reel.id));
+      if (canonicalConflicts.length) verdict = { refresh: true, remove: verdict.remove };
+      if (
+        stateReel
+        && Object.prototype.hasOwnProperty.call(row || {}, 'canonical_asset_key')
+        && row.canonical_asset_key !== stateReel.canonical_asset_key
+      ) {
+        verdict = { refresh: true, remove: verdict.remove };
+      }
+      if (verdict.remove) removeMountedReels((reel) => reel.id === row.id);
+      if (!verdict.refresh) return;
+      if (stateReel && !verdict.remove) staleReelIdsRef.current.add(row.id);
+      scheduleBackgroundReelsRefresh();
     };
     const _ch = supabase
       .channel(`reels-feed-carousel-${Math.random().toString(36).slice(2, 8)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'social_reels' },
-        debouncedReload
+        (payload) => handleReelChange('INSERT', payload?.new)
       )
-      // (social_posts INSERT listener removed 2026-08-15: loadReels reads
-      // only social_reels since M7.1, and the video→reel mirror trigger
-      // already emits a social_reels INSERT — every text post platform-wide
-      // was costing a full 50-row reels refetch.)
-      // M7.4: surgical UPDATE handler for worker conversion broadcasts.
-      // Only acts when video_url actually changed; ignores like/comment UPDATEs.
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'social_reels' },
-        debouncedReload
+        (payload) => handleReelChange('UPDATE', payload?.new)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'social_reels' },
+        (payload) => handleReelChange('DELETE', payload?.old)
       )
       .subscribe();
 
     const handleDataMutated = (event) => {
       if (event?.payload === 'social' || event?.payload === 'reels') {
-        // EventBus-triggered reload is also a background refresh
-        if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
-        reloadDebounceRef.current = setTimeout(() => loadReels(true), 400);
+        scheduleBackgroundReelsRefresh();
       }
     };
     eventBus.on(EventType.DATA_MUTATED, handleDataMutated);
 
     return () => {
       reelsRequestGuardRef.current.abort();
+      continuationInFlightRef.current = null;
+      queuedBackgroundRefreshRef.current = false;
+      pendingContinuationRef.current = null;
       if (reloadDebounceRef.current) clearTimeout(reloadDebounceRef.current);
       supabase.removeChannel(_ch);
       eventBus.off(EventType.DATA_MUTATED, handleDataMutated);
     };
-  }, [loadReels]);
+  }, [loadReels, removeMountedReels, scheduleBackgroundReelsRefresh]);
 
   useEffect(() => {
     const revalidateVisibleFeed = () => {
-      if (document.visibilityState === 'visible') loadReels(true);
+      if (document.visibilityState === 'visible') scheduleBackgroundReelsRefresh();
     };
     window.addEventListener('focus', revalidateVisibleFeed);
     document.addEventListener('visibilitychange', revalidateVisibleFeed);
@@ -3153,27 +3711,41 @@ export function ReelsFeedCarousel() {
       window.removeEventListener('focus', revalidateVisibleFeed);
       document.removeEventListener('visibilitychange', revalidateVisibleFeed);
     };
-  }, [loadReels]);
+  }, [scheduleBackgroundReelsRefresh]);
 
-  const openViewer = (index) => {
+  const openViewer = useCallback((index) => {
+    viewerActiveIndexRef.current = index;
     setViewerStartIndex(index);
     setViewerOpen(true);
-  };
+  }, []);
+
+  const handleViewerActiveIndexChange = useCallback((index) => {
+    viewerActiveIndexRef.current = index;
+  }, []);
 
   // Loading uses the exact same native-ratio chassis as the final carousel.
-  if (loading) {
+  if (loading || followingUnavailable) {
     return (
       <div className="vlc-feed-console-shell">
         <VideoLibraryConsole
           eyebrow="Social Feed"
-          title="Poker Reels"
+          title={categoryDefinition.title}
           subtitle="Verified Video Channel"
           pill="Tuning"
           pillInk="blue"
           foot="foot"
-          aria-label="Poker Reels Loading"
+          aria-label={`${categoryDefinition.title} Loading`}
         >
-          <ConsoleCopy align="center">Preparing The Latest Playable Poker Reels.</ConsoleCopy>
+          {renderCategoryRail()}
+          <div
+            id="vlc-social-reel-strip"
+            role="tabpanel"
+            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+            aria-busy="true"
+            tabIndex={0}
+          >
+            <ConsoleCopy align="center">Preparing The Latest Playable {categoryDefinition.label} Reels.</ConsoleCopy>
+          </div>
           <ConsoleDataRow label="Signal" value="Connecting" valueInk="blue" />
         </VideoLibraryConsole>
         <ReelsFeedConsoleStyles />
@@ -3200,11 +3772,17 @@ export function ReelsFeedCarousel() {
             },
             primary: { label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' },
           }}
-          aria-label="Poker Reels Connection Recovery"
+          aria-label={`${categoryDefinition.title} Connection Recovery`}
         >
-          <ConsoleCopy align="center">
-            The Reel Service Did Not Answer. Try The Signal Again.
-          </ConsoleCopy>
+          {renderCategoryRail()}
+          <div
+            id="vlc-social-reel-strip"
+            role="tabpanel"
+            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+            tabIndex={0}
+          >
+            <ConsoleCopy align="center">{loadError}</ConsoleCopy>
+          </div>
           <ConsoleDataRow label="Account State" value="Protected" valueInk="green" />
         </VideoLibraryConsole>
         <ReelsFeedConsoleStyles />
@@ -3212,17 +3790,56 @@ export function ReelsFeedCarousel() {
     );
   }
 
-  // Preserve the feed's quiet behavior when the verified service has no rows.
-  if (reels.length === 0) return null;
+  if (reels.length === 0) {
+    return (
+      <div className="vlc-feed-console-shell">
+        <VideoLibraryConsole
+          eyebrow="Social Feed"
+          title={categoryDefinition.title}
+          subtitle="Verified Video Channel"
+          pill="No Live Reels"
+          pillInk="silver"
+          foot="plates"
+          plates={{
+            secondary: continuationError?.cursor
+              ? { label: 'Retry More Reels', onClick: retryContinuation, ink: 'silver' }
+              : { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
+            primary: {
+              label: 'Browse All Reels',
+              onClick: () => router.push('/hub/reels'),
+              ink: 'white',
+            },
+          }}
+          aria-label={`${categoryDefinition.title} Empty`}
+        >
+          {renderCategoryRail()}
+          <div
+            id="vlc-social-reel-strip"
+            role="tabpanel"
+            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+            tabIndex={0}
+          >
+            <ConsoleCopy align="center">
+              {continuationError?.message
+                || (selectedCategoryId === 'following'
+                  ? 'Follow More Creators Or Return To For You While This Feed Builds.'
+                  : 'No Verified Reels Are Available In This Channel Yet.')}
+            </ConsoleCopy>
+          </div>
+        </VideoLibraryConsole>
+        <ReelsFeedConsoleStyles />
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="vlc-feed-console-shell">
         <VideoLibraryConsole
           eyebrow="Social Feed"
-          title="Poker Reels"
+          title={categoryDefinition.title}
           subtitle="Swipe The Verified Video Rail"
-          pill={`${reels.length} Live`}
+          pill={`${reels.length}${hasMore ? '+' : ''} Live`}
           pillInk="blue"
           foot="plates"
           plates={{
@@ -3233,9 +3850,17 @@ export function ReelsFeedCarousel() {
               ink: 'white',
             },
           }}
-          aria-label="Poker Reels In The Social Feed"
+          aria-label={`${categoryDefinition.title} In The Social Feed`}
         >
-          <div ref={scrollRef} className="vlc-feed-reel-strip">
+          {renderCategoryRail()}
+          <div
+            id="vlc-social-reel-strip"
+            ref={scrollRef}
+            role="tabpanel"
+            aria-labelledby={`vlc-reel-category-${selectedCategoryId}`}
+            tabIndex={0}
+            className="vlc-feed-reel-strip"
+          >
             {reels.map((reel, index) => (
               <ReelCard key={reel.id} reel={reel} onClick={() => openViewer(index)} />
             ))}
@@ -3251,6 +3876,12 @@ export function ReelsFeedCarousel() {
           reels={reels}
           startIndex={viewerStartIndex}
           onClose={() => setViewerOpen(false)}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          continuationError={continuationError}
+          onNearEnd={requestNearEndContinuation}
+          onRetryContinuation={retryContinuation}
+          onActiveIndexChange={handleViewerActiveIndexChange}
         />
       )}
     </>
@@ -3265,6 +3896,62 @@ function ReelsFeedConsoleStyles() {
         max-width: 760px;
         margin: 0 auto 16px;
         background: #000;
+      }
+      .vlc-reel-category-rail {
+        display: flex;
+        width: 100%;
+        gap: clamp(6px, 1.8cqw, 12px);
+        overflow-x: auto;
+        padding: 2px 1px clamp(10px, 2.4cqw, 16px);
+        scrollbar-width: thin;
+        scroll-snap-type: x proximity;
+        scroll-padding-inline: 1px;
+        overscroll-behavior-inline: contain;
+      }
+      .vlc-reel-category-command {
+        appearance: none;
+        position: relative;
+        flex: 0 0 auto;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 0;
+        color: #aab9c2;
+        background: transparent;
+        box-shadow: none;
+        font-size: clamp(12px, 2.8cqw, 14px);
+        font-weight: 800;
+        letter-spacing: 0.045em;
+        white-space: nowrap;
+        scroll-snap-align: start;
+        cursor: pointer;
+      }
+      .vlc-reel-category-command::after {
+        content: '';
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 3px;
+        height: 1px;
+        background: transparent;
+      }
+      .vlc-reel-category-command:focus-visible {
+        color: #e7f6ff;
+        outline: 2px solid #67ceff;
+        outline-offset: -2px;
+      }
+      .vlc-reel-category-command.is-active {
+        color: #f1fbff;
+        background: transparent;
+        box-shadow: none;
+      }
+      .vlc-reel-category-command.is-active::after {
+        background: #67ceff;
+      }
+      .vlc-reel-category-command[aria-disabled='true'] {
+        opacity: 0.55;
+        cursor: not-allowed;
       }
       .vlc-feed-reel-strip {
         display: flex;
@@ -3397,7 +4084,8 @@ function ReelsFeedConsoleStyles() {
       .vlc-carousel-comments,
       .vlc-carousel-edit,
       .vlc-carousel-media-preview,
-      .vlc-carousel-reply {
+      .vlc-carousel-reply,
+      .vlc-carousel-continuation-recovery {
         display: flex;
         flex-direction: column;
         min-width: 0;

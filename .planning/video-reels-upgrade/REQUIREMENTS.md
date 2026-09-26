@@ -17,6 +17,7 @@
 - **RGT-04:** Propagate takedowns through feeds, search, saves, deep links, and caches.
 - **RGT-05:** Show accurate creator attribution and never use an unrelated fallback identity.
 - **RGT-06:** Label sponsored, promotional, generated, and community-submitted media.
+- **RGT-07:** Preserve YouTube player branding and controls, send an identifying referrer, query and honor Made For Kids status, keep only one visible autoplaying embed, and never download or cache third-party audiovisual content.
 
 ## Discovery And Ingestion
 
@@ -27,6 +28,7 @@
 - **ING-05:** Validate availability, embeddability, publication time, duration, topic, and thumbnail before publication.
 - **ING-06:** Discover at least 250 qualified candidates per day without increasing duplicate publication.
 - **ING-07:** Quarantine unavailable, private, age-restricted, blocked, and low-confidence assets with reason codes.
+- **ING-08:** Use each channel's stable uploads playlist for incremental creator ingestion and `videos.list(chart=mostPopular, videoCategoryId=17)` for regional sports discovery; persist provider cursors, region, category, and retrieval time rather than scraping a Trending page.
 
 ## Enrichment And Editorial
 
@@ -55,6 +57,20 @@
 - **UX-06:** Support captions, reduced motion, screen readers, keyboards, data saver, and low-memory devices.
 - **UX-07:** Restore feed and playback state after refresh, old links, stale storage, and navigation.
 - **UX-08:** Provide Not Interested, Already Watched, Wrong Category, and Hide Source controls.
+- **UX-09:** Provide For You, Poker, Casino And Slots, Sports, and Following categories from one validated server contract.
+- **UX-10:** Continue for at least three cursor pages without leaving the Social Media viewer, while retaining the active Reel during appends, refreshes, failures, and retries.
+- **UX-11:** Keep the live media window bounded to previous, current, and next, with no more than one active YouTube iframe and one active native player.
+- **UX-12:** Display source/channel attribution, responsible-gambling context for casino content, and a source fallback for every third-party embed.
+
+## Fleet And Supply Publication
+
+- **SUP-01:** Treat an approved horse-authored video post as an ordinary player-authored candidate and never exclude it because its author is a horse.
+- **SUP-02:** Separate the Reels/video publication gate from the global horse text-content engine switch so disabling generated posts does not silently disable approved video supply.
+- **SUP-03:** Mirror every eligible video post atomically into one canonical social Reel with explicit topic, rights, playback, source, and author lineage.
+- **SUP-04:** Verify YouTube availability and embeddability before public eligibility and record the verdict in the shared authoritative verifier contract.
+- **SUP-05:** Backfill eligible poker-clips, sports-clips, and Video Library inventory through idempotent bounded publication, never direct ad hoc inserts.
+- **SUP-06:** Deduplicate globally by canonical asset while enforcing per-source, per-topic, and per-author diversity.
+- **SUP-07:** Preserve the existing user-upload path and its engagement while adding managed supply.
 
 ## Search And Personalization
 
@@ -72,3 +88,5 @@
 - **OPS-04:** Alert on freshness, duplicate, topic leakage, playback, rights, and publication thresholds.
 - **OPS-05:** Support canary rollout, feature flags, circuit breakers, rollback, and replayable jobs.
 - **OPS-06:** Measure mobile startup, dropped frames, memory, battery, and data usage.
+- **OPS-07:** Report candidate, verified, published, rejected, stale, and feed-visible counts separately by topic and source family so a green-but-empty publisher cannot pass.
+- **OPS-08:** Budget and report YouTube API quota by ingestion method, prefer one-unit playlist/video reads over high-cost search, and stop before quota exhaustion without publishing unverified fallbacks.

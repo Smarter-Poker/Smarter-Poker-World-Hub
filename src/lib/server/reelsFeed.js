@@ -41,7 +41,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const CURSOR_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T[^\s]{1,40}$/;
 const COLLECTION_CURSOR_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
-const POKER_TOPICS = new Set(['poker', 'cash', 'tournament']);
+const REEL_CATEGORY_TOPICS = Object.freeze({
+    poker: Object.freeze(['poker', 'cash', 'tournament']),
+    'casino-slots': Object.freeze(['slots']),
+    sports: Object.freeze(['sports']),
+    'for-you': Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']),
+    following: Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']),
+});
+const REEL_CATEGORIES = new Set(Object.keys(REEL_CATEGORY_TOPICS));
 const ALLOWED_LIBRARY_TYPES = new Set(VIDEO_LIBRARY_ALLOWED_TYPES);
 const UNPLAYABLE_AVAILABILITY = new Set([
     'unavailable',
@@ -182,6 +189,25 @@ function normaliseScope(value) {
     const scope = String(value || 'all').trim().toLowerCase();
     if (scope === 'all' || scope === 'library' || scope === 'following') return scope;
     throw new ReelsFeedInputError('Invalid Reels scope');
+}
+
+function normaliseCategory(value, scope = 'all') {
+    const fallback = scope === 'following' ? 'following' : 'poker';
+    const category = String(value || fallback).trim().toLowerCase();
+    if (!REEL_CATEGORIES.has(category)) {
+        throw new ReelsFeedInputError('Invalid Reels category');
+    }
+    if (scope === 'following' && category !== 'following') {
+        throw new ReelsFeedInputError('Following scope requires the Following category');
+    }
+    if (scope !== 'following' && category === 'following') {
+        throw new ReelsFeedInputError('Following category requires authentication');
+    }
+    return category;
+}
+
+function topicsForCategory(category) {
+    return REEL_CATEGORY_TOPICS[category] || REEL_CATEGORY_TOPICS.poker;
 }
 
 function unique(values) {
@@ -409,13 +435,13 @@ function applyCollectionCursorFilter(query, cursor, timestampColumn) {
     );
 }
 
-function applyPublicReadyFilters(query) {
+function applyPublicReadyFilters(query, category = 'poker') {
     return query
         .eq('is_public', true)
         .eq('is_deleted', false)
         .eq('media_status', 'ready')
         .not('created_at', 'is', null)
-        .in('topic', ['poker', 'cash', 'tournament']);
+        .in('topic', topicsForCategory(category));
 }
 
 function applyScopeFilter(query, scope) {
@@ -437,9 +463,9 @@ function applyCursorFilter(query, cursor, sort) {
     );
 }
 
-async function readCandidateChunk(client, { cursor, sort, scope, limit }) {
+async function readCandidateChunk(client, { cursor, sort, scope, category, limit }) {
     let query = client.from('social_reels').select(REEL_SELECT);
-    query = applyPublicReadyFilters(query);
+    query = applyPublicReadyFilters(query, category);
     query = applyScopeFilter(query, scope);
     query = applyCursorFilter(query, cursor, sort);
     if (sort === 'popular') {
@@ -640,7 +666,8 @@ function normalizeEligibleRow(row, context, scope, options = {}) {
     let effectiveIsPublic = row.is_public === true;
 
     const explicitTopic = String(row.topic || '').trim().toLowerCase();
-    if (!POKER_TOPICS.has(explicitTopic)) return null;
+    const category = options.category || 'poker';
+    if (!topicsForCategory(category).includes(explicitTopic)) return null;
     const explicitRights = String(row.rights_status || '').trim().toLowerCase();
     if (explicitRights === 'blocked' || explicitRights === 'restricted') return null;
     const youtubeId = rowYouTubeId(row);
@@ -827,7 +854,7 @@ async function fetchCanonicalGroupRows(client, rows, options = {}) {
 
     const ownerId = String(options.ownerId || '').trim();
     const baseFilter = query => {
-        if (!UUID_RE.test(ownerId)) return applyPublicReadyFilters(query);
+        if (!UUID_RE.test(ownerId)) return applyPublicReadyFilters(query, options.category);
         return query
             .eq('author_id', ownerId)
             .eq('is_deleted', false)
@@ -872,10 +899,10 @@ async function fetchCanonicalGroupRows(client, rows, options = {}) {
     return [...allById.values()];
 }
 
-async function canonicalWinners(client, candidateRawRows, scope) {
+async function canonicalWinners(client, candidateRawRows, scope, options = {}) {
     if (!candidateRawRows.length) return new Map();
-    const allRawRows = await fetchCanonicalGroupRows(client, candidateRawRows);
-    const allEligibleRows = await eligibleRows(client, allRawRows, scope);
+    const allRawRows = await fetchCanonicalGroupRows(client, candidateRawRows, options);
+    const allEligibleRows = await eligibleRows(client, allRawRows, scope, options);
     const winnerByKey = new Map();
     for (const row of allEligibleRows) {
         const current = winnerByKey.get(row.canonical_asset_key);
@@ -938,7 +965,7 @@ async function attachProfiles(client, rows) {
     return rows.map(row => publicRow(row, profileMap));
 }
 
-async function readPage(client, { limit, cursor, sort, scope, viewerId = null }) {
+async function readPage(client, { limit, cursor, sort, scope, category, viewerId = null }) {
     const selected = [];
     const selectedKeys = new Set();
     let scanCursor = cursor;
@@ -953,6 +980,7 @@ async function readPage(client, { limit, cursor, sort, scope, viewerId = null })
             cursor: scanCursor,
             sort,
             scope,
+            category,
             limit: chunkSize,
         });
         if (!rawRows.length) {
@@ -964,8 +992,8 @@ async function readPage(client, { limit, cursor, sort, scope, viewerId = null })
         lastScannedCursor = cursorForRow(lastRawRow, sort);
         scanCursor = lastScannedCursor;
 
-        const candidateEligible = await eligibleRows(client, rawRows, scope);
-        const winnerByKey = await canonicalWinners(client, rawRows, scope);
+        const candidateEligible = await eligibleRows(client, rawRows, scope, { category });
+        const winnerByKey = await canonicalWinners(client, rawRows, scope, { category });
         const followedWinnerAuthors = scope === 'following'
             ? await readFollowedCandidateAuthorIds(
                 client,
@@ -1006,7 +1034,7 @@ async function readPage(client, { limit, cursor, sort, scope, viewerId = null })
     };
 }
 
-async function readDetail(client, id, scope, sort, viewerId = null) {
+async function readDetail(client, id, scope, sort, category, viewerId = null) {
     if (!id) return { status: 'none', row: null };
     if (!UUID_RE.test(id)) throw new ReelsFeedInputError('Invalid Reel reference');
 
@@ -1019,9 +1047,9 @@ async function readDetail(client, id, scope, sort, viewerId = null) {
     const directRows = Array.isArray(data) ? data : [];
     if (!directRows.length) return { status: 'not_found', row: null };
 
-    const directEligible = await eligibleRows(client, directRows, scope);
+    const directEligible = await eligibleRows(client, directRows, scope, { category });
     if (!directEligible.length) return { status: 'unavailable', row: null };
-    const winnerByKey = await canonicalWinners(client, directRows, scope);
+    const winnerByKey = await canonicalWinners(client, directRows, scope, { category });
     const requested = directEligible.find(row => row.id === id || row.source_post_id === id)
         || directEligible[0];
     const winner = winnerByKey.get(requested.canonical_asset_key) || requested;
@@ -1442,6 +1470,7 @@ export async function readPokerReelsFeed(options = {}) {
     const limit = clampLimit(options.limit);
     const sort = normaliseSort(options.sort);
     const scope = normaliseScope(options.scope);
+    const category = normaliseCategory(options.category, scope);
     const cursor = parseCursor(options.cursor, sort);
     const id = String(options.id || '').trim();
     const viewerId = String(options.viewerId || '').trim();
@@ -1450,11 +1479,11 @@ export async function readPokerReelsFeed(options = {}) {
     }
 
     const [page, detail] = await Promise.all([
-        readPage(client, { limit, cursor, sort, scope, viewerId }),
+        readPage(client, { limit, cursor, sort, scope, category, viewerId }),
         // A cursor always denotes continuation. In particular the explicit
         // start sentinel lets a pinned limit=1 response continue from the
         // first natural feed row without pinning the detail again.
-        readDetail(client, cursor ? '' : id, scope, sort, viewerId),
+        readDetail(client, cursor ? '' : id, scope, sort, category, viewerId),
     ]);
 
     if (detail.status === 'not_found' || detail.status === 'unavailable') {
@@ -1498,6 +1527,7 @@ export async function readPokerReelsFeed(options = {}) {
     const data = await attachProfiles(client, rows);
     return {
         data,
+        category,
         detailStatus: detail.status,
         hasMore,
         nextCursor,

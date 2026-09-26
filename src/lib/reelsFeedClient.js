@@ -10,7 +10,19 @@ const VERIFICATION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const LEGACY_TRANSITION_MAX_REMAINING_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_TRUSTED_TRANSITION_RECORDS = 1_000;
-const POKER_TOPICS = new Set(['poker', 'cash', 'tournament']);
+const REEL_CATEGORY_TOPICS = Object.freeze({
+  poker: Object.freeze(['poker', 'cash', 'tournament']),
+  'casino-slots': Object.freeze(['slots']),
+  sports: Object.freeze(['sports']),
+  'for-you': Object.freeze(['poker', 'cash', 'tournament', 'slots', 'sports']),
+});
+export const REEL_CATEGORIES = Object.freeze([
+  'for-you',
+  'poker',
+  'casino-slots',
+  'sports',
+  'following',
+]);
 const NATIVE_RIGHTS = new Set(['owned', 'licensed', 'user_authorized']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com']);
@@ -62,6 +74,17 @@ export function canonicalReelKey(reel) {
     return `url:${reel.video_url.trim()}`;
   }
   return reel.id ? `reel:${reel.id}` : null;
+}
+
+export function normalizeReelsCategory(value, fallback = 'poker') {
+  const category = String(value || fallback).trim().toLowerCase();
+  if (!REEL_CATEGORIES.includes(category)) return fallback;
+  return category;
+}
+
+function allowedTopicsForCategory(category) {
+  const normalized = normalizeReelsCategory(category);
+  return REEL_CATEGORY_TOPICS[normalized === 'following' ? 'for-you' : normalized];
 }
 
 function youtubeIdFromUrl(value) {
@@ -184,10 +207,10 @@ function isTrustedNativeUrl(value, authorId) {
  * authoritative, but a pre-migration browser cache must never re-introduce a
  * slot/sports/blocked/non-ready row after the API contract changes.
  */
-export function isPlayablePokerReel(reel) {
+export function isPlayableReel(reel, { category = 'for-you' } = {}) {
   if (!reel || typeof reel !== 'object') return false;
   if (!reel.id || typeof reel.video_url !== 'string' || !reel.video_url.trim()) return false;
-  if (!POKER_TOPICS.has(reel.topic)) return false;
+  if (!allowedTopicsForCategory(category).includes(String(reel.topic || '').toLowerCase())) return false;
   if (reel.media_status !== 'ready') return false;
   if (['blocked', 'restricted'].includes(reel.rights_status)) return false;
   if (!['youtube_embed', 'native'].includes(reel.playback_type)) return false;
@@ -242,10 +265,14 @@ export function isPlayablePokerReel(reel) {
   return Boolean(canonicalReelKey(reel));
 }
 
-export function sanitizePokerReels(rows) {
+export function isPlayablePokerReel(reel) {
+  return isPlayableReel(reel, { category: 'poker' });
+}
+
+export function sanitizeReels(rows, { category = 'for-you' } = {}) {
   const seen = new Set();
   return (Array.isArray(rows) ? rows : []).filter(reel => {
-    if (!isPlayablePokerReel(reel)) return false;
+    if (!isPlayableReel(reel, { category })) return false;
     const key = canonicalReelKey(reel);
     if (seen.has(key)) return false;
     seen.add(key);
@@ -253,8 +280,19 @@ export function sanitizePokerReels(rows) {
   });
 }
 
+export function sanitizePokerReels(rows) {
+  return sanitizeReels(rows, { category: 'poker' });
+}
+
+export function mergeReels(current, incoming, { category = 'for-you' } = {}) {
+  return sanitizeReels(
+    [...(Array.isArray(current) ? current : []), ...(Array.isArray(incoming) ? incoming : [])],
+    { category },
+  );
+}
+
 export function mergePokerReels(current, incoming) {
-  return sanitizePokerReels([...(Array.isArray(current) ? current : []), ...(Array.isArray(incoming) ? incoming : [])]);
+  return mergeReels(current, incoming, { category: 'poker' });
 }
 
 /**
@@ -288,13 +326,20 @@ export async function fetchPokerReels({
   sort = 'recent',
   signal,
   scope = 'default',
+  category = scope === 'social-carousel' ? 'for-you' : 'poker',
   accessToken = null,
 } = {}) {
-  const params = new URLSearchParams({ limit: String(limit), sort });
+  const normalizedCategory = normalizeReelsCategory(category);
+  const effectiveCategory = scope === 'following' ? 'following' : normalizedCategory;
+  const params = new URLSearchParams({
+    limit: String(limit),
+    sort,
+    category: effectiveCategory,
+  });
   if (cursor) params.set('cursor', cursor);
   if (id) params.set('id', id);
   if (scope === 'library-viewer' || scope === 'library') params.set('scope', 'library');
-  if (scope === 'following') params.set('scope', 'following');
+  if (scope === 'following' || effectiveCategory === 'following') params.set('scope', 'following');
 
   const response = await fetch(`/api/reels/feed?${params.toString()}`, {
     cache: 'no-store',
@@ -313,6 +358,6 @@ export async function fetchPokerReels({
   }
 
   rememberServerTransitionEvidence(payload.data);
-  const rows = sanitizePokerReels(payload.data);
-  return { ...payload, data: rows };
+  const rows = sanitizeReels(payload.data, { category: effectiveCategory });
+  return { ...payload, category: effectiveCategory, data: rows };
 }

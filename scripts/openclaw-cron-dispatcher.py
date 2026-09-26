@@ -119,6 +119,7 @@ JOB_TIMEOUTS = {
     '/api/cron/trivia-embed-backfill': 300,
     '/api/cron/trivia-player-retag':   300,
     '/api/cron/horse-posts':           600,   # up to 80 publishes, 540s internal deadline
+    '/api/cron/horse-video-reels':     600,   # up to 80 verified video publishes, 540s internal deadline
     '/api/cron/horses-social-all':     600,
     '/api/cron/phase6-content':        300,   # grounded club/event reads plus capped publishing
     '/api/cron/scrape-sports-clips':   300,
@@ -738,6 +739,12 @@ ALL_CRONS = [
     # :30 keep both clear of the Club Arena :55 maintenance break and of the
     # :00 pile-up.
     ('/api/cron/horse-posts',                     dict(minute=10)),          # hourly, whole fleet
+    # Dedicated video-only producer. It is intentionally separate from the
+    # globally disabled mixed content engine and publishes only approved,
+    # freshly verified poker/sports YouTube embeds through one atomic RPC.
+    # The database's 20-hour per-horse guard makes the hourly scan safe while
+    # allowing the full 1,000-horse fleet to contribute over the day.
+    ('/api/cron/horse-video-reels',               dict(minute=25)),          # hourly, whole fleet, video modes only
     ('/api/cron/horses-social-all',               dict(minute=30)),          # hourly, whole fleet
     # Fleet Content Programme Phase 6. The handler and every Phase 6 mode
     # fail closed; while approval rows are disabled this is a measured no-op.
@@ -1024,7 +1031,7 @@ SCRIPT_JOB_SCRIPTS = {
 # verified atomic publisher, never as the old direct-write bridge.
 SCRIPT_JOBS = {
     '/api/cron/video-library-scraper':  [],                   # full daily run
-    '/api/cron/video-library-reels':    ['--limit', '500', '--verify'],  # bounded verified atomic publisher
+    '/api/cron/video-library-reels':    ['--limit', '750', '--verify'],  # bounded verified atomic publisher
     '/api/cron/video-library-backfill': ['--backfill'],
     '/api/cron/video-library-purge':    ['--purge'],
     '/api/cron/video-library-views':    ['--refresh-views'],
@@ -1162,6 +1169,7 @@ WORKERS_PREFERRED = {
     # horse-batch/0..9 retired 2026-09-05 (Fleet Content Programme phase 1);
     # the workers routes remain as a hand-over shim until the next cleanup.
     '/api/cron/horse-posts':                   '/cron/horse-posts',
+    '/api/cron/horse-video-reels':             '/cron/horse-video-reels',
     '/api/cron/phase6-content':                '/cron/phase6-content',
     # ─── 2B.3 Option B — generate-trivia-questions (handler 53) ─────────────
     # Workers repo has src/routes/generate-trivia-questions.ts (TS port of the
@@ -1232,6 +1240,7 @@ CRITICAL_JOBS = {
     # SCRIPT_JOB exit code is a result like any other; two bad mornings page.
     '/api/cron/video-library-scraper':  2,   # daily; 2 = two days without fresh videos
     '/api/cron/video-library-reels':    2,   # daily; 2 = two days of library videos not reaching the feed
+    '/api/cron/horse-video-reels':      3,   # hourly; 3 = three hours without the horse video supply path
     # The cache audit has two daily idempotent passes. Page if both fail, so a
     # full day can never lose its integrity audit without reaching an operator.
     '/api/cron/training-cache-drift-audit': 2,
@@ -1248,6 +1257,7 @@ CRITICAL_RUNBOOKS = {
     '/api/internal/pnm-integrity-refresh': 'World-Hub .agent/audits/2026-09-05-poker-near-me-phase-6-final-closeout.md',
     '/api/cron/video-library-scraper':  'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
     '/api/cron/video-library-reels':    'World-Hub CLAUDE.md 11.3 + journalctl -u openclaw | grep video-library',
+    '/api/cron/horse-video-reels':      'World-Hub .planning/video-reels-upgrade/STATE.md + journalctl -u openclaw | grep horse-video-reels',
     '/api/cron/training-cache-drift-audit': 'World-Hub .agent/audits/2026-09-08-horse-phase3-certification.md',
     '/api/cron/table-socket-probe':     'club-arena/docs/runbooks/tables-say-reconnecting.md',
 }

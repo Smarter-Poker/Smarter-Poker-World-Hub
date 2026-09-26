@@ -103,7 +103,7 @@ export default async function handler(req, res) {
         query = query.in('type', VIDEO_LIBRARY_ALLOWED_TYPES);
 
         if (source && source !== 'ALL') query = query.eq('source_id', source);
-        if (type === 'cash' || type === 'tournament') query = query.eq('type', type);
+        if (VIDEO_LIBRARY_ALLOWED_TYPES.includes(type)) query = query.eq('type', type);
         if (idsRequested) query = query.in('youtube_video_id', ids);
         if (search) {
             const pattern = `%${search.replace(/[%_]/g, '')}%`;

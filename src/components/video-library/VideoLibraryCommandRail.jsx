@@ -6,6 +6,7 @@ const BROWSE_VIEWS = [
     { id: 'ALL', name: 'All Videos' },
     { id: 'cash', name: 'Cash Games' },
     { id: 'tournament', name: 'Tournaments' },
+    { id: 'slots', name: 'Casino And Slots' },
 ];
 
 const SORT_VIEWS = [

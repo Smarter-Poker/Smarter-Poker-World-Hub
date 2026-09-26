@@ -40,7 +40,7 @@ function loadEligibilityHarness() {
     .replace(/export const /g, 'const ');
   const context = {
     BLOCKED_VIDEO_LIBRARY_IDS: [],
-    VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament'],
+    VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament', 'slots'],
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
     Buffer,
@@ -131,7 +131,7 @@ function loadCollectionReaderHarness(client) {
     .replace(/export const /g, 'const ');
   const context = {
     BLOCKED_VIDEO_LIBRARY_IDS: [],
-    VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament'],
+    VIDEO_LIBRARY_ALLOWED_TYPES: ['cash', 'tournament', 'slots'],
     VIDEO_LIBRARY_MAX_FUTURE_SKEW_MS,
     VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS,
     Buffer,

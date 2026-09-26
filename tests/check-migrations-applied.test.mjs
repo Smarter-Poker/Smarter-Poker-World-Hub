@@ -64,6 +64,51 @@ test('CHECK 17 still enforces persistent columns and RPC functions', () => {
   ]);
 });
 
+test('CHECK 17 recognizes composite row RPCs without weakening scalar signature checks', () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.legacy_transition_eligible(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+    CREATE FUNCTION public.training_scalar_rpc(p_value uuid)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+    CREATE FUNCTION public.fn_video_library_publisher_is_eligible(p_profile_id uuid)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+  `);
+  const live = {
+    tables: new Map([['social_reels', new Set(['id', 'video_url'])]]),
+    fns: new Set(['legacy_transition_eligible', 'training_scalar_rpc']),
+    rpcArgs: new Map([
+      // PostgREST expands the relation row instead of publishing `p_reel`.
+      ['legacy_transition_eligible', [new Set(['id', 'video_url'])]],
+      ['training_scalar_rpc', [new Set(['wrong_argument'])]],
+    ]),
+  };
+
+  assert.deepEqual(unappliedObjects(declared, live), [
+    ['function signature', 'training_scalar_rpc(p_value)'],
+    ['function', 'fn_video_library_publisher_is_eligible(p_profile_id)'],
+  ]);
+});
+
+test('CHECK 17 rejects a wrong live overload for a declared composite row RPC', () => {
+  const declared = declaredObjects(`
+    CREATE FUNCTION public.publish_video(p_reel public.social_reels)
+    RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+  `);
+  const live = {
+    tables: new Map([['social_reels', new Set(['id', 'video_url', 'topic'])]]),
+    fns: new Set(['publish_video']),
+    rpcArgs: new Map([
+      // A scalar overload can legitimately share a name with one composite
+      // field; it is still not the declared relation-row signature.
+      ['publish_video', [new Set(['id'])]],
+    ]),
+  };
+
+  assert.deepEqual(unappliedObjects(declared, live), [
+    ['function signature', 'publish_video(p_reel)'],
+  ]);
+});
+
 test('CHECK 17 uses the last relation operation so DROP then CREATE stays required', () => {
   const declared = declaredObjects(`
     DROP TABLE IF EXISTS public.training_recreated_evidence;

@@ -41,8 +41,8 @@ test('carousel and every viewer state use the master without generic decorative 
   ]) {
     assert.ok(viewer.includes(label), `Missing console state: ${label}`);
   }
-  assert.match(source, /aria-label="Poker Reels Loading"/);
-  assert.match(source, /aria-label="Poker Reels Connection Recovery"/);
+  assert.match(source, /aria-label=\{`\$\{categoryDefinition\.title\} Loading`\}/);
+  assert.match(source, /aria-label=\{`\$\{categoryDefinition\.title\} Connection Recovery`\}/);
   assert.match(source, /@media \(min-width: 900px\)/);
   assert.match(source, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\)/);
 });

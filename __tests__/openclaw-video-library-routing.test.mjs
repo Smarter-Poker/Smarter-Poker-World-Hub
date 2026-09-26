@@ -50,7 +50,7 @@ test('the Video Library Reel bridge always resolves to the deployed publisher sc
   const scriptTargets = assignmentBlock('SCRIPT_JOB_SCRIPTS');
   const workerRoutes = assignmentBlock('WORKERS_PREFERRED');
 
-  assert.match(scriptJobs, /'\/api\/cron\/video-library-reels':\s*\['--limit',\s*'500',\s*'--verify'\]/);
+  assert.match(scriptJobs, /'\/api\/cron\/video-library-reels':\s*\['--limit',\s*'750',\s*'--verify'\]/);
   assert.match(scriptTargets, /'\/api\/cron\/video-library-reels':\s*REELS_BRIDGE_PY/);
   assert.doesNotMatch(workerRoutes, /\/api\/cron\/video-library-reels/);
   // 2026-09-23 owner decision: the horse-authored workers bridge is never a
@@ -121,6 +121,31 @@ test('poker clip supply routes remain wired to their real workers handlers', () 
   }
 });
 
+test('the isolated horse-video Reel producer is scheduled, worker-routed, bounded, and monitored', () => {
+  const scriptJobs = assignmentBlock('SCRIPT_JOBS');
+  const workerRoutes = assignmentBlock('WORKERS_PREFERRED');
+  const criticalJobs = assignmentBlock('CRITICAL_JOBS');
+  const criticalRunbooks = assignmentBlock('CRITICAL_RUNBOOKS');
+
+  assert.match(
+    dispatcher,
+    /'\/api\/cron\/horse-video-reels',\s*dict\(minute=25\)/,
+    'the independent video-only fleet scan must run hourly away from the maintenance window',
+  );
+  assert.match(
+    dispatcher,
+    /'\/api\/cron\/horse-video-reels':\s*600/,
+    'the dispatcher timeout must cover the worker route internal deadline',
+  );
+  assert.match(
+    workerRoutes,
+    /'\/api\/cron\/horse-video-reels':\s*'\/cron\/horse-video-reels'/,
+  );
+  assert.doesNotMatch(scriptJobs, /horse-video-reels/);
+  assert.match(criticalJobs, /'\/api\/cron\/horse-video-reels':\s*3/);
+  assert.match(criticalRunbooks, /'\/api\/cron\/horse-video-reels':/);
+});
+
 test('Video Library script jobs cannot be silently disabled by stale host flags', () => {
   assert.doesNotMatch(dispatcher, /SP_ENABLE_SCRIPT_JOBS/);
   assert.match(dispatcher, /required SCRIPT_JOB source is missing/);
@@ -134,6 +159,23 @@ test('manual Open Claw deploy can dispatch only the exact merged main workflow',
   assert.match(deployScript, /local main does not match origin\/main/);
   assert.match(deployScript, /gh workflow run deploy-openclaw\.yml/);
   assert.doesNotMatch(deployScript, /\bssh\b|\bscp\b|pip3? install|StrictHostKeyChecking=accept-new/);
+});
+
+test('manual publication can request at most three bounded verified backfill batches after promotion', () => {
+  assert.match(deployWorkflow, /publisher_backfill_batches:[\s\S]*options:[\s\S]*- '0'[\s\S]*- '1'[\s\S]*- '2'[\s\S]*- '3'/);
+  assert.match(
+    deployWorkflow,
+    /github\.event_name == 'workflow_dispatch' && inputs\.publisher_backfill_batches != '0'/,
+  );
+  const backfill = deployWorkflow.slice(deployWorkflow.indexOf('- name: Run requested bounded Reel backfill'));
+  assert.match(backfill, /test "\$\(sudo readlink "\$current"\)" = "\$release"/);
+  assert.match(backfill, /sha256sum --quiet -c release-manifest\.sha256/);
+  assert.match(backfill, /case "\$batch_count" in 1\|2\|3\)/);
+  assert.match(backfill, /systemd-run[\s\S]*--wait[\s\S]*--collect/);
+  assert.match(backfill, /--property=User=openclaw/);
+  assert.match(backfill, /--property=EnvironmentFile=\/etc\/openclaw\.env/);
+  assert.match(backfill, /video_library_to_reels\.py"[\s\\]*--limit 750 --verify/);
+  assert.doesNotMatch(backfill, /cat \/etc\/openclaw\.env|source \/etc\/openclaw\.env|set -a/);
 });
 
 test('Open Claw workflow builds a hash-locked per-SHA release before atomic promotion', () => {

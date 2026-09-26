@@ -273,8 +273,8 @@ export function UnreadProvider({ children }) {
             }
 
             // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.
-            // It caused double-counting: messenger.js emits MESSAGE_RECEIVED 
-            // from its own Supabase Realtime handler, AND this hook's Supabase 
+            // It caused double-counting: messenger.js emits MESSAGE_RECEIVED
+            // from its own Supabase Realtime handler, AND this hook's Supabase
             // channel fires — both incrementing the badge for the same message.
             // The Supabase Realtime channel above is the single source of truth.
 

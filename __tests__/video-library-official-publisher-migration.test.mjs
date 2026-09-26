@@ -42,14 +42,21 @@ const functionBody = name => {
   return { header: match[0].slice(0, match[0].indexOf('$function$')), body: match[1] };
 };
 
-test('the official publisher migration exists and sorts after every installed Video Reels migration', () => {
+test('the official publisher migration exists after its installed prerequisites with a unique version', () => {
   assert.ok(existsSync(migrationUrl), `${MIGRATION_NAME} must exist`);
   assert.ok(MIGRATION_NAME > '20260907000000', 'must sort after installed 20260907000000');
   assert.ok(MIGRATION_NAME > '20260906235959', 'must sort after installed 20260906235959');
-  const timestamped = readdirSync(migrationsDir)
-    .filter(name => /^\d{8,14}_.*\.sql$/.test(name) && name !== MIGRATION_NAME);
-  const later = timestamped.filter(name => name > MIGRATION_NAME);
-  assert.deepEqual(later, [], 'no timestamped migration may sort after this forward migration');
+  assert.ok(
+    existsSync(new URL('20260906235959_video_reels_integrity_foundation.sql', migrationsDir)),
+    'the integrity foundation prerequisite must remain in source',
+  );
+  assert.ok(
+    existsSync(new URL('20260907000000_video_reels_batch_storage_proof.sql', migrationsDir)),
+    'the batch-storage prerequisite must remain in source',
+  );
+  const sameVersion = readdirSync(migrationsDir)
+    .filter(name => name.startsWith('20260923120000_'));
+  assert.deepEqual(sameVersion, [MIGRATION_NAME], 'the migration ledger version must be unique');
 });
 
 test('it is one transaction, idempotent, and never replays or drops installed objects', () => {

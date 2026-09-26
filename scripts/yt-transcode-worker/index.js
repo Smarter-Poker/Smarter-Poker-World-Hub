@@ -54,6 +54,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import { spawn } from 'node:child_process';
 import { constants as fsConstants } from 'node:fs';
 import { mkdtemp, rm, readFile, stat, access } from 'node:fs/promises';
@@ -129,6 +130,10 @@ function abortActiveStorageUploads(reason = 'native_control_not_enabled') {
 const supa = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
   global: { fetch: fetchWithDeadline },
+  // Supabase 2.112+ initializes its Realtime client eagerly. Node 18/20 do
+  // not expose a native WebSocket, even though this polling worker never
+  // subscribes to Realtime, so provide the supported server transport.
+  realtime: { transport: WebSocket },
 });
 
 const POLL_MS = 60_000;                  // Idle poll interval

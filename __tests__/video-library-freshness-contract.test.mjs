@@ -8,7 +8,8 @@
  * the verifier's daily capacity are pinned to it so they cannot drift apart
  * again: a 24-hour JavaScript bound over a 7-day SQL view made the catalog
  * API's total/hasMore disagree with the rows it returned, and one daily
- * 500-row run cannot renew ~1,417 rows inside 24 hours.
+ * 750-row run renews the current poker-and-slots catalog well inside the
+ * seven-day public eligibility window.
  *
  * This pins an expiry bound. It does not admit unknown, NULL, unverified or
  * non-embeddable records; those remain covered by
@@ -36,12 +37,12 @@ const CONTRACT_MAX_AGE_MS = CONTRACT_MAX_AGE_DAYS * DAY_MS;
 const CONTRACT_FUTURE_SKEW_MINUTES = 5;
 const CONTRACT_FUTURE_SKEW_MS = CONTRACT_FUTURE_SKEW_MINUTES * MINUTE_MS;
 
-// Poker (cash + tournament) rows in video_library_videos on 20 Sep 2026. The
+// Poker and slots rows in video_library_videos on 26 Sep 2026. The
 // capacity invariant below demands twice this, so the catalog can double before
 // one daily run stops covering every row inside the 7-day bound. If the catalog
 // outgrows the headroom, raise the dispatcher limit or the run frequency; do
 // not lower this number.
-const POKER_ROW_COUNT_20_SEP_2026 = 1_417;
+const LIBRARY_REEL_ROW_COUNT_26_SEP_2026 = 2_171;
 const CAPACITY_HEADROOM_FACTOR = 2;
 
 const availabilityModule = await import(
@@ -298,7 +299,7 @@ test('renewal is always scheduled strictly inside the 7-day expiry', () => {
   assert.match(PUBLISHER, /7-day public-playback cutoff/);
 });
 
-test('one daily verifier run can renew the whole poker catalog inside the expiry', () => {
+test('one daily verifier run can renew the whole poker-and-slots catalog inside the expiry', () => {
   const jobs = DISPATCHER.match(/SCRIPT_JOBS = \{([\s\S]*?)\n\}/);
   assert.ok(jobs, 'SCRIPT_JOBS must remain a literal registry');
   const args = jobs[1].match(/'\/api\/cron\/video-library-reels':\s*\[([^\]]*)\]/);
@@ -316,11 +317,11 @@ test('one daily verifier run can renew the whole poker catalog inside the expiry
     'the capacity invariant assumes one run per day at a fixed hour and minute');
 
   const rowsVerifiableInsideExpiry = dailyLimit * CONTRACT_MAX_AGE_DAYS;
-  const required = CAPACITY_HEADROOM_FACTOR * POKER_ROW_COUNT_20_SEP_2026;
+  const required = CAPACITY_HEADROOM_FACTOR * LIBRARY_REEL_ROW_COUNT_26_SEP_2026;
   assert.ok(
     rowsVerifiableInsideExpiry >= required,
     `daily --limit ${dailyLimit} x ${CONTRACT_MAX_AGE_DAYS} days = ${rowsVerifiableInsideExpiry} rows, `
-      + `below the required ${required} (2 x ${POKER_ROW_COUNT_20_SEP_2026} poker rows on 20 Sep 2026). `
+      + `below the required ${required} (2 x ${LIBRARY_REEL_ROW_COUNT_26_SEP_2026} poker and slots rows on 26 Sep 2026). `
       + 'Cutting the limit this far lets verified rows expire before they are renewed.',
   );
 });

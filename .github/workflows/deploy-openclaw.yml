@@ -19,6 +19,17 @@ on:
       - 'supabase/migrations/20260906235959_video_reels_integrity_foundation.sql'
       - '.github/workflows/deploy-openclaw.yml'
   workflow_dispatch:
+    inputs:
+      publisher_backfill_batches:
+        description: Verified 750-item Reel publisher batches to run after promotion
+        required: false
+        default: '0'
+        type: choice
+        options:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
 
 concurrency:
   group: deploy-openclaw
@@ -32,7 +43,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: Production
-    timeout-minutes: 30
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -690,4 +701,54 @@ jobs:
           trap - ERR
           sudo rm -f "$unit_backup"
           rm -f "$unit_upload"
+          EOSSH
+
+      - name: Run requested bounded Reel backfill
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publisher_backfill_batches != '0' }}
+        env:
+          HOST: ${{ secrets.OPENCLAW_HOST }}
+          SSH_USER: ${{ secrets.HETZNER_SSH_USER || 'root' }}
+          PUBLISHER_BACKFILL_BATCHES: ${{ inputs.publisher_backfill_batches }}
+        run: |
+          set -euo pipefail
+          case "$PUBLISHER_BACKFILL_BATCHES" in 1|2|3) ;; *) exit 2 ;; esac
+          ssh "$SSH_USER@$HOST" 'bash -s' -- \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$PUBLISHER_BACKFILL_BATCHES" <<'EOSSH'
+          set -euo pipefail
+          release_sha="$1"
+          run_id="$2"
+          run_attempt="$3"
+          batch_count="$4"
+          case "$release_sha" in (*[!0-9a-f]*|'') exit 2 ;; esac
+          test "${#release_sha}" -eq 40
+          case "$run_id" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$run_attempt" in (*[!0-9]*|'') exit 2 ;; esac
+          case "$batch_count" in 1|2|3) ;; *) exit 2 ;; esac
+
+          current=/opt/openclaw/current
+          release="/opt/openclaw/releases/${release_sha}"
+          sudo test -L "$current"
+          test "$(sudo readlink "$current")" = "$release"
+          sudo sh -c "cd '$current' && sha256sum --quiet -c release-manifest.sha256"
+          sudo test -f /etc/openclaw.env
+          test "$(sudo stat -c '%U:%G %a' /etc/openclaw.env)" = 'root:root 600'
+
+          for batch in $(seq 1 "$batch_count"); do
+            unit="openclaw-reels-backfill-${run_id}-${run_attempt}-${batch}"
+            sudo systemd-run \
+              --quiet \
+              --wait \
+              --collect \
+              --unit "$unit" \
+              --property=User=openclaw \
+              --property=Group=openclaw \
+              --property=WorkingDirectory="$current" \
+              --property=EnvironmentFile=/etc/openclaw.env \
+              --property=RuntimeMaxSec=1800 \
+              /usr/bin/env -u PYTHONHOME -u PYTHONPATH \
+                "PYTHONPATH=$current/vendor" \
+                /usr/bin/python3 -s "$current/video_library_to_reels.py" \
+                  --limit 750 --verify
+          done
           EOSSH

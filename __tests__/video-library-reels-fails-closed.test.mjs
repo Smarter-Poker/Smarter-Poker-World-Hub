@@ -17,7 +17,7 @@
  *
  * Two locks, each pinned on its own:
  *   1. The dispatcher runs the job only as the local verified atomic
- *      publisher (`--limit 500 --verify`, 1,800 s) and never calls the
+ *      publisher (`--limit 750 --verify`, 1,800 s) and never calls the
  *      horse-authored workers route /cron/video-library-reels or Vercel.
  *   2. The publisher fails closed by itself, in every mode. Its first request
  *      reads the publisher pinned in video_reels_pipeline_config; a profile
@@ -80,7 +80,7 @@ function runPython(source, args, timeout) {
 
 test('the dispatcher runs video-library-reels only as the local verified publisher', () => {
   assert.match(pyDict('SCRIPT_JOBS'),
-    new RegExp(`'${JOB}':\\s*\\['--limit',\\s*'500',\\s*'--verify'\\]`));
+    new RegExp(`'${JOB}':\\s*\\['--limit',\\s*'750',\\s*'--verify'\\]`));
   assert.match(pyDict('SCRIPT_JOB_SCRIPTS'), new RegExp(`'${JOB}':\\s*REELS_BRIDGE_PY`));
   assert.match(dispatcherCode, /^REELS_BRIDGE_PY = _resolve_script\('video_library_to_reels\.py'\)$/m);
   // The horse-authored workers route is never a target for this job.
@@ -170,7 +170,7 @@ print('RESULT ' + json.dumps(out))
 
 test('every dispatcher host runs the local publisher and never the horse workers route', () => {
   const r = runPython(DISPATCH_HARNESS, [DISPATCHER], 120_000);
-  assert.deepEqual(r.script_args, ['--limit', '500', '--verify']);
+  assert.deepEqual(r.script_args, ['--limit', '750', '--verify']);
   assert.equal(fs.realpathSync(r.script), fs.realpathSync(BRIDGE), 'the job must resolve to this repo\'s publisher');
   assert.equal(r.in_workers_preferred, false, `${JOB} must not route to the workers service`);
   assert.equal(r.horse_route_targeted, false, `${HORSE_ROUTE} must not be a workers target`);
@@ -185,7 +185,7 @@ test('every dispatcher host runs the local publisher and never the horse workers
     const [{ cmd, timeout }] = host.spawned;
     assert.equal(cmd[0], r.python);
     assert.equal(fs.realpathSync(cmd[1]), fs.realpathSync(BRIDGE));
-    assert.deepEqual(cmd.slice(2), ['--limit', '500', '--verify']);
+    assert.deepEqual(cmd.slice(2), ['--limit', '750', '--verify']);
     assert.equal(timeout, 1800);
   }
 });
@@ -340,7 +340,7 @@ def handler(state):
             self._handle('DELETE')
     return H
 
-def run(config=SYSTEM, controls=ON, pin=None, args=('--limit', '500', '--verify')):
+def run(config=SYSTEM, controls=ON, pin=None, args=('--limit', '750', '--verify')):
     state = {'config': config, 'controls': controls, 'requests': []}
     probe_log.write_text('')
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler(state))

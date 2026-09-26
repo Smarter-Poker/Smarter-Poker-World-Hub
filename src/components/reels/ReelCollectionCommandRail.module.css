@@ -6,7 +6,6 @@
     border-block-end: 1px solid rgb(228 231 236 / 16%);
     font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
 }
-
 .label {
     color: #45adff;
     font-size: 11px;
@@ -74,4 +73,3 @@
         text-align: center;
     }
 }
-

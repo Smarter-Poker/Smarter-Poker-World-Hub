@@ -157,7 +157,7 @@ test('a pinned limit-one page emits and accepts an explicit start cursor', () =>
   assert.deepEqual({ ...context.__parseCursor(encoded, 'recent') }, { start: true });
   assert.throws(() => context.__parseCursor(encoded, 'popular'));
   assert.match(REELS_SERVER, /if \(!cursor \|\| cursor\.start === true\) return query/);
-  assert.match(REELS_SERVER, /readDetail\(client, cursor \? '' : id, scope, sort, viewerId\)/);
+  assert.match(REELS_SERVER, /readDetail\(client, cursor \? '' : id, scope, sort, category, viewerId\)/);
   assert.match(REELS_SERVER, /encodeCursor\(\{ sort, start: true \}\)/);
 });
 

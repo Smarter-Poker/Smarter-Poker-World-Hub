@@ -1,9 +1,11 @@
 /**
  * GET /api/reels/feed
  *
- * Public, poker-only Reel feed. `id` accepts either a Reel id or its linked
- * social-post id so historical bookmarks keep resolving through the same
- * eligibility rules as ordinary feed rows.
+ * Public canonical Reel feed. Category is an allowlisted server contract;
+ * every category still uses the same readiness, rights, availability,
+ * moderation, deletion, and canonical-deduplication gates. `id` accepts either
+ * a Reel id or its linked social-post id so historical bookmarks resolve
+ * through the same eligibility rules as ordinary feed rows.
  */
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
@@ -44,7 +46,9 @@ export default async function handler(req, res) {
 
     const id = String(firstQueryValue(req.query.id) || '').trim();
     try {
-        const scope = String(firstQueryValue(req.query.scope) || '').trim().toLowerCase();
+        let scope = String(firstQueryValue(req.query.scope) || '').trim().toLowerCase();
+        const category = String(firstQueryValue(req.query.category) || '').trim().toLowerCase();
+        if (category === 'following') scope = 'following';
         let viewerId = null;
         if (scope === 'following') {
             const { user, error: authError } = await getServerUserWithFallback(req, getAuthClient());
@@ -59,6 +63,7 @@ export default async function handler(req, res) {
             cursor: firstQueryValue(req.query.cursor),
             sort: firstQueryValue(req.query.sort),
             scope,
+            category,
             viewerId,
         });
 
@@ -74,6 +79,7 @@ export default async function handler(req, res) {
             data: result.data,
             has_more: result.hasMore,
             next_cursor: result.nextCursor,
+            category: result.category,
             partial: result.partial,
             pagination: {
                 limit: result.data.length,

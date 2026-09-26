@@ -3,7 +3,7 @@
 VIDEO LIBRARY -> SOCIAL REELS PUBLISHER
 =======================================
 
-Publishes verified poker videos from ``video_library_videos`` through the
+Publishes verified poker and slots videos from ``video_library_videos`` through the
 database's atomic ``publish_video_library_reel`` RPC. The RPC owns the
 social_posts + social_reels transaction and canonical identity; this process
 owns discovery, availability verification, and bounded scheduling.
@@ -27,7 +27,8 @@ Safety contract:
     non-zero. The horse-fleet switch content_settings.engine_enabled is NOT
     consulted here; it still gates the horse-authored workers bridge, which
     Open Claw never calls for this job;
-  * only ``cash`` and ``tournament`` catalog rows are eligible;
+  * only explicitly supported ``cash``, ``tournament``, and ``slots`` catalog
+    rows are eligible;
   * every new or repaired publication is verified with both YouTube oEmbed and
     yt-dlp's embedded-player metadata, and every unknown/error state fails closed;
   * authenticated player reports remain non-censoring until this verifier
@@ -46,7 +47,7 @@ Open Claw runs this daily after the catalog scraper. The dispatcher
 packages on PYTHONPATH; there is no virtualenv on the host:
 
     PYTHONPATH=/opt/openclaw/current/vendor /usr/bin/python3 -s \
-        /opt/openclaw/current/video_library_to_reels.py --limit 500 --verify
+        /opt/openclaw/current/video_library_to_reels.py --limit 750 --verify
 
 ``--verify`` remains as an explicit scheduler assertion and compatibility
 flag. Verification is mandatory even when the flag is omitted.
@@ -74,6 +75,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _HOME_STATE = Path.home() / '.smarter-poker'
 POKER_VIDEO_TYPES = {'cash', 'tournament'}
+VIDEO_LIBRARY_REEL_TYPES = POKER_VIDEO_TYPES | {'slots'}
 CATALOG_PAGE_SIZE = 250
 EXISTING_PAGE_SIZE = 1000
 FAILURE_PAGE_SIZE = 1000
@@ -83,8 +85,8 @@ YOUTUBE_ID_RE = re.compile(r'^[A-Za-z0-9_-]{11}$')
 # SQL: fn_is_video_library_asset_eligible and its sibling predicates accept
 # availability_checked_at no older than interval '7 days'; the JavaScript
 # mirror is VIDEO_LIBRARY_VERIFICATION_MAX_AGE_MS). The dispatcher retains its
-# daily 07:00 schedule and bounded 500-row pass, so each of the ~1,417 poker
-# rows is re-verified about every 2.8 days. The 12-hour value below is only
+# daily 07:00 schedule and bounded 500-row pass, so the current ~2,200 poker
+# and slots rows are re-verified about every five days. The 12-hour value below is only
 # the "due for renewal" threshold that makes every daily run pick the oldest
 # rows; it is not the public expiry. Whole-catalog coverage inside one run is
 # not implied: stale rows remain fail-closed until the existing verifier
@@ -942,7 +944,7 @@ def _load_embed_failure_rows():
 
 
 def _catalog_pages(source=None):
-    filters = {'type': 'in.(cash,tournament)'}
+    filters = {'type': 'in.(cash,tournament,slots)'}
     if source:
         filters['source_id'] = f'eq.{source}'
     offset = 0
@@ -1190,7 +1192,7 @@ def run_bridge(args):
             if not asset_id or not YOUTUBE_ID_RE.fullmatch(vid_id):
                 stats['invalid_rows'] += 1
                 continue
-            if video_type not in POKER_VIDEO_TYPES:
+            if video_type not in VIDEO_LIBRARY_REEL_TYPES:
                 stats['invalid_rows'] += 1
                 continue
             stats['eligible_rows'] += 1

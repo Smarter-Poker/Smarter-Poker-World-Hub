@@ -90,8 +90,11 @@ test('the availability gate rejects fake, blocked, missing, and object-form IDs'
     videoId: 'M7lc1UVf-VE', type: 'tournament', availabilityStatus: 'verified',
     embeddable: true, availabilityCheckedAt: '2020-01-01T00:00:00.000Z',
   }), false);
-  assert.equal(isVideoLibraryVideoAllowed({ videoId: 'slot-video', type: 'slots' }), false);
-  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament']);
+  assert.equal(isVideoLibraryVideoAllowed({
+    videoId: 'M7lc1UVf-VE', type: 'slots', availabilityStatus: 'verified',
+    embeddable: true, availabilityCheckedAt: fresh,
+  }), true);
+  assert.deepEqual(VIDEO_LIBRARY_ALLOWED_TYPES, ['cash', 'tournament', 'slots']);
 });
 
 test('live, fallback, bookmark, and player entry points share the availability gate', () => {
