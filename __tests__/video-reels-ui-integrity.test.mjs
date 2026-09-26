@@ -386,6 +386,8 @@ test('the mixed embedded viewer keeps loading and empty copy category-neutral', 
   assert.match(REELS_COMPONENT, /verifying playable Reel footage/);
   assert.match(REELS_COMPONENT, /subtitle="Verified Reel Video"/);
   assert.doesNotMatch(REELS_COMPONENT, /playable poker footage|Verified Poker Video/i);
+  assert.match(REELS_COMPONENT, /href="\/hub\/reels\?category=for-you"/);
+  assert.doesNotMatch(REELS_COMPONENT, /href="\/hub\/reels"/);
 });
 
 test('slots Reels carry the responsible-gaming console notice on every viewer', () => {

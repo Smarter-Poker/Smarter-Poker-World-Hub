@@ -138,7 +138,7 @@ test('the initial Social carousel scan crosses hidden pages and preserves a paus
   assert.match(initialLoad, /selectRows: \(rows\) => rows[\s\S]*!notInterested\.has\(reel\.id\)/);
   assert.match(initialLoad, /payload\.continuation_paused === true && nextCursor/);
   assert.match(initialLoad, /setContinuationError\(\{[\s\S]*cursor: nextCursor/);
-  assert.match(emptyState, /label: 'Retry More Reels'/);
+  assert.match(emptyState, /'Retry More Reels'/);
   assert.match(emptyState, /onClick: retryContinuation/);
 });
 
@@ -152,7 +152,7 @@ test('a failed cursor is blocked from automatic retry and exposed for explicit s
   );
   assert.match(continuation, /failedAutomaticCursorRef\.current = cursor/);
   assert.match(continuation, /setContinuationError\(\{[\s\S]*cursor,[\s\S]*Current Reel Is Still Available/);
-  assert.match(retry, /continuationErrorRef\.current\?\.cursor/);
+  assert.match(retry, /const failedCursor = failedContinuation\?\.cursor/);
   assert.match(retry, /loadMoreReels\(\{ automatic: false, cursor: failedCursor \}\)/);
   assert.match(source, /'Retry More Reels'/);
 });
@@ -293,6 +293,21 @@ test('Following authentication failures offer a real sign-in recovery instead of
   assert.match(carousel, /followingAuthError = selectedCategoryId === 'following'/);
   assert.match(carousel, /label: 'Sign In Again'/);
   assert.match(carousel, /\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/reels\?category=following'\)\}/);
+  assert.match(carousel, /authRequired: following && isReelsAuthError\(error\)/);
+  assert.match(carousel, /if \(failedContinuation\?\.authRequired\)[\s\S]*\/auth\/login\?redirect=/);
+  assert.match(carousel, /continuationError\.authRequired[\s\S]*'Sign In Again'/);
+});
+
+test('failed foreground refreshes preserve the mounted Reel window and expose recovery', () => {
+  const carousel = between(
+    'export function ReelsFeedCarousel()',
+    'function ReelsFeedConsoleStyles()'
+  );
+  assert.match(carousel, /if \(reelsRef\.current\.length === 0\) setLoading\(true\)/);
+  assert.match(carousel, /if \(reelsRef\.current\.length > 0\) \{[\s\S]*retryKind: 'refresh'[\s\S]*Your Current Reel Is Still Available/);
+  assert.match(carousel, /failedContinuation\?\.retryKind === 'refresh'[\s\S]*loadReels\(\)/);
+  assert.match(carousel, /if \(loadError && reels\.length === 0\)/);
+  assert.match(carousel, /role="alert"[\s\S]*continuationError\.message[\s\S]*Retry Signal/);
 });
 
 test('mixed-source cards use channel attribution without poker-only fallback copy', () => {

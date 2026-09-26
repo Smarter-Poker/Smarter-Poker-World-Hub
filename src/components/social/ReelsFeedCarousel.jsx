@@ -2790,7 +2790,11 @@ function ReelViewer({
               <div className="vlc-carousel-continuation-recovery" role="alert">
                 <ConsoleCopy>{continuationError.message}</ConsoleCopy>
                 <button type="button" onClick={onRetryContinuation} disabled={loadingMore}>
-                  {loadingMore ? 'Retrying More Reels' : 'Retry More Reels'}
+                  {continuationError.authRequired
+                    ? 'Sign In Again'
+                    : continuationError.retryKind === 'refresh'
+                      ? 'Retry Signal'
+                      : loadingMore ? 'Retrying More Reels' : 'Retry More Reels'}
                 </button>
               </div>
             )}
@@ -3411,7 +3415,7 @@ export function ReelsFeedCarousel() {
       queuedBackgroundRefreshRef.current = false;
       pendingContinuationRef.current = null;
       setLoadingMore(false);
-      setLoading(true);
+      if (reelsRef.current.length === 0) setLoading(true);
       setLoadError(null);
       reelsCursorRef.current = null;
       hasMoreRef.current = false;
@@ -3526,6 +3530,23 @@ export function ReelsFeedCarousel() {
       if (background && !authFailure) {
         // A failed quiet refresh preserves the mounted feed. Any cursor append
         // refused while it was active is resumed from the exact saved cursor.
+        return;
+      }
+      if (reelsRef.current.length > 0) {
+        if (authFailure) {
+          hasMoreRef.current = false;
+          failedAutomaticCursorRef.current = null;
+          setHasMore(false);
+        }
+        setLoadError(null);
+        setContinuationError({
+          cursor: reelsCursorRef.current,
+          authRequired: authFailure,
+          retryKind: 'refresh',
+          message: authFailure
+            ? 'Sign In Again To Continue Following Reels.'
+            : 'The Reel Signal Could Not Refresh. Your Current Reel Is Still Available.',
+        });
         return;
       }
       if (authFailure) {
@@ -3644,6 +3665,7 @@ export function ReelsFeedCarousel() {
       failedAutomaticCursorRef.current = cursor;
       setContinuationError({
         cursor,
+        authRequired: following && isReelsAuthError(error),
         message:
           following && isReelsAuthError(error)
             ? 'Sign In Again To Continue Following Reels.'
@@ -3668,9 +3690,20 @@ export function ReelsFeedCarousel() {
   }, [loadMoreReels]);
 
   const retryContinuation = useCallback(() => {
-    const failedCursor = continuationErrorRef.current?.cursor;
+    const failedContinuation = continuationErrorRef.current;
+    if (failedContinuation?.authRequired) {
+      router.push(
+        `/auth/login?redirect=${encodeURIComponent('/hub/reels?category=following')}`
+      );
+      return;
+    }
+    if (failedContinuation?.retryKind === 'refresh') {
+      loadReels();
+      return;
+    }
+    const failedCursor = failedContinuation?.cursor;
     if (failedCursor) loadMoreReels({ automatic: false, cursor: failedCursor });
-  }, [loadMoreReels]);
+  }, [loadMoreReels, loadReels, router]);
 
   // Initial load + Realtime subscriptions
   useEffect(() => {
@@ -3796,7 +3829,7 @@ export function ReelsFeedCarousel() {
   }
 
   // Keep recovery visible; the legacy pre-check returned null before this branch.
-  if (loadError) {
+  if (loadError && reels.length === 0) {
     const followingAuthError = selectedCategoryId === 'following'
       && loadError === 'Sign In Again To View Following Reels.';
     return (
@@ -3854,7 +3887,11 @@ export function ReelsFeedCarousel() {
           foot="plates"
           plates={{
             secondary: continuationError?.cursor
-              ? { label: 'Retry More Reels', onClick: retryContinuation, ink: 'silver' }
+              ? {
+                label: continuationError.authRequired ? 'Sign In Again' : 'Retry More Reels',
+                onClick: retryContinuation,
+                ink: 'silver',
+              }
               : { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
             primary: {
               label: 'Browse All Reels',
@@ -3917,6 +3954,16 @@ export function ReelsFeedCarousel() {
               <ReelCard key={reel.id} reel={reel} onClick={() => openViewer(index)} />
             ))}
           </div>
+          {continuationError ? (
+            <div className="vlc-carousel-continuation-recovery" role="alert">
+              <ConsoleCopy align="center">{continuationError.message}</ConsoleCopy>
+              <button type="button" onClick={retryContinuation} disabled={loadingMore}>
+                {continuationError.authRequired
+                  ? 'Sign In Again'
+                  : continuationError.retryKind === 'refresh' ? 'Retry Signal' : 'Retry More Reels'}
+              </button>
+            </div>
+          ) : null}
           <ConsoleCopy align="center">Select A Reel To Enter The Full Viewer.</ConsoleCopy>
         </VideoLibraryConsole>
         <ReelsFeedConsoleStyles />

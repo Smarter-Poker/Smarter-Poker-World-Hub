@@ -3201,7 +3201,7 @@ export function ReelsViewer({ onClose }) {
                   {authorIdentity}
                 </a>
               ) : (
-                <Link href="/hub/reels" className={`${styles.authorLink} ${styles.authorTextOnly}`}>
+                <Link href="/hub/reels?category=for-you" className={`${styles.authorLink} ${styles.authorTextOnly}`}>
                   {authorIdentity}
                 </Link>
               )}
