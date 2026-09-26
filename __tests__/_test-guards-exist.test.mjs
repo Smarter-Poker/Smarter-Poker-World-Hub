@@ -188,6 +188,11 @@ import './store-commerce-hardening.test.mjs';
 // locally, and was reachable from no workflow, no npm script and no import -
 // which is exactly the shape of the 52 guards found unreachable on 2026-09-04.
 import './the-wallet-badges-count-the-whole-ledger.law.test.mjs';
+// 2026-09-13, the same audit's second pass. /api/rewards/progress reports
+// whether today's login is claimed and what the next claim pays, from the
+// catalog's own rule; the wallet's Escape backs out one layer, not all of them.
+import './the-earn-pane-knows-what-it-cannot-tell.test.mjs';
+import './the-ledger-speaks-to-the-player.law.test.mjs';
 // Trivia lifeline charges are client-requested but server-priced. This guard
 // pins the database replay envelope so a cheaper or differently typed debit
 // can never masquerade as the paid skip.
