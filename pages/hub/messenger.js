@@ -43,7 +43,7 @@ import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
-import { createMultiDeviceAuthListener, isOnline } from '../../src/utils/authGuard';
+import { isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // BottomNavBar intentionally removed from messenger — input area was blocked
 
@@ -98,6 +98,15 @@ function formatDateHeader(timestamp) {
     if (date.toDateString() === today.toDateString()) return 'Today';
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function compareMessageTimestamps(left, right) {
+    const milliseconds = Date.parse(left) - Date.parse(right);
+    if (milliseconds !== 0) return milliseconds;
+    // Postgres preserves microseconds; Date.parse alone would acknowledge a
+    // later message within the same millisecond as an older read boundary.
+    const fraction = value => Number((String(value).match(/\.(\d+)/)?.[1] || '').padEnd(9, '0'));
+    return fraction(left) - fraction(right);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -326,6 +335,8 @@ function MessengerPage() {
         } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
         return null;
     });
+    const authIdentityRef = useRef(user?.id || null);
+    const authGenerationRef = useRef(0);
     // The old global cache could paint another account or club before auth.
     const [loading, setLoading] = useState(true);
     const [conversations, setConversations] = useState([]);
@@ -593,6 +604,8 @@ function MessengerPage() {
         activeConversationRef.current = null;
         setActiveConversation(null);
         setMessages([]);
+        paginationLockRef.current = null;
+        setLoadingOlderMessages(false);
         messageCacheRef.current.clear();
         setConversations([]);
         setSearchQuery('');
@@ -639,6 +652,9 @@ function MessengerPage() {
 
     // Load user and conversations — PARALLEL init with cache-first render
     useEffect(() => {
+        let cancelled = false;
+        const authGeneration = authGenerationRef.current;
+        const current = () => !cancelled && authGenerationRef.current === authGeneration;
         async function init() {
             try {
                 // BULLETPROOF: Use authUtils instead of getSafeUser (avoids AbortError)
@@ -652,7 +668,7 @@ function MessengerPage() {
                     } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
                 }
 
-                if (authUser) {
+                if (authUser && current()) {
                     const token = getAccessToken();
                     const headers = { 'Authorization': 'Bearer ' + token };
 
@@ -671,6 +687,8 @@ function MessengerPage() {
                             .then(r => r.json()).catch(() => ({ data: { friends: [] } }))
                     ]);
 
+                    if (!current()) return;
+
                     // Process profile
                     const profileResp = profileResult.status === 'fulfilled' ? profileResult.value : {};
                     const prof = profileResp?.profile || {};
@@ -681,6 +699,7 @@ function MessengerPage() {
                         full_name: prof.full_name,
                         is_vip: prof.is_vip
                     });
+                    authIdentityRef.current = authUser.id;
                     setIsVip(!!prof.is_vip);
 
                     // Process friends
@@ -692,9 +711,10 @@ function MessengerPage() {
             } catch (e) {
                 console.warn('Init error:', e);
             }
-            setLoading(false);
+            if (current()) setLoading(false);
         }
         init();
+        return () => { cancelled = true; };
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -923,36 +943,56 @@ function MessengerPage() {
     //  MULTI-DEVICE RESILIENCE: Listen for auth changes from ANY device
     // This handles: token refresh, login from another device, session recovery
     useEffect(() => {
-        const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
-
-            if (!authUser) {
-                // User signed out - clear state
-                setUser(null);
+        let cancelled = false;
+        let profileSequence = 0;
+        // Keep the auth callback synchronous: a slow profile request must never
+        // hold or discard a later sign-out/account switch.
+        const { data } = supabase.auth.onAuthStateChange((event, session) => {
+            const authUser = event === 'SIGNED_OUT' ? null : session?.user;
+            const nextId = authUser?.id || null;
+            const changed = authIdentityRef.current !== nextId;
+            const sequence = ++profileSequence;
+            if (changed || event === 'SIGNED_OUT') {
+                authIdentityRef.current = nextId;
+                authGenerationRef.current++;
+                // Invalidate pending work before React commits the new actor.
+                workspaceRef.current = `auth:${authGenerationRef.current}`;
+                activeConversationRef.current = null;
                 setConversations([]);
                 setMessages([]);
                 setActiveConversation(null);
+                messageCacheRef.current.clear();
+                setFriends([]);
+                setIsVip(false);
+            }
+            if (!authUser) {
+                setUser(null);
+                setLoading(false);
                 return;
             }
 
-            // User is authenticated (from any device) - ensure we have latest data
-            if (authUser.id !== user?.id || event === 'TOKEN_REFRESHED') {
-                // Update user state
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('id, username, avatar_url, is_vip')
-                    .eq('id', authUser.id)
-                    .maybeSingle();
+            setUser(previous => previous?.id === nextId ? { ...previous, ...authUser } : {
+                ...authUser,
+                username: authUser.user_metadata?.poker_alias || authUser.email?.split('@')[0],
+                avatar_url: authUser.user_metadata?.avatar_url || null,
+            });
+            // The workspace effect loads a new actor after its state commits.
+            if (!changed && event === 'TOKEN_REFRESHED') loadConversationsRef.current?.(nextId, { invalidate: true });
+            void (async () => {
+                try {
+                    const { data: profile } = await supabase.from('profiles')
+                        .select('id, username, avatar_url, is_vip').eq('id', nextId).maybeSingle();
+                    if (cancelled || sequence !== profileSequence || authIdentityRef.current !== nextId) return;
+                    setUser(previous => previous?.id === nextId ? { ...previous, ...(profile || {}) } : previous);
+                    setIsVip(!!profile?.is_vip);
+                } catch (error) {
+                    if (!cancelled && sequence === profileSequence) console.warn('[Messenger] Profile refresh failed:', error?.message || error);
+                }
+            })();
+        });
 
-                setUser({ ...authUser, ...(profile || {}) });
-                setIsVip(!!profile?.is_vip);
-
-                // Reload conversations (uses API-first approach, resilient to RLS)
-                await loadConversations(authUser.id);
-            }
-        }, 500); // 500ms debounce to handle rapid token events
-
-        return cleanup;
-    }, [user?.id]); // Re-subscribe if user changes
+        return () => { cancelled = true; profileSequence++; data?.subscription?.unsubscribe(); };
+    }, []);
 
     // Check for pending calls when messenger opens (for users coming from push notification)
     useEffect(() => {
@@ -1204,19 +1244,26 @@ function MessengerPage() {
     // to a hidden window reloads its authoritative messages through goOnline.
     useEffect(() => {
         if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
-        markConversationReadRef.current?.(incomingRead.conversationId);
-    }, [incomingRead?.scope, incomingRead?.conversationId, incomingRead?.messageId]);
+        const displayed = messages.filter(message => message?.conversation_id === incomingRead.conversationId
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.id || '')
+            && Number.isFinite(Date.parse(message.created_at)));
+        const latest = displayed.reduce((previous, message) => !previous || compareMessageTimestamps(message.created_at, previous.created_at) > 0
+            || (compareMessageTimestamps(message.created_at, previous.created_at) === 0 && message.id > previous.id) ? message : previous, null);
+        if (latest) markConversationReadRef.current?.(incomingRead.conversationId, latest.id);
+    }, [incomingRead]);
 
     // Typing indicator broadcast
     const typingTimerRef = useRef(null);
     useEffect(() => {
         if (!user || !activeConversation) return;
+        const requestScope = workspaceKey;
+        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === activeConversation.id;
 
         const typingChannel = supabase
             .channel(`typing:${activeConversation.id}`)
             .on('broadcast', { event: 'typing' }, (payload) => {
                 // Someone else is typing
-                if (payload.payload.userId !== user.id) {
+                if (current() && payload.payload.userId !== user.id) {
                     setOtherTyping(true);
                     // Clear previous timer to prevent accumulation
                     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
@@ -1225,15 +1272,16 @@ function MessengerPage() {
             })
             .on('broadcast', { event: 'read_receipt' }, (payload) => {
                 // Other user read our messages — update ✓✓ checkmarks in real-time
-                if (payload.payload.readerId !== user.id) {
+                const readThrough = payload.payload.readThrough;
+                if (current() && payload.payload.readerId !== user.id && payload.payload.conversationId === activeConversation.id && Number.isFinite(Date.parse(readThrough))) {
                     setMessages(prev => prev.map(m =>
-                        m && m.sender_id === user.id ? { ...m, is_read: true, status: 'read' } : m
+                        m && m.sender_id === user.id && compareMessageTimestamps(m.created_at, readThrough) <= 0 ? { ...m, is_read: true, status: 'read' } : m
                     ));
                 }
             })
             // FIX #9: Listen for delivery confirmations from the other user
             .on('broadcast', { event: 'delivered' }, (payload) => {
-                if (payload.payload.receiverId !== user.id) {
+                if (current() && payload.payload.receiverId !== user.id) {
                     const deliveredId = payload.payload.messageId;
                     setMessages(prev => prev.map(m => {
                         if (!m) return m;
@@ -1626,16 +1674,17 @@ function MessengerPage() {
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadConversationsRef.current = loadConversations;
 
-    const markConversationRead = async (conversationId) => {
+    const markConversationRead = async (conversationId, throughMessageId) => {
         const requestScope = workspaceKey;
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
         try {
-            if (!current() || document.visibilityState === 'hidden') return;
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId || '')
+                || !current() || document.visibilityState === 'hidden') return;
             // Do not clear local/global badges or emit a read receipt on failure.
             const readResponse = await authedFetch('/api/messenger/mark-read', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ conversationId }),
+                body: JSON.stringify({ conversationId, throughMessageId }),
             });
             const readResult = await readResponse.json();
             if (!readResponse.ok || readResult.success !== true) {
@@ -1643,7 +1692,6 @@ function MessengerPage() {
                 return;
             }
             if (current()) {
-                setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c));
                 loadConversationsRef.current?.(user.id, { invalidate: true });
             }
 
@@ -1655,7 +1703,7 @@ function MessengerPage() {
                         typingChannelRef.current.send({
                             type: 'broadcast',
                             event: 'read_receipt',
-                            payload: { readerId: user.id, conversationId },
+                            payload: { readerId: user.id, conversationId, readThrough: readResult.readThrough },
                         }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
                     }
                 } catch { /* non-critical */ }
@@ -1680,6 +1728,7 @@ function MessengerPage() {
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId && messagesRequestSequence.current === requestSequence;
         // Optimistic UI check for instant loading
         const cachedMessages = messageCacheRef.current.get(conversationId);
+        const messagesAtStart = new Map((cachedMessages || []).map(message => [message.id, message]));
         if (cachedMessages) {
             setMessages(cachedMessages);
             setLoadingMessages(false);
@@ -1715,14 +1764,30 @@ function MessengerPage() {
                     catch { return hiddenMessageIds; }
                 })();
                 const filtered = result.messages.filter(m => !freshHiddenIds.has(m.id));
-                setMessages(filtered);
+                setMessages(previous => {
+                    if (!current()) return previous;
+                    const merged = new Map(filtered.map(message => [message.id, message]));
+                    // Only preserve changes made while this request was pending.
+                    // Older cached rows remain owned by the server snapshot.
+                    for (const message of previous) {
+                        if (message && !freshHiddenIds.has(message.id) && messagesAtStart.get(message.id) !== message
+                            && (!message.conversation_id || message.conversation_id === conversationId)) {
+                            const initial = messagesAtStart.get(message.id);
+                            const snapshot = merged.get(message.id);
+                            const changedFields = initial && snapshot
+                                ? Object.fromEntries(Object.entries(message).filter(([key, value]) => initial[key] !== value)) : message;
+                            merged.set(message.id, { ...snapshot, ...changedFields });
+                        }
+                    }
+                    return [...merged.values()].sort((a, b) =>
+                        compareMessageTimestamps(a.created_at, b.created_at) || String(a.id).localeCompare(String(b.id)));
+                });
                 setHasMoreMessages(result.messages.length >= 50);
+                if (filtered.length) setIncomingRead({ scope: requestScope, conversationId, messageId: filtered[filtered.length - 1].id });
             } else {
                 if (!current()) return;
                 throw new Error(result.error || 'Messages Unavailable');
             }
-
-            await markConversationRead(conversationId);
 
         } catch (e) {
             console.warn('Load messages error:', e);
@@ -1740,12 +1805,13 @@ function MessengerPage() {
 
     // Load older messages (pagination — triggered when scrolling to top)
     // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
-    const paginationLockRef = useRef(false);
+    const paginationLockRef = useRef(null);
     const loadOlderMessages = useCallback(async () => {
-        if (!activeConversation || loadingOlderMessages || !hasMoreMessages || messages.length === 0) return;
+        if (!activeConversation || !hasMoreMessages || messages.length === 0) return;
         // Double-check with ref lock (state updates are async, ref is synchronous)
-        if (paginationLockRef.current) return;
-        paginationLockRef.current = true;
+        if (paginationLockRef.current?.scope === workspaceKey && paginationLockRef.current?.conversationId === activeConversation.id) return;
+        const operation = { scope: workspaceKey, conversationId: activeConversation.id };
+        paginationLockRef.current = operation;
         setLoadingOlderMessages(true);
         // Capture conversation at pagination start — user may switch before fetch resolves
         const paginationConvId = activeConversation.id;
@@ -1772,7 +1838,7 @@ function MessengerPage() {
             if (!response.ok) throw new Error(`Request failed (${response.status})`);
             const result = await response.json();
             // Staleness guard: discard if user switched conversations while paginating
-            if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return;
+            if (paginationLockRef.current !== operation || workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return;
             if (result.success && result.messages?.length > 0) {
                 // Filter out hidden messages — re-read from localStorage for freshness
                 const freshHiddenIds = (() => {
@@ -1781,14 +1847,16 @@ function MessengerPage() {
                 })();
                 const filteredOlder = result.messages.filter(m => !freshHiddenIds.has(m.id));
                 setMessages(prev => {
+                    if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== paginationConvId) return prev;
                     // Signal scroll effect to skip — rAF below will restore position
                     isPaginatingRef.current = true;
-                    return [...filteredOlder, ...prev];
+                    const existingIds = new Set(prev.map(message => message.id));
+                    return [...filteredOlder.filter(message => !existingIds.has(message.id)), ...prev];
                 });
                 setHasMoreMessages(result.messages.length >= 50);
                 // Preserve scroll position after prepending older messages
                 requestAnimationFrame(() => {
-                    if (container) {
+                    if (container && workspaceRef.current === requestScope && activeConversationRef.current?.id === paginationConvId) {
                         container.scrollTop = container.scrollHeight - prevScrollHeight;
                     }
                 });
@@ -1797,13 +1865,18 @@ function MessengerPage() {
             }
         } catch (e) {
             console.warn('Load older messages error:', e);
+        } finally {
+            if (paginationLockRef.current === operation) {
+                paginationLockRef.current = null;
+                setLoadingOlderMessages(false);
+            }
         }
-        setLoadingOlderMessages(false);
-        paginationLockRef.current = false;
     }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user, workspaceKey]);
 
     const handleSelectConversation = async (conversation) => {
         activeConversationRef.current = conversation;
+        paginationLockRef.current = null;
+        setLoadingOlderMessages(false);
         setActiveConversation(conversation);
         setMessageSearchQuery('');
         setShowMessageSearch(false);

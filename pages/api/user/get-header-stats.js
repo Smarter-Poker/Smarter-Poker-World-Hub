@@ -103,10 +103,20 @@ export default async function handler(req, res) {
               console.warn('[get-header-stats] Notification count error:', socialCountResult.error);
               return res.status(500).json({ error: 'Internal server error' });
           }
+          if (followResult.error) {
+              console.warn('[get-header-stats] Notification follows error:', followResult.error);
+              return res.status(500).json({ error: 'Internal server error' });
+          }
           let notificationCount = socialCountResult.count || 0;
           // Page notification reads depend on the followed pages fetched above.
           const pokerResult = await (async () => {
-                  if (!followResult.data || followResult.data.length === 0) return 0;
+                  // Use the feed's same validated followed-page boundary. Each page
+                  // belongs to one chunk so its signals cannot be counted twice.
+                  const follows = [...new Map((followResult.data || []).filter(f =>
+                      /^[A-Za-z0-9_]{1,32}$/.test(String(f.page_type || '')) &&
+                      /^[A-Za-z0-9_-]{1,64}$/.test(String(f.page_id || ''))
+                  ).map(f => [`${f.page_type}:${f.page_id}`, f])).values()];
+                  if (follows.length === 0) return 0;
                   
                   // Chunk follows to avoid HTTP 414 URI Too Long errors.
                   // PERF (header-audit #11): the chunks used to be awaited INSIDE the loop,
@@ -114,35 +124,39 @@ export default async function handler(req, res) {
                   // could even start. They are independent — fire them together.
                   const chunkSize = 20;
                   const chunks = [];
-                  for (let i = 0; i < followResult.data.length; i += chunkSize) {
-                      chunks.push(followResult.data.slice(i, i + chunkSize));
+                  for (let i = 0; i < follows.length; i += chunkSize) {
+                      chunks.push(follows.slice(i, i + chunkSize));
                   }
-                  const chunkResults = await Promise.all(chunks.map((chunk) => {
+                  const chunkCounts = await Promise.all(chunks.map(async (chunk) => {
                       const orConditions = chunk.map(
                           (f) => `and(page_type.eq.${f.page_type},page_id.eq.${f.page_id})`
                       ).join(',');
-                      return sb.from('page_notifications')
-                          .select('id')
-                          .or(orConditions)
-                          .limit(500);
-                  }));
-                  const allIds = [];
-                  for (const { data: pageNotifs, error: chunkErr } of chunkResults) {
-                      if (chunkErr) {
-                          console.warn('[get-header-stats] page_notifications chunk error:', chunkErr);
-                          continue;
+                      // Bound each request and its read-receipt filter, without
+                      // cutting older reachable notifications out of the count.
+                      const pageSize = 100;
+                      let afterId = null, unread = 0;
+                      for (;;) {
+                          let query = sb.from('page_notifications').select('id').or(orConditions)
+                              .order('id', { ascending: true }).limit(pageSize);
+                          if (afterId) query = query.gt('id', afterId);
+                          const { data: rows, error: pageError } = await query;
+                          if (pageError) throw pageError;
+                          const ids = (rows || []).map(row => row.id);
+                          if (!ids.length) break;
+                          const { data: reads, error: readError } = await sb.from('notification_reads')
+                              .select('notification_id').eq('user_id', userId)
+                              .in('notification_id', ids).limit(ids.length);
+                          if (readError) throw readError;
+                          const readSet = new Set((reads || []).map(row => row.notification_id));
+                          unread += ids.filter(id => !readSet.has(id)).length;
+                          if (ids.length < pageSize) break;
+                          const nextId = ids.at(-1);
+                          if (afterId && nextId <= afterId) throw new Error('Notification Cursor Did Not Advance');
+                          afterId = nextId;
                       }
-                      if (pageNotifs) allIds.push(...pageNotifs.map(n => n.id));
-                  }
-                  
-                  if (allIds.length === 0) return 0;
-                  const { data: existingReads } = await sb
-                      .from('notification_reads')
-                      .select('notification_id')
-                      .eq('user_id', userId)
-                      .in('notification_id', allIds);
-                  const readSet = new Set((existingReads || []).map(r => r.notification_id));
-                  return allIds.filter(id => !readSet.has(id)).length;
+                      return unread;
+                  }));
+                  return chunkCounts.reduce((total, count) => total + count, 0);
           })();
 
           notificationCount += pokerResult;
