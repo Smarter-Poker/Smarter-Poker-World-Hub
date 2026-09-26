@@ -3269,6 +3269,7 @@ export function ReelsFeedCarousel() {
   const categoryDefinition = SOCIAL_REEL_CATEGORIES.find(
     (category) => category.id === selectedCategoryId
   ) || SOCIAL_REEL_CATEGORIES[0];
+  const browseAllReelsPath = `/hub/reels?category=${encodeURIComponent(selectedCategoryId)}`;
 
   const selectCategory = useCallback((nextCategoryId) => {
     const nextCategory = SOCIAL_REEL_CATEGORIES.find(
@@ -3808,7 +3809,7 @@ export function ReelsFeedCarousel() {
           plates={{
             secondary: {
               label: 'Browse All Reels',
-              onClick: () => router.push('/hub/reels'),
+              onClick: () => router.push(browseAllReelsPath),
               ink: 'silver',
             },
             primary: { label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' },
@@ -3847,7 +3848,7 @@ export function ReelsFeedCarousel() {
               : { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
             primary: {
               label: 'Browse All Reels',
-              onClick: () => router.push('/hub/reels'),
+              onClick: () => router.push(browseAllReelsPath),
               ink: 'white',
             },
           }}
@@ -3887,7 +3888,7 @@ export function ReelsFeedCarousel() {
             secondary: { label: 'Refresh Reels', onClick: () => loadReels(), ink: 'silver' },
             primary: {
               label: 'Browse All Reels',
-              onClick: () => router.push('/hub/reels'),
+              onClick: () => router.push(browseAllReelsPath),
               ink: 'white',
             },
           }}

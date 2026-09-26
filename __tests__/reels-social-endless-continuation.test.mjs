@@ -271,6 +271,16 @@ test('the category rail is keyboard complete, mobile-safe, and labels one active
   assert.match(carousel, /event\.key === 'Home'/);
   assert.match(carousel, /event\.key === 'End'/);
   assert.match(carousel, /aria-labelledby=\{`vlc-reel-category-\$\{selectedCategoryId\}`\}/);
+  assert.match(
+    carousel,
+    /const browseAllReelsPath = `\/hub\/reels\?category=\$\{encodeURIComponent\(selectedCategoryId\)\}`;/
+  );
+  assert.equal(
+    (carousel.match(/router\.push\(browseAllReelsPath\)/g) || []).length,
+    3,
+    'every error, empty, and populated Browse All Reels action preserves the active category'
+  );
+  assert.doesNotMatch(carousel, /router\.push\('\/hub\/reels'\)/);
   assert.match(styles, /\.vlc-reel-category-command \{[\s\S]*min-width: 44px;[\s\S]*min-height: 44px;/);
   assert.doesNotMatch(styles, /(?:linear|radial|conic)-gradient|:hover\b/);
 });
