@@ -285,6 +285,16 @@ test('the category rail is keyboard complete, mobile-safe, and labels one active
   assert.doesNotMatch(styles, /(?:linear|radial|conic)-gradient|:hover\b/);
 });
 
+test('Following authentication failures offer a real sign-in recovery instead of a retry loop', () => {
+  const carousel = between(
+    'export function ReelsFeedCarousel()',
+    'function ReelsFeedConsoleStyles()'
+  );
+  assert.match(carousel, /followingAuthError = selectedCategoryId === 'following'/);
+  assert.match(carousel, /label: 'Sign In Again'/);
+  assert.match(carousel, /\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/reels\?category=following'\)\}/);
+});
+
 test('mixed-source cards use channel attribution without poker-only fallback copy', () => {
   const card = between(
     'function ReelCard(',

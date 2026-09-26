@@ -25,6 +25,7 @@ export default function SavedReels() {
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState('');
+    const [reauthRequired, setReauthRequired] = useState(false);
     const [paginationError, setPaginationError] = useState('');
     const [hasMore, setHasMore] = useState(false);
     const requestGuardRef = useRef(null);
@@ -48,6 +49,7 @@ export default function SavedReels() {
             setLoadingMore(false);
             setPaginationError('');
             setError('');
+            setReauthRequired(false);
         }
         setUser(next);
     }, []);
@@ -75,7 +77,10 @@ export default function SavedReels() {
             }
             collectionOwnerIdRef.current = null;
         }
-        if (!appendRequest) setError('');
+        if (!appendRequest) {
+            setError('');
+            setReauthRequired(false);
+        }
         setPaginationError('');
         try {
             if (!request.isCurrent() || !ownerRequest.isCurrent()) return;
@@ -104,6 +109,14 @@ export default function SavedReels() {
         } catch (loadError) {
             if (!request.isCurrent() || !ownerRequest.isCurrent() || loadError?.name === 'AbortError') return;
             console.warn('Error loading saved reels:', loadError);
+            if ([401, 403].includes(loadError?.status)) {
+                setReauthRequired(true);
+                setSavedReels([]);
+                setHasMore(false);
+                nextCursorRef.current = null;
+                collectionOwnerIdRef.current = null;
+                return;
+            }
             if (appendRequest) setPaginationError('More Saved Reels Could Not Be Loaded. Please Retry.');
             else setError('We Could Not Load Your Saved Reel Collection.');
         } finally {
@@ -184,12 +197,13 @@ export default function SavedReels() {
                     aria-labelledby="saved-reels-title"
                 >
                     <ReelCollectionCommandRail />
-                    <ConsoleDataRow label="Archive Status" value={user ? 'Account Synchronized' : 'Sign In Required'} valueInk={user ? 'green' : 'gold'} />
+                    <ConsoleDataRow label="Archive Status" value={reauthRequired ? 'Sign In Again' : user ? 'Account Synchronized' : 'Sign In Required'} valueInk={user && !reauthRequired ? 'green' : 'gold'} />
                     <ConsoleDataRow label="Saved In View" value={compactCount(savedReels.length)} valueInk="blue" />
                     {error && savedReels.length > 0 ? <p className="vlc-collection-alert" role="alert">{error}</p> : null}
                     {loading ? <CollectionState text="Synchronizing Your Saved Reel Archive" />
+                        : reauthRequired ? <CollectionState text="Your Saved Account No Longer Has A Live Session" action={<Link href={`/auth/login?redirect=${encodeURIComponent('/hub/reels/saved')}`}>Sign In Again</Link>} />
                         : error && savedReels.length === 0 ? <CollectionState text={error} action={<button type="button" onClick={() => loadSavedReels()}>Try Again</button>} />
-                        : !user ? <CollectionState text="Sign In To Open Your Saved Reel Archive" action={<Link href="/login">Sign In</Link>} />
+                        : !user ? <CollectionState text="Sign In To Open Your Saved Reel Archive" action={<Link href={`/auth/login?redirect=${encodeURIComponent('/hub/reels/saved')}`}>Sign In</Link>} />
                         : savedReels.length === 0 && hasMore ? <CollectionState text="More Archive Records Remain To Be Checked" action={<button type="button" onClick={() => loadSavedReels({ append: true })}>Continue Scan</button>} />
                         : savedReels.length === 0 ? <CollectionState text="No Saved Reels Yet. Save A Reel And It Will Appear Here" action={<Link href="/hub/reels?category=for-you">Explore Reels</Link>} />
                         : <>

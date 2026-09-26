@@ -3797,6 +3797,8 @@ export function ReelsFeedCarousel() {
 
   // Keep recovery visible; the legacy pre-check returned null before this branch.
   if (loadError) {
+    const followingAuthError = selectedCategoryId === 'following'
+      && loadError === 'Sign In Again To View Following Reels.';
     return (
       <div className="vlc-feed-console-shell">
         <VideoLibraryConsole
@@ -3812,7 +3814,15 @@ export function ReelsFeedCarousel() {
               onClick: () => router.push(browseAllReelsPath),
               ink: 'silver',
             },
-            primary: { label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' },
+            primary: followingAuthError
+              ? {
+                label: 'Sign In Again',
+                onClick: () => router.push(
+                  `/auth/login?redirect=${encodeURIComponent('/hub/reels?category=following')}`
+                ),
+                ink: 'blue',
+              }
+              : { label: 'Retry Signal', onClick: () => loadReels(), ink: 'blue' },
           }}
           aria-label={`${categoryDefinition.title} Connection Recovery`}
         >

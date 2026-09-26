@@ -87,6 +87,7 @@ const C = {
   text: '#FFFFFF',
   textSec: 'rgba(255,255,255,0.7)',
 };
+const POKER_REEL_UPLOAD_PATH = '/hub/reels?category=poker&upload=1';
 
 function timeAgo(d) {
   if (!d) return '';
@@ -326,6 +327,7 @@ export async function getServerSideProps({ res }) {
 export default function ReelsPage({ reelsListing = null }) {
   const [reels, setReels] = useState([]);
   const reelsCursorRef = useRef(null);
+  const reelsRouteNamespaceRef = useRef(null);
   const reelsRequestGuardRef = useRef(null);
   const commentRequestGuardRef = useRef(null);
   const activeCommentReelIdRef = useRef(null);
@@ -345,6 +347,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [followingReauthRequired, setFollowingReauthRequired] = useState(false);
   const loadErrorRef = useRef(null);
   loadErrorRef.current = loadError;
   // Every navigation starts muted so browser autoplay is deterministic. Sound
@@ -422,6 +425,7 @@ export default function ReelsPage({ reelsListing = null }) {
   const router = useRouter();
   const routePresentation = presentationForReelsRoute(router.query);
   const [user, setUser] = useState(null);
+  const [authResolved, setAuthResolved] = useState(false);
   const activeUserIdRef = useRef(null);
   const accountScopeRef = useRef(null);
   if (!accountScopeRef.current) accountScopeRef.current = createReelAccountScope();
@@ -617,6 +621,7 @@ export default function ReelsPage({ reelsListing = null }) {
     const binding = accountScopeRef.current.bind(next?.id);
     activeUserIdRef.current = next?.id || null;
     if (binding.changed) clearAccountOwnedState();
+    if (binding.changed) setFollowingReauthRequired(false);
     setUser(next);
   }, [clearAccountOwnedState]);
 
@@ -624,6 +629,7 @@ export default function ReelsPage({ reelsListing = null }) {
   // The owner ref changes before React paints, so no late A response can reach B.
   useEffect(() => {
     bindAuthUser(getAuthUser());
+    setAuthResolved(true);
     const handleStorage = (event) => {
       if (event.key !== 'smarter-poker-auth'
         && !(event.key?.startsWith('sb-') && event.key?.endsWith('-auth-token'))) return;
@@ -898,6 +904,22 @@ export default function ReelsPage({ reelsListing = null }) {
     };
   }, []);
 
+  // Canonicalize bare and legacy Reel bookmarks without dropping their detail,
+  // feed, or upload intent. This gives every semantic category one stable URL
+  // and lets the shared navigation mark the correct command active.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const requestedCategory = Array.isArray(router.query.category)
+      ? router.query.category[0]
+      : router.query.category;
+    const canonicalCategory = categoryForReelsRoute(router.query);
+    if (String(requestedCategory || '').trim().toLowerCase() === canonicalCategory) return;
+    void router.replace({
+      pathname: '/hub/reels',
+      query: { ...router.query, category: canonicalCategory },
+    }, undefined, { shallow: true });
+  }, [router.isReady, router.query]);
+
   // Wait for router.isReady so router.query.id is populated before loadReels runs.
   // Without this, ?id= deep-links arrive as undefined on first render and the
   // direct-query fallback inside loadReels never fires.
@@ -974,6 +996,7 @@ export default function ReelsPage({ reelsListing = null }) {
     if (!background) {
       setLoading(true);
       setLoadError(null);
+      setFollowingReauthRequired(false);
       setLoadMoreError(null);
       setHasMore(true);
       reelsCursorRef.current = null;
@@ -983,9 +1006,25 @@ export default function ReelsPage({ reelsListing = null }) {
     try {
       const routeCategory = categoryForReelsRoute(router.query);
       const feedMode = feedModeForReelsRoute(router.query);
+      const routeNamespace = `${routeCategory}:${feedMode}`;
+      if (reelsRouteNamespaceRef.current !== routeNamespace) {
+        reelsRouteNamespaceRef.current = routeNamespace;
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+      }
       const authUser = feedMode === 'following' ? getAuthUser() : null;
+      const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
       if (feedMode === 'following' && !authUser?.id) {
         setReels([]);
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+        setHasMore(false);
+        return;
+      }
+      if (feedMode === 'following' && !followingAccessToken) {
+        setFollowingReauthRequired(true);
+        setReels([]);
+        currentIndexRef.current = 0;
         setCurrentIndex(0);
         setHasMore(false);
         return;
@@ -1006,7 +1045,7 @@ export default function ReelsPage({ reelsListing = null }) {
           signal: reelsRequest.signal,
           scope: feedMode === 'following' ? 'following' : 'standalone',
           category: routeCategory,
-          accessToken: feedMode === 'following' ? getAccessToken() : null,
+          accessToken: followingAccessToken,
         }),
         selectRows: (rows) => {
           const mappedReels = rows.map(mapFeedReel);
@@ -1046,7 +1085,7 @@ export default function ReelsPage({ reelsListing = null }) {
               signal: reelsRequest.signal,
               scope: feedMode === 'following' ? 'following' : 'standalone',
               category: routeCategory,
-              accessToken: feedMode === 'following' ? getAccessToken() : null,
+              accessToken: followingAccessToken,
             })).data.map(mapFeedReel),
           });
         if (!reelsRequest.isCurrent()) return;
@@ -1122,6 +1161,15 @@ export default function ReelsPage({ reelsListing = null }) {
       }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
+      if (feedModeForReelsRoute(router.query) === 'following' && [401, 403].includes(e?.status)) {
+        setFollowingReauthRequired(true);
+        setReels([]);
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+        setHasMore(false);
+        setLoadError(null);
+        return;
+      }
       if (background) {
         // A failed quiet refresh leaves the mounted feed and player untouched.
         console.warn('Background reels refresh failed:', e?.message || e);
@@ -1129,6 +1177,8 @@ export default function ReelsPage({ reelsListing = null }) {
       }
       console.warn('Load reels error:', e);
       setReels([]);
+      currentIndexRef.current = 0;
+      setCurrentIndex(0);
       setLoadError(
         initialId && [400, 404, 410].includes(e?.status) ? 'unavailable' : 'network',
       );
@@ -1312,6 +1362,15 @@ export default function ReelsPage({ reelsListing = null }) {
     try {
       const routeCategory = categoryForReelsRoute(router.query);
       const feedMode = feedModeForReelsRoute(router.query);
+      const followingAccessToken = feedMode === 'following' ? getAccessToken() : null;
+      if (feedMode === 'following' && !followingAccessToken) {
+        setFollowingReauthRequired(true);
+        setReels([]);
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+        setHasMore(false);
+        return;
+      }
       const existingIds = new Set(reels.map((reel) => reel.id));
       const existingUrls = new Set(reels.map((reel) => reel.video_url).filter(Boolean));
       const seenUrlsThisScan = new Set();
@@ -1324,7 +1383,7 @@ export default function ReelsPage({ reelsListing = null }) {
           signal: reelsRequest.signal,
           scope: feedMode === 'following' ? 'following' : 'standalone',
           category: routeCategory,
-          accessToken: feedMode === 'following' ? getAccessToken() : null,
+          accessToken: followingAccessToken,
         }),
         selectRows: (rows) => rows
           .map((reel) => ({
@@ -1368,6 +1427,15 @@ export default function ReelsPage({ reelsListing = null }) {
       }
     } catch (e) {
       if (e?.name === 'AbortError' || !reelsRequest.isCurrent()) return;
+      if (feedModeForReelsRoute(router.query) === 'following' && [401, 403].includes(e?.status)) {
+        setFollowingReauthRequired(true);
+        setReels([]);
+        currentIndexRef.current = 0;
+        setCurrentIndex(0);
+        setHasMore(false);
+        setLoadMoreError(null);
+        return;
+      }
       console.warn('Load more error:', e);
       // Preserve the cursor but gate automatic retries. Without this state the
       // near-end effect immediately retriggered after every failed request,
@@ -2209,16 +2277,25 @@ export default function ReelsPage({ reelsListing = null }) {
 
   // Hamburger menu handlers
   const handleUploadReel = () => {
-    setShowUploadModal(true);
     setMenuOpen(false);
+    const liveAuthUser = getAuthUser();
+    if (!liveAuthUser?.id || liveAuthUser.id !== user?.id || !getAccessToken()) {
+      router.push(`/auth/login?redirect=${encodeURIComponent(POKER_REEL_UPLOAD_PATH)}`);
+      return;
+    }
+    setShowUploadModal(true);
   };
 
   // `/hub/reels?upload=1` is the public upload CTA used by the My Reels page.
   // Keep the deep-link functional instead of silently landing on the feed.
   useEffect(() => {
-    if (!router.isReady || router.query.upload !== '1') return;
+    if (!router.isReady || router.query.upload !== '1' || !authResolved) return;
+    if (!user?.id || getAuthUser()?.id !== user.id || !getAccessToken()) {
+      router.replace(`/auth/login?redirect=${encodeURIComponent(POKER_REEL_UPLOAD_PATH)}`);
+      return;
+    }
     setShowUploadModal(true);
-  }, [router.isReady, router.query.upload]);
+  }, [authResolved, router, router.isReady, router.query.upload, user?.id]);
 
   const updatePreference = async (key, value) => {
     const ownerRequest = accountScopeRef.current.capture(activeUserIdRef.current);
@@ -2784,7 +2861,20 @@ export default function ReelsPage({ reelsListing = null }) {
       }}
     />
   ) : null;
-  const followingSignInRequired = categoryForReelsRoute(router.query) === 'following' && !user?.id;
+  const followingSignInRequired = categoryForReelsRoute(router.query) === 'following'
+    && (!user?.id || followingReauthRequired);
+  const reelsNavigationHeader = (
+    <div style={{ position: 'relative', zIndex: 10001 }}>
+      <UniversalHeader
+        pageDepth={1}
+        commandMenuOpen={menuOpen}
+        onCommandMenuOpenChange={handleCommandMenuOpenChange}
+        commandMenuItems={menuConfig.menuItems}
+        commandMenuBottomLinks={menuConfig.bottomLinks}
+        commandMenuShowProfile={false}
+      />
+    </div>
+  );
 
   if (loading) {
     return (
@@ -2794,6 +2884,7 @@ export default function ReelsPage({ reelsListing = null }) {
           description={`Watch And Share Verified ${routePresentation.label} Video On Smarter.Poker Reels. Free To Watch With Source Attribution And Playable Media Checks.`}
           canonical="/hub/reels"
         />
+        {reelsNavigationHeader}
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
         {uploadModal}
         <ReelsConsoleScreen
@@ -2825,6 +2916,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <Head>
           <title>Reels | Smarter Poker</title>
         </Head>
+        {reelsNavigationHeader}
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
         {uploadModal}
         <ReelsConsoleScreen
@@ -2865,14 +2957,19 @@ export default function ReelsPage({ reelsListing = null }) {
         <Head>
           <title>Reels | Smarter Poker</title>
         </Head>
+        {reelsNavigationHeader}
         {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
         {uploadModal}
         <ReelsConsoleScreen
-          title={followingSignInRequired ? 'Sign In For Following' : 'No Reels Yet'}
+          title={followingSignInRequired
+            ? followingReauthRequired ? 'Sign In Again For Following' : 'Sign In For Following'
+            : 'No Reels Yet'}
           subtitle={`Verified ${routePresentation.label} Video`}
           pill={hasMore ? 'Scanning' : 'Stand By'}
           copy={followingSignInRequired
-            ? 'The Following Reel channel is account specific. Sign in to load videos from creators you follow.'
+            ? followingReauthRequired
+              ? 'Your saved account no longer has a live session. Sign in again to load creators you follow.'
+              : 'The Following Reel channel is account specific. Sign in to load videos from creators you follow.'
             : 'No playable Reel is available in this pass. Continue the verified scan or return to the social feed.'}
           rows={[
             { label: 'Playback', value: 'No Match' },
@@ -2881,7 +2978,7 @@ export default function ReelsPage({ reelsListing = null }) {
           secondary={{ label: 'Back To Feed', onClick: () => router.push('/hub/social-media') }}
           primary={{
             label: followingSignInRequired
-              ? 'Sign In'
+              ? followingReauthRequired ? 'Sign In Again' : 'Sign In'
               : loadingMore
                 ? 'Finding Reels'
                 : hasMore
@@ -2890,7 +2987,11 @@ export default function ReelsPage({ reelsListing = null }) {
             ink: 'blue',
             disabled: loadingMore,
             onClick: followingSignInRequired
-              ? () => router.push('/login')
+              ? () => router.push(
+                `/auth/login?redirect=${encodeURIComponent(
+                  router.asPath || '/hub/reels?category=following'
+                )}`
+              )
               : hasMore && reelsCursorRef.current
                 ? () => void loadMoreReels()
                 : () => void loadReels(),
@@ -2961,18 +3062,7 @@ export default function ReelsPage({ reelsListing = null }) {
       {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
 
       {/* Universal Header */}
-      {showOverlay && (
-        <div style={{ position: 'relative', zIndex: 10001 }}>
-          <UniversalHeader
-            pageDepth={1}
-            commandMenuOpen={menuOpen}
-            onCommandMenuOpenChange={handleCommandMenuOpenChange}
-            commandMenuItems={menuConfig.menuItems}
-            commandMenuBottomLinks={menuConfig.bottomLinks}
-            commandMenuShowProfile={false}
-          />
-        </div>
-      )}
+      {showOverlay && reelsNavigationHeader}
 
       {/* Upload Modal */}
       {uploadModal}

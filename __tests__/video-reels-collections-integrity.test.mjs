@@ -723,6 +723,18 @@ test('collection views use canonical APIs and latest-request cancellation', () =
   assert.match(SAVED_REELS, /<ReelCollectionCommandRail \/>/);
   assert.match(MY_REELS, /router\.push\('\/hub\/reels\?category=for-you'\)/);
   assert.match(SAVED_REELS, /\/hub\/reels\?category=for-you/);
+  assert.match(MY_REELS, /\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/reels\/my-reels'\)\}/);
+  assert.match(SAVED_REELS, /\/auth\/login\?redirect=\$\{encodeURIComponent\('\/hub\/reels\/saved'\)\}/);
+  assert.doesNotMatch(MY_REELS, /href=['"]\/login['"]/);
+  assert.doesNotMatch(SAVED_REELS, /href=['"]\/login['"]/);
+  assert.match(MY_REELS, /const POKER_REEL_UPLOAD_PATH = '\/hub\/reels\?category=poker&upload=1'/);
+  assert.match(MY_REELS, /authUser && getAccessToken\(\)[\s\S]*POKER_REEL_UPLOAD_PATH[\s\S]*\/auth\/login\?redirect=\$\{encodeURIComponent\(POKER_REEL_UPLOAD_PATH\)\}/);
+  assert.match(MY_REELS, /href=\{POKER_REEL_UPLOAD_PATH\}/);
+  assert.match(MY_REELS, /!token[\s\S]*setReauthRequired\(true\)/);
+  assert.match(MY_REELS, /\[401, 403\]\.includes\(loadError\?\.status\)[\s\S]*setReauthRequired\(true\)/);
+  assert.match(SAVED_REELS, /\[401, 403\]\.includes\(loadError\?\.status\)[\s\S]*setReauthRequired\(true\)/);
+  assert.match(MY_REELS, /reauthRequired \? <CollectionState[\s\S]*Sign In Again/);
+  assert.match(SAVED_REELS, /reauthRequired \? <CollectionState[\s\S]*Sign In Again/);
   assert.match(MY_REELS, /\/api\/reels\/mine\?\$\{params\.toString\(\)\}/);
   assert.doesNotMatch(MY_REELS, /\.from\(['"]social_reels['"]\)/);
   assert.match(MY_REELS, /createLatestRequestGuard/);
@@ -758,6 +770,8 @@ test('collection views use canonical APIs and latest-request cancellation', () =
     'one failed removal must not restore a stale snapshot over other successful removals');
 
   assert.match(PREFERENCES, /fetchSavedReelsPage/);
+  assert.match(PREFERENCES, /if \(!token\)[\s\S]*error\.status = 401/);
+  assert.match(PREFERENCES, /error\.status = response\.status/);
   assert.match(PREFERENCES, /\/api\/reels\/saved\?\$\{params\.toString\(\)\}/);
   assert.match(PREFERENCES, /Authorization:\s*`Bearer \$\{token\}`/);
   assert.match(PREFERENCES, /params\.set\(['"]cursor['"], cursor\)/);

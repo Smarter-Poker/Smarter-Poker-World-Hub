@@ -399,13 +399,31 @@ test('slots Reels carry the responsible-gaming console notice on every viewer', 
 
 test('following deep links authenticate and mixed collections avoid poker-only copy', () => {
   assert.match(REELS_PAGE, /feedModeForReelsRoute,/);
-  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 2,
-    'both initial and continuation reads must derive following mode from the category');
+  assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 4,
+    'both initial and continuation reads and their auth-error paths derive Following from the category');
+  assert.match(
+    REELS_PAGE,
+    /`\/auth\/login\?redirect=\$\{encodeURIComponent\([\s\S]*router\.asPath \|\| '\/hub\/reels\?category=following'/,
+  );
+  assert.doesNotMatch(REELS_PAGE, /router\.push\('\/login'\)/);
+  assert.match(REELS_PAGE, /followingReauthRequired/);
+  assert.match(REELS_PAGE, /feedMode === 'following' && !followingAccessToken[\s\S]*setFollowingReauthRequired\(true\)/);
+  assert.match(REELS_PAGE, /\[401, 403\]\.includes\(e\?\.status\)[\s\S]*setFollowingReauthRequired\(true\)/);
   assert.doesNotMatch(MY_REELS, /Eligible Poker Clips|Poker Clips/);
   assert.doesNotMatch(SAVED_REELS, /Saved Poker Reels|Poker Clips/);
+  assert.match(REELS_PAGE, /const reelsNavigationHeader = \([\s\S]*commandMenuItems=\{menuConfig\.menuItems\}/);
+  assert.equal(
+    (REELS_PAGE.match(/\{reelsNavigationHeader\}/g) || []).length,
+    3,
+    'loading, error, and empty states retain the canonical Reel category navigation',
+  );
+  assert.match(REELS_PAGE, /\{showOverlay && reelsNavigationHeader\}/);
 });
 
 test('poker uploads leave every origin category through one canonical published-Reel path', () => {
+  assert.match(REELS_PAGE, /const POKER_REEL_UPLOAD_PATH = '\/hub\/reels\?category=poker&upload=1'/);
+  assert.match(REELS_PAGE, /const liveAuthUser = getAuthUser\(\);[\s\S]*!liveAuthUser\?\.id[\s\S]*liveAuthUser\.id !== user\?\.id[\s\S]*!getAccessToken\(\)/);
+  assert.match(REELS_PAGE, /router\.query\.upload !== '1' \|\| !authResolved[\s\S]*getAuthUser\(\)\?\.id !== user\.id \|\| !getAccessToken\(\)[\s\S]*router\.replace\(`\/auth\/login\?redirect=\$\{encodeURIComponent\(POKER_REEL_UPLOAD_PATH\)\}`\)/);
   assert.match(REELS_PAGE, /const openPublishedPokerReel = useCallback\(\(publication\) => \{[\s\S]*buildReelPath\(\{[\s\S]*publication\?\.socialReelId,[\s\S]*topic: 'poker'/);
   assert.match(REELS_PAGE, /publishedReelPath === '\/hub\/reels'[\s\S]*'\/hub\/reels\?category=poker'/);
   assert.match(REELS_PAGE, /onSuccess=\{\(publication\) => \{[\s\S]*openPublishedPokerReel\(publication\)/);
@@ -419,6 +437,15 @@ test('poker uploads leave every origin category through one canonical published-
   assert.match(UPLOAD_REEL_MODAL, /window\.top\.location\.href = publishedReelPath === '\/hub\/reels'/);
   assert.match(UPLOAD_REEL_MODAL, /window\.top\.location\.href = '\/hub\/reels\?category=poker'/);
   assert.doesNotMatch(UPLOAD_REEL_MODAL, /Open Poker Reels To Watch It\.[\s\S]{0,180}\/hub\/social-media/);
+});
+
+test('legacy routes canonicalize without dropping detail, feed, or upload state and reset viewer index', () => {
+  assert.match(REELS_PAGE, /const canonicalCategory = categoryForReelsRoute\(router\.query\)/);
+  assert.match(REELS_PAGE, /query: \{ \.\.\.router\.query, category: canonicalCategory \}/);
+  assert.match(REELS_PAGE, /\{ shallow: true \}/);
+  assert.match(REELS_PAGE, /const routeNamespace = `\$\{routeCategory\}:\$\{feedMode\}`/);
+  assert.match(REELS_PAGE, /reelsRouteNamespaceRef\.current !== routeNamespace[\s\S]*currentIndexRef\.current = 0;[\s\S]*setCurrentIndex\(0\)/);
+  assert.match(REELS_PAGE, /console\.warn\('Load reels error:', e\);[\s\S]*setReels\(\[\]\);[\s\S]*currentIndexRef\.current = 0;[\s\S]*setCurrentIndex\(0\)/);
 });
 
 test('persistent feed and Story caches are viewer-scoped and bounded', () => {

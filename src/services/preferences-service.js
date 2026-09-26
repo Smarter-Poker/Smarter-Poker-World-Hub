@@ -323,7 +323,11 @@ function mergeSavedReelRows(current, incoming) {
 
 async function fetchSavedReelsPage({ userId, cursor = null, limit, signal } = {}) {
   const token = getAccessToken();
-  if (!token) throw new Error('Authentication required');
+  if (!token) {
+    const error = new Error('Authentication required');
+    error.status = 401;
+    throw error;
+  }
   const params = new URLSearchParams({
     limit: String(clampSavedReelsPageLimit(limit)),
   });
@@ -340,7 +344,9 @@ async function fetchSavedReelsPage({ userId, cursor = null, limit, signal } = {}
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
-    throw new Error(payload?.error || `Saved Reels request failed (${response.status})`);
+    const error = new Error(payload?.error || `Saved Reels request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
   }
   if (payload.data.some(row => row?.user_id !== userId)) {
     throw new Error('Saved Reels response owner mismatch');

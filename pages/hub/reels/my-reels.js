@@ -16,6 +16,8 @@ import VideoLibraryConsole, {
 } from '../../../src/components/video-library/console/VideoLibraryConsole';
 import ReelCollectionCommandRail from '../../../src/components/reels/ReelCollectionCommandRail';
 
+const POKER_REEL_UPLOAD_PATH = '/hub/reels?category=poker&upload=1';
+
 export default function MyReels() {
     const router = useRouter();
     const initialUser = null;
@@ -25,6 +27,7 @@ export default function MyReels() {
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState('');
+    const [reauthRequired, setReauthRequired] = useState(false);
     const [paginationError, setPaginationError] = useState('');
     const [hasMore, setHasMore] = useState(false);
     const requestGuardRef = useRef(null);
@@ -48,6 +51,7 @@ export default function MyReels() {
             setLoadingMore(false);
             setPaginationError('');
             setError('');
+            setReauthRequired(false);
         }
         setAuthUser(next);
     }, []);
@@ -75,7 +79,10 @@ export default function MyReels() {
             }
             collectionOwnerIdRef.current = null;
         }
-        if (!appendRequest) setError('');
+        if (!appendRequest) {
+            setError('');
+            setReauthRequired(false);
+        }
         setPaginationError('');
         try {
             if (!request.isCurrent() || !ownerRequest.isCurrent()) return;
@@ -87,7 +94,14 @@ export default function MyReels() {
                 return;
             }
             const token = getAccessToken();
-            if (!token) throw new Error('Authentication required');
+            if (!token) {
+                setReauthRequired(true);
+                setReels([]);
+                setHasMore(false);
+                nextCursorRef.current = null;
+                collectionOwnerIdRef.current = null;
+                return;
+            }
             const params = new URLSearchParams({ limit: '50' });
             if (cursor) params.set('cursor', cursor);
             const response = await fetch(`/api/reels/mine?${params.toString()}`, {
@@ -102,7 +116,9 @@ export default function MyReels() {
             const payload = await response.json().catch(() => null);
             if (!request.isCurrent() || !ownerRequest.isCurrent()) return;
             if (!response.ok || !payload?.success || !Array.isArray(payload.data)) {
-                throw new Error(payload?.error || `My Reels request failed (${response.status})`);
+                const responseError = new Error(payload?.error || `My Reels request failed (${response.status})`);
+                responseError.status = response.status;
+                throw responseError;
             }
             if (payload.data.some(row => row?.author_id !== ownerRequest.ownerId)) {
                 throw new Error('My Reels response owner mismatch');
@@ -123,6 +139,14 @@ export default function MyReels() {
         } catch (loadError) {
             if (!request.isCurrent() || !ownerRequest.isCurrent() || loadError?.name === 'AbortError') return;
             console.warn('Error loading reels:', loadError);
+            if ([401, 403].includes(loadError?.status)) {
+                setReauthRequired(true);
+                setReels([]);
+                setHasMore(false);
+                nextCursorRef.current = null;
+                collectionOwnerIdRef.current = null;
+                return;
+            }
             if (appendRequest) setPaginationError('More Reels Could Not Be Loaded. Please Retry.');
             else setError('We Could Not Load Your Reels. Please Try Again.');
         } finally {
@@ -175,19 +199,28 @@ export default function MyReels() {
                         foot="plates"
                         plates={{
                             secondary: { label: 'Browse Reels', onClick: () => router.push('/hub/reels?category=for-you'), ink: 'silver' },
-                            primary: { label: 'Upload Reel', onClick: () => router.push('/hub/reels?upload=1'), ink: 'white' },
+                            primary: {
+                                label: 'Upload Reel',
+                                onClick: () => router.push(
+                                    authUser && getAccessToken()
+                                        ? POKER_REEL_UPLOAD_PATH
+                                        : `/auth/login?redirect=${encodeURIComponent(POKER_REEL_UPLOAD_PATH)}`
+                                ),
+                                ink: 'white',
+                            },
                         }}
                         aria-labelledby="my-reels-title"
                     >
                         <ReelCollectionCommandRail />
-                        <ConsoleDataRow label="Channel Status" value={authUser ? 'Account Synchronized' : 'Sign In Required'} valueInk={authUser ? 'green' : 'gold'} />
+                        <ConsoleDataRow label="Channel Status" value={reauthRequired ? 'Sign In Again' : authUser ? 'Account Synchronized' : 'Sign In Required'} valueInk={authUser && !reauthRequired ? 'green' : 'gold'} />
                         <ConsoleDataRow label="Reels In View" value={compactCount(reels.length)} valueInk="blue" />
                         {error && reels.length > 0 ? <p className="vlc-collection-alert" role="alert">{error}</p> : null}
                         {loading ? <CollectionState text="Synchronizing Your Creator Channel" />
+                            : reauthRequired ? <CollectionState text="Your Saved Account No Longer Has A Live Session" action={<Link href={`/auth/login?redirect=${encodeURIComponent('/hub/reels/my-reels')}`}>Sign In Again</Link>} />
                             : error && reels.length === 0 ? <CollectionState text={error} action={<button type="button" onClick={() => loadReels()}>Try Again</button>} />
-                            : !authUser ? <CollectionState text="Sign In To See The Reels You Have Published" action={<Link href="/login">Sign In</Link>} />
+                            : !authUser ? <CollectionState text="Sign In To See The Reels You Have Published" action={<Link href={`/auth/login?redirect=${encodeURIComponent('/hub/reels/my-reels')}`}>Sign In</Link>} />
                             : reels.length === 0 && hasMore ? <CollectionState text="More Channel Records Remain To Be Checked" action={<button type="button" onClick={() => loadReels({ append: true })}>Continue Scan</button>} />
-                            : reels.length === 0 ? <CollectionState text="Your Channel Is Quiet. Publish Your First Reel To Start The Feed" action={<Link href="/hub/reels?upload=1">Upload Reel</Link>} />
+                            : reels.length === 0 ? <CollectionState text="Your Channel Is Quiet. Publish Your First Reel To Start The Feed" action={<Link href={POKER_REEL_UPLOAD_PATH}>Upload Reel</Link>} />
                             : <>
                                 <div className="vlc-reel-grid">{reels.map((reel, index) => <ReelTile key={reel.id} reel={reel} index={index} />)}</div>
                                 <CollectionPager
