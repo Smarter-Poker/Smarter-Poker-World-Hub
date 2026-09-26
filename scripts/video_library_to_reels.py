@@ -76,10 +76,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 _HOME_STATE = Path.home() / '.smarter-poker'
 POKER_VIDEO_TYPES = {'cash', 'tournament'}
 VIDEO_LIBRARY_REEL_TYPES = POKER_VIDEO_TYPES | {'slots'}
+OPS07_LIFECYCLE_STAGES = (
+    'candidate',
+    'verified',
+    'published',
+    'rejected',
+    'stale',
+    'feed_visible',
+)
 CATALOG_PAGE_SIZE = 250
 EXISTING_PAGE_SIZE = 1000
 FAILURE_PAGE_SIZE = 1000
 FAILURE_VERIFY_LIMIT = 500
+FEED_VISIBILITY_BATCH_SIZE = 100
 YOUTUBE_ID_RE = re.compile(r'^[A-Za-z0-9_-]{11}$')
 # Renew well before the database's 7-day public-playback cutoff (installed
 # SQL: fn_is_video_library_asset_eligible and its sibling predicates accept
@@ -93,6 +102,8 @@ YOUTUBE_ID_RE = re.compile(r'^[A-Za-z0-9_-]{11}$')
 # establishes fresh evidence. The relationship between these numbers is pinned
 # by __tests__/video-library-freshness-contract.test.mjs.
 VERIFICATION_REFRESH_AGE = timedelta(hours=12)
+PUBLIC_VERIFICATION_MAX_AGE = timedelta(days=7)
+PUBLIC_VERIFICATION_MAX_FUTURE_SKEW = timedelta(minutes=5)
 TRANSIENT_RETRY_AGE = timedelta(hours=6)
 PERMANENT_RETRY_AGE = timedelta(days=14)
 PERMANENT_FAILURE_STATUSES = frozenset(
@@ -981,6 +992,213 @@ def _publish_row(row, author_id):
     return result
 
 
+def _normalise_ops07_topic(row):
+    """Return the public feed topic owned by this publisher."""
+    video_type = str(row.get('type') or '').strip().lower()
+    if video_type == 'slots':
+        return 'slots'
+    if video_type in POKER_VIDEO_TYPES:
+        return 'poker'
+    return 'unknown'
+
+
+def _normalise_ops07_source_family(_row):
+    """Return the provenance family, not an individual channel/source ID."""
+    return 'video_library'
+
+
+def _ops07_bucket(stats, dimension, key):
+    dimension_counts = stats['ops07'][dimension]
+    if key not in dimension_counts:
+        dimension_counts[key] = {
+            stage: 0 for stage in OPS07_LIFECYCLE_STAGES
+        }
+    return dimension_counts[key]
+
+
+def _record_ops07(stats, stage, row, count=1):
+    if stage not in OPS07_LIFECYCLE_STAGES:
+        raise ValueError(f'Unknown OPS-07 lifecycle stage: {stage}')
+    topic = _normalise_ops07_topic(row)
+    source_family = _normalise_ops07_source_family(row)
+    _ops07_bucket(stats, 'by_topic', topic)[stage] += count
+    _ops07_bucket(stats, 'by_source_family', source_family)[stage] += count
+
+
+def _catalog_row_is_stale(row, now=None):
+    checked_at = _parse_timestamp(row.get('availability_checked_at'))
+    if checked_at is None:
+        return False
+    reference = now or datetime.now(timezone.utc)
+    return not (
+        reference - VERIFICATION_REFRESH_AGE
+        <= checked_at
+        <= reference + PUBLIC_VERIFICATION_MAX_FUTURE_SKEW
+    )
+
+
+def _public_verification_is_fresh(row, now=None):
+    if row.get('availability_status') != 'verified' or row.get('embeddable') is not True:
+        return False
+    checked_at = _parse_timestamp(row.get('availability_checked_at'))
+    if checked_at is None:
+        return False
+    reference = now or datetime.now(timezone.utc)
+    return (
+        reference - PUBLIC_VERIFICATION_MAX_AGE
+        <= checked_at
+        <= reference + PUBLIC_VERIFICATION_MAX_FUTURE_SKEW
+    )
+
+
+def _select_by_values(table, select, column, values, value_pattern, extra_filters=None):
+    unique_values = list(dict.fromkeys(str(value or '') for value in values if value))
+    rows = []
+    for start in range(0, len(unique_values), FEED_VISIBILITY_BATCH_SIZE):
+        batch = unique_values[start:start + FEED_VISIBILITY_BATCH_SIZE]
+        if any(not value_pattern.fullmatch(value) for value in batch):
+            raise RuntimeError(f'Invalid {table}.{column} identity in feed visibility proof')
+        result = _request(
+            'GET',
+            table,
+            params={
+                'select': select,
+                column: f'in.({",".join(batch)})',
+                'limit': len(batch),
+                **(extra_filters or {}),
+            },
+        )
+        if not isinstance(result, list):
+            raise RuntimeError(f'Could not prove feed visibility from {table}')
+        rows.extend(result)
+    return rows
+
+
+def _feed_visible_asset_ids(publications):
+    """Read back the exact public feed contract for successful RPC results.
+
+    A successful publication RPC is not evidence that its Reel can be served.
+    This bounded readback validates the live asset, Reel, and source post plus
+    the absence of a confirmed embed failure. Any unreadable relation raises;
+    a readable contract mismatch is returned as a non-visible asset ID.
+    """
+    if not publications:
+        return set()
+
+    asset_ids = [item['row']['id'] for item in publications]
+    reel_ids = [item['publication']['social_reel_id'] for item in publications]
+    post_ids = [item['publication']['social_post_id'] for item in publications]
+    video_ids = [item['row']['youtube_video_id'] for item in publications]
+
+    assets = _select_by_values(
+        'video_library_videos',
+        'id,youtube_video_id,type,availability_status,embeddable,availability_checked_at',
+        'id',
+        asset_ids,
+        _UUID_RE,
+    )
+    reels = _select_by_values(
+        'social_reels',
+        'id,author_id,source_post_id,is_public,is_deleted,source_type,youtube_video_id,'
+        'video_url,original_youtube_url,media_status,origin_type,playback_type,topic,'
+        'rights_status,source_asset_id,'
+        'canonical_asset_key,publication_key,native_processing_requested',
+        'id',
+        reel_ids,
+        _UUID_RE,
+    )
+    posts = _select_by_values(
+        'social_posts',
+        'id,author_id,content_type,visibility,audience_mode,is_deleted,origin_type,'
+        'playback_type,topic,rights_status,source_asset_id,youtube_video_id,'
+        'canonical_asset_key,publication_key',
+        'id',
+        post_ids,
+        _UUID_RE,
+    )
+    active_failures = _select_by_values(
+        'youtube_embed_failures',
+        'video_id',
+        'video_id',
+        video_ids,
+        YOUTUBE_ID_RE,
+        {'verification_status': 'eq.confirmed', 'resolved': 'eq.false'},
+    )
+
+    asset_by_id = {str(row.get('id') or ''): row for row in assets}
+    reel_by_id = {str(row.get('id') or ''): row for row in reels}
+    post_by_id = {str(row.get('id') or ''): row for row in posts}
+    failed_video_ids = {
+        str(row.get('video_id') or '') for row in active_failures
+    }
+    visible_asset_ids = set()
+    now = datetime.now(timezone.utc)
+
+    for item in publications:
+        row = item['row']
+        publication = item['publication']
+        author_id = item['author_id']
+        asset_id = str(row.get('id') or '')
+        video_id = str(row.get('youtube_video_id') or '')
+        post_id = str(publication.get('social_post_id') or '')
+        reel_id = str(publication.get('social_reel_id') or '')
+        topic = _normalise_ops07_topic(row)
+        canonical_key = f'youtube:{video_id}'
+        publication_key = f'video-library:{asset_id}'
+        video_url = f'https://www.youtube.com/watch?v={video_id}'
+        asset = asset_by_id.get(asset_id)
+        reel = reel_by_id.get(reel_id)
+        post = post_by_id.get(post_id)
+
+        asset_visible = bool(
+            asset
+            and str(asset.get('youtube_video_id') or '') == video_id
+            and str(asset.get('type') or '').lower() == str(row.get('type') or '').lower()
+            and _public_verification_is_fresh(asset, now)
+            and video_id not in failed_video_ids
+        )
+        reel_visible = bool(
+            reel
+            and reel.get('author_id') == author_id
+            and reel.get('source_post_id') == post_id
+            and reel.get('is_public') is True
+            and reel.get('is_deleted') is False
+            and reel.get('source_type') == 'video_library'
+            and reel.get('youtube_video_id') == video_id
+            and reel.get('video_url') == video_url
+            and reel.get('original_youtube_url') == video_url
+            and reel.get('media_status') == 'ready'
+            and reel.get('origin_type') == 'video_library'
+            and reel.get('playback_type') == 'youtube_embed'
+            and reel.get('topic') == topic
+            and reel.get('rights_status') == 'embed_only'
+            and reel.get('source_asset_id') == asset_id
+            and reel.get('canonical_asset_key') == canonical_key
+            and reel.get('publication_key') == publication_key
+            and reel.get('native_processing_requested') is False
+        )
+        post_visible = bool(
+            post
+            and post.get('author_id') == author_id
+            and post.get('content_type') == 'video'
+            and post.get('visibility') == 'public'
+            and post.get('audience_mode') == 'public'
+            and post.get('is_deleted') is False
+            and post.get('origin_type') == 'video_library'
+            and post.get('playback_type') == 'youtube_embed'
+            and post.get('topic') == topic
+            and post.get('rights_status') == 'embed_only'
+            and post.get('source_asset_id') == asset_id
+            and post.get('youtube_video_id') == video_id
+            and post.get('canonical_asset_key') == canonical_key
+            and post.get('publication_key') == publication_key
+        )
+        if asset_visible and reel_visible and post_visible:
+            visible_asset_ids.add(asset_id)
+
+    return visible_asset_ids
+
+
 def _new_stats():
     return {
         'catalog_pages': 0,
@@ -1016,6 +1234,8 @@ def _new_stats():
         'failure_race_deferred': 0,
         'failure_race_recovered': 0,
         'publication_deferred_deadline': 0,
+        'feed_visibility_checked': 0,
+        'feed_visibility_failures': 0,
         'failure_verdict_errors': 0,
         'rpc_errors': 0,
         'checkpoint_writes': 0,
@@ -1030,6 +1250,10 @@ def _new_stats():
         'failure_candidate_reasons': Counter(),
         'failure_verification_outcomes': Counter(),
         'verification_outcomes': Counter(),
+        'ops07': {
+            'by_topic': {},
+            'by_source_family': {},
+        },
     }
 
 
@@ -1174,6 +1398,7 @@ def run_bridge(args):
     max_candidates = None if force_audit else args.limit
     planned_candidates = []
     catalog_by_video_id = {}
+    feed_visibility_publications = []
     freshness_now = datetime.now(timezone.utc)
 
     if _deadline_due(deadline_at):
@@ -1197,6 +1422,8 @@ def run_bridge(args):
                 continue
             stats['eligible_rows'] += 1
             catalog_by_video_id[vid_id] = row
+            if _catalog_row_is_stale(row, freshness_now):
+                _record_ops07(stats, 'stale', row)
 
             current = existing.get(asset_id)
             caption = (row.get('title') or row.get('source_name') or '').strip()
@@ -1219,6 +1446,18 @@ def run_bridge(args):
                     stats['confirmed_blocked_current'] += 1
                 else:
                     stats['already_current'] += 1
+                    _record_ops07(stats, 'verified', row)
+                    _record_ops07(stats, 'published', row)
+                    if not args.dry_run:
+                        feed_visibility_publications.append({
+                            'row': row,
+                            'publication': {
+                                'social_post_id': current['source_post_id'],
+                                'social_reel_id': current['id'],
+                                'was_created': False,
+                            },
+                            'author_id': author_id,
+                        })
                 continue
             if current and not verification_fresh:
                 stats['verification_expired'] += 1
@@ -1256,6 +1495,8 @@ def run_bridge(args):
     candidates = [row for _, row in planned_candidates]
     stats['candidates'] = len(candidates)
     stats['candidate_reasons'].update(plan[3] for plan, _ in planned_candidates)
+    for row in candidates:
+        _record_ops07(stats, 'candidate', row)
     _write_checkpoint(
         args,
         stats,
@@ -1299,8 +1540,10 @@ def run_bridge(args):
                     if availability['available']:
                         stats['verified'] += 1
                         stats['would_publish'] += 1
+                        _record_ops07(stats, 'verified', row)
                     else:
                         stats['rejected'] += 1
+                        _record_ops07(stats, 'rejected', row)
                     continue
 
                 if _deadline_due(deadline_at):
@@ -1343,6 +1586,7 @@ def run_bridge(args):
                 if not effective_availability['available']:
                     if not availability['available']:
                         stats['rejected'] += 1
+                        _record_ops07(stats, 'rejected', row)
                     log.warning(
                         '%s %s (%s): %s',
                         'Deferred' if availability['available'] else 'Rejected',
@@ -1353,6 +1597,7 @@ def run_bridge(args):
                     continue
 
                 stats['verified'] += 1
+                _record_ops07(stats, 'verified', row)
 
                 if _deadline_due(deadline_at):
                     stats['publication_deferred_deadline'] += 1
@@ -1361,6 +1606,12 @@ def run_bridge(args):
                     break
                 try:
                     publication = _publish_row(row, author_id)
+                    _record_ops07(stats, 'published', row)
+                    feed_visibility_publications.append({
+                        'row': row,
+                        'publication': publication,
+                        'author_id': author_id,
+                    })
                     if publication['was_created']:
                         stats['created'] += 1
                     else:
@@ -1510,6 +1761,13 @@ def run_bridge(args):
                     )
                     if (
                         selected_for_catalog
+                        and not effective_availability['available']
+                        and not availability['available']
+                    ):
+                        stats['rejected'] += 1
+                        _record_ops07(stats, 'rejected', catalog_row)
+                    if (
+                        selected_for_catalog
                         and effective_availability['available']
                         and verdict_status == 'resolved'
                         and verdict['resolved'] is True
@@ -1521,8 +1779,15 @@ def run_bridge(args):
                             break
                         stats['failure_race_recovered'] += 1
                         stats['verified'] += 1
+                        _record_ops07(stats, 'verified', catalog_row)
                         try:
                             publication = _publish_row(catalog_row, author_id)
+                            _record_ops07(stats, 'published', catalog_row)
+                            feed_visibility_publications.append({
+                                'row': catalog_row,
+                                'publication': publication,
+                                'author_id': author_id,
+                            })
                             if publication['was_created']:
                                 stats['created'] += 1
                             else:
@@ -1547,11 +1812,51 @@ def run_bridge(args):
             if failure_queue_abort:
                 break
 
+    if feed_visibility_publications:
+        stats['feed_visibility_checked'] = len(feed_visibility_publications)
+        try:
+            visible_asset_ids = _feed_visible_asset_ids(feed_visibility_publications)
+        except RuntimeError as error:
+            stats['feed_visibility_failures'] = len(feed_visibility_publications)
+            stats['aborted_reason'] = (
+                stats['aborted_reason'] or 'feed_visibility_unproven'
+            )
+            log.error('Feed visibility proof failed: %s', error)
+        else:
+            missing_asset_ids = []
+            for item in feed_visibility_publications:
+                asset_id = str(item['row'].get('id') or '')
+                if asset_id in visible_asset_ids:
+                    _record_ops07(stats, 'feed_visible', item['row'])
+                else:
+                    missing_asset_ids.append(asset_id)
+            stats['feed_visibility_failures'] = len(missing_asset_ids)
+            if missing_asset_ids:
+                stats['aborted_reason'] = (
+                    stats['aborted_reason'] or 'feed_visibility_unproven'
+                )
+                log.error(
+                    'Published Reel feed visibility is unproven for %s asset(s): %s',
+                    len(missing_asset_ids),
+                    ', '.join(missing_asset_ids[:20]),
+                )
+
     stats['verification_outcomes'] = dict(stats['verification_outcomes'])
     stats['candidate_reasons'] = dict(stats['candidate_reasons'])
     stats['failure_candidate_reasons'] = dict(stats['failure_candidate_reasons'])
     stats['failure_verification_outcomes'] = dict(stats['failure_verification_outcomes'])
     return stats
+
+
+def _stats_require_nonzero_exit(stats):
+    return bool(
+        stats['rpc_errors']
+        or stats['failure_verdict_errors']
+        or stats['verifier_errors_observed']
+        or stats['checkpoint_write_errors']
+        or stats['deadline_reached']
+        or stats['feed_visibility_failures']
+    )
 
 
 def _write_evidence(args, stats, elapsed, fatal_error=None, exit_code=0):
@@ -1671,13 +1976,7 @@ def main():
         if not SUPABASE_URL or not SUPABASE_KEY:
             raise RuntimeError('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
         stats = run_bridge(args)
-        if (
-            stats['rpc_errors']
-            or stats['failure_verdict_errors']
-            or stats['verifier_errors_observed']
-            or stats['checkpoint_write_errors']
-            or stats['deadline_reached']
-        ):
+        if _stats_require_nonzero_exit(stats):
             exit_code = 1
     except YtDlpUnavailableError as error:
         fatal_error = f'yt-dlp runtime unavailable: {error}'

@@ -192,6 +192,7 @@ test('every dispatcher host runs the local publisher and never the horse workers
 
 const BRIDGE_HARNESS = String.raw`
 import http.server, json, os, shutil, subprocess, sys, tempfile, threading, urllib.parse
+from datetime import datetime, timezone
 from pathlib import Path
 
 SRC = Path(sys.argv[1])
@@ -204,6 +205,8 @@ ROSTERED = '55555555-5555-4555-8555-555555555555'
 IS_HORSE = {SYSTEM: False, HORSE: True, OTHER: False, NULLFLAG: None, ROSTERED: False}
 ROSTER = [HORSE, ROSTERED]  # content_authors.profile_id
 ASSET = '66666666-6666-4666-8666-666666666666'
+POST = '77777777-7777-4777-8777-777777777777'
+REEL = '88888888-8888-4888-8888-888888888888'
 VIDEO = 'M7lc1UVf-VE'
 ON = {'video_library_reel_creation': True, 'video_library_reel_publication': True}
 
@@ -279,12 +282,14 @@ def handler(state):
                 if table == 'record_youtube_embed_failure_verdict':
                     if preflight:
                         return self._reply(400, {'code': '22023', 'message': 'invalid'})
+                    state['verified'] = True
                     return self._reply(200, [{'video_id': body['p_video_id'], 'hit_count': 0,
                                               'verification_status': 'resolved', 'resolved': True}])
                 if table == 'publish_video_library_reel':
                     if preflight:
                         return self._reply(400, {'code': 'P0002', 'message': 'no such video'})
-                    return self._reply(200, [{'social_post_id': 'post-1', 'social_reel_id': 'reel-1',
+                    state['published'] = True
+                    return self._reply(200, [{'social_post_id': POST, 'social_reel_id': REEL,
                                               'was_created': True}])
                 return self._reply(404, {'message': 'unknown rpc ' + table})
             if method != 'GET':
@@ -312,15 +317,45 @@ def handler(state):
             if table == 'content_settings':
                 return self._reply(200, [{'engine_enabled': False}])  # the fleet is off
             if table == 'video_library_videos':
-                if query.get('limit') == '1' and 'offset' not in query:
+                if query.get('limit') == '1' and 'offset' not in query and 'id' not in query:
                     return self._reply(200, [])  # preflight relation read
                 return self._reply(200, [{
                     'id': ASSET, 'youtube_video_id': VIDEO, 'source_id': 'HCL', 'source_name': 'HCL',
                     'title': 'Verified Title', 'thumbnail_url': None,
                     'published_at': '2026-09-20T00:00:00Z', 'type': 'cash',
-                    'availability_status': 'unknown', 'embeddable': None,
-                    'availability_checked_at': None}])
-            if table in ('social_reels', 'social_posts', 'youtube_embed_failures'):
+                    'availability_status': 'verified' if state['verified'] else 'unknown',
+                    'embeddable': True if state['verified'] else None,
+                    'availability_checked_at': (
+                        datetime.now(timezone.utc).isoformat() if state['verified'] else None
+                    )}])
+            if table == 'social_reels':
+                if not state['published'] or not state['feed_visible'] or 'id' not in query:
+                    return self._reply(200, [])
+                return self._reply(200, [{
+                    'id': REEL, 'author_id': SYSTEM, 'source_post_id': POST,
+                    'is_public': True, 'is_deleted': False, 'source_type': 'video_library',
+                    'youtube_video_id': VIDEO, 'media_status': 'ready',
+                    'video_url': 'https://www.youtube.com/watch?v=' + VIDEO,
+                    'original_youtube_url': 'https://www.youtube.com/watch?v=' + VIDEO,
+                    'origin_type': 'video_library', 'playback_type': 'youtube_embed',
+                    'topic': 'poker', 'rights_status': 'embed_only',
+                    'source_asset_id': ASSET, 'canonical_asset_key': 'youtube:' + VIDEO,
+                    'publication_key': 'video-library:' + ASSET,
+                    'native_processing_requested': False,
+                }])
+            if table == 'social_posts':
+                if not state['published'] or not state['feed_visible'] or 'id' not in query:
+                    return self._reply(200, [])
+                return self._reply(200, [{
+                    'id': POST, 'author_id': SYSTEM, 'content_type': 'video',
+                    'visibility': 'public', 'audience_mode': 'public', 'is_deleted': False,
+                    'origin_type': 'video_library', 'playback_type': 'youtube_embed',
+                    'topic': 'poker', 'rights_status': 'embed_only',
+                    'source_asset_id': ASSET, 'youtube_video_id': VIDEO,
+                    'canonical_asset_key': 'youtube:' + VIDEO,
+                    'publication_key': 'video-library:' + ASSET,
+                }])
+            if table == 'youtube_embed_failures':
                 return self._reply(200, [])
             return self._reply(404, {'message': 'unknown relation ' + table})
 
@@ -340,8 +375,15 @@ def handler(state):
             self._handle('DELETE')
     return H
 
-def run(config=SYSTEM, controls=ON, pin=None, args=('--limit', '750', '--verify')):
-    state = {'config': config, 'controls': controls, 'requests': []}
+def run(config=SYSTEM, controls=ON, pin=None, args=('--limit', '750', '--verify'), feed_visible=True):
+    state = {
+        'config': config,
+        'controls': controls,
+        'requests': [],
+        'verified': False,
+        'published': False,
+        'feed_visible': feed_visible,
+    }
     probe_log.write_text('')
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler(state))
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -416,6 +458,7 @@ SCENARIOS = {
     'official': dict(),
     'official_pinned': dict(pin=SYSTEM.upper()),
     'official_dry_run': dict(args=DRY),
+    'official_feed_hidden': dict(feed_visible=False),
     'official_preflight': dict(args=PREFLIGHT),
 }
 out = {'ids': {'system': SYSTEM, 'horse': HORSE, 'rostered': ROSTERED, 'video': VIDEO},
@@ -527,11 +570,20 @@ test('(f) with the fleet switch off, a valid official publisher still verifies a
     assert.equal(publications[0].body.p_author_id, ids.system, 'the Reel must carry the official account');
     assert.equal(publications[0].body.p_video_id, ids.video);
     assert.ok(s.writes.some((w) => w.table === 'record_youtube_embed_failure_verdict'), show(s));
+    const publicationAt = s.requests.findIndex((request) => request.table === 'publish_video_library_reel');
+    const proofTables = s.requests.slice(publicationAt + 1).map((request) => request.table);
+    for (const table of ['video_library_videos', 'social_reels', 'social_posts', 'youtube_embed_failures']) {
+      assert.ok(proofTables.includes(table), `${name}: no post-publication ${table} readback\n${show(s)}`);
+    }
   }
   const dry = scenarios.official_dry_run;
   assert.equal(dry.code, 0, show(dry));
   assert.ok(dry.probes.length >= 2, `a dry run still verifies\n${show(dry)}`);
   assert.deepEqual(dry.writes, [], `a dry run never writes\n${show(dry)}`);
+  const hidden = scenarios.official_feed_hidden;
+  assert.notEqual(hidden.code, 0, `a green-but-empty publisher must fail\n${show(hidden)}`);
+  assert.ok(hidden.writes.some((w) => w.table === 'publish_video_library_reel'), show(hidden));
+  assert.match(hidden.log, /feed_visibility_unproven/);
   const preflight = scenarios.official_preflight;
   assert.equal(preflight.code, 0, show(preflight));
   assert.deepEqual(preflight.probes, [], `a preflight never probes YouTube\n${show(preflight)}`);
