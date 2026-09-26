@@ -47,7 +47,7 @@ function readRoute({ participant = true, allowed = true, receipt = { success: tr
     new Function('require', 'module', 'exports', 'process', code)(() => mocks, module, module.exports, { env: { SUPABASE_SERVICE_ROLE_KEY: 'fixture' } });
     return { calls, async run(body = {}) {
         let status = 200, payload;
-        await module.exports.default({ method: 'POST', headers: { authorization: 'Bearer fixture' }, body: { conversationId: 'conversation', userId: 'forged-user', ...body } }, {
+        await module.exports.default({ method: 'POST', headers: { authorization: 'Bearer fixture' }, body: { conversationId: 'conversation', throughMessageId: '00000000-0000-4000-8000-000000000001', userId: 'forged-user', ...body } }, {
             status(n) { status = n; return this; }, json(data) { payload = data; return this; },
         });
         return { status, payload };
@@ -57,11 +57,19 @@ function readRoute({ participant = true, allowed = true, receipt = { success: tr
 test('message read receipts use authenticated identity and require acknowledged persistence', async () => {
     const route = readRoute();
     assert.equal((await route.run()).payload.success, true);
-    assert.deepEqual(route.calls, [{ name: 'fn_mark_messages_read', args: { p_user_id: 'authenticated-user', p_conversation_id: 'conversation' } }]);
+    assert.deepEqual(route.calls, [{ name: 'fn_mark_messages_read_through', args: { p_user_id: 'authenticated-user', p_conversation_id: 'conversation', p_through_message_id: '00000000-0000-4000-8000-000000000001' } }]);
     for (const config of [{ receipt: { success: false } }, { error: { code: '57014' } }]) {
         const result = await readRoute(config).run();
         assert.equal(result.status, 503);
         assert.equal(result.payload.success, false);
+    }
+});
+
+test('a missing or forged display boundary never falls back to marking unseen arrivals', async () => {
+    for (const throughMessageId of [null, undefined, '', 'not-a-message', {}]) {
+        const route = readRoute();
+        assert.equal((await route.run({ throughMessageId })).status, 400);
+        assert.equal(route.calls.length, 0);
     }
 });
 

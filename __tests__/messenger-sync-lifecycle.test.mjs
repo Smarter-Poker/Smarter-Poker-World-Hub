@@ -10,6 +10,8 @@ function evaluate(code, context, returned) {
 }
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 const response = data => ({ ok: true, json: async () => data });
+const compareMessageTimestamps = evaluate(slice(messenger, 'function compareMessageTimestamps(', '// ═══════════════════════════════════════════════════════════════════════════'), {}, 'compareMessageTimestamps');
+const readMessageId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
 function readFixture() {
     const state = { requests: [], broadcasts: [], receipts: [], cleared: [], refreshes: [], toasts: [], hidden: false };
@@ -31,27 +33,36 @@ function readFixture() {
 
 test('incoming reads never persist for a hidden or different conversation', async () => {
     const f = readFixture(); f.state.hidden = true;
-    await f.read('conversation-a'); f.state.hidden = false;
-    await f.read('conversation-b');
+    await f.read('conversation-a', readMessageId); f.state.hidden = false;
+    await f.read('conversation-b', readMessageId);
     assert.equal(f.state.requests.length, 0);
 });
 
 test('visible reads wait for persistence, then invalidate inbox and publish the receipt', async () => {
-    const f = readFixture(), pending = f.read('conversation-a');
+    const f = readFixture(), pending = f.read('conversation-a', readMessageId);
     assert.equal(f.state.cleared.length, 0); assert.equal(f.state.receipts.length, 0);
-    f.state.requests[0].resolve(response({ success: true })); await pending;
-    assert.equal(f.state.cleared[0][0].unreadCount, 0);
+    assert.deepEqual(JSON.parse(f.state.requests[0].options.body), { conversationId: 'conversation-a', throughMessageId: readMessageId });
+    f.state.requests[0].resolve(response({ success: true, readThrough: '2026-09-26T20:00:00.123001Z' })); await pending;
+    assert.equal(f.state.cleared.length, 0, 'a bounded receipt refreshes counts without clearing later arrivals');
     assert.deepEqual(f.state.refreshes[0], ['account-a', { invalidate: true }]);
     assert.equal(f.state.receipts[0].payload.conversationId, 'conversation-a');
+    assert.equal(f.state.receipts[0].payload.readThrough, '2026-09-26T20:00:00.123001Z');
     assert.equal(f.state.broadcasts.length, 1);
 });
 
+test('temporary or missing message ids never produce a read request', async () => {
+    const f = readFixture();
+    await f.read('conversation-a');
+    await f.read('conversation-a', 'temp-123');
+    assert.equal(f.state.requests.length, 0);
+});
+
 test('rejected reads retain counts and a delayed read never sends on the newly selected channel', async () => {
-    const failed = readFixture(), write = failed.read('conversation-a');
+    const failed = readFixture(), write = failed.read('conversation-a', readMessageId);
     failed.state.requests[0].resolve(response({ success: false })); await write;
     assert.equal(failed.state.cleared.length, 0); assert.equal(failed.state.broadcasts.length, 0);
     assert.equal(failed.state.toasts.length, 1);
-    const moved = readFixture(), old = moved.read('conversation-a');
+    const moved = readFixture(), old = moved.read('conversation-a', readMessageId);
     moved.activeConversationRef.current = { id: 'conversation-b' };
     moved.workspaceRef.current = 'scope-b';
     moved.state.requests[0].resolve(response({ success: true })); await old;
@@ -73,15 +84,15 @@ test('the actual incoming-message subscription schedules a scoped read after dis
         preferencesRef: { current: { messageSounds: false } }, profileCacheRef: { current: new Map() }, PROFILE_CACHE_MAX: 50,
         setMessages: update => painted.push(update([])), setIncomingRead: value => { candidates.push(value); },
         setConversations: update => update([]), typingChannelRef: { current: null }, loadMessagesRef: {},
-        incomingRead, markConversationReadRef: { current: f.read },
+        incomingRead, messages: [], compareMessageTimestamps, markConversationReadRef: { current: f.read },
     }, 'undefined');
     const handler = handlers.find(h => h.spec.event === 'INSERT').handler;
-    const event = { new: { id: 'new-message', sender_id: 'account-b', conversation_id: 'conversation-a', content: 'Hello' } };
+    const event = { new: { id: readMessageId, sender_id: 'account-b', conversation_id: 'conversation-a', content: 'Hello', created_at: '2026-09-26T20:00:00Z' } };
     const pending = handler(event); profile.resolve({ data: { id: 'account-b' } }); await pending;
-    assert.equal(painted[0][0].id, 'new-message');
-    assert.deepEqual(candidates, [{ scope: 'scope-a', conversationId: 'conversation-a', messageId: 'new-message' }]);
+    assert.equal(painted[0][0].id, readMessageId);
+    assert.deepEqual(candidates, [{ scope: 'scope-a', conversationId: 'conversation-a', messageId: readMessageId }]);
     const effect = slice(messenger, '    // Read only the message committed', '    // Typing indicator broadcast');
-    evaluate(effect, { useEffect: fn => fn(), incomingRead: candidates[0], workspaceRef, markConversationReadRef: { current: f.read } }, 'undefined');
+    evaluate(effect, { useEffect: fn => fn(), incomingRead: candidates[0], workspaceRef, messages: painted[0], compareMessageTimestamps, markConversationReadRef: { current: f.read } }, 'undefined');
     assert.equal(f.state.requests.length, 1);
     f.state.requests[0].resolve(response({ success: true }));
     workspaceRef.current = 'scope-b';
@@ -121,6 +132,7 @@ test('notification snapshots obey request ordering and persisted read invalidati
     const fetchFeed = evaluate(code, {
         useCallback: fn => fn, mounted: { current: true }, getAuthUser: () => ({ id: 'account-a' }),
         getAccessToken: async () => 'fixture', setUser() {}, setLoading() {}, feedRequestSequence,
+        paginationRef: { current: { cursor: null, loading: false } }, setNextCursor() {}, setLoadingMore() {},
         fetch: () => { const p = deferred(); pending.push(p); return p.promise; }, isVisibleNotification: () => true,
         setNotifications: rows => painted.push(rows), notificationsRef: { current: [] },
         localStorage: { setItem() {} }, notificationCache: () => '',
