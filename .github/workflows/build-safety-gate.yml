@@ -166,6 +166,7 @@ jobs:
           node --test
           __tests__/messenger-workspace.test.mjs
           __tests__/messenger-read-state.test.mjs
+          __tests__/messenger-sync-lifecycle.test.mjs
           __tests__/messenger-accounting-ui.test.mjs
           __tests__/messenger-conversation-link.test.mjs
           __tests__/messenger-search-lifecycle.test.mjs
