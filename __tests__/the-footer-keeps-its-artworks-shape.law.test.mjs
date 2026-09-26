@@ -82,7 +82,7 @@ test('the artwork stage derives its box from the artwork, not from the viewport'
   assert.match(body, /display\.width\s*\/\s*display\.height|\$\{display\.width\}\s*\/\s*\$\{display\.height\}/,
     'the aspect ratio must come from the measured display bounds');
   assert.ok(
-    !/width:\s*'100%'/.test(body),
+    !/width:\s*'100%'/.test(body.slice(body.indexOf('const controls'))),
     "the stage must not be width:'100%' - that is the stretch bug, restored"
   );
 });
@@ -92,6 +92,11 @@ test('the artwork stage derives its box from the artwork, not from the viewport'
  * artwork's shape. If the stage ever loses its aspect ratio, `fill` is what
  * turns that into a visible stretch - so the two are pinned together here.
  */
+test('social Messenger footer fills both viewport edges while preserving the entire frame', () => {
+  assert.equal(worlds.find(w => w.id === 'social-media').artwork.fullBleed, true);
+  assert.match(source, /if \(artwork.fullBleed\) return \{[\s\S]*?width: '100%'[\s\S]*?aspectRatio:/);
+});
+
 test('object-fit fill is only permitted while the stage carries the aspect ratio', () => {
   if (/objectFit:\s*'fill'/.test(source)) {
     assert.match(source, /aspectRatio:\s*`?\$?\{?display\.width/,
@@ -180,7 +185,7 @@ test('the painted stage keeps artwork shape and 44px-wide controls at every supp
     for (const vw of WIDTHS) {
       const H = Math.min(Math.max(minPx, (vwCoef * vw) / 100), maxPx);
       const minimumControlSpan = itemCount * minHitZone + roundingGuard;
-      const width = Math.min(vw, Math.max(minimumControlSpan, H * aspect));
+      const width = a.fullBleed ? vw : Math.min(vw, Math.max(minimumControlSpan, H * aspect));
       const height = width / aspect;
 
       const deviation = Math.abs(width / height / aspect - 1);
@@ -191,7 +196,7 @@ test('the painted stage keeps artwork shape and 44px-wide controls at every supp
       );
       assert.ok(width <= vw + 1e-6, `${w.id} @${vw}px: stage overflows the viewport`);
       assert.ok(
-        height <= Math.max(maxPx, minimumControlSpan / aspect) + 1e-6,
+        height <= (a.fullBleed ? vw / aspect : Math.max(maxPx, minimumControlSpan / aspect)) + 1e-6,
         `${w.id} @${vw}px: stage is taller than either geometry constraint permits`
       );
       if (vw >= minimumControlSpan) {

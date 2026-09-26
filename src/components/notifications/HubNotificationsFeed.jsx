@@ -47,6 +47,8 @@
  *      was found and fixed in Club Arena's surface the same day.
  */
 
+import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { persistNotificationReads } from '../../lib/notificationReads.mjs';
 import SEOHead from '../../components/seo/SEOHead';
 import { ThumbsUp, Heart, MessageCircle, AtSign, UserPlus, UserCheck, Eye, Radio, Spade, Bell, Share2, Star, Trophy, Banknote, ShieldCheck, Users, Megaphone, Gift, TrendingUp, Zap, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/router';
@@ -106,6 +108,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
     // note 4 in the header: without it they share one realtime channel topic
     // and the loser stops receiving inserts.
     const instanceId = useId();
+    const { refreshNotifications } = useUnreadCount();
+    const feedRoot = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const notificationsRef = useRef([]);
@@ -204,7 +208,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             const token = await getAccessToken();
 
             // ── Single unified API call: social + poker + actor profiles server-side ──
-            const res = await fetch('/api/notifications/feed?limit=200', {
+            const res = await fetch('/api/notifications/feed?limit=200&bust=1', {
                 headers: { Authorization: 'Bearer ' + token },
                 signal,
             });
@@ -351,17 +355,6 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         return () => { mounted.current = false; };
     }, []);
 
-    useEffect(() => {
-        (async () => {
-            const token = await getAccessToken();
-            fetch('/api/notifications/mark-seen', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({})
-            }).catch(() => {});
-        })();
-    }, []);
-
     useTrainingBus('notifications');
 
     const menuConfig = getMenuConfig(
@@ -453,109 +446,56 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         };
     }, [user?.id, instanceId]);
 
-    const markAsRead = async (id) => {
-        // Prevent double-execution in the exact same tick (e.g. click + observer)
-        if (processingReadIds.current.has(id)) return;
-        processingReadIds.current.add(id);
-
-        // [Audit#19] FIX: Check read status from current state snapshot SYNCHRONOUSLY
-        // before calling setState. We use notificationsRef to avoid stale closures inside
-        // the IntersectionObserver (which only depends on notifications.length).
-        const alreadyRead = notificationsRef.current.some(n => n.id === id && n.read);
-        if (alreadyRead) return; // already read — no badge decrement needed
-
-        // EAGER STATE SYNCHRONIZATION: Update React state before DB
-        if (mounted.current) {
-            setNotifications(prev => {
-                const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
-                try {
-                    const sliced = next.slice(0, 30);
-                    // Preserve _cache_ts so the 5-min TTL check on next load doesn't discard this cache
-                    if (sliced.length > 0 && !sliced[0]._cache_ts) sliced[0] = { ...sliced[0], _cache_ts: Date.now() };
-                    localStorage.setItem('sp-notif-cache', JSON.stringify(sliced));
-                } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-                return next;
-            });
-        }
-
-        // Sync badge localStorage and broadcast to header eagerly.
-        // AUDIT-FIX: avoid stale-read race when IntersectionObserver fires for N rows
-        // simultaneously. Each call was reading the SAME stale sp-notif-count and all
-        // subtracted 1 — final stored count was original-1 instead of original-N.
-        // Solution: read, decrement, and write atomically in one synchronous operation.
-        // The useUnreadCount Realtime subscription is the authoritative source anyway and
-        // self-corrects on the next UPDATE event, but this prevents transient badge flash.
-        let newCount = 0;
+    const markAsRead = async (input) => {
+        const actor = getAuthUser()?.id;
+        if (!actor || actor !== user?.id || document.visibilityState === 'hidden') return false;
+        const requested = Array.isArray(input) ? input : [input];
+        const ids = [...new Set(requested)].filter(id =>
+            !processingReadIds.current.has(id) && notificationsRef.current.some(n => n.id === id && !n.read));
+        if (!ids.length) return true;
+        ids.forEach(id => processingReadIds.current.add(id));
         try {
-            const current = parseInt(localStorage.getItem('sp-notif-count') || '0', 10);
-            newCount = Math.max(0, current - 1);
-            localStorage.setItem('sp-notif-count', String(newCount));
-        } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
-        broadcastSync('smarter_poker_notif_sync', { action: 'mark_read', id: id, tabId: BROADCAST_TAB_ID });
-        eventBus.emit(EventType.NOTIFICATIONS_READ, { count: 1 }, 'NotificationsPage');
-        busEmit.dataMutated('notifications');
-        try { if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: newCount }, '*'); } catch (_) {}
-        publishCount(newCount);
-
-        // Fire-and-forget DB update with fetch-on-failure
-        const isPoker = typeof id === 'string' && id.startsWith('poker-');
-        if (!isPoker && user?.id) {
-            // Route through server API to invalidate feed + unread-count caches
-            const token = await getAccessToken();
-            fetch('/api/notifications/mark-read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ notificationId: id }),
-            }).then(res => {
-                if (!res.ok) throw new Error('API failed');
-            }).catch(e => {
-                console.warn('[mark-read] single failed:', e);
-                fetchNotifications();
-                broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-            });
-        } else if (isPoker && user?.id) {
-            const realId = id.replace('poker-', '');
-            const token = await getAccessToken();
-            fetch('/api/poker/notifications', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ notification_id: realId })
-            }).then(res => {
-                if (!res.ok) throw new Error('API failed');
-            }).catch(e => {
-                console.warn('[mark-read] single failed:', e);
-                fetchNotifications();
-                broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
-            });
+            await persistNotificationReads(ids, await getAccessToken());
+            if (!mounted.current || getAuthUser()?.id !== actor) return false;
+            const readIds = new Set(ids);
+            const next = notificationsRef.current.map(n => readIds.has(n.id) ? { ...n, read: true, is_read: true } : n);
+            notificationsRef.current = next;
+            setNotifications(next);
+            try { localStorage.setItem('sp-notif-cache', notificationCache(next, actor)); } catch (_) { /* storage unavailable */ }
+            eventBus.emit(EventType.NOTIFICATIONS_READ, { count: ids.length }, 'NotificationsPage');
+            busEmit.dataMutated('notifications');
+            broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+            const fresh = await refreshNotifications({ force: true, invalidate: true });
+            if (fresh && getAuthUser()?.id === actor) {
+                publishCount(fresh.notificationCount);
+                if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: fresh.notificationCount }, window.location.origin);
+            }
+            return true;
+        } catch (error) {
+            console.warn('[Notifications] Read persistence failed:', error);
+            toast.error('Read Status Could Not Be Saved. Please Try Again.');
+            return false;
+        } finally {
+            ids.forEach(id => processingReadIds.current.delete(id));
         }
     };
 
-    // Auto mark as read when visually seen
+    // Opening notifications reads rows actually shown, including later scrolls.
+    // Observe this feed only: a popup and route may be mounted at the same time.
     const observerRef = useRef(null);
     useEffect(() => {
-        if (loading || notifications.length === 0) return;
-
-        observerRef.current = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const id = entry.target.getAttribute('data-notif-id');
-                    if (id) {
-                        markAsRead(id);
-                        observerRef.current.unobserve(entry.target);
-                    }
-                }
+        if (loading || !user?.id || notifications.length === 0) return;
+        const observer = new IntersectionObserver(entries => {
+            const visible = entries.filter(entry => entry.isIntersecting);
+            if (!visible.length) return;
+            markAsRead(visible.map(entry => entry.target.getAttribute('data-notif-id'))).then(saved => {
+                if (saved) visible.forEach(entry => observer.unobserve(entry.target));
             });
         }, { threshold: 0.5 });
-
-        const elements = document.querySelectorAll('.unread-notification-row');
-        elements.forEach(el => observerRef.current.observe(el));
-
-        return () => {
-            if (observerRef.current) {
-                observerRef.current.disconnect();
-            }
-        };
-    }, [notifications.length, loading]);
+        observerRef.current = observer;
+        feedRoot.current?.querySelectorAll('.unread-notification-row').forEach(el => observer.observe(el));
+        return () => observer.disconnect();
+    }, [notifications.length, loading, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FRIEND REQUEST HANDLERS (SmarterPoker-style: Decline = Auto-Follow)
@@ -736,7 +676,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                     }
                 }
             `}</style>
-            <div className="notifications-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <div ref={feedRoot} className="notifications-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 {/* Header - Universal Header (hidden when inside overlay iframe) */}
                 {!isInIframe && <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />}
                 {!isInIframe && <HamburgerMenu
@@ -761,22 +701,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                     {unreadCount > 0 && (
                         <button
                             onClick={async () => {
-                                try {
-                                    const token = await getAccessToken();
-                                    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-                                    await fetch('/api/notifications/mark-read', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                                        body: JSON.stringify({ ids: unreadIds })
-                                    });
-                                    setNotifications(prev => prev.map(n => ({ ...n, read: true, seen: true })));
-                                    let newCount = 0;
-                                    localStorage.setItem('sp-notif-count', '0');
-                                    broadcastSync('smarter_poker_notif_sync', { action: 'mark_all_read', tabId: BROADCAST_TAB_ID });
-                                    toast.success('All notifications marked as read');
-                                } catch (e) {
-                                    toast.error('Failed to mark all as read');
-                                }
+                                const saved = await markAsRead(notificationsRef.current.filter(n => !n.read).map(n => n.id));
+                                if (saved) toast.success('Notifications Marked As Read');
                             }}
                             style={{
                                 background: 'transparent', border: 'none', color: C.blue,

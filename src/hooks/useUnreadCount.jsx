@@ -1,41 +1,13 @@
-/**
- * UNREAD COUNT HOOK — messages + notifications
- *
- * Provides three reactive counts:
- *   - messageCount        — unread DM messages (from social_messages)
- *   - notificationCount   — unread notifications (from notifications table)
- *   - total               — messageCount + notificationCount
- *
- * `unreadCount` is preserved as an alias for messageCount so existing callers
- * that show a messenger-icon badge keep working unchanged.
- *
- * BUG-FIX-LIVE-6 (per Dan: "notifications should be sent to both the bottom
- * notification bar and the global header notifications. these should always
- * both be notified always for any and all notifications.").
- *
- * Before this fix, the bottom-nav "Alerts" tab read `unreadCount` which was
- * messages-only — so notifications never updated the bottom badge even though
- * the global header notification bell did update. Both surfaces now read from
- * the same `notificationCount` field driven by a shared Realtime subscription
- * to the `notifications` table.
- *
- * COST-FIX: The old `unread-messages` postgres_changes channel had no
- * server-side row filter, causing Supabase to broadcast every social_messages
- * INSERT to every connected user. Because social_messages has no direct
- * recipient column (membership is resolved via social_conversation_participants),
- * a simple eq filter cannot scope delivery to the right user. The channel has
- * been removed. Message unread counts are now maintained by the 30-second
- * polling interval (refreshUnread) that was already present as a drift-
- * correction backstop. Notifications continue to use a server-side
- * user_id=eq.${userId} filter and are unaffected.
+/** Shared unread badges. Reads use the same server visibility rules as the
+ * inboxes. Explicit persisted-read events refresh once and invalidate stale
+ * requests; the existing visible-tab interval only observes incoming activity.
  */
 
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
-// EventBus import removed — Supabase Realtime is the sole badge updater
-import { listenBroadcast, broadcastSync } from '../lib/broadcastSync';
-import { getHeaderStats } from '../lib/headerStats';
+import { listenBroadcast, broadcastSync, BROADCAST_TAB_ID } from '../lib/broadcastSync';
+import { getHeaderStats, invalidateHeaderStats } from '../lib/headerStats';
 import toast from '../stores/toastStore';
 
 
@@ -53,6 +25,10 @@ export function UnreadProvider({ children }) {
     const [notificationCount, setNotificationCount] = useState(0);
     const [userId, setUserId] = useState(null);
     const notifDebounceRef = useRef(null);
+    const [messengerUnread, setMessengerUnread] = useState(null);
+    const identityRef = useRef(userId);
+    identityRef.current = userId;
+    const refreshSequence = useRef(0);
 
     // Resolve the current user — and KEEP resolving it.
     // BUGFIX (header-audit #4): this was a single localStorage read on mount.
@@ -82,119 +58,37 @@ export function UnreadProvider({ children }) {
         return () => { try { sub?.unsubscribe(); } catch (_) { /* already gone */ } };
     }, []);
 
-    // ── Fetch unread MESSAGE count ───────────────────────────────────────
-    const refreshUnread = async () => {
+    // One authoritative snapshot serves both badges and the club tab counts.
+    // Explicit read events invalidate in-flight pre-read responses as well.
+    const refreshCounts = async (opts = {}) => {
         if (!userId) return;
-
+        const requestId = ++refreshSequence.current;
+        if (opts?.invalidate) invalidateHeaderStats();
         try {
-            // Get all conversations the user is in
-            const { data: participations } = await supabase
-                .from('social_conversation_participants')
-                .select('conversation_id, last_read_at')
-                .eq('user_id', userId);
-
-            if (!participations?.length) {
-                setMessageCount(0);
-                return;
+            const result = await getHeaderStats({ userId, force: opts === true || opts?.force === true });
+            if (identityRef.current !== userId || requestId !== refreshSequence.current) return;
+            if (!result?.success || typeof result.unreadMessages !== 'number' || typeof result.notificationCount !== 'number') {
+                throw new Error('Unread Counts Unavailable');
             }
-
-            // Batch: fetch ALL unread messages across all conversations in a single query
-            const conversationIds = participations.map(p => p.conversation_id);
-
-            // Find the earliest last_read_at to use as a floor filter
-            const earliestRead = participations.reduce((earliest, p) => {
-                const ts = p.last_read_at || '1970-01-01';
-                return ts < earliest ? ts : earliest;
-            }, participations[0].last_read_at || '1970-01-01');
-
-            // Single query: get all candidate messages across all conversations
-            const { data: messages } = await supabase
-                .from('social_messages')
-                .select('conversation_id, created_at')
-                .in('conversation_id', conversationIds)
-                .neq('sender_id', userId)
-                .eq('is_deleted', false)
-                .gt('created_at', earliestRead)
-                .limit(5000);
-
-            // Count locally — only messages after the per-conversation last_read_at
-            const readMap = new Map(participations.map(p => [p.conversation_id, p.last_read_at || '1970-01-01']));
-            let total = 0;
-            (messages || []).forEach(msg => {
-                const lastRead = readMap.get(msg.conversation_id);
-                if (lastRead && msg.created_at > lastRead) total++;
-            });
-
-            setMessageCount(total);
-        } catch (e) {
-            console.warn('Error fetching unread count:', e);
+            setMessageCount(result.unreadMessages);
+            setNotificationCount(result.notificationCount);
+            setMessengerUnread(result.messengerUnread || null);
+            return result;
+        } catch (error) {
+            console.warn('[UnreadProvider] Count refresh failed:', error?.message || error);
         }
     };
-
-    // ── Fetch unread NOTIFICATION count ─────────────────────────────────
-    // BUG-FIX-LIVE-6: read both `read` and `is_read` columns because the table
-    // has both (legacy schema) and individual code paths historically wrote to
-    // one or the other. We treat "unread" as "neither flag set to true."
-    // `opts` accepts { force: true } (or bare `true`) from the periodic tick and
-    // the visibility catch-up, which must not be served a cached payload. The
-    // mount call deliberately does NOT force, so it collapses into the single
-    // shared request that UniversalHeader and useDiamondBalance also join.
-    const refreshNotifications = async (opts) => {
-        if (!userId) return;
-        const force = opts === true || opts?.force === true;
-
-        // BUGFIX (header-audit #3): this used to query `notifications` directly, which
-        // counts SOCIAL notifications only, while /api/user/get-header-stats returns
-        // social + page/poker combined. Since this value is mirrored straight into the
-        // header bell, the direct query silently clobbered the API's combined count
-        // within 30s — poker and page-follow notifications showed for a moment after
-        // load and then vanished. The API is now the single source of truth.
-        try {
-            // PERF (2026-08-24): hand-rolled fetch replaced by the shared
-            // in-flight-memoising fetcher, so the three concurrent header-stats
-            // requests a page load used to make collapse into one.
-            const result = await getHeaderStats({ userId, force });
-            if (result?.success && typeof result.notificationCount === 'number') {
-                setNotificationCount(result.notificationCount);
-                if (typeof result.unreadMessages === 'number') setMessageCount(result.unreadMessages);
-                return;
-            }
-            console.warn('[UnreadProvider] header-stats gave no usable count - falling back to direct query');
-        } catch (e) {
-            console.warn('[UnreadProvider] header-stats fetch failed, falling back:', e?.message || e);
-        }
-
-        // Fallback: social-only count straight off the table.
-        // BUGFIX (header-audit #1): the old filter was
-        //   .or('read.eq.false,read.is.null,is_read.eq.false,is_read.is.null')
-        // which counts a row as unread when EITHER legacy flag looks unread. A row with
-        // read=true and is_read=NULL — exactly what every writer touching only one column
-        // produces — matched `is_read.is.null` and stayed "unread" forever, so the badge
-        // could never be cleared. "Unread" means NEITHER flag is true.
-        try {
-            const { count, error } = await supabase
-                .from('notifications')
-                .select('id', { count: 'exact', head: true })
-                .eq('user_id', userId)
-                .not('read', 'is', true)
-                .not('is_read', 'is', true);
-            if (error) {
-                // AUDIT-FIX (header-audit #8): do not swallow this. A failed count used to
-                // leave the previous value in place with only a console.warn, so a broken
-                // query looked exactly like "you have no notifications".
-                console.warn('[UnreadProvider] notification count query failed:', error.message || error);
-                return;
-            }
-            if (typeof count === 'number') setNotificationCount(count);
-        } catch (e) {
-            console.warn('[UnreadProvider] notification count fetch failed:', e?.message || e);
-        }
-    };
+    const refreshUnread = () => refreshCounts({ force: true, invalidate: true });
+    const refreshNotifications = (opts) => refreshCounts(opts);
 
     // Refresh on mount and when userId changes
     useEffect(() => {
+        setMessageCount(0);
+        setNotificationCount(0);
+        setMessengerUnread(null);
+        ++refreshSequence.current;
+        invalidateHeaderStats();
         if (userId) {
-            refreshUnread();
             refreshNotifications();
 
             // ── Realtime subscription: notifications ───────────────────────
@@ -202,19 +96,11 @@ export function UnreadProvider({ children }) {
             // so both the global header bell AND the bottom-nav Alerts tab
             // receive the same update event in real time.
             //
-            // NOTE: There is intentionally NO Realtime channel for social_messages
-            // here. The old `unread-messages` channel had no server-side row filter
-            // (social_messages has no direct recipient column), which caused Supabase
-            // to broadcast every message in the database to every connected user —
-            // a significant cost driver. Message counts are kept accurate by the
-            // 30-second polling interval below, plus explicit refreshUnread() calls
-            // from the BroadcastChannel sync when a tab marks messages as read.
-            // Trailing debounce shared by the UPDATE and DELETE handlers below.
             const scheduleNotifRefresh = () => {
                 if (notifDebounceRef.current) clearTimeout(notifDebounceRef.current);
                 notifDebounceRef.current = setTimeout(() => {
                     notifDebounceRef.current = null;
-                    refreshNotifications();
+                    refreshCounts({ force: true, invalidate: true });
                 }, 300);
             };
 
@@ -228,7 +114,7 @@ export function UnreadProvider({ children }) {
                         table: 'notifications',
                         filter: `user_id=eq.${userId}`,
                     }, (payload) => {
-                        setNotificationCount(prev => prev + 1);
+                        scheduleNotifRefresh();
                         if (payload.new && payload.new.type === 'live_invite') {
                             const data = payload.new.data || {};
                             const content = data.content || '';
@@ -272,34 +158,21 @@ export function UnreadProvider({ children }) {
                 console.warn('[UnreadProvider] notifications realtime subscription failed - falling back to polling:', realtimeErr);
             }
 
-            // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.
-            // It caused double-counting: messenger.js emits MESSAGE_RECEIVED 
-            // from its own Supabase Realtime handler, AND this hook's Supabase 
-            // channel fires — both incrementing the badge for the same message.
-            // The Supabase Realtime channel above is the single source of truth.
-
             // BroadcastChannel for cross-tab sync (instantly updates other tabs when read)
             const cleanupUnreadSync = listenBroadcast('smarter_poker_unread_sync', (msg) => {
                 if (msg === 'refresh_unread') {
-                    // AUDIT-FIX: only refresh message count here. This broadcast fires when
-                    // a DM is read in another tab. Calling refreshNotifications() was a waste
-                    // — notification count has its own Realtime subscription above.
                     refreshUnread();
                 }
             });
 
-            // Refresh periodically as backup (corrects any drift).
-            // For messages this is the PRIMARY update mechanism (no Realtime channel —
-            // see cost-fix note above). 30 s is acceptable latency for an unread badge.
-            // PERF (header-audit follow-up): refreshNotifications() now calls
-            // /api/user/get-header-stats, which is ~8 DB round-trips — considerably more
-            // expensive than the single count query it replaced. Firing that every 30s in
-            // every background tab, forever, is a real cost. Skip the tick entirely while
-            // the tab is hidden, and catch up once it becomes visible again — which is the
-            // only moment a stale badge is actually observable.
+            const cleanupNotificationSync = listenBroadcast('smarter_poker_notif_sync', msg => {
+                if (msg?.tabId === BROADCAST_TAB_ID) return;
+                refreshCounts({ force: true, invalidate: true });
+            });
+
+            // Keep the existing visibility-gated observation interval.
             const tick = () => {
                 if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-                refreshUnread();
                 // force: a drift-correction tick must never be answered from the
                 // shared short-lived result cache.
                 refreshNotifications({ force: true });
@@ -323,6 +196,7 @@ export function UnreadProvider({ children }) {
                     document.removeEventListener('visibilitychange', onVisibility);
                 }
                 cleanupUnreadSync();
+                cleanupNotificationSync();
             };
         }
     }, [userId]);
@@ -343,6 +217,7 @@ export function UnreadProvider({ children }) {
             // Existing callers (messenger badges) keep working unchanged.
             unreadCount: messageCount,
             messageCount,
+            messengerUnread,
             notificationCount,
             total,
             refreshUnread,

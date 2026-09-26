@@ -2,6 +2,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUserWithFallback } from '../../../src/lib/serverAuth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { reportApiError } from '../../../src/lib/apiErrorHandler';
+import { getMessengerUnreadSummary } from '../../../src/lib/messengerWorkspace.mjs';
 
 // NOTE: Removed edge runtime — this handler uses Node.js Pages Router API (req.query/res.status/etc)
 // and cannot run on Vercel Edge Runtime. Keep as Node.js runtime.
@@ -9,11 +10,6 @@ import { reportApiError } from '../../../src/lib/apiErrorHandler';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Upper bound on the unread-message row scan (see the slow path below). The
-// header badge saturates at "99+", so a larger scan cannot change the UI.
-const MAX_UNREAD_SCAN = 2000;
-
 
 let _supabase = null;
 function getSupabase() {
@@ -62,7 +58,7 @@ export default async function handler(req, res) {
           // BUG-12 FIX: Run ALL 4 queries in parallel instead of sequential waterfall.
           // BUG-29 FIX: Capture single 'sb' reference — prevents re-resolving module singleton
           //             on each getSupabase() call inside Promise.all.
-          const [profileResult, socialCountResult, followResult, convResult] = await Promise.all([
+          const [profileResult, socialCountResult, followResult, messengerSummary] = await Promise.all([
               // 1. Profile
               sb.from('profiles')
                   .select('username, full_name, avatar_url, arena_avatar_url, use_avatar_as_profile_pic, diamonds, is_vip, vip_expires_at, is_admin')
@@ -79,6 +75,7 @@ export default async function handler(req, res) {
               sb.from('personal_notifications')
                   .select('*', { count: 'exact', head: true })
                   .eq('user_id', userId)
+                  .or('type.is.null,type.neq.accounting_invoice_detail')
                   .not('read', 'is', true)
                   .not('is_read', 'is', true),
               // 3. Page followers for poker notifications
@@ -86,17 +83,7 @@ export default async function handler(req, res) {
                   .select('page_type, page_id')
                   .eq('user_id', userId)
                   .limit(100),
-              // 4. Conversations for unread messages count
-              // BOUNDED DELIBERATELY. conversationIds feeds a .in(...) below,
-              // which PostgREST sends as a URL query parameter - a few thousand
-              // conversations produces a 414 and this endpoint fails outright.
-              // Newest-read first, so the 200 kept are the ones a badge can
-              // plausibly be about. Do not remove the order/limit pair.
-              sb.from('social_conversation_participants')
-                  .select('conversation_id, last_read_at')
-                  .eq('user_id', userId)
-                  .order('last_read_at', { ascending: false, nullsFirst: false })
-                  .limit(200),
+              getMessengerUnreadSummary(sb, userId),
           ]);
 
           const profile = profileResult.data;
@@ -117,15 +104,8 @@ export default async function handler(req, res) {
               return res.status(500).json({ error: 'Internal server error' });
           }
           let notificationCount = socialCountResult.count || 0;
-          if (convResult.error) { console.error('[get-header-stats]', convResult.error); }
-          const conversations = convResult.data || [];
-
-          // BUG-29 FIX: Run poker notif sub-query AND messages sub-query in parallel.
-          // Previous: pageNotifs (sequential) → existingReads (sequential) → social_messages (sequential)
-          // Now: both secondary fetch groups fire at the same time.
-          const [pokerResult, messagesResult] = await Promise.all([
-              // Poker notifications sub-flow (only if user follows pages)
-              (async () => {
+          // Page notification reads depend on the followed pages fetched above.
+          const pokerResult = await (async () => {
                   if (!followResult.data || followResult.data.length === 0) return 0;
                   
                   // Chunk follows to avoid HTTP 414 URI Too Long errors.
@@ -163,75 +143,10 @@ export default async function handler(req, res) {
                       .in('notification_id', allIds);
                   const readSet = new Set((existingReads || []).map(r => r.notification_id));
                   return allIds.filter(id => !readSet.has(id)).length;
-              })(),
-              // Unread messages sub-flow
-              (async () => {
-                  if (conversations.length === 0) return 0;
-                  const conversationIds = conversations.map(c => c.conversation_id);
-                  const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
-                  const earliestRead = conversations.reduce((earliest, c) => {
-                      const ts = c.last_read_at || '1970-01-01';
-                      return ts < earliest ? ts : earliest;
-                  }, conversations[0].last_read_at || '1970-01-01');
-
-                  // PERF (2026-08-24): this query had NO .limit() at all. A user
-                  // with a busy inbox pulled every matching social_messages row
-                  // across every conversation into this process on EVERY header
-                  // refresh, purely to compute one integer.
-                  //
-                  // FAST PATH - when every conversation shares the same
-                  // last_read_at floor (a single conversation, or a user who is
-                  // fully caught up, which is the common case) the
-                  // per-conversation comparison below is redundant: the global
-                  // floor IS the per-conversation floor. Ask Postgres for the
-                  // number and transfer zero rows.
-                  const distinctFloors = new Set(readMap.values());
-                  if (distinctFloors.size <= 1) {
-                      const { count, error: countErr } = await sb
-                          .from('social_messages')
-                          // '*' with head:true transfers no rows and does not
-                          // depend on any particular column existing - same
-                          // form as the notifications count above.
-                          .select('*', { count: 'exact', head: true })
-                          .in('conversation_id', conversationIds)
-                          .neq('sender_id', userId)
-                          .eq('is_deleted', false)
-                          .gt('created_at', earliestRead);
-                      if (countErr) {
-                          console.warn('[get-header-stats] unread message count error:', countErr);
-                          return 0;
-                      }
-                      return count || 0;
-                  }
-
-                  // SLOW PATH - floors differ per conversation, so rows really
-                  // are needed for the comparison. Now BOUNDED: the badge
-                  // renders "99+" above 99, so scanning past MAX_UNREAD_SCAN
-                  // cannot change what the user actually sees.
-                  const { data: allMessages } = await sb
-                      .from('social_messages')
-                      .select('conversation_id, created_at')
-                      .in('conversation_id', conversationIds)
-                      .neq('sender_id', userId)
-                      .eq('is_deleted', false)
-                      .gt('created_at', earliestRead)
-                      // ORDER BY is required, not cosmetic: a bare LIMIT in
-                      // Postgres returns ARBITRARY rows. Newest-first
-                      // guarantees the rows scanned are the ones actually
-                      // unread, so the badge stays exact below the 99 cap.
-                      .order('created_at', { ascending: false })
-                      .limit(MAX_UNREAD_SCAN);
-                  let count = 0;
-                  (allMessages || []).forEach(msg => {
-                      const lastRead = readMap.get(msg.conversation_id);
-                      if (lastRead && msg.created_at > lastRead) count++;
-                  });
-                  return count;
-              })(),
-          ]);
+          })();
 
           notificationCount += pokerResult;
-          const unreadMessages = messagesResult;
+          const unreadMessages = messengerSummary.total;
 
           return res.json({
               success: true,
@@ -247,7 +162,8 @@ export default async function handler(req, res) {
                   is_admin: profile.is_admin || false
               },
               notificationCount: notificationCount || 0,
-              unreadMessages
+              unreadMessages,
+              messengerUnread: messengerSummary,
           });
       } catch (e) {
           console.warn('[get-header-stats] Exception:', e);
