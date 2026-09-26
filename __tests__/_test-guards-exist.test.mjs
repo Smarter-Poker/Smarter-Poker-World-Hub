@@ -236,6 +236,11 @@ import './openclaw-workers-secret.test.mjs';
 // while the fleet switch is off or as anything but a pinned non-horse
 // profile. Same CHECK 8 reasoning as the block above.
 import './video-library-reels-fails-closed.test.mjs';
+// 2026-09-22, Production Alerts Fleet: OpenClawFleetLongSilence had fired for
+// video-library-scraper since 2026-08-29 because its report-back webhook
+// never existed - report_to_api() swallowed the 404 as non-fatal, so nothing
+// ever showed the gap. Same CHECK 8 reasoning as the block above.
+import './video-library-scraper-report-endpoint-exists.test.mjs';
 
 // 2026-09-04: a synthetic probe never signs a person out. login-probe was
 // pointed at Dan's own account and called a bare signOut() - global scope -
