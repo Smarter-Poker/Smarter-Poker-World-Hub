@@ -60,6 +60,7 @@ async function fixture(file = 'pages/api/notifications/feed.js') {
     resolveNotificationRoute: () => '/hub/poker-near-me',
     applyRateLimit: () => true,
     LIMITS: { write: {} },
+    getMessengerUnreadSummary: async () => ({ total: 0, social: 0, clubs: {} }),
   };
   await module.link(() => new vm.SyntheticModule(Object.keys(mocks), function () {
     for (const [key, value] of Object.entries(mocks)) this.setExport(key, value);

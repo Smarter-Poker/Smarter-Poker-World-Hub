@@ -15,7 +15,7 @@ import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
 import useMessengerConversationLink from '../../src/hooks/useMessengerConversationLink';
-import { broadcastSync } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
@@ -506,7 +506,9 @@ function MessengerPage() {
     };
 
     // Global unread count for header badge - refresh after reading messages
-    const { refreshUnread } = useUnreadCount();
+    const { refreshUnread, messengerUnread } = useUnreadCount();
+    const [workspaceUnread, setWorkspaceUnread] = useState(null);
+    const [incomingRead, setIncomingRead] = useState(null);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -570,6 +572,9 @@ function MessengerPage() {
     const goOnlineUserRef = useRef(null);
     const loadConversationsRef = useRef(null);
     const loadMessagesRef = useRef(null);
+    const markConversationReadRef = useRef(null);
+    const inboxRequestSequence = useRef(0);
+    const messagesRequestSequence = useRef(0);
     // PERF 2026-08-24: in-flight de-duplication for loadConversations.
     // Opening the messenger fired the SAME full inbox request 3-4 times
     // concurrently: the init effect, the identity effect (user?.id null->id),
@@ -603,18 +608,29 @@ function MessengerPage() {
             // Reload missed messages after reconnect — use refs to avoid stale closures
             const currentUser = goOnlineUserRef.current;
             if (currentUser?.id) {
-                loadConversationsRef.current?.(currentUser.id);
+                loadConversationsRef.current?.(currentUser.id, { invalidate: true });
                 const activeConv = activeConversationRef.current;
                 if (activeConv?.id && !activeConv.isJarvis) {
                     loadMessagesRef.current?.(activeConv.id);
                 }
             }
         };
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible' && isOnline()) goOnline();
+        };
         const goOffline = () => setConnectionStatus('disconnected');
+        const stopUnreadSync = listenBroadcast('smarter_poker_unread_sync', msg => {
+            if (msg !== 'refresh_unread') return;
+            const currentUser = goOnlineUserRef.current;
+            if (currentUser?.id) loadConversationsRef.current?.(currentUser.id, { invalidate: true });
+        });
+        document.addEventListener('visibilitychange', onVisibility);
         window.addEventListener('online', goOnline);
         window.addEventListener('offline', goOffline);
         if (!navigator.onLine) setConnectionStatus('disconnected');
         return () => {
+            stopUnreadSync();
+            document.removeEventListener('visibilitychange', onVisibility);
             window.removeEventListener('online', goOnline);
             window.removeEventListener('offline', goOffline);
         };
@@ -1081,6 +1097,7 @@ function MessengerPage() {
     useEffect(() => {
         if (!user || !activeConversation) return;
 
+        const requestScope = workspaceKey;
         const channel = supabase
             .channel(`conversation:${activeConversation.id}`)
             .on('postgres_changes', {
@@ -1120,12 +1137,14 @@ function MessengerPage() {
                     }
                 }
 
-                if (activeConversationRef.current?.id !== newMsg.conversation_id) return;
+                if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
                 setMessages(prev => {
                     // Check for duplicates (defensive against null entries)
                     if (prev.some(m => m && m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, profiles: profile || null }];
                 });
+
+                setIncomingRead({ scope: requestScope, conversationId: newMsg.conversation_id, messageId: newMsg.id });
 
                 // FIX #9: Delivery confirmation — broadcast back to sender that we received their message
                 try {
@@ -1180,6 +1199,13 @@ function MessengerPage() {
     // on every setConversations call (sidebar preview refresh), which would tear down the
     // subscription and create a gap window on every incoming message.
     }, [user?.id, activeConversation?.id]);
+
+    // Read only the message committed to this visible conversation. Returning
+    // to a hidden window reloads its authoritative messages through goOnline.
+    useEffect(() => {
+        if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
+        markConversationReadRef.current?.(incomingRead.conversationId);
+    }, [incomingRead?.scope, incomingRead?.conversationId, incomingRead?.messageId]);
 
     // Typing indicator broadcast
     const typingTimerRef = useRef(null);
@@ -1541,7 +1567,7 @@ function MessengerPage() {
         }
     };
 
-    const loadConversations = async (userId) => {
+    const loadConversations = async (userId, { invalidate = false } = {}) => {
         // PERF 2026-08-24: collapse concurrent duplicate loads (see
         // loadConvInFlightRef). Keyed on the exact request identity, so a
         // genuine context switch (Personal <-> Club) is never de-duplicated
@@ -1549,7 +1575,7 @@ function MessengerPage() {
         // request settles, so a LATER refresh always issues a fresh fetch.
         const inFlightKey = workspaceKey;
         const pending = loadConvInFlightRef.current;
-        if (pending && pending.key === inFlightKey) return pending.promise;
+        if (!invalidate && pending && pending.key === inFlightKey) return pending.promise;
 
         const run = loadConversationsInner(userId);
         loadConvInFlightRef.current = { key: inFlightKey, promise: run };
@@ -1562,6 +1588,8 @@ function MessengerPage() {
 
     const loadConversationsInner = async (userId) => {
         const requestKey = workspaceKey;
+        const requestSequence = ++inboxRequestSequence.current;
+        const current = () => workspaceRef.current === requestKey && inboxRequestSequence.current === requestSequence;
         if (!isOnline()) {
             setInboxError('You Are Offline. Reconnect To Refresh This Inbox.');
             setLoading(false);
@@ -1575,7 +1603,7 @@ function MessengerPage() {
                 body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
             });
             const result = await resp.json();
-            if (workspaceRef.current !== requestKey) return;
+            if (!current()) return;
             if (!resp.ok || !result.success || !Array.isArray(result.conversations)) throw new Error(result.error || 'Inbox Unavailable');
             const previous = new Map(conversationsRef.current.map(c => [c.id, c.unreadCount]));
             if (result.conversations.some(c => previous.has(c.id) && c.unreadCount > previous.get(c.id) && c.id !== activeConversationRef.current?.id)) {
@@ -1584,22 +1612,72 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: result.clubs });
             setConversations(result.conversations);
+            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts });
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
-            if (workspaceRef.current !== requestKey) return;
+            if (!current()) return;
             setConversations([]);
             setInboxError(error.message || 'Inbox Unavailable. Please Retry.');
         } finally {
-            if (workspaceRef.current === requestKey) setLoading(false);
+            if (current()) setLoading(false);
         }
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadConversationsRef.current = loadConversations;
 
-    const loadMessages = async (conversationId) => {
+    const markConversationRead = async (conversationId) => {
         const requestScope = workspaceKey;
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
+        try {
+            if (!current() || document.visibilityState === 'hidden') return;
+            // Do not clear local/global badges or emit a read receipt on failure.
+            const readResponse = await authedFetch('/api/messenger/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ conversationId }),
+            });
+            const readResult = await readResponse.json();
+            if (!readResponse.ok || readResult.success !== true) {
+                if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+                return;
+            }
+            if (current()) {
+                setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c));
+                loadConversationsRef.current?.(user.id, { invalidate: true });
+            }
+
+            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
+            // Read from ref to avoid stale closure in long-lived callback
+            if (preferencesRef.current.readReceipts !== false) {
+                try {
+                    if (current() && typingChannelRef.current) {
+                        typingChannelRef.current.send({
+                            type: 'broadcast',
+                            event: 'read_receipt',
+                            payload: { readerId: user.id, conversationId },
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    }
+                } catch { /* non-critical */ }
+            }
+
+            //  Immediately refresh global unread count to clear header badge
+            if (workspaceRef.current !== requestScope) return;
+            if (refreshUnread) refreshUnread();
+            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
+            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+
+        } catch (error) {
+            console.warn('[Messenger] Read persistence failed:', error);
+            if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+        }
+    };
+    markConversationReadRef.current = markConversationRead;
+
+    const loadMessages = async (conversationId) => {
+        const requestScope = workspaceKey;
+        const requestSequence = ++messagesRequestSequence.current;
+        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId && messagesRequestSequence.current === requestSequence;
         // Optimistic UI check for instant loading
         const cachedMessages = messageCacheRef.current.get(conversationId);
         if (cachedMessages) {
@@ -1641,49 +1719,17 @@ function MessengerPage() {
                 setHasMoreMessages(result.messages.length >= 50);
             } else {
                 if (!current()) return;
-                setMessages([]);
-                setHasMoreMessages(false);
+                throw new Error(result.error || 'Messages Unavailable');
             }
 
-            // Mark as read - use API with service role to bypass RLS
-            try {
-                const readToken = getAccessToken();
-                await authedFetch('/api/messenger/mark-read', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(readToken ? { Authorization: `Bearer ${readToken}` } : {}),
-                    },
-                    body: JSON.stringify({ conversationId, userId: user.id }),
-                });
-            } catch (e) {
-                console.warn('Mark read failed:', e);
-            }
-
-            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
-            // Read from ref to avoid stale closure in long-lived callback
-            if (preferencesRef.current.readReceipts !== false) {
-                try {
-                    if (typingChannelRef.current) {
-                        typingChannelRef.current.send({
-                            type: 'broadcast',
-                            event: 'read_receipt',
-                            payload: { readerId: user.id, conversationId },
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                    }
-                } catch { /* non-critical */ }
-            }
-
-            //  Immediately refresh global unread count to clear header badge
-            if (refreshUnread) refreshUnread();
-            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
-            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+            await markConversationRead(conversationId);
 
         } catch (e) {
             console.warn('Load messages error:', e);
             if (current()) setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' });
+        } finally {
+            if (current()) setLoadingMessages(false);
         }
-        if (current()) setLoadingMessages(false);
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadMessagesRef.current = loadMessages;
@@ -1805,10 +1851,7 @@ function MessengerPage() {
         // Regular conversation handling
         await loadMessages(conversation.id);
 
-        // Update local unread count
-        setConversations(prev => prev.map(c =>
-            c.id === conversation.id ? { ...c, unreadCount: 0 } : c
-        ));
+        // The persisted read receipt clears the badge after messages load.
 
         // Check online presence of the other user
         // Capture at dispatch time — if user switches conversations before await resolves,
@@ -3440,8 +3483,8 @@ function MessengerPage() {
                         margin: 0 auto; 
                         overflow-x: hidden;
                         /* Keep the full-screen composer above the app-shell footer. */
-                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
-                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - var(--sp-footer-height, 56px))' : 'calc(100vh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         padding-bottom: ${router.query.bottomPad ? `${parseInt(router.query.bottomPad, 10)}px` : '0px'};
                         box-sizing: border-box;
                     }
@@ -3449,8 +3492,8 @@ function MessengerPage() {
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
-                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - var(--sp-footer-height, 56px))' : 'calc(100vh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         }
                         
                         /* Smaller avatars on mobile */
@@ -3894,7 +3937,10 @@ function MessengerPage() {
                     display: (isMobile && !showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
                     height: '100%',
+                    minHeight: 0,
+                    flexShrink: 0,
                 }}>
+                    <div data-messenger-inbox-scroll style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                     {/* Header - SmarterPoker Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
@@ -3946,6 +3992,8 @@ function MessengerPage() {
 
                     <ClubArenaWorkspace clubs={joinedClubs} open={clubDrawerOpen}
                         clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
+                        unreadCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.counts : messengerUnread?.clubs?.[workspaceSelection.clubId]}
+                        clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
                     {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
@@ -3988,7 +4036,7 @@ function MessengerPage() {
                     )}
 
                     {/* Conversations List - Only show actual conversations with messages */}
-                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                    <div>
                         {!loading && !inboxError && weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
                             <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
                                 status: weeklyPreview.report.status, lines: weeklyPreview.report }}
@@ -4193,8 +4241,11 @@ function MessengerPage() {
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <div style={{
+                    {/* Bottom actions share the same anchored layout in every inbox. */}
+                    </div>
+                    <div data-messenger-bottom-actions style={{
+                        flexShrink: 0,
+                        marginTop: 'auto',
                         borderTop: `1px solid ${C.border}`,
                         display: 'flex',
                         flexDirection: 'column',
@@ -4292,18 +4343,6 @@ function MessengerPage() {
                             gap: 12,
                         }}>
                             <ReportBugWidget contextPath="/hub/messenger" theme={isDarkMode ? 'dark' : 'light'} />
-
-                            <Link href="/hub/social-media" style={{
-                                color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            }}>
-                                <span style={{
-                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                    width: 28, height: 28, borderRadius: '50%', background: C.bg,
-                                    fontSize: 14, color: C.text,
-                                }}>←</span>
-                            Back To Social Hub
-                        </Link>
                     </div>
                 </div>
                 </aside>
