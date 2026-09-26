@@ -37,10 +37,13 @@ export default async function handler(req, res) {
       if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
       const userId = user.id; // From JWT, NOT body
-      const { conversationId } = req.body || {};
+      const { conversationId, throughMessageId } = req.body || {};
 
       if (!conversationId) {
           return res.status(400).json({ success: false, error: 'conversationId required' });
+      }
+      if (typeof throughMessageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(throughMessageId)) {
+          return res.status(400).json({ success: false, error: 'A Displayed Message Is Required' });
       }
 
 
@@ -60,16 +63,17 @@ export default async function handler(req, res) {
 
           // Apply the same private invoice and club membership boundary as reading.
           await getMessengerWorkspace(getSupabase(), userId, { workspace: 'resolve', conversationId });
-          const { data: receipt, error: rpcErr } = await getSupabase().rpc('fn_mark_messages_read', {
+          const { data: receipt, error: rpcErr } = await getSupabase().rpc('fn_mark_messages_read_through', {
               p_conversation_id: conversationId,
               p_user_id: userId,
+              p_through_message_id: throughMessageId,
           });
           if (rpcErr || receipt?.success !== true) {
               console.warn('[MARK-READ] Read persistence failed:', rpcErr?.code || receipt?.error);
               return res.status(503).json({ success: false, error: 'Read Status Could Not Be Saved' });
           }
 
-          return res.json({ success: true });
+          return res.json({ success: true, marked: receipt.marked, readThrough: receipt.readThrough });
 
       } catch (error) {
           console.warn('[MARK-READ] Error:', error);
