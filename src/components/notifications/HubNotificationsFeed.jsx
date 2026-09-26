@@ -113,6 +113,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
     const [menuOpen, setMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const notificationsRef = useRef([]);
+    const feedRequestSequence = useRef(0);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const hasCacheRef = useRef(false);
@@ -203,6 +204,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             return;
         }
         setUser(au);
+        const requestSequence = ++feedRequestSequence.current;
+        const current = () => mounted.current && getAuthUser()?.id === au.id && feedRequestSequence.current === requestSequence;
 
         try {
             const token = await getAccessToken();
@@ -215,20 +218,21 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
 
             if (!res.ok) {
                 console.warn('[Notifications] feed API returned', res.status);
-                if (mounted.current) setLoading(false);
+                if (current()) setLoading(false);
                 return;
             }
 
             const feedData = await res.json();
             if (!feedData.success) {
-                if (mounted.current) setLoading(false);
+                if (current()) setLoading(false);
                 return;
             }
 
             const enriched = (feedData.notifications || []).filter(isVisibleNotification);
             const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
 
-            if (mounted.current && getAuthUser()?.id === au.id) {
+            if (current()) {
+                notificationsRef.current = enriched;
                 setNotifications(enriched);
                 setLoading(false);
 
@@ -239,14 +243,14 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 } catch (_) { console.warn('[App] Handled exception:', _?.message || _); }
             }
 
-            if (totalUnread === 0 && enriched.length === 0 && mounted.current) {
+            if (totalUnread === 0 && enriched.length === 0 && current()) {
                 setLoading(false);
             }
 
         } catch (err) {
             if (err?.name !== 'AbortError') {
                 console.warn('[Notifications] fetch failed:', err);
-                if (mounted.current) setLoading(false);
+                if (current()) setLoading(false);
             }
         }
     }, []);
@@ -352,7 +356,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
 
     const mounted = useRef(true);
     useEffect(() => {
-        return () => { mounted.current = false; };
+        mounted.current = true;
+        return () => { mounted.current = false; feedRequestSequence.current++; };
     }, []);
 
     useTrainingBus('notifications');
@@ -425,26 +430,34 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             .subscribe();
 
         const cleanupNotifBc = listenBroadcast('smarter_poker_notif_sync', (msg) => {
-            if (msg?.tabId === BROADCAST_TAB_ID) return;
-            // [Audit#3] Another tab deleted a notif — sync it here too
-            if (msg?.action === 'delete' && msg?.id && mounted.current) {
-                setNotifications(prev => prev.filter(n => n.id !== msg.id));
-            } else if (msg?.action === 'mark_read' && msg?.id && mounted.current) {
-                // [Audit] Another tab marked ONE notif as read — sync it
-                setNotifications(prev => prev.map(n => n.id === msg.id ? { ...n, read: true } : n));
-            } else if ((msg === 'refresh_notifications' || msg?.action === 'refresh_notifications') && mounted.current) {
-                // Generic refresh - ignore local feed state, handled natively by Supabase Realtime
-            } else if (mounted.current && msg?.action === 'mark_all_read') {
-                // Explicit mark all as read command
-                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            if ((msg?.tabId === BROADCAST_TAB_ID && msg?.instanceId === instanceId) || !mounted.current) return;
+            if (msg?.userId && msg.userId !== user.id) return;
+            // Deletion has an existing optimistic animation and broadcasts
+            // before persistence. Preserve that flow; its failure emits refresh.
+            if (msg?.action === 'delete' && msg?.id) {
+                if (msg.tabId !== BROADCAST_TAB_ID) setNotifications(prev => prev.filter(n => n.id !== msg.id));
+                return;
+            }
+            const action = typeof msg === 'string' ? msg : msg?.action;
+            if (['mark_read', 'mark_all_read', 'refresh_notifications'].includes(action)) {
+                // The broadcast is an invalidation, never authority to read or
+                // delete every row. Fetch the persisted state for this account.
+                fetchNotifications();
             }
         });
+        const catchUp = () => {
+            if (document.visibilityState === 'visible') fetchNotifications();
+        };
+        document.addEventListener('visibilitychange', catchUp);
+        window.addEventListener('online', catchUp);
 
         return () => {
             supabase.removeChannel(_ch);
             cleanupNotifBc();
+            document.removeEventListener('visibilitychange', catchUp);
+            window.removeEventListener('online', catchUp);
         };
-    }, [user?.id, instanceId]);
+    }, [user?.id, instanceId, fetchNotifications]);
 
     const markAsRead = async (input) => {
         const actor = getAuthUser()?.id;
@@ -457,6 +470,8 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         try {
             await persistNotificationReads(ids, await getAccessToken());
             if (!mounted.current || getAuthUser()?.id !== actor) return false;
+            // Discard any response that began before this persisted write.
+            feedRequestSequence.current++;
             const readIds = new Set(ids);
             const next = notificationsRef.current.map(n => readIds.has(n.id) ? { ...n, read: true, is_read: true } : n);
             notificationsRef.current = next;
@@ -464,7 +479,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             try { localStorage.setItem('sp-notif-cache', notificationCache(next, actor)); } catch (_) { /* storage unavailable */ }
             eventBus.emit(EventType.NOTIFICATIONS_READ, { count: ids.length }, 'NotificationsPage');
             busEmit.dataMutated('notifications');
-            broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID });
+            broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID, instanceId, userId: actor });
             const fresh = await refreshNotifications({ force: true, invalidate: true });
             if (fresh && getAuthUser()?.id === actor) {
                 publishCount(fresh.notificationCount);
@@ -495,7 +510,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         observerRef.current = observer;
         feedRoot.current?.querySelectorAll('.unread-notification-row').forEach(el => observer.observe(el));
         return () => observer.disconnect();
-    }, [notifications.length, loading, user?.id]);
+    }, [notifications, loading, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // FRIEND REQUEST HANDLERS (SmarterPoker-style: Decline = Auto-Follow)

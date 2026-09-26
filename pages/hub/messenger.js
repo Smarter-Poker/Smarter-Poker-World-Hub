@@ -15,7 +15,7 @@ import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady, authedFetch } from '../../src/lib/authUtils';
 import useMessengerConversationLink from '../../src/hooks/useMessengerConversationLink';
-import { broadcastSync } from '../../src/lib/broadcastSync';
+import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
@@ -508,6 +508,7 @@ function MessengerPage() {
     // Global unread count for header badge - refresh after reading messages
     const { refreshUnread, messengerUnread } = useUnreadCount();
     const [workspaceUnread, setWorkspaceUnread] = useState(null);
+    const [incomingRead, setIncomingRead] = useState(null);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -571,6 +572,9 @@ function MessengerPage() {
     const goOnlineUserRef = useRef(null);
     const loadConversationsRef = useRef(null);
     const loadMessagesRef = useRef(null);
+    const markConversationReadRef = useRef(null);
+    const inboxRequestSequence = useRef(0);
+    const messagesRequestSequence = useRef(0);
     // PERF 2026-08-24: in-flight de-duplication for loadConversations.
     // Opening the messenger fired the SAME full inbox request 3-4 times
     // concurrently: the init effect, the identity effect (user?.id null->id),
@@ -604,18 +608,29 @@ function MessengerPage() {
             // Reload missed messages after reconnect — use refs to avoid stale closures
             const currentUser = goOnlineUserRef.current;
             if (currentUser?.id) {
-                loadConversationsRef.current?.(currentUser.id);
+                loadConversationsRef.current?.(currentUser.id, { invalidate: true });
                 const activeConv = activeConversationRef.current;
                 if (activeConv?.id && !activeConv.isJarvis) {
                     loadMessagesRef.current?.(activeConv.id);
                 }
             }
         };
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible' && isOnline()) goOnline();
+        };
         const goOffline = () => setConnectionStatus('disconnected');
+        const stopUnreadSync = listenBroadcast('smarter_poker_unread_sync', msg => {
+            if (msg !== 'refresh_unread') return;
+            const currentUser = goOnlineUserRef.current;
+            if (currentUser?.id) loadConversationsRef.current?.(currentUser.id, { invalidate: true });
+        });
+        document.addEventListener('visibilitychange', onVisibility);
         window.addEventListener('online', goOnline);
         window.addEventListener('offline', goOffline);
         if (!navigator.onLine) setConnectionStatus('disconnected');
         return () => {
+            stopUnreadSync();
+            document.removeEventListener('visibilitychange', onVisibility);
             window.removeEventListener('online', goOnline);
             window.removeEventListener('offline', goOffline);
         };
@@ -1082,6 +1097,7 @@ function MessengerPage() {
     useEffect(() => {
         if (!user || !activeConversation) return;
 
+        const requestScope = workspaceKey;
         const channel = supabase
             .channel(`conversation:${activeConversation.id}`)
             .on('postgres_changes', {
@@ -1121,12 +1137,14 @@ function MessengerPage() {
                     }
                 }
 
-                if (activeConversationRef.current?.id !== newMsg.conversation_id) return;
+                if (workspaceRef.current !== requestScope || activeConversationRef.current?.id !== newMsg.conversation_id) return;
                 setMessages(prev => {
                     // Check for duplicates (defensive against null entries)
                     if (prev.some(m => m && m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, profiles: profile || null }];
                 });
+
+                setIncomingRead({ scope: requestScope, conversationId: newMsg.conversation_id, messageId: newMsg.id });
 
                 // FIX #9: Delivery confirmation — broadcast back to sender that we received their message
                 try {
@@ -1181,6 +1199,13 @@ function MessengerPage() {
     // on every setConversations call (sidebar preview refresh), which would tear down the
     // subscription and create a gap window on every incoming message.
     }, [user?.id, activeConversation?.id]);
+
+    // Read only the message committed to this visible conversation. Returning
+    // to a hidden window reloads its authoritative messages through goOnline.
+    useEffect(() => {
+        if (!incomingRead || incomingRead.scope !== workspaceRef.current) return;
+        markConversationReadRef.current?.(incomingRead.conversationId);
+    }, [incomingRead?.scope, incomingRead?.conversationId, incomingRead?.messageId]);
 
     // Typing indicator broadcast
     const typingTimerRef = useRef(null);
@@ -1542,7 +1567,7 @@ function MessengerPage() {
         }
     };
 
-    const loadConversations = async (userId) => {
+    const loadConversations = async (userId, { invalidate = false } = {}) => {
         // PERF 2026-08-24: collapse concurrent duplicate loads (see
         // loadConvInFlightRef). Keyed on the exact request identity, so a
         // genuine context switch (Personal <-> Club) is never de-duplicated
@@ -1550,7 +1575,7 @@ function MessengerPage() {
         // request settles, so a LATER refresh always issues a fresh fetch.
         const inFlightKey = workspaceKey;
         const pending = loadConvInFlightRef.current;
-        if (pending && pending.key === inFlightKey) return pending.promise;
+        if (!invalidate && pending && pending.key === inFlightKey) return pending.promise;
 
         const run = loadConversationsInner(userId);
         loadConvInFlightRef.current = { key: inFlightKey, promise: run };
@@ -1563,6 +1588,8 @@ function MessengerPage() {
 
     const loadConversationsInner = async (userId) => {
         const requestKey = workspaceKey;
+        const requestSequence = ++inboxRequestSequence.current;
+        const current = () => workspaceRef.current === requestKey && inboxRequestSequence.current === requestSequence;
         if (!isOnline()) {
             setInboxError('You Are Offline. Reconnect To Refresh This Inbox.');
             setLoading(false);
@@ -1576,7 +1603,7 @@ function MessengerPage() {
                 body: JSON.stringify({ workspace: workspaceSelection.clubId ? 'club' : 'social', ...workspaceSelection }),
             });
             const result = await resp.json();
-            if (workspaceRef.current !== requestKey) return;
+            if (!current()) return;
             if (!resp.ok || !result.success || !Array.isArray(result.conversations)) throw new Error(result.error || 'Inbox Unavailable');
             const previous = new Map(conversationsRef.current.map(c => [c.id, c.unreadCount]));
             if (result.conversations.some(c => previous.has(c.id) && c.unreadCount > previous.get(c.id) && c.id !== activeConversationRef.current?.id)) {
@@ -1589,19 +1616,68 @@ function MessengerPage() {
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
-            if (workspaceRef.current !== requestKey) return;
+            if (!current()) return;
             setConversations([]);
             setInboxError(error.message || 'Inbox Unavailable. Please Retry.');
         } finally {
-            if (workspaceRef.current === requestKey) setLoading(false);
+            if (current()) setLoading(false);
         }
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadConversationsRef.current = loadConversations;
 
-    const loadMessages = async (conversationId) => {
+    const markConversationRead = async (conversationId) => {
         const requestScope = workspaceKey;
         const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId;
+        try {
+            if (!current() || document.visibilityState === 'hidden') return;
+            // Do not clear local/global badges or emit a read receipt on failure.
+            const readResponse = await authedFetch('/api/messenger/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ conversationId }),
+            });
+            const readResult = await readResponse.json();
+            if (!readResponse.ok || readResult.success !== true) {
+                if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+                return;
+            }
+            if (current()) {
+                setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c));
+                loadConversationsRef.current?.(user.id, { invalidate: true });
+            }
+
+            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
+            // Read from ref to avoid stale closure in long-lived callback
+            if (preferencesRef.current.readReceipts !== false) {
+                try {
+                    if (current() && typingChannelRef.current) {
+                        typingChannelRef.current.send({
+                            type: 'broadcast',
+                            event: 'read_receipt',
+                            payload: { readerId: user.id, conversationId },
+                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
+                    }
+                } catch { /* non-critical */ }
+            }
+
+            //  Immediately refresh global unread count to clear header badge
+            if (workspaceRef.current !== requestScope) return;
+            if (refreshUnread) refreshUnread();
+            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
+            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+
+        } catch (error) {
+            console.warn('[Messenger] Read persistence failed:', error);
+            if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+        }
+    };
+    markConversationReadRef.current = markConversationRead;
+
+    const loadMessages = async (conversationId) => {
+        const requestScope = workspaceKey;
+        const requestSequence = ++messagesRequestSequence.current;
+        const current = () => workspaceRef.current === requestScope && activeConversationRef.current?.id === conversationId && messagesRequestSequence.current === requestSequence;
         // Optimistic UI check for instant loading
         const cachedMessages = messageCacheRef.current.get(conversationId);
         if (cachedMessages) {
@@ -1646,41 +1722,7 @@ function MessengerPage() {
                 throw new Error(result.error || 'Messages Unavailable');
             }
 
-            if (!current() || document.visibilityState === 'hidden') return;
-            // Do not clear local/global badges or emit a read receipt on failure.
-            const readResponse = await authedFetch('/api/messenger/mark-read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body: JSON.stringify({ conversationId }),
-            });
-            const readResult = await readResponse.json();
-            if (!readResponse.ok || readResult.success !== true) {
-                if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
-                return;
-            }
-            if (current()) {
-                setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c));
-                loadConversationsRef.current?.(user.id);
-            }
-
-            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
-            // Read from ref to avoid stale closure in long-lived callback
-            if (preferencesRef.current.readReceipts !== false) {
-                try {
-                    if (typingChannelRef.current) {
-                        typingChannelRef.current.send({
-                            type: 'broadcast',
-                            event: 'read_receipt',
-                            payload: { readerId: user.id, conversationId },
-                        }).catch(e => console.warn('[App] Handled promise rejection:', e?.message || e));
-                    }
-                } catch { /* non-critical */ }
-            }
-
-            //  Immediately refresh global unread count to clear header badge
-            if (refreshUnread) refreshUnread();
-            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
-            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
+            await markConversationRead(conversationId);
 
         } catch (e) {
             console.warn('Load messages error:', e);
