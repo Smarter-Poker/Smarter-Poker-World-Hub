@@ -12,7 +12,7 @@
  * which every footer has. No other movement is permitted.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
@@ -428,6 +428,10 @@ const FOOTER_HIT_ZONE_ROUNDING_GUARD = 1;
 const artworkStageStyle = (artwork, itemCount = 0) => {
   const display = artworkDisplayBounds(artwork);
   const aspect = display.width / display.height;
+  // Social/Messenger uses the owner's edge-to-edge frame at its native ratio.
+  if (artwork.fullBleed) return {
+    width: '100%', maxWidth: '100%', aspectRatio: `${display.width} / ${display.height}`, flex: '0 0 auto',
+  };
   const controls = Number.isFinite(itemCount) ? Math.max(0, Math.trunc(itemCount)) : 0;
   // WebKit can quantize a 264px six-way percentage split to 43.984375px per
   // item. One shared pixel keeps every measured target safely at or above 44.
@@ -642,6 +646,19 @@ const activeDestination = (items, currentLocation) => {
 };
 
 function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = false, reveal }) {
+  const navRef = useRef(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const publish = () => document.documentElement.style.setProperty('--sp-footer-height', `${nav.getBoundingClientRect().height}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(nav);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty('--sp-footer-height');
+    };
+  }, [footer.id]);
   const artwork = footer.artwork;
   const items = footer.items || [];
   const bounds = artwork.contentBounds || {
@@ -658,6 +675,7 @@ function ArtworkBottomNav({ footer, activeHref, warm, hidden = false, armed = fa
   return (
     <nav
       aria-label={`${footer.label} footer`}
+      ref={navRef}
       className="bn-nav bn-artwork-nav"
       data-global-bottom-nav="true"
       data-footer-world={footer.id}

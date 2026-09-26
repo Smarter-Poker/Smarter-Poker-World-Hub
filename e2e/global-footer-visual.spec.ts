@@ -163,7 +163,7 @@ const expectedArtworkStage = (
       ? artwork.contentBounds
       : artwork;
   const aspect = display.width / display.height;
-  const width = Math.min(
+  const width = ('fullBleed' in artwork && artwork.fullBleed) ? viewportWidth : Math.min(
     viewportWidth,
     Math.max(world.items.length * 44 + 1, expectedClubFooterHeight(viewportWidth) * aspect)
   );
