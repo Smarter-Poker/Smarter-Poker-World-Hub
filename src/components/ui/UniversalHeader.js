@@ -319,7 +319,7 @@ export default function UniversalHeader({
   );
   const displayAvatar = isMounted ? resolvedPortrait || '/default-avatar.png' : null;
   const safeUnreadCount = isMounted ? unreadCount : 0;
-  const safeNotificationCount = isMounted ? notificationCount : 0;
+  const safeNotificationCount = isMounted ? liveNotificationCount : 0;
   const safeIsVip = isMounted ? isVip : false;
 
   // Live Help state

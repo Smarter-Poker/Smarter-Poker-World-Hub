@@ -506,7 +506,8 @@ function MessengerPage() {
     };
 
     // Global unread count for header badge - refresh after reading messages
-    const { refreshUnread } = useUnreadCount();
+    const { refreshUnread, messengerUnread } = useUnreadCount();
+    const [workspaceUnread, setWorkspaceUnread] = useState(null);
 
     const messagesEndRef = useRef(null);
     const searchTimeout = useRef(null);
@@ -1584,6 +1585,7 @@ function MessengerPage() {
             setConnectionStatus('connected');
             setClubAccess({ userId, clubs: result.clubs });
             setConversations(result.conversations);
+            setWorkspaceUnread({ key: requestKey, counts: result.unreadCounts });
             setWeeklyPreview(result.weeklySummary ? { key: requestKey, report: result.weeklySummary } : null);
             setInboxError(null);
         } catch (error) {
@@ -1641,23 +1643,24 @@ function MessengerPage() {
                 setHasMoreMessages(result.messages.length >= 50);
             } else {
                 if (!current()) return;
-                setMessages([]);
-                setHasMoreMessages(false);
+                throw new Error(result.error || 'Messages Unavailable');
             }
 
-            // Mark as read - use API with service role to bypass RLS
-            try {
-                const readToken = getAccessToken();
-                await authedFetch('/api/messenger/mark-read', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(readToken ? { Authorization: `Bearer ${readToken}` } : {}),
-                    },
-                    body: JSON.stringify({ conversationId, userId: user.id }),
-                });
-            } catch (e) {
-                console.warn('Mark read failed:', e);
+            if (!current() || document.visibilityState === 'hidden') return;
+            // Do not clear local/global badges or emit a read receipt on failure.
+            const readResponse = await authedFetch('/api/messenger/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ conversationId }),
+            });
+            const readResult = await readResponse.json();
+            if (!readResponse.ok || readResult.success !== true) {
+                if (current()) setToast({ type: 'error', message: 'Read Status Could Not Be Saved. Please Reopen This Conversation.' });
+                return;
+            }
+            if (current()) {
+                setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unreadCount: 0 } : c));
+                loadConversationsRef.current?.(user.id);
             }
 
             // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
@@ -1682,8 +1685,9 @@ function MessengerPage() {
         } catch (e) {
             console.warn('Load messages error:', e);
             if (current()) setToast({ type: 'error', message: 'Messages Could Not Be Loaded. Please Retry.' });
+        } finally {
+            if (current()) setLoadingMessages(false);
         }
-        if (current()) setLoadingMessages(false);
     };
     // Keep ref in sync so the reconnect handler always calls the latest version
     loadMessagesRef.current = loadMessages;
@@ -1805,10 +1809,7 @@ function MessengerPage() {
         // Regular conversation handling
         await loadMessages(conversation.id);
 
-        // Update local unread count
-        setConversations(prev => prev.map(c =>
-            c.id === conversation.id ? { ...c, unreadCount: 0 } : c
-        ));
+        // The persisted read receipt clears the badge after messages load.
 
         // Check online presence of the other user
         // Capture at dispatch time — if user switches conversations before await resolves,
@@ -3440,8 +3441,8 @@ function MessengerPage() {
                         margin: 0 auto; 
                         overflow-x: hidden;
                         /* Keep the full-screen composer above the app-shell footer. */
-                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
-                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100vh - var(--sp-footer-height, 56px))' : 'calc(100vh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
+                        height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         padding-bottom: ${router.query.bottomPad ? `${parseInt(router.query.bottomPad, 10)}px` : '0px'};
                         box-sizing: border-box;
                     }
@@ -3449,8 +3450,8 @@ function MessengerPage() {
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 110px - env(safe-area-inset-bottom, 0px))'};
-                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))' : 'calc(100dvh - 110px - env(safe-area-inset-bottom, 0px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100vh - var(--sp-footer-height, 56px))' : 'calc(100vh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
+                            height: ${router.query.hideHeader === 'true' ? 'calc(100dvh - var(--sp-footer-height, 56px))' : 'calc(100dvh - var(--sp-header-height, 54px) - var(--sp-footer-height, 56px))'};
                         }
                         
                         /* Smaller avatars on mobile */
@@ -3894,7 +3895,10 @@ function MessengerPage() {
                     display: (isMobile && !showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
                     height: '100%',
+                    minHeight: 0,
+                    flexShrink: 0,
                 }}>
+                    <div data-messenger-inbox-scroll style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                     {/* Header - SmarterPoker Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
@@ -3946,6 +3950,8 @@ function MessengerPage() {
 
                     <ClubArenaWorkspace clubs={joinedClubs} open={clubDrawerOpen}
                         clubId={workspaceSelection.clubId} folder={workspaceSelection.folder} theme={C}
+                        unreadCounts={workspaceUnread?.key === workspaceKey ? workspaceUnread.counts : messengerUnread?.clubs?.[workspaceSelection.clubId]}
+                        clubUnread={messengerUnread?.clubs}
                         onEnter={enterClubWorkspace} onExit={leaveClubWorkspace}
                         onFolder={folder => setWorkspaceSelection(prev => ({ ...prev, folder }))} />
                     {loading && <div role="status" style={{ padding: 12, color: C.textSec }}>Loading Inbox...</div>}
@@ -3988,7 +3994,7 @@ function MessengerPage() {
                     )}
 
                     {/* Conversations List - Only show actual conversations with messages */}
-                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                    <div>
                         {!loading && !inboxError && weeklyPreview?.key === workspaceKey && selectedClub?.canManage && workspaceSelection.folder === 'invoices' && <div style={{ padding: 12 }}>
                             <AccountingInvoiceCard theme={C} meta={{ invoice_type: 'club_weekly_accounting', preview: true,
                                 status: weeklyPreview.report.status, lines: weeklyPreview.report }}
@@ -4193,8 +4199,11 @@ function MessengerPage() {
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <div style={{
+                    {/* Bottom actions share the same anchored layout in every inbox. */}
+                    </div>
+                    <div data-messenger-bottom-actions style={{
+                        flexShrink: 0,
+                        marginTop: 'auto',
                         borderTop: `1px solid ${C.border}`,
                         display: 'flex',
                         flexDirection: 'column',
@@ -4292,18 +4301,6 @@ function MessengerPage() {
                             gap: 12,
                         }}>
                             <ReportBugWidget contextPath="/hub/messenger" theme={isDarkMode ? 'dark' : 'light'} />
-                            
-                            <Link href="/hub/social-media" style={{
-                                color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                            }}>
-                                <span style={{
-                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                    width: 28, height: 28, borderRadius: '50%', background: C.bg,
-                                    fontSize: 14, color: C.text,
-                                }}>←</span>
-                            Back To Social Hub
-                        </Link>
                     </div>
                 </div>
                 </aside>
