@@ -19,14 +19,14 @@
     "persistenceFiles": 77,
     "realtimeFiles": 6,
     "tests": 149,
-    "markerCandidates": 332,
+    "markerCandidates": 331,
     "possibleUnwiredFunctions": 378,
     "routeStateCells": 752,
     "routeStateCoverageGaps": 277,
     "routeStateUnassignedGaps": 0,
     "ctaWiringGaps": 0,
     "markerPhaseReview": 0,
-    "markerDocumentedFollowUp": 107,
+    "markerDocumentedFollowUp": 106,
     "functionPhaseReview": 0
   },
   "games": [
@@ -46990,62 +46990,70 @@
       },
       "realtime": {
         "channels": 1,
-        "postgresChanges": 4,
+        "postgresChanges": 3,
         "webSockets": 0,
         "eventSources": 0
       },
       "functions": [
         {
           "name": "UnreadProvider",
-          "line": 51,
-          "references": 9,
+          "line": 23,
+          "references": 6,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "useUnreadCount",
-          "line": 357,
+          "line": 232,
           "references": 2,
           "exported": true,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
+          "name": "refreshCounts",
+          "line": 63,
+          "references": 5,
+          "exported": false,
+          "defaultExport": false,
+          "namedFunctionExpression": false
+        },
+        {
           "name": "refreshUnread",
-          "line": 86,
-          "references": 8,
+          "line": 81,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "refreshNotifications",
-          "line": 142,
-          "references": 8,
+          "line": 82,
+          "references": 5,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "scheduleNotifRefresh",
-          "line": 213,
-          "references": 3,
+          "line": 99,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "tick",
-          "line": 300,
-          "references": 6,
+          "line": 174,
+          "references": 4,
           "exported": false,
           "defaultExport": false,
           "namedFunctionExpression": false
         },
         {
           "name": "onVisibility",
-          "line": 311,
+          "line": 184,
           "references": 3,
           "exported": false,
           "defaultExport": false,
@@ -47053,7 +47061,7 @@
         },
         {
           "name": "setAndBroadcastUnreadCount",
-          "line": 331,
+          "line": 205,
           "references": 2,
           "exported": false,
           "defaultExport": false,
@@ -47061,17 +47069,7 @@
         }
       ],
       "possibleUnwiredFunctions": [],
-      "markers": [
-        {
-          "kind": "FALLBACK",
-          "line": 167,
-          "excerpt": "// Fallback: social-only count straight off the table.",
-          "disposition": "runtime-resilience-fallback",
-          "review": "documented-follow-up",
-          "followUpPhase": 15,
-          "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-        }
-      ]
+      "markers": []
     },
     {
       "file": "src/hooks/useVIP.js",
@@ -63319,7 +63317,7 @@
       "file": "src/hooks/useUnreadCount.jsx",
       "subscriptions": {
         "channels": 1,
-        "postgresChanges": 4,
+        "postgresChanges": 3,
         "webSockets": 0,
         "eventSources": 0
       }
@@ -70717,7 +70715,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -71555,7 +71553,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -71914,7 +71912,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -72234,7 +72232,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -72551,7 +72549,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -73236,7 +73234,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -73865,7 +73863,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -74284,7 +74282,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -74619,7 +74617,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -74935,7 +74933,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -75719,7 +75717,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -76258,7 +76256,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -76577,7 +76575,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -77868,7 +77866,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -78232,7 +78230,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -78600,7 +78598,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -78972,7 +78970,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -79288,7 +79286,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -79618,7 +79616,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -81812,7 +81810,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -83046,7 +83044,7 @@
           "file": "src/hooks/useUnreadCount.jsx",
           "subscriptions": {
             "channels": 1,
-            "postgresChanges": 4,
+            "postgresChanges": 3,
             "webSockets": 0,
             "eventSources": 0
           }
@@ -87076,16 +87074,6 @@
         "review": "documented-follow-up",
         "followUpPhase": 8,
         "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
-      },
-      {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "kind": "FALLBACK",
-        "line": 167,
-        "excerpt": "// Fallback: social-only count straight off the table.",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
       },
       {
         "file": "src/lib/authUtils.js",
@@ -91657,7 +91645,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/contexts/AvatarContext.jsx"
+          "src/contexts/AvatarContext.jsx",
+          "src/hooks/useUnreadCount.jsx"
         ]
       },
       {
@@ -96090,16 +96079,6 @@
         "rationale": "Auth/session/persistence fallback is inventoried for stale-client, expiry, and cross-device verification."
       },
       {
-        "file": "src/hooks/useUnreadCount.jsx",
-        "kind": "FALLBACK",
-        "line": 167,
-        "excerpt": "// Fallback: social-only count straight off the table.",
-        "disposition": "runtime-resilience-fallback",
-        "review": "documented-follow-up",
-        "followUpPhase": 15,
-        "rationale": "Runtime resilience path is inventoried for visibility, determinism, observability, and silent-downgrade testing."
-      },
-      {
         "file": "src/lib/authUtils.js",
         "kind": "FALLBACK",
         "line": 33,
@@ -100669,7 +100648,8 @@
         "review": "accepted",
         "rationale": "Named export is imported by another repository source file.",
         "externalReferenceFiles": [
-          "src/contexts/AvatarContext.jsx"
+          "src/contexts/AvatarContext.jsx",
+          "src/hooks/useUnreadCount.jsx"
         ]
       },
       {
