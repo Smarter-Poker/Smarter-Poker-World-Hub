@@ -114,6 +114,9 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
     const [notifications, setNotifications] = useState([]);
     const notificationsRef = useRef([]);
     const feedRequestSequence = useRef(0);
+    const paginationRef = useRef({ cursor: null, loading: false });
+    const [nextCursor, setNextCursor] = useState(null);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
     const hasCacheRef = useRef(false);
@@ -121,6 +124,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingIds, setDeletingIds] = useState(new Set());
     const processingReadIds = useRef(new Set());
+    const failedReadIds = useRef(new Set());
     const touchStartRef = useRef({ x: 0, y: 0, id: null });
     // 🔲 Hide our own chrome when we are not the page. Two ways that happens:
     // the caller renders us inside the popup (`embedded`), or some surface
@@ -197,12 +201,16 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
     }, [pushEnabled]);
 
     // ── Fetch Notifications (Authoritative Sync) ──
-    const fetchNotifications = useCallback(async (signal) => {
+    const fetchNotifications = useCallback(async (signal, { append = false } = {}) => {
         const au = getAuthUser();
         if (!au) {
             if (mounted.current) setLoading(false);
             return;
         }
+        const cursor = append ? paginationRef.current.cursor : null;
+        if (append && (!cursor || paginationRef.current.loading)) return;
+        paginationRef.current.loading = append;
+        setLoadingMore(append);
         setUser(au);
         const requestSequence = ++feedRequestSequence.current;
         const current = () => mounted.current && getAuthUser()?.id === au.id && feedRequestSequence.current === requestSequence;
@@ -211,29 +219,36 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
             const token = await getAccessToken();
 
             // ── Single unified API call: social + poker + actor profiles server-side ──
-            const res = await fetch('/api/notifications/feed?limit=200&bust=1', {
+            const res = await fetch('/api/notifications/feed?limit=60&bust=1' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''), {
                 headers: { Authorization: 'Bearer ' + token },
+                cache: 'no-store',
                 signal,
             });
 
             if (!res.ok) {
                 console.warn('[Notifications] feed API returned', res.status);
+                if (append && current()) toast.error('More Notifications Could Not Be Loaded. Please Try Again.');
                 if (current()) setLoading(false);
                 return;
             }
 
             const feedData = await res.json();
             if (!feedData.success) {
+                if (append && current()) toast.error('More Notifications Could Not Be Loaded. Please Try Again.');
                 if (current()) setLoading(false);
                 return;
             }
 
-            const enriched = (feedData.notifications || []).filter(isVisibleNotification);
+            const page = (feedData.notifications || []).filter(isVisibleNotification)
+                .map(n => ({ ...n, read: n.read === true || n.is_read === true }));
+            const enriched = append ? [...new Map([...notificationsRef.current, ...page].map(n => [n.id, n])).values()] : page;
             const totalUnread = feedData.totalUnread ?? enriched.filter(n => !n.read).length;
 
             if (current()) {
                 notificationsRef.current = enriched;
                 setNotifications(enriched);
+                paginationRef.current.cursor = feedData.nextCursor || null;
+                setNextCursor(feedData.nextCursor || null);
                 setLoading(false);
 
                 // ── Cache with timestamp for 5-min TTL on next load ──
@@ -250,7 +265,13 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         } catch (err) {
             if (err?.name !== 'AbortError') {
                 console.warn('[Notifications] fetch failed:', err);
+                if (append && current()) toast.error('More Notifications Could Not Be Loaded. Please Try Again.');
                 if (current()) setLoading(false);
+            }
+        } finally {
+            if (current()) {
+                paginationRef.current.loading = false;
+                setLoadingMore(false);
             }
         }
     }, []);
@@ -459,25 +480,32 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         };
     }, [user?.id, instanceId, fetchNotifications]);
 
-    const markAsRead = async (input) => {
+    const markAsRead = async (input, { automatic = false } = {}) => {
         const actor = getAuthUser()?.id;
         if (!actor || actor !== user?.id || document.visibilityState === 'hidden') return false;
         const requested = Array.isArray(input) ? input : [input];
         const ids = [...new Set(requested)].filter(id =>
-            !processingReadIds.current.has(id) && notificationsRef.current.some(n => n.id === id && !n.read));
-        if (!ids.length) return true;
-        ids.forEach(id => processingReadIds.current.add(id));
+            !processingReadIds.current.has(id) && (!automatic || !failedReadIds.current.has(id)) &&
+            notificationsRef.current.some(n => n.id === id && !n.read));
+        if (!ids.length) return !requested.some(id => notificationsRef.current.some(n => n.id === id && !n.read));
+        ids.forEach(id => { processingReadIds.current.add(id); failedReadIds.current.delete(id); });
         try {
-            await persistNotificationReads(ids, await getAccessToken());
+            let savedIds, failure;
+            try { savedIds = await persistNotificationReads(ids, await getAccessToken()); }
+            catch (error) { savedIds = error.savedIds || []; failure = error; }
             if (!mounted.current || getAuthUser()?.id !== actor) return false;
+            if (failure) ids.filter(id => !savedIds.includes(id)).forEach(id => failedReadIds.current.add(id));
+            if (!savedIds.length) throw failure || new Error('Read Status Could Not Be Saved');
             // Discard any response that began before this persisted write.
             feedRequestSequence.current++;
-            const readIds = new Set(ids);
+            paginationRef.current.loading = false;
+            setLoadingMore(false);
+            const readIds = new Set(savedIds);
             const next = notificationsRef.current.map(n => readIds.has(n.id) ? { ...n, read: true, is_read: true } : n);
             notificationsRef.current = next;
             setNotifications(next);
             try { localStorage.setItem('sp-notif-cache', notificationCache(next, actor)); } catch (_) { /* storage unavailable */ }
-            eventBus.emit(EventType.NOTIFICATIONS_READ, { count: ids.length }, 'NotificationsPage');
+            eventBus.emit(EventType.NOTIFICATIONS_READ, { count: savedIds.length }, 'NotificationsPage');
             busEmit.dataMutated('notifications');
             broadcastSync('smarter_poker_notif_sync', { action: 'refresh_notifications', tabId: BROADCAST_TAB_ID, instanceId, userId: actor });
             const fresh = await refreshNotifications({ force: true, invalidate: true });
@@ -485,8 +513,11 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                 publishCount(fresh.notificationCount);
                 if (window.self !== window.top) window.parent.postMessage({ type: 'SP_NOTIF_CLEARED', count: fresh.notificationCount }, window.location.origin);
             }
+            if (failure) throw failure;
             return true;
         } catch (error) {
+            ids.filter(id => notificationsRef.current.some(n => n.id === id && !n.read))
+                .forEach(id => failedReadIds.current.add(id));
             console.warn('[Notifications] Read persistence failed:', error);
             toast.error('Read Status Could Not Be Saved. Please Try Again.');
             return false;
@@ -503,7 +534,7 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
         const observer = new IntersectionObserver(entries => {
             const visible = entries.filter(entry => entry.isIntersecting);
             if (!visible.length) return;
-            markAsRead(visible.map(entry => entry.target.getAttribute('data-notif-id'))).then(saved => {
+            markAsRead(visible.map(entry => entry.target.getAttribute('data-notif-id')), { automatic: true }).then(saved => {
                 if (saved) visible.forEach(entry => observer.unobserve(entry.target));
             });
         }, { threshold: 0.5 });
@@ -717,14 +748,14 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                         <button
                             onClick={async () => {
                                 const saved = await markAsRead(notificationsRef.current.filter(n => !n.read).map(n => n.id));
-                                if (saved) toast.success('Notifications Marked As Read');
+                                if (saved) toast.success('These Notifications Are Marked As Read');
                             }}
                             style={{
                                 background: 'transparent', border: 'none', color: C.blue,
                                 fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: '4px 8px'
                             }}
                         >
-                            Mark All Read
+                            Mark These As Read
                         </button>
                     )}
                 </header>
@@ -1082,6 +1113,16 @@ export default function HubNotificationsFeed({ embedded = false, onNotifCleared 
                         })
                     )}
                 </div>
+
+                {nextCursor && (
+                    <div style={{ maxWidth: 680, margin: '16px auto', textAlign: 'center' }}>
+                        <button type="button" disabled={loadingMore}
+                            onClick={() => fetchNotifications(undefined, { append: true })}
+                            style={{ padding: '12px 24px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.card, color: C.blue, cursor: loadingMore ? 'wait' : 'pointer' }}>
+                            {loadingMore ? 'Loading Notifications...' : 'Load More Notifications'}
+                        </button>
+                    </div>
+                )}
 
                 {/* Bottom padding for mobile nav — CSS .notifications-page handles 70px clearance for non-iframe */}
                 <div style={{ height: isInIframe ? 20 : 0 }} />
