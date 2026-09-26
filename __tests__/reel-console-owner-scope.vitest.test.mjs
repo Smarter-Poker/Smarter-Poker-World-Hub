@@ -50,7 +50,7 @@ describe('Poker Reel console owner scope', () => {
     expect(uploadModal).toMatch(/createReelAccountScope/);
     expect(uploadModal).toMatch(/const ownerToken = accountScopeRef\.current\.capture\(ownerId\)/);
     expect(uploadModal).toMatch(/if \(!isCurrentOwner\(ownerToken\)\) return/);
-    expect(uploadModal).toMatch(/if \(canRenderForOwner\(ownerToken\)\) onSuccess/);
+    expect(uploadModal).toMatch(/if \(canRenderForOwner\(ownerToken\)\) onSuccess\?\.\(publicationResult\.publication\)/);
     expect(recoveryBanner).toMatch(/createReelAccountScope/);
     expect(recoveryBanner).toMatch(/const ownerToken = accountScopeRef\.current\.capture\(scopedOwnerId\)/);
     expect(recoveryBanner).toMatch(/if \(!ownerToken\.isCurrent\(\)\) return/);

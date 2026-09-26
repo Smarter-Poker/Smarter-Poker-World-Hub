@@ -26,7 +26,10 @@ const HAMBURGER_MENU_SOURCE = readFileSync(
 );
 
 const {
+  availableReelsPathForQuery,
   buildReelPath,
+  categoryForReelsRoute,
+  feedModeForReelsRoute,
   fetchPokerReels,
   isPlayablePokerReel,
   isPlayableReel,
@@ -107,11 +110,28 @@ test('canonical Reel links preserve category and old bookmarks can fall back to 
   assert.match(HAMBURGER_MENU_SOURCE, /'Sports', '\/hub\/reels\?category=sports'/);
   assert.match(HAMBURGER_MENU_SOURCE, /'Following', '\/hub\/reels\?category=following'/);
   assert.match(HAMBURGER_MENU_SOURCE, /'Trending', '\/hub\/reels\?category=for-you&feed=trending'/);
-  assert.match(
-    REELS_PAGE_SOURCE,
-    /legacyFeed === 'following'[\s\S]*\? 'following'[\s\S]*legacyFeed === 'foryou' \|\| legacyFeed === 'trending'[\s\S]*\? 'for-you'/,
-    'old feed-only bookmarks must retain their mixed or authenticated category instead of collapsing to poker',
+  const reelId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  assert.equal(categoryForReelsRoute({ id: reelId }), 'for-you');
+  assert.equal(categoryForReelsRoute({ id: reelId, feed: 'following' }), 'following');
+  assert.equal(feedModeForReelsRoute({ id: reelId, feed: 'following' }), 'following');
+  assert.equal(
+    availableReelsPathForQuery({ id: reelId, feed: 'following' }),
+    '/hub/reels?category=following&feed=following',
   );
+  assert.equal(
+    availableReelsPathForQuery({ id: reelId, category: 'sports' }),
+    '/hub/reels?category=sports',
+  );
+  assert.equal(
+    availableReelsPathForQuery({ id: reelId, category: 'casino-slots', feed: 'following' }),
+    '/hub/reels?category=casino-slots',
+    'an explicit category cannot be relabeled by a conflicting legacy feed mode',
+  );
+  assert.equal(
+    availableReelsPathForQuery({ id: reelId, category: 'for-you', feed: 'trending' }),
+    '/hub/reels?category=for-you&feed=trending',
+  );
+  assert.match(REELS_PAGE_SOURCE, /router\.replace\(availableReelsPathForQuery\(router\.query\)\)/);
 });
 
 test('the social carousel requests For You and filters a hostile mixed response locally', async () => {

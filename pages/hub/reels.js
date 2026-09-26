@@ -32,10 +32,12 @@ import {
 } from '../../src/utils/videoToTrainingMapper';
 import HubPageSummary from '../../src/components/seo/HubPageSummary';
 import {
+  availableReelsPathForQuery,
   buildReelPath,
+  categoryForReelsRoute,
+  feedModeForReelsRoute,
   fetchPokerReels,
   mergeReels,
-  normalizeReelsCategory,
 } from '../../src/lib/reelsFeedClient';
 import {
   loadReelFollowState,
@@ -235,24 +237,6 @@ function ReelsListing({ items }) {
   );
 }
 
-function firstQueryValue(value) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function categoryForReelsRoute(query = {}) {
-  const deepLinkId = firstQueryValue(query.id);
-  const legacyFeed = String(firstQueryValue(query.feed) || '').trim().toLowerCase();
-  const legacyCategory = legacyFeed === 'following'
-    ? 'following'
-    : legacyFeed === 'foryou' || legacyFeed === 'trending'
-      ? 'for-you'
-      : null;
-  return normalizeReelsCategory(
-    firstQueryValue(query.category),
-    deepLinkId ? 'for-you' : legacyCategory || 'poker',
-  );
-}
-
 const REELS_CATEGORY_COPY = Object.freeze({
   poker: Object.freeze({ label: 'Poker', title: 'Poker Reels', footage: 'poker footage' }),
   'casino-slots': Object.freeze({
@@ -272,12 +256,6 @@ const REELS_CATEGORY_COPY = Object.freeze({
 function presentationForReelsRoute(query = {}) {
   const category = categoryForReelsRoute(query);
   return REELS_CATEGORY_COPY[category] || REELS_CATEGORY_COPY.poker;
-}
-
-function feedModeForReelsRoute(query = {}) {
-  if (categoryForReelsRoute(query) === 'following') return 'following';
-  const requested = String(firstQueryValue(query.feed) || '');
-  return ['following', 'trending'].includes(requested) ? requested : 'foryou';
 }
 
 function reelTopicLabel(reel) {
@@ -2784,13 +2762,25 @@ export default function ReelsPage({ reelsListing = null }) {
     };
   }, [user?.id]);
 
+  const openPublishedPokerReel = useCallback((publication) => {
+    const publishedReelPath = buildReelPath({
+      id: publication?.socialReelId,
+      topic: 'poker',
+    });
+    router.push(
+      publishedReelPath === '/hub/reels'
+        ? '/hub/reels?category=poker'
+        : publishedReelPath
+    );
+  }, [router]);
+
   const uploadModal = showUploadModal && user ? (
     <UploadReelModal
       user={user}
       onClose={() => setShowUploadModal(false)}
-      onSuccess={() => {
+      onSuccess={(publication) => {
         setShowUploadModal(false);
-        loadReels();
+        openPublishedPokerReel(publication);
       }}
     />
   ) : null;
@@ -2804,7 +2794,7 @@ export default function ReelsPage({ reelsListing = null }) {
           description={`Watch And Share Verified ${routePresentation.label} Video On Smarter.Poker Reels. Free To Watch With Source Attribution And Playable Media Checks.`}
           canonical="/hub/reels"
         />
-        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
         {uploadModal}
         <ReelsConsoleScreen
           title="Tuning Reel Signal"
@@ -2835,7 +2825,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <Head>
           <title>Reels | Smarter Poker</title>
         </Head>
-        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
         {uploadModal}
         <ReelsConsoleScreen
           eyebrow="Playback Control"
@@ -2856,7 +2846,7 @@ export default function ReelsPage({ reelsListing = null }) {
             ink: unavailable ? 'silver' : 'blue',
             onClick: () => {
               setLoadError(null);
-              if (unavailable) router.replace('/hub/reels');
+              if (unavailable) router.replace(availableReelsPathForQuery(router.query));
               else loadReels();
             },
           }}
@@ -2875,7 +2865,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <Head>
           <title>Reels | Smarter Poker</title>
         </Head>
-        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+        {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
         {uploadModal}
         <ReelsConsoleScreen
           title={followingSignInRequired ? 'Sign In For Following' : 'No Reels Yet'}
@@ -2968,7 +2958,7 @@ export default function ReelsPage({ reelsListing = null }) {
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
 
-      {user && <ReelPublicationRecoveryBanner user={user} onRecovered={loadReels} />}
+      {user && <ReelPublicationRecoveryBanner user={user} onRecovered={openPublishedPokerReel} />}
 
       {/* Universal Header */}
       {showOverlay && (

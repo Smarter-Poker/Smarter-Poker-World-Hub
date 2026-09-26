@@ -18,6 +18,7 @@ const REELS_SERVER = read('../src/lib/server/reelsFeed.js');
 const RESPONSIBLE_GAMING_NOTICE = read('../src/components/social/ReelResponsibleGamingNotice.jsx');
 const MY_REELS = read('../pages/hub/reels/my-reels.js');
 const SAVED_REELS = read('../pages/hub/reels/saved.js');
+const UPLOAD_REEL_MODAL = read('../src/components/reels/UploadReelModal.jsx');
 
 function between(source, start, end) {
   const from = source.indexOf(start);
@@ -255,7 +256,7 @@ test('new and legacy Reel shares resolve through the canonical deep-link route',
   for (const source of [REELS_PAGE, REELS_COMPONENT, REELS_CAROUSEL]) {
     assert.match(source, /buildReelPath\(currentReel\)/);
   }
-  assert.match(REELS_PAGE, /deepLinkId \? 'for-you' : legacyCategory \|\| 'poker'/);
+  assert.match(REELS_PAGE, /categoryForReelsRoute,/);
   assert.match(REELS_CAROUSEL, /fetch\('\/api\/social\/share-reel-to-feed'/);
   assert.doesNotMatch(REELS_CAROUSEL, /\.from\('social_posts'\)[\s\S]{0,500}\.insert\(/);
   assert.match(SHARE_REEL_API, /readPublicReelById\(\{[\s\S]*category: 'for-you'/);
@@ -397,11 +398,27 @@ test('slots Reels carry the responsible-gaming console notice on every viewer', 
 });
 
 test('following deep links authenticate and mixed collections avoid poker-only copy', () => {
-  assert.match(REELS_PAGE, /function feedModeForReelsRoute/);
+  assert.match(REELS_PAGE, /feedModeForReelsRoute,/);
   assert.equal((REELS_PAGE.match(/feedModeForReelsRoute\(router\.query\)/g) || []).length, 2,
     'both initial and continuation reads must derive following mode from the category');
   assert.doesNotMatch(MY_REELS, /Eligible Poker Clips|Poker Clips/);
   assert.doesNotMatch(SAVED_REELS, /Saved Poker Reels|Poker Clips/);
+});
+
+test('poker uploads leave every origin category through one canonical published-Reel path', () => {
+  assert.match(REELS_PAGE, /const openPublishedPokerReel = useCallback\(\(publication\) => \{[\s\S]*buildReelPath\(\{[\s\S]*publication\?\.socialReelId,[\s\S]*topic: 'poker'/);
+  assert.match(REELS_PAGE, /publishedReelPath === '\/hub\/reels'[\s\S]*'\/hub\/reels\?category=poker'/);
+  assert.match(REELS_PAGE, /onSuccess=\{\(publication\) => \{[\s\S]*openPublishedPokerReel\(publication\)/);
+  assert.equal(
+    (REELS_PAGE.match(/onRecovered=\{openPublishedPokerReel\}/g) || []).length,
+    4,
+    'every loading, error, empty, and loaded recovery banner opens the recovered Poker Reel',
+  );
+  assert.match(UPLOAD_REEL_MODAL, /onSuccess\?\.\(publicationResult\.publication\)/);
+  assert.match(UPLOAD_REEL_MODAL, /Your Reel Is Live\. Open Poker Reels To Watch It\./);
+  assert.match(UPLOAD_REEL_MODAL, /window\.top\.location\.href = publishedReelPath === '\/hub\/reels'/);
+  assert.match(UPLOAD_REEL_MODAL, /window\.top\.location\.href = '\/hub\/reels\?category=poker'/);
+  assert.doesNotMatch(UPLOAD_REEL_MODAL, /Open Poker Reels To Watch It\.[\s\S]{0,180}\/hub\/social-media/);
 });
 
 test('persistent feed and Story caches are viewer-scoped and bounded', () => {

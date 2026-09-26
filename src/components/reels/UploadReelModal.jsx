@@ -13,6 +13,7 @@ import bgUpload from '../../lib/backgroundVideoUpload';
 import { validateVideoFile, generateThumbnail, compressVideo } from '../../lib/videoCompressor';
 import { uploadThumbnail } from '../../lib/thumbnailUploader';
 import { createReelAccountScope } from '../../lib/reelAccountScope.mjs';
+import { buildReelPath } from '../../lib/reelsFeedClient';
 import VideoLibraryConsole, {
     ConsoleCopy,
     ConsoleDataRow,
@@ -361,13 +362,21 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             }
 
             if (wasBackground) {
+                const publishedReelPath = buildReelPath({
+                    id: publicationResult.publication?.socialReelId,
+                    topic: 'poker',
+                });
                 toast.action(
                     'Your Reel Is Live. Open Poker Reels To Watch It.',
-                    () => { window.top.location.href = '/hub/social-media'; },
+                    () => {
+                        window.top.location.href = publishedReelPath === '/hub/reels'
+                            ? '/hub/reels?category=poker'
+                            : publishedReelPath;
+                    },
                     'success'
                 );
             } else {
-                if (canRenderForOwner(ownerToken)) onSuccess?.();
+                if (canRenderForOwner(ownerToken)) onSuccess?.(publicationResult.publication);
             }
         } catch (err) {
             console.warn('Upload error:', err);
@@ -386,7 +395,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
             if (!isCancelled && savedPublication && isCurrentOwner(ownerToken)) {
                 toast.action(
                     'Your Video Is Safe. Tap To Finish Publishing It To Poker Reels.',
-                    () => { window.top.location.href = '/hub/reels'; },
+                    () => { window.top.location.href = '/hub/reels?category=poker'; },
                     'warning'
                 );
             }

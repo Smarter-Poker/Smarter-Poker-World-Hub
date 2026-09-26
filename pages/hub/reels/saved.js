@@ -178,7 +178,7 @@ export default function SavedReels() {
                     pillInk="gold"
                     foot="plates"
                     plates={{
-                        secondary: { label: 'Browse Reels', onClick: () => router.push('/hub/reels'), ink: 'silver' },
+                        secondary: { label: 'Browse Reels', onClick: () => router.push('/hub/reels?category=for-you'), ink: 'silver' },
                         primary: { label: 'My Reels', onClick: () => router.push('/hub/reels/my-reels'), ink: 'white' },
                     }}
                     aria-labelledby="saved-reels-title"
@@ -191,7 +191,7 @@ export default function SavedReels() {
                         : error && savedReels.length === 0 ? <CollectionState text={error} action={<button type="button" onClick={() => loadSavedReels()}>Try Again</button>} />
                         : !user ? <CollectionState text="Sign In To Open Your Saved Reel Archive" action={<Link href="/login">Sign In</Link>} />
                         : savedReels.length === 0 && hasMore ? <CollectionState text="More Archive Records Remain To Be Checked" action={<button type="button" onClick={() => loadSavedReels({ append: true })}>Continue Scan</button>} />
-                        : savedReels.length === 0 ? <CollectionState text="No Saved Reels Yet. Save A Reel And It Will Appear Here" action={<Link href="/hub/reels">Explore Reels</Link>} />
+                        : savedReels.length === 0 ? <CollectionState text="No Saved Reels Yet. Save A Reel And It Will Appear Here" action={<Link href="/hub/reels?category=for-you">Explore Reels</Link>} />
                         : <>
                             <div className="vlc-reel-grid">{savedReels.map((item, index) => <SavedTile key={item.id} item={item} index={index} onRemove={unsaveReel} />)}</div>
                             <CollectionPager

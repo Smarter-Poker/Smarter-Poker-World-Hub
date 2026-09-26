@@ -82,6 +82,40 @@ export function normalizeReelsCategory(value, fallback = 'poker') {
   return category;
 }
 
+function firstReelsQueryValue(value) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export function categoryForReelsRoute(query = {}) {
+  const deepLinkId = String(firstReelsQueryValue(query.id) || '').trim();
+  const legacyFeed = String(firstReelsQueryValue(query.feed) || '').trim().toLowerCase();
+  const legacyCategory = legacyFeed === 'following'
+    ? 'following'
+    : legacyFeed === 'foryou' || legacyFeed === 'trending'
+      ? 'for-you'
+      : null;
+  return normalizeReelsCategory(
+    firstReelsQueryValue(query.category),
+    legacyCategory || (deepLinkId ? 'for-you' : 'poker'),
+  );
+}
+
+export function feedModeForReelsRoute(query = {}) {
+  const category = categoryForReelsRoute(query);
+  const requested = String(firstReelsQueryValue(query.feed) || '').trim().toLowerCase();
+  if (category === 'following') return 'following';
+  if (category === 'for-you' && requested === 'trending') return 'trending';
+  return 'foryou';
+}
+
+export function availableReelsPathForQuery(query = {}) {
+  const category = categoryForReelsRoute(query);
+  const feed = feedModeForReelsRoute(query);
+  const params = new URLSearchParams({ category });
+  if (feed === 'following' || feed === 'trending') params.set('feed', feed);
+  return `/hub/reels?${params.toString()}`;
+}
+
 export function reelCategoryForTopic(value) {
   const topic = String(value || '').trim().toLowerCase();
   if (topic === 'slots') return 'casino-slots';

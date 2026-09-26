@@ -29,6 +29,7 @@ const SAVED_API = read('../pages/api/reels/saved.js');
 const SAVED_STATUS_API = read('../pages/api/reels/saved-status.js');
 const MY_REELS = read('../pages/hub/reels/my-reels.js');
 const SAVED_REELS = read('../pages/hub/reels/saved.js');
+const COLLECTION_COMMAND_RAIL = read('../src/components/reels/ReelCollectionCommandRail.jsx');
 const PREFERENCES = read('../src/services/preferences-service.js');
 
 function loadEligibilityHarness() {
@@ -704,6 +705,24 @@ test('saved-Reels client exhausts cursor pages and chunks targeted status reads 
 });
 
 test('collection views use canonical APIs and latest-request cancellation', () => {
+  for (const [label, category] of [
+    ['For You', 'for-you'],
+    ['Poker', 'poker'],
+    ['Casino And Slots', 'casino-slots'],
+    ['Sports', 'sports'],
+    ['Following', 'following'],
+  ]) {
+    assert.match(
+      COLLECTION_COMMAND_RAIL,
+      new RegExp(`href: '/hub/reels\\?category=${category}', label: '${label}'`),
+    );
+  }
+  assert.match(COLLECTION_COMMAND_RAIL, /categoryForReelsRoute\(router\.query\)/);
+  assert.doesNotMatch(COLLECTION_COMMAND_RAIL, /href: ['"]\/hub\/reels['"], label: ['"]All Reels['"]/);
+  assert.match(MY_REELS, /<ReelCollectionCommandRail \/>/);
+  assert.match(SAVED_REELS, /<ReelCollectionCommandRail \/>/);
+  assert.match(MY_REELS, /router\.push\('\/hub\/reels\?category=for-you'\)/);
+  assert.match(SAVED_REELS, /\/hub\/reels\?category=for-you/);
   assert.match(MY_REELS, /\/api\/reels\/mine\?\$\{params\.toString\(\)\}/);
   assert.doesNotMatch(MY_REELS, /\.from\(['"]social_reels['"]\)/);
   assert.match(MY_REELS, /createLatestRequestGuard/);

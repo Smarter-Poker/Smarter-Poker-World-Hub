@@ -174,7 +174,7 @@ export default function MyReels() {
                         pillInk="blue"
                         foot="plates"
                         plates={{
-                            secondary: { label: 'Browse Reels', onClick: () => router.push('/hub/reels'), ink: 'silver' },
+                            secondary: { label: 'Browse Reels', onClick: () => router.push('/hub/reels?category=for-you'), ink: 'silver' },
                             primary: { label: 'Upload Reel', onClick: () => router.push('/hub/reels?upload=1'), ink: 'white' },
                         }}
                         aria-labelledby="my-reels-title"

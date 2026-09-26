@@ -2,10 +2,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 
 import styles from './ReelCollectionCommandRail.module.css';
+import { categoryForReelsRoute } from '../../lib/reelsFeedClient';
 
 const COMMANDS = Object.freeze([
     { href: '/hub/video-library', label: 'Video Library' },
-    { href: '/hub/reels', label: 'All Reels' },
+    { href: '/hub/reels?category=for-you', label: 'For You', category: 'for-you' },
+    { href: '/hub/reels?category=poker', label: 'Poker', category: 'poker' },
+    { href: '/hub/reels?category=casino-slots', label: 'Casino And Slots', category: 'casino-slots' },
+    { href: '/hub/reels?category=sports', label: 'Sports', category: 'sports' },
+    { href: '/hub/reels?category=following', label: 'Following', category: 'following' },
     { href: '/hub/reels/my-reels', label: 'My Reels' },
     { href: '/hub/reels/saved', label: 'Saved Reels' },
 ]);
@@ -19,7 +24,10 @@ export default function ReelCollectionCommandRail() {
             <span className={styles.label}>Command Rail</span>
             <div className={styles.track}>
                 {COMMANDS.map(command => {
-                    const current = currentPath === command.href;
+                    const current = command.category
+                        ? currentPath === '/hub/reels'
+                            && categoryForReelsRoute(router.query) === command.category
+                        : currentPath === command.href;
                     return (
                         <Link
                             key={command.href}
